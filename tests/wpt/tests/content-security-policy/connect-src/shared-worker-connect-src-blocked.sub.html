@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src *; script-src 'self' 'unsafe-inline';">
+    <title>shared-worker-connect-src-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["xhr blocked","TEST COMPLETE"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+    <p>This test loads a shared worker, delivered with its own
+    policy.  The worker should be blocked from making an XHR
+    as that policy specifies a connect-src 'none', though
+    this resource's policy is connect-src *.  No report
+    should be sent since the worker's policy doesn't specify
+    a report-uri.</p>
+    <script>
+       window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+       });
+
+      if(typeof SharedWorker != 'function') {
+          t_log.set_status(t_log.NOTRUN, "No SharedWorker, cannot run test.");
+          t_log.phase = t_log.phases.HAS_RESULT;
+          t_log.done();
+      } else {
+          try {
+              var worker = new SharedWorker('/content-security-policy/connect-src/support/shared-worker-make-xhr-blocked.sub.js');
+              worker.port.onmessage = function(event) {
+                  log(event.data);
+              };
+          } catch (e) {
+              log(e);
+          }
+      }
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

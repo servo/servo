@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Reference: mask-image: url(data:...)</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+#back {
+  position: absolute;
+  box-sizing: border-box;
+  width: 200px;
+  height: 200px;
+  border: 60px solid green;
+  background: blue;
+}
+#front {
+  position: absolute;
+  box-sizing: border-box;
+  width: 200px;
+  height: 200px;
+  border: 40px solid blue;
+  background: green;
+  mask-image: url(1x1-black-30-alpha.png); /* 1x1 black with 30% transparency */
+}
+</style>
+<p>The test passes if there is a blue-ish square with a 20px green border around it and a 40px blue-green-ish border around that.</p>
+<div id="back"></div><div id="front"></div>

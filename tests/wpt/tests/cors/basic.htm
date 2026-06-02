@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Basic CORS</title>
+<link rel=help href=https://fetch.spec.whatwg.org/>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<script src=support.js?pipe=sub></script>
+<div id=log></div>
+
+<script>
+function cors(desc, scheme, subdomain = "", port = location.port) {
+    const sameorigin = !scheme;
+    const base =
+        sameorigin ? "" : `${scheme}://${subdomain}${location.hostname}:${port}${dirname(location.pathname)}`;
+
+    async_test((t) => {
+        const client = new XMLHttpRequest();
+        client.open("GET", `${base}resources/cors-makeheader.py?get_value=hest_er_best&origin=none&${token()}`);
+        client.send();
+
+        client.onload = t.step_func_done(() => {
+            assert_true(sameorigin, "Cross origin request must be rejected.");
+            assert_true(client.response.includes("hest_er_best"), "Got response");
+        });
+        client.onerror = t.step_func_done(() => {
+            assert_false(sameorigin, "Same origin request must be accepted.");
+        });
+    }, `${desc}, origin: none`);
+
+    async_test((t) => {
+        const client = new XMLHttpRequest();
+        client.open("GET", `${base}resources/cors-makeheader.py?get_value=hest_er_best&${token()}`);
+        client.send();
+
+        client.onload = t.step_func_done(() => {
+            assert_true(client.response.includes("hest_er_best"), "Got response");
+        });
+        client.onerror = t.unreached_func("Should be accepted");
+    }, `${desc}, origin: echo`);
+}
+
+cors("Same domain basic usage");
+cors("Cross domain basic usage", "http", "www1.");
+cors("Same domain different port", "http", undefined, PORT);
+
+cors("Cross domain different port", "http", "www1.", PORT);
+
+cors("Cross domain different protocol", "https", "www1.", PORTS);
+
+cors("Same domain different protocol different port", "https", undefined, PORTS);
+
+</script>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Ensure that chained anchor's getBoudningClientRect is correct</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #a {
+    anchor-name: --b;
+    position: fixed;
+    position-anchor: --a;
+    position-area: bottom;
+    background: lime;
+  }
+  #b {
+     position: fixed;
+     position-anchor: --b;
+     position-area: bottom;
+     background: cyan;
+  }
+  #base {
+    anchor-name: --a;
+    margin-top: 100vh;
+    margin-bottom: 100vh;
+    background: lightgrey;
+  }
+  .box {
+    width: 50px;
+    height: 50px;
+  }
+</style>
+
+<div class=box id="base" style=""></div>
+<div class=box id="target" style="display: none;">
+  <div class=box id="a"></div>
+  <div class=box id="b"></div>
+</div>
+<script>
+async_test((t) => {
+  base.scrollIntoView({block: 'center'});
+  target.style.display = '';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t.step(() => {
+      assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom);
+      t.done();
+    });
+  }));
+}, '#b top should be at #a bottom');
+</script>

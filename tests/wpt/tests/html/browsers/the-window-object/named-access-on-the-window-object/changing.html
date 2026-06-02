@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Named access on the window object - changing attributes</title>
+<link rel="author" title="Matthew Phillips" href="mailto:matthew@matthewphillips.info">
+<link rel="help" href="https://html.spec.whatwg.org/#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const img = document.createElement("img");
+  document.body.appendChild(img);
+  img.setAttribute("id", "changing-one");
+  assert_equals(window["changing-one"], img);
+
+  img.setAttribute("id", "changing-two");
+  assert_false("changing-one" in window);
+  assert_equals(window["changing-two"], img);
+}, "Changing an attribute must update the named properties (id)");
+
+test(() => {
+  const img = document.createElement("img");
+  document.body.appendChild(img);
+  img.setAttribute("name", "changing-name-one");
+  assert_equals(window["changing-name-one"], img);
+
+  img.setAttribute("name", "changing-name-two");
+  assert_false("changing-name-one" in window);
+  assert_equals(window["changing-name-two"], img);
+
+}, "Changing an attribute must update the named properties (name)");
+
+test(() => {
+  const img = document.createElement("img");
+  document.body.appendChild(img);
+  img.setAttribute("name", "still-match");
+  img.setAttribute("id", "still-match");
+  assert_equals(window["still-match"], img);
+
+  img.setAttribute("id", "other");
+  assert_equals(window["still-match"], img);
+}, "Changing an attribute must not remove the named properties if a different attribute still matches (id)");
+
+test(() => {
+  const img = document.createElement("img");
+  document.body.appendChild(img);
+  img.setAttribute("name", "still-match-name");
+  img.setAttribute("id", "still-match-name");
+  assert_equals(window["still-match-name"], img);
+
+  img.setAttribute("name", "other");
+  assert_equals(window["still-match-name"], img);
+}, "Changing an attribute must not remove the named properties if a different attribute still matches (name)");
+
+test(() => {
+  const img = document.createElement("img");
+  img.setAttribute("alt", "Cat pictures on the internet");
+  img.setAttribute("id", "no-errors");
+  document.body.appendChild(img);
+  assert_equals(window["no-errors"], img);
+
+  img.setAttribute("alt", "Dog pictures on the internet");
+  assert_equals(window["no-errors"], img);
+}, "Changing an attribute that is not id or name must not cause errors");
+</script>

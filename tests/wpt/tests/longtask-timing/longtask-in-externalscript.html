@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in external script</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<h1>Long Task: External Script</h1>
+<div id="log"></div>
+<script>
+promise_test(function(t) {
+  assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+  const performanceObserverTimeout = 5 * 1000;
+  const longTasksPromise = new Promise(resolve => {
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        const entries = entryList.getEntries();
+        entries.forEach(longtask => {
+          assert_equals(longtask.entryType, 'longtask');
+          if (hasUnrelatedTaskName(longtask.name, 'self')) {
+            return;
+          }
+          checkLongTaskEntry(longtask);
+          // Assert the TaskAttributionTiming entry in attribution.
+          assert_equals(longtask.attribution.length, 1,
+            'Exactly one attribution entry is expected');
+          const attribution = longtask.attribution[0];
+          assert_equals(attribution.entryType, 'taskattribution');
+          assert_equals(attribution.name, 'unknown');
+          assert_equals(attribution.duration, 0);
+          assert_equals(attribution.startTime, 0);
+          assert_equals(attribution.containerType, 'window');
+          assert_equals(attribution.containerId, '');
+          assert_equals(attribution.containerName, '');
+          assert_equals(attribution.containerSrc, '');
+          observer.disconnect();
+          resolve();
+        })
+      }));
+    observer.observe({
+      entryTypes: ['longtask']
+    });
+    const script = document.createElement('script');
+    script.src = 'resources/makelongtask.js';
+    document.body.appendChild(script);
+  });
+  const timeout = new Promise(
+    (resolve, reject) => t.step_timeout(
+      () => {
+        reject(new Error('observer failed to find any entries'))
+      },
+      performanceObserverTimeout)
+  )
+  return Promise.race([longTasksPromise, timeout]);
+}, 'Performance longtask entries are observable.');
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative replace-children</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="placeholder"><?start
+name="placeholder">Old content<?end name="placeholder"></div>
+<template for="placeholder">New content</template>
+<script>
+  test(() => {
+    assert_equals(
+      document.getElementById("placeholder").textContent,
+      "New content",
+    );
+  }, "<template for> replace children with text");
+</script>

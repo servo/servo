@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-rules">
+<style>
+#target {
+  display: grid;
+  grid-template: 50px 50px 50px / 50px 50px;
+  grid-auto-flow: column;
+  align-items: last baseline;
+  width: 200px;
+  border: solid 3px;
+  position: relative;
+  line-height: 0;
+  font-size: 20px;
+}
+span {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  outline: solid cyan 3px;
+  outline-offset: -3px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#target > div')">
+
+<div id="target">
+  <div style="grid-area: 3 / 1; margin-bottom: 10px;" data-offset-y="100"><span></span><br><span></span></div>
+  <div style="grid-area: 1 / 2 / 4 / 2;" data-offset-y="100"><span></span><br><span></span></div>
+</div>

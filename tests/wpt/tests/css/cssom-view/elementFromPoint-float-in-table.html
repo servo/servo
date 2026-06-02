@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint" />
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.outer {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+.inner {
+  float: left;
+  width: 50px;
+  height: 50px;
+  background: blue;
+}
+</style>
+<body>
+<div id="log"></div>
+
+<div class="outer" onclick="clicked('outer')">
+  <div id="float-in-div" class="inner" onclick="clicked('inner')">
+  </div>
+</div>
+
+<table>
+  <tr>
+    <td>
+      <div class="outer" onclick="clicked('outer')">
+        <div id='float-in-table' class="inner" onclick="clicked('inner')">
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<pre id="output"></pre>
+<script>
+function clicked(p) {
+  output.textContent += 'clicked ' + p + '\n';
+}
+
+function testElementFromPoint(element) {
+  let bounds = element.getBoundingClientRect();
+  let result = document.elementFromPoint(bounds.x + 1, bounds.y + 1);
+  assert_equals(result, element);
+}
+
+let targets = [
+  'float-in-div',
+  'float-in-table',
+];
+for (let target of targets) {
+  let element = document.getElementById(target);
+  test(() => { testElementFromPoint(element); }, target);
+}
+</script>
+</body>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+<title>loading='lazy' image with srcset</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#update-the-image-data">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#will-lazy-load-image-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<div style="height:1000vh;"></div>
+<img srcset="resources/image.png?loading-lazy-srcset" loading="lazy">
+<img loading="lazy" srcset="resources/image.png?loading-lazy-srcset">
+<script>
+promise_test(async t => {
+  let loaded_images = 0;
+  const imgs = document.querySelectorAll("img");
+  imgs.forEach(img => {
+    img.addEventListener("load", () => { loaded_images++; }, { once: true });
+  });
+
+  await new Promise(resolve => window.addEventListener("load", resolve));
+
+  assert_equals(loaded_images, 0,
+                "lazy-load images with srcset shouldn't be loaded yet");
+
+  const promises = [
+    new Promise(resolve => imgs[0].addEventListener("load", resolve)),
+    new Promise(resolve => imgs[1].addEventListener("load", resolve)),
+  ];
+
+  imgs[1].scrollIntoView();
+  await Promise.all(promises);
+
+  imgs.forEach(img => {
+    assert_true(img.complete,
+                "Now the lazy-load image with srcset should be loaded");
+  });
+});
+</script>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+
+<style>
+.main {
+    top: 0px;
+    left: 0px;
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: red;
+}
+
+.background {
+    background-color: white;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100%;
+    width: 100%;
+    opacity: 0.9;
+}
+
+.container {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100%;
+    width: 100%;
+    overflow: scroll;
+}
+
+.message {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 101%;
+    height: 101%;
+}
+</style>
+</head>
+
+<body>
+<div class="main">
+    <div class="background"></div>
+    <div class="container">
+        <div class="message">foo</div>
+    </div>
+</div>
+
+</body>
+</html>

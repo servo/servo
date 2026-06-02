@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation in all predefined color spaces</title>
+  <link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Test gradient interpolation in predefined color spaces">
+  <link rel="match" href="gradient-eval-predefined-color-spaces-ref.html">
+  <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-20000">
+  <style>
+   .swatch {
+       width: 100px;
+       height: 50px;
+   }
+ </style>
+ </head>
+ <body>
+ </body>
+ <script>
+  // https://www.w3.org/TR/css-color-4/#predefined
+  const COLOR_SPACES = [
+    "srgb",
+    "srgb-linear",
+    "display-p3",
+    "a98-rgb",
+    "prophoto-rgb",
+    "rec2020",
+  ];
+
+  for (cs of COLOR_SPACES) {
+    const swatch = document.createElement("div");
+    document.body.appendChild(swatch);
+    swatch.classList.add("swatch");
+    const grad = `linear-gradient(in ${cs}, color(srgb 1 0 0) calc(-1e+08px), color(srgb 0 1 0) calc(1e+08px))`;
+    swatch.style.background = grad;
+  }
+ </script>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder Error</title>
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+    async_test(t => {
+        const {stream: video, control} = createVideoStream(t);
+        const {stream: audio} = createAudioStream(t);
+        const recorder = new MediaRecorder(video);
+        recorder.onerror = t.step_func(event => {
+            assert_true(event instanceof ErrorEvent, 'the type of event should be ErrorEvent');
+            assert_equals(event.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
+            assert_true(event.isTrusted, 'isTrusted should be true when the event is created by C++');
+            assert_equals(recorder.state, "inactive", "MediaRecorder has been stopped after adding a track to stream");
+            t.done();
+        });
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        video.addTrack(audio.getAudioTracks()[0]);
+        control.addVideoFrame();
+        t.step_timeout(() => {
+            assert_unreached("error event is not fired after 2 seconds");
+        }, 2000);
+    }, "MediaRecorder will stop recording when any of track is added and error event will be fired");
+
+    async_test(t => {
+      const {stream: video, control} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
+        recorder.onerror = t.step_func(event => {
+            assert_true(event instanceof ErrorEvent, 'the type of event should be ErrorEvent');
+            assert_equals(event.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
+            assert_true(event.isTrusted, 'isTrusted should be true when the event is created by C++');
+            assert_equals(recorder.state, "inactive", "MediaRecorder has been stopped after removing a track from stream");
+            t.done();
+        });
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        video.removeTrack(video.getVideoTracks()[0]);
+        control.addVideoFrame();
+        t.step_timeout(() => {
+            assert_unreached("error event is not fired after 2 seconds");
+        }, 2000);
+    }, "MediaRecorder will stop recording when any of track is removed and error event will be fired");
+
+    test(t => {
+        const {stream: video} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        assert_throws_dom("InvalidStateError", function() {
+            recorder.start();
+        });
+    }, "MediaRecorder cannot start recording when MediaRecorder' state is not inactive and an InvalidStateError should be thrown");
+    test(t => {
+        const { stream: video } = createVideoStream(t);
+        assert_throws_dom("NotSupportedError", function () {
+            new MediaRecorder(video, {
+                videoKeyFrameIntervalDuration: 10,
+                videoKeyFrameIntervalCount: 10,
+            });
+        });
+    }, "MediaRecorder throws NotSupportedError when given both videoKeyFrameIntervalDuration and videoKeyFrameIntervalCount");
+</script>
+</body>
+</html>

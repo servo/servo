@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value('animation-trigger', 'initial');
+test_valid_value('animation-trigger', 'inherit');
+test_valid_value('animation-trigger', 'unset');
+test_valid_value('animation-trigger', 'revert');
+
+// Valid: Single attachment per animation.
+test_valid_value('animation-trigger', 'none');
+test_valid_value('animation-trigger', '--abc play');
+test_valid_value('animation-trigger', '  --abc play', '--abc play');
+test_valid_value('animation-trigger', '--aBc play');
+test_valid_value('animation-trigger', '--aBc play pause');
+test_valid_value('animation-trigger', '--foo play pause, --bar play pause');
+test_valid_value('animation-trigger', '--bar play reset, --foo play reset');
+test_valid_value('animation-trigger', 'none, none');
+test_valid_value('animation-trigger', '--a play pause, none, --b play reset');
+test_valid_value('animation-trigger', '---aBc play');
+test_valid_value('animation-trigger', '--aBc-dEf play');
+test_valid_value('animation-trigger', '---aBc-dEf play');
+
+// Computed: Single attachment per animation.
+test_computed_value('animation-trigger', 'none');
+test_computed_value('animation-trigger', '--abc play');
+test_computed_value('animation-trigger','  --abc play', '--abc play');
+test_computed_value('animation-trigger', '--aBc play');
+test_computed_value('animation-trigger', '--foo play, --bar pause');
+test_computed_value('animation-trigger', '--bar play, --foo pause');
+test_computed_value('animation-trigger', 'none, none');
+test_computed_value('animation-trigger', '--aBc play, --aBc reset');
+test_computed_value('animation-trigger', '--a play, none, --b play');
+test_computed_value('animation-trigger', '---abc play');
+
+// Invalid: Multiple triggers.
+// For now, only one trigger per animation is allowed:
+// https://github.com/w3c/csswg-drafts/issues/12399#issuecomment-3089703026
+test_invalid_value('animation-trigger', '--abc play --abc play');
+test_invalid_value('animation-trigger',
+                    '--abc play --bcd pause, --abc play --bcd play');
+test_invalid_value('animation-trigger',
+                    '--abc play --bcd play, --cde play --def play');
+test_invalid_value('animation-trigger',
+                    '  --abc play --abc play', '--abc play --abc play');
+test_invalid_value('animation-trigger',
+                    '  --abc play --bcd play', '--abc play --bcd play');
+test_invalid_value('animation-trigger', '--aBc play --abc play');
+test_invalid_value('animation-trigger', '--aBc play --abc play --aBc play');
+// Invalid
+test_invalid_value('animation-trigger', 'none none');
+test_invalid_value('animation-trigger', 'none none, none', 'none, none');
+test_invalid_value('animation-trigger', 'auto');
+test_invalid_value('animation-trigger', 'abc');
+test_invalid_value('animation-trigger', '--abc');
+test_invalid_value('animation-trigger', '-abc play');
+test_invalid_value('animation-trigger', '--abc ');
+test_invalid_value('animation-trigger', 'play, play');
+test_invalid_value('animation-trigger', '--abc play, play');
+test_invalid_value('animation-trigger', '--abc, --def play');
+test_invalid_value('animation-trigger', 'default');
+test_invalid_value('animation-trigger', '10px');
+test_invalid_value('animation-trigger', 'foo bar');
+test_invalid_value('animation-trigger', '"foo" "bar"');
+test_invalid_value('animation-trigger', 'rgb(1, 2, 3)');
+test_invalid_value('animation-trigger', '#fefefe');
+test_invalid_value('animation-trigger', '--a,, --b');
+test_invalid_value('animation-trigger', 'trigger(--abc, play) none');
+test_invalid_value('animation-trigger', 'none trigger(--abc, play)');
+test_invalid_value('animation-trigger', 'trigger');
+test_invalid_value('animation-trigger', 'trigger(--abc');
+test_invalid_value('animation-trigger', 'trigger()');
+test_invalid_value('animation-trigger', 'trigger(--abc play)');
+// Invalid: multiple behaviors.
+test_invalid_value('animation-trigger', '--abc play pause reset');
+test_invalid_value('animation-trigger',
+                 '--abc play pause reset, --def pause reset play');
+</script>

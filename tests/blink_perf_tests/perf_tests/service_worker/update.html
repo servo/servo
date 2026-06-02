@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='../resources/runner.js'></script>
+</head>
+<body>
+<script>
+let isDone = false;
+function testDone() {
+  isDone = true;
+}
+
+function waitForWorkerActive(worker) {
+  return new Promise((resolve) => {
+    worker.addEventListener('statechange', () => {
+      if (worker.state == 'activated')
+        resolve();
+    });
+  });
+}
+
+async function runTest() {
+  const script =
+      `/service_worker/resources/changing-service-worker.generated.js`;
+  const scope = `/service_worker/resources/`;
+  const registration = await navigator.serviceWorker.register(
+      script, { scope: scope });
+  await waitForWorkerActive(registration.installing);
+
+  while (!isDone) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const startTime = performance.now();
+    await registrations[0].update();
+    PerfTestRunner.measureValueAsync(performance.now() - startTime);
+  }
+  return;
+}
+
+PerfTestRunner.startMeasureValuesAsync({
+  description: 'Measure performance of update service worker.',
+  unit: 'ms',
+  run: runTest,
+  done: testDone,
+  iterationCount: 30
+});
+</script>
+</body>
+</html>

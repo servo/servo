@@ -1,0 +1,387 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974791267656f2e6372616967736c6973742e6f726700053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "geo.craigslist.org"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a706174680d2f61626f75742f73697465732f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/about/sites/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a70617468152f7374796c65732f636f756e74726965732e637373000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707412746578742f6373732c2a2f2a3b713d302e31000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657226687474703a2f2f7777772e6372616967736c6973742e6f72672f61626f75742f73697465732f0006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/styles/countries.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.craigslist.org/about/sites/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a706174680e2f6a732f666f726d6174732e6a73000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300006616363657074032a2f2a000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657226687474703a2f2f7777772e6372616967736c6973742e6f72672f61626f75742f73697465732f0006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/js/formats.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.craigslist.org/about/sites/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a70617468132f6a732f6a71756572792d312e342e322e6a73000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300006616363657074032a2f2a000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657226687474703a2f2f7777772e6372616967736c6973742e6f72672f61626f75742f73697465732f0006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/js/jquery-1.4.2.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.craigslist.org/about/sites/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a706174680c2f66617669636f6e2e69636f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/favicon.ico"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974791573686f616c732e6372616967736c6973742e6f726700053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657226687474703a2f2f7777772e6372616967736c6973742e6f72672f61626f75742f73697465732f0006636f6f6b696520636c5f623d414232424b62736c3468474d374d346e48355059576768544d3541",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "shoals.craigslist.org"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.craigslist.org/about/sites/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a70617468162f7374796c65732f6372616967736c6973742e637373000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707412746578742f6373732c2a2f2a3b713d302e31000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650007726566657265721d687474703a2f2f73686f616c732e6372616967736c6973742e6f72672f0006636f6f6b696542636c5f623d414232424b62736c3468474d374d346e48355059576768544d35413b20636c5f6465665f6c616e673d656e3b20636c5f6465665f68703d73686f616c73",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/styles/craigslist.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://shoals.craigslist.org/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A; cl_def_lang=en; cl_def_hp=shoals"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a706174680e2f6a732f666f726d6174732e6a73000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300006616363657074032a2f2a000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650007726566657265721d687474703a2f2f73686f616c732e6372616967736c6973742e6f72672f0006636f6f6b696542636c5f623d414232424b62736c3468474d374d346e48355059576768544d35413b20636c5f6465665f6c616e673d656e3b20636c5f6465665f68703d73686f616c73",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/js/formats.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://shoals.craigslist.org/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A; cl_def_lang=en; cl_def_hp=shoals"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479127777772e6372616967736c6973742e6f726700053a706174680f2f6a732f686f6d65706167652e6a73000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300006616363657074032a2f2a000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650007726566657265721d687474703a2f2f73686f616c732e6372616967736c6973742e6f72672f0006636f6f6b696542636c5f623d414232424b62736c3468474d374d346e48355059576768544d35413b20636c5f6465665f6c616e673d656e3b20636c5f6465665f68703d73686f616c73",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.craigslist.org"
+                },
+                {
+                    ":path": "/js/homepage.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://shoals.craigslist.org/"
+                },
+                {
+                    "cookie": "cl_b=AB2BKbsl4hGM7M4nH5PYWghTM5A; cl_def_lang=en; cl_def_hp=shoals"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Naive - static table=no, header table=no, huffman=no"
+}

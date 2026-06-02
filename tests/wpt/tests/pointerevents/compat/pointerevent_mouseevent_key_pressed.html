@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Pointer events correctly show the modifier keys pressed</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  "use strict";
+
+  const target = document.getElementById("target");
+
+  const Modifiers = {
+    "Shift"   : '\uE008',
+    "Control" : '\uE009',
+    "Alt"     : '\uE00A',
+    "Meta"    : '\uE03D'
+  };
+
+  function testModifierList(modifier_list) {
+    promise_test(async test => {
+      let pointermove_promise = getEvent("pointermove", target, test);
+
+      let actions = new test_driver.Actions();
+      for (let modifier of modifier_list) {
+        actions = actions.keyDown(Modifiers[modifier]);
+      }
+      // Move the pointer off the center of "target" in case the pointer was
+      // hovering at that position before the test started.
+      actions = actions.pointerMove(0, 0, {origin:target})
+            .pointerMove(10, 10, {origin:target});
+      for (let modifier of modifier_list) {
+        actions = actions.keyUp(Modifiers[modifier]);
+      }
+
+      await actions.send();
+      let pointermove_event = await pointermove_promise;
+
+      for (let modifier of Object.keys(Modifiers)) {
+        let actual = pointermove_event.getModifierState(modifier);
+        let expected = modifier_list.includes(modifier);
+        assert_equals(actual, expected, `getModifierState(${modifier})`);
+      }
+    }, `Pointer events correctly show ${modifier_list.join()} pressed`);
+  }
+
+  window.onload = () => {
+    testModifierList(["Alt"]);
+    testModifierList(["Control"]);
+    testModifierList(["Meta"]);
+    testModifierList(["Shift"]);
+    testModifierList(["Alt", "Control", "Meta", "Shift"]);
+  }
+</script>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=382594">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+/* Remove body margin and dialog styles for easier positioning expected values */
+body {
+  height: 10000px;
+  margin: 0;
+}
+
+dialog {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: auto;
+  height: auto;
+  max-width: initial;
+  max-height: initial;
+}
+
+#absolute-div {
+  position: absolute;
+  top: 800px;
+  height: 50px;
+  width: 90%;
+}
+
+#relative-div {
+  position: relative;
+  top: 20px;
+  height: 30px;
+}
+</style>
+
+<div id="absolute-div">
+  <div id="relative-div">
+    <dialog id="dialog">It is my dialog.</dialog>
+  </div>
+</div>
+
+<script>
+test(() => {
+  const dialog = document.querySelector('#dialog');
+  const div = document.querySelector('#div-dialog');
+  const relativeContainer = document.querySelector('#relative-div');
+  const offset = 50;
+  dialog.style.top = offset + 'px';
+  dialog.style.left = offset + 'px';
+
+  dialog.style.position = 'absolute';
+  dialog.show();
+  assert_equals(
+    dialog.getBoundingClientRect().top,
+    relativeContainer.getBoundingClientRect().top + offset,
+    'Absolute position.');
+  assert_equals(
+    dialog.getBoundingClientRect().left,
+    relativeContainer.getBoundingClientRect().left + offset,
+    'Absolute position.');
+
+  dialog.style.position = 'static';
+  assert_true(dialog.open);
+  assert_equals(
+    dialog.getBoundingClientRect().top,
+    relativeContainer.getBoundingClientRect().top,
+    'Static position.');
+  assert_equals(
+    dialog.getBoundingClientRect().left,
+    relativeContainer.getBoundingClientRect().left,
+    'Static position.');
+  dialog.close();
+
+  dialog.style.position = 'relative';
+  dialog.show();
+  assert_equals(
+    dialog.getBoundingClientRect().top,
+    relativeContainer.getBoundingClientRect().top + offset,
+    'Relative position.');
+  assert_equals(
+    dialog.getBoundingClientRect().left,
+    relativeContainer.getBoundingClientRect().left + offset,
+    'Relative position.');
+  dialog.close();
+
+  dialog.style.position = 'fixed';
+  dialog.show();
+  assert_equals(
+    dialog.getBoundingClientRect().top,
+    offset,
+    'Fixed position.');
+  assert_equals(
+    dialog.getBoundingClientRect().left,
+    offset,
+    'Fixed position.');
+  dialog.close();
+}, 'Tests layout of non-modal dialogs.');
+</script>

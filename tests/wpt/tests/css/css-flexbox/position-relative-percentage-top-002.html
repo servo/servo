@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta name="assert" content="This ensures that a relative-positioned grandchild (of a flexbox) correctly resolves percentages against its stretched parent.">
+<link rel="help" href="https://crbug.com/1106074">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;"></div>
+<div style="display: flex; width: 100px;">
+  <div style="height: 100px;"></div>
+  <div style="width: 100px;">
+    <div style="background: green; height: 100px; position: relative; top: -100%;"></div>
+  </div>
+</div>

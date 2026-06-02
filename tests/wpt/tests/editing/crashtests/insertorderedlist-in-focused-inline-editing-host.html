@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  const inlineEditingHost = document.getElementById("s");
+  inlineEditingHost.addEventListener("focus", () => {
+    try {
+      document.execCommand("insertorderedlist");
+    } catch(e) { }
+    document.documentElement.removeAttribute("class");
+  }, {once: true});
+  inlineEditingHost.focus();
+}
+
+</script>
+</head>
+
+<body onload="boom();"><span id="s" contenteditable="true">One<div></div></span><marquee></marquee></body>
+
+</html>

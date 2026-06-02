@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests interaction with fragmentation.</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-breaking">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+    .sample {
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+    }
+
+    .float {
+        background: cyan;
+        clear: none;
+        float: left;
+        height: 50px;
+        width: 50px;
+    }
+
+    .mc { columns: 2;}
+
+    .fake-initial-letter {
+        background: lime;
+        float: left;
+        height: 80px;
+        margin-top: 2px;
+        width: 80px;
+    }
+</style>
+</head>
+<body>
+<div class="mc">
+<div class="sample"><div class="fake-initial-letter"></div>BC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+<div class="sample"><div class="fake-initial-letter"></div>BC ABC ABC ABC ABC ABC ABC ABC<br clear="both">ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+<div class="sample"><div class="fake-initial-letter"></div>BC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+</div>
+</body>
+</html>

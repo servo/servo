@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: flex;
+      gap: 20px;
+      border: 2px solid blue;
+      padding: 10px;
+      font: 16px/1 monospace;
+      width: 800px;
+      text-decoration: underline;
+    }
+
+    .first-baseline {
+      align-items: first baseline;
+    }
+
+    .last-baseline {
+      align-items: last baseline;
+    }
+
+    .multicolumn {
+      column-count: 3;
+      column-width: 100px;
+      column-gap: 10px;
+      border: 1px solid red;
+      background: #f0f0f0;
+      display: inline-block;
+    }
+
+    .multicolumn-item {
+      background: lightblue;
+      padding: 8px;
+      border: 1px solid navy;
+      break-inside: avoid;
+      margin-bottom: 10px;
+    }
+
+    .multicolumn-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .text-reference {
+      background: yellow;
+      padding: 8px;
+    }
+
+    .bottom {
+      display: flex;
+      align-items: end;
+    }
+
+    .multicolumn-item:nth-child(1) { height: 40px; font-size: 20px}
+    .multicolumn-item:nth-child(2) { height: 100px; }
+    .multicolumn-item:nth-child(3) { height: 80px; }
+    .multicolumn-item:nth-child(4) { height: 70px; }
+    .multicolumn-item:nth-child(5) { height: 60px; font-size: 22px}
+    .multicolumn-item:nth-child(6) { height: 50px; }
+  </style>
+</head>
+<body>
+<div class="container first-baseline">
+  <div class="text-reference">Reference text</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item">Item 1</div>
+    <div class="multicolumn-item">Item 4</div>
+    <div class="multicolumn-item">Item 2</div>
+    <div class="multicolumn-item">Item 6</div>
+    <div class="multicolumn-item">Item 3</div>
+    <div class="multicolumn-item">Item 5</div>
+  </div>
+  <div class="text-reference">Reference text</div>
+</div>
+<div class="container last-baseline">
+  <div class="text-reference">Reference text</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item">Item 1</div>
+    <div class="multicolumn-item">Item 4</div>
+    <div class="multicolumn-item">Item 2</div>
+    <div class="multicolumn-item">Item 6</div>
+    <div class="multicolumn-item">Item 3</div>
+    <div class="multicolumn-item">Item 5</div>
+  </div>
+  <div class="text-reference">Reference text</div>
+</div>
+</body>
+</html>

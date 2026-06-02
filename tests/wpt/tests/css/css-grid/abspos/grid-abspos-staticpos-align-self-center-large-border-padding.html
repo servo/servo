@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-abspos">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#staticpos-rect">
+<link rel="match" href="grid-abspos-staticpos-align-self-center-large-border-padding-ref.html">
+<meta name="assert" content="Center of the abspos child should be aligned within the center of the grid's content box.">
+<style>
+.grid {
+  display: grid;
+  padding: 13px;
+  padding-top: 74px;
+  padding-bottom: 42px;
+  border: 23px solid black;
+  border-bottom-width: 45px;
+  width: 100px;
+  height: 500px;
+  background-color: blue;
+  background-clip: content-box;
+}
+.abspos {
+  position: absolute;
+  width: 50px;
+  height: 100px;
+  background-color: green;
+  align-self: center;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="abspos"></div>
+</div>
+</body>
+</html>

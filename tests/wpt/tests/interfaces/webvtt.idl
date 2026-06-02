@@ -1,0 +1,40 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebVTT: The Web Video Text Tracks Format (https://w3c.github.io/webvtt/)
+
+enum AutoKeyword { "auto" };
+typedef (double or AutoKeyword) LineAndPositionSetting;
+enum DirectionSetting { "" /* horizontal */, "rl", "lr" };
+enum LineAlignSetting { "start", "center", "end" };
+enum PositionAlignSetting { "line-left", "center", "line-right", "auto" };
+enum AlignSetting { "start", "center", "end", "left", "right" };
+[Exposed=Window]
+interface VTTCue : TextTrackCue {
+  constructor(double startTime, unrestricted double endTime, DOMString text);
+  attribute VTTRegion? region;
+  attribute DirectionSetting vertical;
+  attribute boolean snapToLines;
+  attribute LineAndPositionSetting line;
+  attribute LineAlignSetting lineAlign;
+  attribute LineAndPositionSetting position;
+  attribute PositionAlignSetting positionAlign;
+  attribute double size;
+  attribute AlignSetting align;
+  attribute DOMString text;
+  DocumentFragment getCueAsHTML();
+};
+
+enum ScrollSetting { "" /* none */, "up" };
+[Exposed=Window]
+interface VTTRegion {
+  constructor();
+  attribute DOMString id;
+  attribute double width;
+  attribute unsigned long lines;
+  attribute double regionAnchorX;
+  attribute double regionAnchorY;
+  attribute double viewportAnchorX;
+  attribute double viewportAnchorY;
+  attribute ScrollSetting scroll;
+};

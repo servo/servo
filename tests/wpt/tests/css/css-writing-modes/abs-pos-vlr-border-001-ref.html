@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  body { margin: 0; }
+  .vert-cb {
+    position: relative;
+    width: 150px;
+    height: 60px;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    background: lightblue;
+    border: solid gray;
+    border-width: 1px 2px 3px 4px;
+    margin-bottom: 2px;
+  }
+  .horiz-parent {
+    width: 120px;
+    height: 100%;
+    box-sizing: border-box;
+    border: solid orange;
+    border-width: 4px 3px 2px 1px;
+    writing-mode: horizontal-tb;
+  }
+  .abspos-equivalent {
+    height: 40px;
+    background: pink;
+    border: solid black;
+    border-width: 2px 1px 4px 3px;
+  }
+</style>
+<body>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <div class="abspos-equivalent" style="width: max-content">Hello</div>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <div class="abspos-equivalent" style="width: 100px">Hello</div>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <canvas class="abspos-equivalent" height="40px" width="100px"></canvas>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <img src="broken" class="abspos-equivalent" height="40px" width="100px">
+    </div>
+  </div>
+</body>

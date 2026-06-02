@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: implicit and explicit list-item counters</title>
+<link rel="author" href="mailto:sakhapov@chromium.org">
+<link rel="match" href="implicit-and-explicit-list-item-counters-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#auto-numbering">
+<style>
+ol.with-custom-markers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ol.with-custom-markers li {
+  list-style: none;
+}
+ol.with-custom-markers > li::before {
+  content: counter(list-item) ". ";
+}
+</style>
+
+<ol class="with-custom-markers">
+  <li>List item 1</li>
+  <li>
+    List item 2
+    <ul style="margin: 0; padding: 0;">
+      <li>With sub items</li>
+      <li>With sub items</li>
+    </ul>
+  </li>
+  <li>List item 3</li>
+</ol>

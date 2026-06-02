@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3336">
+<meta name="assert" content="A cell's percent width is ignored when its table is nested in another cell, even if there's an intermediate block." />
+Engines render this same as without the intermediate background:blue block -- yellow 1% width is ignored.
+<table id="outerTable" style="width: 300px" cellspacing="0" cellpadding="0">
+    <td style="background:red;">
+      <div style="background:blue">
+        <table cellspacing="0" cellpadding="0">
+            <td style="width:1%; background:yellow;" data-expected-width="100">
+                <div style="width:20px; height:150px;"></div>
+            </td>
+        </table>
+      </div>
+    </td>
+    <td style="background:lightblue;" data-expected-width="200">
+        <div style="width:40px; height:150px;"></div>
+    </td>
+</table>
+<script>
+checkLayout('#outerTable');
+</script>

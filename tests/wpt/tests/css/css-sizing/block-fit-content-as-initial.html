@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: Test `fit-content` for block axis behaves the same as the initial value</title>
+<link rel="match" href="block-fit-content-as-initial-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#valdef-width-fit-content-length-percentage">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+.parent {
+  height: fit-content;
+}
+.child {
+  max-height: 100%;
+}
+</style>
+<body>
+  <div class='parent'>
+    <img class='child' src='../support/60x60-green.png'>
+  </div>
+</body>

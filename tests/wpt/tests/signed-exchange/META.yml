@@ -1,0 +1,5 @@
+spec: https://wicg.github.io/webpackage/draft-yasskin-http-origin-signed-responses.html
+suggested_reviewers:
+  - irori
+  - jyasskin
+  - nyaxt

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>position:sticky should work for elements with display: table* containing blocks</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky works for elements with containing blocks that have display: table*" />
+
+<style>
+.group {
+  display: inline-block;
+}
+
+.container {
+  height: 1000px;
+  width: 50px;
+  margin-right: 10px;
+}
+
+.scroll-container {
+  height: 300px;
+  width: 500px;
+  overflow: hidden;
+}
+
+.sticky {
+  height: 50px;
+  width: 50px;
+  background: green;
+}
+</style>
+
+<div class="scroll-container">
+    <div class="group">
+        <div class="container" style="display: table-cell;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+
+    <div class="group">
+        <div class="container" style="display: table-row;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+
+    <div class="group">
+        <div class="container" style="display: table;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+</div>

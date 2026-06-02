@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Focus test inner document</title>
+</head>
+<body>
+<h1>Inner</h1>
+<input>
+<script>
+let innerlog = "innerlog:";
+
+window.onmessage = function(e) {
+  if (e.data == "focusinnerinput") {
+    document.querySelector("input").focus();
+    innerlog += document.activeElement.tagName + ",";
+  } else if (e.data == "focusinner") {
+    window.focus();
+    innerlog += document.activeElement.tagName + ",";
+  } else if (e.data == "getlog") {
+    parent.postMessage(innerlog, "*");
+  }
+};
+
+window.onfocus = function() {
+  innerlog += "windowfocus,";
+};
+
+window.onblur = function() {
+  innerlog += "windowblur,";
+};
+
+window.onload = function() {
+  parent.postMessage("ready", "*");
+}
+</script>
+</body>
+</html>

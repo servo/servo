@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#fragmentation">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+table { border-spacing: 0; }
+td { padding: 0; break-inside: avoid; }
+</style>
+<div style="columns: 2; height: 100px; width: 100px; gap: 0; background: red; position: relative;">
+  <table>
+    <tbody>
+      <tr><td style="height: 50px; width: 50px; background: green;"></td></tr> <!-- We should have a column break after this row. -->
+      <tr><td style="height: 50px; width: 50px; background: green;"></td></tr>
+    </tbody>
+    <tbody>
+      <tr><td style="height: 50px; width: 50px; background: green; break-before: avoid;"></td></tr>
+    </tbody>
+  </table>
+  <div style="position: absolute; height: 50px; width: 50px; bottom: 0; left: 0; background: green;"></div>
+</div>

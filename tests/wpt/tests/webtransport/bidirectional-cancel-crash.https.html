@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html class="test-wait">
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/webtransport-test-helpers.sub.js"></script>
+<script type="module">
+  const WT_CODE = 127;
+  const HTTP_CODE = webtransport_code_to_http_code(WT_CODE);
+  const wt = new WebTransport(
+    webtransport_url(`abort-stream-from-server.py?code=${HTTP_CODE}`));
+  await wt.ready;
+
+  const bidi = await wt.createBidirectionalStream();
+  const writer = bidi.writable.getWriter();
+
+  const reader = bidi.readable.getReader();
+  reader.read();
+
+  // Write something, to make the stream visible to the server side.
+  await writer.write(new Uint8Array([64]));
+
+  const e = await reader.closed.catch(e => e);
+  document.documentElement.classList.remove("test-wait");
+</script>

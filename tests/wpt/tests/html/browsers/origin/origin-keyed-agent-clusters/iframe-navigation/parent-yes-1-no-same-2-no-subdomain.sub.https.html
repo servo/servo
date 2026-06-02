@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is origin-keyed, navigate a frame from same-origin site-keyed to different-origin (subdomain) origin-keyed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  navigateIframe,
+  setBothDocumentDomains,
+  testSameAgentCluster,
+  testDifferentAgentClusters,
+  testGetter
+} from "../resources/helpers.mjs";
+
+let frame1;
+promise_setup(async () => {
+  frame1 = await insertIframe("{{hosts[][]}}");
+});
+
+// Since the parent is origin-keyed, the same-origin child's non-request is
+// ignored, so it gets origin-keyed too.
+
+testSameAgentCluster([self, 0], "Before: parent to child");
+testGetter(self, true, "before parent");
+testGetter(0, true, "before child");
+
+promise_test(async () => {
+  await navigateIframe(frame1, "{{hosts[][www]}}");
+  await setBothDocumentDomains(frames[0]);
+}, "Navigation");
+
+// Since the new page is different-origin, its non-request should be respected.
+
+testDifferentAgentClusters([self, 0], "After: parent to child");
+testGetter(self, true, "after parent");
+testGetter(0, false, "after child");
+</script>

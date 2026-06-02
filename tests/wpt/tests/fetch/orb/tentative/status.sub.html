@@ -1,0 +1,17 @@
+'use strict';
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  let url = "http://{{domains[www1]}}:{{ports[http][0]}}"
+  url = `${url}/fetch/orb/resources/sound.mp3?pipe=status(301)|header(Content-Type,)`
+
+  const video = document.createElement("video");
+  video.src = url;
+  video.onerror = t.step_func_done();
+  video.onload = t.unreached_func("Unexpected error event");
+  document.body.appendChild(video);
+}, "ORB should block initial media requests with status not 200 or 206");
+</script>

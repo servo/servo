@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>No Detection of Almost Soft Navigations.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="../../resources/soft-navigation-test-helper.js"></script>
+    <script>
+      // We append this value to the URL of actualSoftNavigation() to
+      // identify the test, and to ensure it's unique.
+      let global_test_id;
+
+      // This click handler *does* cause a soft navigation, and *each test
+      // ends with detecting it*. This is by design a very simple soft
+      // navigation which we reliably detect - the same as in basic.html.
+      function actualSoftNavigation() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.pushState({}, "", "/actual-softnavigation?" + global_test_id);
+      }
+
+      // This click handler won't cause a soft navigation, because it
+      // doesn't change the URL.
+      function noUrlChange() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+      }
+
+      // This click handler won't cause a soft navigation, because the
+      // element isn't attached to the DOM.
+      function domNotAttached() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        history.pushState({}, "", "/dom-not-attached");
+      }
+
+      // This click handler won't cause a soft navigation, because it
+      // doesn't change the DOM.
+      function noDomChange() {
+        history.pushState({}, "", "/no-dom-change");
+      }
+
+      // This click handler won't cause a soft navigation, because it
+      // doesn't paint, even though the element is attached to the DOM.
+      function noPaint() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        greeting.style.display = "none";
+        document.body.appendChild(greeting);
+        history.pushState({}, "", "/no-paint");
+      }
+
+      // This click handler won't cause a soft navigation, because it
+      // uses history.replaceState() instead of history.pushState().
+      function replaceState() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.replaceState({}, "", "/replace-state");
+      }
+
+      // This click handler won't cause a soft navigation, because it
+      // doesn't pass a URL to pushState().
+      function noUrlPassedToPushState() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.pushState({}, "");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="actual-softnavigation" onclick="actualSoftNavigation()">Click here!</div>
+    <div id="no-url-change" onclick="noUrlChange()">Click here!</div>
+    <div id="dom-not-attached" onclick="domNotAttached()">Click here!</div>
+    <div id="no-dom-change" onclick="noDomChange()">Click here!</div>
+    <div id="no-paint" onclick="noPaint()">Click here!</div>
+    <div id="replace-state" onclick="replaceState()">Click here!</div>
+    <div id="no-url-passed-to-push-state" onclick="noUrlPassedToPushState()">Click here!</div>
+
+    <script>
+      function test_template(test_id, description) {
+        promise_test(async (t) => {
+          const promise =
+              SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+          if (test_driver) {
+            global_test_id = test_id;
+            test_driver.click(document.getElementById(test_id));
+            test_driver.click(document.getElementById("actual-softnavigation"));
+          }
+          const helper = new SoftNavigationTestHelper(t);
+          const entries = await helper.withTimeoutMessage(
+            promise,
+            "No soft navigation (test_id=" + test_id + ").",
+            /*timeout=*/ 3000,
+          );
+          assert_equals(
+            entries.length,
+            1,
+            "Expected single soft navigation (test_id=" + test_id + ").",
+          );
+          assert_equals(
+            entries[0].name.replace(/.*\//, ""),
+            "actual-softnavigation?" + test_id,
+            "Expected name ending in 'actual-softnavigation?" + test_id + "'",
+          );
+        }, description);
+      }
+      test_template("no-url-change", "The URL change is missing.");
+      test_template("dom-not-attached", "Creates an element but doesn't attach it to the DOM.");
+      test_template("no-paint", "Doesn't paint because the element is hidden.");
+      test_template("no-dom-change", "The DOM change is missing.");
+      test_template("replace-state", "Uses replaceState() instead of pushState().");
+      test_template("no-url-passed-to-push-state", "Doesn't pass a URL to pushState().");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta content="sandbox allow-scripts" http-equiv="Content-Security-Policy">
+<body>
+<iframe id="iframe"></iframe>
+<script>
+// According to
+// https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-content-security-policy
+// `sandbox` directives must be ignored when delivered via `<meta>`.
+test(() => {
+  assert_equals(location.origin, "{{location[scheme]}}://{{location[host]}}");
+}, "Document shouldn't be sandboxed by <meta>");
+
+// Note: sandbox directive for workers are not yet specified.
+// https://github.com/w3c/webappsec-csp/issues/279
+// Anyway workers shouldn't be affected by sandbox directives in `<meta>`.
+async_test(t => {
+  const worker = new Worker("support/post-origin-on-load-worker.js");
+  worker.onerror = t.unreached_func("Worker construction failed");
+  worker.onmessage = t.step_func_done(e => {
+    assert_equals(e.data, "{{location[scheme]}}://{{location[host]}}");
+  });
+}, "Worker shouldn't be sandboxed by inheriting <meta>");
+
+parent.async_test(t => {
+  // Although <iframe about:blank> should inherit parent's CSP,
+  // sandbox directives in <meta> should be ignored in the first place,
+  // so workers created from such <iframe>s shouldn't also be sandboxed.
+  const iframeDocument = document.querySelector("#iframe").contentDocument;
+  const script = iframeDocument.createElement("script");
+  script.innerText = `
+    const worker = new Worker("support/post-origin-on-load-worker.js");
+    worker.onerror = () => parent.postMessage("onerror", "*");
+    worker.onmessage = (e) => parent.postMessage(e.data, "*");
+  `;
+  iframeDocument.body.appendChild(script);
+
+  // Receive message from <iframe>.
+  onmessage = t.step_func_done(e => {
+    assert_equals(e.data, "{{location[scheme]}}://{{location[host]}}");
+  });
+}, "Worker shouldn't be sandboxed when created <iframe> inheriting parent's CSP with sandbox <meta>");
+</script>
+</body>

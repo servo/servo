@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<head>
+  <title>ARIA Notify API Test: Language Announcement</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+  <script src="core-aam/arianotify/resources/aria-notify-helpers.js"></script>
+</head>
+<html>
+<head>
+  <title>ARIA Notify API Test: Language-Specific Announcement</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+</head>
+<body>
+  <h1>ARIA Notify API Test: Language-Specific Announcement</h1>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API with a language-specific announcement.</p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that
+    supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Click the "Run Test" button and listen for the announced text from your screen reader.</p>
+
+  <h2>Test Expectations</h2>
+  <ul>
+    <li>Screen reader should announce "¡Hola mundo!" using Spanish pronunciation and the button element as context</li>
+  </ul>
+
+  <p><strong>Note:</strong> If the ariaNotify API is not supported in your browser, the test will show an appropriate
+    error message.</p>
+
+  <div>
+    <h3>Test: Simple Announcement on Specific Element with Specific Language</h3>
+    <p>A screen reader announcement against the button that triggers it, with no additional options but a lang attribute
+      on the button set to "es" for Spanish. The announcement text is "¡Hola mundo!".</p>
+    <p><strong>Expected:</strong> Screen reader should announce "¡Hola mundo!" using Spanish pronunciation and the
+      button element as context.</p>
+
+    <button id="test-button" lang="es" onclick="test()">Ejecutar Prueba</button>
+    <div id="status"></div>
+
+    <script>
+      function test() {
+        const button = document.getElementById('test-button');
+        document.getElementById('status').textContent = tryCallAriaNotify(button, '¡Hola mundo!');
+      }
+    </script>
+  </div>
+</body>
+
+</html>

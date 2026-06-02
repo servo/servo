@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body></body>
+  <script>
+    const domain_start = document.domain;
+    const domain_new = domain_start.replace(/^[^.]+\./,'');
+
+    async_test(test => {
+      const iframe = document.createElement('iframe');
+      iframe.src = './iframe-with-about-blank-iframe.html';
+      iframe.onload = test.step_func_done(() => {
+        const doc0 = frames[0].frames[0].document;
+        const doc1 = frames[0].frames[1].document;
+
+        assert_equals(doc0.domain, domain_start);
+        assert_equals(doc1.domain, domain_start);
+
+        doc0.open();
+        doc1.open();
+        assert_equals(doc0.domain, domain_start);
+        assert_equals(doc1.domain, domain_start);
+
+        document.domain = domain_new;
+        assert_equals(doc0.domain, domain_start);
+        assert_equals(doc1.domain, domain_start);
+
+        doc0.close();
+        doc1.close();
+        assert_equals(doc0.domain, domain_start);
+        assert_equals(doc1.domain, domain_start);
+      });
+      document.body.appendChild(iframe);
+    }, "document.open() do not make the callee's origin to alias the caller's"
+      + " one");
+  </script>
+</html>

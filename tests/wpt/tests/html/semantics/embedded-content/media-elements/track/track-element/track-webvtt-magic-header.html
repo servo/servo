@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Magic file header "WEBVTT" leads to the file properly recognized as a WebVTT file</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/webvtt-file.vtt">
+    <track src="resources/webvtt-rubbish.vtt">
+    <track src="resources/no-webvtt.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    var trackElements = document.querySelectorAll("track");
+    trackElements[0].onload = t.step_func(trackLoaded);
+    trackElements[1].onload = t.step_func(trackLoaded);
+    trackElements[2].onerror = t.step_func(trackLoaded);
+
+    enableAllTextTracks(video.textTracks);
+
+    var numberOfTracksLoaded = 0;
+    function trackLoaded() {
+        numberOfTracksLoaded++;
+        if (numberOfTracksLoaded != 3)
+            return;
+
+        testTrack(0);
+        testTrack(1);
+        testTrackError(2);
+        t.done();
+    }
+
+    function testTrack(index) {
+        var expected = [
+            {
+                id : "1",
+                startTime : 0,
+                endTime : 30.5,
+                text : "Bear is Coming!!!!!"
+            },
+            {
+                id : "2",
+                startTime : 31,
+                endTime : 1200.5,
+                text : "I said Bear is coming!!!!"
+            }
+        ];
+
+        assert_cues_equal(video.textTracks[index].cues, expected);
+    }
+
+    function testTrackError(index) {
+        assert_cues_equal(video.textTracks[index].cues, []);
+    }
+});
+</script>

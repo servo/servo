@@ -1,0 +1,3 @@
+Set-Cookie: link-preload-report-only-nonce={{$id:uuid()}}; Path=/content-security-policy/reporting
+Content-Security-Policy: script-src 'self' 'unsafe-inline'
+Content-Security-Policy-Report-Only: script-src 'nonce-abc'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}

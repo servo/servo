@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HSTS upgrade for third-party iframe</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/common/get-host-info.sub.js'></script>
+<body>
+<script>
+  const isUpgraded = `${get_host_info().HTTP_NOTSAMESITE_ORIGIN}/hsts/resources/is-upgraded.html`
+  const removeAltHSTS = `${get_host_info().HTTPS_NOTSAMESITE_ORIGIN}/hsts/resources/hsts.py?remove`;
+  const setAltHSTS = `${get_host_info().HTTPS_NOTSAMESITE_ORIGIN}/hsts/resources/hsts.py?set`;
+  const iframe = document.createElement('iframe');
+  iframe.style = 'display: none';
+  iframe.src = isUpgraded;
+
+  async function tryFetch(uri) {
+    try {
+      await fetch(uri).then(response => {
+        if (!response.ok) {
+          return Promise.reject('Fetching hsts.py somehow failed.');
+        }
+      });
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
+  // Step 1) Fetch and receive Strict-Transport-Security header from 3P host
+  promise_setup(() => tryFetch(setAltHSTS));
+
+  promise_test(t => {
+    t.add_cleanup(() => tryFetch(removeAltHSTS));
+
+    return new Promise((resolve, reject) => {
+      // Step 2) Embed iframe of 3P insecure alt host
+      document.body.appendChild(iframe);
+
+      // Step 3) Ensure that the 3P iframe wasn't upgraded via HSTS
+      window.addEventListener('message', e => {
+        if (e.source !== iframe.contentWindow) {
+          return;
+        }
+
+        if (e.data?.name === 'iframe-protocol-check') {
+          if (e.data.protocol === 'http:') {
+            resolve();
+          } else {
+            reject();
+          }
+        }
+      }, {once: true});
+    });
+
+  }, 'Third-party HSTS upgrades should be prevented');
+</script>
+</body>
+</html>

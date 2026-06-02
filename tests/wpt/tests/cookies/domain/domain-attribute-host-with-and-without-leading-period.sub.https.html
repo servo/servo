@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    //
+    // Set-Cookie: domain-attribute-host-with-and-without-leading-period=b; Path=/; Domain=.{{host}}
+    // Set-Cookie: domain-attribute-host-with-and-without-leading-period=c; Path=/; Domain={{host}}
+    //
+    const cookieName = "domain-attribute-host-with-and-without-leading-period";
+    // Clean up cookie at the end to avoid interfering with subsequent tests.
+    add_completion_callback(tests => document.cookie =
+      `${cookieName}=0; Path=/; Domain={{host}}; expires=01-jan-1970 00:00:00 GMT`);
+
+    test(t => {
+      assert_dom_cookie(cookieName, "c", true);
+    }, "Domain=.{{host}} => Second value available via `document.cookie`");
+
+    async_test(t => {
+      fetch("/cookies/resources/list.py", { credentials: "include" })
+        .then(t.step_func(r => r.json()))
+        .then(t.step_func_done(r => {
+          assert_equals(r[cookieName], "c");
+        }))
+        .catch(_ => assert_unreached);
+    }, "Domain=.{{host}} => Second value sent with same-origin requests.");
+
+    async_test(t => {
+      fetch(`${SECURE_SUBDOMAIN_ORIGIN}/cookies/resources/list.py`, { credentials: "include" })
+        .then(t.step_func(r => r.json()))
+        .then(t.step_func_done(r => {
+          assert_equals(r[cookieName], "c");
+        }))
+        .catch(_ => assert_unreached);
+    }, "Domain=.{{host}} => Second value sent with subdomain requests.");
+  </script>
+</body>

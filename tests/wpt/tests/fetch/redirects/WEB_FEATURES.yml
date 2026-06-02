@@ -1,0 +1,8 @@
+features:
+- name: data-urls
+  files:
+  - data.window.js
+- name: fetch
+  files:
+  - "*"
+  - "!data.window.js"

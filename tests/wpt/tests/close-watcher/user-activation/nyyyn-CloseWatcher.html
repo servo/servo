@@ -1,0 +1,38 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+const type = "CloseWatcher";
+
+promise_test(async t => {
+  const events = [];
+  const watcher1 = createRecordingCloseWatcher(t, events, "watcher1", type);
+  const watcher2 = await createBlessedRecordingCloseWatcher(t, events, "watcher2", type, watcher1);
+  const watcher3 = await createBlessedRecordingCloseWatcher(t, events, "watcher3", type, watcher2);
+  await createBlessedRecordingCloseWatcher(t, events, "watcher4", type, watcher3);
+  createRecordingCloseWatcher(t, events, "watcher5", type);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher5 cancel[cancelable=false]", "watcher5 close", "watcher4 cancel[cancelable=false]", "watcher4 close"]);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher5 cancel[cancelable=false]", "watcher5 close", "watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close"]);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher5 cancel[cancelable=false]", "watcher5 close", "watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close", "watcher2 cancel[cancelable=false]", "watcher2 close"]);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher5 cancel[cancelable=false]", "watcher5 close", "watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close", "watcher2 cancel[cancelable=false]", "watcher2 close", "watcher1 cancel[cancelable=false]", "watcher1 close"]);
+}, "Create a close watcher without user activation; create three close watchers with user activation; create a close watcher without user activation");
+</script>

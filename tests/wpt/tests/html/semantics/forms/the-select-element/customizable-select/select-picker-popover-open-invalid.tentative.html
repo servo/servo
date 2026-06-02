@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::picker(select):popover-open is not a valid selector</title>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://drafts.csswg.org/css-forms-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_selector("::picker(select):popover-open");
+test_invalid_selector("select::picker(select):popover-open");
+</script>

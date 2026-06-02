@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged Media root container (float)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule" />
+  <meta name="flags" content="paged may" />
+  <meta name="assert" content="The root element when floated abuts the left or right edge of the page area."/>
+  <style type="text/css">
+    html {
+			width: 50%;
+			float: right;
+			border: medium solid purple;
+}
+    div {
+			page-break-before: always;
+}
+  </style>
+ </head>
+ <body>
+  <p>This test produces two pages of output.</p>
+  <p>The text on this page has a left, top, and right purple border which should be entirely on the right
+	half of the page.&nbsp; (There should be no bottom border.)</p>
+	<div>The text on this page has a left, bottom, and right purple border which should be entirely on the right
+	half of the page.&nbsp; (There should be no top border.)</div>
+ </body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Absolute position div with padding should not increase in size</title>
+<link rel="match" href="absolute_div_with_padding_ref.html">
+<style>
+    .absolute{
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        padding: 100px;
+        width: 150px;
+        height: 150px;
+        background-color: green;
+    }
+    .box{
+        width: 350px;
+        height: 350px;
+        position: relative;
+        background: red;
+    }
+</style>
+<div class="box">
+    <div class="absolute"></div>
+</div>

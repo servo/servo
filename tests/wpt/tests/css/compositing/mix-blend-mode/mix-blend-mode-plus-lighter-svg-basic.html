@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>mix-blend-mode: plus-lighter SVG test</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-2/#mix-blend-mode">
+<link rel="match" href="reference/mix-blend-mode-plus-lighter-svg-basic-ref.html">
+
+<style>
+.isolate { isolation: isolate; }
+rect {
+  opacity: 0.6;
+  mix-blend-mode: plus-lighter;
+}
+</style>
+
+<svg width=500 height=500>
+  <g class="isolate">
+    <rect x="10" y="10" width="100" height="100" fill="#000064"></rect>
+    <rect x="30" y="65" width="100" height="100" fill="#000064"></rect>
+    <rect x="50" y="120" width="100" height="100" fill="#006400"></rect>
+  </g>
+</svg>

@@ -1,0 +1,5 @@
+features:
+- name: text-tracks
+  files:
+  - "*"
+  - "!track-webvtt-*"

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-emphasis-position auto value</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
+<link rel="match" href="text-emphasis-position-auto-001-ref.html">
+<style>
+p {
+	border: solid silver;
+	text-emphasis: dot;
+	text-emphasis-position: auto;
+	margin: 0.5em;
+}
+
+div {
+	float: left;
+	margin: 0.5em;
+}
+</style>
+
+<!-- lang tags should work even with non-canonical casing -->
+<div lang="Zh">
+	<p>你好
+</div>
+
+<div lang="jA">
+	<p>今日は</p>
+</div>
+
+<div lang="KO">
+	<p>안녕하세요</p>
+</div>
+
+<div lang="zH" style="writing-mode: vertical-rl">
+	<p>你好
+</div>
+
+<div lang="JA" style="writing-mode: vertical-rl">
+	<p>今日は</p>
+</div>
+
+<div lang="Ko" style="writing-mode: vertical-rl">
+	<p>안녕하세요</p>
+</div>

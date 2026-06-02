@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch">
+<link rel="bookmark" href="https://crbug.com/1181403">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Calculate the caption-height correctly when flexbox stretches the table inline size to between caption's min-content and max-width, affecting the caption's block size.">
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+
+.caption-content {
+  float: left;
+  height: 10px;
+  width: 75px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<!-- Chrome versions [84..90] incorrectly give the flexbox a height of 80px and the table a height of 100px. overflow: hidden hides the table overflow, showing the red underneath, which exposes the bug. -->
+<div style="display: flex; flex-direction: column; width: 100px; overflow: hidden;">
+  <div style="display: table; background: green; height: 80px;">
+    <div style="display: table-caption; background: green">
+      <div class="caption-content"></div>
+      <div class="caption-content"></div>
+    </div>
+    <div style="display: table-cell;">
+      <div id="this-just-avoids-the-empty-table-code-path" style="height: 10px; width: 10px;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gaps are painted with different outsets in start/end segment endpoints.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="match" href="flex-gap-decorations-029-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        left: 0px;
+        top: 0px;
+        width: 340px;
+        column-rule: 3px solid red;
+        row-rule: 3px solid gray;
+        column-rule-break: intersection;
+        column-rule-interior-inset-start: 0;
+        column-rule-interior-inset-end: -5px;
+        column-rule-edge-inset-end: -10px;
+        column-rule-edge-inset-start: 1px;
+        row-rule-break: intersection;
+        row-rule-edge-inset-end: 5px;
+        row-rule-edge-inset-start: 1px;
+    }
+    .item {
+        width: 100px;
+        height: 100px;
+        background: lightgray;
+    }
+</style>
+<div class="flex">
+    <div class="item" style="width: 200px;"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

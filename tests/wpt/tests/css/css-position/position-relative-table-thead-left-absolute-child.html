@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>position:relative top constraint should behave correctly for &lt;thead&gt; elements</title>
+<link rel="match" href="position-relative-table-left-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#rel-pos" />
+<meta name="assert" content="This test checks that the position:relative top constraint behaves correctly for &lt;thead&gt; elements" />
+
+<style>
+table {
+  border-collapse:collapse;
+}
+
+td {
+  padding: 0;
+}
+
+td > div {
+  height: 50px;
+  width: 50px;
+}
+
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 200px;
+}
+
+.indicator {
+  position: absolute;
+  background-color: red;
+  left: 100px;
+  height: 50px;
+  width: 50px;
+}
+
+.relative {
+  position: relative;
+  left: 50px;
+  background-color: green;
+}
+
+.absolute {
+  position: absolute;
+  left: 50px;
+  background-color: green;
+}
+</style>
+
+<div class="group">
+  <div>
+    <div class="indicator"></div>
+    <table>
+      <thead class="relative">
+        <tr><td><div class="absolute"></div></td></tr>
+      </thead>
+    </table>
+  </div>
+</div>
+
+<div>You should see a green box above. No red should be visible.</div>
+

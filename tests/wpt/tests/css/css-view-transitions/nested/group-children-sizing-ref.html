@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<title>Nested View Transitions: group children sizing (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+
+<style>
+#wrapper {
+  position: relative;
+}
+
+#clipper {
+  height: 200px;
+  width: 200px;
+  overflow: clip;
+}
+
+.item {
+  background: blue;
+  position: relative;
+  top: -25px;
+  left: -10px;
+
+  height: 50px;
+  width: 250px;
+  margin: 1px;
+  border: 1px solid black;
+}
+
+.popout {
+  position: absolute;
+  left: -9px;
+  top: 81px;
+  background: blue;
+
+  height: 50px;
+  width: 250px;
+  border: 1px solid black;
+}
+
+</style>
+
+<div id=wrapper>
+  <div id=clipper>
+    <div class=item></div>
+    <div class=item></div>
+    <div class=item></div>
+    <div class=item></div>
+    <div class=item></div>
+  </div>
+  <div class=popout></div>
+</div>

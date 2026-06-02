@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<!-- Put this page in a sandbox to give it an opaque origin -->
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  location.hash = "#1";
+  await new Promise(resolve => window.onhashchange = resolve);
+  location.hash = "#2";
+  await new Promise(resolve => window.onhashchange = resolve);
+  history.back();
+  await new Promise(resolve => window.onhashchange = resolve);
+
+  assert_equals(location.hash, "#1");
+
+  assert_equals(navigation.currentEntry, null);
+  assert_equals(navigation.entries().length, 0);
+  assert_false(navigation.canGoBack);
+  assert_false(navigation.canGoForward);
+}, "navigation.currentEntry/entries()/canGoBack/canGoForward in an opaque origin iframe");
+</script>

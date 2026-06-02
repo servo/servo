@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://html.spec.whatwg.org/#attr-lang">
+  <link rel="mismatch" href="lang-attribute-affects-rendering-ref.html">
+  <style>
+    * { font-size: 50px }
+
+    @font-face {
+      font-family: test-font-family;
+      /* <Lato-Medium.ttf> provides different ligatures for English and
+         Turkish. */
+      src: url(/fonts/Lato-Medium.ttf);
+    }
+
+    div { font-family: test-font-family; }
+  </style>
+</head>
+<body>
+  `lang="en"` should render ligatures, `lang="tr"` not.
+  <div lang="en">fi</div>
+</body>
+</html>

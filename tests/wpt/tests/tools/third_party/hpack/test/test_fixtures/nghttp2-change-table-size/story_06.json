@@ -1,0 +1,365 @@
+{
+  "cases": [
+    {
+      "seqno": 0, 
+      "wire": "828641862c63f4b90f4f847abcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c153b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b518b2d4b70ddf45abefb4005db90408721eaa8a4498f5788ea52d6b0e83772ff", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "ebay.com"
+        }, 
+        {
+          ":path": "/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    }, 
+    {
+      "seqno": 1, 
+      "wire": "82864189f1e3c2e58c7e9721e984c2c1c090bf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "www.ebay.com"
+        }, 
+        {
+          ":path": "/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    }, 
+    {
+      "seqno": 2, 
+      "wire": "8286418b2c63f4b2127b0c542e43d3049b63c56b10f524b5258b6ba0e3910c080113010b1910759c6d7e95cdc3539a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176fc290c1738f9d29aee30c78f1e172c63f4b90f4b1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "ebay-stories.com"
+        }, 
+        {
+          ":path": "/wp-content/uploads/2012/11/Iso-65.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 3, 
+      "header_table_size": 1365, 
+      "wire": "3fb60a8286418ab0fdcb62e58c7e9721e9048862c3f72d88f55118c6c0c490c3bf60ffa3012c63f502ade04472aacdf544caade0fb524ac30475c72b0a89978000000000000036275c6c0d49ffe5a1ad8d982ecbf80bb0fe05f87643f3f2d89d71b03527ff9f6a11089a0238ebcf332842c8c036dc7dc68ae34e11c96518c238cbf6a220bd3437da86f5dd9452de9e7ef9b3aafcdeff7a60f3a0583c73dfc05ab7f307eefe60d34e817ed3fb3f3df867e74f0bbba6879f0cbfb6efdfc3c6adfc3cf3169eb9fa436e8dcd7bcfd300746e6bde7e90dba0ba7fdbb9707cfda951ea4150831ea82f4d0e1d10dd9f74945dd3a77c2de9df87a7316cb745e6bce7e982dd1bf6379fa68b745e6bcc3a0f0e4c353b8fa87a69e846b55fd34e8df83df3df767d3bf9b7a7a6da34f4d82e7eff69fda70cfa3961e9a365fcf0c387651bb5f1d1f8f5adfebdf3", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "rover.ebay.com"
+        }, 
+        {
+          ":path": "/roversync/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }, 
+        {
+          "cookie": "ebay=%5Esbf%3D%23%5E; dp1=bpbf/%238000000000005276504d^u1p/QEBfX0BAX19AQA**5276504d^; cssg=c67883f113a0a56964e646c6ffaa1abe; s=CgAD4ACBQlm5NYzY3ODgzZjExM2EwYTU2OTY0ZTY0NmM2ZmZhYTFhYmUBSgAYUJZuTTUwOTUxY2NkLjAuMS4zLjE1MS4zLjAuMeN+7JE*; nonsession=CgAFMABhSdlBNNTA5NTFjY2QuMC4xLjEuMTQ5LjMuMC4xAMoAIFn7Hk1jNjc4ODNmMTEzYTBhNTY5NjRlNjQ2YzZmZmFhMWFjMQDLAAFQlSPVMX8u5Z8*"
+        }
+      ]
+    }, 
+    {
+      "seqno": 4, 
+      "wire": "8286418bad72c63f4848d2622e43d3048a607e18acc443085e634bc8c2c690c5c1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "p.ebaystatic.com"
+        }, 
+        {
+          ":path": "/aw/pics/s.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 5, 
+      "wire": "8286be04b5607e18acc443149eb4302004514873c94150c633d06907e98bfb9963253372297ac418b596a9ad35516ea47451105b079640bd754dc8c2c690c5c1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "p.ebaystatic.com"
+        }, 
+        {
+          ":path": "/aw/pics/mops/2012_doodles/Holiday/DS3/ImgWeek_1_Penguin_Small_150x30.png"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 6, 
+      "header_table_size": 2730, 
+      "wire": "3f8b158286be049b607e18acc443135078c746328e42d8c4a3216339fab13044bcc697c8c2c690c5c1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "p.ebaystatic.com"
+        }, 
+        {
+          ":path": "/aw/pics/globalHeader/facebook/g12.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 7, 
+      "wire": "8286be049a607e18acc443135078c746328e42d8c27c19292d8c4c112f31a5c8c2c690c5c1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "p.ebaystatic.com"
+        }, 
+        {
+          ":path": "/aw/pics/globalHeader/twitter/g12.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 8, 
+      "wire": "8286be04a2607e18acc443135078c746328e42d8c1887aa2a4f19a82c53583f51043e42e2f31a5c8c2c690c5c1", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "p.ebaystatic.com"
+        }, 
+        {
+          ":path": "/aw/pics/globalHeader/icon_mobile_gray_11x16.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 9, 
+      "wire": "8286418f459e57a466a972c63f562695c87a7f048362c4d3c9c3c790c6c2", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "srx.main.ebayrtm.com"
+        }, 
+        {
+          ":path": "/rtm"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.ebay.com/"
+        }
+      ]
+    }
+  ], 
+  "draft": 9, 
+  "description": "Encoded by nghttp2. The basic encoding strategy is described in http://lists.w3.org/Archives/Public/ietf-http-wg/2013JulSep/1135.html We use huffman encoding only if it produces strictly shorter byte string than original. We make some headers not indexing at all, but this does not always result in less bits on the wire."
+}

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+    xr_promise_test(
+      "Requesting a session with no mode rejects",
+      (t) => {
+        return navigator.xr.test.simulateDeviceConnection(VALID_NON_IMMERSIVE_DEVICE)
+          .then( (controller) => new Promise((resolve) => {
+            navigator.xr.test.simulateUserActivation( () => {
+              t.step_func(() => {
+                assert_throws_js(TypeError, () => navigator.xr.requestSession())
+              })
+              resolve()
+            });
+          }));
+      });
+  </script>
+</body>

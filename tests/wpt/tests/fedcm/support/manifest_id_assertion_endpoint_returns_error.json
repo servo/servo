@@ -1,0 +1,6 @@
+{
+  "accounts_endpoint": "accounts.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "error_with_code_and_url.py",
+  "login_url": "login.html"
+}

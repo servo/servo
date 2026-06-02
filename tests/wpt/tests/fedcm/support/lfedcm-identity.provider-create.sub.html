@@ -1,0 +1,41 @@
+<!doctype html>
+<head>
+<title>Helper to create 'identity' credentials for discovery</title>
+</head>
+<script>
+'use strict';
+
+async function createCredentials(params) {
+  let identityData = {
+    id: params.get("id"),
+  }
+  if (params.get("origin")) {
+    identityData.effectiveOrigins = [params.get("origin")]
+  }
+  if (params.get("type")) {
+    identityData.effectiveType = params.get("type")
+  }
+  if (params.get("url") == "cors") {
+    identityData.effectiveQueryURL = "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py";
+  } else if (params.get("url") == "no-cors") {
+    identityData.effectiveQueryURL = "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/no-cors.py";
+  }
+  return navigator.credentials.store(await navigator.credentials.create({
+    identity: identityData
+  }))
+}
+
+
+const queryString = window.location.search;
+const params = new URLSearchParams(queryString);
+createCredentials(params).then(() => {
+  if (params.has("close")) {
+    window.close();
+  }
+  if (params.has("postMessage")) {
+    window.opener.postMessage("created", "*");
+  }
+});
+
+
+</script>

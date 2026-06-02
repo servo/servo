@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia({doesnotexist:true}) rejects with TypeError</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that getUserMedia with an unknown value
+in the constraints parameter rejects with a TypeError.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  try {
+    await navigator.mediaDevices.getUserMedia({doesnotexist:true})
+    assert_unreached("This should never be triggered since the constraints parameter only contains an unrecognized constraint");
+  } catch (error) {
+    assert_equals(error.name, "TypeError", "TypeError returned as expected");
+    assert_equals(error.constraintName, undefined, "constraintName attribute not set as expected");
+  }
+}, "Tests that getUserMedia is rejected with a TypeError when used with an unknown constraint");
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Intersection observer with cross-origin iframe and tall viewport</title>
+<link rel="match" href="cross-origin-tall-iframe-rendering-ref.html">
+<style>
+:root { scrollbar-width: none }
+
+.spacer {
+  height: calc(200vh + 100px);
+}
+
+iframe {
+  width: 160px;
+  height: 5100px;
+  border: 0;
+  outline: 1px solid;
+}
+</style>
+<div class="spacer"></div>
+<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4" sandbox="allow-scripts"></iframe>
+<div class="spacer"></div>
+<script>
+document.querySelector("iframe").scrollIntoView({ block: "end" });
+</script>

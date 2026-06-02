@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Form controls' form attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="testcontent">
+  <form id="form">form</form>
+  <input id="input" form="form">
+</div>
+
+<script>
+
+test(() => {
+  assert_equals(document.getElementById('input').form,
+                document.getElementById('form'));
+}, "Form control's form attribute should point to the form element.");
+
+test(() => {
+  var testcontent = document.getElementById("testcontent");
+  var host = document.createElement("div");
+  var sr = host.attachShadow({mode: "open"});
+  sr.innerHTML = testcontent.innerHTML;
+  var input = sr.getElementById("input");
+  var form = sr.getElementById("form");
+
+  // Should have null form when shadow DOM isn't connected.
+  assert_equals(input.form, null);
+
+  testcontent.appendChild(host);
+  assert_equals(input.form, form);
+
+  host.remove();
+  assert_equals(input.form, null);
+
+  testcontent.appendChild(host);
+  assert_equals(input.form, form);
+
+  input.remove();
+  assert_equals(input.form, null);
+
+  sr.appendChild(input);
+  assert_equals(input.form, form);
+
+  form.id = "foobar";
+  assert_equals(input.form, null);
+
+  form.id = "form";
+  assert_equals(input.form, form);
+
+  form.remove();
+  assert_equals(input.form, null);
+
+  sr.appendChild(form);
+  assert_equals(input.form, form);
+
+  host.remove();
+}, "Shadow form control's form attribute should work also in shadow DOM.");
+
+test(() => {
+  var testcontent = document.getElementById("testcontent");
+  var host = document.createElement("div");
+  var sr = host.attachShadow({mode: "open"});
+  sr.innerHTML = "<form id='form'><input id='input'></form>";
+  var input = sr.getElementById("input");
+  var form = sr.getElementById("form");
+
+  assert_equals(input.form, form);
+
+  input.remove();
+  assert_equals(input.form, null);
+
+  form.appendChild(input);
+  assert_equals(input.form, form);
+
+  form.remove();
+  assert_equals(input.form, form);
+
+  host.remove();
+}, "Form element as form control's ancestor should work also in shadow DOM.");
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: CSSOM StyleSheet insertRule across context</title>
+<link rel="author" title="Kagami Sascha Rosylight" href="mailto:saschanaz@outlook.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/">
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+
+<iframe id="iframe"></iframe>
+<script>
+  function createSheet() {
+    const tempStyleElement = iframe.contentDocument.createElement('style');
+    iframe.contentDocument.head.append(tempStyleElement);
+
+    const tempStyle = tempStyleElement.sheet;
+    tempStyleElement.remove();
+    return tempStyle;
+  }
+
+  test(() => {
+    const sheet = createSheet();
+    sheet.insertRule(".kaoru {}");
+    assert_equals(sheet.rules[0].constructor, iframe.contentWindow.CSSStyleRule);
+  }, "The constructor of inserted rule object must be from iframe");
+
+  test(() => {
+    const sheet = new iframe.contentWindow.CSSStyleSheet();
+    sheet.insertRule(".kaoru {}");
+    assert_equals(sheet.rules[0].constructor, iframe.contentWindow.CSSStyleRule);
+  }, "The constructor of inserted rule object must be from iframe for new CSSStyleSheet()");
+</script>

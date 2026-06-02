@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlInterfaceMember.prototype.is_to_json_regular_operation()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+    "use strict";
+    test(function() {
+        var m = memberFrom("readonly attribute DOMString foo");
+        assert_false(m.is_to_json_regular_operation());
+    }, 'should return false when member is an attribute.');
+
+    test(function() {
+        var m = memberFrom("static undefined foo()");
+        assert_false(m.is_to_json_regular_operation());
+    }, 'should return false when member is a static operation.');
+
+    test(function() {
+        var m = memberFrom("static object toJSON()");
+        assert_false(m.is_to_json_regular_operation());
+    }, 'should return false when member is a static toJSON operation.');
+
+    test(function() {
+        var m = memberFrom("object toJSON()");
+        assert_true(m.is_to_json_regular_operation());
+    }, 'should return true when member is a regular toJSON operation.');
+
+    test(function() {
+        var m = memberFrom("[Foo] object toJSON()");
+        assert_true(m.is_to_json_regular_operation());
+    }, 'should return true when member is a regular toJSON operation with extensible attributes.');
+</script>
+</body>
+</html>
+

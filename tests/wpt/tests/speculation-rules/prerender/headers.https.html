@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<title>Sec-Purpose header on prerendered page</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async () => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await referrerRC.addPrerender();
+
+  const prerenderedHeaders = await prerenderedRC.getRequestHeaders();
+  assertHeaders(prerenderedHeaders, true, true, 'prerendered page');
+
+  const iframeRC = await prerenderedRC.addIframe();
+  const iframeHeaders = await iframeRC.getRequestHeaders();
+  assertHeaders(iframeHeaders, true, false, 'iframe');
+
+  // No test for cross-origin iframe, since those requests are delayed until
+  // after activation. See below.
+
+  const imageHeaders = await insertImageAndGetRequestHeaders(prerenderedRC);
+  assertHeaders(imageHeaders, true, false, 'image');
+
+  const crossOriginImageHeaders = await insertImageAndGetRequestHeaders(
+    prerenderedRC,
+    get_host_info().HTTPS_REMOTE_ORIGIN
+  );
+  assertHeaders(crossOriginImageHeaders, true, false, 'cross-origin image');
+
+  const fetchHeaders = await doFetchAndGetRequestHeaders(prerenderedRC);
+  assertHeaders(fetchHeaders, true, false, 'fetch');
+
+  const crossOriginFetchHeaders = await doFetchAndGetRequestHeaders(
+    prerenderedRC,
+    get_host_info().HTTPS_REMOTE_ORIGIN
+  );
+  assertHeaders(crossOriginFetchHeaders, true, false, 'cross-origin fetch');
+
+  const navigatedToRC = await prerenderedRC.navigateToNew();
+  const navigatedToHeaders = await navigatedToRC.getRequestHeaders();
+  assertHeaders(navigatedToHeaders, true, false, 'navigated-to page');
+}, 'Headers before activation, including prerendered page navigation');
+
+promise_test(async () => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await referrerRC.addPrerender();
+
+  // Add the iframe now, but only check its headers after activation.
+  const crossOriginIframeBeforeActivationRC = await prerenderedRC.addIframe({ origin: 'HTTPS_REMOTE_ORIGIN' });
+
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
+
+  const crossOriginIframeBeforeActivationHeaders = await crossOriginIframeBeforeActivationRC.getRequestHeaders();
+  assertHeaders(crossOriginIframeBeforeActivationHeaders, true, false, 'cross-origin iframe before activation');
+
+  const iframeRC = await prerenderedRC.addIframe();
+  const iframeHeaders = await iframeRC.getRequestHeaders();
+  assertHeaders(iframeHeaders, false, false, 'post-activation iframe');
+
+  const imageHeaders = await insertImageAndGetRequestHeaders(prerenderedRC);
+  assertHeaders(imageHeaders, false, false, 'post-activation image');
+
+  const crossOriginImageHeaders = await insertImageAndGetRequestHeaders(
+    prerenderedRC,
+    get_host_info().HTTPS_REMOTE_ORIGIN
+  );
+  assertHeaders(crossOriginImageHeaders, false, false, 'cross-origin image');
+
+  const fetchHeaders = await doFetchAndGetRequestHeaders(prerenderedRC);
+  assertHeaders(fetchHeaders, false, false, 'post-activation fetch');
+
+  const crossOriginFetchHeaders = await doFetchAndGetRequestHeaders(
+    prerenderedRC,
+    get_host_info().HTTPS_REMOTE_ORIGIN
+  );
+  assertHeaders(crossOriginFetchHeaders, false, false, 'cross-origin fetch');
+}, 'Headers after activation (plus cross-origin iframe before activation)');
+
+async function insertImageAndGetRequestHeaders(rc, hostname) {
+  const uuid = token();
+  const url = (new URL(`resources/image-with-headers-stash.py?image=${uuid}`, location.href));
+  const headersURL = (new URL(`resources/image-with-headers-stash.py?read=${uuid}`, location.href));
+
+  if (hostname !== undefined) {
+    url.hostname = hostname;
+    headersURL.hostname = hostname;
+  }
+
+  await rc.executeScript(async (url) => {
+    const img = new Image();
+    img.src = url;
+    const promise = new Promise(resolve => img.onload = resolve);
+    document.body.append(img);
+    return promise;
+  }, [url]);
+
+  const headersJSON = await (await fetch(headersURL)).json();
+  assert_not_equals(headersJSON, null, 'image headers should not be null');
+  return new Headers(headersJSON);
+}
+
+async function doFetchAndGetRequestHeaders(rc, hostname) {
+  const uuid = token();
+  const url = (new URL(`resources/image-with-headers-stash.py?image=${uuid}`, location.href));
+  const headersURL = (new URL(`resources/image-with-headers-stash.py?read=${uuid}`, location.href));
+
+  if (hostname !== undefined) {
+    url.hostname = hostname;
+    headersURL.hostname = hostname;
+  }
+
+  await rc.executeScript(async (url) => {
+    return fetch(url, { mode: "cors" });
+  }, [url]);
+
+  const headersJSON = await (await fetch(headersURL)).json();
+  assert_not_equals(headersJSON, null, 'fetch headers should not be null');
+  return new Headers(headersJSON);
+}
+
+function assertHeaders(headers, secPurposeIsPrefetchPrerender, secSpeculationTagsIsPresent, label) {
+  if (secPurposeIsPrefetchPrerender) {
+    assert_equals(
+      headers.get('Sec-Purpose'),
+      'prefetch;prerender',
+      `${label} Sec-Purpose`
+    );
+  } else {
+    assert_false(
+      headers.has('Sec-Purpose'),
+      `${label} Sec-Purpose should not be present`
+    );
+  }
+  if (secSpeculationTagsIsPresent) {
+    assert_equals(
+      headers.get('Sec-Speculation-Tags'),
+      'null',
+      `${label} Sec-Speculation-Tags`
+    );
+  } else {
+    assert_false(
+      headers.has('Sec-Speculation-Tags'),
+      `${label} Sec-Speculation-Tags should not be present`
+    );
+  }
+}
+</script>

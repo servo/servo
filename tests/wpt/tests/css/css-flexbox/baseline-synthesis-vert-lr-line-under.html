@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#line-under">
+<meta name="assert" content="Line under edge of vertical-lr/sideways item is at its block start edge">
+<style>
+.flexbox {
+    display: flex;
+    writing-mode: vertical-lr;
+    text-orientation: sideways;
+    align-items: baseline;
+    background-color: red;
+    position: relative;
+}
+.item {
+    width: 50px;
+    height: 50px;
+    background-color: green;
+}
+.wide {
+    width: 100px;
+}
+.absolute {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+}
+</style>
+</head>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<body>
+    <div class="flexbox">
+        <div class="item wide"></div>
+        <div class="item"></div>
+        <div class="item absolute"></div>
+    </div>
+</body>

@@ -1,0 +1,151 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+  <custom-element popovertarget="testPopover" id="testElement"></custom-element>
+  <custom-button popovertarget="testPopover" id="testButton"></custom-button>
+  <div id="testPopover" popover>
+    Test popover for custom element button behavior
+  </div>
+
+  <script>
+    class CustomButton extends HTMLElement {
+      static formAssociated = true;
+      constructor() {
+        super();
+        this.internals_ = this.attachInternals();
+        this.internals_.type = "button";
+      }
+
+      get disabled() {
+        return this.hasAttribute('disabled');
+      }
+
+      set disabled(value) {
+        if (value) {
+          this.setAttribute('disabled', '');
+        } else {
+          this.removeAttribute('disabled');
+        }
+      }
+    }
+    customElements.define('custom-button', CustomButton);
+
+    class CustomElement extends HTMLElement {
+      constructor() {
+        super();
+        this.internals_ = this.attachInternals();
+      }
+    }
+    customElements.define('custom-element', CustomElement);
+
+    function resetState() {
+      const testButton = document.getElementById("testButton");
+      const popover = document.getElementById("testPopover");
+      testButton.removeAttribute('popovertargetaction');
+      testButton.removeAttribute('disabled');
+      popover.hidePopover();
+    }
+
+    test(t => {
+      // Without type=button, popovertarget should not work.
+      document.getElementById("testElement").click();
+      assert_false(document.getElementById("testPopover").matches(':popover-open'), "The popover should not be shown when the custom element doesn't have type=button.");
+    }, "Autonomous custom element without ElementInternals.type=button does not support the popovertarget attribute.");
+
+   test(t => {
+      const popover = document.getElementById("testPopover");
+      const testButton = document.getElementById("testButton");
+      testButton.setAttribute('popovertargetaction', 'toggle');
+      t.add_cleanup(() => resetState());
+
+      // Initially closed, first click should open.
+      assert_false(popover.matches(':popover-open'), "Toggle popover should start closed");
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Toggle popover should open after first click");
+
+      // Second click should close.
+      testButton.click();
+      assert_false(popover.matches(':popover-open'), "Toggle popover should close after second click");
+
+      // Third click should open again.
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Toggle popover should open again after third click");
+    }, "Custom element with type=button and popovertargetaction='toggle' toggles popover.");
+
+    test(t => {
+      const popover = document.getElementById("testPopover");
+      const testButton = document.getElementById("testButton");
+      testButton.setAttribute('popovertargetaction', 'show');
+      t.add_cleanup(() => resetState());
+
+      // Initially closed.
+      assert_false(popover.matches(':popover-open'), "Show popover should start closed");
+
+      // First click should open.
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Show popover should open after first click");
+
+      // Second click should not close (show action only opens).
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Show popover should remain open after second click");
+    }, "Custom element with type=button and popovertargetaction='show' only opens popover.");
+
+    test(t => {
+      const popover = document.getElementById("testPopover");
+      const testButton = document.getElementById("testButton");
+      testButton.setAttribute('popovertargetaction', 'hide');
+      t.add_cleanup(() => resetState());
+
+      // Start with popover open.
+      popover.showPopover();
+      assert_true(popover.matches(':popover-open'), "Hide popover should start open");
+
+      // First click should close.
+      testButton.click();
+      assert_false(popover.matches(':popover-open'), "Hide popover should close after first click");
+
+      // Second click should not open (hide action only closes).
+      testButton.click();
+      assert_false(popover.matches(':popover-open'), "Hide popover should remain closed after second click");
+    }, "Custom element with type=button and popovertargetaction='hide' only closes popover.");
+
+    test(t => {
+      const popover = document.getElementById("testPopover");
+      const testButton = document.getElementById("testButton");
+      testButton.setAttribute('disabled', '');
+      popover.hidePopover();
+      t.add_cleanup(() => resetState());
+
+      // Disabled button should not open popover.
+      assert_true(testButton.disabled, "Button should be disabled");
+      assert_false(popover.matches(':popover-open'), "Popover should start closed");
+
+      testButton.click();
+      assert_false(popover.matches(':popover-open'), "Disabled button should not open popover");
+
+      // Enable the button and verify it works.
+      testButton.disabled = false;
+      assert_false(testButton.disabled, "Button should be enabled");
+
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Enabled button should open popover");
+
+      // Disable again and verify clicking doesn't close it.
+      testButton.disabled = true;
+      testButton.click();
+      assert_true(popover.matches(':popover-open'), "Disabled button should not close popover");
+    }, "Custom element with type=button that is disabled does not support popovertarget.");
+  </script>
+</body>
+
+</html>

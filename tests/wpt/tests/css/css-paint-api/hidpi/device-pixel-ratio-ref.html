@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body { margin: 0; padding: 0; }
+canvas {width: 150px; height: 150px; }
+</style>
+<body>
+<p>This test ensures that the PaintWorkletGlobalScope.devicePixelRatio returns
+the correct value, which should be identical as window.devicePixelRatio. To
+manually test, open both this file and "device-pixel-ratio-ref.html" with a
+browser, and you should see two idential green rectangles.</p>
+<canvas id ="canvas" width="100" height="100"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+canvas.width = 150 * window.devicePixelRatio;
+canvas.height = 150 * window.devicePixelRatio;
+var context = canvas.getContext("2d");
+context.fillStyle = 'green';
+var draw_width = Math.floor(canvas.width / window.devicePixelRatio);
+var draw_height = Math.floor(canvas.height / window.devicePixelRatio);
+context.fillRect(0, 0, draw_width, draw_height);
+</script>
+</body>
+</html>

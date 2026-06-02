@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8">
+  <style>
+    div.red {
+      color: red;
+    }
+    div.green {
+      color: green;
+    }
+    span {
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      line-height: 50px;
+      background-image: linear-gradient(currentcolor, currentcolor);
+      background-color: currentColor;
+      background-size: 100% 75%;
+      background-repeat: no-repeat;
+      border: 5px solid currentColor;
+      outline: 5px solid currentColor;
+      box-shadow: 111px 0 5px currentColor;
+      text-shadow: 222px 0 2px currentColor;
+      filter: drop-shadow(333px 0 0 currentColor);
+    }
+  </style>
+ </head>
+ <body>
+  <p>The first and third lines should have no red. The second line should have no green</p>
+   <div class="green"><span>Lorem ipsum</span></div>
+   <div class="red"><span>dolor amet.</span></div>
+   <div class="green"><span>Lorem ipsum.</span></div>
+ </body>
+</html>

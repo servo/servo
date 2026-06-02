@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="frame-src about:; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>frame-src-about-blank-allowed-by-scheme</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+
+    <p>This frame should not be blocked by Content-Security-Policy.
+    </p>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+        });
+    </script>
+
+    <iframe src="about:blank"></iframe>
+    <div id="log"></div>
+    <script>
+        log("PASS");
+    </script>
+</body>
+
+</html>

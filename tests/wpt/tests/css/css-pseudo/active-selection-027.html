@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and first-line pseudo-element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="match" href="reference/active-selection-027-ref.html">
+
+  <meta name="assert" content="In this test, the div::selection selector has no 'color' declaration. The div::selection selector should use the 'color' declaration from the div rule and, for the first line only, it should use the 'color' declaration from the ::first-line pseudo-element. Therefore the '1st selected text' should be purple and the '2nd selected text' should be green.">
+
+  <!--
+
+  More info:
+  [css-pseudo-4] Original color of highlight pseudo inside
+  ::first-letter/::first-line
+  https://github.com/w3c/csswg-drafts/issues/4625
+
+  RESOLVED: Whatever highlight being applied uses colors from before
+  even if came from pseudo element like ::first-letter/::first-line
+
+  -->
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      color: green;
+      font-size: 300%;
+    }
+
+  div::first-line
+    {
+      color: purple;
+    }
+
+  div::selection
+    {
+      background-color: yellow;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if both "selected text" have a yellow background, if the glyphs of "1st selected text" are purple and if the glyphs of "2nd selected text" are green.
+
+  <div id="test" class="highlight_reftest">1st selected text<br>2nd selected text</div>

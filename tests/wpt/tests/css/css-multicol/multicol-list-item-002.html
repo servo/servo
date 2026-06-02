@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: multi-column and list-item</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="multicol-list-item-002-ref.html">
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#pseudo-algorithm" title="3.4 Pseudo-algorithm" />
+<meta name="assert" content="Checks that a list item can be dynamically converted into a multicol container.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#self,
+#before::before,
+#after::after {
+  display: list-item;
+  list-style-type: decimal;
+  list-style-position: inside;
+  font: 25px/1 Ahem;
+  width: 12ch;
+  margin-top: 1ch;
+}
+#before::before,
+#after::after {
+  content: "X pXXXX XXpXX XXXXp";
+}
+.multicol #self,
+.multicol #before::before,
+.multicol #after::after {
+  column-count: 2;
+  column-gap: 2ch;
+}
+</style>
+<div id="self">X pXXXX XXpXX XXXXp</div>
+<div id="before"></div>
+<div id="after"></div>
+<script>
+"use strict";
+document.body.offsetLeft;
+document.body.classList.add("multicol");
+</script>

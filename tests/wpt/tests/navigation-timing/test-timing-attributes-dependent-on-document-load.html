@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Navigation Timing 2 WPT</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        setup({ single_test: true });
+        var reload_frame;
+
+        // Array of navigation timing entries dependent on Document Load Timing.
+        var navTimingAttributes = [
+          'fetchStart',
+          'loadEventEnd',
+          'loadEventStart',
+          'redirectCount',
+          'redirectEnd',
+          'redirectStart',
+          'responseEnd',
+          'unloadEventEnd',
+          'unloadEventStart',
+        ];
+
+        // Function to run the test when the page loads.
+        function onload_test() {
+            reload_frame = document.getElementById("frameContext");
+            reload_frame.onload = function() {
+                step_timeout(do_test, 0);
+            }
+            step_timeout(reload_the_frame, 0);
+        }
+
+        /*
+          Function to reload the iframe and observe values for navigation timing entries:
+          redirectStart, redirectEnd and redirectCount dependent on Document Load Timing.
+        */
+        function reload_the_frame() {
+            reload_frame.contentWindow.location.href =
+            "/common/redirect.py?location=/navigation-timing/resources/blank-page-green.html";
+        }
+
+        /*
+          Function to obtain navigation timing entries and,
+          check if the values are greater than 0.
+        */
+        function do_test() {
+            var nav_frame = document.getElementById("frameContext").contentWindow;
+            var pnt1 = nav_frame.performance.getEntriesByType("navigation")[0];
+            for (i in navTimingAttributes) {
+                assert_greater_than(pnt1[navTimingAttributes[i]], 0,
+                `Expected navigation timing entries: ${navTimingAttributes[i]} greater than 0`);
+            }
+            step_timeout(remove, 0);
+            done(); // Avoids scripting errors
+        }
+
+        /*
+         Function to remove the iframe from the parent body and,
+         check if the navigation timing entries of detached iframe are 0.
+         */
+        function remove() {
+            var nav_frame = document.getElementById("frameContext").contentWindow;
+            var pnt1 = nav_frame.performance.getEntriesByType("navigation")[0];
+            document.body.removeChild(document.getElementById("frameContext"));
+            for (i in navTimingAttributes) {
+                assert_equals(pnt1[navTimingAttributes[i]], 0,
+                `${navTimingAttributes[i]} dependent on Document Load Timing: returns 0`);
+            }
+        }
+    </script>
+</head>
+<body onload="onload_test();">
+    <h1>Description</h1>
+    <p>This test observes values of navigation timing entries,</p>
+    <p>dependent on Document Load Timing for a detached iframe.</p>
+    <br />
+    <p>This page should be loaded with a green background frame below,</p>
+    <p>which disappears after the iframe is detached.</p>
+    <br />
+    <iframe id="frameContext"
+            src="/navigation-timing/resources/blank-page-green.html"
+            style="width: 250px; height: 250px;"></iframe>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: overflow-wrap: break-all</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
+<link rel="match" href="reference/word-break-break-all-014-ref.html">
+<meta name="assert" content="The text is wrapped after the first character and no unicode unit is broken.">
+<style>
+div {
+  width: 1px;
+  word-break: break-all;
+}
+</style>
+<p>Test passes if 2 (different) heart emojis are rendered below each other.</p>
+<div>💖💔</div>

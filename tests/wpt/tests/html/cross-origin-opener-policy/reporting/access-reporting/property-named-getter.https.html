@@ -1,0 +1,71 @@
+<title> Check reports are sent for the indexed getter</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script>
+
+const executor_path = "/common/dispatcher/executor.html?pipe=";
+let crossOrigin = ["cross-origin" , get_host_info().HTTPS_REMOTE_ORIGIN ];
+let sameOrigin =  ["same-site"    , get_host_info().HTTPS_ORIGIN        ];
+
+let testCase = [
+//[ operation                , origin      , expectReport ],
+  [ w => w["iframeName"]     , sameOrigin  , true           ],
+  [ w => w["iframeName"]     , crossOrigin , true           ],
+  [ w => w["divID"]          , sameOrigin  , true           ],
+  [ w => w["divID"]          , crossOrigin , false          ],
+  [ w => w["existingGlobal"] , sameOrigin  , false          ],
+  [ w => w["existingGlobal"] , crossOrigin , false          ],
+  [ w => w["missingGlobal"]  , sameOrigin  , false          ],
+  [ w => w["missingGlobal"]  , crossOrigin , false          ],
+];
+
+testCase.forEach(([op, [origin_name, origin], expectReport]) => {
+  promise_test(async t => {
+    const opener_token = token();
+    const openee_token = token();
+
+    const openee_url = origin + executor_path + `&uuid=${openee_token}`;
+    const openee = window.open(openee_url);
+    t.add_cleanup(() => send(openee_token, "window.close()"))
+
+    // 1. Make sure the new document to be loaded. Populate the document.
+    send(openee_token, `
+      let iframe = document.createElement("iframe");
+      iframe.name = "iframeName";
+      document.body.appendChild(iframe);
+
+      let div = document.createElement("div");
+      div.id = "divID";
+      document.body.appendChild(div);
+
+      window.existingGlobal = "test";
+
+      send("${opener_token}", "Ready");
+    `);
+    let reply = await receive(opener_token);
+    assert_equals(reply, "Ready");
+
+    // 2. Try to access the openee.
+    let observer = new ReportingObserver(()=>{});
+    observer.observe();
+    try {op(openee)} catch(e) {}
+    let reports = observer.takeRecords();
+    observer.disconnect();
+
+    // 3. Check the received reports.
+    if (expectReport) {
+      assert_equals(reports.length, 1);
+      assert_equals(reports[0].type, "coop-access-violation");
+      assert_equals(reports[0].body.property, "named");
+    } else {
+      assert_equals(reports.length, 0);
+    }
+
+  }, `${origin_name} > ${op}`);
+});
+
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:focus pseudo-class</title>
+  <style type="text/css"><![CDATA[a:focus { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+<p>The background color of <a href="#foo">anchors</a>
+  in this page should turn <a href="#foo">to green</a> when they have the
+  <a href="#foo">focus</a>.</p>
+</body>
+</html>

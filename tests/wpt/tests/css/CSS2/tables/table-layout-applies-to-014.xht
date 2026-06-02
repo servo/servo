@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-layout and 'display: table-cell' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-table-layout" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#width-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Table-layout does not apply to 'display: table-cell' elements." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+                width: 10em;
+            }
+            #colgroup
+            {
+                display: table-column-group;
+                width: 10em;
+            }
+            #tr
+            {
+                display: table-row;
+            }
+            #test
+            {
+                background: black;
+                display: table-cell;
+                font: 1em Ahem;
+                overflow: hidden;
+                padding: 0;
+                table-layout: fixed;
+            }
+            #reference
+            {
+                background: blue;
+                height: 1em;
+                width: 20em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both bars below are the same width.</p>
+        <div id="table">
+            <div id="colgroup"></div>
+            <div id="tr">
+                <div id="test">XXXXXXXXX0XXXXXXXXX0</div>
+            </div>
+        </div>
+        <div id="reference"></div>
+    </body>
+</html>

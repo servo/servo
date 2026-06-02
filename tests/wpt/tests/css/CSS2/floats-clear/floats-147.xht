@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Floats: No more to the right than the right edge of the containing block</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/047-demo.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-147-ref.xht" />
+
+  <style type="text/css">
+   .outer { width: 15em; background: red; border-left: 1em solid orange; }
+   .container { width: 9em; margin-left: 4em; background: orange;
+                height: 1em; line-height: 1;
+                border: 1em transparent; border-style: none solid; }
+   .float { float: right; width: 14em; background: blue; color: blue; }
+   .control { width: 14em; height: 1em; background: blue;
+              border-left: 1em solid orange; border-right: 1em solid orange; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a single blue rectangle with a vertical
+    orange stripe on each side.</p>
+  <div class="control"></div>
+  <div class="outer" dir="ltr">
+   <div class="container">
+    <div class="float">TEST-LTR</div>
+   </div>
+  </div>
+  <div class="outer" dir="rtl">
+   <div class="container">
+    <div class="float">TEST-RTL</div>
+   </div>
+  </div>
+ </body>
+</html>

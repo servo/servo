@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests async XHR preflight denial due to lack of CORS headers</title>
+    <!--The original test addressed a more specific issue involving caching,
+        but that issue has since been resolved.
+        We maintain this test as a basic test of invalid preflight denial.
+        Please refer to the comment in the following link for more information:
+        https://chromium-review.googlesource.com/c/chromium/src/+/630338#message-0280542b95c9b0f82b121dc373320c04fcaece31
+    -->
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test((test) => {
+      const xhr = new XMLHttpRequest;
+      xhr.onerror = test.step_func_done(() => {
+        assert_equals(xhr.status, 0);
+      });
+
+      xhr.onload = test.unreached_func("Request succeeded unexpectedly");
+
+      xhr.open("FOO", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/xhr/resources/access-control-basic-denied.py");
+      xhr.send();
+    });
+    </script>
+  </body>
+</html>

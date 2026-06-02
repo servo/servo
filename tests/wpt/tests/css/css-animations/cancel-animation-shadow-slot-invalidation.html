@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Animations Test: Cancel animation for target moving out of flat tree and style invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#eventdef-animationevent-animationcancel">
+<link rel="help" href="https://crbug.com/1093747">
+<link rel="match" href="../reference/pass_if_pass_below.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  @keyframes anim {
+    from { color: red; }
+    to { color: green; }
+  }
+  #anim { animation: anim 100s; }
+  .none { display: none; }
+</style>
+<p>Test passes if there is the word "PASS" below.</p>
+<div id="host"><span id="anim">FAIL</span></div>
+<div id="dirty" class="none">PASS</div>
+<script>
+  const root = host.attachShadow({mode:"open"});
+  root.innerHTML = "<slot></slot>";
+  requestAnimationFrame(() => {
+    root.firstChild.name = "skip-slot";
+    dirty.className = "";
+    takeScreenshot();
+  });
+</script>

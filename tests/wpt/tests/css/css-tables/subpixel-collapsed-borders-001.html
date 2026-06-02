@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#collapsing-borders">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#border-conflict-resolution-algorithm">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/606">
+<link rel="match" href="subpixel-collapsed-borders-ref.html">
+<meta name="assert" content="When collapsed border tables have border widths larger than cells', the table border wins." />
+
+<style>
+table {
+  border: 5px solid green;
+  border-collapse: collapse;
+}
+
+td {
+  width: 50px;
+  height: 50px;
+  border: 4.95px solid red;
+}
+</style>
+
+<p>There should be a square with a green border, not a red border.
+</p>
+
+<table>
+  <tr>
+    <td></td>
+  </tr>
+</table>

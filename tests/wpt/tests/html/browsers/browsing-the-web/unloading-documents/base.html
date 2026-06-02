@@ -1,0 +1,14 @@
+<!doctype html>
+Base
+<script>
+onpagehide = function() {
+  if(top.base_hide) {
+    top.base_hide();
+  }
+}
+onpageshow = function() {
+if (top.base_show) {
+  top.base_show();
+}
+}
+</script>

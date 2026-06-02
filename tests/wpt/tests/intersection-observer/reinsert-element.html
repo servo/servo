@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+</style>
+
+<div id="target">Hello, world!</div>
+
+<script>
+promise_test(async function(t) {
+  let entries = [];
+  let target = document.getElementById("target");
+  let observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  });
+  observer.observe(target);
+  await waitForNotification();
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isIntersecting);
+  target.remove();
+  document.body.appendChild(target);
+  await waitForNotification();
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isIntersecting);
+}, "An element that is removed and reinserted without an intervening" +
+  " rendering update doesn't generate a 'not-intersecting' notification.");
+</script>

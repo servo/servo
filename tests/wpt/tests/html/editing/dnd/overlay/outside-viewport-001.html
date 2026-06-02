@@ -1,0 +1,22 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – feedback overlay of elements partly outside the viewport – 001</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  position: absolute;
+  top: 10px;
+  right: -100px;
+}
+
+p {
+ margin-right: 200px;
+}
+</style>
+
+<a href='#'></a>
+
+<p>Drag the blue box on the right downwards. The drag placeholder should ideally be a blue square. It may optionally be a rectangle the same shape as the visible part of the blue box. No part of the UI should be dragged with the box.</p>

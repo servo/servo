@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS text test: text-align-last has precedence over text-align-all</title>
+<link rel=help href="https://drafts.csswg.org/css-text-3/#text-align-all-property">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#text-align-last-property">
+<link rel="match" href="reference/text-align-last-wins-001-ref.html">
+<meta name=assert content="If a line is both the first and last line, text-align-last applies">
+<style>
+div {
+  text-align-last: right;
+  width: 300px;
+  border: solid;
+}
+</style>
+
+<p>Test passes if the words below are aligned to the right of the box.
+
+<div>right<br>right</div>
+

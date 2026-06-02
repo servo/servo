@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-control">
+<meta name="assert" content="scrollIntoView called on the descendant of shadow host with a slot should treat the slot as a pontential scroll container.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="host">
+  <div style="height: 200px"></div>
+  <div id="target" style="height: 100px; width: 100px; background: green"></div>
+</div>
+<script>
+    var shadow = host.attachShadow({mode: "open"});
+    var slot = document.createElement("slot");
+    slot.style="display: block; overflow: hidden; width: 100px; height: 100px; background: red";
+    shadow.appendChild(slot);
+    target.scrollIntoView();
+</script>

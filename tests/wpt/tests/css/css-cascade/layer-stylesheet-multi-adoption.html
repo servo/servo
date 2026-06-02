@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#unnamed-layers">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets">
+<link rel="help" href="https://issues.chromium.org/issues/462744687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=target>Test</div>
+<script>
+  test(() => {
+    let a = new CSSStyleSheet();
+    a.replaceSync(`@layer { div { color: green; } }`);
+    let b = new CSSStyleSheet();
+    b.replaceSync(`@layer { div { color: red; } }`);
+    document.adoptedStyleSheets = [a, b, a];
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  });
+</script>

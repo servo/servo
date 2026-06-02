@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+    <title>html-script-module-errorHandling</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+
+        iframe
+        { display: none; }
+
+    </style>
+</head>
+<body>
+    <h1>html-script-module-errorHandling</h1>
+    <iframe id="iframe_parseError_Root" src="errorhandling-parseerror-root.html"></iframe>
+    <iframe id="iframe_parseError_Dependent" src="errorhandling-parseerror-dependent.html"></iframe>
+    <iframe id="iframe_parseError_DependentMultiple" src="errorhandling-parseerror-dependentmultiple.html"></iframe>
+    <script>
+
+        var tests = [
+                    { "id": "iframe_parseError_Root", "expected": "error" },
+                    { "id": "iframe_parseError_Dependent", "expected": "error" },
+                    { "id": "iframe_parseError_DependentMultiple", "expected": "error,error" },
+                ];
+        tests.forEach(function (testObj) {
+            var testHandle = async_test("IFrame test: '" + testObj.id + "'");
+            var testTarget = document.getElementById(testObj.id);
+            testTarget.addEventListener("load", testHandle.step_func(function () {
+                assert_equals(testTarget.contentDocument._errorReported, testObj.expected, "Unexpected _errorReported value");
+                testHandle.done();
+            }));
+        });
+
+        var test_wrongMimetype_root = async_test("External root module with non-script mimetype");
+        var script_wrongMimetype_root = document.createElement("script");
+        script_wrongMimetype_root.type = "module";
+        script_wrongMimetype_root.src = "errorhandling-wrongMimetype.js?pipe=header(Content-Type,text/plain)";
+        script_wrongMimetype_root.addEventListener("error", test_wrongMimetype_root.step_func(function () {
+            test_wrongMimetype_root.done();
+        }));
+        script_wrongMimetype_root.addEventListener("load", test_wrongMimetype_root.step_func(function () {
+            assert_unreached("This script should not have loaded!");
+        }));
+        document.body.appendChild(script_wrongMimetype_root);
+
+        var test_wrongMimetype_import = async_test("Module with imported non-script mimetype");
+        var script_wrongMimetype_import = document.createElement("script");
+        script_wrongMimetype_import.type = "module";
+        script_wrongMimetype_import.src = "errorhandling-wrongMimetype-import.js";
+        script_wrongMimetype_import.addEventListener("error", test_wrongMimetype_import.step_func(function () {
+            test_wrongMimetype_import.done();
+        }));
+        script_wrongMimetype_import.addEventListener("load", test_wrongMimetype_import.step_func(function () {
+            assert_unreached("This script should not have loaded!");
+        }));
+        document.body.appendChild(script_wrongMimetype_import);
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>reftests support testdriver.js in iframes</title>
+<link rel="match" href="green.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  iframe {
+    position: absolute;
+    border: none;
+    width: inherit;
+    height: inherit;
+  }
+</style>
+<script>
+  // Attach the handler that completes the test before loading the calling iframe.
+  window.addEventListener("message", (evt) => {
+    if (evt.data === "done") {
+      document.documentElement.classList.remove("reftest-wait");
+    }
+  });
+</script>
+<iframe src="https://{{host}}:{{ports[https][1]}}/infrastructure/reftest/testdriver-child.html"></iframe>

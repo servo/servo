@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Source expressions are discarded with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'self' 'strict-dynamic' 'nonce-dummy' -->
+</head>
+
+<body>
+    <h1>Source expressions are discarded with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'allowedScript') {
+                    assert_unreached('Allowed scripts without a correct nonce are not permitted with `strict-dynamic`.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+                assert_equals(e.effectiveDirective, 'script-src-elem');
+            }));
+        }, 'Allowed scripts without a correct nonce are not permitted with `strict-dynamic`.');
+    </script>
+    <script id='allowedScript' src='simpleSourcedScript.js'></script>
+
+</body>
+
+</html>

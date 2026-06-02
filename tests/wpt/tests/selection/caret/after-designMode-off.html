@@ -1,0 +1,25 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="match" href="after-designMode-off-ref.html">
+<style>
+:read-only { color: green; }
+:read-write { color: red; }
+</style>
+<script>
+addEventListener("load", () => {
+  requestAnimationFrame(()=> {
+    document.designMode='on';
+    getSelection().collapse(document.body.firstChild, 0);
+    requestAnimationFrame(()=> {
+        document.designMode='off';
+        document.documentElement.removeAttribute("class");
+    });
+  });
+}, {once: true});
+</script>
+</head>
+<body>&lt;-- No caret should appear here.</body>
+</html>

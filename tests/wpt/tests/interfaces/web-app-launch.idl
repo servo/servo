@@ -1,0 +1,19 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web App Launch Handler API (https://wicg.github.io/web-app-launch/)
+
+[Exposed=Window] interface LaunchParams {
+  readonly attribute DOMString? targetURL;
+  readonly attribute FrozenArray<FileSystemHandle> files;
+};
+
+callback LaunchConsumer = any (LaunchParams params);
+
+partial interface Window {
+  readonly attribute LaunchQueue launchQueue;
+};
+
+[Exposed=Window] interface LaunchQueue {
+  undefined setConsumer(LaunchConsumer consumer);
+};

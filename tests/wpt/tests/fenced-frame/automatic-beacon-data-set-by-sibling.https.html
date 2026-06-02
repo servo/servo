@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  // This test creates the following frame tree:
+  // Root Frame (A)
+  // └─Fenced Frame (A)
+  //    ├─IFrame (B) [performs navigation]
+  //    └─IFrame (B) [sets data]
+  // It then checks that B's navigation sends an automatic beacon without data,
+  // even if a different B sets automatic beacon data.
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge', register_beacon: true
+  });
+
+  const beacon = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "This data should not be sent",
+    destination: ["buyer"],
+    crossOriginExposed: true
+  }
+
+  await fencedframe.execute(async (beacon) => {
+    const iframe_a = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      headers: [['Allow-Fenced-Frame-Automatic-Beacons', 'true']]
+    });
+    const iframe_b = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      headers: [['Allow-Fenced-Frame-Automatic-Beacons', 'true']]
+    });
+    iframe_b.execute((beacon) => {
+      window.fence.setReportEventDataForAutomaticBeacons(beacon);
+    }, [beacon]);
+    await setupAutomaticBeacon(iframe_a, [],
+        "resources/close.html", NavigationTrigger.ClickOnce,
+        "_blank");
+  }, [beacon]);
+
+  await multiClick(10, 10, fencedframe.element)
+
+  await verifyBeaconData(beacon.eventType, "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+}, 'An automatic beacon does not use data set by a same-origin sibling.');
+
+</script>
+</body>

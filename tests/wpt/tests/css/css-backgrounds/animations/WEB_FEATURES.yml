@@ -1,0 +1,17 @@
+features:
+- name: border-image
+  files:
+  - border-image-*
+- name: background-color
+  files:
+  - background-color-*
+  - two-background-color-*
+- name: background-image
+  files:
+  - background-image-interpolation.html
+- name: background-position
+  files:
+  - background-position-*
+- name: background-size
+  files:
+  - background-size-interpolation.html

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>&lt;mo&gt; dynamic form</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies that the form (and thus spacing) can be changed dynamically">
+    <link rel="match" href="mo-form-dynamic-002-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math, math * {
+          font: 60px/1 Ahem;
+      }
+      mo {
+          color: blue;
+      }
+    </style>
+    <script>
+      window.addEventListener("load", () => {
+          document.getElementById("infix_attach_prefix").setAttribute("form", "prefix");
+          document.getElementById("prefix_attach_infix").setAttribute("form", "infix");
+          document.getElementById("infix_remove").removeAttribute("form");
+          document.getElementById("prefix_remove").removeAttribute("form");
+          document.getElementById("infix_set_to_prefix").setAttribute("form", "prefix");
+          document.getElementById("prefix_set_to_infix").setAttribute("form", "infix");
+          document.documentElement.classList.remove("reftest-wait");
+      });
+    </script>
+  </head>
+  <body>
+    <!-- Prefix and infix forms of "+" have different default spacing in
+         the operator dictionary. -->
+    <p>
+      <math>
+        <mn>1</mn><mo id="infix_attach_prefix">+</mo><mn>2</mn>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="prefix_attach_infix">+</mo><mn>3</mn>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mn>1</mn><mo id="infix_remove" form="prefix">+</mo><mn>2</mn>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="prefix_remove" form="infix">+</mo><mn>3</mn>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mn>1</mn><mo id="infix_set_to_prefix" form="postfix">+</mo><mn>2</mn>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="prefix_set_to_infix" form="postfix">+</mo><mn>3</mn>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> MouseEvent.button for mouseup Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "mouseup";
+            var TARGET;
+            var ExpectResult = [0, 1, 2];
+            var ActualResult = [];
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+
+                ActualResult.push(evt.button);
+                TARGET.value = ActualResult;
+
+                if (ExpectResult.toString() == ActualResult.toString())
+                {
+                    PassTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h4>
+            Test Description: MouseEvent.button value for mouseup event is based on current button pressed.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Move the mouse pointer to the above textbox
+            2) Click the mouse button in this order: Left Button, Middle Button, Right Button
+            3) <a href="MouseEvent.button.html">Click here</a> to test again if not following the steps exactly
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

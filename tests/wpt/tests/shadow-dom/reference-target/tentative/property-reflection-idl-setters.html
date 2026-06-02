@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/html/resources/common.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="resources/property-reflection-helper.js"></script>
+</head>
+<body>
+  <div id="host-container"></div>
+  <script>
+    function append_test_declaratively_with_invalid_ref_target(host_container, referenced_element_type) {
+      host_container.setHTMLUnsafe(`
+      <div id="host-id">
+        <template shadowrootmode="open" shadowrootreferencetarget="invalid">
+          <${referenced_element_type} id="target"></${referenced_element_type}>
+        </template>
+      </div>`);
+      const host = host_container.firstElementChild;
+      return host;
+    }
+
+    run_test_for_all_reflecting_properties(append_test_declaratively_with_invalid_ref_target, test_idl_setter, "");
+  </script>
+</body>
+</html>

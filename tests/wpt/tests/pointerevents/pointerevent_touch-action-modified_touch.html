@@ -1,0 +1,50 @@
+<!doctype html>
+<title>Deleting touch-action:none after pointerdown has no effect</title>
+<link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior" />
+<meta name="viewport" content="width=device-width">
+<link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 150vh;
+    background-color: lightgreen;
+    user-select: none;
+  }
+  .touchActionNone {
+    touch-action: none;
+  }
+</style>
+<body>
+  <h1>Deleting touch-action:none after pointerdown has no effect</h1>
+  <div id="target" class="touchActionNone" draggable="false">
+    An unscrollable element that becomes scrollable at pointerdown.
+  </div>
+</body>
+<script>
+  "use strict";
+  let target = document.getElementById("target");
+  let pointercancel_received = false;
+
+  document.body.addEventListener("pointerdown",
+      () => target.classList.remove("touchActionNone"));
+  document.body.addEventListener("pointercancel",
+      () => pointercancel_received = true);
+
+  promise_test(async () => {
+    let pointerup_event = getEvent("pointerup", document.body);
+
+    await touchScrollInTarget(target, "down");
+    await pointerup_event;
+
+    // Sanity-check: the class has been removed.
+    assert_false(target.classList.contains("touchActionNone"));
+    assert_false(pointercancel_received,
+        "a pointercancel event is unexpected");
+  }, "No scrolling after deleting touch-action:none after pointerdown");
+</script>

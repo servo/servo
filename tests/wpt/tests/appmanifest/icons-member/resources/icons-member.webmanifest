@@ -1,0 +1,10 @@
+{
+    "name": "Icons member WPT",
+    "icons": [{
+        "src": "pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }],
+    "start_url": "../icons-member-manual.html",
+    "display": "fullscreen"
+}

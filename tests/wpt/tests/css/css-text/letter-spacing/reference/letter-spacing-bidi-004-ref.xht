@@ -1,0 +1,27 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="author" title="Mike Bremford" href="http://bfo.com" />
+    <style>
+      .control {
+          font: 50px/1 monospace;
+          font-kerning: none;
+          white-space: pre;
+      }
+      .red {
+          color: red;
+          position: absolute;
+          z-index: -1;
+      }
+      .control span {
+          background: green;
+      }
+    </style>
+ </head>
+ <body>
+  <p>Test passes if no red is visible except for anti-aliasing differences, and the green boxes are the width of a single letter.</p>
+  <!-- A <ls> B <ls> <bg>C</bg> <ls> gimel <ls> bet <ls> <bg>alef</bg> <gap> -->
+  <div class="control red">A B <span>C</span> &#x5d1; &#x5d2; <span style="unicode-bidi:embed">&#x5d0;</span></div>
+  <div class="control">A B <span>C</span> &#x5d1; &#x5d2; <span style="unicode-bidi:embed">&#x5d0;</span></div>
+  </body>
+</html>

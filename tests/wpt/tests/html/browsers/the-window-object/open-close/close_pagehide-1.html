@@ -1,0 +1,7 @@
+<!doctype html>
+<script>
+onload = function() {opener.postMessage("loaded", "*")};
+onpagehide = function() {
+  opener.callback();
+}
+</script>

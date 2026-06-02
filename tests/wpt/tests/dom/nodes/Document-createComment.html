@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Document.createComment</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-createcomment">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-ownerdocument">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-data">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-nodevalue">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-textcontent">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-length">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-nodetype">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-haschildnodes">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-childnodes">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-firstchild">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-lastchild">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="Document-createComment-createTextNode.js"></script>
+<div id="log"></div>
+<script>
+test_create("createComment", Comment, 8, "#comment");
+</script>

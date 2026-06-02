@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for align-items / align-self behavior, with all the possible
+     values included on different items within a flex container. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing the behavior of 'align-self' property values on flex items that are blocks, in a horizontal flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property"/>
+    <link rel="match" href="flexbox-align-self-horiz-001-ref.xhtml"/>
+    <style>
+      .flexbox {
+        border: 1px dashed blue;
+        height: 200px;
+        display: inline-flex;
+        font-size: 10px;
+        line-height: 10px;
+
+        /* Any children whose align-self is 'auto' (or unspecified, or
+           initial) will end up taking this value from us: */
+        align-items: center;
+
+        /* Any children whose align-self is 'inherit' will end up
+           inheriting this value from us: */
+        align-self: flex-end;
+      }
+
+      .flexbox > div {
+        width: 40px;
+      }
+
+      .big {
+        height: 100px;
+        font-size: 20px;
+        line-height: 20px;
+      }
+
+      /* Classes for each of the various align-self values */
+      .flex-start {
+        background: lime;
+        align-self: flex-start;
+      }
+      .flex-end {
+        background: orange;
+        align-self: flex-end;
+      }
+      .center {
+        background: lightblue;
+        align-self: center;
+      }
+      .baseline {
+        background: teal;
+        align-self: baseline;
+      }
+      .stretch {
+        background: pink;
+        align-self: stretch;
+      }
+      .auto {
+        background: yellow;
+        align-self: auto;
+      }
+      .unspecified {
+        background: lightgreen;
+      }
+      .initial {
+        background: aqua;
+        align-self: initial;
+      }
+      .inherit {
+        background: violet;
+        align-self: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="center">center</div>
+      <div class="center big">a b c d e f</div>
+      <div class="baseline">base</div>
+      <div class="baseline big">abc</div>
+      <div class="stretch">stretch</div>
+      <div class="stretch big">a b c d e f</div>
+      <div class="auto">auto</div>
+      <div class="unspecified">unspec</div>
+      <div class="initial">initial</div>
+      <div class="inherit">inherit</div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<title>Table parts sticky containers</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="author" title="Aleks Totic" href="mailto:atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/" />
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5020"/>
+<style>
+  body {
+    margin: 0;
+  }
+  main * {
+    box-sizing: border-box;
+  }
+
+  main .scroller {
+    width: 350px;
+    height: 302px;
+    overflow-y: scroll;
+    outline-offset: -1px;
+    outline: gray solid 1px;
+  }
+  main .padblock {
+    width: 300px;
+    height: 400px;
+    outline-offset: -2px;
+    outline: black dotted 2px;
+  }
+  main table {
+    border-spacing: 0;
+  }
+
+  main td {
+    width: 100px;
+    height: 25px;
+  }
+  .sticky {
+    position:sticky;
+    top: 0;
+    background: rgba(0,255,0, 0.3);
+  }
+
+</style>
+<main>
+  <div class="scroller">
+    <div class="padblock">top</div>
+    <table>
+      <thead>
+        <tr>
+          <td>h:0,0</td>
+          <td>h:0,1</td>
+          <td>h:0,2</td>
+        </tr>
+        <tr >
+          <td>h:1,0</td>
+          <td >h:1,1</td>
+          <td>h:1,2</td>
+        </tr>
+        <tr>
+          <td>h:2,0</td>
+          <td>h:2,1</td>
+          <td>h:2,2</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>b:0,0</td>
+          <td>b:0,1</td>
+          <td>b:0,2</td>
+        </tr>
+        <tr>
+          <td>b:1,0</td>
+          <td>b:1,1</td>
+          <td>b:1,2</td>
+        </tr>
+        <tr>
+          <td>b:2,0</td>
+          <td>b:2,1</td>
+          <td>b:2,2</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>f:0,0</td>
+          <td>f:0,1</td>
+          <td>f:0,2</td>
+        </tr>
+        <tr>
+          <td>f:1,0</td>
+          <td>f:1,1</td>
+          <td>f:1,2</td>
+        </tr>
+        <tr>
+          <td>f:2,0</td>
+          <td>f:2,1</td>
+          <td>f:2,2</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="padblock">bottom</div>
+  </div>
+</main>
+<script>
+
+  function scrollTo(y) {
+    let scroller = document.querySelector("main .scroller");
+    scroller.scrollTop = y;
+  }
+
+  test( () => {
+    // Setup
+    let target = document.querySelector("main tbody tr:nth-child(2) td:nth-child(2)");
+    let scroller = document.querySelector("main .scroller");
+    target.classList.toggle("sticky");
+
+    // Tests
+    scrollTo(0);
+    assert_equals(target.getBoundingClientRect().top, 500, "intrinsic position");
+
+    scrollTo(600);
+    assert_equals(target.getBoundingClientRect().top, 0, "sticking to the table");
+
+    scrollTo(640);
+    assert_equals(target.getBoundingClientRect().top, -40, "sticking to the table bottom");
+
+    // Teardown
+    target.classList.toggle("sticky");
+  }, "TD sticky container is table");
+
+  test( () => {
+    // Setup
+    let target = document.querySelector("main tbody tr:nth-child(2)");
+    let scroller = document.querySelector("main .scroller");
+    target.classList.toggle("sticky");
+
+    // Tests
+    scrollTo(0);
+    assert_equals(target.getBoundingClientRect().top, 500, "intrinsic position");
+
+    scrollTo(600);
+    assert_equals(target.getBoundingClientRect().top, 0, "sticking to the table");
+
+    scrollTo(640);
+    assert_equals(target.getBoundingClientRect().top, -40, "sticking to the table bottom");
+    // Teardown
+    target.classList.toggle("sticky");
+  }, "TR sticky container is table");
+
+
+  test( () => {
+    // Setup
+    let target = document.querySelector("main tbody");
+    let scroller = document.querySelector("main .scroller");
+    target.classList.toggle("sticky");
+
+    // Tests
+    scrollTo(0);
+    assert_equals(target.getBoundingClientRect().top, 475, "intrinsic position");
+
+    scrollTo(550);
+    assert_equals(target.getBoundingClientRect().top, 0, "sticking to the table");
+
+    scrollTo(600);
+    assert_equals(target.getBoundingClientRect().top, -50, "sticking to the table bottom");
+
+    // Teardown
+    target.classList.toggle("sticky");
+  }, "TBODY sticky container is table");
+
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Grid gaps are painted with different outsets in start/end segment endpoints.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="match" href="grid-gap-decorations-052-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid {
+        display: grid;
+        grid-template: repeat(auto-fill, 100px) / repeat(3, 100px);
+        grid-gap: 20px;
+        row-rule: 3px solid gray;
+        column-rule: 3px solid red;
+        column-rule-break: intersection;
+        column-rule-interior-inset-start: 0px;
+        column-rule-interior-inset-end: -5px;
+        row-rule-break: intersection;
+        row-rule-edge-inset-end: 5px;
+        row-rule-edge-inset-start: 1px;
+        left: 0px;
+        top: 0px;
+    }
+    .item {
+        width: 100px;
+        height: 100px;
+        background: lightgray;
+    }
+</style>
+<div class="grid">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

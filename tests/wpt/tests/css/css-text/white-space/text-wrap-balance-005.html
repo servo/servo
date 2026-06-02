@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS test: balancing and forced breaks</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net/'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="If the element is affected by line-clamp, the claming effect is applied first, then the remaining lines are balanced.">
+<link rel="match" href="reference/text-wrap-balance-004-a-ref.html">
+<link rel="match" href="reference/text-wrap-balance-004-b-ref.html">
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    margin: 1ch;
+    width: 8.5ch;
+    /* the .5ch above should not be necessary,
+       but in some browsers the ellipsis is a little larger than 1ch,
+       so this gives it room to breathe.
+       Needing this may or may not be a bug,
+       but this is not what we're testing here.
+     */
+}
+.test {
+    border-color: blue;
+
+    text-wrap-style: balance;
+    line-clamp: 2;
+    /* This code is unnecessary in any browser that supports the unprefixed version of line-clamp,
+       but neither does it have any detrimental effect,
+       and it broadens the test to browsers that only support the prefixed version */
+
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.ref1 {
+    border-color: orange;
+}
+
+.ref2 {
+    border-color: magenta;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical either the orange or magenta one.
+
+<div class=test>1 2 3 4 5 6 7 8 9
+</div>
+
+<div class=ref1>1 2 3 4 5 6 7 8…
+</div>
+
+<div class=ref2>1 2 3<br>4 5 6<br>7 8 9</div>

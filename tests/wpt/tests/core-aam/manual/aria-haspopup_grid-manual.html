@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-haspopup=grid</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HAS_POPUP"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXShowMenu"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "doesNotContain",
+                  "AXPress"
+               ],
+               [
+                  "property",
+                  "AXPopupValue",
+                  "is",
+                  "grid"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_HASPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Pattern",
+                  "is",
+                  "ExpandCollapse"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-haspopup=grid"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-haspopup=grid.</p>
+    <div role='button' id='test' aria-haspopup='grid'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

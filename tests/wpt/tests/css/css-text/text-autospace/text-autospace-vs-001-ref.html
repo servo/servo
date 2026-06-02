@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#container {
+  font-family: Ahem;
+  font-size: 40px;
+  text-autospace: no-autospace;
+
+  span {
+    margin-left: calc(1em / 8);
+    margin-right: calc(1em / 8);
+  }
+}
+</style>
+<div id="container">
+  <div class="test">国&#xFE00;国</div>
+  <div class="test">国&#xFE00;<span>A</span></div>
+  <div class="test">A&#xFE00;<span>国</span></div>
+  <div class="test">国&#xE0100;国</div>
+  <div class="test">国&#xE0100;<span>A</span></div>
+  <div class="test">A&#xE0100;<span>国</span></div>
+  <div class="test">“&#xFE01;国</div>
+</div>

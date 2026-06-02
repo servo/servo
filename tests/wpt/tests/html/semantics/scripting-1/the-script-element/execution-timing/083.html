@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: event listener defined by script in a document in history</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+  <iframe src="about:blank"></iframe>
+  <script>
+    log('inline script #1');
+    function fireFooEvent(){
+      var evt=document.createEvent('Event');
+      evt.initEvent('foo', true, true);
+      document.dispatchEvent(evt);
+    }
+    var doc = frames[0].document;
+    doc.open('text/html');
+    doc.write('<script>top.log("IFRAME script");top.document.addEventListener("foo", function(e){ top.log("event: "+e.type); }, false)<\/script>');
+    log('end script #1');
+  </script>
+  <script>
+    fireFooEvent();
+    frames[0].location='about:blank'; // returning to about:blank should de-activate document that defined event listener..?
+  </script>
+  <script>
+    fireFooEvent();
+  </script>
+  <script type="text/javascript">
+  log( 'inline script #2' );
+  var t = async_test()
+
+  function test() {
+    assert_equals(frames[0].location.toString(), "about:blank");
+    assert_array_equals(eventOrder, ['inline script #1',
+      'IFRAME script',
+      'end script #1',
+      'event: foo',
+      'inline script #2'
+    ]);
+    t.done();
+  }
+  onload = function() {setTimeout(t.step_func(function() {fireFooEvent(); test()}), 80)};
+  </script>
+
+</body></html>

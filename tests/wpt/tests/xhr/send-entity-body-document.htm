@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - Document</title>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="/following::ol/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-document" data-tested-assertations="/following::dd" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var tests = [
+      {
+        title: 'XML document, windows-1252',
+        url: 'resources/win-1252-xml.py',
+        contentType: 'application/xml;charset=UTF-8',
+        responseText: '<\u00FF\/>'
+      },
+      // Invalid character code in document turns into U+FFFD.
+      {
+        title: 'HTML document, invalid UTF-8',
+        url: 'resources/invalid-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<body>\uFFFD<\/body>'
+      },
+      // Correctly serialized Shift-JIS.
+      {
+        title: 'HTML document, shift-jis',
+        url: 'resources/shift-jis-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<body>\u30C6\u30b9\u30c8<\/body>'
+      },
+      // There's some markup included, but it's not really relevant for this
+      // test suite, so we do an indexOf() test.
+      {
+        title: 'plain text file',
+        url: 'folder.txt',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: 'top'
+      },
+      // This test does not want to assert anything about what markup a
+      // standalone image should be wrapped in. Hence this test lacks a
+      // responseText expectation.
+      {
+        title: 'image file',
+        url: 'resources/image.gif',
+        contentType: 'text/html;charset=UTF-8'
+      },
+      {
+        title: 'img tag',
+        url: 'resources/img-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<img>foo'
+      },
+      {
+        title: 'empty div',
+        url: 'resources/empty-div-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<!DOCTYPE html><html><head></head><body><div></div></body></html>'
+      }
+    ];
+
+    tests.forEach(function(t) {
+      async_test(function() {
+        var iframe = document.createElement("iframe");
+        iframe.onload = this.step_func_done(function() {
+          var client = new XMLHttpRequest()
+          client.open("POST", "resources/content.py?response_charset_label=UTF-8", false)
+          client.send(iframe.contentDocument)
+          assert_equals(client.getResponseHeader('X-Request-Content-Type'),
+                        t.contentType,
+                        'document should be serialized and sent as ' + t.contentType)
+          // The indexOf() assertion will overlook some stuff, e.g. XML
+          // prologues that shouldn't be there (looking at you, Presto).
+          // However, arguably these things have little to do with the XHR
+          // functionality we're testing.
+          if (t.responseText) {
+            assert_true(client.responseText.indexOf(t.responseText) != -1,
+                        JSON.stringify(t.responseText) + " not in " +
+                        JSON.stringify(client.responseText));
+          }
+          assert_equals(client.responseXML, null)
+        });
+        iframe.src = t.url;
+        document.body.appendChild(iframe);
+      }, t.title);
+    });
+    </script>
+  </body>
+</html>

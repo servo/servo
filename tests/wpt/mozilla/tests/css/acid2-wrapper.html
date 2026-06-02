@@ -1,0 +1,15 @@
+<!doctype html>
+<html class=reftest-wait>
+<meta name=timeout content=long>
+<link rel=match href=acid2_ref_broken.html>
+<style>
+body {
+  margin: 0;
+}
+iframe {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+}
+</style>
+<iframe src="acid2.html#top" onload="document.documentElement.className = ''"></iframe>

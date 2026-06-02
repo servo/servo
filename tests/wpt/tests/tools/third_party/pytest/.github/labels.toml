@@ -1,0 +1,149 @@
+["os: cygwin"]
+color = "006b75"
+description = "cygwin platform-specific problem"
+name = "os: cygwin"
+
+["os: linux"]
+color = "1d76db"
+description = "linux platform-specific problem"
+name = "os: linux"
+
+["os: mac"]
+color = "bfdadc"
+description = "mac platform-specific problem"
+name = "os: mac"
+
+["os: windows"]
+color = "fbca04"
+description = "windows platform-specific problem"
+name = "os: windows"
+
+["plugin: argcomplete"]
+color = "d4c5f9"
+description = "related to the argcomplete builtin plugin"
+name = "plugin: argcomplete"
+
+["plugin: cache"]
+color = "c7def8"
+description = "related to the cache builtin plugin"
+name = "plugin: cache"
+
+["plugin: capture"]
+color = "1d76db"
+description = "related to the capture builtin plugin"
+name = "plugin: capture"
+
+["plugin: debugging"]
+color = "dd52a8"
+description = "related to the debugging builtin plugin"
+name = "plugin: debugging"
+
+["plugin: doctests"]
+color = "fad8c7"
+description = "related to the doctests builtin plugin"
+name = "plugin: doctests"
+
+["plugin: junitxml"]
+color = "c5def5"
+description = "related to the junitxml builtin plugin"
+name = "plugin: junitxml"
+
+["plugin: logging"]
+color = "ff5432"
+description = "related to the logging builtin plugin"
+name = "plugin: logging"
+
+["plugin: monkeypatch"]
+color = "0e8a16"
+description = "related to the monkeypatch builtin plugin"
+name = "plugin: monkeypatch"
+
+["plugin: nose"]
+color = "bfdadc"
+description = "related to the nose integration builtin plugin"
+name = "plugin: nose"
+
+["plugin: pastebin"]
+color = "bfd4f2"
+description = "related to the pastebin builtin plugin"
+name = "plugin: pastebin"
+
+["plugin: pytester"]
+color = "c5def5"
+description = "related to the pytester builtin plugin"
+name = "plugin: pytester"
+
+["plugin: tmpdir"]
+color = "bfd4f2"
+description = "related to the tmpdir builtin plugin"
+name = "plugin: tmpdir"
+
+["plugin: unittest"]
+color = "006b75"
+description = "related to the unittest integration builtin plugin"
+name = "plugin: unittest"
+
+["plugin: warnings"]
+color = "fef2c0"
+description = "related to the warnings builtin plugin"
+name = "plugin: warnings"
+
+["plugin: xdist"]
+color = "5319e7"
+description = "related to the xdist external plugin"
+name = "plugin: xdist"
+
+["status: critical"]
+color = "e11d21"
+description = "grave problem or usability issue that affects lots of users"
+name = "status: critical"
+
+["status: easy"]
+color = "bfe5bf"
+description = "easy issue that is friendly to new contributor"
+name = "status: easy"
+
+["status: help wanted"]
+color = "159818"
+description = "developers would like help from experts on this topic"
+name = "status: help wanted"
+
+["status: needs information"]
+color = "5319e7"
+description = "reporter needs to provide more information; can be closed after 2 or more weeks of inactivity"
+name = "status: needs information"
+
+["topic: collection"]
+color = "006b75"
+description = "related to the collection phase"
+name = "topic: collection"
+
+["topic: config"]
+color = "006b75"
+description = "related to config handling, argument parsing and config file"
+name = "topic: config"
+
+["topic: fixtures"]
+color = "5319e7"
+description = "anything involving fixtures directly or indirectly"
+name = "topic: fixtures"
+
+["topic: marks"]
+color = "b60205"
+description = "related to marks, either the general marks or builtin"
+name = "topic: marks"
+
+["topic: parametrize"]
+color = "fbca04"
+description = "related to @pytest.mark.parametrize"
+name = "topic: parametrize"
+
+["topic: reporting"]
+color = "fef2c0"
+description = "related to terminal output and user-facing messages and errors"
+name = "topic: reporting"
+
+["topic: rewrite"]
+color = "0e8a16"
+description = "related to the assertion rewrite mechanism"
+name = "topic: rewrite"

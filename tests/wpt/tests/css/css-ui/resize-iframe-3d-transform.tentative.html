@@ -1,0 +1,105 @@
+<!DOCTYPE HTML>
+<title>Test of resizing interaction</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://www.w3.org/TR/css-ui-4/#resize">
+<link rel="help" href="https://issues.chromium.org/issues/40697767">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!--
+  This test uses .tentative. because it depends on unspecified user
+  interface characteristics (the position of the resizer UI and how it
+  works), although those user interface characteristics are likely common
+  across implementations.
+-->
+
+<style>
+
+html, body, iframe { margin: 0; padding: 0; }
+
+/**
+ * The top left corner of the iframe is translated by 300px left and
+ * 300px towards the user.  This is inside a 60deg rotation around the
+ * left edge of the page, which means that that rotation moves the left
+ * edge of the iframe back into the viewport.  The iframe's width is
+ * squashed in half, so it's visually 150x150 content box with 2px
+ * top/bottom borders and 1px left/right borders.
+ *
+ * This test is using 3D transforms to test correct use of project
+ * versus map for the event handling.
+ */
+
+#outer {
+  transform: rotateY(60deg);
+  transform-origin: top left;
+  transform-style: preserve-3d;
+}
+
+#middle {
+  transform: translateZ(300px);
+  transform-style: preserve-3d;
+}
+
+#inner {
+  transform: translateX(-304px);
+  resize: both;
+  border: 2px solid;
+}
+
+</style>
+
+<div id="outer">
+  <div id="middle">
+    <iframe id="inner" srcdoc="hello world"></iframe>
+  </div>
+</div>
+
+<script>
+
+promise_test(async t => {
+  let e = document.getElementById("inner");
+
+  let w = e.getBoundingClientRect().width;
+  let h = e.getBoundingClientRect().height;
+
+  assert_equals(w, 152, "iframe width");
+  assert_equals(h, 154, "iframe height");
+
+  let x = e.getBoundingClientRect().right - 2; /* everything squashed in half */
+  let y = e.getBoundingClientRect().bottom - 4;
+
+  assert_approx_equals(x, Math.sin(Math.PI/3) * 300 - 2, 0.1, "iframe right");
+  assert_equals(y, 150, "iframe bottom");
+
+  x = Math.round(x); // Actions expects integers
+
+  let move1 = new test_driver.Actions()
+    .pointerMove(x, y)
+    .pointerDown()
+    .pointerMove(x-2, y-3);
+  await move1.send();
+
+  assert_equals(e.getBoundingClientRect().width, w - 2, "width after move 1");
+  assert_equals(e.getBoundingClientRect().height, h - 3, "height after move 1");
+  assert_equals(e.style.width, "296px", "width style after move 1");
+  assert_equals(e.style.height, "147px", "height style after move 1");
+
+  // It's odd that we have to send pointerMove and pointerDown again here.
+  let move2 = new test_driver.Actions()
+    .pointerMove(x-2, y-3)
+    .pointerDown()
+    .pointerMove(x-9, y-1)
+    .pointerUp();
+  await move2.send();
+
+  assert_equals(e.getBoundingClientRect().width, w - 9, "width after move 2");
+  assert_equals(e.getBoundingClientRect().height, h - 1, "height after move 2");
+  assert_equals(e.style.width, "282px", "width style after move 2");
+  assert_equals(e.style.height, "149px", "height style after move 2");
+}, "resizing of iframe in 3D transform");
+
+</script>

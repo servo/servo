@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Reference: Non-overlapping highlight colors</title>
+<style>
+  body {
+    text-decoration: 2px green underline;
+  }
+  .foo {
+    color:blue;
+    text-decoration: 2px blue underline;
+  }
+  .bar {
+    text-decoration: 2px currentColor underline;
+  }
+</style>
+<body><span class="foo">This part should be blue</span> and <span class="bar">this part should be black</span>

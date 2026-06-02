@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{columnGap: '3em'}, {columnGap: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).columnGap, '80px');
+}, 'column-gap responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{columnGap: '40px'}, {columnGap: 'calc(40px - 2em)'}], 10);
+    player.pause();
+
+    player.currentTime = 5;
+    element.style.fontSize = '40px';
+    assert_equals(getComputedStyle(element).columnGap, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).columnGap, '10px');
+}, 'column-gap clamped to 0px on keyframes');
+
+test(function() {
+    container.style.columnGap = 'normal';
+    var player = element.animate([{columnGap: 'inherit'}, {columnGap: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).columnGap, 'normal');
+
+    container.style.columnGap = '100px';
+    assert_equals(getComputedStyle(element).columnGap, '80px');
+
+    container.style.columnGap = 'normal';
+    assert_equals(getComputedStyle(element).columnGap, 'normal');
+}, 'column-gap responsive to inherited changes');
+</script>

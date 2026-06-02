@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Creating a PresentationRequest with a set of URLs containing an a priori unauthenticated URL in an HTTPS context throws a SecurityError exception.</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="help" href="http://w3c.github.io/presentation-api/#constructing-a-presentationrequest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+    function createPresentation() {
+        var request = new PresentationRequest([
+          'presentation.html',
+          'http://example.org/presentation.html'
+        ]);
+    };
+
+    test(function () {
+        assert_throws_dom('SecurityError', createPresentation);
+    });
+</script>
+

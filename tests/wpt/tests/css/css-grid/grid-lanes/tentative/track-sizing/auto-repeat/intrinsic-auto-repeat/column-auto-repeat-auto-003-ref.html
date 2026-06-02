@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(6, 60px);
+    grid-template-rows: 50px 50px 50px 50px;
+    background: gray;
+    width: 360px;
+    height: 200px;
+    font: 15px/1 Ahem;
+}
+
+.grid > div {
+    width: 75%;
+}
+</style>
+<body>
+  <div class="grid">
+    <div style="background: lightskyblue; grid-column: span 2;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-column: span 3;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-column: span 4;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-column: span 2;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

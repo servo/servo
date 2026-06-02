@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>textarea minlength</title>
+  <link rel="author" title="tigercosmos" href="mailto:phy.tiger@gmail.com">
+  <link rel=help href="https://html.spec.whatwg.org/multipage/#attr-textarea-minlength">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+
+  <textarea id="none"></textarea>
+  <textarea id="negative" minlength=-5></textarea>
+  <textarea id="non-numeric" minlength="not-a-number"></textarea>
+  <textarea id="assign-negative"></textarea>
+  <textarea id="assign-non-numeric"></textarea>
+
+  <script>
+    test(
+      function () {
+        assert_equals(document.getElementById("none").minLength, -1);
+      }, "Unset minlength is -1");
+
+    test(
+      function () {
+        assert_equals(document.getElementById("negative").minLength, -1);
+      }, "Negative minlength is always -1");
+
+    test(
+      function () {
+        assert_equals(document.getElementById("non-numeric").minLength, -1);
+      }, "Non-numeric minlength is -1");
+
+    test(
+      function () {
+        assert_throws_dom("INDEX_SIZE_ERR", function () {
+          document.getElementById("assign-negative").minLength = -5;
+        });
+      }, "Assigning negative integer throws IndexSizeError");
+
+    test(
+      function () {
+        document.getElementById("assign-non-numeric").minLength = "not-a-number";
+        assert_equals(document.getElementById("assign-non-numeric").minLength, 0);
+      }, "Assigning non-numeric to minlength sets minlength to 0");
+  </script>
+</body>
+
+</html>

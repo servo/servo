@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker key navigation cycles</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#attr-tabindex">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    overflow: auto;
+    width: 100px;
+    height: 100px;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 10px;
+    width: 30px;
+  }
+
+  #scroller div {
+    background: blue;
+    display: inline-block;
+    height: 100px;
+    width: 100px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    background: blue;
+    width: 10px;
+    height: 10px;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background: green;
+  }
+</style>
+<div id="scroller">
+  <div id="first_item"></div>
+  <div></div>
+  <div id="last_item"></div>
+</div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(5, 5)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(first_item, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "first ::scroll-marker gets activated upon clicking");
+    await new test_driver.Actions()
+      .keyDown('\uE012')
+      .keyUp('\uE012')
+      .send();
+    assert_equals(getComputedStyle(last_item, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "last ::scroll-marker gets activated by going from the first one");
+  });
+</script>

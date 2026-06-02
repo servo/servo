@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test for vertical-align:calc()</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-vertical-align-1-ref.html">
+
+<div style="line-height: 100px; margin-top: 100px">
+  <span>x</span>
+  <span style="vertical-align: calc(50px)">x</span>
+  <span style="vertical-align: calc(50%)">x</span>
+  <span style="vertical-align: calc(25px + 50%)">x</span>
+  <span style="vertical-align: calc(150% / 2 - 30px)">x</span>
+  <span style="vertical-align: calc(40px + 10% - 20% / 2)">x</span>
+  <span style="vertical-align: calc(40px - 10%)">x</span>
+</div>
+</body>
+</html>

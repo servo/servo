@@ -1,0 +1,3 @@
+features:
+- name: image-set
+  files: "**"

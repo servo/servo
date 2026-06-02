@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Reverted styles for ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that ::marker can be animated with Web Animations, but only the supported properties." />
+<div id="log"></div>
+<ul>
+  <li id="target">list item</li>
+</ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+const cs = getComputedStyle(target, "::marker");
+const options = {
+  pseudoElement: "::marker",
+  duration: 2,
+  delay: -1,
+};
+
+// 'color' applies to ::marker so it should be animatable
+test(function() {
+  const anim = target.animate([
+    {color: "rgb(0, 100, 200)"},
+    {color: "rgb(200, 0, 100)"},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+}, "'color' animation");
+
+// 'opacity' doesn't apply to ::marker so it shouldn't be animatable
+test(function() {
+  const anim = target.animate([
+    {opacity: .2},
+    {opacity: .8},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.opacity, "1", "opacity");
+}, "'opacity' animation");
+
+// When both 'color' and 'opacity' are specified, only the former should be animated.
+test(function() {
+  const anim = target.animate([
+    {
+      color: "rgb(0, 100, 200)",
+      opacity: .2,
+    },
+    {
+      color: "rgb(200, 0, 100)",
+      opacity: .8,
+    },
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+  assert_equals(cs.opacity, "1", "opacity");
+}, "'color' + 'opacity' animation");
+</script>

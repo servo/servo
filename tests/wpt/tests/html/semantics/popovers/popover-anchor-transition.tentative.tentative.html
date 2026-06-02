@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests transitioning display property of anchored popover</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="help" href="https://github.com/whatwg/html/pull/9144">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#target {
+  inset: auto;
+  transition: display 2s;
+}
+</style>
+
+<div popover anchor id="target">
+  Popover
+</div>
+
+<script>
+test(() => {
+  target.showPopover();
+  const xBefore = target.offsetLeft;
+  const yBefore = target.offsetTop;
+
+  target.hidePopover();
+  assert_equals(target.offsetLeft, xBefore, 'Should not shift in x axis');
+  assert_equals(target.offsetTop, yBefore, 'Should not shift in y axis')
+}, 'Transitioning display property of an anchored popover should not cause a position shift');
+</script>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Element.prototype.removeAttribute</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-element-removeattribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const el = document.createElement("p");
+  el.setAttribute("x", "first");
+  el.setAttributeNS("foo", "x", "second");
+
+  assert_equals(el.attributes.length, 2);
+  assert_equals(el.getAttribute("x"), "first");
+  assert_equals(el.getAttributeNS(null, "x"), "first");
+  assert_equals(el.getAttributeNS("foo", "x"), "second");
+
+  // removeAttribute removes the first attribute with name "x" that
+  // we set on the element, irrespective of namespace.
+  el.removeAttribute("x");
+
+  // The only attribute remaining should be the second one.
+  assert_equals(el.getAttribute("x"), "second");
+  assert_equals(el.getAttributeNS(null, "x"), null);
+  assert_equals(el.getAttributeNS("foo", "x"), "second");
+  assert_equals(el.attributes.length, 1, "one attribute");
+
+}, "removeAttribute should remove the first attribute, irrespective of namespace, when the first attribute is " +
+   "not in a namespace");
+
+test(() => {
+
+  const el = document.createElement("p");
+  el.setAttributeNS("foo", "x", "first");
+  el.setAttributeNS("foo2", "x", "second");
+
+  assert_equals(el.attributes.length, 2);
+  assert_equals(el.getAttribute("x"), "first");
+  assert_equals(el.getAttributeNS("foo", "x"), "first");
+  assert_equals(el.getAttributeNS("foo2", "x"), "second");
+
+  // removeAttribute removes the first attribute with name "x" that
+  // we set on the element, irrespective of namespace.
+  el.removeAttribute("x");
+
+  // The only attribute remaining should be the second one.
+  assert_equals(el.getAttribute("x"), "second");
+  assert_equals(el.getAttributeNS("foo", "x"), null);
+  assert_equals(el.getAttributeNS("foo2", "x"), "second");
+  assert_equals(el.attributes.length, 1, "one attribute");
+
+}, "removeAttribute should remove the first attribute, irrespective of namespace, when the first attribute is " +
+   "in a namespace");
+</script>

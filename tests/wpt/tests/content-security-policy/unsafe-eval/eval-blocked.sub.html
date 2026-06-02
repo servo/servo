@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>eval-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS EvalError","PASS EvalError", "violated-directive=script-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        try {
+            eval("alert_assert('FAIL (1 of 2)')");
+        } catch (e) {
+            log("PASS EvalError");
+        }
+
+        try {
+            window.eval("alert_assert('FAIL (1 of 2)')");
+        } catch (e) {
+            log("PASS EvalError");
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

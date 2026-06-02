@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED Attribute value selector with declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|p, *|r, *|s { background-color : red }
+div.stub *:not([a|title="foo"]) {background-color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
+<div class="stub">
+<p title="foo">This paragraph should have a green background.</p>
+<q xmlns="http://www.example.org/a" a:title="foo">This paragraph should be unstyled.</q>
+<s xmlns="http://www.example.org/a" a:title="foobar">This paragraph should have a green background.</s>
+<r xmlns="http://www.example.org/b" b:title="foo">This paragraph should have a green background.</r>
+</div>
+</body>
+</html>

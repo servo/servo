@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="output" width="100" height="100"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+const g = ctx.createConicGradient(3*Math.PI/2, 30, 30);
+g.addColorStop(0, "#f0f");
+g.addColorStop(0.25, "#0ff");
+g.addColorStop(0.50, "#ff0");
+g.addColorStop(0.75, "#f0f");
+ctx.fillStyle = g;
+ctx.fillRect(0, 0, 100, 100);
+</script>
+</body>
+</html>

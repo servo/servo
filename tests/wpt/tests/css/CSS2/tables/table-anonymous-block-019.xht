@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table and the table 'margin' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="assert" content="The 'margin' property of a table is actually applied to its anonymous block box." />
+        <style type="text/css">
+            div
+            {
+                color: gray;
+            }
+            table
+            {
+                border-spacing: 0;
+                display: inline-table;
+                margin: 20px;
+            }
+            caption
+            {
+                background: blue;
+                color: blue;
+            }
+            td
+            {
+                background: black;
+                color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box is directly on top of the black box and there is "Filler Text" above and below the stacked boxes and to the right and left of the black box.</p>
+        <div>
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            <table>
+                <caption>XXXXX</caption>
+                <tr>
+                    <td>XXXXX</td>
+                </tr>
+            </table>
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+        </div>
+    </body>
+</html>

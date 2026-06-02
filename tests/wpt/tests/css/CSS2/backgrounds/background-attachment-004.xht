@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Fixed Transparent Backgrounds</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/bgafixed.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+    * { background: transparent; }
+    body { background: transparent url(support/cat-128.png) no-repeat fixed center; }
+    .a   { background: transparent url(support/cat-830.png) no-repeat fixed center; height: 100px; }
+    pre { font: 100 24px/2 Arial, sans-serif; letter-spacing: 1em; word-spacing: 1.2em; margin: 1em; }
+  </style>
+ </head>
+ <body>
+
+<pre>
+
+  As  you
+
+      scroll
+
+ this
+           page
+
+down,   you
+    should
+
+see          the
+
+   mow mow
+
+get
+      bigger
+
+ in   flashes.
+
+</pre>
+
+ <div class="a"></div>
+
+<pre>
+
+ The first
+
+   such flash
+
+appears
+             just
+above the second
+
+   sentence.
+
+</pre>
+
+ <div class="a"></div>
+
+<pre>
+
+ In fact, there is
+
+  a
+
+              flash
+between  each
+
+  sentence.
+
+</pre>
+
+ <div class="a"></div>
+
+<pre>
+
+ The flashes    are
+
+  div elements
+             with
+fixed backgrounds.
+
+</pre>
+
+</body>
+</html>
+

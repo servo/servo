@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>rel=match waits for window load</title>
+<link rel=match href=green.html>
+<script>
+  window.onload = () => {
+    const s = document.createElement('style');
+    s.innerText = ':root {background-color:green}';
+    document.body.appendChild(s);
+  };
+</script>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: capture elements with display inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:mattwoodrow@apple.com">
+<link rel="match" href="inline-with-offset-from-containing-block-clipped-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#box {
+  background: blue;
+  view-transition-name: target;
+}
+
+div {
+  padding-left: 8px;
+  padding-top: 8px;
+  background-color: green;
+}
+
+/* We're verifying what we capture, so just display the contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-group(target) { background: green; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: pink; }
+
+::view-transition-image-pair(target) {
+    overflow:clip;
+}
+</style>
+
+<div>
+  <span id=box>&nbsp;&nbsp&nbsp;&nbsp;</span>
+</div>
+<script>
+
+async function runTest() {
+  let t = document.startViewTransition();
+  t.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>

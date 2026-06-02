@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: shape-outside from first frame of animated gif</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-image-025-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that shape-outside is extracted from the
+                                 first frame of an animated gif."/>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+        body { margin: 0; }
+        .container {
+          left: 10px;
+          width: 200px;
+          font: 50px/1 Ahem;
+          color: rgb(0,100,0);
+        }
+        #image {
+            float: left;
+            shape-outside: url("support/animated.gif");
+        }
+        .blue-line {
+            top: 50px;
+            left: 60px;
+            width: 2px;
+            height: 140px;
+            background-color: blue;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+        }
+        .green {
+            left: 10px;
+            background-color: rgb(0,100,0);
+        }
+        .failure {
+            left: 60px;
+            background-color: red;
+            z-index: -1;
+        }
+        .container, .blue-line, .square, .failure { position: absolute; }
+        .container, .square, .failure { top: 70px; }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if there are two identical green rectangles on either side of the blue line.
+        There should be no red.
+    </p>
+    <div class="container">
+        <img id="image" src="support/animated.gif"/>
+       X<br/>X
+    </div>
+    <div class="green square"></div>
+    <div class="blue-line"></div>
+    <div class="failure square"></div>
+</body>
+</html>
+

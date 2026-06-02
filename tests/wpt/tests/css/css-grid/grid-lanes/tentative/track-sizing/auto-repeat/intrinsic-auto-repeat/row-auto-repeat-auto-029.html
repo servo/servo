@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with auto track sizes mixed with fixed tracks</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-auto-repeat-auto-029-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    background: gray;
+    flow-tolerance: 0;
+    grid-template-rows: repeat(auto-fill, 100px auto);
+    height: 500px;
+    width: 300px;
+}
+
+.grid-lanes > div {
+    height: 300px;
+    width: 100px;
+    grid-row: span 2;
+}
+</style>
+<body>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue;">
+      Number 1
+    </div>
+    <div style="background: lightcoral;">
+      Number 2
+    </div>
+  </div>
+</body>
+</html>

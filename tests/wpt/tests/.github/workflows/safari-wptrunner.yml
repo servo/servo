@@ -1,0 +1,175 @@
+name: Run Safari Tests
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Prefix for the artifact uploaded
+        required: true
+        type: string
+      merged-artifact-name:
+        description: Merge the uploaded artifacts into a singular artifact
+        required: false
+        type: string
+      safari-technology-preview:
+        description: Run Safari Technology Preview rather than the system Safari
+        required: true
+        type: boolean
+      safaridriver-diagnose:
+        description: Run safaridriver capturing diagnostics
+        required: true
+        type: boolean
+      fetch-ref:
+        description: The ref to fetch and initially checkout
+        required: false
+        type: string
+      fetch-depth:
+        description: The fetch-depth to checkout
+        required: false
+        type: number
+      test-rev:
+        description: The rev to checkout before running the tests
+        required: false
+        type: string
+      matrix:
+        description: Test matrix, to override test-type/current-chunk/total-chunks
+        required: false
+        type: string
+      extra-options:
+        description: Extra options to pass to wpt run
+        required: false
+        type: string
+
+# We never interact with the GitHub API, thus we can simply disable all
+# permissions the GitHub token would have.
+permissions: {}
+
+jobs:
+  results:
+    name: ${{ matrix.current-chunk || 1 }} (of ${{ matrix.total-chunks || 1 }})
+    env:
+      CURRENT_CHUNK: ${{ matrix.current-chunk || 1 }}
+      TOTAL_CHUNKS: ${{ matrix.total-chunks || 1 }}
+    runs-on:
+      - self-hosted
+      - webkit-ews
+    timeout-minutes: 180
+    strategy:
+      matrix: "${{ fromJSON(inputs.matrix || '{\"pointless-matrix-item\": [0]}') }}"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: ${{ inputs.fetch-depth || 1 }}
+          ref: ${{ inputs.fetch-ref }}
+      - name: test-checkout
+        if: inputs.test-rev
+        env:
+          REV: ${{ inputs.test-rev }}
+        run: |-
+          git switch --force --progress -d "$REV"
+      - name: Reconfigure the display(s)
+        run: |-
+          ./wpt macos-display-configuration
+      - name: Set system caption style to ""
+        run: |-
+          defaults write com.apple.mediaaccessibility MACaptionActiveProfile -string ""
+      - name: Enable safaridriver diagnostics
+        if: inputs.safaridriver-diagnose
+        run: |-
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+          defaults write com.apple.WebDriver DiagnosticsEnabled 1
+      - name: Enable safaridriver (Safari)
+        if: ${{ !inputs.safari-technology-preview }}
+        run: |-
+          set -eux -o pipefail
+          sudo safaridriver --enable
+      - name: Enable safaridriver (Safari Technology Preview)
+        if: ${{ inputs.safari-technology-preview }}
+        run: |-
+          set -eux -o pipefail
+          export SYSTEM_VERSION_COMPAT=0
+          ./wpt install --channel preview --download-only -d . --rename STP safari browser
+          sudo installer -pkg STP.pkg -target LocalSystem
+          sudo /Applications/Safari\ Technology\ Preview.app/Contents/MacOS/safaridriver --enable
+      - name: Update hosts
+        run: |-
+          set -eux -o pipefail
+          ./wpt make-hosts-file | sudo tee -a /etc/hosts
+      - name: Update manifest
+        run: ./wpt manifest
+      - name: Run tests
+        run: |-
+          set -eux -o pipefail
+          export SYSTEM_VERSION_COMPAT=0
+          ./wpt run \
+            --no-manifest-update \
+            --no-restart-on-unexpected \
+            --no-pause \
+            --this-chunk "$CURRENT_CHUNK" \
+            --total-chunks "$TOTAL_CHUNKS" \
+            --chunk-type hash \
+            --log-wptreport ${{ runner.temp }}/wpt_report_"$CURRENT_CHUNK".json \
+            --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_"$CURRENT_CHUNK".txt \
+            --log-mach - \
+            --log-mach-level info \
+            --channel ${{ inputs.safari-technology-preview && 'preview' || 'stable' }} \
+            --kill-safari \
+            --max-restarts 100 \
+            ${{ inputs.extra-options }} \
+            -- \
+            safari
+      - name: Publish results
+        if: "!cancelled()"
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: ${{ inputs.artifact-name }}-${{ env.CURRENT_CHUNK }}
+          path: |
+            ${{ runner.temp }}/wpt_report_*.json
+            ${{ runner.temp }}/wpt_screenshot_*.txt
+          if-no-files-found: error
+      - name: Publish safaridriver logs
+        if: inputs.safaridriver-diagnose && !cancelled()
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: ${{ inputs.artifact-name }}-safaridriver-logs-${{ env.CURRENT_CHUNK }}
+          path: ~/Library/Logs/com.apple.WebDriver/
+          if-no-files-found: warn
+      - name: Disable safaridriver diagnostics
+        if: inputs.safaridriver-diagnose && always()
+        run: |-
+          defaults write com.apple.WebDriver DiagnosticsEnabled 0
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+      - name: Cleanup
+        if: always()
+        run: |-
+          set -ux
+          sudo sed -i '' '/^# Start web-platform-tests hosts$/,/^# End web-platform-tests hosts$/d' /etc/hosts
+
+  notify-unmerged:
+    name: Notify (unmerged results)
+    needs: results
+    if: "! inputs.merged-artifact-name"
+    uses: ./.github/workflows/wpt_fyi_notify.yml
+    with:
+      artifact-name: ${{ inputs.artifact-name }}-*
+
+  merge-results:
+    name: Merge results artifacts
+    runs-on: ubuntu-24.04
+    needs: results
+    if: inputs.merged-artifact-name
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: ${{ inputs.merged-artifact-name }}
+          pattern: ${{ inputs.artifact-name }}-*
+
+  notify-merged:
+    name: Notify (merged results)
+    needs: merge-results
+    if: inputs.merged-artifact-name
+    uses: ./.github/workflows/wpt_fyi_notify.yml
+    with:
+      artifact-name: ${{ inputs.merged-artifact-name }}

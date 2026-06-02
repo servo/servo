@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Positioned grid items reference file</title>
+<style>
+  #grid {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    position: relative;
+    padding: 5px;
+  }
+
+  .abspos {
+    position: absolute;
+    bottom: 0px; right: 0px;
+    background-color: hotpink;
+  }
+
+  #start {
+    top: 0px; left: 0px;
+    width: 5px;
+    height: 5px;
+  }
+
+  #end {
+    top: 5px; left: 5px;
+    width: 105px;
+    height: 105px;
+  }
+
+</style>
+
+  <p>The test passes if it has the same output than the reference.</p>
+
+  <div id="grid">
+    <div class="abspos" id="start"></div>
+    <div class="abspos" id="end"></div>
+  </div>

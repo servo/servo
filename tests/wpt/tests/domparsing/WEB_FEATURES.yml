@@ -1,0 +1,11 @@
+features:
+- name: domparser
+  files:
+  - "DOMParser-*"
+  - "*domparser*"
+  - style_attribute_html.html
+  - xml-parse-serialize-roundtrip.html
+- name: xml-serializer
+  files:
+  - XMLSerializer-serializeToString.html
+  - xml-serialization.xhtml

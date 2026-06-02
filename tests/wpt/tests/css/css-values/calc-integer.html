@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Tests: calc() and division for integers</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-range">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2337">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test"></div>
+<script>
+const TESTS = [
+  {
+    specified: "calc(2)",
+    computed: "2",
+    description: "Sanity",
+  },
+  {
+    specified: "calc(4 / 2)",
+    computed: "2",
+    description: "Basic division works",
+  },
+  {
+    specified: "calc(1 / 2)",
+    computed: "1",
+    description: "Rounds up if fractional part is >= 0.5",
+  },
+  {
+    specified: "calc(0.5)",
+    computed: "1",
+    description: "Accepts numbers, and rounds",
+  },
+  {
+    specified: "calc(6 / 2.0)",
+    computed: "3",
+    description: "Operation between <integer> and <number> works",
+  },
+  {
+    specified: "calc(1 / 3)",
+    computed: "0",
+    description: "Rounds down if fractional part is < 0.5",
+  },
+  {
+    specified: "calc(calc(1 / 3) * 3)",
+    computed: "1",
+    description: "Only rounds at the end of the conversion",
+  }
+];
+
+const testElement = document.getElementById("test");
+for (const { specified, computed, description } of TESTS) {
+  test(function() {
+    testElement.style.zIndex = "42"; // Just something that we know it's valid and makes tests not rely on order.
+    testElement.style.zIndex = specified;
+    assert_equals(getComputedStyle(testElement).zIndex, computed);
+  }, description);
+}
+</script>

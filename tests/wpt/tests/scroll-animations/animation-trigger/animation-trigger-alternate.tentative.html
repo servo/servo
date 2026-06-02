@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes myAnim {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(5); }
+      }
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .target {
+        animation: myAnim linear 0.5s both;
+      }
+
+      #scroll_target {
+        animation-trigger: --scrolltrigger play-forwards play-backwards;
+        timeline-trigger: --scrolltrigger scroll() 150px 200px;
+      }
+      #view_target {
+        animation-trigger: --viewtrigger play-forwards play-backwards;
+        timeline-trigger: --viewtrigger view() 150px 200px;
+      }
+      #deferred_target {
+        animation-trigger: --deferredtrigger play-forwards play-backwards;
+      }
+      #deferred_subject {
+        view-timeline: --viewtimeline;
+        timeline-trigger: --deferredtrigger --viewtimeline 150px 200px;
+      }
+
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #wrapper {
+        timeline-scope: --viewtimeline;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroll_scroller" class="scroller">
+        <div id="space"></div>
+        <div id="scroll_target" class="subject target" tabindex="0"></div>
+        <div id="space"></div>
+      </div>
+      <div id="view_scroller" class="scroller">
+        <div id="space"></div>
+        <div id="view_target" class="subject target" tabindex="0"></div>
+        <div id="space"></div>
+      </div>
+      <div id="deferred_scroller" class="scroller">
+        <div id="space"></div>
+        <div id="deferred_subject" class="subject" tabindex="0"></div>
+        <div id="space"></div>
+      </div>
+      <div id="deferred_target" class="target" tabindex="0"></div>
+    </div>
+    <script>
+      async function testAlternateAnimationTrigger(test, rangeBoundaries) {
+        // Just short of the trigger range start, no trigger action expected.
+        await testAnimationTrigger(test, () => {
+            return rangeBoundaries.exitTriggerRangeAbove();
+          }, target, ["animationstart", "animationend"], [false, false]);
+
+        // This skips the trigger range and should not play the animation.
+        await testAnimationTrigger(test, () => {
+            return rangeBoundaries.exitTriggerRangeBelow();
+          }, target, ["animationstart", "animationend"], [false, false]);
+
+        const initial_transform = getComputedStyle(target).transform;
+        // This enters the trigger range and should play the animation.
+        await testAnimationTrigger(test, () => {
+            return rangeBoundaries.enterTriggerRange();
+          }, target, ["animationstart", "animationend"], [true, true]);
+
+        const final_transform = getComputedStyle(target).transform;
+        // This is an alternate trigger, exiting the exit range reverses the
+        // animation.
+        await testAnimationTrigger(test, () => {
+            return rangeBoundaries.exitExitRangeAbove();
+          }, target, ["animationstart", "animationend", "animationcancel"],
+          [true, true, false]);
+        assert_equals(getComputedStyle(target).transform, initial_transform,
+          "animation reversed after reaching end");
+
+        // This is an alternate trigger, re-entering plays the animation.
+        await testAnimationTrigger(test, async () => {
+            // Enter the range.
+            await rangeBoundaries.enterTriggerRange();
+            await waitForAnimationFrames(5);
+            // Expect some but not all progress.
+            const current_transform = getComputedStyle(target).transform;
+            assert_not_equals(current_transform, initial_transform);
+            assert_not_equals(current_transform, final_transform);
+            // Exit the range.
+            return rangeBoundaries.exitExitRangeBelow();
+          }, target,
+          ["animationstart", "animationend", "animationcancel"],
+          [true, true, false]);
+        assert_equals(getComputedStyle(target).transform, initial_transform,
+          "animation reverse mid-animation");
+      }
+
+      // The trigger and exit ranges are the same for this test.
+      const CSS_TRIGGER_START_PX = 150;
+      const CSS_TRIGGER_END_PX = 200;
+
+      promise_test(async (test) => {
+        scroller = scroll_scroller;
+        target = scroll_target;
+
+        const rangeBoundaries = getRangeBoundariesForTest(CSS_TRIGGER_START_PX,
+                                                           CSS_TRIGGER_END_PX,
+                                                           CSS_TRIGGER_START_PX,
+                                                           CSS_TRIGGER_END_PX,
+                                                           scroller);
+        await testAlternateAnimationTrigger(test, rangeBoundaries);
+      }, "animation triggered via scroll() timeline.");
+
+      promise_test(async (test) => {
+        scroller = view_scroller;
+        target = view_target;
+
+        const COVER_START_OFFSET = 100;
+
+        const rangeBoundaries = getRangeBoundariesForTest(
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      scroller);
+        await testAlternateAnimationTrigger(test, rangeBoundaries);
+      }, "animation triggered via view() timeline.");
+
+      promise_test(async (test) => {
+        scroller = deferred_scroller;
+        target = deferred_target;
+
+        const COVER_START_OFFSET = 100;
+
+        const rangeBoundaries = getRangeBoundariesForTest(
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      scroller);
+        await testAlternateAnimationTrigger(test, rangeBoundaries);
+      }, "animation triggered via deferred (view) timeline.");
+    </script>
+  </body>
+</html>

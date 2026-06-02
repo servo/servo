@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>SVG Filters: feDisplacementMap filter with negative scale</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feDisplacementMapElement">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=641854">
+<link rel="match" href="reference/effect-reference-displacement-negative-scale-001-ref.html">
+<meta name="assert" content="feDisplacementMap with a negative scale applies the displacement in the opposite direction.">
+
+<div style="position: relative">
+  <div style="position: absolute; top: 20px; left: 20px; width: 100px; height: 100px; background: green; filter: url(#displacementFilter);"></div>
+</div>
+<svg width="0" height="0">
+  <filter id="displacementFilter" x="-0.2" y="-0.2" color-interpolation-filters="sRGB">
+    <feFlood flood-color="black"/>
+    <feDisplacementMap in="SourceGraphic" scale="-40" xChannelSelector="R" yChannelSelector="R"/>
+  </filter>
+</svg>

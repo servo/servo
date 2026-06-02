@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+    <x-shadow id="withoutFocus"></x-shadow>
+    <x-shadow id="withFocus"></x-shadow>
+</body>
+
+<script>
+'use strict';
+
+/**
+ * build shadow-root with delegates focus, a focusable element, and an (ideally) selectable text
+ */
+function buildShadowRootWithSelectableText( element, shouldDelegateFocus ) {
+    element.attachShadow({ mode: 'open', delegatesFocus: shouldDelegateFocus });
+    const span = document.createElement('span');
+    span.textContent = 'Example Text to Select ';
+    const button = document.createElement('button');
+    button.textContent = 'Button';
+    element.shadowRoot.append(span, button);
+}
+
+/**
+ * command to select text in shadow-root
+ */
+function selectText(element, start, end) {
+    getSelection().empty();
+    const actions = new test_driver.Actions();
+    actions.pointerMove(start, 0, {origin: element});
+    actions.pointerDown();
+    actions.pointerMove(end, 0, {origin: element});
+    actions.pointerUp();
+    return actions.send();
+}
+
+promise_test(async () => {
+    const xShadow = document.getElementById('withoutFocus');
+    buildShadowRootWithSelectableText(xShadow, false);
+
+    // starting selection from the center of the element, and going right.
+    // The important part here is that we start the selection in the center
+    //   (where mouse-down events may be delegated)
+    await selectText(xShadow, 0, 50)
+    const s = getSelection();
+
+    // because browsers may handle rendering differently, we can get different amounts of
+    //   text selected, even when using the same start-end values. We opt in this case to
+    //   verify just if any text is selected, since all we care about is if some text is
+    //   selected.
+    assert_greater_than(s.toString().length, 0);
+}, 'shadow root has selectable text when focus is not delegated');
+
+promise_test(async () => {
+    const xShadow = document.getElementById('withFocus');
+    buildShadowRootWithSelectableText(xShadow, true);
+
+    await selectText(xShadow, 0, 50)
+    const s = getSelection();
+
+    assert_greater_than(s.toString().length, 0);
+}, 'shadow root has selectable text when focus is delegated');
+
+</script>

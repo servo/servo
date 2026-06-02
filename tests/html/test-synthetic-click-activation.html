@@ -1,0 +1,31 @@
+<style>
+</style>
+<form action="http://example.com" method="get">
+<div><input type="checkbox"></div>
+<div><input type="submit"><input type="reset"></div>
+<div><input type="checkbox"></div>
+<div><input type="checkbox" checked></div>
+<div>group 1
+  <div><input type="radio"></div>
+  <div><input type="radio" checked></div>
+</div>
+<div>group 2
+  <div><input type="radio" name="a" checked></div>
+  <div><input type="radio" name="a"></div>
+</div>
+</form>
+<br>
+Use the buttons below to shift "fake" focus and trigger click events. The first form widget is initually focused.
+<br>
+<button type=button id="left">Shift fake focus left</button><br>
+<button type=button id="right">Shift fake focus right</button><br>
+<button type=button id="click">Trigger synthetic click</button><br>
+
+
+<script>
+i = 0;
+tags = document.getElementsByTagName("input");
+document.getElementById("left").onclick=function(){i--;}
+document.getElementById("right").onclick=function(){i++;}
+document.getElementById("click").onclick=function(){tags[i].click()}
+</script>

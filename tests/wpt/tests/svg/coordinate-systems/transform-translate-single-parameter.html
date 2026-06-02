@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#InterfaceSVGTransform">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="10" width="180" height="80" fill="red" />
+</svg>
+
+<script>
+test(() => {
+const rectElement = document.querySelector("rect");
+
+// Apply single parameter translate - should behave as translate(100, 0)
+rectElement.setAttribute("transform", "translate(100)");
+
+assert_equals(rectElement.getAttribute('transform'), "translate(100)");
+
+assert_equals(rectElement.transform.baseVal.getItem(0).matrix.e, 100);
+assert_equals(rectElement.transform.baseVal.getItem(0).matrix.f, 0);
+
+}, 'Dynamic update of transform; setAttribute()');
+</script>
+</body>
+</html>

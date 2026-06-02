@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Scheduling soft navigations across windows.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script></script>
+  </head>
+  <body>
+    <button id="button" onclick="navigateChild()">Press Me!</button>
+
+    <script>
+      const child = window.open('resources/other_window.html');
+      const childLoaded = new Promise(resolve => child.onload = resolve);
+
+      function navigateChild() {
+        // `child.navigate()` is a function declared in the `other_window.html`.
+        child.navigate();
+      }
+
+      promise_test(async (t) => {
+        await childLoaded;
+
+        if (test_driver) {
+          test_driver.click(document.getElementById("button"));
+        }
+
+        new PerformanceObserver((list, observer) => t.step(() => {
+          observer.disconnect();
+          assert_unreached("Parent window should not detect a soft-navigation.");
+        })).observe({ type: "soft-navigation" });
+
+        child.getNextSoftNavEntry().then((entry) => {
+          assert_unreached("Child window should not detect a soft-navigation.");
+        });
+
+        await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+      }, "Opening a new window and updating a URL in it shouldn't crash");
+    </script>
+  </body>
+</html>

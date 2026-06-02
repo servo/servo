@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#event-loop-processing-model">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let t = async_test("resize steps happen after autofocus, but before animation callbacks");
+let resized = false;
+let resizedOnRAF = false;
+
+let runTest = t.step_func(function() {
+  requestAnimationFrame(t.step_func(function() {
+    resizedOnRAF = resized;
+    requestAnimationFrame(t.step_func_done(function() {
+      assert_true(!resized || resizedOnRAF, "If resize happened, it happened before animation callbacks");
+    }));
+  }));
+
+  // Resize the frame. The callback should happen before the next RAF.
+  let frame = document.getElementById("frame");
+  frame.contentDocument.documentElement.getBoundingClientRect();
+  frame.contentWindow.stop(); // Prevent async about:blank load.
+  frame.contentWindow.addEventListener("resize", t.step_func(function() {
+    resized = true;
+  }), { once: true });
+  frame.style.width = "600px";
+  frame.contentDocument.documentElement.getBoundingClientRect();
+  assert_false(resized, "Resize event shouldn't fire sync");
+});
+</script>
+<iframe id="frame" width="300" height="300"></iframe>
+<input autofocus onfocus="runTest()">

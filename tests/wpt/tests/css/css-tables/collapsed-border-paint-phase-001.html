@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A tables collapsed borders paint in the background paint phase.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table style="border-collapse: collapse; border-spacing: 0;">
+  <td style="border-right: 50px solid red; padding: 0;">
+    <div style="width: 50px; line-height: 0;">
+      <!-- Paints in the foreground phase above the collapsed borders. -->
+      <div style="display: inline-block; width: 100px; height: 100px; background: green;"></div>
+    </div>
+  </td>
+</table>

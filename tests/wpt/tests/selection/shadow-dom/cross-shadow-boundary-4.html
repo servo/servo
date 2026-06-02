@@ -1,0 +1,21 @@
+<!doctype html>
+<head>
+<!--Intentionally to use cross-shadow-boundary-3-ref.html here-->
+<link rel=match href="cross-shadow-boundary-3-ref.html">
+</head>
+OuterText
+<div id="host1"></div>
+OuterText
+<div id="host2"></div>
+<script>
+  const root1 = document.getElementById("host1").attachShadow({ mode: "open" });
+  root1.innerHTML = "innerText1";
+
+  const root2 = document.getElementById("host2").attachShadow({ mode: "open" });
+  root2.innerHTML = "<div></div>";
+
+  const root3 = root2.querySelector("div").attachShadow({ mode: "open" });
+  root3.innerHTML = "innerText2";
+
+  getSelection().setBaseAndExtent(root1.firstChild, 3, root3.firstChild, 3);
+</script>

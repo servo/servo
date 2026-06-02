@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Images Test: Linear gradient with em in calc()</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#linear-gradients">
+<link rel="match" href="linear-gradient-calc-em-units-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(blue calc(2em), yellow);
+  }
+  #em1 {
+    font-size: 10px;
+  }
+  #em2 {
+    font-size: 30px;
+  }
+</style>
+<div id="em1"></div>
+<div id="em2"></div>

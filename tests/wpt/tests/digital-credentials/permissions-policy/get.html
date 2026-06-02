@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+    import { makeGetOptions } from "/digital-credentials/support/helper.js";
+    const type = "availability-result";
+    async function notify() {
+        if (!navigator.userActivation.isActive) {
+            await test_driver.bless("user activation", null, window);
+        }
+        let enabled = undefined;
+        try {
+            await navigator.credentials.get(makeGetOptions({protocol: []}));
+        } catch (e) {
+            switch (e.name) {
+                case "NotAllowedError":
+                    enabled = false;
+                    break;
+                case "TypeError":
+                    enabled = true;
+                    break;
+                default:
+                    throw e;
+            }
+        } finally {
+            window.parent.postMessage({ type, enabled }, "*");
+        }
+    }
+    test_driver.set_test_context(parent);
+    window.onload = notify;
+</script>
+<body>
+    <h1>Digital Credentials iframe</h1>
+</body>

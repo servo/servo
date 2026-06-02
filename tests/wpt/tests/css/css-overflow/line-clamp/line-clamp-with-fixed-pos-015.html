@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp: auto hidden block-level fixed pos</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="Block-level fixed-pos should be hidden if its fixed positioning containing block is after the clamp point with line-clamp: auto">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.transformed {
+  transform: scale(1); /* Makes it a fixed-pos containing block */
+}
+.fixed {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background-color: skyblue;
+}
+</style>
+
+<div class="clamp">
+  <div>Line 1</div>
+  <div>Line 2</div>
+  <div>Line 3</div>
+  <div>Line 4</div>
+  <div>Line 5</div>
+  <div class="transformed">
+    <div>Line 6</div>
+    <div class="fixed"></div>
+  </div>
+</div>

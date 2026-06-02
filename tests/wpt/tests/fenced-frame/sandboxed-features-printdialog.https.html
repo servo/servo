@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test of sandboxed features - print</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/sandboxed-features.js"></script>
+
+<body>
+<script>
+run_sanboxed_feature_test('test_print',
+  'The fenced frame must fail to print the page.');
+</script>
+</body>

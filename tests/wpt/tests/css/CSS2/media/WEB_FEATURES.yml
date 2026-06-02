@@ -1,0 +1,7 @@
+features:
+- name: import
+  files:
+  - media-dependency-002.xht
+  - media-dependency-004.xht
+  - media-dependency-005.xht
+  - media-dependency-008.xht

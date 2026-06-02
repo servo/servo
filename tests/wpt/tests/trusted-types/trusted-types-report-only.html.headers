@@ -1,0 +1,2 @@
+Content-Security-Policy-Report-Only: trusted-types two; require-trusted-types-for 'script';
+Content-Security-Policy: connect-src 'none'

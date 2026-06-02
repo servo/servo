@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative append</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="a b c"><?Start name=a><?ENd name=a><?MARKER name=b><?marKER name=c></div>
+<template for="a">a</template>
+<template for="b">b</template>
+<template for="c">c</template>
+<script>
+  test(() => {
+    assert_equals(document.getElementById("placeholder").textContent, "abc");
+  }, "marker/end/start PI targets are case-insensitive");
+</script>

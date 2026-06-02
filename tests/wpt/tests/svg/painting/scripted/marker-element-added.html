@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>&lt;marker> element added after first paint</title>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<svg>
+  <path d="M0,0h100" marker-start="url(#m)"/>
+</svg>
+<script>
+  function createSvgElement(name, attrData) {
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const element = document.createElementNS(svgNs, name);
+    attrData.forEach(([name, value]) => element.setAttribute(name, value));
+    return element;
+  }
+  waitForAtLeastOneFrame().then(() => {
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const markerElement = createSvgElement('marker', [
+      ['id', 'm'], ['orient', '0'], ['overflow', 'visible']
+    ]);
+    markerElement.appendChild(createSvgElement('rect', [
+      ['width', '100'], ['height', '100'], ['fill', 'green']
+    ]));
+    const svg = document.querySelector('svg');
+    svg.insertBefore(markerElement, svg.firstElementChild);
+    takeScreenshot();
+  });
+</script>

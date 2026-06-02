@@ -1,0 +1,42 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: anchor links prevented</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="spacer-and-container-scrolled-ref.html">
+<meta name="assert" content="anchor link scroll not prevented when the target is hidden and activatable">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  width: 150px;
+  height: 300vh;
+  background: lightblue;
+}
+#container {
+  width: 150px;
+  height: 150px;
+  background: green;
+  content-visibility: auto;
+}
+
+#target {
+  width: 150px;
+  height: 100px;
+}
+</style>
+
+<div class="spacer"></div>
+<div id="container"><div id="target">Test passes if this is on screen.</div></div>
+
+<script>
+function runTest() {
+  location.href += "#target";
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => { requestAnimationFrame(runTest); };
+</script>
+</html>

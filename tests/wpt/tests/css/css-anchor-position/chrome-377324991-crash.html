@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Anchor Positioning Test: crash for simultaneous @position-try and display:none change</title>
+<link rel="help" href="https://crbug.com/377324991">
+<style>
+  @position-try --opt {
+    position-area: right center;
+  }
+  #anchor {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    anchor-name: --a;
+  }
+  #anchored {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: lime;
+    position-anchor: --a;
+    position-area: left center;
+    position-try-fallbacks: --opt;
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored"></div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      anchored.style.display = 'none';
+      document.styleSheets[0].insertRule("@position-try --opt {}");
+      document.documentElement.classList.remove("test-wait");
+    });
+  });
+</script>

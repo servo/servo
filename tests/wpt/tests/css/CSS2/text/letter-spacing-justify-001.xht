@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Letter-spacing and 'text-align: justify'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property"/>
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-property"/>
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-justify-property"/>
+        <link rel="match" href="letter-spacing-justify-001-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The letter-spacing is not changed when combined with 'text-align: justify'." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                font-family: Ahem;
+                letter-spacing: 1em;
+                line-height: 1em;
+                text-align: justify;
+                width: 6em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 1em;
+                width: 11em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are six black boxes below and the last black box ends when the blue box ends.</p>
+        <div>
+            <div id="div1">XXXXXX XXXXXX</div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

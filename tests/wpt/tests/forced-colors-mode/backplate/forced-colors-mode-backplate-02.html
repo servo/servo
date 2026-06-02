@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate.
+  Tests that the backplate feature with a varying number of line breaks.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced">
+<link rel=match href="forced-colors-mode-backplate-02-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="../../common/reftest-wait.js"></script>
+<link rel="preload" as="image" href="../resources/test-image.jpg" onload="takeScreenshot()" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+</style>
+<body>
+  <span>
+    This text <br> should have <br> its own backplate <br> in forced colors mode.
+  </span>
+  <br>
+  <br>
+  <span>
+    This text should have its own backplate in forced colors mode:
+    <br>
+    two br tags indicates a new paragraph.
+  </span>
+  <br>
+  <span>
+    This text should share a backplate with the above text:
+    <br>
+    one br tag used.
+  </span>
+  <br>
+  <br>
+  <br>
+  <br>
+  <span>
+    This text should have its own backplate in forced colors mode:
+    <br>
+    four br tags indicates a new paragraph.
+  </span>
+</body>
+</html>

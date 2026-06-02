@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Rel.pos. grid item with style change.</title>
+<link rel="author" title="James0x57" href="mailto:James0x57@gmail.com">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-items" title="Grid Items">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1576355">
+<link rel="match" href="grid-item-rel-pos-001-ref.html">
+<meta name="assert" content="Checks that the rel.pos. grid items are positioned correctly after a 'left' style change.">
+<style>
+.grid {
+  margin: 40px;
+  display: grid;
+  grid: auto / repeat(3,100px);
+  grid-gap: 20px;
+}
+span, even {
+  position: relative;
+  min-height: 20px;
+  background: grey;
+  left: 0px;
+}
+.offset even {
+  left: 50%;
+}
+
+</style>
+
+
+<div class="grid offset">
+  <span></span><span></span><span></span>
+  <even></even><even></even><even></even>
+  <span></span><span></span><span></span>
+</div>
+
+<script>
+  document.body.offsetHeight;
+  let grid = document.querySelector('.grid');
+  grid.classList.remove('offset')
+  document.body.offsetHeight;
+  grid.classList.add('offset')
+</script>

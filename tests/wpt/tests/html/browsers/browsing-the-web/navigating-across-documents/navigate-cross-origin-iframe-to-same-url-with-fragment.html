@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+async_test(t => {
+  let starting_history_length = history.length;
+  let cross_origin_url = new URL(get_host_info().HTTPS_REMOTE_ORIGIN);
+  cross_origin_url.pathname = "/common/blank.html";
+  cross_origin_url.hash = "#foo";
+  let i = document.createElement("iframe");
+  i.src = cross_origin_url;
+  document.body.appendChild(i);
+
+  window.onload = () => t.step_timeout(() => {
+    assert_equals(starting_history_length, history.length);
+    i.src = cross_origin_url;
+    // Give the navigation time to happen - no events will fire.
+    t.step_timeout(() => {
+      assert_equals(starting_history_length + 1, history.length);
+      t.done();
+    }, 100);
+  }, 0);
+}, "Navigating a cross-origin iframe to its current url should not replace");
+</script>
+</body>

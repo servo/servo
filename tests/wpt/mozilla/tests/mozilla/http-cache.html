@@ -1,0 +1,49 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/http-cache.js"></script>
+<script>
+  var tests = [];
+  function check_status(status) {
+    var code = status[0];
+    var phrase = status[1];
+    var body = status[2];
+    if (body === undefined) {
+      body = http_content(code);
+    }
+    tests.push({
+      name: 'HTTP cache, when disabled, does not cache a ' + code + ' response.',
+      requests: [
+        {
+          template: "fresh",
+          response_status: [code, phrase],
+          response_body: body
+        }, {
+          expected_type: "not_cached",
+          response_status: [code, phrase],
+          response_body: body
+        }
+      ]
+    })
+  }
+  [
+    [200, 'OK'],
+    [203, "Non-Authoritative Information"],
+    [204, "No Content", ""],
+    [299, "Whatever"],
+    [400, "Bad Request"],
+    [404, "Not Found"],
+    [410, "Gone"],
+    [499, "Whatever"],
+    [500, "Internal Server Error"],
+    [502, "Bad Gateway"],
+    [503, "Service Unavailable"],
+    [504, "Gateway Timeout"],
+    [599, "Whatever"]
+  ].forEach(check_status);
+  run_tests(tests);
+</script>
+</head>
+</html>

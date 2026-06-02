@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Invalidation from changing the base style</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://issues.chromium.org/issues/333608683">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @position-try --pt {
+    width: 50px; /* Undo force overflow */
+  }
+  #cb {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border: 1px solid black;
+  }
+  #anchor {
+    position: absolute;
+    left: 75px;
+    top: 75px;
+    width: 50px;
+    height: 50px;
+    background: coral;
+    anchor-name: --a;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-try-fallbacks: --pt flip-start;
+    inset: 0;
+    top: anchor(top);
+    bottom: anchor(bottom);
+    right: calc(anchor(left) + 5px);
+    width: 50px;
+    height: 50px;
+    background: skyblue;
+    justify-self: end;
+  }
+  #anchored.flip {
+    background: seagreen;
+    width: 300px; /* Force overflow */
+  }
+</style>
+<div id=cb>
+  <div id=anchor></div>
+  <div id=anchored></div>
+</div>
+<script>
+  test(() => {
+    // Initially to the left.
+    assert_equals(anchored.offsetLeft, 20);
+    assert_equals(anchored.offsetTop, 75);
+
+    // Flips to the right.
+    anchored.classList.toggle('flip');
+    assert_equals(anchored.offsetLeft, 75);
+    assert_equals(anchored.offsetTop, 20);
+
+    // Flips to the original position.
+    anchored.classList.toggle('flip');
+    assert_equals(anchored.offsetLeft, 20);
+    assert_equals(anchored.offsetTop, 75);
+  }, 'The chosen position fallbacks changes when the base style differs');
+</script>

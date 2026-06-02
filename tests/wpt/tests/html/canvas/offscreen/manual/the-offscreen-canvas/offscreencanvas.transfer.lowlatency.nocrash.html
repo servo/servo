@@ -1,0 +1,12 @@
+<title>Transfer Low-Latency Canvas</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<body></body>
+
+<script>
+test(function(t) {
+  var ctx = document.createElement("canvas").getContext('2d', {desynchronized:true});
+  assert_throws_dom("InvalidStateError", () => { ctx.canvas.transferControlToOffscreen(); });
+}, "Tests that transferring a low latency canvas does not cause a crash. See crbug.com/1255153");
+</script>

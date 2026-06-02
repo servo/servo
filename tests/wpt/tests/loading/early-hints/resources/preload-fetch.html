@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const preloads = getPreloadsFromSearchParams();
+    assert_equals(preloads.length, 1);
+    const preload = preloads[0];
+
+    await fetch(preload.url).then((response) => response.json());
+    const name = new URL(preload.url, window.location);
+    assert_true(isPreloadedByEarlyHints(name));
+}, "Ensure early hints preload works for fetch()");
+</script>
+</body>

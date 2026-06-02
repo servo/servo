@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Positioned Layout Module Test: 'overlay' transitioning in not rendered in top layer</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#overlay">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="match" href="green-ref.html">
+<style>
+  #transition-in, #green {
+    /* Force display:block both popover open or closed to not rely on
+       @starting-style or display transitions. */
+    display: block;
+    border: none;
+    width: 100vw;
+    height: 100vh;
+  }
+  #green {
+    background-color: green;
+  }
+  #transition-in {
+    transition: overlay 60s step-end;
+    transition-behavior: allow-discrete;
+    background-color: red;
+  }
+</style>
+<div id="green" popover="manual"></div>
+<div id="transition-in" popover="manual"></div>
+<script>
+  document.querySelector("#green").showPopover();
+  document.querySelector("#transition-in").showPopover();
+</script>

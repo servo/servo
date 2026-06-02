@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<title>window.fence.getNestedConfigs() test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+promise_test(async (t) => {
+  const key = token();
+  const urn = await generateURNFromFledge(
+      "resources/get-nested-configs-inner.html", [key]);
+  attachFencedFrame(urn);
+
+  const response = await nextValueFromServer(key);
+  const [length] = response.split(",");
+
+  assert_equals(length, '40', 'There should be 40 nested configurations.');
+}, 'getNestedConfigs() created by FLEDGE should return configurations');
+
+for (const resolve_to_config of [true, false]) {
+  promise_test(async (t) => {
+    const key = token();
+    const select_url_result = await runSelectURL(
+        generateURL("resources/get-nested-configs-inner.html", [key]),
+        [], resolve_to_config);
+    attachFencedFrame(select_url_result);
+
+    const response = await nextValueFromServer(key);
+    const [length, first_url] = response.split(",");
+
+    assert_equals(length, '0', 'There should be 0 nested configurations.');
+  }, 'getNestedConfigs() from a fenced frame with the ' +
+     (resolve_to_config ? 'config' : 'urn:uuid') +
+     ' from sharedStroage.selectURL() should be empty');
+}
+
+promise_test(async (t) => {
+  const key = token();
+  const url = generateURL("resources/get-nested-configs-inner.html", [key]);
+  attachFencedFrame(url, mode='default');
+
+  const response = await nextValueFromServer(key);
+  const [length, first_url] = response.split(",");
+
+  assert_equals(length, '0', 'There should be 0 nested configurations.');
+}, 'getNestedConfigs() from a default mode frame should be empty');
+
+promise_test(async (t) => {
+  const key = token();
+  const urn = await generateURNFromFledge(
+      "resources/get-nested-configs-nested-iframe.html", [key]);
+  attachFencedFrame(urn);
+
+  const response = await nextValueFromServer(key);
+  const [length, first_url] = response.split(",");
+
+  assert_equals(length, '40', 'There should be 40 nested configurations.');
+}, 'getNestedConfigs() should work in a same-origin nested iframe');
+
+promise_test(async (t) => {
+  const key = token();
+
+  const nested_url = generateURL("resources/embeddee.html", [key]);
+
+  // Navigate a fenced frame to `navigate-nested-config.html`. That page will
+  // in turn create a nested fenced frame which will be navigated to the URN of
+  // the first item in the nested configs list, `nested_url`.
+  const urn = await generateURNFromFledge(
+      "resources/navigate-nested-config.html", [key],
+      [nested_url]);
+  attachFencedFrame(urn);
+
+  const response = await nextValueFromServer(key);
+  assert_equals(response, 'PASS', 'The nested URL should load.');
+}, 'Nested configs created by FLEDGE should be navigable by fenced frame');
+
+promise_test(async (t) => {
+  const key = token();
+
+  const nested_url = generateURL("resources/embeddee.html", [key]);
+
+  // Navigate a fenced frame to `navigate-nested-config.html`. That page will
+  // in turn create a nested fenced frame which will be navigated to the URN of
+  // the first item in the nested configs list, `nested_url`.
+  const urn = await generateURNFromFledge(
+      "resources/navigate-nested-config.html", [key],
+      [nested_url]);
+  attachIFrame(urn);
+
+  const response = await nextValueFromServer(key);
+  assert_equals(response, 'PASS', 'The nested URL should load.');
+}, 'Nested configs created by FLEDGE should be navigable by URN iframe');
+
+promise_test(async (t) => {
+  const key = token();
+
+  const nested_url = generateURL("resources/embeddee.html", [key]);
+
+  // Navigate a fenced frame to `navigate-nested-config.html`. That page will
+  // in turn create a nested fenced frame which will be navigated to the URN of
+  // the first item in the nested configs list, `nested_url`. Since this URN
+  // is invalid, the navigation should gracefully fail.
+  const urn = await generateURNFromFledge(
+      "resources/navigate-nested-config.html", [key],
+      []);
+  attachFencedFrame(urn);
+
+  // There is no API to observe whether the document in the FencedFrame loaded
+  // or not. Instead, set up a timeout. If the document loads, "PASS" will be
+  // sent to the server. Otherwise "BLOCKED" will be sent after 1 second.
+  step_timeout(() => {
+    writeValueToServer(key, "BLOCKED");
+  }, 1000);
+
+  const response = await nextValueFromServer(key);
+  assert_equals(response, 'BLOCKED', 'The nested URL should not load.');
+}, 'Navigating an invalid config should be handled gracefully');
+
+</script>
+</body>
+</html>

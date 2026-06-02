@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>nextElementSibling</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of nextElementSibling</h1>
+<div id="log"></div>
+<p id="parentEl">The result of <span id="first_element_child">this test</span> is <span id="last_element_child" style="font-weight:bold;">unknown.</span></p>
+<script>
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var fec = document.getElementById("first_element_child");
+  var nes = fec.nextElementSibling;
+  assert_true(!!nes)
+  assert_equals(nes.nodeType, 1)
+  assert_equals(nes.getAttribute("id"), "last_element_child")
+})
+</script>

@@ -1,0 +1,57 @@
+<!doctype html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://crbug.com/1107604">
+<meta name="assert" content="Replaced children with % max-height are sized correctly when they are deeply nested flex items with imposed definite heights." />
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+
+#outer-flexbox {
+  display: flex;
+  width: 200px;
+  height: 200px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#middle-flexbox {
+  display: flex;
+  height: 50%;
+  /* This needs to be stretched for repro */
+  align-items: stretch;
+  min-height: 0px;
+}
+
+#inner-flexbox {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0px;
+}
+
+img {
+  max-height: 100%;
+  min-width: 0px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div id=outer-flexbox>
+  <div id=middle-flexbox>
+    <div id=inner-flexbox>
+    <!-- This is a 400x400 green square. It's inline so that there is no
+         raciness when an image resource loads, which affects chrome's behavior
+         on this test. -->
+    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' width='400' height='400'><rect width='400' height='400' fill='green'/></svg>">
+    </div>
+  </div>
+</div>

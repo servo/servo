@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - self (case-insensitive)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+var win = window.open(prefixedStorage.url('report-is-top.html'), '_sElF');
+</script>

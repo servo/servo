@@ -1,0 +1,47 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<style>
+@keyframes keyframes0 {}
+picture {
+  animation: keyframes0 300ms alternate,alternate paused;
+}
+ruby {
+  animation: keyframes0 step-start -1.5s normal backwards paused;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  find("AAA")
+  const header = document.querySelector("header");
+  addEventListener("animationend", () => {
+    const imgsrc =
+      "data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjIyt5EXfQAAAU5JREFUeF7t07ENACAMxMDA/jsDBTtcY6TUlmx+zcx510MGNuKG/QYKgL9CAQqADWB8CygANoDxLaAA2ADGt4ACYAMY3wIKgA1gfAsoADaA8S2gANgAxreAAmADGN8CCoANYHwLKAA2gPEtoADYAMa3gAJgAxjfAgqADWB8CygANoDxLaAA2ADGt4ACYAMY3wIKgA1gfAsoADaA8S2gANgAxreAAmADGN8CCoANYHwLKAA2gPEtoADYAMa3gAJgAxjfAgqADWB8CygANoDxLaAA2ADGt4ACYAMY3wIKgA1gfAsoADaA8S2gANgAxreAAmADGN8CCoANYHwLKAA2gPEtoADYAMa3gAJgAxjfAgqADWB8CygANoDxLaAA2ADGt4ACYAMY3wIKgA1gfAsoADaA8S2gANgAxreAAmADGN8CCoANYHwLKAA2gPEtAAe4i54BvwLfXFAAAAAASUVORK5CYII=";
+    function doIt() {
+      getSelection().extend(header, 0);
+      document.querySelector("figure").insertAdjacentElement("beforeend", header);
+      document.execCommand("insertImage", false, imgsrc);
+    }
+    doIt();
+    doIt();
+    doIt();
+    document.documentElement.removeAttribute("class");
+  }, {once: true});
+  document.designMode = "on";
+}, {once:true});
+</script>
+</head>
+<body>
+<picture autocapitalize="sentences">
+<figure>
+<figcaption>
+</figure>
+<ruby contenteditable="true">
+AAA
+<header>
+</header>
+</ruby>
+</picture>
+</body>
+</html>

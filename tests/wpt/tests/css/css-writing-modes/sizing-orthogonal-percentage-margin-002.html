@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Orthogonal element sizing and percentage margins</title>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping">
+<link rel="match" href="sizing-orthogonal-percentage-margin-002-ref.html">
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<meta name="assert" content="This test checks that a verticalRL element inside an horizontal container computes properly its percentage margins against the container's inline size (the container's width in this test), and the element is sized accordingly subtracting those margins from the available size.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.container {
+  background: cyan;
+  border: solid thick;
+  height: 200px;
+  width: 500px;
+}
+.element {
+  background: magenta;
+  font: 25px/1 Ahem;
+  margin: 10%; /* This should be computed against the container's inline size (500px), so it should be 50px and element's height should be 100px. */
+  writing-mode: vertical-rl;
+}
+</style>
+
+<p>The test passes if it has the same visual effect as reference.</p>
+
+<div class="container">
+  <div class="element">XX X X X XX X X XX X XX</div>
+</div>

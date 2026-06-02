@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned elements establishes a new containing block for normal flow children</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-20 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#absolute-positioning" />
+		<link rel="match" href="position-absolute-004-ref.xht" />
+
+        <meta name="assert" content="An absolutely positioned box establishes a new containing block for normal flow children." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            div div
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #div2
+            {
+                background: blue;
+                left: 1in;
+                height: 2in;
+                position: absolute;
+            }
+            #div3
+            {
+                background: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is directly below the orange square.</p>
+        <div id="div1">
+            <div id="div2">
+                <div id="div3"></div>
+            </div>
+        </div>
+    </body>
+</html>

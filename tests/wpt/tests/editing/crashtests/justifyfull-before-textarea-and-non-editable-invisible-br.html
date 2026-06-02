@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const dialog = document.querySelector("dialog");
+  dialog.close();
+  dialog.show();
+  getSelection().collapse(dialog, 1); // After the <hr>
+  document.execCommand("justifyFull");
+}, {once: true});
+</script>
+</head>
+<body>
+<dialog open contenteditable><hr><textarea>
+</textarea>
+<br contenteditable="false">

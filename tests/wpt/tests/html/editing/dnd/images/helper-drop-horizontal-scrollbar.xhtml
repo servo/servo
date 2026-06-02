@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Image drag and drop: helper file</title>
+  <script>
+    function dropImage(event) {
+      document.querySelector('div').firstChild.nodeValue = 'PASS';
+    }
+  </script>
+</head>
+<body>
+  <div ondragenter="event.preventDefault()" ondragover="return false" ondrop="dropImage(event)">↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+  </div>
+</body>
+</html>

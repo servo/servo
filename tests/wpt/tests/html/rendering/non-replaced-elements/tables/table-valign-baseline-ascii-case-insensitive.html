@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#tables-2:presentational-hints">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#attribute-case">
+<meta name="assert" content="@valign values on table-related elements are ASCII case-insensitive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<table><tr><td valign="baseline">X</table>
+<table><tr><td valign="BaSeLiNe">X</table>
+<table><tr><td valign="baſeline">X</table>
+<script>
+const td = document.querySelectorAll("td");
+
+test(() => {
+  assert_equals(getComputedStyle(td[0]).getPropertyValue("vertical-align"),
+  	"baseline", "lowercase valid");
+  assert_equals(getComputedStyle(td[1]).getPropertyValue("vertical-align"),
+  	"baseline", "mixed case valid");
+  assert_equals(getComputedStyle(td[2]).getPropertyValue("vertical-align"),
+  	"middle", "non-ASCII invalid");
+}, "keyword baseline");
+</script>

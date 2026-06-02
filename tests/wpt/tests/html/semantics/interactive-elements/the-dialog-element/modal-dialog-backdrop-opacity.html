@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="modal-dialog-backdrop-opacity-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#user-agent-level-style-sheet-defaults">
+<style>
+dialog::backdrop {
+    background-color: rgb(0, 128, 0);
+    opacity: 0.5;
+}
+dialog:focus {
+  outline: none;
+}
+</style>
+<body>
+<dialog>Test passes if you see a green backdrop at half opacity.</dialog>
+<script>
+document.querySelector('dialog').showModal();
+</script>
+</body>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: continue:discard on multicol</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#continue">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#max-lines">
+<link rel="match" href="reference/discard-multicol-004-ref.html">
+<meta name="assert" content="max-lines does not take effect across the columns of a multicol, because «Only line boxes in the same block formatting context are counted: the contents of descendants that establish independent formatting contexts are skipped over while counting line boxes.».">
+<style>
+div {
+  font-family: monospace;
+  gap: 1ch;
+  width: 27ch;
+  columns: 3;
+  height: 2lh;
+
+  border: 1px solid;
+  margin: 1em;
+}
+.test {
+    continue: discard;
+    block-overflow: no-ellipsis;
+    max-lines: 5;
+}
+</style>
+<p>Test passes if the two boxes bellow are identical.
+<div class="test">
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7
+</div>
+<div class="ref">
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+</div>

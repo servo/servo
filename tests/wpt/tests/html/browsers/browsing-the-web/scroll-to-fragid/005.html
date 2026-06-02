@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- this tests the spec as it hopefully will be once bug https://www.w3.org/Bugs/Public/show_bug.cgi?id=17155 is fixed -->
+<title>Fragment Navigation: hashchange event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var original_url = location.href;
+  assert_equals(location.hash, "", "Page must be loaded with no hash");
+  location.hash = "test";
+
+  addEventListener("hashchange",
+                   t.step_func(function(e) {
+                     assert_equals(e.oldURL, original_url, "oldURL property");
+                     assert_equals(e.newURL, location.href, "newURL property");
+                     location.hash = "";
+                     t.done();
+                   }), true);
+});
+</script>

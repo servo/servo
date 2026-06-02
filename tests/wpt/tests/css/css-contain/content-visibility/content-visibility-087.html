@@ -1,0 +1,26 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content visibility: focus does not target nested c-v: hidden/auto subtree"</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="focus does not target nested c-v: hidden/auto subtree">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="content-visibility: hidden">
+  <div style="content-visibility: auto">
+    <div id="focusable" tabIndex="0">
+      focusable thing
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  focusable.focus();
+  assert_not_equals(document.activeElement, focusable);
+}, "Trying to focus on an element in a nested hidden/auto subtree will not work");
+</script>
+</html>

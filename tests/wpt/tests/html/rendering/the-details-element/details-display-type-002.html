@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Details display property (flex)</title>
+<link rel="match" href="details-display-type-002-ref.html">
+<link rel="help" href="https://github.com/whatwg/html/pull/10265">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1856374">
+<link rel="help" href="https://github.com/dbaron/details-styling">
+<style>
+  details {
+    display: flex;
+    flex-direction: column;
+    gap: 3em;
+  }
+</style>
+<details open>
+  <summary>The summary.</summary>
+  Some details.
+</details>

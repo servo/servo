@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<title> Ensure left doesn't take effect if margin isn't auto </title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3973">
+<link rel="match" href="div-orthogonal-left-and-non-auto-margin-ref.html">
+<style>
+  #outer {
+    inset: 0;
+    writing-mode: vertical-rl;
+    background-color: black;
+    margin: auto;
+    left: 10px;
+    margin-right: 10px;
+    position: absolute;
+    block-size: max-content;
+    inline-size: 100px;
+    border: 5px solid red;
+  }
+</style>
+<div id="outer"><div style="block-size: 200px;"></div></div>

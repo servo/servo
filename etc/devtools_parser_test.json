@@ -1,0 +1,60 @@
+{"from": "root", "applicationType": "browser", "traits": {"sources": true, "highlightable": true, "customHighlighters": true, "networkMonitor": false}}
+{"to": "root", "frontendVersion": "135.0.1", "type": "connect"}
+{"from": "root"}
+{"to": "root", "type": "getRoot"}
+{"from": "root", "deviceActor": "server1.conn0.device1", "performanceActor": "server1.conn0.performance0", "preferenceActor": "server1.conn0.preference2", "selected": 0}
+{"to": "server1.conn0.device1", "type": "getDescription"}
+{"from": "server1.conn0.device1", "value": {"apptype": "servo", "version": "0.0.1", "appbuildid": "20250318210028", "platformversion": "133.0", "brandName": "Servo"}}
+{"to": "server1.conn0.device1", "type": "getDescription"}
+{"from": "server1.conn0.device1", "value": {"apptype": "servo", "version": "0.0.1", "appbuildid": "20250318210028", "platformversion": "133.0", "brandName": "Servo"}}
+{"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "devtools.debugger.prompt-connection"}
+{"from": "server1.conn0.preference2", "value": false}
+{"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "browser.privatebrowsing.autostart"}
+{"from": "server1.conn0.preference2", "value": false}
+{"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "dom.serviceWorkers.enabled"}
+{"from": "server1.conn0.preference2", "value": false}
+{"to": "root", "iconDataURL": true, "type": "listAddons"}
+{"to": "root", "type": "listTabs"}
+{"from": "root", "addons": []}
+{"from": "root", "tabs": [{"actor": "server1.conn0.tab-description11", "browserId": 1, "browsingContextID": 1, "isZombieTab": false, "outerWindowID": 1, "selected": false, "title": "", "traits": {"watcher": true, "supportsReloadDescriptor": true}, "url": "file:///cuffs/code/servo/attic/iframe4.html"}]}
+{"to": "server1.conn0.tab-description11", "type": "getFavicon"}
+{"from": "server1.conn0.tab-description11", "favicon": ""}
+{"to": "root", "type": "listWorkers"}
+{"to": "root", "type": "listProcesses"}
+{"to": "root", "id": 0, "type": "getProcess"}
+{"from": "root", "workers": []}
+{"from": "root", "processes": [{"actor": "server1.conn0.process3", "id": 0, "isParent": true, "isWindowlessParent": false, "traits": {"watcher": false, "supportsReloadDescriptor": false}}]}
+{"from": "root", "processDescriptor": {"actor": "server1.conn0.process3", "id": 0, "isParent": true, "isWindowlessParent": false, "traits": {"watcher": false, "supportsReloadDescriptor": false}}}
+{"to": "root", "type": "listServiceWorkerRegistrations"}
+{"from": "root", "registrations": []}
+{"to": "root", "browserId": 1, "type": "getTab"}
+{"from": "root", "tab": {"actor": "server1.conn0.tab-description11", "browserId": 1, "browsingContextID": 1, "isZombieTab": false, "outerWindowID": 1, "selected": true, "title": "", "traits": {"watcher": true, "supportsReloadDescriptor": true}, "url": "file:///cuffs/code/servo/attic/iframe4.html"}}
+{"to": "server1.conn0.tab-description11", "isPopupDebuggingEnabled": false, "isServerTargetSwitchingEnabled": true, "type": "getWatcher"}
+{"from": "server1.conn0.tab-description11", "actor": "server1.conn0.watcher16", "traits": {"resources": {"document-event": false, "cookies": false, "Cache": false, "css-registered-properties": false, "websocket": false, "console-message": true, "stylesheet": false, "local-storage": false, "server-sent-event": false, "network-event": false, "platform-message": false, "reflow": false, "source": true, "jstracer-state": false, "last-private-context-exit": false, "css-change": true, "css-message": false, "extension-storage": false, "indexed-db": false, "session-storage": false, "network-event-stacktrace": false, "error-message": true, "thread-state": false, "jstracer-trace": false}, "shared_worker": false, "frame": true, "process": false, "service_worker": false, "worker": false}}
+{"to": "server1.conn0.watcher16", "targetType": "frame", "type": "watchTargets"}
+{"from": "server1.conn0.watcher16", "target": {"actor": "server1.conn0.target5", "title": "", "url": "file:///cuffs/code/servo/attic/iframe4.html", "browserId": 1, "outerWindowID": 1, "browsingContextID": 1, "isTopLevelTarget": true, "traits": {"frames": true, "isBrowsingContext": true, "logInPage": false, "navigation": true, "supportsTopLevelTargetFlag": true, "watchpoints": true}, "accessibilityActor": "server1.conn0.accessibility6", "consoleActor": "server1.conn0.console4", "cssPropertiesActor": "server1.conn0.css-properties7", "inspectorActor": "server1.conn0.inspector8", "reflowActor": "server1.conn0.reflow9", "styleSheetsActor": "server1.conn0.stylesheets10", "threadActor": "server1.conn0.thread12"}, "type": "target-available-form"}
+{"from": "server1.conn0.target5", "frames": [{"id": 1, "isTopLevel": true, "url": "file:///cuffs/code/servo/attic/iframe4.html", "title": ""}], "type": "frameUpdate"}
+{"from": "server1.conn0.watcher16"}
+{"to": "server1.conn0.console4", "listeners": ["DocumentEvents"], "type": "startListeners"}
+{"from": "server1.conn0.console4", "nativeConsoleApi": true, "startedListeners": ["DocumentEvents"], "traits": null}
+{"to": "server1.conn0.watcher16", "type": "getTargetConfigurationActor"}
+{"from": "server1.conn0.watcher16", "configuration": {"actor": "server1.conn0.target-configuration14", "configuration": {}, "traits": {"supportedOptions": {"recordAllocations": false, "customUserAgent": false, "useSimpleHighlightersForReducedMotion": false, "rdmPaneMaxTouchPoints": false, "javascriptEnabled": false, "serviceWorkersTestingEnabled": false, "overrideDPPX": false, "tracerOptions": false, "rdmPaneOrientation": false, "cacheDisabled": false, "restoreFocus": false, "colorSchemeSimulation": false, "reloadOnTouchSimulationToggle": false, "touchEventsOverride": false, "setTabOffline": false, "customFormatters": false, "printSimulationEnabled": false}}}}
+{"to": "server1.conn0.target-configuration14", "configuration": {"cacheDisabled": true, "customFormatters": false, "serviceWorkersTestingEnabled": false, "useSimpleHighlightersForReducedMotion": false, "isTracerFeatureEnabled": false}, "type": "updateConfiguration"}
+{"from": "server1.conn0.target-configuration14"}
+{"to": "server1.conn0.watcher16", "type": "getThreadConfigurationActor"}
+{"from": "server1.conn0.watcher16", "configuration": {"actor": "server1.conn0.thread-configuration15"}}
+{"to": "server1.conn0.thread-configuration15", "configuration": {"shouldPauseOnDebuggerStatement": true, "pauseOnExceptions": false, "ignoreCaughtExceptions": true, "shouldIncludeSavedFrames": true, "shouldIncludeAsyncLiveFrames": false, "skipBreakpoints": false, "logEventBreakpoints": false, "observeAsmJS": true, "pauseOverlay": true}, "type": "updateConfiguration"}
+{"from": "server1.conn0.thread-configuration15"}
+{"to": "server1.conn0.target5", "type": "listFrames"}
+{"to": "server1.conn0.watcher16", "resourceTypes": ["console-message"], "type": "watchResources"}
+{"from": "server1.conn0.target5"}
+{"to": "server1.conn0.watcher16", "resourceTypes": ["error-message"], "type": "watchResources"}
+{"from": "server1.conn0.target5", "array": [["console-message", []]], "type": "resources-available-array"}
+{"from": "server1.conn0.watcher16"}
+{"from": "server1.conn0.target5", "array": [["error-message", []]], "type": "resources-available-array"}
+{"from": "server1.conn0.watcher16"}
+{"to": "server1.conn0.target5", "type": "listWorkers"}
+{"to": "server1.conn0.thread-configuration15", "configuration": {"shouldPauseOnDebuggerStatement": true}, "type": "updateConfiguration"}
+{"from": "server1.conn0.thread-configuration15"}
+{"to": "server1.conn0.thread-configuration15", "configuration": {"pauseOnExceptions": false, "ignoreCaughtExceptions": false}, "type": "updateConfiguration"}
+{"from": "server1.conn0.thread-configuration15"}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API IDL tests for Controlling User Agent</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script>
+  "use strict";
+
+  promise_test(async () => {
+    const srcs = ['presentation-api', 'dom', 'html'];
+    const [idl, dom, html] = await Promise.all(
+      srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+
+    const idl_array = new IdlArray();
+    idl_array.add_idls(idl, {
+      except: [
+        'PresentationReceiver',
+        'PresentationConnectionList'
+      ]
+    });
+    idl_array.add_dependency_idls(dom);
+    idl_array.add_dependency_idls(html);
+
+    try {
+      window.presentation_request = new PresentationRequest("/presentation-api/receiving-ua/idlharness.html");
+      window.presentation_request_urls = new PresentationRequest([
+        "/presentation-api/receiving-ua/idlharness.html",
+        "https://www.example.com/presentation.html"
+      ]);
+      navigator.presentation.defaultRequest = window.presentation_request;
+    } catch (e) {
+      // Will be surfaced in idlharness.js's test_object below.
+    }
+
+    idl_array.add_objects({
+      Presentation: ['navigator.presentation'],
+      PresentationRequest: [
+        'navigator.presentation.defaultRequest',
+        'presentation_request',
+        'presentation_request_urls'
+      ],
+    });
+    idl_array.test();
+  }, "Test IDL implementation of Presentation API");
+</script>

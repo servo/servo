@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: Floats in fragmented flex container shouldn't improperly inflate overflow areas</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1695509">
+  <link rel="match" href="flex-fragmented-with-float-descendant-001-ref.html">
+  <!-- This is a regression test for a Firefox bug where Firefox was improperly
+       contributing a float's stale position (at an intermediate point in
+       layout where it's pushed off the bottom of one column) to the overflow
+       areas. This test checks for this by using "outline" to visualize the
+       overflow areas, to ensure they're not unexpectedly large. -->
+  <style>
+    .multicol {
+      width: 300px;
+      columns: 100px auto;
+      max-height: 160px;
+      border: 3px solid pink;
+    }
+    .container {
+      display: flex;
+    }
+    .weird-flex-item {
+      border: 4px solid teal;
+      outline: 4px solid blue;
+    }
+    .tallFloat {
+      float: left;
+      border: 3px solid black;
+      height: 500px;
+      width: 100px;
+      background: yellow;
+    }
+    .float {
+      float: left;
+      background: cyan;
+      width: 100px;
+    }
+    .inside-float {
+      height: 30px;
+      width: 30px;
+      background: purple;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="multicol">
+    <div class="container">
+      <div class="weird-flex-item">
+        <div class="tallFloat"></div>
+        <br>
+        <div class="float">
+          <div class="inside-float">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

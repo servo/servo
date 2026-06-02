@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: largest text is reported.</title>
+
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style type="text/css">
+    #text2 {
+      position: absolute;
+      width: auto;
+      white-space: nowrap;
+    }
+
+  </style>
+  <!-- These are some text and some tiny images. We care about the largest text. -->
+  <img id='image1' />
+  <div id='text1'></div>
+  <div id='text2'></div>
+  <img id='image2' />
+  <script>
+    const load_image = async (id, url) => {
+      await new Promise(resolve => {
+        const image = document.getElementById(id);
+        image.addEventListener('load', resolve);
+        image.src = url;
+      });
+    }
+
+    const load_text = (id, text) => {
+      let div = document.getElementById(id);
+      div.innerHTML = text;
+    }
+
+    promise_test(async (t) => {
+      assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+      let beforeRender = performance.now();
+
+      // Load images and add texts.
+      await load_image('image1', '/images/lcp-1x1.png');
+
+      load_text('text1', 'This is some text.');
+
+      load_text('text2', 'This is more text so it will be the Largest Contentful Paint!');
+
+      await load_image('image2', '/images/lcp-2x2.png');
+
+      await new Promise(resolve => {
+        new PerformanceObserver(
+          (entryList, observer) => {
+            entryList.getEntries().forEach(entry => {
+              // The tiny images or text1 could be reported as LCP if it is rendered before text2.
+              if (entry.id !== 'text2')
+                return;
+
+              assert_equals(entry.entryType, 'largest-contentful-paint',
+                'The entry entryType should be largest-contentful-paint.');
+
+              assert_greater_than_equal(entry.renderTime, beforeRender,
+                'The entry renderTime should be greater than or equal to the beforeRender.');
+
+              assert_greater_than_equal(performance.now(), entry.renderTime,
+                'The performance.now() timestamp should be greater than or equal to the entry renderTime.');
+
+              assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+                'The entry startTime should be equal to renderTime to the precision of 1 millisecond.');
+
+              assert_equals(entry.duration, 0, 'The entry duration should be 0.');
+
+              const div = document.getElementById('text2');
+
+              // The div styling makes it approximate the text size.
+              assert_greater_than_equal(entry.size, (div.clientHeight - 5) * (div.clientWidth - 5),
+                'Reported LCP size should not be significantly smaller than the text2 div.');
+
+              assert_less_than_equal(entry.size, (div.clientHeight + 1) * (div.clientWidth + 1),
+                'Reported LCP size should not be larger than the text2 div.');
+
+              assert_equals(entry.loadTime, 0, 'The entry loadTime should be 0.');
+
+              assert_equals(entry.url, '', 'The entry url should be empty.');
+
+              assert_equals(entry.element, div, 'The entry element should be test2 div.');
+
+              observer.disconnect();
+
+              resolve();
+            })
+          }).observe({ type: 'largest-contentful-paint', buffered: true });
+      });
+    }, 'Largest Contentful Paint: largest text is reported.');
+  </script>
+</body>

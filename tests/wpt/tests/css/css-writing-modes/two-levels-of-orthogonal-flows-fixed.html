@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Two levels of writing mode roots with text inside, fixed available inline size for inner on outer</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic" title="4. Intrinsic Size Determination">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto" title="7.3.1. Available Space in Orthogonal Flows">
+<link rel="match" href="reference/two-levels-of-orthogonal-flows-fixed.html">
+<div style="writing-mode:vertical-rl; width:10em; border:solid; background:red;">
+  <div style="writing-mode:horizontal-tb; padding:3px; background:yellow;">
+    This text should be inside a box with a yellow background and a black border. There should be no red.
+  </div>
+</div>

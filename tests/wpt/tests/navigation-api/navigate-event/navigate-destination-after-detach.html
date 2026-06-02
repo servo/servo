@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let destination_key = i.contentWindow.navigation.currentEntry.key;
+  let destination_id = i.contentWindow.navigation.currentEntry.id;
+  let destination_index = i.contentWindow.navigation.currentEntry.index;
+  await i.contentWindow.navigation.navigate("#1").finished;
+
+  let back_destination;
+  i.contentWindow.navigation.onnavigate = e => back_destination = e.destination;
+  await i.contentWindow.navigation.back().finished;
+
+  // Before detach, key/id/index are valid.
+  assert_equals(back_destination.key, destination_key);
+  assert_equals(back_destination.id, destination_id);
+  assert_equals(back_destination.index, destination_index);
+
+  i.remove();
+
+  // After detach, key/id/index are invalid, but the url is still valid.
+  assert_equals(back_destination.key, "");
+  assert_equals(back_destination.id, "");
+  assert_equals(new URL(back_destination.url).pathname, "/common/blank.html");
+  assert_equals(back_destination.index, -1);
+}, "navigate event destination after iframe detach");
+</script>

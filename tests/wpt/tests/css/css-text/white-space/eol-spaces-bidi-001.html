@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text 3 test: trailing collapsible spaces and bidi</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/eol-spaces-bidi-001-ref.html">
+<meta name="assert" content="Space before a line break is removed even if reordered to the middle of line by bidi reordering">
+
+<style>
+@font-face {
+    font-family: "Hasubi Mono";
+    src: url("/fonts/hasubi-mono/HasubiMono-Regular.woff2");
+}
+
+div {
+    font-family: "Hasubi Mono", monospace;
+    border: solid blue;
+    font-size: 1.5em;
+}
+.ref {
+    border-color: orange;
+    white-space: pre;
+}
+.w5 { width: 5.01ch; } /* .01 to cover floating point errors */
+.w6 { width: 6.01ch; }
+.w7 { width: 7.01ch; }
+
+.blue { background: #aaaaff; }
+.red { background: #ffaaaa; }
+.green { background: #aaffaa; }
+.pink { background: #ffaaff; }
+.yellow { background: #ffffaa; }
+</style>
+
+<p>Test passes if each pair of blue / orange boxes are identical (except for the color of their border).
+
+<div class=w5><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+
+<div class="w5 ref">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+
+<hr>
+
+<div class=w6><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+
+<div class="w6 ref">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+
+<hr>
+
+<div class=w7><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+
+<div class="w7 ref">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Hit-testing block children</title>
+<script src="../resources/runner.js"></script>
+<body>
+<div id="container"></div>
+<script>
+let y = 100;
+
+function createTree(container) {
+  for (let i = 0; i < 20000; ++i) {
+    const div = document.createElement('div');
+    div.textContent = i;
+    container.appendChild(div);
+  }
+}
+
+function setup() {
+  container.textContent = '';
+  createTree(container);
+}
+
+function test() {
+  for (let i = 0; i < 10; ++i) {
+  document.elementFromPoint(100, y);
+  ++y;
+  }
+}
+
+function run() {
+  PerfTestRunner.measureTime({
+    description: `Measures performance of hit-testing block children.`,
+    run: test
+  });
+}
+
+setup();
+run();
+</script>
+</body>

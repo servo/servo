@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Rotation transformation</title>
+<link rel="match" href="rotate_anim_ref.html">
+<style>
+  div {
+    padding: 200px;
+    transform: rotate(90deg);
+    transition: transform 0s linear;
+  }
+
+  div.active {
+    transform: rotate(180deg);
+  }
+</style>
+<div>Hello Servo!</div>
+<script>
+var html = document.getElementsByTagName("html")[0];
+var div = document.getElementsByTagName("div")[0];
+requestAnimationFrame(function() {
+    div.className = "active";
+    requestAnimationFrame(function() {});
+});
+</script>
+

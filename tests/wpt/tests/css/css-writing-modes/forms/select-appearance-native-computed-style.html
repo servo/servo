@@ -1,0 +1,59 @@
+<!doctype html>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/#the-select-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#block-flow">
+<title>Select appearance native writing mode computed style</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select style="writing-mode: horizontal-tb">
+    <option>Option 1</option>
+    <option>Option 2</option>
+    <option>Option 3</option>
+    <option>Option 4</option>
+    <option>Option 5</option>
+</select>
+
+<select style="writing-mode: vertical-lr">
+    <option>Option 1</option>
+    <option>Option 2</option>
+    <option>Option 3</option>
+    <option>Option 4</option>
+    <option>Option 5</option>
+</select>
+
+<select style="writing-mode: vertical-rl">
+    <option>Option 1</option>
+    <option>Option 2</option>
+    <option>Option 3</option>
+    <option>Option 4</option>
+    <option>Option 5</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.querySelector(`select[style="writing-mode: horizontal-tb"]`);
+  const style = getComputedStyle(select);
+  const blockSize = parseInt(style.blockSize, 10);
+  const inlineSize = parseInt(style.inlineSize, 10);
+  assert_not_equals(blockSize, 0);
+  assert_not_equals(inlineSize, 0);
+  assert_greater_than(inlineSize, blockSize);
+  assert_equals(style.blockSize, style.height);
+  assert_equals(style.inlineSize, style.width);
+}, `select[style="writing-mode: horizontal-tb"] block size should match height and inline size should match width`);
+
+for (const writingMode of ["vertical-lr", "vertical-rl"]) {
+  test(() => {
+    const select = document.querySelector(`select[style="writing-mode: ${writingMode}"]`);
+    const style = getComputedStyle(select);
+    const blockSize = parseInt(style.blockSize, 10);
+    const inlineSize = parseInt(style.inlineSize, 10);
+    assert_not_equals(blockSize, 0);
+    assert_not_equals(inlineSize, 0);
+    assert_greater_than(inlineSize, blockSize);
+    assert_equals(style.blockSize, style.width);
+    assert_equals(style.inlineSize, style.height);
+  }, `select[style="writing-mode: ${writingMode}"] block size should match width and inline size should match height`);
+};
+</script>

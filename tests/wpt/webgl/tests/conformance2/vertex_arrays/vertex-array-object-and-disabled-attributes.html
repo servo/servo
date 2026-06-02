@@ -1,0 +1,134 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Disabled Vertex Array Object and Disabled Attributes Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="singlevshader" type="x-shader/x-vertex">
+attribute vec4 position;
+void main() {
+  gl_Position = position;
+}
+</script>
+
+<script id="singlefshader" type="x-shader/x-fragment">
+void main() {
+  gl_FragColor = vec4(1, 0, 0, 1);
+}
+</script>
+<script id="dualvshader" type="x-shader/x-vertex">#version 300 es
+in vec4 position;
+in vec4 color;
+out vec4 varyColor;
+void main() {
+  gl_Position = position;
+  varyColor = color;
+}
+</script>
+<script id="dualfshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec4 varyColor;
+out vec4 colorOut;
+void main() {
+  colorOut = varyColor;
+}
+</script>
+
+<script>
+// Test that switching VAOs keeps the disabled "current value" attributes up-to-date.
+// Based on ANGLE test (StateChangeTestES3, VertexArrayObjectAndDisabledAttributes) from https://github.com/google/angle/blob/f7f0b8c3ab21c52cc2915048959361cf628d95f0/src/tests/gl_tests/StateChangeTest.cpp
+"use strict";
+var wtu = WebGLTestUtils;
+description();
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+// Location of "position" attribute must match between shaders.
+var singleProgram = wtu.setupProgram(gl, ['singlevshader', 'singlefshader'], ['position'], [0]);
+var dualProgram = wtu.setupProgram(gl, ['dualvshader', 'dualfshader'], ['position'], [0]);
+
+var positionLocation = gl.getAttribLocation(dualProgram, "position");
+var colorLocation = gl.getAttribLocation(dualProgram, "color");
+var singlePositionLocation = gl.getAttribLocation(singleProgram, "position");
+
+
+gl.useProgram(singleProgram);
+
+var positions = new Float32Array([
+    -1, 1,
+    -1, -1,
+    1, -1,
+    -1, 1,
+    1, -1,
+    1, 1
+]);
+
+var positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+var vertexArray = gl.createVertexArray();
+gl.bindVertexArray(vertexArray);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.vertexAttribPointer(singlePositionLocation, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(singlePositionLocation);
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+
+gl.bindVertexArray(null);
+gl.useProgram(dualProgram);
+gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(positionLocation);
+
+var greenBuffer = gl.createBuffer();
+var green = new Uint8Array(4 * 6);
+
+for (var i = 0; i < 6; ++i) {
+  var ci = i * 4;
+
+  green[ci] = 0;
+  green[ci + 1] = 255;
+  green[ci + 2] = 0;
+  green[ci + 3] = 255;
+}
+
+gl.bindBuffer(gl.ARRAY_BUFFER, greenBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, green, gl.STATIC_DRAW);
+gl.vertexAttribPointer(colorLocation, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+gl.enableVertexAttribArray(colorLocation);
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+
+gl.bindVertexArray(vertexArray);
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+wtu.checkCanvas(gl, [0, 0, 0, 255], "should be black");
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

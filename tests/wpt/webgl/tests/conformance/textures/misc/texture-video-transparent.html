@@ -1,0 +1,166 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Upload texture from animating transparent WebM or HEVC</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+let gl;
+let successfullyParsed;
+let video;
+
+initTestingHarness();
+
+function logVisibility(isOnload)
+{
+    let prefix = '';
+    if (isOnload)
+        prefix = 'Upon load: ';
+    if (document.hidden) {
+        console.log(prefix + '*** Tab was backgrounded (if running in automated test harness, why?) ***');
+    } else {
+        console.log(prefix + 'Tab was foregrounded');
+    }
+}
+
+function init()
+{
+    description("Upload texture from animating transparent WebM or HEVC");
+
+    document.addEventListener("visibilitychange", visibilityChanged, false);
+
+    logVisibility(true);
+
+    const canvas = document.getElementById("example");
+    gl = wtu.create3DContext(canvas);
+
+    const program = wtu.setupTexturedQuad(gl);
+    const texture = gl.createTexture();
+    // Bind the texture to texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    const textureLoc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(textureLoc, 0);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    video = document.getElementById("vid");
+    const typeWebM = 'video/webm; codecs="vp8"';
+    const typeHEVC = 'video/mp4; codecs="hvc1"';
+    if (!video.canPlayType) {
+        testFailed("video.canPlayType required method missing");
+        finishTest();
+        return;
+    }
+    if (!video.canPlayType(typeWebM).replace(/no/, '') && !video.canPlayType(typeHEVC).replace(/no/, '')) {
+        debug(typeWebM + " unsupported");
+        debug(typeHEVC + " unsupported");
+        finishTest();
+        return;
+    };
+    wtu.startPlayingAndWaitForVideo(video, runTest);
+}
+
+function visibilityChanged() {
+    logVisibility(false);
+}
+
+function runTest(videoElement)
+{
+    let i = 0;
+    requestAnimationFrame(function frame() {
+        runOneIteration(videoElement, false);
+        runOneIteration(videoElement, true);
+
+        ++i;
+        if (i < 120) {
+            requestAnimationFrame(frame);
+        } else {
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+            finishTest();
+        }
+    });
+
+}
+
+function runOneIteration(videoElement, useTexSubImage2D)
+{
+    // Upload the videoElement into the texture
+    if (useTexSubImage2D) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoElement);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, videoElement);
+    } else {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoElement);
+    }
+
+    // Set up texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // Draw the triangles
+    wtu.clearAndDrawUnitQuad(gl, [255, 0, 0, 255]);
+
+    const tolerance = 20;
+    const red = [255, 0, 0];
+    const green = [0, 255, 0];
+    const blue = [0, 0, 255];
+
+    // Check the left and right sides. Make sure that EITHER:
+
+    // - Left is green and right is transparent-blended-with-red
+    let leftIsGreen = false, leftIsRed = false, rightIsBlue = false, rightIsRed = false;
+    let greenRedError = "", redBlueError = "";
+    let leftGreenError = "", rightBlueError = "";
+    let bufLeft, bufRight;
+    wtu.checkCanvasRectColor(gl, 4, 4, 8, 24, green, tolerance,
+        /* sameFn */ () => { leftIsGreen = true; }, /* differentFn */ (m, b) => { leftGreenError = m; bufLeft = b;}, debug);
+    wtu.checkCanvasRectColor(gl, 20, 4, 8, 24, red, tolerance,
+        /* sameFn */ () => { rightIsRed = true; }, /* differentFn */ (m, b) => { greenRedError = m; bufRight = b;}, debug);
+
+    // - Right is blue and left is transparent-blended-with-red
+    wtu.checkCanvasRectColor(gl, 20, 4, 8, 24, blue, tolerance,
+        /* sameFn */ () => { rightIsBlue = true; }, /* differentFn */ (m, b) => { rightBlueError = m; bufRight = b;}, debug);
+    wtu.checkCanvasRectColor(gl, 4, 4, 8, 24, red, tolerance,
+        /* sameFn */ () => { leftIsRed = true; }, /* differentFn */ (m, b) => { redBlueError = m; bufLeft = b;}, debug);
+
+    if (leftIsGreen) {
+        if (rightIsRed) {
+            testPassed("left is green, right is transparent-blended-with-red");
+        } else {
+            testFailed("left is green, but: " + greenRedError + "\n" + bufRight);
+        }
+    } else if (rightIsBlue) {
+        if (leftIsRed) {
+            testPassed("right is blue, left is transparent-blended-with-red");
+        } else {
+            testFailed("right is blue, but: " + redBlueError + "\n" + bufLeft);
+        }
+    } else {
+        testFailed("neither left is green nor right is blue \n" + leftGreenError + "\n" + rightBlueError + "\n" + bufLeft + "\n" + bufRight);
+    }
+}
+</script>
+</head>
+<body onload="init()">
+<canvas id="example" width="32" height="32"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<video id="vid" style="display:none;">
+  <source src="../../../resources/transparent-2frames.mp4" type='video/mp4; codecs="hvc1"' />
+  <source src="../../../resources/transparent-2frames.webm" type='video/webm; codecs="vp8"' />
+</video>
+</body>
+</html>

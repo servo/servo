@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8"/>
+    <title>maction click</title>
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.maction"/>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#dfn-maction"/>
+    <link rel="match" href="maction-click-ref.html"/>
+    <meta name="assert" content="Verify that maction doesn't respond to click events."/>
+    <script type="text/javascript">
+      function test() {
+        var event = new MouseEvent("click", { bubbles: true, cancelable: true });
+        document.getElementById("target").dispatchEvent(event);
+        document.documentElement.className = "";
+      }
+    </script>
+  </head>
+  <body onload="test()">
+    <p>This test passes if you see a green square.</p>
+    <math>
+      <maction actiontype="toggle" id="target">
+        <mspace width="150px" height="150px" style="background: green"/>
+        <mspace width="150px" height="150px" style="background: red"/>
+      </maction>
+    </math>
+  </body>
+</html>
+

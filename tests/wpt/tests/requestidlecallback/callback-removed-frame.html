@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>requestIdleCallback on removed frame shouldn't call back</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+
+    function start() {
+      var frame = document.createElement('iframe');
+      frame.addEventListener('load', _ => connect(frame), {once:true});
+      frame.src = "about:blank";
+      document.body.appendChild(frame);
+    }
+
+    function connect(frame) {
+      var contentWindow = frame.contentWindow;
+      contentWindow.requestIdleCallback(_ => callback0(frame, contentWindow));
+      t.step_timeout(function() { t.done(); }, 1000);
+    }
+
+    function callback0(f, w) {
+      document.body.removeChild(f);
+      w.requestIdleCallback(t.unreached_func("requestIdleCallback callback should not trigger the callback"));
+    }
+
+    addEventListener('load', start, {once:true});
+  }, "calling requestIdleCallback on a contentWindow from a removed iframe should not trigger the callback");
+</script>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Radio buttons should scroll into view when focused (if off-screen)</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#keyboard-accessibility-navigation-radios">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    input[type="radio"] {
+      display: block;
+    }
+    #offscreen-radio {
+      margin-top: 200vh;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Radio buttons should scroll into view when focused (if off-screen)</h1>
+
+<form>
+  <input type="radio" name="group" id="radio1">
+  <input type="radio" name="group" id="radio2">
+  <input type="radio" name="group" id="offscreen-radio">
+</form>
+
+<script>
+  function simulateArrowDown() {
+    return new test_driver.Actions()
+      .keyDown("\uE015") // "ArrowDown" code point: https://www.w3.org/TR/webdriver2/#keyboard-actions
+      .send();
+  }
+
+  promise_test(async t => {
+    const firstRadio = document.getElementById("radio1");
+    const offscreenRadio = document.getElementById("offscreen-radio");
+    const focusPromise = new Promise(resolve =>
+      offscreenRadio.onfocus = () => t.step_timeout(resolve, 50)
+    );
+
+    firstRadio.focus();
+    await simulateArrowDown();
+    await simulateArrowDown();
+    await focusPromise;
+
+    const scrollTop = document.scrollingElement.scrollTop;
+
+    assert_equals(offscreenRadio, document.activeElement, 'offscreen radio is focused');
+    assert_greater_than(scrollTop, 500, `out-of-viewport radio should trigger scroll — scrollTop=${scrollTop}`);
+  }, 'Focusing offscreen radio via keyboard should scroll it into view');
+
+</script>
+
+</body>
+</html>
+

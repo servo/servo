@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that RTCRtpReceiver is prepared to receive any negotiated video codec</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
+<body>
+<script>
+'use strict'
+
+  function filterOnlySecondaryCodec(description) {
+    const sections = SDPUtils.splitSections(description.sdp);
+    const dtls = SDPUtils.getDtlsParameters(sections[1], sections[0]);
+    const ice = SDPUtils.getIceParameters(sections[1], sections[0]);
+    const rtpParameters = SDPUtils.parseRtpParameters(sections[1]);
+    const setupValue = SDPUtils.matchPrefix(description.sdp, 'a=setup:')[0].substring(8);
+    const mline = SDPUtils.parseMLine(sections[1]);
+
+    // Of all the codecs in the description, filter out one that has multiple
+    // payload types, and use only one of those payload types that is not the
+    // preferred codec.
+    //
+    // Ideally this would test all PTs through RTCRtpSender.setParameters, but
+    // Firefox does not at this time support RTCRtpEncodingParameters.codec:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1894137
+    const codecs = {};
+    for (const codec of rtpParameters.codecs) {
+        if (["RED", "RTX", "ULPFEC"].includes(codec.name.toUpperCase())) {
+            continue;
+        }
+        codecs[codec.name] ??= [];
+        codecs[codec.name].push(codec);
+    }
+
+    const multipleCodecs = [];
+    for (const name of Object.keys(codecs)) {
+        if (codecs[name].length > 1) {
+            multipleCodecs.push(codecs[name]);
+        }
+    }
+
+    assert_implements_optional(multipleCodecs.length > 0, 'No codec with multiple payload types');
+
+    const multiplePtsCodecs = multipleCodecs[0];
+    const nonPreferredCodec = multiplePtsCodecs[1];
+    rtpParameters.codecs = [nonPreferredCodec];
+
+    return SDPUtils.writeSessionBoilerplate() +
+      SDPUtils.writeDtlsParameters(dtls, setupValue) +
+      SDPUtils.writeIceParameters(ice) +
+      SDPUtils.writeRtpDescription(mline.kind, rtpParameters);
+  }
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.onicecandidate = ({candidate}) => pc2.addIceCandidate(candidate);
+    pc2.onicecandidate = ({candidate}) => pc1.addIceCandidate(candidate);
+
+    const [track] = (await getNoiseStream({video: true})).getTracks();
+    t.add_cleanup(() => track.stop());
+    pc1.addTrack(track);
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+
+    const nonPreferredAnswer = {type: 'answer', sdp: filterOnlySecondaryCodec(pc2.localDescription)};
+    await pc1.setRemoteDescription(nonPreferredAnswer);
+
+    // Verify that the right payloadType is sent, *and* received.
+    const start = performance.now();
+    const timeoutThreshold = start + 5000;
+    while (true) {
+        const stats = [...(await pc1.getStats()).values()].find(({type}) => type === 'outbound-rtp');
+        if (stats?.framesSent > 0) {
+            break;
+        }
+        if (performance.now() > timeoutThreshold) {
+            assert_unreached("Timed out waiting for sent frames");
+        }
+        await new Promise(r => t.step_timeout(r, 100));
+    }
+
+    while (true) {
+        const stats = [...(await pc2.getStats()).values()].find(({type}) => type === 'inbound-rtp');
+        if (stats?.framesReceived > 0) {
+            break;
+        }
+        if (performance.now() > timeoutThreshold) {
+            assert_unreached("Timed out waiting for received frames");
+        }
+        await new Promise(r => t.step_timeout(r, 100));
+    }
+  }, 'An RTCRtpReceiver is prepared to receive any negotiated codec.');
+
+</script>
+</body>

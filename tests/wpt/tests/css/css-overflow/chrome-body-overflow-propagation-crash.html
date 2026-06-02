@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Overflow Test: Chrome scrollbar crash - multiple body elements, removed stylesheet</title>
+<style id="sheet">
+</style>
+<style>
+  body {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<body>Pass if no crash</body>
+<script>
+  document.body.offsetTop;
+  sheet.remove();
+  document.documentElement.insertBefore(document.createElement("body"), document.body);
+</script>

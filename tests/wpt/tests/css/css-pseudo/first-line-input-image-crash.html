@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Don't crash when using ::first-line and &lt;input type=image&gt;</title>
+<link rel="help" href="https://crbug.com/1486128">
+<style>
+  * { display:initial; }
+  *::first-line { color:green; }
+</style>
+<div>PASS if no crash</div>
+<input type="image">

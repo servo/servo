@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Text: A sequence of collapsible spaces at the end of a line is removed</title>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#white-space-phase-2'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#container > div {
+  display: inline-block;
+  -font-family: Ahem;
+  font-size: 10px;
+}
+</style>
+<body>
+<div id=log></div>
+<div id=container>
+  <div>1111</div>
+  <div>1111 </div>
+  <div> 1111</div>
+  <div> 1111 </div>
+  <div>1111<br></div>
+  <div>1111<br> </div>
+  <div>1111 <br></div>
+  <div>1111 <br> </div>
+</div>
+<script>
+(function () {
+  const epsilon = 1;
+  let elements = Array.from(container.children);
+  let reference = elements[0];
+  let reference_width = reference.offsetWidth;
+  for (let element of elements) {
+    test(() => {
+      assert_approx_equals(element.offsetWidth, reference_width, epsilon);
+    }, escapeSpaces(element.innerHTML));
+  }
+})();
+
+function escapeSpaces(text) {
+  return text
+    .replace(/ /g, '&#x20;')
+    .replace(/\n/g, '&#x0A;')
+}
+</script>
+</body>

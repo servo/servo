@@ -1,0 +1,107 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: pservers-grad-09-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that the viewer can handle the gradientUnits attribute on linear gradients.
+        It tests the following values of gradientUnits: default (userSpace), objectBoundingBox,
+        and userSpaceOnUse.
+      </p>
+      <p>
+        From top-down the appearance of objects is as follows.
+      </p>
+      <p>
+        The first rectangle uses the default attributes on the linearGradient element.
+        Therefore the linear gradient should default to objectBoundingBox. It should appear
+        from the left edge of the rectangle (blue) to the right edge of the rectangle (lime).
+        The rectangle is smaller than the viewport, because a previous version of the SVG spec had the default value be 'viewport'.
+        The test fails if only a portion of the gradient is shown.
+      </p>
+      <p>
+        The next rectangle uses gradientUnits=objectBoundingBox. The linear gradient should
+        travel from blue (top) to lime (bottom).
+      </p>
+      <p>
+        The last rectangle uses gradientUnits=userSpaceOnUse. The rectangle element is given it's
+        own transformation and the gradient is assumed to be in this user space.
+        The gradient should appear as a linear gradient from lime (left) to blue (right).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, apart
+      from any differences in font choice due to CSS2 rules.  Specifically:</p>
+      <ul>
+        <li>The top rectangle is filled with a linear gradient from lime on the left to blue on the right.</li>
+        <li>The middle rectangle is filled with a linear gradient from blue on the top to lime on the bottom.</li>
+        <li>The bottom rectangle is filled with a linear gradient from lime on the left to blue on the right.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-09-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="15" x="10" y="25">Testing gradientUnits attribute</text>
+    <!-- ====================================================================== -->
+    <!-- Linear gradient with default attributes on <linear gradient> element.  -->
+    <!-- ====================================================================== -->
+    <linearGradient id="Grad1">
+      <stop stop-color="lime" offset="0"/>
+      <stop stop-color="blue" offset="1"/>
+    </linearGradient>
+    <rect x="125" y="35" width="200" height="50" fill="url(#Grad1)"/>
+    <!--<text font-size="12" x="10" y="100">Linear gradient with default attributes (thus, same as objectBoundingBox)</text>-->
+    <!--text font-size="12"  x="10" y="125">Gradient is from the viewport left edge (lime) to viewport right edge (blue)</text-->
+    <!--<text font-size="12" x="10" y="115">Gradient is from the object left edge (lime) to object right edge (blue)</text>-->
+    <!-- ====================================================================== -->
+    <!-- Linear gradient with gradientUnits=objectBoundingBox          ======== -->
+    <!-- ====================================================================== -->
+    <linearGradient id="Grad2" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="blue" offset="0"/>
+      <stop stop-color="lime" offset="1"/>
+    </linearGradient>
+    <rect x="10" y="125" width="430" height="50" fill="url(#Grad2)"/>
+    <!--<text font-size="12" x="10" y="190">gradientUnits=objectBoundingBox</text>-->
+    <!--<text font-size="12" x="10" y="205">Gradient is from the object top edge (blue) to object bottom edge (lime)</text>-->
+    <!-- ====================================================================== -->
+    <!-- Gradient using gradientUnits="userSpaceOnUse"                          -->
+    <!-- ====================================================================== -->
+    <linearGradient id="Grad3" x1="0" y1="0" x2="0" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="lime" offset="0"/>
+      <stop stop-color="blue" offset="1"/>
+    </linearGradient>
+    <rect transform="translate(10, 260) rotate(-90)" x="0" y="0" width="50" height="430" fill="url(#Grad3)"/>
+    <!--<text font-size="12" x="10" y="275">gradientUnits=userSpaceOnUse</text>-->
+    <!--<text font-size="12" x="10" y="290">Gradient is from the object left edge (lime) to object right edge (blue)</text>-->
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

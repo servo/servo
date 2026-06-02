@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;h3&gt;</title>
+</head>
+<body>
+  <!-- is not strictly inline -->
+  <p><dfn>text 
+    <h3>more text</h3>
+  </dfn></p>
+
+  <!-- is not structured inline -->
+  <p>text
+    <h3>more text</h3>
+  </p>
+
+  <!-- cannot contain blocks -->
+  <h3>
+    <p>p1</p>
+    <p>p2</p>
+  </h3>
+
+  <!-- cannot contain structured inline -->
+  <h3>text
+    <ul><li>text</li></ul>
+  </h3>
+</body>
+</html>

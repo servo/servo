@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Multicol Spanner Test: Implicit size of Column Spanner in Vertical Writing Modes</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2013429">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+.flex {
+  display: flex;
+}
+.multicol {
+  width: 50px;
+  height: 100px;
+  columns: 2;
+  column-gap: 0;
+  column-fill: auto;
+  background: red;
+}
+
+.spanner {
+  column-span: all;
+  block-size: 50px;
+  background: green;
+}
+
+.filler {
+  width: 10px;
+  height: 10px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=flex>
+  <div class=multicol style="writing-mode: vertical-rl;">
+    <div>
+      <div class=spanner></div>
+      <div class=filler></div>
+    </div>
+  </div>
+  <div class=multicol style="writing-mode: vertical-lr;">
+    <div>
+      <div class=spanner></div>
+      <div class=filler></div>
+    </div>
+  </div>
+</div>

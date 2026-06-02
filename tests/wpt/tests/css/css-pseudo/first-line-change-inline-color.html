@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="match" href="first-line-change-inline-color-ref.html">
+<style>
+  #block { color: green; }
+  #block::first-line { color: blue; }
+  .green { color: green; }
+</style>
+<div id="block">
+  <div>
+    <p>Blue <span id="target">This text should be green.</span> Blue</p>
+  </div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    target.className = 'green';
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>
+</html>

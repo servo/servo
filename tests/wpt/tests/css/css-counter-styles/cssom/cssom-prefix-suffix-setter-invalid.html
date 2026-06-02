@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSSCounterStyleRule prefix and suffix setters with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-counter-styles-3/#the-csscounterstylerule-interface">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="cssom-prefix-suffix-setter-ref.html">
+<style id="sheet">
+@counter-style foo {
+  system: cyclic;
+  symbols: A B C;
+  prefix: '(';
+  suffix: ')';
+}
+</style>
+
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<script>
+// Force layout update before changing the rule
+document.body.offsetWidth;
+
+const sheet = document.getElementById('sheet');
+const foo_rule = sheet.sheet.rules[0];
+
+// Invalid values should be ignored
+foo_rule.prefix = '"(" "("';
+foo_rule.prefix = ')';
+foo_rule.prefix = '123';
+
+foo_rule.suffix = '")" ")"';
+foo_rule.suffix = '(';
+foo_rule.suffix = '456';
+</script>

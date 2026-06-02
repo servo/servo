@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Layout Instability: off-screen content-visibility:auto content</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+// These scripts need to be before the contents because we need to ensure no
+// layout shifts during page load.
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  window.scrollTo(0, 100000 + 100);
+  await waitForAnimationFrames(2);
+
+  assert_equals(watcher.score, 0);
+
+  // This should report a layout shift as target is now visible.
+  target.style.top = '100100px';
+
+  await watcher.promise;
+  const expectedScore = computeExpectedScore(100 * 100, 1);
+  assert_approx_equals(watcher.score, expectedScore, 1e-8, "before scroll to top");
+
+  // No new layout shift should be reported when target is scrolled out of screen.
+  window.scrollTo(0, 0);
+  await waitForAnimationFrames(2);
+
+  assert_approx_equals(watcher.score, expectedScore, 1e-8, "after scroll to top");
+}, 'off-screen content-visibility:auto');
+</script>
+<style>
+  .auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px;
+    width: 100px;
+  }
+</style>
+<div class=auto>
+  <div style="width: 100px; height: 100px; background: blue"></div>
+</div>
+<div id="target" class=auto style="position: relative; top: 100000px">
+  <div style="width: 100px; height: 100px; background: blue"></div>
+</div>

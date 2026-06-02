@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>flexbox | flex formatting context :: negative margins and
+	border box</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+* {margin: 0;}
+.float {
+	background: lightblue;
+	width: 200px;
+	float: left;
+}
+#flex {
+	background: #ffcc00;
+	margin-left: -200px;
+	width: 200px;
+}
+div div {
+	border: 2px solid transparent;
+	margin: 0 2em 2em;
+}
+p {
+	clear: both;
+	margin: 2em 0;
+}
+#nbfc {
+	white-space: nowrap;
+	background: #ffcc00;
+	margin-left: -200px;
+	width: 200px;
+	table-layout: fixed;
+	display: table;
+}
+</style>
+
+<div class="float">float</div>
+<div id="nbfc">
+	<div>xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx</div>
+</div>

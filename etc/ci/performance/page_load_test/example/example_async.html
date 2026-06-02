@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+  </head>
+  <body>
+  Hello World
+  <!-- Remember to include the /harness/harness.js file
+       for the mark() and done() function -->
+  <script src="/harness/harness.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript" charset="utf-8">
+    // Create a timestamp before the test
+    mark("test start");
+    // Do something slow here
+    // Create another timestamp after the test
+    mark("test end");
+    // Tell the test harness you're done, otherwise it will keep waiting
+    done();
+  </script>
+  </body>
+</html>

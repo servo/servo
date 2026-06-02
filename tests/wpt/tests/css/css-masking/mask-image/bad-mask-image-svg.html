@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG with invalid mask-images</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="about:blank">
+
+<style>
+  svg > rect {
+    /* Multiple invalid mask layers: all invalid, SVG element should be fully masked. */
+    mask-image: url("invalid://nonexistent"), url("invalid://nonexistent");
+  }
+</style>
+
+<svg>
+  <rect width="50" height="100" fill="green" />
+</svg>

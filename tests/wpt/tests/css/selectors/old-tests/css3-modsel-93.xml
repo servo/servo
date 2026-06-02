@@ -1,0 +1,15 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Type element selector without declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace test url(http://www.example.org/b);
+*|testA { background-color : red }
+|testA {background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<testA xmlns="">This paragraph has no declared namespace and should have a green background.</testA>
+</body>
+</html>

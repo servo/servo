@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Animations and Web Animations on view transition pseudos</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-animatable-animate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+<style>
+:root {
+  view-transition-name: none;
+}
+#container {
+  view-transition-name: container;
+  view-transition-group: contain;
+
+  width: 20px;
+  height: 20px;
+
+  border: 12px solid black;
+  border-radius: 20px;
+  corner-shape: bevel;
+}
+#container.updated {
+  border: 30px solid black;
+  border-radius: 40px;
+  corner-shape: squircle;
+}
+
+#child {
+  view-transition-name: child;
+  width: 10px;
+  height: 10px;
+}
+
+::view-transition-group-children(*) {
+  animation-duration: 5s;
+  animation-play-state: paused;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation: unset;
+}
+</style>
+
+<div id=container>
+  <div id=child></div>
+</div>
+
+<script>
+promise_test(async t => {
+  let viewTransition = document.startViewTransition(() => { container.classList.add("updated"); });
+  await viewTransition.ready;
+
+  let anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 1, "Has 1 CSS Animations.");
+  let style = getComputedStyle(document.documentElement,
+    "::view-transition-group-children(container)");
+  assert_equals(style.borderWidth, "12px");
+  assert_equals(style.borderRadius, "20px");
+  assert_equals(style.cornerShape, "bevel");
+
+  anims[0].finish();
+  assert_equals(style.borderWidth, "30px");
+  assert_equals(style.borderRadius, "40px");
+  assert_equals(style.cornerShape, "squircle");
+});
+</script>

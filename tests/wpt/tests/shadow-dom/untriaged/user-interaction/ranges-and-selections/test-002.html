@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_07_01_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#ranges-and-selection">
+<meta name="assert" content="User Interaction: The getSelection() method of the shadow root object must return the current selection in this shadow tree.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    var range = d.createRange();
+    range.setStart(span.firstChild, 0);
+    range.setEnd(span.firstChild, 3);
+
+    var selection = d.defaultView.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    var sl = s.getSelection();
+    assert_equals(sl.toString(), 'Som', 'The getSelection() method of the shadow root object must return ' +
+            'the current selection in this shadow tree');
+
+}), 'A_07_01_02_T01');
+
+
+//test distributed nodes
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    span.setAttribute('slot', 'slot');
+    host.appendChild(span);
+
+    var s = host.attachShadow({mode: 'open'});
+    s.innerHTML = '<slot name="slot"></slot>';
+
+    var range = d.createRange();
+    range.setStart(span.firstChild, 0);
+    range.setEnd(span.firstChild, 3);
+
+    var selection = d.defaultView.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    var sl = s.getSelection();
+    assert_equals(sl.toString(), 'Som', 'The getSelection() method of the shadow root object must return ' +
+            'the current selection in this shadow tree');
+
+}), 'A_07_07_02_T02');
+</script>
+</body>
+</html>

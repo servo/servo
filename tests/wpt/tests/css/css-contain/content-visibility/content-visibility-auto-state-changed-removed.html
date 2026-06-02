@@ -1,0 +1,41 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: ContentVisibilityAutoStateChange event.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="ContentVisibilityAutoStateChange does not fire on disconnected element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+#bottomdiv {
+  content-visibility: auto;
+}
+</style>
+
+<div class=spacer></div>
+<div id=bottomdiv></div>
+
+<script>
+promise_test(t => new Promise(async (resolve, reject) => {
+  // Make sure the first "contentvisibilityautostatechange" event has fired before the test.
+  await new Promise(resolve => bottomdiv.addEventListener("contentvisibilityautostatechange", resolve, { once: true }));
+
+  let observed = false;
+  bottomdiv.addEventListener("contentvisibilityautostatechange", () => {
+    reject("unexpected signal")
+  });
+
+  bottomdiv.remove()
+  waitForAtLeastOneFrame().then(resolve);
+
+}), "ContentVisibilityAutoStateChange does not fire on disconnected element");
+
+</script>
+

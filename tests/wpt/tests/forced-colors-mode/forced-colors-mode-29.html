@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test forced colors mode on table styles with sys colors</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-29-ref.html">
+<style>
+  table {
+    border-collapse: collapse;
+  }
+  td, th {
+    border: 1px solid LinkText;
+    padding: 8px;
+    text-align: left;
+  }
+  tr:nth-child(even) {
+    background-color: CanvasText;
+  }
+  tr:nth-child(odd) {
+    color: Canvas;
+    text-decoration: underline;
+    text-decoration-color: LinkText;
+    text-emphasis: '*' LinkText;
+    -webkit-text-emphasis: '*' LinkText;
+  }
+</style>
+<table>
+  <tr>
+    <th>Column</th>
+    <th>Column</th>
+    <th>Column</th>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Entry</td>
+    <td>Entry</td>
+    <td>Entry</td>
+  </tr>
+</table>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: duplicate id attributes for object and img</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<div id=test2></div>
+<object id=test2></object>
+
+<div id=test3></div>
+<img id=test3 name=non-empty>
+</div>
+<script>
+test(function() {
+  var object = document.querySelector("object");
+  assert_equals(object.id, "test2");
+
+  assert_true("test2" in document);
+  assert_equals(document.test2, object);
+}, "If there is a div and object with same id, the object should be returned");
+
+test(function() {
+  var img = document.querySelector("img");
+  assert_equals(img.id, "test3");
+
+  assert_true("test3" in document);
+  assert_equals(document.test3, img);
+}, "If there is a div and img with same id, the img should be returned");
+</script>

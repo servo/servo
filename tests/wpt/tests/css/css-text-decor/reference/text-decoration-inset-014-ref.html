@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+  font-family: monospace;
+  width: 16ch;
+}
+u {
+  text-decoration-color: black;
+}
+</style>
+
+<p>The underline for "ultra-quick brown" should be extended by 0.5ch at each end of each fragment:</p>
+
+<div>
+  <h1>
+    the <u>ultra-quick brown</u> fox
+  </h1>
+  <h1 style="left: -.5ch; color: transparent">
+    the <u>ul</u>tra-quick brown fox
+  </h1>
+  <h1 style="left: .5ch; color: transparent">
+    the ultra-qui<u>ck</u> brown fox
+  </h1>
+  <h1 style="left: -.5ch; color: transparent">
+    the ultra-quick <u>brown</u> fox
+  </h1>
+  <h1 style="left: .5ch; color: transparent">
+    the ultra-quick <u>brown</u> fox
+  </h1>
+</div>

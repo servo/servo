@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+div {
+  border: medium solid red;
+  border-width: 32em;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.execCommand("selectAll");
+  getSelection().modify("move", "backward", "character");
+  getSelection().collapseToStart();
+}, {once: true});
+</script>
+</head>
+<body>
+<button contenteditable></button>
+<input value="a">
+<div></div>
+</body>
+</html>

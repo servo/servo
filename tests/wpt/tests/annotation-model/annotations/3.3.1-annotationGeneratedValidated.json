@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-annotationGeneratedValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation has multiple generated key values or a single generated key value that is not of format date-time.",
+  "title": "If present the Annotation-level **_generated_ key** has a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when no Annotation generated key present or when generated key has a single value that is of format date-time (Section 3.3.1)",
+  "type": "object",
+  "allOf": [
+  { "$ref": "otherProperties.json#/definitions/generatedValidIfPresent" }
+  ]
+}

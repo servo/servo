@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#column-span">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1052834">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="columns:3; width:100px; background:green;">
+  <div>
+    <div style="column-span:all; height:10px; margin-bottom:50px;"></div>
+    <div style="column-span:all; height:10px; margin-top:80px;"></div>
+  </div>
+</div>

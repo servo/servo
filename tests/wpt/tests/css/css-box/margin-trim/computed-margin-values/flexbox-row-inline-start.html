@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<meta name="assert" content="trimmed inline-start margins should be reflected in computed style">
+<style>
+flexbox {
+    display: flex;
+    margin-trim: inline-start;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+    margin-inline-start: 20px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('flexbox > item')">
+<div id="target">
+<flexbox>
+    <item data-expected-margin-left="0" data-offset-x="8"></item>
+    <item data-expected-margin-left="20" data-offset-x="78"></item>
+    <item data-expected-margin-left="20" data-offset-x="148"></item>
+</flexbox>
+</div>
+</body>
+</html>

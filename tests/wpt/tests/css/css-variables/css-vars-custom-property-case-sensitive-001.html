@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variables Test: custom property names are case-sensitive</title>
+    <meta charset="UTF-8">
+    <link rel="author" title="Noah Collins" href="mailto:noahcollins@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+    <meta name="assert" content="Custom property names are case-sensitive">
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+    <style type="text/css">
+        :root {
+            --lowercasegreen: green;
+            --MixedCaseGreen: green;
+
+            --lowercasered: red;
+            --MixedCaseRed: red;
+        }
+        div {
+            width: 100px;
+            height: 25px;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div style="background-color: var(--lowercasegreen, red);"></div>
+    <div style="background-color: var(--MixedCaseGreen, red);"></div>
+    <div style="background-color: var(--LowerCaseRed, green);"></div>
+    <div style="background-color: var(--mixedcasered, green);"></div>
+</body>
+</html>

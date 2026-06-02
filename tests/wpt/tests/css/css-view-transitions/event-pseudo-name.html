@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>View transitions: event pseudo name</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+:root { view-transition-name: none; }
+#first {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  view-transition-name: shared;
+}
+
+html::view-transition-group(*),
+html::view-transition-image-pair(*),
+html::view-transition-new(*),
+html::view-transition-old(*) {
+  animation-duration: 600s;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+html::view-transition-image-pair(*) {
+  animation: fade-in 600s both;
+}
+
+</style>
+<div id=first></div>
+<script>
+async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  let groupAnimationCount = 0;
+  let oldAnimationCount = 0;
+  let newAnimationCount = 0;
+  let wrapperAnimationCount = 0;
+
+  document.documentElement.addEventListener("animationstart", (e) => {
+    let pseudo = e.pseudoElement;
+    if (pseudo == "::view-transition-group(shared)") {
+      groupAnimationCount++;
+    } else if (pseudo == "::view-transition-new(shared)") {
+      newAnimationCount++;
+    } else if (pseudo == "::view-transition-old(shared)") {
+      oldAnimationCount++;
+    } else if (pseudo = "::view-transition-image-pair(shared)") {
+      wrapperAnimationCount++;
+    }
+
+    let total =
+      groupAnimationCount + oldAnimationCount + newAnimationCount + wrapperAnimationCount;
+    // Old/new images have 2 animations : opacity and mix-blend-mode.
+    if (total == 6) {
+      t.step(() => assert_equals(groupAnimationCount, 1));
+      t.step(() => assert_equals(wrapperAnimationCount, 1));
+      t.step(() => assert_equals(oldAnimationCount, 2));
+      t.step(() => assert_equals(newAnimationCount, 2));
+      t.done();
+    }
+  });
+  document.startViewTransition();
+}, "verifies pseudo name includes a tag");
+
+</script>
+

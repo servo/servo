@@ -1,0 +1,86 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OpenGL ES Shading Language 1.00 and OpenGL ES Shading Language 3.00 shaders should not link with each other</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="ES3VertexShader" type="x-shader/x-vertex">#version 300 es
+precision mediump float;
+in vec4 aPosition;
+
+void main() {
+    gl_Position = aPosition;
+}
+</script>
+<script id="ES3FragmentShader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="ESSL1VertexShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+
+void main() {
+    gl_Position = aPosition;
+}
+</script>
+<script id="ESSL1FragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+// See OpenGL ES Shading Language 3.00 spec section 1.5 or 3.3
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "ES3VertexShader",
+    vShaderSuccess: true,
+    fShaderId: "ES3FragmentShader",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "OpenGL ES Shading Language 3.00 vertex shader should link with OpenGL ES Shading Language 3.00 fragment shader."
+  },
+  {
+    vShaderId: "ES3VertexShader",
+    vShaderSuccess: true,
+    fShaderId: "ESSL1FragmentShader",
+    fShaderSuccess: true,
+    linkSuccess: false,
+    passMsg: "OpenGL ES Shading Language 3.00 vertex shader should not link with OpenGL ES Shading Language 1.00 fragment shader."
+  },
+  {
+    vShaderId: "ESSL1VertexShader",
+    vShaderSuccess: true,
+    fShaderId: "ES3FragmentShader",
+    fShaderSuccess: true,
+    linkSuccess: false,
+    passMsg: "OpenGL ES Shading Language 1.00 vertex shader should not link with OpenGL ES Shading Language 3.00 fragment shader."
+  }
+], 2);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS transforms and clipping</title>
+<link rel=author href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel=author href="https://mozilla.org" title="Mozilla">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1799216">
+<link rel=help href="https://drafts.csswg.org/css-transforms/">
+<link rel=match href="transform-clip-001-ref.html">
+<style>
+  body { margin: 0 }
+</style>
+<div style="overflow: clip; width: 200px; height: 200px; transform: translate(10px, 10px)">
+  <div style="overflow: clip; pointer-events: none; width: 200px; height: 200px; transform: translate(0px, -190px)">
+    <div style="background: blue; width: 200px; height: 200px; transform: translate(0px, 190px);"></div>
+  </div>
+</div>

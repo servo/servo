@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="child-src about:; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>child-src-about-blank-allowed-by-scheme</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <p>This frame should not be blocked by Content-Security-Policy.
+    </p>
+    <script>
+        var t = async_test("Check that frames load without throwing any violation events");
+        window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired any events"));
+    </script>
+
+    <iframe src="about:blank"></iframe>
+    <div id="log"></div>
+
+    <script>
+        t.done();
+    </script>
+</body>
+
+</html>

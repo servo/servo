@@ -1,0 +1,4345 @@
+# Tests todo:
+# - inout with varyings, attributes, uniforms (and arrays of 'em)
+# - inout with arrays, array elements
+# - inout with array elements
+# - inout by-value semantics (arrays & elements & structs)
+
+# Done:
+# - control flow: return, return in loop, etc.
+
+group datatypes "Function Parameter Data Types"
+
+	case float_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				return -a;
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_vec2
+		version 300 es
+		values
+		{
+			input vec2 in0		= [ vec2(0.0, 1.0) | vec2(2.0, 2.5) ];
+			output float out0	= [ -1.0 | -4.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (vec2 a)
+			{
+				return -(a.x + a.y);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_vec3
+		version 300 es
+		values
+		{
+			input vec3 in0		= [ vec3(0.0, 1.0, -2.0) | vec3(2.0, 2.5, -4.0) ];
+			output float out0	= [ 1.0 | -0.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (vec3 a)
+			{
+				return -(a.x + a.y + a.z);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_vec4
+		version 300 es
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, -2.0, 0.5) | vec4(2.0, 2.5, 4.0, -7.0) ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (vec4 a)
+			{
+				return -(a.x + a.y + a.z + a.w);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_mat2
+		version 300 es
+		values
+		{
+			input mat2 in0		= [ mat2(0.0, 1.0, -2.0, 0.5) | mat2(2.0, 2.5, 4.0, -7.0) ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (mat2 a)
+			{
+				return -(a[0][0] + a[0][1] + a[1][0] + a[1][1]);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_mat3
+		version 300 es
+		values
+		{
+			input mat3 in0		= [ mat3(0.0, 1.0, -2.0, 0.5, 1.0, -1.0, 2.0, 4.0, -1.0) | mat3(2.0, 2.5, 4.0, -7.0, 2.5, 3.0, 0.5, -3.5, 1.0) ];
+			output float out0	= [ -4.5 | -5.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (mat3 a)
+			{
+				return -(a[0][0] + a[0][1] + a[0][2] + a[1][0] + a[1][1] + a[1][2] + a[2][0] + a[2][1] + a[2][2]);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_mat4
+		version 300 es
+		values
+		{
+			input mat4 in0		= [ mat4(0.0, 1.0, -2.0, 0.5, 1.0, -1.0, 2.0, 4.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -2.0, -2.0) | mat4(2.0, 2.5, 4.0, -7.0, 2.5, 3.0, 0.5, -3.5, 1.0, 0.0, 2.0, -1.0, 1.0, 0.0, -1.0, 3.0) ];
+			output float out0	= [ -5.5 | -9.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (mat4 a)
+			{
+				return -(a[0][0] + a[0][1] + a[0][2] + a[0][3] + a[1][0] + a[1][1] + a[1][2] + a[1][3] + a[2][0] + a[2][1] + a[2][2] + a[2][3] + a[3][0] + a[3][1] + a[3][2] + a[3][3]);
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int
+		version 300 es
+		values
+		{
+			input int in0		= [ -1 | 0 | 1 | 4 ];
+			output int out0		= [ 1 | 0 | -1 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (int a)
+			{
+				return -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec2
+		version 300 es
+		values
+		{
+			input ivec2 in0		= [ ivec2(-1, 0) | ivec2(1, 4) ];
+			output int out0		= [ 1 | -5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (ivec2 a)
+			{
+				return -(a.x + a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec3
+		version 300 es
+		values
+		{
+			input ivec3 in0		= [ ivec3(-1, 0, 2) | ivec3(1, 4, -8) ];
+			output int out0		= [ -1 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (ivec3 a)
+			{
+				return -(a.x + a.y + a.z);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec4
+		version 300 es
+		values
+		{
+			input ivec4 in0		= [ ivec4(-1, 0, 2, 2) | ivec4(1, 4, -8, 2) ];
+			output int out0		= [ -3 | 1 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (ivec4 a)
+			{
+				return -(a.x + a.y + a.z + a.w);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint
+		version 300 es
+		values
+		{
+			input uint in0		= [ 1 | 0 | 2 | 4 ];
+			output uint out0	= [ 1 | 0 | 4 | 16 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			uint func (uint a)
+			{
+				return a*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uvec2
+		version 300 es
+		values
+		{
+			input uvec2 in0		= [ uvec2(1, 0) | uvec2(2, 4) ];
+			output uint out0	= [ 1 | 6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			uint func (uvec2 a)
+			{
+				return (a.x + a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uvec3
+		version 300 es
+		values
+		{
+			input uvec3 in0		= [ uvec3(1, 0, 2) | uvec3(1, 4, 8) ];
+			output uint out0		= [ 3 | 13 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			uint func (uvec3 a)
+			{
+				return (a.x + a.y + a.z);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uvec4
+		version 300 es
+		values
+		{
+			input uvec4 in0		= [ uvec4(1, 0, 2, 2) | uvec4(1, 4, 8, 2) ];
+			output uint out0	= [ 5 | 15 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			uint func (uvec4 a)
+			{
+				return (a.x + a.y + a.z + a.w);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (bool a)
+			{
+				return !a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bvec2
+		version 300 es
+		values
+		{
+			input bvec2 in0		= [ bvec2(true, true) | bvec2(false, true) ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (bvec2 a)
+			{
+				return !(a.x == a.y);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bvec3
+		version 300 es
+		values
+		{
+			input bvec3 in0		= [ bvec3(true, true, false) | bvec3(true, false, false) ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (bvec3 a)
+			{
+				return (a.x == a.y) == a.z;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bvec4
+		version 300 es
+		values
+		{
+			input bvec4 in0		= [ bvec4(true, true, true, false) | bvec4(false, false, true, true) | bvec4(true, false, false, true) ];
+			output bool out0	= [ false | true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (bvec4 a)
+			{
+				return ((a.x == a.y) == (a.z == a.w));
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat2
+		version 300 es
+		values
+		{
+			input mat2 in0	= [ mat2(-2.0, 0.5, -1.0, 1.0) | mat2(1.0, -3.5, -3.5, 2.5) | mat2(-2.0, -2.0, 3.5, 0.0) ];
+			output mat2 out0	= [ mat2(4.0, -1.0, 2.0, -2.0) | mat2(-2.0, 7.0, 7.0, -5.0) | mat2(4.0, 4.0, -7.0, -0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat2 func (mat2 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat2x3
+		version 300 es
+		values
+		{
+			input mat2x3 in0	= [ mat2x3(2.5, 0.0, 1.0, -2.5, 1.0, 3.0) | mat2x3(0.0, 2.0, 1.5, -3.5, 2.0, 0.5) | mat2x3(-1.5, -3.5, 2.5, 0.0, 1.5, 3.0) ];
+			output mat2x3 out0	= [ mat2x3(-5.0, -0.0, -2.0, 5.0, -2.0, -6.0) | mat2x3(-0.0, -4.0, -3.0, 7.0, -4.0, -1.0) | mat2x3(3.0, 7.0, -5.0, -0.0, -3.0, -6.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat2x3 func (mat2x3 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat2x4
+		version 300 es
+		values
+		{
+			input mat2x4 in0	= [ mat2x4(1.5, 3.0, -1.0, 2.5, -0.5, 3.5, 3.0, -3.0) | mat2x4(-2.5, -2.0, 3.5, -0.5, 1.0, -1.5, 0.0, -1.0) | mat2x4(-1.0, 0.5, 0.5, 3.0, 1.5, 3.0, 2.5, 3.5) ];
+			output mat2x4 out0	= [ mat2x4(-3.0, -6.0, 2.0, -5.0, 1.0, -7.0, -6.0, 6.0) | mat2x4(5.0, 4.0, -7.0, 1.0, -2.0, 3.0, -0.0, 2.0) | mat2x4(2.0, -1.0, -1.0, -6.0, -3.0, -6.0, -5.0, -7.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat2x4 func (mat2x4 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat3x2
+		version 300 es
+		values
+		{
+			input mat3x2 in0	= [ mat3x2(1.5, -2.5, 2.5, 3.5, 3.0, 0.5) | mat3x2(1.5, -2.0, 2.5, 0.5, -1.5, -3.5) | mat3x2(2.5, 3.5, -3.0, 2.5, -0.5, -2.5) ];
+			output mat3x2 out0	= [ mat3x2(-3.0, 5.0, -5.0, -7.0, -6.0, -1.0) | mat3x2(-3.0, 4.0, -5.0, -1.0, 3.0, 7.0) | mat3x2(-5.0, -7.0, 6.0, -5.0, 1.0, 5.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3x2 func (mat3x2 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat3
+		version 300 es
+		values
+		{
+			input mat3 in0	= [ mat3(-1.5, 2.0, 3.0, -3.5, 1.0, -3.5, 1.5, -1.5, 3.0) | mat3(3.5, 0.0, 3.5, -1.5, -3.0, 0.5, -3.5, -2.5, -0.5) | mat3(1.0, -2.5, -3.5, 3.0, -1.5, 3.5, 3.0, -1.0, -0.5) ];
+			output mat3 out0	= [ mat3(3.0, -4.0, -6.0, 7.0, -2.0, 7.0, -3.0, 3.0, -6.0) | mat3(-7.0, -0.0, -7.0, 3.0, 6.0, -1.0, 7.0, 5.0, 1.0) | mat3(-2.0, 5.0, 7.0, -6.0, 3.0, -7.0, -6.0, 2.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3 func (mat3 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat3x4
+		version 300 es
+		values
+		{
+			input mat3x4 in0	= [ mat3x4(0.0, 1.0, 0.5, 0.5, 1.0, 3.5, 0.0, -0.5, 1.5, -2.0, -1.5, 3.5) | mat3x4(0.0, 0.5, -3.5, -0.5, 0.5, -3.5, 1.0, 1.0, -3.5, 1.0, -0.5, 1.5) | mat3x4(-1.0, 1.5, 2.0, -3.5, -3.5, 1.5, 3.5, -2.0, -0.5, 0.5, -1.5, -1.0) ];
+			output mat3x4 out0	= [ mat3x4(-0.0, -2.0, -1.0, -1.0, -2.0, -7.0, -0.0, 1.0, -3.0, 4.0, 3.0, -7.0) | mat3x4(-0.0, -1.0, 7.0, 1.0, -1.0, 7.0, -2.0, -2.0, 7.0, -2.0, 1.0, -3.0) | mat3x4(2.0, -3.0, -4.0, 7.0, 7.0, -3.0, -7.0, 4.0, 1.0, -1.0, 3.0, 2.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat3x4 func (mat3x4 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat4x2
+		version 300 es
+		values
+		{
+			input mat4x2 in0	= [ mat4x2(-1.5, -1.0, 0.5, -1.5, -1.0, 2.0, -3.5, 0.5) | mat4x2(2.0, -1.5, -2.0, 2.5, -2.0, -2.5, -0.5, 1.5) | mat4x2(-3.0, -1.5, -1.0, 2.5, -0.5, 2.5, -2.5, -1.0) ];
+			output mat4x2 out0	= [ mat4x2(3.0, 2.0, -1.0, 3.0, 2.0, -4.0, 7.0, -1.0) | mat4x2(-4.0, 3.0, 4.0, -5.0, 4.0, 5.0, 1.0, -3.0) | mat4x2(6.0, 3.0, 2.0, -5.0, 1.0, -5.0, 5.0, 2.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat4x2 func (mat4x2 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat4x3
+		version 300 es
+		values
+		{
+			input mat4x3 in0	= [ mat4x3(1.0, 3.0, -0.5, -2.0, -3.0, 0.0, -2.5, 2.5, 2.5, -2.5, -1.5, 2.5) | mat4x3(1.0, 2.5, -1.0, -3.0, -1.5, 2.0, -1.5, -1.0, -0.5, -0.5, -0.5, 3.0) | mat4x3(-2.5, -3.5, 3.5, 3.0, 3.5, -0.5, 3.5, 3.0, -2.0, 2.0, 2.5, 1.0) ];
+			output mat4x3 out0	= [ mat4x3(-2.0, -6.0, 1.0, 4.0, 6.0, -0.0, 5.0, -5.0, -5.0, 5.0, 3.0, -5.0) | mat4x3(-2.0, -5.0, 2.0, 6.0, 3.0, -4.0, 3.0, 2.0, 1.0, 1.0, 1.0, -6.0) | mat4x3(5.0, 7.0, -7.0, -6.0, -7.0, 1.0, -7.0, -6.0, 4.0, -4.0, -5.0, -2.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat4x3 func (mat4x3 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mat4
+		version 300 es
+		values
+		{
+			input mat4 in0	= [ mat4(0.0, -1.5, -1.0, -2.0, -3.0, 0.5, -1.5, 2.5, -3.5, 3.0, 1.5, 3.0, 3.0, 3.0, 0.5, -3.5) | mat4(2.0, -2.5, -1.5, 1.0, 0.0, -0.5, 3.5, 1.0, -1.0, -2.0, 2.5, 0.0, 2.0, -1.0, -2.5, 0.5) | mat4(2.5, -2.5, 2.0, 3.0, 2.5, 2.5, -3.5, 1.0, 2.5, -3.5, -1.5, -1.5, 0.0, -0.5, 0.0, 2.0) ];
+			output mat4 out0	= [ mat4(-0.0, 3.0, 2.0, 4.0, 6.0, -1.0, 3.0, -5.0, 7.0, -6.0, -3.0, -6.0, -6.0, -6.0, -1.0, 7.0) | mat4(-4.0, 5.0, 3.0, -2.0, -0.0, 1.0, -7.0, -2.0, 2.0, 4.0, -5.0, -0.0, -4.0, 2.0, 5.0, -1.0) | mat4(-5.0, 5.0, -4.0, -6.0, -5.0, -5.0, 7.0, -2.0, -5.0, 7.0, 3.0, 3.0, -0.0, 1.0, -0.0, -4.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			mat4 func (mat4 a)
+			{
+				return -2.0*a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_struct
+		version 300 es
+		values
+		{
+			input vec3 in0		= [ vec3(0.0, 1.0, -2.0) | vec3(2.0, 2.5, -4.0) ];
+			output float out0	= [ 1.0 | -0.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct Pos { float a, b, c; };
+
+			float func (Pos p)
+			{
+				return -(p.a + p.b + p.c);
+			}
+
+			void main()
+			{
+				Pos p = Pos(in0.x, in0.y, in0.z);
+				out0 = func(p);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct_struct
+		version 300 es
+		values
+		{
+			input vec3 in0		= [ vec3(0.0, 1.0, -2.0) | vec3(2.0, 2.5, -4.0) ];
+			output float out0	= [ 1.0 | -0.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct Pos { float a, b, c; };
+
+			Pos func (Pos p)
+			{
+				return Pos(-p.a, -p.b, -p.c);
+			}
+
+			void main()
+			{
+				Pos p = Pos(in0.x, in0.y, in0.z);
+				p = func(p);
+				out0 = p.a + p.b + p.c;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case struct_nested_struct
+		version 300 es
+		values
+		{
+			input vec3 in0		= [ vec3(0.0, 1.0, -2.0) | vec3(2.0, 2.5, -4.0) ];
+			output float out0	= [ 1.0 | -0.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct Pos { float a, b, c; };
+			struct Line { Pos start, end; };
+
+			Line func (Pos p)
+			{
+				return Line(p, Pos(-p.a, -p.b, -p.c));
+			}
+
+			float sum (Pos p)
+			{
+				return (p.a + p.b + p.c);
+			}
+
+			void main()
+			{
+				Pos p = Pos(in0.x, in0.y, in0.z);
+				Line line = func(p);
+				out0 = sum(line.start) + (2.0 * sum(line.end));
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # datatypes
+
+group qualifiers "Function Parameter Qualifiers"
+
+	case in_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (in float a)
+			{
+				a = -a;
+				return 2.0 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = in0;
+				float g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out float a)
+			{
+				a = -1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout float a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_lowp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (in lowp float a)
+			{
+				a = -a;
+				return 2.0 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = in0;
+				float g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_lowp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out lowp float a)
+			{
+				a = -1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_lowp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout lowp float a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_highp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (in highp float a)
+			{
+				a = -a;
+				return 2.0 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = in0;
+				float g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_highp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out highp float a)
+			{
+				a = -1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_highp_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout highp float a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = 1.0;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case const_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (const float a)
+			{
+				float b = -a;
+				return 2.0 * b;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = in0;
+				float g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case const_in_float
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (const in float a)
+			{
+				float b = -a;
+				return 2.0 * b;
+			}
+
+			void main()
+			{
+				${SETUP}
+				float f = in0;
+				float g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 4 ];
+			output int out0		= [ 0 | -1 | 2 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (in int a)
+			{
+				a = -a;
+				return 2 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = in0;
+				int g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out int a)
+			{
+				a = -1;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout int a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_lowp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 4 ];
+			output int out0		= [ 0 | -1 | 2 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (in lowp int a)
+			{
+				a = -a;
+				return 2 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = in0;
+				int g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_lowp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out lowp int a)
+			{
+				a = -1;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_lowp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout lowp int a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_highp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 4 ];
+			output int out0		= [ 0 | -1 | 2 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (in highp int a)
+			{
+				a = -a;
+				return 2 * a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = in0;
+				int g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_highp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (out highp int a)
+			{
+				a = -1;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_highp_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (inout highp int a)
+			{
+				a = -a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = 1;
+				func(f);
+				out0 = f * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case const_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 4 ];
+			output int out0		= [ 0 | -1 | 2 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (const int a)
+			{
+				int b = -a;
+				return 2 * b;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = in0;
+				int g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case const_in_int
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 4 ];
+			output int out0		= [ 0 | -1 | 2 | -4 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (const in int a)
+			{
+				int b = -a;
+				return 2 * b;
+			}
+
+			void main()
+			{
+				${SETUP}
+				int f = in0;
+				int g = func(f);
+				out0 = f + g;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case in_bool
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (in bool a)
+			{
+				a = !a;
+				return a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool f = in0;
+				bool g = func(f);
+				out0 = (f != g);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case out_bool
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (out bool a)
+			{
+				a = false;
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool f = true;
+				func(f);
+				out0 = (in0 == f);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case inout_bool
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (inout bool a)
+			{
+				a = !a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool f = true;
+				func(f);
+				out0 = (in0 == f);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case const_bool
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (const bool a)
+			{
+				bool b = !a;
+				return b;
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool f = in0;
+				bool g = func(f);
+				out0 = (f != g);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # qualifiers
+
+group declarations "Function Declarations"
+
+	case basic
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (void);
+
+			float func (void)
+			{
+				return -1.0;
+			}
+
+			void main()
+			{
+				out0 = func() * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case basic_arg
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f);
+
+			float func (float f)
+			{
+				return -f;
+			}
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case define_after_use
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (void);
+
+			void main()
+			{
+				out0 = func() * in0;
+				${OUTPUT}
+			}
+
+			float func (void)
+			{
+				return -1.0;
+			}
+		""
+	end
+
+	case double_declare
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (void);
+
+			float func (void);
+
+			float func (void)
+			{
+				return -1.0;
+			}
+
+			void main()
+			{
+				out0 = func() * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case declare_after_define
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (void)
+			{
+				return -1.0;
+			}
+
+			float func (void);
+
+			void main()
+			{
+				out0 = func() * in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case void_vs_no_void
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func ();
+
+			void main()
+			{
+				out0 = func() * in0;
+				${OUTPUT}
+			}
+
+			float func (void)
+			{
+				return -1.0;
+			}
+		""
+	end
+
+	case in_vs_no_in
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f);
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+
+			float func (in float f)
+			{
+				return -f;
+			}
+		""
+	end
+
+	case default_vs_explicit_precision
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f);
+
+			void main()
+			{
+				out0 = func(in0);
+				${OUTPUT}
+			}
+
+			float func (mediump float f)
+			{
+				return -f;
+			}
+		""
+	end
+
+
+end # declarations
+
+group overloading "Function Overloading"
+
+	case user_func_arg_type_simple
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				return -a;
+			}
+
+			int func (int a)
+			{
+				return -a;
+			}
+
+			void main()
+			{
+				out0 = func(in0) * float(func(-1));
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arg_float_types
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (float a) { return -a; }
+			vec2 func (vec2 a) { return a.yx; }
+			vec3 func (vec3 a) { return a.xxx; }
+			vec4 func (vec4 a) { return a.wwww; }
+
+			void main()
+			{
+				out0 = func(func(func(func(vec4(in0)).xyz).xy).x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arg_int_types
+		version 300 es
+		values
+		{
+			input int in0		= [ 0 | 1 | -2 | 6 ];
+			output int out0		= [ 0 | -1 | 2 | -6 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (int a) { return -a; }
+			ivec2 func (ivec2 a) { return a.yx; }
+			ivec3 func (ivec3 a) { return a.xxx; }
+			ivec4 func (ivec4 a) { return a.wwww; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(func(func(func(ivec4(in0)).xyz).xy).x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arg_bool_types
+		version 300 es
+		values
+		{
+			input bool in0		= [ true | false ];
+			output bool out0	= [ false | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (bool a) { return !a; }
+			bvec2 func (bvec2 a) { return a.yx; }
+			bvec3 func (bvec3 a) { return a.xxx; }
+			bvec4 func (bvec4 a) { return a.wwww; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(func(func(func(bvec4(in0)).xyz).xy).x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arg_basic_types
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			float func (float a) { return -a; }
+			vec2 func (vec2 a) { return a.yx; }
+			vec3 func (vec3 a) { return a.xxx; }
+			vec4 func (vec4 a) { return a.wwww; }
+			int func (int a) { return -a; }
+			ivec2 func (ivec2 a) { return a.yx; }
+			ivec3 func (ivec3 a) { return a.xxx; }
+			ivec4 func (ivec4 a) { return a.wwww; }
+			bool func (bool a) { return !a; }
+			bvec2 func (bvec2 a) { return a.yx; }
+			bvec3 func (bvec3 a) { return a.xxx; }
+			bvec4 func (bvec4 a) { return a.wwww; }
+
+			void main()
+			{
+				${SETUP}
+				if (func(func(bvec4(false)).x))
+					out0 = func(in0) * float(func(-1));
+				else
+					out0 = float(func(func(ivec4(func(func(func(vec4(0.5)).xyz).xy).xxxx)).xy).x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arg_complex_types
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			struct Pos { float a, b, c; };
+			struct Line { Pos start, end; };
+
+			float func (float a) { return -a; }
+			float func (float a[4]) { return a[0] + a[3]; }
+			vec2 func (vec2 a) { return a.yx; }
+			vec3 func (vec3 a) { return a.xxx; }
+			vec4 func (vec4 a) { return a.wwww; }
+			vec4 func (vec4 a[4]) { return a[1] + a[2]; }
+			int func (int a) { return -a; }
+			ivec2 func (ivec2 a) { return a.yx; }
+			ivec3 func (ivec3 a) { return a.xxx; }
+			ivec4 func (ivec4 a) { return a.wwww; }
+			bool func (bool a) { return !a; }
+			bvec2 func (bvec2 a) { return a.yx; }
+			bvec3 func (bvec3 a) { return a.xxx; }
+			bvec4 func (bvec4 a) { return a.wwww; }
+			Pos func (Pos a) { return a; }
+			Line func (Line a) { return Line(a.end, a.start); }
+
+			void main()
+			{
+				${SETUP}
+				float arr[4];
+				vec4 arr2[4];
+				out0 = func(arr) + func(arr2).x;
+				if (func(func(bvec4(false)).x))
+					out0 = func(in0) * float(func(-1));
+				else
+					out0 = float(func(func(ivec4(func(func(func(vec4(0.5)).xyz).xy).xxxx)).xy).x);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case user_func_arguments
+		version 300 es
+		values
+		{
+			input float in0		= [ 0.0 | 1.0 | -2.0 | 2.5 ];
+			output float out0	= [ 0.0 | -1.0 | 2.0 | -2.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				return -a;
+			}
+
+			float func (float a, float b)
+			{
+				return a * b;
+			}
+
+			void main()
+			{
+				out0 = func(in0) * func(-0.5, -2.0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case array_size
+		version 300 es
+		values
+		{
+			output float out0	= [ 1.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f[3])
+			{
+				return f[0];
+			}
+
+			float func (float f[4])
+			{
+				return f[1];
+			}
+
+			void main ()
+			{
+				${SETUP}
+				float[4] x = float[4] (-1.0, 1.0, 0.0, 0.0);
+				out0 = func(x);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # overloading
+
+group array_arguments "Arrays as Arguments"
+
+	case local_in_float
+		version 300 es
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (in float a[4])
+			{
+				a[0] = -1.0;
+				a[2] = -4.0;
+				a[3] = -3.0 * a[1];
+				return a[0];
+			}
+
+			void main()
+			{
+				float arr[4];
+				arr[0] = in0.x;
+				arr[1] = in0.y;
+				arr[2] = in0.z;
+				arr[3] = in0.w;
+				float f = func(arr);
+				out0 = f * vec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case global_in_float
+		version 300 es
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (in float a[4])
+			{
+				a[0] = -1.0;
+				a[2] = -4.0;
+				a[3] = -3.0 * a[1];
+				return a[0];
+			}
+
+			float arr[4];
+
+			void main()
+			{
+				arr[0] = in0.x;
+				arr[1] = in0.y;
+				arr[2] = in0.z;
+				arr[3] = in0.w;
+				float f = func(arr);
+				out0 = f * vec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case local_in_int
+		version 300 es
+		values
+		{
+			input ivec4 in0		= [ ivec4(0, 1, 2, -4) | ivec4(-7, -11, 13, 19) ];
+			output ivec4 out0	= [ ivec4(0, -1, -2, 4) | ivec4(7, 11, -13, -19) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (in int a[4])
+			{
+				a[0] = -1;
+				a[2] = -4;
+				a[3] = -3 * a[1];
+				return a[0];
+			}
+
+			void main()
+			{
+				${SETUP}
+				int arr[4];
+				arr[0] = in0.x;
+				arr[1] = in0.y;
+				arr[2] = in0.z;
+				arr[3] = in0.w;
+				int f = func(arr);
+				out0 = f * ivec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case global_in_int
+		version 300 es
+		values
+		{
+			input ivec4 in0		= [ ivec4(0, 1, 2, 4) | ivec4(-7, -11, 13, 19) ];
+			output ivec4 out0	= [ ivec4(0, -1, -2, -4) | ivec4(7, 11, -13, -19) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (in int a[4])
+			{
+				a[0] = -1;
+				a[2] = -4;
+				a[3] = -3 * a[1];
+				return a[0];
+			}
+
+			int arr[4];
+
+			void main()
+			{
+				${SETUP}
+				arr[0] = in0.x;
+				arr[1] = in0.y;
+				arr[2] = in0.z;
+				arr[3] = in0.w;
+				int f = func(arr);
+				out0 = f * ivec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+
+		""
+	end
+
+	case local_in_bool
+		version 300 es
+		values
+		{
+			input bvec4 in0		= [ bvec4(true, true, false, true) | bvec4(false, false, false, false) ];
+			output bvec4 out0	= [ bvec4(false, false, true, false) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (in bool a[4])
+			{
+				a[0] = false;
+				a[2] = true;
+				a[3] = !a[1];
+				return a[0];
+			}
+
+			void main()
+			{
+				${SETUP}
+				bool arr[4];
+				arr[0] = !in0.x;
+				arr[1] = !in0.y;
+				arr[2] = !in0.z;
+				arr[3] = !in0.w;
+				func(arr);
+				out0 = bvec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case global_in_bool
+		version 300 es
+		values
+		{
+			input bvec4 in0		= [ bvec4(true, true, false, true) | bvec4(false, false, false, false) ];
+			output bvec4 out0	= [ bvec4(false, false, true, false) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			bool func (in bool a[4])
+			{
+				a[0] = false;
+				a[2] = true;
+				a[3] = !a[1];
+				return a[0];
+			}
+
+			bool arr[4];
+
+			void main()
+			{
+				${SETUP}
+				arr[0] = !in0.x;
+				arr[1] = !in0.y;
+				arr[2] = !in0.z;
+				arr[3] = !in0.w;
+				func(arr);
+				out0 = bvec4(arr[0], arr[1], arr[2], arr[3]);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case test_helpers
+		version 300 es
+		desc "Check that helper functions are supported properly."
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output float out0	= [ 1.0 | 1.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec4 get (in float arr[4]);
+			void set (out float arr[4], vec4 val);
+			void negate (inout float arr[4]);
+			bool test (in float arr[4], vec4 ref);
+			bool isEqual (in float a[4], in float b[4]);
+
+			void main()
+			{
+				float arr[4];
+				set(arr, in0);
+				negate(arr);
+				out0 = float(test(arr, -in0));
+				${OUTPUT}
+			}
+
+			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+		""
+	end
+
+	case copy_local_in_on_call
+		version 300 es
+		desc "Check that local 'in' arguments are copied on call and don't alias."
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec4 get (in float arr[4]);
+			void set (out float arr[4], vec4 val);
+			void negate (inout float arr[4]);
+			bool test (in float arr[4], vec4 ref);
+			bool isEqual (in float a[4], in float b[4]);
+
+			float func (in float a[4], in float b[4])
+			{
+				a[0] = 2.123;
+				a[2] = -4.123;
+				return isEqual(a, b) ? 1.0 : -1.0;
+			}
+
+			void main()
+			{
+				float arr[4];
+				set(arr, in0);
+				out0 = in0 * func(arr, arr);
+				${OUTPUT}
+			}
+
+			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+		""
+	end
+
+	case copy_global_in_on_call
+		version 300 es
+		desc "Check that global 'in' arguments are copied on call and don't alias."
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec4 get (in float arr[4]);
+			void set (out float arr[4], vec4 val);
+			void negate (inout float arr[4]);
+			bool test (in float arr[4], vec4 ref);
+			bool isEqual (in float a[4], in float b[4]);
+
+			float func (in float a[4], in float b[4])
+			{
+				a[0] = 2.123;
+				a[2] = -4.123;
+				return isEqual(a, b) ? 1.0 : -1.0;
+			}
+
+			float arr[4];
+
+			void main()
+			{
+				set(arr, in0);
+				out0 = in0 * func(arr, arr);
+				${OUTPUT}
+			}
+
+			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+		""
+	end
+
+	case copy_local_inout_on_call
+		version 300 es
+		desc "Check that local 'in' arguments are copied on call and don't alias."
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec4 get (in float arr[4]);
+			void set (out float arr[4], vec4 val);
+			void negate (inout float arr[4]);
+			bool test (in float arr[4], vec4 ref);
+			bool isEqual (in float a[4], in float b[4]);
+
+			float func (inout float a[4], inout float b[4])
+			{
+				negate(a);
+				return isEqual(a, b) ? 1.0 : -1.0;
+			}
+
+			void main()
+			{
+				float arr[4];
+				set(arr, in0);
+				float m = func(arr, arr); // returns -1.0
+				float n = float(test(arr, in0) || test(arr, -in0));
+				out0 = in0 * m * n;
+				${OUTPUT}
+			}
+
+			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+		""
+	end
+
+	case copy_global_inout_on_call
+		version 300 es
+		desc "Check that global 'in' arguments are copied on call and don't alias."
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, 2.0, -4.0) | vec4(-7.5, 12.125, -0.25, 16.0) ];
+			output vec4 out0	= [ vec4(0.0, -1.0, -2.0, 4.0) | vec4(7.5, -12.125, 0.25, -16.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			vec4 get (in float arr[4]);
+			void set (out float arr[4], vec4 val);
+			void negate (inout float arr[4]);
+			bool test (in float arr[4], vec4 ref);
+			bool isEqual (in float a[4], in float b[4]);
+
+			float func (in float a[4], in float b[4])
+			{
+				negate(a);
+				return isEqual(a, b) ? 1.0 : -1.0;
+			}
+
+			float arr[4];
+
+			void main()
+			{
+				set(arr, in0);
+				float m = func(arr, arr); // returns -1.0
+				float n = float(test(arr, in0) || test(arr, -in0));
+				out0 = in0 * m * n;
+				${OUTPUT}
+			}
+
+			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+		""
+	end
+
+#			vec4 get (in float arr[4]);
+#			void set (out float arr[4], vec4 val);
+#			void negate (inout float arr[4]);
+#			bool test (in float arr[4], vec4 ref);
+#			bool isEqual (in float a[4], in float b[4]);
+
+#			float absDiff (vec4 a, vec4 b) { vec4 d = abs(a - b); return max(max(d.x, d.y), max(d.z, d.w)); }
+#			vec4 get (in float arr[4]) { return vec4(arr[0], arr[1], arr[2], arr[3]); }
+#			void set (out float arr[4], vec4 val) { arr[0] = val.x; arr[1] = val.y; arr[2] = val.z; arr[3] = val.w; }
+#			void negate (inout float arr[4]) { set(arr, -get(arr)); }
+#			bool test (in float arr[4], vec4 ref) { return (absDiff(get(arr), ref) < 0.1); }
+#			bool isEqual (in float a[4], in float b[4]) { return (absDiff(get(a), get(b)) < 0.1); }
+
+end # array_arguments
+
+#group qualifiers "Function Parameter Qualifiers"
+#
+#end # qualifiers
+
+group control_flow "Control Flow In Functions"
+
+	case simple_return
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				return -a;
+				a = a * -1.0;
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_in_if
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				if (a != 0.0)
+					return -a;
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_in_else
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				if (a == 0.0)
+					return 1.0;
+				else
+					return -a;
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_in_loop
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				while (a < 100.0)
+					return -a;
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_in_loop_if
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				while (a < 100.0)
+				{
+					a = -a;
+					if (a != 0.0)
+						return a;
+					else
+						return -1.0;
+				}
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_after_loop
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				for (int i = 0; i < 5; i++)
+					a = -a;
+				return a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_after_break
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					a = -a;
+					if (i == 4)
+						break;
+				}
+				return a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_after_continue
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					if (i == 4)
+						continue;
+					a = -a;
+				}
+				return a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_in_nested_loop
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				for (int i = 0; i < 6; i++)
+				{
+					a = -a;
+					for (int j = 0; j < 4; j++)
+					{
+						a = -a;
+						if (i == 1)
+							return a;
+					}
+					if (i == 4)
+						return 1.0;
+				}
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case return_after_loop_sequence
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				int i;
+				for (i = 0; i < 6; i++) // negate a
+				{
+					a = -a;
+					if (i == 4)
+						a = -a;
+				}
+
+				for (; i < 10; i++) // keep a
+				{
+					if (i == 8)
+						continue;
+					else if (i == 9)
+						break;
+					a = -a;
+				}
+
+				return a;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mixed_return_break_continue
+		version 300 es
+		values
+		{
+			input float in0		= [ -0.5 | 1.5 ];
+			output float out0	= [ 0.5 | -1.5 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float a)
+			{
+				int i;
+				for (i = 0; i < 6; i++)
+				{
+					if (i == 0)
+						continue;
+					else if (i == 1)
+					{
+					}
+					else if (i == 3)
+						break;
+					else
+						return a;
+					a = -a;
+				}
+
+				return 1.0;
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # control_flow
+
+group misc "Miscellaneous"
+
+	case multi_arg_float
+		version 300 es
+		values
+		{
+			input vec4 in0		= [ vec4(0.0, 1.0, -2.0, 0.5) | vec4(2.0, 2.5, 4.0, -7.0) ];
+			output float out0	= [ 0.5 | -1.5 ]; # -sum(in0)
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float sum(vec4 v) { return (v.x + v.y + v.z + v.w); }
+
+			float func (float a, vec3 b, vec2 c, vec2 d, vec4 e)
+			{
+				return -sum(vec4(a, b) + vec4(c, d)) + sum(e);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0.y, in0.xzw, in0.wz, in0.yx, in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case multi_arg_int
+		version 300 es
+		values
+		{
+			input ivec4 in0		= [ ivec4(-1, 0, 2, 2) | ivec4(1, 4, -8, 2) ];
+			output int out0		= [ -3 | 1 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int sum(ivec4 v) { return (v.x + v.y + v.z + v.w); }
+
+			int func (int a, ivec3 b, ivec2 c, ivec2 d, ivec4 e)
+			{
+				return -sum(ivec4(a, b) + ivec4(c, d)) + sum(e);
+			}
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0.y, in0.xzw, in0.wz, in0.yx, in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case argument_eval_order_1
+		version 300 es
+		values
+		{
+			input int in0	= [  0 | 1 | 3 | 5 ];
+			output int out0	= [ -1 | 5 | 11 | 17 ];
+		}
+
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+
+			int func (float a, int b, bool c, int d)
+			{
+				if (c)
+					return b + int(a) + d;
+				else
+					return -1;
+			}
+
+			void main ()
+			{
+				${SETUP}
+				float v0 = float(in0);
+				int v1 = in0;
+				out0 = func((v0 += 1.0), v1++, (v0 > 1.5), v1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case argument_eval_order_2
+		version 300 es
+		values
+		{
+			input int in0	= [ 0 | -1 | 3 | 5 ];
+			output int out0	= [ 3 | -1 | 9 | 13 ];
+		}
+
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+
+			int g;
+
+			int modG (int v)
+			{
+				g += v;
+				return v;
+			}
+
+			int func (float a, int b, bool c, int d)
+			{
+				if (c)
+					return b + int(a) + d;
+				else
+					return -1;
+			}
+
+			void main ()
+			{
+				${SETUP}
+				out0 = func(float(g = in0), modG(2), --g > 0, g);
+				${OUTPUT}
+			}
+		""
+	end
+
+end # misc
+
+group invalid "Invalid Functions"
+	case break_in_body
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func ()
+			{
+				break;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case continue_in_body
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func ()
+			{
+				continue;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case return_value_from_void_function
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func ()
+			{
+				return 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case extra_arguments
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (float f)
+			{
+			}
+
+			void main ()
+			{
+				func(1.0, 2.0);
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_arguments
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (float f)
+			{
+			}
+
+			void main ()
+			{
+				func();
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_argument_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (in f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_basetype_mismatch
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			void func (float f)
+			{
+			}
+
+			void main ()
+			{
+				func(2);
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_scalar_vector_mismatch
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec2 f)
+			{
+			}
+
+			void main ()
+			{
+				func(2.0);
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_vector_size_mismatch
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				func(vec2(2.0));
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case duplicate_function
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f);
+
+			void func (vec3 f)
+			{
+			}
+
+			void func (vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case prototype_mismatch_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f);
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			float func (vec3 f)
+			{
+				return f.x;
+			}
+		""
+	end
+
+	case prototype_unspecified_array_size
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f[]);
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case call_mismatch_argument_array_size
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f[3]);
+			void func (vec3 f[3])
+			{
+			}
+
+			void main ()
+			{
+				vec3 array[4];
+				func(array);
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case prototype_mismatch_argument_const
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f);
+			void func (const vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case prototype_mismatch_argument_array_const
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f[3]);
+			void func (const vec3 f[3])
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case prototype_mismatch_array_inout
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (out vec3 f);
+			void func (inout vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case missing_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			func (float f);
+			func (inout vec3 f[3])
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case call_before_definition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				func(1.0);
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+
+			void func (float f)
+			{
+			}
+
+		""
+	end
+
+	case argument_precision_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (lowp float f)
+			{
+				return f;
+			}
+
+			float func (mediump float f)
+			{
+				return f;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_in_out_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (in float f)
+			{
+			}
+
+			void func (out float f)
+			{
+				f = 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_in_inout_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (in float f)
+			{
+			}
+
+			void func (inout float f)
+			{
+				f = -f;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case argument_out_inout_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (out float f)
+			{
+				f = -1.0;
+			}
+
+			void func (inout float f)
+			{
+				f = -f;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case return_type_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f)
+			{
+				return f;
+			}
+
+			int func (float f)
+			{
+				return int(f);
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case return_type_precision_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			lowp float func (float f)
+			{
+				return f;
+			}
+
+			mediump float func (float f)
+			{
+				return f;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case return_type_const_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f)
+			{
+				return f;
+			}
+
+			const float func (float f)
+			{
+				return f;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case return_without_value
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float f)
+			{
+				return;
+				return 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case local_function_prototype
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float func (float f);
+
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case local_function_definition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main ()
+			{
+				float func (float f)
+				{
+					return 1.0;
+				}
+
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case name_type_conflict
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct foo { float a; }
+
+			float foo (float f)
+			{
+				return 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case const_overload
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+			}
+
+			void func (const vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_local
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+				uniform float u;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case in_local
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+				in float v;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case out_local
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+				in float a;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case inout_local
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (vec3 f)
+			{
+				inout float a;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_argument
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func (uniform vec3 f)
+			{
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			uniform float func (vec3 f)
+			{
+				return f.x;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case in_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			in float func (vec3 f)
+			{
+				return f.x;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(vec3(1.0)));
+			}
+		""
+	end
+
+	case out_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			out float func (vec3 f)
+			{
+				return f.x;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(vec3(1.0)));
+			}
+		""
+	end
+
+	case inout_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			inout float func (vec3 f)
+			{
+				return f.x;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(vec3(1.0)));
+			}
+		""
+	end
+
+	case main_invalid_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case main_has_arguments
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main (float f)
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case main_missing_return_type
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case write_const_arg
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (const float f)
+			{
+				f = 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case write_const_array_arg
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (const float f[3])
+			{
+				f[0] = 1.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case use_const_arg_in_const_expr
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (const int i)
+			{
+				const int z = i+1;
+				return float(z);
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1));
+			}
+		""
+	end
+
+	case use_const_arg_as_array_size
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (const int i)
+			{
+				float f[i];
+				f[0] = 1.0;
+				return f[0];
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1));
+			}
+		""
+	end
+
+	case overload_builtin_function
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int sin (int x)
+			{
+				return int(sin(float(x)));
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(sin(1));
+			}
+		""
+	end
+
+	case redefine_builtin_function
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float sin (float x)
+			{
+				return 0.0;
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(sin(1.0));
+			}
+		""
+	end
+
+	case basic_recursion
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float fib (float x)
+			{
+				if (x <= 1.0)
+					return x;
+				else
+					return fib(x-2.0) + fib(x-1.0);
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(fib(5.0));
+			}
+		""
+	end
+
+	case simple_tail_recursion
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float rec (float x)
+			{
+				if (x <= 0.0)
+					return 0.0;
+				else
+					return rec(x-1.0);
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(rec(5.0));
+			}
+		""
+	end
+
+	case dynamic_conditional_recursion
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform float ua;
+			uniform float ub;
+
+			float funcA (float x);
+			float funcB (float x);
+
+			float funcA (float x)
+			{
+				if (ub+x > 0.0)
+					funcB(x*2.0);
+				else
+					return ub;
+			}
+
+			float funcB (float x)
+			{
+				return sqrt(funcA(x));
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(funcB(ua));
+			}
+		""
+	end
+
+	case dynamic_loop_recursion
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform float ua;
+			uniform float ub;
+
+			float funcA (float x);
+			float funcB (float x);
+
+			float funcA (float x)
+			{
+				for (float z = 0.0; z < ub+x; z++)
+				{
+					if (z > 2.0)
+						funcB(z*2.0);
+					else
+						return z;
+				}
+			}
+
+			float funcB (float x)
+			{
+				return sqrt(funcA(x));
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(funcB(ua));
+			}
+		""
+	end
+
+	case dynamic_switch_recursion
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			uniform float ua;
+			uniform mediump int ub;
+
+			float funcA (float x);
+			float funcB (float x);
+
+			float funcA (float x)
+			{
+				switch (ub + int(x))
+				{
+					case 0: return ua-1.0;
+					case 1: return ua;
+					case 2: return funcB(x*2.0);
+					default: return 0.0;
+				}
+			}
+
+			float funcB (float x)
+			{
+				return sqrt(funcA(x));
+			}
+
+			void main ()
+			{
+				${POSITION_FRAG_COLOR} = vec4(funcB(ua));
+			}
+		""
+	end
+
+	case modify_const_arg
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (const int a)
+			{
+				a = -a;
+				return 2 * a;
+			}
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(3));
+			}
+		""
+	end
+
+	case init_const_local_from_const_arg
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (const int a)
+			{
+				const int b = -a;
+				return 2 * b;
+			}
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(3));
+			}
+		""
+	end
+
+	case array_size_from_const_arg
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			${DECLARATIONS}
+
+			int func (const int a)
+			{
+				int arr[a];
+				arr[1] = 3;
+				return arr[1];
+			}
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(3));
+			}
+		""
+	end
+
+end # invalid

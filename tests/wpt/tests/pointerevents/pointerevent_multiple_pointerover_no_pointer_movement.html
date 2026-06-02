@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale:1">
+<title>Pointer boundary events should be fired per pointer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#target, #container {
+  height: 256px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const target = document.getElementById("target");
+    const container = document.getElementById("container");
+    const boundaryEvents = [];
+    for (const type of ["pointerover", "pointerout"]) {
+      container.addEventListener(type, event => {
+        boundaryEvents.push(`${event.type}@${event.target.localName}${
+          event.target.id ? `#${event.target.id}` : ""
+        }`);
+      }, {capture: true});
+    }
+    await new test_driver.Actions()
+      .addPointer("pointer1")
+      .addPointer("pointer2")
+      .pointerMove(0, 0, {origin: document.querySelector("div"), sourceName: "pointer1"})
+      .pointerMove(0, 0, {origin: document.querySelector("div"), sourceName: "pointer2"})
+      .pointerMove(0, 0, {origin: target, sourceName: "pointer1"})
+      .pointerMove(0, 0, {origin: target, sourceName: "pointer2"})
+      .send();
+    target.remove(); // Then, the element underneath the pointers becomes the container.
+
+    // Wait a tick for browsers dispatching pointer boundary events.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    // TODO: pointerId should be checked, but how to do that?
+    assert_equals(
+      boundaryEvents.join(", "),
+      [
+        "pointerover@div#target",
+        "pointerover@div#target",
+        "pointerover@div#container",
+        "pointerover@div#container",
+      ].join(", ")
+    );
+
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+  <div>initial position</div>
+  <div id="container"><div id="target"></div></div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Conformance Test: readPixels from RGB8 Buffer Into Pixel Pack Buffer.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+debug("");
+description("Verifies readPixels from RGB8 buffer into PIXEL_PACK buffer works");
+
+debug("On MacOSX with AMD GPUs, the alpha channel is readback as 0 instead of 255");
+
+var wtu = WebGLTestUtils;
+var pixel = [0, 0, 0, 0];
+var expectedColor = [255, 102, 0, 255];
+
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var width = 4;
+  var height = 4;
+
+  var renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB8, width, height);
+
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    testFailed("framebuffer with RGB8 color buffer is incomplete");
+  } else {
+    gl.clearColor(1.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    var pbo = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY);
+
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+
+    var data = new Uint8Array(width * height * 4);
+    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, data);
+
+    for (var ii = 0; ii < width * height; ++ii) {
+      if (data[ii * 4] != 255 ||
+          data[ii * 4 + 1] != 0 ||
+          data[ii * 4 + 2] != 0 ||
+          data[ii * 4 + 3] != 255) {
+        testFailed("Expected in pixel " + ii + ": [255,0,0,255], got: " +
+                   [data[ii * 4], data[ii * 4 + 1], data[ii * 4 + 2], data[ii * 4 + 3]]);
+        break;
+      }
+    }
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Tests should complete without gl errors");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

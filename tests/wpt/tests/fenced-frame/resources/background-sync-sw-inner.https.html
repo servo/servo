@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of background sync's register in SW</title>
+
+<body>
+<script type="module">
+  const [background_sync_register_key] = parseKeylist();
+  const searchParams = new URL(location.href).searchParams;
+  const method = searchParams.get('method');
+  const isPeriodic = searchParams.get('periodic');
+
+  const getController = () => {
+    if (navigator.serviceWorker.controller) {
+      return navigator.serviceWorker.controller;
+    }
+    return new Promise(resolve => {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        resolve(navigator.serviceWorker.controller);
+      });
+    });
+  };
+
+  const sendMessageToServiceWorker = async () => {
+    const ctrl = await getController();
+    return new Promise(resolve => {
+      ctrl.postMessage({method, isPeriodic});
+      navigator.serviceWorker.onmessage = e => {
+        resolve(e.data);
+      }
+    });
+  };
+
+  await navigator.serviceWorker.register(
+    "background-sync-sw.js", { scope: location.href, type: "module" });
+  const data = await sendMessageToServiceWorker();
+
+  writeValueToServer(background_sync_register_key, data);
+</script>
+</body>

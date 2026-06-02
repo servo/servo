@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link author="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<meta name="assert" content="Applying inline-size containment to the video should not result in a debug assert being triggered">
+<style>
+video {
+  aspect-ratio: 1;
+  container-type: inline-size;
+  inset: 0 auto;
+  min-width: min-content;
+  position: fixed;
+}
+</style>
+</head>
+<body>
+<video></video>
+</body>
+</html>

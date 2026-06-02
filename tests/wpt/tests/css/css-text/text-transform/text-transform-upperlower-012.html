@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Full-width Latin, lowercase</title>
+<meta name="assert" content="For the Latin letters in the Halfwidth and Fullwidth Forms block, text-transform: lowercase puts all letters in lowercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-012-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: lowercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+FF21">&#xFF21; &#xFF41;</span> <span title="U+FF22">&#xFF22; &#xFF42;</span> <span title="U+FF23">&#xFF23; &#xFF43;</span> <span title="U+FF24">&#xFF24; &#xFF44;</span> <span title="U+FF25">&#xFF25; &#xFF45;</span> <span title="U+FF26">&#xFF26; &#xFF46;</span> <span title="U+FF27">&#xFF27; &#xFF47;</span> <span title="U+FF28">&#xFF28; &#xFF48;</span> <span title="U+FF29">&#xFF29; &#xFF49;</span> <span title="U+FF2A">&#xFF2A; &#xFF4A;</span> <span title="U+FF2B">&#xFF2B; &#xFF4B;</span> <span title="U+FF2C">&#xFF2C; &#xFF4C;</span> <span title="U+FF2D">&#xFF2D; &#xFF4D;</span> <span title="U+FF2E">&#xFF2E; &#xFF4E;</span> <span title="U+FF2F">&#xFF2F; &#xFF4F;</span> <span title="U+FF30">&#xFF30; &#xFF50;</span> <span title="U+FF31">&#xFF31; &#xFF51;</span> <span title="U+FF32">&#xFF32; &#xFF52;</span> <span title="U+FF33">&#xFF33; &#xFF53;</span> <span title="U+FF34">&#xFF34; &#xFF54;</span> <span title="U+FF35">&#xFF35; &#xFF55;</span> <span title="U+FF36">&#xFF36; &#xFF56;</span> <span title="U+FF37">&#xFF37; &#xFF57;</span> <span title="U+FF38">&#xFF38; &#xFF58;</span> <span title="U+FF39">&#xFF39; &#xFF59;</span> <span title="U+FF3A">&#xFF3A; &#xFF5A;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x0138; &#x0149;
+-->
+</html>

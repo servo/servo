@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: vertical space after changes with overflow: auto and flex-direction: column.</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-direction-property">
+<link rel="help" href="https://crbug.com/590683">
+<link rel="help" href="https://crbug.com/594465">
+<link rel="match" href="reference/overflow-auto-007-ref.html">
+<meta name="assert" content="This test checks that vertical space allocated to the content of a flexbox with 'overflow: auto' and 'flex-direction: column' is properly computed when its contents change." />
+
+<style>
+body {
+  width: 400px;
+  height: 300px;
+}
+
+.flexbox {
+  display: flex;
+}
+
+.column {
+  flex-direction: column;
+}
+
+.flex11a {
+  flex: 1 1 auto;
+}
+
+.root {
+  height: 100px;
+  overflow-y: auto;
+}
+</style>
+
+<body onload="runTest()">
+
+<p>This test should not have a horizontal scrollbar</p>
+
+<div class="flexbox column">
+  <div class="flexbox">
+    <div class="flex11a">
+      <div class="root">
+        <div id="history"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function runTest() {
+  var historyEl = document.getElementById('history');
+  historyEl.offsetWidth;
+  historyEl.innerText = '\n\n\n\n\n\n\n\n';
+};
+</script>
+
+</body>
+</html>

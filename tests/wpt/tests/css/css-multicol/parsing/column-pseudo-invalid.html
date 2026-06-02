@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Multi-column Layout Test: ::column pseudo element invalid parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_invalid_selector("::column:hover");
+  test_invalid_selector("::column::before");
+  test_invalid_selector("::column::first-letter");
+  test_invalid_selector("::column::first-line");
+  test_invalid_selector("::first-letter::column");
+  test_invalid_selector("::column::slotted(*)");
+</script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Test: CSSStyleDeclaration properties are defined as WebIDL attributes, not using getOwnPropertyNames()</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-_camel_cased_attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    let declaration = document.documentElement.style;
+    assert_true(declaration instanceof CSSStyleDeclaration, "Should be a CSStyleDeclaration");
+    assert_true("color" in declaration, "Should support the color property");
+    assert_false(declaration.hasOwnProperty("color"), "shouldn't have an own property for WebIDL attributes");
+  });
+</script>

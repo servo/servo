@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: rad angle unit with mixed case</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#angles">
+  <link rel="help" href="https://www.w3.org/TR/CSS22/syndata.html#characters">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4400">
+  <meta content="This test checks that 'rad' angle unit is case-insensitive." name="assert">
+
+  <style>
+  div
+    {
+      height: 100px;
+      width: 100px;
+    }
+
+  div#test-overlapping-green
+    {
+      background-color: red;
+      background-image: linear-gradient(1.57rAd, green, green);
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      bottom: 100px;
+      position: relative;
+      z-index: -1;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="test-overlapping-green"></div>
+
+  <div id="reference-overlapped-red"></div>

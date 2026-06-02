@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ruby annotations after the clamp point are not rendered</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-026-ref.html">
+<meta name="assert" content="Ruby annotations are part of a line box's content, and therefore must not be rendered if the line box wouldn't be">
+<style>
+.clamp {
+  line-clamp: 3;
+
+  font: 16px / 32px serif;
+  white-space: pre-wrap;
+}
+.ruby-under ruby {
+  ruby-position: under;
+}
+</style>
+<div class="clamp"><ruby>一<rt>いち</ruby><ruby>行<rt>ぎょう</ruby><ruby>目<rt>め</ruby>
+<span class="ruby-under"><ruby>ニ<rt>に</ruby><ruby>行<rt>ぎょう</ruby><ruby>目<rt>め</ruby></span>
+<ruby>三<rt><ruby>さん<rt>san</ruby></ruby><ruby>行<rt><ruby>ぎょう<rt>gyou</ruby></ruby><ruby>目<rt><ruby>め<rt>me</ruby></ruby>
+<ruby>四<rt>よん</ruby><ruby>行<rt>ぎょう</ruby><ruby>目<rt>め</ruby>
+<span class="ruby-under"><ruby>五<rt>ご</ruby><ruby>行<rt>ぎょう</ruby><ruby>目<rt>め</ruby></span>
+<ruby>六<rt><ruby>ろく<rt>roku</ruby></ruby><ruby>行<rt><ruby>ぎょう<rt>gyou</ruby></ruby><ruby>目<rt><ruby>め<rt>me</ruby></ruby></div>

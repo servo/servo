@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'; trusted-types *">
+</head>
+<body>
+<iframe id="iframe" data-x="" srcdoc="content" onmouseover=""></iframe>
+<div id="div"></div>
+<script>
+  // This is a regression test for https://g-issues.chromium.org/issues/333739948
+  // The test should hold true for any browser that supports Trusted Types.
+
+  let iframeAttributeRemovedInCallback = null;
+
+  let attr = document.createAttribute('onclick');
+  attr.value = 'setAttributeNode';
+  let createScriptCalledForOnClickAttrNode = false;
+
+  trustedTypes.createPolicy("default", {
+    createHTML: (s, _, sink) => {
+      if (iframeAttributeRemovedInCallback) {
+        assert_equals(sink, 'HTMLIFrameElement srcdoc');
+        iframe.removeAttribute(iframeAttributeRemovedInCallback);
+      }
+      return s;
+    },
+    createScript: (s) => {
+      if (s == 'accepted') {
+        return s;
+      }
+
+      if (createScriptCalledForOnClickAttrNode && s === 'setAttributeNode') {
+          return s;
+      }
+
+      if (s === 'setAttributeNode') {
+        createScriptCalledForOnClickAttrNode = true;
+        document.documentElement.setAttributeNode(attr);
+      } else {
+        div.setAttribute('onmouseover', 'accepted');
+      }
+
+      return s;
+    }
+  });
+
+  function cleanUpIFrameTest() {
+    iframeAttributeRemovedInCallback = null;
+    iframe.setAttribute("srcdoc", "content");
+    iframe.setAttribute("data-x", "");
+  }
+
+  test(t => {
+    // Original bug report: Delete an attribute *before* the current one.
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "data-x";
+    assert_equals(iframe.srcdoc, "content");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+    iframe.setAttribute("srcdoc", "alert(1)");
+    assert_equals(iframe.srcdoc, "alert(1)");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+  }, "Ensure the right attributes are modified.");
+
+  test(t => {
+    // Second case: Delete the exact attribute. It still gets set.
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "srcdoc";
+    assert_equals(iframe.srcdoc, "content");
+    iframe.setAttribute("srcdoc", "new srcdoc value");
+    assert_equals(iframe.srcdoc, "new srcdoc value");
+  }, "Ensure the deleted attributes is modified.");
+
+  test(t => {
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "data-x";
+    assert_equals(iframe.srcdoc, "content");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+    iframe.setAttributeNS(null, "srcdoc", "alert(1)");
+    assert_equals(iframe.srcdoc, "alert(1)");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+  }, "Ensure the right attributes are modified (setAttributeNS).");
+
+  test(t => {
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "srcdoc";
+    assert_equals(iframe.srcdoc, "content");
+    iframe.setAttributeNS(null, "srcdoc", "new srcdoc value");
+    assert_equals(iframe.srcdoc, "new srcdoc value");
+  }, "Ensure the deleted attributes is modified (setAttributeNS).");
+
+  function cleanUpDivTest() {
+      div.removeAttribute('onmouseover');
+      try {
+          div.removeAttributeNode(attr);
+      } catch (e) {
+
+      }
+      try {
+          document.documentElement.removeAttributeNode(attr);
+      } catch (e) {
+
+      }
+      createScriptCalledForOnClickAttrNode = false;
+  }
+  const expectedAttributeCount = 2; // id and onmouseover.
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    div.toggleAttribute('onmouseover');
+    assert_equals(div.attributes.length, expectedAttributeCount);
+    assert_equals(div.attributes.onmouseover.value, '');
+  }, "Ensure toggleAttribute results in an empty attribute.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    div.setAttribute('onmouseover', 'foo');
+    assert_equals(div.attributes.length, expectedAttributeCount);
+    assert_equals(div.attributes.onmouseover.value, 'foo');
+  }, "Ensure setAttribute results in right attribute value.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    div.setAttributeNS(null, 'onmouseover', 'foo');
+    assert_equals(div.attributes.length, expectedAttributeCount);
+    assert_equals(div.attributes.onmouseover.value, 'foo');
+  }, "Ensure setAttributeNS results in right attribute value.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    let exception = null;
+    try {
+        div.setAttributeNode(attr);
+    } catch (e) {
+        exception = e;
+    }
+    assert_true(exception instanceof DOMException, `DOMException exception reported`);
+    assert_equals(exception?.name, 'InUseAttributeError', `DOMException name is InUseAttributeError`);
+  }, "Ensure setAttributeNode throws InUseAttributeError when callback assigns attributes.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    let exception = null;
+    try {
+        div.setAttributeNodeNS(attr);
+    } catch (e) {
+        exception = e;
+    }
+    assert_true(exception instanceof DOMException, `DOMException exception reported`);
+    assert_equals(exception?.name, 'InUseAttributeError', `DOMException name is InUseAttributeError`);
+  }, "Ensure setAttributeNodeNS throws InUseAttributeError when callback assigns attributes.");
+
+</script>

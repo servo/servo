@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'rows' vs CSS 'height' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#preshint" />
+        <meta name="assert" content="Attribute 'rows' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            html
+            {
+                margin: 10px;
+            }
+            html, body, p, table, tr, td
+            {
+                border: none;
+                border-spacing: 0;
+                height: auto;
+            }
+            *
+            {
+                height: 150px;
+                border: 1px solid blue;
+                padding: 0;
+                margin: 0;
+                vertical-align: top;
+            }
+            div
+            {
+                background: orange;
+                border: none;
+                height: 152px;
+                width: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the height of the blue box is the same as the orange bar below.</p>
+        <table>
+            <tr>
+                <td>
+                    <textarea rows="500" cols="5"></textarea>
+                </td>
+                <td>
+                    <div></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

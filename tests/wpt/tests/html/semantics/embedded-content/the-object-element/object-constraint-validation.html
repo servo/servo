@@ -1,0 +1,21 @@
+<!doctype html>
+<title>The object element's constraint validation.</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-object-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-validitystate-customerror">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<object id="element"></object>
+<script>
+function check() {
+  assert_false(element.willValidate);
+  assert_true(element.checkValidity());
+  assert_true(element.reportValidity());
+}
+
+test(() => {
+  check();
+  element.setCustomValidity("custom error");
+  check();
+}, "the object element's constraint validation is correct")
+</script>

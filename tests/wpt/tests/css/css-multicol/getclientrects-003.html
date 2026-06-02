@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>out-of-flow in relpos in multicol in multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+<div style="columns:3; gap:50px; column-fill:auto; inline-size:400px; block-size:100px; background:yellow;">
+  <div style="block-size:50px;"></div>
+  <div style="columns:2; column-fill:auto; gap:0; background:cyan;">
+    <div style="position:relative; block-size:350px;">
+      <div style="block-size:160px;"></div>
+      <div id="elm" style="position:absolute; inline-size:10px; border:10px solid; block-size:150px;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let rects = elm.getClientRects();
+  test(()=> { assert_equals(rects.length, 3); }, "Rectangle count");
+  test(()=> { assert_equals(rects[0].left, 150); }, "#0 left");
+  test(()=> { assert_equals(rects[0].top, 60); }, "#0 top");
+  test(()=> { assert_equals(rects[0].width, 30); }, "#0 width");
+  test(()=> { assert_equals(rects[0].height, 40); }, "#0 height");
+  test(()=> { assert_equals(rects[1].left, 200); }, "#1 left");
+  test(()=> { assert_equals(rects[1].top, 0); }, "#1 top");
+  test(()=> { assert_equals(rects[1].width, 30); }, "#1 width");
+  test(()=> { assert_equals(rects[1].height, 100); }, "#1 height");
+  test(()=> { assert_equals(rects[2].left, 300); }, "#2 left");
+  test(()=> { assert_equals(rects[2].top, 0); }, "#2 top");
+  test(()=> { assert_equals(rects[2].width, 30); }, "#2 width");
+  test(()=> { assert_equals(rects[2].height, 30); }, "#2 height");
+</script>

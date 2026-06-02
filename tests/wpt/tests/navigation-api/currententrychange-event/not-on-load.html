@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Per https://github.com/WICG/navigation-api/issues/31, make sure nothing happens on page loads -->
+
+<script>
+async_test(t => {
+  navigation.onnavigate = t.unreached_func("navigate must not fire");
+  navigation.oncurrententrychange = t.unreached_func("currententrychange must not fire");
+
+  // pageshow is the latest event in the normal document loading cycle.
+  // Ensure nothing happens even 10 ms afterward.
+  window.addEventListener("pageshow", () => t.step_timeout(() => {
+    t.done();
+  }, 10));
+}, "No navigation API events happen on initial page load");
+</script>

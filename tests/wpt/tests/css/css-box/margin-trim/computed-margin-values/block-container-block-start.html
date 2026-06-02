@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="block-start margin of item should be trimmed">
+<style>
+container {
+    display: block;
+    margin-trim: block;
+    border: 1px solid black;
+    margin-block-start: 10px;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    block-size: 50px;
+    background-color: green;
+}
+.collapsed {
+    margin-block: 50px;
+    block-size: 0px
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('item')">
+    <container>
+        <item style="margin-top: 30px;" data-expected-margin-top="0"></item>
+    </container>
+</body>
+</html>

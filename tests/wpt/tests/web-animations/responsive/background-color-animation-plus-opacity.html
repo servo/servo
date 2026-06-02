@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://crbug.com/449865091">
+  <link rel="match" href="background-color-animation-plus-opacity-ref.html">
+  <!-- Tolerance for rounding on the color match -->
+  <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-40000">
+</head>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    height: 200px;
+    width: 200px;
+    position: relative;
+    background-color: red;
+    opacity: 0.5;
+    /* catch midpoint of transition */
+    transition: background-color 10000s -5000s cubic-bezier(0, 1, 1, 0);
+  }
+
+  #target.update {
+    background-color: green;
+  }
+</style>
+<body>
+  <div id='target'></div>
+</body>
+<script>
+  window.onload = async () => {
+    await waitForCompositorReady();
+    target.classList.add('update');
+    requestAnimationFrame(takeScreenshot);
+  };
+</script>
+</html>

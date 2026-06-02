@@ -1,0 +1,113 @@
+features:
+- name: input
+  files:
+  - '*'
+  # Keep exclusions synced with mappings below
+  - '!input-checkvalidity.html'
+  - '!input-setcustomvalidity.html'
+  - '!input-validationmessage.html'
+  - '!input-validity.html'
+  - '!input-willvalidate.html'
+  - '!show-picker-*'
+  - '!date*'
+  - '!time*'
+  - '!input-valueasdate*'
+  - '!type-change-file-to-text-crash.html'
+  - '!input-value-invalidstateerr.html'
+  - '!change-to-empty-value.html'
+  - '!hidden*'
+  - '!image*'
+  - '!button.html'
+  - '!input-type-button.html'
+  - '!reset.html'
+  - '!input-submit-remove-jssubmit.html'
+  - '!input-type-change-submit.html'
+  - '!email*'
+  - '!telephone.html'
+  - '!url.html'
+  - '!color*'
+  - '!range*'
+  - '!password*'
+  - '!search_input.html'
+  - '!checkbox*'
+  - '!input-type-checkbox*'
+  - '!radio*'
+  - '!number*'
+  - '!maxlength-number.html'
+  - '!input-type-number-*'
+  - '!checkable-*'
+# Keep all additional mappings synced with `input` mapping above
+- name: constraint-validation
+  files:
+  - input-checkvalidity.html
+  - input-setcustomvalidity.html
+  - input-validationmessage.html
+  - input-validity.html
+  - input-willvalidate.html
+- name: show-picker-input
+  files:
+  - show-picker-*
+- name: input-date-time
+  files:
+  - date*
+  - time*
+  - input-valueasdate*
+- name: input-file
+  files:
+  - type-change-file-to-text-crash.html
+  - input-value-invalidstateerr.html
+- name: change-event
+  files:
+  - change-to-empty-value.html
+- name: input-hidden
+  files:
+  - hidden*
+- name: input-image
+  files:
+  - image*
+- name: input-button
+  files:
+  - button.html
+  - input-type-button.html
+- name: input-reset
+  files:
+  - reset.html
+- name: input-submit
+  files:
+  - input-submit-remove-jssubmit.html
+  - input-type-change-submit.html
+- name: input-email-tel-url
+  files:
+  - email*
+  - telephone.html
+  - url.html
+- name: input-color
+  files:
+  - color*
+- name: input-color-alpha
+  files:
+  - color*
+- name: input-range
+  files:
+  - range*
+- name: input-password
+  files:
+  - password*
+- name: search-input-type
+  files:
+  - search_input.html
+- name: input-checkbox
+  files:
+  - checkbox*
+  - input-type-checkbox*
+- name: input-radio
+  files:
+  - radio*
+- name: input-number
+  files:
+  - number*
+  - maxlength-number.html
+  - input-type-number-*
+- name: mouse-events
+  files:
+  - checkbox-click-events.html

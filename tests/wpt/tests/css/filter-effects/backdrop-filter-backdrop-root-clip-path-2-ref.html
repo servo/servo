@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: The backdrop root concept with clip-path with display: inline (reference)</title>
+<style>
+  .grandparent {
+    background: yellow;
+    padding: 100px;
+  }
+
+  .clipped-container {
+    position: relative;
+    background-color: rgb(0, 255, 0);
+    padding: 100px;
+    display: inline;
+  }
+
+  .child {
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 400px;
+    height: 400px;
+    display: inline;
+  }
+</style>
+
+<div class="grandparent">
+  <div class="clipped-container">
+    <div class="child"></div>
+  </div>
+</div>

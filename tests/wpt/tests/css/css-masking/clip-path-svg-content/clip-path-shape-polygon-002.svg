@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: Basic shape polygon() on SVG rectangle with evenodd</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path"/>
+	<html:link rel="match" href="reference/clip-path-square-hole-001-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">A basic shape function polygon() with absolute values
+	applied to an SVG rectangle. The clip-rule is specified with evenodd. You
+	should see a green square with an rectangular hole.</desc>
+</g>
+<rect width="200" height="200" fill="green" style="clip-path: polygon(evenodd, 25px 25px, 175px 25px, 175px 175px, 25px 175px, 25px 50px, 150px 50px, 150px 150px, 50px 150px, 50px 50px, 25px 50px)"/>
+</svg>

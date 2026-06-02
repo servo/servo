@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HTML LI element: counter order with Shadow DOM and SLOT</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="help" href="https://www.w3.org/TR/css-lists-3/#inheriting-counters">
+    <style>
+      li::before { content: counters(list-item,'.') ' '; }
+    </style>
+  </head>
+  <body>
+
+    <ol>
+    <li>One</li>
+    <li>Two</li>
+      <ol>
+        <li>Two Point One</li>
+      </ol>
+    </ol>
+
+  </body>
+</html>

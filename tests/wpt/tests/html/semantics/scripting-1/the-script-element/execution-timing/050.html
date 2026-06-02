@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: adding external script that removes all scripts from document</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>log('inline script #1');
+                var script=testlib.addScript('', { src:'scripts/include-5.js' }, document.getElementsByTagName('head')[0], false );
+                // caching might affect whether the below script runs or not. Adding Math.random() makes the test a bit more predictable? :-p
+                var script=testlib.addScript('', { src:'scripts/include-1.js?pipe=trickle(d1)&'+Math.random() }, document.getElementsByTagName('head')[0], false );
+                log('end script #1');
+        </script>
+        <script src="scripts/include-2.js?pipe=trickle(d4)"></script>
+        <script type="text/javascript">
+        var t = async_test()
+
+        function test() {
+            // Per-spec, non-blocking/async scripts can execute at any time.
+            // Therefore, there are two possibilities for the script order here.
+            // 1. inline script first, followed by include-5 (async), then
+            //    external script #1 (slow async) and finally external #2
+            //    (inline).
+            // 2. inline script, external '2, 'include 5', then include-1.
+            assert_array_equals(eventOrder.slice(0, 2), [
+                'inline script #1', 'end script #1'
+            ]);
+            if (eventOrder[2] == 'include-5 before removing scripts') {
+                assert_array_equals(eventOrder.slice(3), [
+                    'include-5 after removing scripts', 'external script #1',
+                    'external script #2'
+                ]);
+            } else {
+                assert_array_equals(eventOrder.slice(2), ['external script #2',
+                    'include-5 before removing scripts',
+                    'include-5 after removing scripts',
+                    'external script #1'
+                ]);
+            }
+            t.done();
+        }
+        onload = t.step_func(test)
+        </script>
+
+</body></html>

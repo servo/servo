@@ -1,0 +1,4 @@
+HTTP/1.1 500 Not Found
+Content-Type: text/javascript
+
+window.ran500 = true;

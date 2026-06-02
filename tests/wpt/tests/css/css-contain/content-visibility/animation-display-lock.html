@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<meta charset=utf8>
+<title>Test getComputedStyle on a CSS animation in a display locked subtree</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    content-visibility: visible;
+    contain: style layout paint;
+    contain-intrinsic-size: 0 100px;
+  }
+  @keyframes fade {
+    from { opacity: 1; }
+    to { opacity: 0;  }
+  }
+  #target {
+    background: 'green';
+    height: 100px;
+    width: 100px;
+  }
+  .animate {
+    animation: fade 10s linear 2 alternate;
+  }
+  .transition {
+    transition: opacity 10s linear;
+  }
+</style>
+<body>
+  <div id="container"></div>
+</body>
+<script>
+"use strict";
+
+function reset() {
+  const container = document.getElementById('container');
+  const target = document.getElementById('target');
+  container.style = '';
+  container.removeChild(target);
+}
+
+function createAnimatingElement(test, name) {
+  const container = document.getElementById('container');
+  const target = document.createElement('div');
+  container.appendChild(target);
+  target.id = 'target';
+  target.className = name;
+  test.add_cleanup(() => {
+    reset();
+  });
+  return target;
+}
+
+function waitForEvent(element, eventName) {
+  return new Promise(resolve => element.addEventListener(eventName, resolve, { once: true }));
+}
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement(t, 'animate');
+  let animationIterationEvent = false;
+  target.addEventListener('animationiteration', () => {
+    animationIterationEvent = true;
+  });
+  const animation = target.getAnimations()[0];
+  await animation.ready;
+  await waitForAnimationFrames(1);
+  container.style.contentVisibility = 'hidden';
+  animation.currentTime = 15000;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).opacity), 0.5, 1e-6,
+      'Computed style is updated even when the animation is running in a ' +
+      'display locked subtree');
+  await waitForAnimationFrames(2);
+  assert_false(animationIterationEvent,
+               'Animation events do not fire while the animation is ' +
+               'running in a display locked subtree');
+  container.style.contentVisibility = 'visible';
+  await waitForEvent(target, 'animationiteration');
+  assert_true(animationIterationEvent,
+              'The animationiteration event fires once the animation is ' +
+              'no longer display locked');
+}, 'Animation events do not fire for a CSS animation running in a display ' +
+   'locked subtree');
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement(t, 'animate');
+  const animation = target.getAnimations()[0];
+  await animation.ready;
+  let finishedWhileDisplayLocked = false;
+  animation.finished.then(() => {
+    finishedWhileDisplayLocked =
+        getComputedStyle(container).contentVisibility == 'hidden';
+  });
+  await waitForAnimationFrames(1);
+  container.style.contentVisibility = 'hidden';
+  // Advance to just shy of the effect end.
+  animation.currentTime = 19999;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).opacity), 0.9999, 1e-6,
+                'Computed style is updated even when the animation is ' +
+                'running in a display locked subtree');
+  // Advancing frames should not resolve the finished promise.
+  await waitForAnimationFrames(3);
+  container.style.contentVisibility = 'visible';
+  // Now we can resolve the finished promise.
+  await animation.finished;
+  assert_equals(finishedWhileDisplayLocked, false);
+}, 'The finished promise does not resolve due to the normal passage of time  ' +
+   'for a CSS animation in a display locked subtree');
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  await waitForAnimationFrames(1);
+  const target = createAnimatingElement(t, 'transition');
+  await waitForAnimationFrames(1);
+  target.style.opacity = 0;
+  const animation = target.getAnimations()[0];
+  await animation.ready;
+  let finishedWhileDisplayLocked = false;
+  animation.finished.then(() => {
+    finishedWhileDisplayLocked =
+        getComputedStyle(container).contentVisibility == 'hidden';
+  });
+  await waitForAnimationFrames(1);
+  container.style.contentVisibility = 'hidden';
+  // Advance to just shy of the effect end.
+  animation.currentTime = 9999;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).opacity), 0.0001, 1e-6,
+                'Computed style is updated even when the animation is ' +
+                'running in a display locked subtree');
+  // Advancing frames should not resolve the finished promise.
+  await waitForAnimationFrames(3);
+  container.style.contentVisibility = 'visible';
+  // Now we can resolve the finished promise.
+  await animation.finished;
+  assert_equals(finishedWhileDisplayLocked, false);
+}, 'The finished promise does not resolve due to the normal passage of time  ' +
+   'for a CSS transition in a display locked subtree');
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement(t, 'animate');
+  const animation = target.getAnimations()[0];
+  target.className = '';
+  container.style.contentVisibility = 'hidden';
+  assert_equals(target.getAnimations().length, 0);
+
+  // Though originally a CSS animation, it is no longer associated with
+  // CSS rules and no longer has an owning element. It now behaves like a
+  // programmatic web animation. Animation playback events (but not CSS
+  // animation events) should be dispatched and promises resolved despite
+  // being in a display locked subtree.
+
+  let cssAnimationEndEvent = false;
+  target.addEventListener('animationend', () => {
+    cssAnimationEndEvent = true;
+  });
+
+  let animationFinishEvent = false;
+  animation.addEventListener('finish', () => {
+    animationFinishEvent = true;
+  });
+
+  let animationFinished = false;
+  animation.finished.then(() => {
+    animationFinished = true;
+  });
+
+  animation.play();
+  assert_equals(target.getAnimations().length, 1);
+
+  animation.currentTime = 19999;
+  await animation.ready;
+  await waitForAnimationFrames(2);
+
+  assert_true(animationFinishEvent,
+              'Animation event not blocked on display locked subtree if ' +
+              'no owning element');
+  assert_true(animationFinished,
+              'Finished promise not blocked on display locked subtrtee if ' +
+              'no owning element');
+  assert_false(cssAnimationEndEvent,
+              'CSS animation events should not be dispatched if there is no ' +
+              'owning element');
+}, 'Events and promises are handled normally for animations without an ' +
+   'owning element');
+
+</script>

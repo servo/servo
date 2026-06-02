@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Change sync for nested use</title>
+<link rel="match" href="change-sync-for-nested-use-ref.html">
+<svg width="400" height="500" onload="main()">
+  <rect id="r1" width="40" height="40" style="fill:red" />
+  <rect id="r2" x="50" y="50" width="40" height="40" style="fill:gray" />
+  <g id="g1">
+    <use id="u1" x="120" href="#r1" />
+    <use id="u2" x="120" href="#r2" />
+    <rect x="120" y="120" width="50" height="50" style="fill:skyblue" />
+  </g>
+  <use id="u3" x="120" href="#g1" />
+  <use id="u4" y="170" href="#u2" />
+  <use id="u5" x="-30" y="220" href="#u2" />
+</svg>
+
+<script>
+  function main() {
+    let r1 = document.getElementById("r1"),
+        r2 = document.getElementById("r2");
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      r1.style.fill = "navy";
+      r2.style.fill = "purple";
+      document.documentElement.removeAttribute("class");
+    }));
+  };
+</script>
+</html>

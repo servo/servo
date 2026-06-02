@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Drag and drop of image between two instances of document</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    iframe {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <iframe src="014-1.xhtml" id="drag-iframe"></iframe>
+  <iframe src="014-1.xhtml" id="drop-iframe"></iframe>
+</body>
+<script>
+  async function test() {
+    await new Promise(loaded => window.addEventListener("load", loaded));
+    const img = frames[0].document.querySelector('img');
+    const div = frames[1].document.querySelector('div');
+
+    function onDropCallBack(event) {
+      assert_equals(div.querySelector('img').src, img.src);
+      return true;
+    }
+
+    const dragIframe = document.getElementById('drag-iframe');
+    const dropIframe = document.getElementById('drop-iframe');
+    dragDropTest(img, div, onDropCallBack, 'Dragging the image to the bottom div should copy the image there',
+      dragIframe, dropIframe);
+  }
+  test();
+</script>
+</html>

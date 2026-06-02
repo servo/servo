@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Abspos table centered in both axes with auto margins</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1480636">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width">
+<meta name="assert" content="An absolutely-positioned fixed-size table should resolve auto margins the same way that a similarly-sized block would.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+.container {
+  /* I've chosen this position/size so that a 100px child element that's
+     centered within us will be placed at our "normal" position (where our
+     top-left corner would be, in the absence of relative positioning), so we
+     can use the simple filled-green-100px-square reference case. */
+  position: relative;
+  left: -30px;
+  top: -30px;
+  width: 160px;
+  height: 160px;
+}
+.target {
+  display: block;
+  background: red;
+}
+.table {
+  display: table;
+  background: green;
+}
+.centered {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  inset: 0;
+  margin: auto; /* use auto margins for centering */
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container">
+  <!-- We're essentially just comparing the position of the block ("target")
+       and the table. We expect them to be placed at precisely the same spot,
+       so no red should be visible. -->
+  <div class="centered target"></div>
+  <div class="centered table"></div>
+</div>

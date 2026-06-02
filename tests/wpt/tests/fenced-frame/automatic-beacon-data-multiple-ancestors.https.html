@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  // This test creates the following frame tree:
+  // Root Frame (A)
+  //  └─Fenced Frame (A1) [sets valid data]
+  //     └─IFrame (A2) [sets invalid data]
+  //        └─IFrame (B) [performs navigation]
+  // It then checks that B's navigation uses the data set in A1 and not A2,
+  // since A1's data is valid for B to use.
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge', register_beacon: true
+  });
+
+  const valid_beacon = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "This is the start data",
+    destination: ["buyer"],
+    crossOriginExposed: true
+  }
+
+  const invalid_beacon = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "This data should not be used",
+    destination: ["buyer"],
+    crossOriginExposed: false
+  }
+
+  await fencedframe.execute(async (valid_beacon, invalid_beacon)=> {
+    window.fence.setReportEventDataForAutomaticBeacons(valid_beacon);
+
+    const iframe = await attachIFrameContext();
+    await iframe.execute((valid_beacon, invalid_beacon) => {
+      window.fence.setReportEventDataForAutomaticBeacons(invalid_beacon);
+    }, [valid_beacon, invalid_beacon]);
+
+    return setupAutomaticBeacon(iframe, [],
+        "resources/close.html", NavigationTrigger.CrossOriginClick,
+        "_blank");
+  }, [valid_beacon, invalid_beacon]);
+
+  await multiClick(10, 10, fencedframe.element)
+
+  await verifyBeaconData(valid_beacon.eventType, valid_beacon.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+}, 'An automatic beacon from uses the first valid ancestor-set data.');
+
+</script>
+</body>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: speak-as spell-out</title>
+        <link rel="author" title="Alexander Lehner" href="mailto:alexlehner86@gmail.com">
+        <link rel="help" href="https://www.w3.org/TR/css-speech-1/#speaking-props-speak-as">
+        <meta
+            name="flags"
+            content="speech"
+        >
+        <meta
+            name="assert"
+            content="The spell-out value of speak-as makes screen readers spell each single letter."
+        >
+        <style>
+            p.speak-as-spell-out { speak-as: spell-out; }
+        </style>
+    </head>
+    <body>
+        <h1>Test Case</h1>
+        <p>
+            The following abbreviation should be read one letter at a time:
+        </p>
+        <p class="speak-as-spell-out">way</p>
+        <h2>Instructions for Manual Test</h2>
+        <ol>
+            <li>Open the website in your browser.</li>
+            <li>
+                Activate your screen reader (NVDA, VoiceOver, TalkBack etc.) and, in browse mode, navigate to the paragraph following the first heading.
+            </li>
+            <li>
+                The screen reader should spell the abbreviation "way" as W, A, Y.
+            </li>
+        </ol>
+    </body>
+</html>

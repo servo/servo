@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG with invalid mask-image (image-set())</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="reference/mask-image-ref.html">
+<style>
+  svg > rect {
+    /* Single invalid mask layer: Mask is ignored. */
+    mask-image: image-set(url("invalid://nonexistent"));
+  }
+</style>
+<p>The test passes if there is a green square and no red below.</p>
+<svg height="200">
+  <rect width="200" height="200" fill="green"/>
+</svg>

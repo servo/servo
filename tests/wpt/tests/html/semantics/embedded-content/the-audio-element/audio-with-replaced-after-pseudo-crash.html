@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>HTML5 Media Elements: An 'audio' element with a replaced ::after shouldn't crash</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://github.com/servo/servo/issues/41183">
+
+<style>
+audio::after {
+  content: url("/css/support/60x60-red.png");
+}
+</style>
+<audio controls></audio>
+<script src="/common/media.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+(async function() {
+  const audio = document.querySelector("audio");
+  audio.src = getAudioURI("/media/sound_5");
+  for (let i = 0; i < 10; ++i) {
+    await waitForAtLeastOneFrame();
+    await audio.play();
+    document.body.style.color = "cyan";
+    await waitForAtLeastOneFrame();
+    audio.pause();
+    await waitForAtLeastOneFrame();
+    document.body.style.color = "magenta";
+  }
+  document.documentElement.removeAttribute("class");
+})();
+</script>
+</html>

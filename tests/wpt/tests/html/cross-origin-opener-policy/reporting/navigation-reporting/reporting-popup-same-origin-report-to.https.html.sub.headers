@@ -1,0 +1,3 @@
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=6aad9729-8642-4894-91d9-a4d44707cd4a", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=69eb1838-6a03-4cda-97b0-c126ffcb9e8a"
+Cross-Origin-Opener-Policy: same-origin; report-to="coop-report-endpoint"
+Referrer-Policy: no-referrer

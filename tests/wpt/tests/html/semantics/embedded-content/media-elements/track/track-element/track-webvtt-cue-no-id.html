@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Empty cue identifiers, but having "-->" leads to discarded cue</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/cue-no-id.vtt", testTrack);
+check_cues_from_track("resources/cue-no-id-error.vtt", testTrack);
+
+function testTrack(track) {
+    var expected = [
+        { id: "", startTime: 0, endTime: 30.5, text: "Bear is Coming!!!!!" },
+        { id: "", startTime: 31, endTime: 60.5, text: "I said Bear is coming!!!!" },
+        { id: "", startTime: 61, endTime: 1200.5, text: "I said Bear is coming now!!!!" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+}
+</script>

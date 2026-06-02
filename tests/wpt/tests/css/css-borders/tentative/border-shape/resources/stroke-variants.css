@@ -1,0 +1,21 @@
+.solid {
+    stroke-width: 5px;
+}
+
+.percent {
+    stroke-width: 10%;
+}
+
+.roundjoin {
+    stroke-width: 8px;
+    stroke-linejoin: round;
+}
+
+.beveljoin {
+    stroke-width: 8px;
+    stroke-linejoin: bevel;
+}
+
+.nostroke {
+    stroke-width: 0;
+}

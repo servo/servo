@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style type="text/css">
+        /* Example from
+           https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Background_and_Borders/Using_CSS_multiple_backgrounds
+           (Public domain)
+
+           bubbles.png is from the above MDN page, by Mozilla contributors,
+           licensed under CC-BY-SA 2.5
+
+           Rust logo from https://www.rust-lang.org/logos/rust-logo-256x256.png,
+           licensed as CC-BY-SA 4.0, owned by Mozilla
+        */
+        #gradientbg {
+            width: 700px;
+            height: 400px;
+            background: linear-gradient(to right, rgba(30, 75, 115, 1), rgba(255, 255, 255, 0)) no-repeat;
+        }
+        #bubblesbg {
+            width: 100%;
+            height: 100%;
+            background: url("bubbles.png?pipe=trickle(d1)") no-repeat left / 700px 100%;
+            position: relative;
+        }
+        #rustbg {
+            width: 256px;
+            height: 256px;
+            background: url("rust-logo-256x256.png") no-repeat left / 256px 256px;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gradientbg">
+    <div id="bubblesbg">
+        <div id="rustbg">
+        </div>
+    </div>
+    </div>
+</body>
+</html>

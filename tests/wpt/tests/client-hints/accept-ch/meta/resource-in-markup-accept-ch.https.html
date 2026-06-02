@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<meta http-equiv="Accept-CH" content="sec-ch-dpr">
+
+<script src="../../resources/script-set-dpr-header.py"></script>
+
+<script>
+test(() => {
+  assert_greater_than(dprHeader.length, 0,
+                      "sec-ch-dpr header should have been received");
+}, "DPR is received in page with Accept-CH http-equiv meta tag");
+</script>

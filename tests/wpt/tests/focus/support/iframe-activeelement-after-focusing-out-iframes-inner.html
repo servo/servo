@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>iframe active element inner document</title>
+</head>
+<body>
+<h1>Inner</h1><br>
+<input></input>
+<script>
+let innerlog = "innerlog:";
+
+window.onmessage = function(e) {
+  if (e.data == "getlog") {
+    parent.postMessage(innerlog, "*");
+  }
+};
+
+window.onfocus = function() {
+  innerlog += "windowfocus,";
+};
+
+window.onblur = function() {
+  innerlog += "windowblur,";
+  innerlog += "activeElement:" + document.activeElement.tagName + ",";
+};
+
+let input = document.querySelector("input");
+window.onload = function() {
+  innerlog += "willfocusinput,";
+  input.focus();
+  innerlog += "didfocusinput,";
+  innerlog += "activeElement:" + document.activeElement.tagName + ",";
+  parent.postMessage("ready", "*");
+};
+</script>
+</body>
+</html>

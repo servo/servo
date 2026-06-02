@@ -1,0 +1,41 @@
+<html>
+<meta name="assert" content="Test list-based hit-testing for block-in-inline">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>
+    <a href="#">
+      <h3 id="target">
+        text
+      </h3>
+    </a>
+  </div>
+<script>
+function ancestors(element) {
+  const list = [];
+  for (; element; element = element.parentElement)
+    list.push(element);
+  return list;
+}
+
+const target = document.getElementById('target');
+const bounds = target.getBoundingClientRect();
+const x = bounds.x + bounds.width / 2;
+const y = bounds.y + bounds.height / 2;
+
+test(() => {
+  const result = document.elementFromPoint(x, y);
+  assert_equals(result, target);
+}, "elementFromPoint");
+
+test(() => {
+  const results = document.elementsFromPoint(x, y);
+  assert_array_equals(results, ancestors(target));
+}, "elementsFromPoint");
+</script>
+</body>
+</html>

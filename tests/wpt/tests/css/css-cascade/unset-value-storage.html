@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Storage of "unset" value</title>
+<meta name="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="help" href="https://www.w3.org/TR/css-cascade-3/#inherit-initial"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    color: unset;
+    border: unset;
+  }
+</style>
+<body>
+  <div id="log"></div>
+  <script>
+    test(function() {
+      let properties = ["color", "border", "border-left", "border-color", "border-right-style"];
+      let style = document.styleSheets[0].cssRules[0].style;
+      for (let prop of properties) {
+        assert_equals(style.getPropertyValue(prop), "unset", `${prop} is expected to be "unset"`);
+      }
+    });
+  </script>

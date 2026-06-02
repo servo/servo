@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container" contenteditable></div>
+  <div id="div" contenteditable>hello<span id="span" contenteditable style="color:red">world</span></div>
+</body>
+<script>
+  test(() => {
+    const shadowRoot = container.attachShadow({ mode: "open" });
+    shadowRoot.innerHTML =
+      `<span contenteditable>shadow root</span>`;
+    const span = document.getElementById('span');
+    const div = document.getElementById('div');
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(span);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("RemoveFormat");
+    assert_equals(
+      div.innerHTML,
+      'hello<span id="span" contenteditable="" style="">world</span>'
+    );
+  }, "RemoveFormat should remove CSS styles of selected node");
+</script>

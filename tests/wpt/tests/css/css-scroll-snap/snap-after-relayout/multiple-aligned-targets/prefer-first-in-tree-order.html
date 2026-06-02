@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js"></script>
+  </head>
+<body>
+  <style>
+    .large-space {
+      position: absolute;
+      height: 300vh;
+      width: 300vw;
+      z-index: -1;
+    }
+    .target {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      scroll-snap-align: start;
+    }
+    .snapcontainer {
+      border:solid 1px black;
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+    }
+    .outer {
+      height: 315px;
+      width: 1200px;
+      position: relative;
+    }
+    .inner {
+      height: 115px;
+      width: 120px;
+    }
+    .positioned {
+      position: absolute;
+      top: 150px;
+    }
+    .outer .target1 {
+      left: 0px;
+    }
+    .outer .target2 {
+      left: 110px;
+    }
+    .outer .target3 {
+      left: 220px;
+    }
+    .outer .target4 {
+      left: 330px;
+    }
+    .outer .target5 {
+      left: 440px;
+    }
+    .inner .target1 {
+      left: 550px;
+    }
+    .inner .target2 {
+      left: 660px;
+    }
+    .inner .target3 {
+      left: 770px;
+    }
+    .inner .target4 {
+      left: 880px;
+    }
+    .inner .target5 {
+      left: 990px;
+    }
+    .placeholder {
+      background-color: purple;
+      top: 0px;
+    }
+    .outer > .placeholder {
+      position: absolute;
+      top: 0px;
+      left: 200px;
+    }
+  </style>
+  <!--
+    Placeholder snap areas are used to make it necessary for the scroller to
+    scroll in order to reach its snap targets. This forces the scroller to
+    invoke the snap point selection algorithm. Otherwise (i.e. if no scroll
+    happens) a layout change (inserting and removing children) may not be enough
+    to cause the scroller to select the intended snap targets.
+  -->
+  <div id="outerscroller" class="outer snapcontainer">
+    <div id="outerplaceholder1" class="placeholder target">Outer placeholder
+    </div>
+    <div id="outertarget1" class="positioned target target1">Outer 1</div>
+    <div id="outertarget2" class="positioned target target2">Outer 2</div>
+    <div id="outertarget3" class="positioned target target3">Outer 3</div>
+    <div id="outertarget4" class="positioned target target4">Outer 4</div>
+    <div id="outertarget5" class="positioned target target5">Outer 5</div>
+    <div id="innerscroller" class="inner snapcontainer">
+      <div id="innerplaceholder1" class="placeholder target">Inner Placeholder
+      </div>
+      <div id="innertarget1" class="positioned target target1">Inner 1</div>
+      <div id="innertarget2" class="positioned target target2">Inner 2</div>
+      <div id="innertarget3" class="positioned target target3">Inner 3</div>
+      <div id="innertarget4" class="positioned target target4">Inner 4</div>
+      <div id="innertarget5" class="positioned target target5">Inner 5</div>
+    </div>
+    <div class="large-space"></div>
+  </div>
+  <script>
+    window.onload = async () => {
+      const outerscroller = document.getElementById("outerscroller");
+      const innerscroller = document.getElementById("innerscroller");
+      const outertargets = Array.from(
+        document.querySelectorAll(".outer > .positioned.target"));
+      const innertargets = Array.from(
+        document.querySelectorAll(".inner > .positioned.target"));
+
+      promise_test(async (t) => {
+        for (const target of outertargets) {
+          await waitForScrollReset(t, outerscroller);
+          await waitForCompositorCommit();
+
+          // Make target first in tree order.
+          outerscroller.removeChild(target);
+          outerscroller.prepend(target);
+
+          await runScrollSnapSelectionVerificationTest(t, outerscroller,
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/outertargets,
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/target);
+        }
+
+        // The next for-loop tests outerscroller's selection of
+        // out-of-positioned targets that are children of innerscroller. For
+        // outerscroller to consider them first in tree order relative to its
+        // own children, innerscroller must be the first child of outer
+        // scroller.
+        outerscroller.removeChild(innerscroller);
+        outerscroller.prepend(innerscroller);
+
+        for (const target of innertargets) {
+          await waitForScrollReset(t, outerscroller);
+          await waitForCompositorCommit();
+
+          // Make target first in tree order.
+          innerscroller.removeChild(target);
+          innerscroller.prepend(target);
+
+          await runScrollSnapSelectionVerificationTest(t, outerscroller,
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/innertargets,
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/target);
+          }
+        }, "first in tree-order is selected as snap target.");
+      }
+  </script>
+</body>
+</html>

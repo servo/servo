@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<head>
+    <title>Make sure we don't crash when we don't have a gap and also have a repeater for color</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+    <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+</head>
+<style>
+    #current {
+        column-rule-style: solid;
+        columns: 2;
+        height: 1px;
+        column-rule-color: repeat(auto, blue);
+    }
+</style>
+<div id="current"></div>

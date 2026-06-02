@@ -1,0 +1,29 @@
+[run]
+include =
+  pluggy/*
+  testing/*
+  */lib/python*/site-packages/pluggy/*
+  */pypy*/site-packages/pluggy/*
+  *\Lib\site-packages\pluggy\*
+branch = 1
+
+[paths]
+source = pluggy/
+  */lib/python*/site-packages/pluggy/
+  */pypy*/site-packages/pluggy/
+  *\Lib\site-packages\pluggy\
+
+[report]
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    if TYPE_CHECKING:
+    if False:
+
+    if __name__ == .__main__.:
+
+    raise NotImplementedError
+
+    # Ignore coverage on lines solely with `...`
+    ^\s*\.\.\.\s*$

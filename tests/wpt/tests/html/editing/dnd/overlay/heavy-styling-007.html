@@ -1,0 +1,20 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – feedback overlay for heavily styled elements – 007</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  margin-left: 100px;
+  -moz-transform: rotate(-45deg) skew(15deg, 15deg);
+  -o-transform: rotate(-45deg) skew(15deg, 15deg);
+  -webkit-transform: rotate(-45deg) skew(15deg, 15deg);
+  transform: rotate(-45deg) skew(15deg, 15deg);
+}
+</style>
+
+<p>Drag the blue box below downwards. The drag placeholder should resemble the blue box, including the text within it, and with the same rotation.</p>
+
+<a draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'">TEST</a>

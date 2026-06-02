@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    font: 15px/1 Ahem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 20px;
+    width: 380px;
+}
+
+.auto-item {
+    padding: 10px;
+    width: 50px;
+    background: lightskyblue;
+}
+
+.flex {
+  gap: 20px;
+  display: flex;
+  flex-direction: column;
+}
+</style>
+<body>
+  <p>Test that the infinite tie threshold for grid-lanes is correctly resolved.</p>
+  <div class="grid">
+    <div class="flex">
+      <div class="auto-item" style="height: 40px">1</div>
+      <div class="auto-item" style="height: 40px">5</div>
+      <div class="auto-item" style="height: 40px">9</div>
+    </div>
+    <div class="flex">
+      <div class="auto-item" style="height: 30px">2</div>
+      <div class="auto-item" style="height: 30px">6</div>
+      <div class="auto-item" style="height: 30px">10</div>
+    </div>
+    <div class="flex">
+      <div class="auto-item" style="height: 20px">3</div>
+      <div class="auto-item" style="height: 20px">7</div>
+      <div class="auto-item" style="height: 20px">11</div>
+    </div>
+    <div class="flex">
+      <div class="auto-item" style="height: 10px">4</div>
+      <div class="auto-item" style="height: 10px">8</div>
+      <div class="auto-item" style="height: 10px">12</div>
+    </div>
+  </div>
+</body>
+</html>

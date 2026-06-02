@@ -1,0 +1,12 @@
+<title>CSSOM test: setting a property with cssText and !important</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#dom-cssstyledeclaration-csstext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="box"></div>
+<script>
+  var style = document.getElementById('box').style;
+  test(function(){
+      style.cssText = "padding: 10px !important; padding-left: 20px;";
+      assert_equals(style.getPropertyValue("padding-left"), "10px");
+  }, "padding-left should be taken from the !important property");
+</script>

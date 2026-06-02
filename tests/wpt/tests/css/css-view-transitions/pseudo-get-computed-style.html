@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: check pseudo element's default styles</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: target;
+  mix-blend-mode: multiply;
+  text-orientation: upright;
+  color-scheme: dark light;
+}
+::view-transition-image-pair(target) {
+  position: fixed;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+promise_test(async () => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  let transition = document.startViewTransition(() => {
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "::view-transition");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "container(target)");
+    // The position is set via the style rules, so it should be applied once
+    // we create the pseudo elements.
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed", "wrapper(target)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute", "outgoing(target)");
+
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute", "container(root)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute", "wrapper(root)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute", "outgoing(root)");
+
+    // Per spec, we update pseudo-element styles when activating the
+    // transition, and this is after we invoke the update callback. Therefore,
+    // these computed values should be the default values at this moment.
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "mixed", "container(target)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "normal", "container(target)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "normal", "container(target)");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").mixBlendMode, "normal", "container(root)");
+  });
+
+  // When transition is ready, the activation of the view transition should be done, so
+  // we have updated the pseudo-element styles.
+  await transition.ready;
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute", "raf ::view-transition");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "dark light", "raf container(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed", "raf wrapper(target)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute", "raf outgoing(target)");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute", "raf container(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").mixBlendMode, "normal", "raf container(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute", "raf wrapper(root)");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute", "raf outgoing(root)");
+
+  await transition.finished;
+}, "properties of pseudo elements in update callback");
+
+promise_test(async () => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  let transition = document.startViewTransition(() => {
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute");
+    // The position is set via the style rules, so it should be applied once
+    // we create the pseudo elements.
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute");
+
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute");
+    assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute");
+
+    target.remove();
+  });
+
+  await transition.ready;
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").mixBlendMode, "multiply");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").textOrientation, "upright");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").colorScheme, "dark light");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(target)").position, "fixed");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(target)").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(target)").position, "absolute");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").position, "absolute");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").position, "absolute");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, "absolute");
+
+  await transition.finished;
+
+  // The spec doesn't mention whether we should apply the custom ua sheets to
+  // the non-existing pseudo elements. In Chromium, it doesn't apply it, so it
+  // would be the default (i.e. static). However, in WebKit and Gecko, they
+  // still apply the costom ua sheets. Therefore, we accept both cases for now.
+  assert_in_array(getComputedStyle(document.documentElement, "::view-transition-group(target)").position, ["static", "absolute"]);
+}, "properties of pseudo elements outside of transition");
+</script>

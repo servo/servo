@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Default-Alignment: justify-items - setting values via JS</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#default-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-self-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-baseline-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-overflow-position" />
+<meta name="assert" content="Check that the computed value is the specified value and the same than the JS value."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    element = document.createElement("div");
+    document.body.appendChild(element);
+
+    let classes = Object.assign({"Normal":"normal", "Stretch":"stretch", "Left":"left", "Right":"right"},
+                                selfPositionClasses, baselineClasses, overflowClasses, legacyClasses);
+
+    for (var key in classes) {
+        let specifiedValue = classes[key];
+        test(function() {
+            element.style.justifyItems = "";
+            element.style.justifyItems = specifiedValue;
+            if (specifiedValue === "first baseline")
+                checkValues(element, "justifyItems", "justify-items", "baseline", "baseline");
+            else
+                checkValues(element, "justifyItems", "justify-items",  specifiedValue, specifiedValue);
+        }, "Checking justify-items: " + specifiedValue);
+    }
+</script>

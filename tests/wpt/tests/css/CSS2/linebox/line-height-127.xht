@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: line-height of images</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/line-height/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+  <link rel="match" href="line-height-127-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+   table { font: 10em/1 Ahem; border-spacing: 0; }
+   td { padding: 0; background: red; }
+   img { width: 1em; height: 1px; }
+   .test { line-height: 0; background: green; }
+   .control { height: 0.3em; background: green; width: 1em; }
+  </style>
+ </head>
+ <body>
+
+  <!--
+   !   The 0.3em comes from the following:
+   !
+   !     * The font is 1em high
+   !     * The line height is 0
+   !     * The half leading is therefore -0.5em centered around the middle of the font
+   !     * The baseline is 0.2em from the bottom of the font
+   !     * Thus the distance from the baseline to the center is 0.3em
+   !     * The image is placed on the baseline
+   |     * The line box has to include the image and the middle of the font
+   !     * Thus the line box is 0.3em high
+   !
+   !-->
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <table>
+   <tr>
+    <td><div class="test"><img src="support/1x1-white.png" alt="FAIL (images required)"/></div></td>
+    <td><div class="control"></div></td>
+   </tr>
+  </table>
+ </body>
+</html>

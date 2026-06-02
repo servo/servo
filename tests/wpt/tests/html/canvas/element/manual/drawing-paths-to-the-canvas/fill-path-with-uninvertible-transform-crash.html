@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script>
+  let context = document.createElement("canvas").getContext("2d");
+  context.moveTo(0, 0);
+  context.setTransform(4, 2, 6, 3, 0, 0); // non-invertible (4 * 3 - 6 * 2 = 0)
+  context.fill("nonzero");
+</script>

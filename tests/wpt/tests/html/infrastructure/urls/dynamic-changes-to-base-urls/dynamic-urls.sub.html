@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTML Test: Dynamic changes to base URLs</title>
+<link rel="author" title="Intel" href="http://www.intel.com/"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dynamic-changes-to-base-urls" />
+<base href="" id="base">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="div" style="display:none"></div>
+<script>
+      var div = document.getElementById("div"),
+          base = document.getElementById("base"),
+          url =  document.location.href;
+
+      var testData = [
+        {elements: ["a", "link", "area"], set: "href", get: "href"},
+        {elements: ["q", "blockquote", "ins", "del"], set: "cite", get: "cite"},
+        {elements: ["audio", "input", "img", "embed", "video", "iframe", "script", "source", "track"], set: "src", get: "src"},
+        {elements: ["form"], set: "action", get: "action"},
+        {elements: ["object"], set: "data", get: "data"},
+        {elements: ["button"], set: "formAction", get: "formAction"}
+      ];
+
+      for (var i in testData) {
+        var item = testData[i];
+        for (var j in item.elements) {
+          test(function () {
+            var ele = document.createElement(item.elements[j]);
+
+            ele.setAttribute(item.set, "test.txt");
+            div.appendChild(ele);
+
+            base.setAttribute("href", "");
+            assert_equals(ele[item.get], url.substr(0, url.lastIndexOf("/")) +"/test.txt", "The '" + item.get + "' attribute is incorrect.");
+            base.setAttribute("href", "http://{{domains[www]}}:{{ports[http][0]}}");
+            assert_equals(ele[item.get], "http://{{domains[www]}}:{{ports[http][0]}}/test.txt", "The '" + item.get + "' attribute is incorrect.");
+          }, "The '" + item.set + "' attribute of the '" + item.elements[j] + "' element");
+        }
+      }
+</script>

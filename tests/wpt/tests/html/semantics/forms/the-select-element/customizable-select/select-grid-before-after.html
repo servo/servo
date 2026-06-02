@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/452087739">
+<link rel=match href="select-grid-before-after-ref.html">
+
+<style>
+  select {
+    appearance: base-select;
+
+    &::picker-icon {
+      display: none;
+    }
+  }
+
+  select {
+    display: inline-grid;
+    width: 200px;
+    height: 200px;
+    box-sizing: border-box;
+    vertical-align: top;
+    place-items: center;
+    background: orange;
+    padding: 8px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+
+    &::before {
+      content: 'before';
+      grid-row: 1;
+      grid-column: 1;
+      background: yellow;
+      padding: 8px;
+    }
+
+    &::after {
+      content: 'after';
+      grid-row: 2;
+      grid-column: 2;
+      background: yellow;
+      padding: 8px;
+    }
+  }
+</style>
+
+<select></select>

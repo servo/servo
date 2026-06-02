@@ -1,0 +1,66 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script src=/service-workers/service-worker/resources/test-helpers.sub.js></script>
+  <script>
+    const INTERMEDIATE_FRAME_SUFFIX =
+      'able-fetch-request-fallback-to-network-iframe.https.html'
+    const ORIGIN = new URL("", location.href).origin;
+
+    window.addEventListener('message', async function handler(event) {
+      const data = event.data;
+      if (data.script && data.scope && data.port) {
+        var absoluteScope = (new URL(data.scope, window.location).href);
+        let oldReg =await navigator.serviceWorker.getRegistration(data.scope);
+        if (oldReg && oldReg.scope === absoluteScope) {
+          await oldReg.unregister();
+        }
+        let reg = await navigator.serviceWorker.register(data.script,
+                                                         { scope: data.scope });
+        let worker = reg.installing;
+        await new Promise(function(resolve) {
+          worker.addEventListener('statechange', function() {
+            if (worker.state == 'activated') {
+              resolve();
+            }
+          });
+        });
+        assert_not_equals(worker, null, 'worker is installing');
+
+        let result = await loadNestedSharedStorageFrameInNewFrame({
+          key: 'c', value: 'd',
+          hasSharedStorageWritableAttribute: true,
+          // Same-origin to this frame, cross-origin to top.
+          isSameOrigin: true,
+        });
+        const urls = [
+          {
+           "url": ORIGIN + data.scope + INTERMEDIATE_FRAME_SUFFIX,
+           "mode": "navigate",
+           "SSWHeader": "null"
+          },
+          {
+          "url": ORIGIN + "/resources/testharness.js",
+          "mode": "no-cors",
+          "SSWHeader": "null"
+          },
+          {
+            "url":  ORIGIN + result.nestedFrameUrl,
+            "mode": "navigate",
+            "SSWHeader": "null"
+          },
+        ];
+        await checkInterceptedUrls(worker, urls);
+        await verifyKeyValueForOrigin('c', 'd', ORIGIN);
+        await deleteKeyForOrigin('c', ORIGIN);
+        data.port.postMessage({msg: 'test completed'});
+        reg.unregister()
+        window.removeEventListener('message', handler);
+      }
+    });
+  </script>
+</body>

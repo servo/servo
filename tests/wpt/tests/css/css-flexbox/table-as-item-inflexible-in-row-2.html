@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Table as a flex item in row-oriented flex container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#resolve-flexible-lengths">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1692116">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Inflexible table flex item's flex base size is its final main size.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; flex-direction: row;">
+  <!-- Use display:table and display:table-caption instead of the HTML tags so that box-sizing is used in WebKit-based browsers.
+       Since long time ago WebKit ignores box-sizing for HTML tables. That isn't the case for CSS tables though. -->
+  <div style="display:table; box-sizing: content-box; border: 10px solid green; background: green;
+                height: 50px; flex: 0 0 80px">
+    <div style="display: table-caption; height: 10px; border: 10px solid green; background: green;"></div>
+  </div>
+</div>

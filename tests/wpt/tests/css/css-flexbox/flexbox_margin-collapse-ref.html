@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>flexbox | flexitem margin collapsing</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+body {
+	margin: 0;
+}
+div {
+	background: blue;
+	border: 1px solid black;
+}
+p {
+	margin: 1em 0;
+}
+p+p {
+	margin: 2em 0 1em;
+}
+</style>
+
+<div>
+	<p>filler</p>
+	<p>filler</p>
+</div>

@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<style id="styleElement" type="text/css">
+/* Some yui Yahoo! library snippet */
+
+/*Copyright (c) 2012, Yahoo! Inc. All rights reserved.
+----------------------------------------------------
+
+Redistribution and use of this software in source and binary forms, with or
+without modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+  * Neither the name of Yahoo! Inc. nor the names of YUI's contributors may be
+    used to endorse or promote products derived from this software without
+    specific prior written permission of Yahoo! Inc.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
+
+
+/* Vertical menus and submenus */
+
+.yui3-skin-night .yui3-menu-content,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-content {
+
+    font-size: 100%;
+    line-height: 2.25;  /* 18px 1.5*/
+    *line-height: 1.45; /* For IE */
+    border: solid 1px #303030;
+    background: #151515;
+    /*padding: 3px 0;*/
+
+}
+
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-content {
+
+        font-size: 100%;
+
+}
+
+
+/* Horizontal menus */
+.yui3-skin-night .yui3-menu-horizontal .yui3-menu-content {
+
+    line-height: 2;  /* ~24px */
+    *line-height: 1.9; /* For IE */
+    background-color:#3b3c3d;
+        background: -moz-linear-gradient(
+                0% 100% 90deg,
+                #242526 0%,
+                #3b3c3d 96%,
+                #2C2D2F 100%
+        );
+    background: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        from(#242526),
+        color-stop(0.96, #3b3c3d),
+        to(#2C2D2F)
+    );
+    padding: 0;
+
+}
+
+
+.yui3-skin-night .yui3-menu ul,
+.yui3-skin-night .yui3-menu ul ul {
+
+        margin-top: 3px;
+        padding-top: 3px;
+    border-top: solid 1px #303030;
+
+}
+
+.yui3-skin-night .yui3-menu ul.first-of-type {
+
+    border: 0;
+        margin: 0;
+        padding: 0;
+
+}
+
+.yui3-skin-night .yui3-menu-horizontal ul {
+
+        padding: 0;
+        margin: 0;
+        border: 0;
+
+}
+
+
+.yui3-skin-night .yui3-menu li,
+.yui3-skin-night .yui3-menu .yui3-menu li {
+
+    /*
+        For and IE 6 (Strict Mode and Quirks Mode) and IE 7 (Quirks Mode only):
+                Used to collapse superfluous white space between <li> elements that is
+                triggered by the "display" property of the <a> elements being set to
+                "block" by node-menunav-core.css file.
+    */
+
+    _border-bottom: solid 1px #151515;
+
+}
+
+.yui3-skin-night .yui3-menu-horizontal li {
+
+        _border-bottom: 0;
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav li {
+
+    border-right: solid 1px #ccc;
+
+}
+
+.yui3-skin-night .yui3-splitbuttonnav li {
+
+    border-right: solid 1px #303030;
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav li li,
+.yui3-skin-night .yui3-splitbuttonnav li li {
+
+        border-right: 0;
+
+}
+
+
+/* Menuitems and menu labels */
+
+
+.yui3-skin-night .yui3-menu-label,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-label,
+.yui3-skin-night .yui3-menuitem-content,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menuitem-content {
+
+    /*padding: 0 20px;*/
+    padding: 0 1em;
+    /*background-color: #2F3030;*/
+
+
+
+
+
+
+    color: #fff;
+    text-decoration: none;
+    cursor: default;
+
+        /*
+                Necessary specify values for border, position and margin to override
+                values specified in the selectors that follow.
+        */
+
+        float: none;
+        border: 0;
+        margin: 0;
+
+}
+
+.yui3-skin-night .yui3-menu-horizontal .yui3-menu-label,
+.yui3-skin-night .yui3-menu-horizontal .yui3-menuitem-content {
+
+    padding: 0 10px;
+    border-style: solid;
+    border-color: #303030;
+    border-width: 1px 0;
+    margin: -1px 0;
+
+    float: left;    /* Ensures that menu labels clear floated descendents.
+                           Also gets negative margins working in IE 7
+                           (Strict Mode). */
+    width: auto;
+
+}
+
+.yui3-skin-night .yui3-menu-label,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-label {
+
+        background: url(vertical-menu-submenu-indicator.png) right center no-repeat;
+
+}
+
+.yui3-skin-night .yui3-menu-horizontal .yui3-menu-label {
+
+    background: none;
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav .yui3-menu-label,
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label {
+
+        background-image: none;
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav .yui3-menu-label {
+
+    padding-right: 0;
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav .yui3-menu-label em {
+
+        font-style: normal;
+        padding-right: 20px;
+    display: block;
+    background: url(horizontal-menu-submenu-indicator.png) right center no-repeat;
+
+}
+
+
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label {
+
+        padding: 0;
+
+}
+
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label a {
+
+        float: left;
+        width: auto;
+    color: #fff;
+    text-decoration: none;
+    cursor: default;
+        padding: 0 5px 0 10px;
+
+}
+
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label .yui3-menu-toggle {
+
+        padding: 0; /* Overide padding applied by the preceeding rule. */
+        border-left: solid 1px #303030;
+        width: 15px;
+        overflow: hidden;
+        text-indent: -1000px;
+    background: url(horizontal-menu-submenu-indicator.png) 3px center no-repeat;
+
+}
+
+
+/* Selected menuitem */
+
+.yui3-skin-night .yui3-menu-label-active,
+.yui3-skin-night .yui3-menu-label-menuvisible,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-label-active,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menu-label-menuvisible {
+
+        background-color: #292a2a;
+
+}
+
+.yui3-skin-night .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-night .yui3-menu .yui3-menu .yui3-menuitem-active .yui3-menuitem-content {
+
+        background-image: none;
+    background-color: #292a2a;
+    background: -moz-linear-gradient(
+                0% 100% 90deg,
+                #252626 0%,
+                #333434 100%
+        );
+    background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        from(#333434),
+        to(#252626)
+    );
+
+    /*
+        Undo values set for "border-left-width" and "margin-left" when the root
+        menu has a class of "yui-menubuttonnav" or "yui-splitbuttonnav" applied.
+    */
+
+        border-left-width: 0;
+    margin-left: 0;
+
+}
+
+.yui3-skin-night .yui3-menu-horizontal .yui3-menu-label-active,
+.yui3-skin-night .yui3-menu-horizontal .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-night .yui3-menu-horizontal .yui3-menu-label-menuvisible {
+
+    border-color: #303030;
+        background-color:#555658;
+        background: -moz-linear-gradient(
+                0% 100% 90deg,
+                #343536 0%,
+                #555658 96%,
+                #3E3F41 100%
+        );
+    background: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        from(#343536),
+        color-stop(0.96, #555658),
+        to(#3E3F41)
+    );
+
+}
+
+.yui3-skin-night .yui3-menubuttonnav .yui3-menu-label-active,
+.yui3-skin-night .yui3-menubuttonnav .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-night .yui3-menubuttonnav .yui3-menu-label-menuvisible,
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label-active,
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label-menuvisible {
+
+    border-left-width: 1px;
+    margin-left: -1px;
+
+}
+
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label-menuvisible {
+
+    border-color: #303030;
+    background: transparent;
+
+}
+
+.yui3-skin-night .yui3-splitbuttonnav .yui3-menu-label-menuvisible .yui3-menu-toggle {
+
+    border-color: #303030;
+    background-color: #505050;
+
+}
+
+.yui3-skin-sam .yui3-console-separate {
+    position:absolute;
+    right:1em;
+    top:1em;
+    z-index:999;
+}
+
+.yui3-skin-sam .yui3-console-inline {
+    /* xbrowser inline-block styles */
+    display: -moz-inline-stack; /* FF2 */
+    display: inline-block;
+    *display: inline; /* IE 7- (with zoom) */
+    zoom: 1;
+    vertical-align: top;
+}
+.yui3-skin-sam .yui3-console-inline .yui3-console-content {
+    position: relative;
+}
+
+.yui3-skin-sam .yui3-console-content {
+    background: #777;
+    _background: #D8D8DA url(bg.png) repeat-x 0 0;
+    font: normal 13px/1.3 Arial, sans-serif;
+    text-align: left;
+
+    border: 1px solid #777;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+
+.yui3-skin-sam .yui3-console-hd,
+.yui3-skin-sam .yui3-console-bd,
+.yui3-skin-sam .yui3-console-ft {
+    position: relative;
+}
+
+.yui3-skin-sam .yui3-console-hd,
+.yui3-skin-sam .yui3-console-ft .yui3-console-controls {
+    text-align: right;
+}
+
+.yui3-skin-sam .yui3-console-hd {
+    background: #D8D8DA url(bg.png) repeat-x 0 0;
+    padding: 1ex;
+
+    border: 1px solid transparent;
+    _border: 0 none;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    -moz-border-radius-topright: 10px;
+    -moz-border-radius-topleft: 10px;
+    -webkit-border-top-right-radius: 10px;
+    -webkit-border-top-left-radius: 10px;
+}
+
+.yui3-skin-sam .yui3-console-bd {
+    background: #fff;
+    border-top: 1px solid #777;
+    border-bottom: 1px solid #777;
+    color: #000;
+    font-size: 11px;
+    overflow: auto;
+    overflow-x: auto;
+    overflow-y: scroll;
+    _width: 100%;
+}
+
+.yui3-skin-sam .yui3-console-ft {
+    background: #D8D8DA url(bg.png) repeat-x 0 0;
+
+    border: 1px solid transparent;
+    _border: 0 none;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    -moz-border-radius-bottomright: 10px;
+    -moz-border-radius-bottomleft: 10px;
+    -webkit-border-bottom-right-radius: 10px;
+    -webkit-border-bottom-left-radius: 10px;
+}
+
+.yui3-skin-sam .yui3-console-controls {
+    padding: 4px 1ex;
+    zoom: 1;
+}
+
+.yui3-skin-sam .yui3-console-title {
+    color: #000;
+    display: inline;
+    float: left;
+    font-weight: bold;
+    font-size: 13px;
+    height: 24px;
+    line-height: 24px;
+    margin: 0;
+    padding-left: 1ex;
+}
+
+.yui3-skin-sam .yui3-console-pause-label {
+    float: left;
+}
+.yui3-skin-sam .yui3-console-button {
+    line-height: 1.3;
+}
+
+.yui3-skin-sam .yui3-console-collapsed .yui3-console-bd,
+.yui3-skin-sam .yui3-console-collapsed .yui3-console-ft {
+    display: none;
+}
+.yui3-skin-sam .yui3-console-content.yui3-console-collapsed {
+    -webkit-border-radius: 0;
+}
+.yui3-skin-sam .yui3-console-collapsed .yui3-console-hd {
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 0;
+}
+
+/* Log entries */
+.yui3-skin-sam .yui3-console-entry {
+    border-bottom: 1px solid #aaa;
+    min-height: 32px;
+    _height: 32px;
+}
+
+.yui3-skin-sam .yui3-console-entry-meta {
+    margin: 0;
+    overflow: hidden;
+}
+
+.yui3-skin-sam .yui3-console-entry-content {
+    margin: 0;
+    padding: 0 1ex;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.yui3-skin-sam .yui3-console-entry-meta .yui3-console-entry-src {
+    color: #000;
+    font-style: italic;
+    font-weight: bold;
+    float: right;
+    margin: 2px 5px 0 0;
+}
+.yui3-skin-sam .yui3-console-entry-meta .yui3-console-entry-time {
+    color: #777;
+    padding-left: 1ex;
+}
+.yui3-skin-sam .yui3-console-entry-warn .yui3-console-entry-meta .yui3-console-entry-time {
+    color: #555;
+}
+
+.yui3-skin-sam .yui3-console-entry-info .yui3-console-entry-meta .yui3-console-entry-cat,
+.yui3-skin-sam .yui3-console-entry-warn .yui3-console-entry-meta .yui3-console-entry-cat,
+.yui3-skin-sam .yui3-console-entry-error .yui3-console-entry-meta .yui3-console-entry-cat {
+    display: none;
+}
+.yui3-skin-sam .yui3-console-entry-warn {
+    background: #aee url(warn_error.png) no-repeat -15px 15px;
+}
+.yui3-skin-sam .yui3-console-entry-error {
+    background: #ffa url(warn_error.png) no-repeat 5px -24px;
+    color: #900;
+}
+.yui3-skin-sam .yui3-console-entry-warn .yui3-console-entry-content,
+.yui3-skin-sam .yui3-console-entry-error .yui3-console-entry-content {
+    padding-left: 24px;
+}
+.yui3-skin-sam .yui3-console-entry-cat {
+    text-transform: uppercase;
+    padding: 1px 4px;
+    background-color: #ccc;
+}
+.yui3-skin-sam .yui3-console-entry-info .yui3-console-entry-cat {
+    background-color: #ac2;
+}
+.yui3-skin-sam .yui3-console-entry-warn .yui3-console-entry-cat {
+    background-color: #e81;
+}
+.yui3-skin-sam .yui3-console-entry-error .yui3-console-entry-cat {
+    background-color: #b00;
+    color: #fff;
+}
+
+.yui3-skin-sam .yui3-console-hidden { display: none; }
+
+/*
+Font sizes for all selectors other than the body are given in percentages,
+with 100% equal to 13px. To calculate a font size percentage, multiply the
+desired size in pixels by 7.6923076923.
+
+Here's a quick lookup table:
+
+10px - 76.923%
+11px - 84.615%
+12px - 92.308%
+13px - 100%
+14px - 107.692%
+15px - 115.385%
+16px - 123.077%
+17px - 130.769%
+18px - 138.462%
+19px - 146.154%
+20px - 153.846%
+*/
+
+html {
+    background: #fff;
+    color: #333;
+    overflow-y: scroll;
+}
+
+body {
+    font: 13px/1.4 'Lucida Grande', 'Lucida Sans Unicode', 'DejaVu Sans', 'Bitstream Vera Sans', 'Helvetica', 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* -- Links ----------------------------------------------------------------- */
+a {
+    color: #356de4;
+    text-decoration: none;
+}
+
+a:hover { text-decoration: underline; }
+
+/* "Jump to Table of Contents" link is shown to assistive tools, but hidden from
+   sight until it's focused. */
+.jump {
+    position: absolute;
+    padding: 3px 6px;
+    left: -99999px;
+    top: 0;
+}
+
+.jump:focus { left: 40%; }
+
+/* -- Paragraphs ------------------------------------------------------------ */
+p { margin: 1.3em 0; }
+dd p, td p { margin-bottom: 0; }
+dd p:first-child, td p:first-child { margin-top: 0; }
+
+/* -- Headings -------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    line-height: 1.1;
+    margin: 1.5em 0 1em;
+}
+
+h2, h3, h4, h5, h6 { color: #f80; }
+
+h1 {
+    font-family: Verdana, 'DejaVu Sans', 'Bitstream Vera Sans', Helvetica, sans-serif;
+    font-size: 261.538%; /* 34px */
+    margin: 25px 0 18px 25px;
+    -moz-text-shadow: 1px 1px 2px #999;
+    -webkit-text-shadow: 1px 1px 2px #999;
+    text-shadow: 1px 1px 2px #999;
+}
+
+h2 {
+    font-size: 153.846%;
+    margin-top: 1.2em;
+}
+
+h3 { font-size: 138.462%; }
+
+h4 {
+    border-bottom: 1px solid #d9d9d9;
+    color: #555;
+    font-size: 115.385%;
+    font-weight: normal;
+    text-transform: uppercase;
+}
+
+h5, h6 { font-size: 107.692%; }
+
+/* -- Code and examples ----------------------------------------------------- */
+code, kbd, pre, samp {
+    font-family: Menlo, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Consolas', 'Monaco', fixed;
+    font-size: 92.308%;
+    line-height: 1.35;
+}
+
+p code, p kbd, p samp {
+    background: #f6f6f6;
+    border: 1px solid #ededed;
+    padding: 0 3px;
+}
+
+a code, a kbd, a samp,
+pre code, pre kbd, pre samp,
+table code, table kbd, table samp,
+.intro code, .intro kbd, .intro samp,
+.toc code, .toc kbd, .toc samp {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+pre.code, pre.terminal {
+    overflow-x: auto;
+    *overflow-x: scroll;
+    padding: 0.3em 0.6em;
+}
+
+pre.code {
+    background: #f8f8f8;
+    border: 1px solid #ececec;
+    border-left: 5px solid #e2e2e2;
+}
+
+pre.terminal {
+    background: #F0EFFC;
+    border: 1px solid #D0CBFB;
+    border-left: 5px solid #D0CBFB;
+}
+
+/* Don't reduce the font size of <code>/<kbd>/<samp> elements inside <pre>
+   blocks. */
+pre code, pre kbd, pre samp { font-size: 100%; }
+
+/* Used to denote text that shouldn't be selectable, such as line numbers or
+   shell prompts. Guess which browser this doesn't work in. */
+.noselect {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+/* -- Tables ---------------------------------------------------------------- */
+caption, th { text-align: left; }
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #fff;
+    padding: 5px 12px;
+    vertical-align: top;
+}
+
+td { background: #E5EDF1; }
+td dl { margin: 0; }
+td dl dl { margin: 1em 0; }
+td pre:first-child { margin-top: 0; }
+
+th {
+    background: #6C8EA1;
+    color: #fff;
+    font-weight: bold;
+    line-height: 1.3;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* -- Lists ----------------------------------------------------------------- */
+.spaced li { margin: 0.8em 0; }
+
+dd { margin: 0.2em 0 0.7em 1em; }
+dl { margin: 1em 0; }
+dt { font-weight: bold; }
+
+/* -- Layout and Content ---------------------------------------------------- */
+#doc {
+    margin: auto;
+    width: 1024px;
+}
+
+#main { width: 754px; }
+#sidebar { width: 270px; }
+
+.content { padding: 0 20px 0 25px; }
+
+/* -- Sidebar --------------------------------------------------------------- */
+.sidebox {
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-box-shadow: 0 0 3px #afafaf;
+    -webkit-box-shadow: 0 0 3px #afafaf;
+    box-shadow: 0 0 3px #afafaf;
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'Helvetica', 'Arial', sans-serif;
+    margin: 0 20px 15px 5px;
+    padding: 2px;
+}
+
+.sidebox h2 {
+    background: #efefef;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    color: #333;
+    font-size: 107.692%;
+    margin: 0;
+    padding: 2px 6px 3px;
+}
+
+.sidebox .bd { font-size: 84.615%; }
+.sidebox li { list-style-type: square; }
+
+.sidebox ol, .sidebox ul {
+    margin-left: 0;
+    padding-left: 24px;
+}
+
+.sidebox ol ol, .sidebox ol ul,
+.sidebox ul ol, .sidebox ul ul {
+    margin: 0;
+    padding-left: 16px;
+}
+
+/* -- Table of Contents ----------------------------------------------------- */
+
+/* The #toc id refers to the single global table of contents, while the .toc
+   class refers to generic TOC lists that could be used throughout the page. */
+
+.toc code, .toc kbd, .toc samp { font-size: 100%; }
+.toc li { font-weight: bold; }
+.toc li li { font-weight: normal; }
+
+/* -- Intro and Example Boxes ----------------------------------------------- */
+.intro, .example { margin-bottom: 2em; }
+
+.example {
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-box-shadow: 0 0 5px #bfbfbf;
+    -webkit-box-shadow: 0 0 5px #bfbfbf;
+    box-shadow: 0 0 5px #bfbfbf;
+    padding: 1em;
+}
+
+.intro {
+    background: #E2EEFB;
+    border: 1px solid #BDD6F4;
+    padding: 0em 1em;
+}
+
+/* -- Other Styles ---------------------------------------------------------- */
+
+/* These are probably YUI-specific, and should be moved out of Selleck's default
+   theme. */
+
+.button {
+    border: 1px solid #dadada;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    color: #444;
+    display: inline-block;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 92.308%;
+    font-weight: bold;
+    padding: 4px 13px 3px;
+    -moz-text-shadow: 1px 1px 0 #fff;
+    -webkit-text-shadow: 1px 1px 0 #fff;
+    text-shadow: 1px 1px 0 #fff;
+    white-space: nowrap;
+
+    background: #EFEFEF; /* old browsers */
+    background: -moz-linear-gradient(top, #f5f5f5 0%, #efefef 50%, #e5e5e5 51%, #dfdfdf 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f5f5f5), color-stop(50%,#efefef), color-stop(51%,#e5e5e5), color-stop(100%,#dfdfdf)); /* webkit */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f5f5f5', endColorstr='#dfdfdf',GradientType=0 ); /* ie */
+}
+
+.button:hover {
+    border-color: #466899;
+    color: #fff;
+    text-decoration: none;
+    -moz-text-shadow: 1px 1px 0 #222;
+    -webkit-text-shadow: 1px 1px 0 #222;
+    text-shadow: 1px 1px 0 #222;
+
+    background: #6396D8; /* old browsers */
+    background: -moz-linear-gradient(top, #6396D8 0%, #5A83BC 50%, #547AB7 51%, #466899 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6396D8), color-stop(50%,#5A83BC), color-stop(51%,#547AB7), color-stop(100%,#466899)); /* webkit */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6396D8', endColorstr='#466899',GradientType=0 ); /* ie */
+}
+
+.newwindow { text-align: center; }
+
+/* Vertical menus and submenus */
+
+.yui3-skin-sam .yui3-menu-content,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-content {
+
+    font-size: 93%;  /* 12px */
+    line-height: 1.5;  /* 18px */
+    *line-height: 1.45; /* For IE */
+    border: solid 1px #808080;
+    background: #fff;
+    padding: 3px 0;
+
+}
+
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-content {
+
+        font-size: 100%;
+
+}
+
+
+/* Horizontal menus */
+
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menu-content {
+
+    line-height: 2;  /* ~24px */
+    *line-height: 1.9; /* For IE */
+    background: url(../../../../assets/skins/sam/sprite.png) repeat-x 0 0;
+    padding: 0;
+
+}
+
+
+.yui3-skin-sam .yui3-menu ul,
+.yui3-skin-sam .yui3-menu ul ul {
+
+        margin-top: 3px;
+        padding-top: 3px;
+    border-top: solid 1px #ccc;
+
+}
+
+.yui3-skin-sam .yui3-menu ul.first-of-type {
+
+    border: 0;
+        margin: 0;
+        padding: 0;
+
+}
+
+.yui3-skin-sam .yui3-menu-horizontal ul {
+
+        padding: 0;
+        margin: 0;
+        border: 0;
+
+}
+
+
+.yui3-skin-sam .yui3-menu li,
+.yui3-skin-sam .yui3-menu .yui3-menu li {
+
+    /*
+        For and IE 6 (Strict Mode and Quirks Mode) and IE 7 (Quirks Mode only):
+                Used to collapse superfluous white space between <li> elements that is
+                triggered by the "display" property of the <a> elements being set to
+                "block" by node-menunav-core.css file.
+    */
+
+    _border-bottom: solid 1px #fff;
+
+}
+
+.yui3-skin-sam .yui3-menu-horizontal li {
+
+        _border-bottom: 0;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav li {
+
+    border-right: solid 1px #ccc;
+
+}
+
+.yui3-skin-sam .yui3-splitbuttonnav li {
+
+    border-right: solid 1px #808080;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav li li,
+.yui3-skin-sam .yui3-splitbuttonnav li li {
+
+        border-right: 0;
+
+}
+
+
+/* Menuitems and menu labels */
+
+
+.yui3-skin-sam .yui3-menu-label,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-label,
+.yui3-skin-sam .yui3-menuitem-content,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menuitem-content {
+
+    /*padding: 0 20px;*/
+    padding: 0 1em;
+    color: #000;
+    text-decoration: none;
+    cursor: default;
+
+        /*
+                Necessary specify values for border, position and margin to override
+                values specified in the selectors that follow.
+        */
+
+        float: none;
+        border: 0;
+        margin: 0;
+
+}
+
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menu-label,
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menuitem-content {
+
+    padding: 0 10px;
+    border-style: solid;
+    border-color: #808080;
+    border-width: 1px 0;
+    margin: -1px 0;
+
+    float: left;    /* Ensures that menu labels clear floated descendents.
+                           Also gets negative margins working in IE 7
+                           (Strict Mode). */
+    width: auto;
+
+}
+
+.yui3-skin-sam .yui3-menu-label,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-label {
+
+        background: url(vertical-menu-submenu-indicator.png) right center no-repeat;
+
+}
+
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menu-label {
+
+    background: url(../../../../assets/skins/sam/sprite.png) repeat-x 0 0;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menu-label,
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label {
+
+        background-image: none;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menu-label {
+
+    padding-right: 0;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menu-label em {
+
+        font-style: normal;
+        padding-right: 20px;
+    display: block;
+    background: url(horizontal-menu-submenu-indicator.png) right center no-repeat;
+
+}
+
+
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label {
+
+        padding: 0;
+
+}
+
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label a {
+
+        float: left;
+        width: auto;
+    color: #000;
+    text-decoration: none;
+    cursor: default;
+        padding: 0 5px 0 10px;
+
+}
+
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label .yui3-menu-toggle {
+
+        padding: 0; /* Overide padding applied by the preceeding rule. */
+        border-left: solid 1px #ccc;
+        width: 15px;
+        overflow: hidden;
+        text-indent: -1000px;
+    background: url(horizontal-menu-submenu-indicator.png) 3px center no-repeat;
+
+}
+
+
+/* Selected menuitem */
+
+.yui3-skin-sam .yui3-menu-label-active,
+.yui3-skin-sam .yui3-menu-label-menuvisible,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-label-active,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menu-label-menuvisible {
+
+        background-color: #B3D4FF;
+
+}
+
+.yui3-skin-sam .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-sam .yui3-menu .yui3-menu .yui3-menuitem-active .yui3-menuitem-content {
+
+        background-image: none;
+    background-color: #B3D4FF;
+
+    /*
+        Undo values set for "border-left-width" and "margin-left" when the root
+        menu has a class of "yui-menubuttonnav" or "yui-splitbuttonnav" applied.
+    */
+
+        border-left-width: 0;
+    margin-left: 0;
+
+}
+
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menu-label-active,
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-sam .yui3-menu-horizontal .yui3-menu-label-menuvisible {
+
+    border-color: #7D98B8;
+    background: url(../../../../assets/skins/sam/sprite.png) repeat-x 0 -1700px;
+
+}
+
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menu-label-active,
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-sam .yui3-menubuttonnav .yui3-menu-label-menuvisible,
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label-active,
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menuitem-active .yui3-menuitem-content,
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label-menuvisible {
+
+    border-left-width: 1px;
+    margin-left: -1px;
+
+}
+
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label-menuvisible {
+
+    border-color: #808080;
+    background: transparent;
+
+}
+
+.yui3-skin-sam .yui3-splitbuttonnav .yui3-menu-label-menuvisible .yui3-menu-toggle {
+
+    border-color: #7D98B8;
+    background: url(horizontal-menu-submenu-toggle.png) left center no-repeat;
+
+}
+
+
+/*
+*
+* The YUI CSS Foundation uses the *property and _property CSS filter
+* techniques to shield a value from A-grade browsers [1] other than
+* IE6 & IE7 (*property) and IE6 (_property)
+*
+/
+Section: General Rules
+*/
+.yui3-cssgrids body {
+        /* center the page */
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+}
+/*
+Section: Page Width Rules (#doc, #doc2, #doc3, #doc4)
+*/
+/*
+Subsection: General
+*/
+.yui3-cssgrids .yui3-d0, /* 100% */
+.yui3-cssgrids .yui3-d1, /* 750px */
+.yui3-cssgrids .yui3-d1f, /* 750px fixed */
+.yui3-cssgrids .yui3-d2, /* 950px */
+.yui3-cssgrids .yui3-d2f, /* 950px fixed */
+.yui3-cssgrids .yui3-d3, /* 974px */
+.yui3-cssgrids .yui3-d3f { /* 974px fixed */
+        margin: auto;
+        text-align: left;
+        width: 57.69em;
+        *width: 56.25em; /* doc1*/
+}
+
+.yui3-cssgrids .yui3-t1,
+.yui3-cssgrids .yui3-t2,
+.yui3-cssgrids .yui3-t3,
+.yui3-cssgrids .yui3-t4,
+.yui3-cssgrids .yui3-t5,
+.yui3-cssgrids .yui3-t6 {
+        margin: auto;
+        text-align: left;
+        width: 100%;
+}
+
+/*
+Subsection: 100% (doc)
+*/
+.yui3-cssgrids .yui3-d0 {
+        /* Left and Right margins are not a structural part of Grids. Without them Grids
+        works fine, but content bleeds to the very edge of the document, which often
+        impairs readability and usability. They are
+        provided because they prevent the content from "bleeding" into the browser's chrome.*/
+        margin: auto 10px;
+        width: auto;
+}
+.yui3-cssgrids .yui3-d0f {
+        width: 100%;
+}
+
+/*
+Subsection: 950 Centered (doc2)
+*/
+.yui3-cssgrids .yui3-d2 {
+        width: 73.076em;
+        *width: 71.25em;
+}
+.yui3-cssgrids .yui3-d2f {
+        width: 950px;
+}
+/*
+Subsection: 974 Centered (doc3)
+*/
+.yui3-cssgrids .yui3-d3 {
+        width: 74.923em;
+        *width: 73.05em;
+}
+.yui3-cssgrids .yui3-d3f {
+        width: 974px;
+}
+/*
+Section: Preset Template Rules (.yui3-t[1-6])
+*/
+/*
+Subsection: General
+*/
+
+/* to preserve source-order independence for Gecko without breaking IE */
+.yui3-cssgrids .yui3-b {
+        position: relative;
+}
+.yui3-cssgrids .yui3-b {
+        _position: static;
+}
+.yui3-cssgrids .yui3-main .yui3-b {
+        position: static;
+}
+.yui3-cssgrids .yui3-main {
+        width: 100%;
+}
+.yui3-cssgrids .yui3-t1 .yui3-main,
+.yui3-cssgrids .yui3-t2 .yui3-main,
+.yui3-cssgrids .yui3-t3 .yui3-main {
+        float: right;
+        /* IE: preserve layout at narrow widths */
+        margin-left: -25em;
+}
+.yui3-cssgrids .yui3-t4 .yui3-main,
+.yui3-cssgrids .yui3-t5 .yui3-main,
+.yui3-cssgrids .yui3-t6 .yui3-main {
+        float: left;
+        /* IE: preserve layout at narrow widths */
+        margin-right: -25em;
+}
+
+/* Subsection: For Specific Template Presets */
+
+/**
+* Nudge down to get to 13px equivalent for these form elements
+*/
+
+/*
+TODO Create t1-6's that are based on fixed widths
+*/
+/* t1 narrow block = left, equivalent of 160px */
+.yui3-cssgrids .yui3-t1 .yui3-b {
+        float: left;
+        width: 12.30769em;
+        *width: 12.00em;
+}
+.yui3-cssgrids .yui3-t1 .yui3-main .yui3-b {
+        margin-left: 13.30769em;
+        *margin-left:12.975em;
+}
+/* t2 narrow block = left, equivalent of 180px */
+.yui3-cssgrids .yui3-t2 .yui3-b {
+        float: left;
+        width: 13.84615em;
+        *width: 13.50em;
+}
+.yui3-cssgrids .yui3-t2 .yui3-main .yui3-b {
+        margin-left: 14.84615em;
+        *margin-left: 14.475em;
+}
+/* t3 narrow block = left, equivalent of 300px */
+.yui3-cssgrids .yui3-t3 .yui3-b {
+        float: left;
+        width: 23.0769em;
+        *width: 22.50em;
+}
+.yui3-cssgrids .yui3-t3 .yui3-main .yui3-b {
+        margin-left: 24.0769em;
+        *margin-left: 23.475em;
+}
+/* t4 narrow block = right, equivalent of 180px */
+.yui3-cssgrids .yui3-t4 .yui3-b {
+        float: right;
+        width: 13.8456em;
+        *width: 13.50em;
+}
+.yui3-cssgrids .yui3-t4 .yui3-main .yui3-b {
+        margin-right: 14.8456em;
+        *margin-right: 14.475em;
+}
+/* t5 narrow block = right, equivalent of 240px */
+.yui3-cssgrids .yui3-t5 .yui3-b {
+        float: right;
+        width: 18.4615em;
+        *width: 18.00em;
+}
+.yui3-cssgrids .yui3-t5 .yui3-main .yui3-b {
+        margin-right: 19.4615em;
+        *margin-right: 18.975em;
+}
+/* t6 narrow block = equivalent of 300px */
+.yui3-cssgrids .yui3-t6 .yui3-b {
+        float: right;
+        width: 23.0769em;
+        *width: 22.50em;
+}
+.yui3-cssgrids .yui3-t6 .yui3-main .yui3-b {
+        margin-right: 24.0769em;
+        *margin-right: 23.475em;
+}
+
+.yui3-cssgrids .yui3-main .yui3-b {
+        float: none;
+        width: auto;
+}
+
+/*
+Section: Grids and Nesting Grids
+*/
+
+/*
+Subsection: Children generally take half the available space
+*/
+
+.yui3-cssgrids .yui3-gb .yui3-u,
+.yui3-cssgrids .yui3-g .yui3-gb .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-g,
+.yui3-cssgrids .yui3-gb .yui3-gb,
+.yui3-cssgrids .yui3-gb .yui3-gc,
+.yui3-cssgrids .yui3-gb .yui3-gd,
+.yui3-cssgrids .yui3-gb .yui3-ge,
+.yui3-cssgrids .yui3-gb .yui3-gf,
+.yui3-cssgrids .yui3-gc .yui3-u,
+.yui3-cssgrids .yui3-gc .yui3-g,
+.yui3-cssgrids .yui3-gd .yui3-u {
+        float: left;
+}
+
+/*Float units (and sub grids) to the right */
+.yui3-cssgrids .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-g .yui3-g,
+.yui3-cssgrids .yui3-g .yui3-gb,
+.yui3-cssgrids .yui3-g .yui3-gc,
+.yui3-cssgrids .yui3-g .yui3-gd,
+.yui3-cssgrids .yui3-g .yui3-ge,
+.yui3-cssgrids .yui3-g .yui3-gf,
+.yui3-cssgrids .yui3-gc .yui3-u,
+.yui3-cssgrids .yui3-gd .yui3-g,
+.yui3-cssgrids .yui3-g .yui3-gc .yui3-u,
+.yui3-cssgrids .yui3-ge .yui3-u,
+.yui3-cssgrids .yui3-ge .yui3-g,
+.yui3-cssgrids .yui3-gf .yui3-g,
+.yui3-cssgrids .yui3-gf .yui3-u {
+        float: right;
+}
+
+/*Float units (and sub grids) to the left */
+.yui3-cssgrids .yui3-g div.first,
+.yui3-cssgrids .yui3-gb div.first,
+.yui3-cssgrids .yui3-gc div.first,
+.yui3-cssgrids .yui3-gd div.first,
+.yui3-cssgrids .yui3-ge div.first,
+.yui3-cssgrids .yui3-gf div.first,
+.yui3-cssgrids .yui3-g .yui3-gc div.first,
+.yui3-cssgrids .yui3-g .yui3-ge div.first,
+.yui3-cssgrids .yui3-gc div.first div.first {
+        float: left;
+}
+
+.yui3-cssgrids .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-g .yui3-g,
+.yui3-cssgrids .yui3-g .yui3-gb,
+.yui3-cssgrids .yui3-g .yui3-gc,
+.yui3-cssgrids .yui3-g .yui3-gd,
+.yui3-cssgrids .yui3-g .yui3-ge,
+.yui3-cssgrids .yui3-g .yui3-gf {
+        width: 49.1%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-u,
+.yui3-cssgrids .yui3-g .yui3-gb .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-g,
+.yui3-cssgrids .yui3-gb .yui3-gb,
+.yui3-cssgrids .yui3-gb .yui3-gc,
+.yui3-cssgrids .yui3-gb .yui3-gd,
+.yui3-cssgrids .yui3-gb .yui3-ge,
+.yui3-cssgrids .yui3-gb .yui3-gf,
+.yui3-cssgrids .yui3-gc .yui3-u,
+.yui3-cssgrids .yui3-gc .yui3-g,
+.yui3-cssgrids .yui3-gd .yui3-u {
+        width: 32%;
+        margin-left: 2.0%;
+}
+
+/* Give IE some extra breathing room for 1/3-based rounding issues */
+.yui3-cssgrids .yui3-gb .yui3-u {
+        *width: 31.8%;
+        *margin-left: 1.9%;
+}
+
+.yui3-cssgrids .yui3-gc div.first,
+.yui3-cssgrids .yui3-gd .yui3-u {
+        width: 66%;
+        _width: 65.7%;
+}
+.yui3-cssgrids .yui3-gd div.first {
+        width: 32%;
+        _width: 31.5%;
+}
+
+.yui3-cssgrids .yui3-ge div.first,
+.yui3-cssgrids .yui3-gf .yui3-u {
+        width: 74.2%;
+        _width: 74%;
+}
+
+.yui3-cssgrids .yui3-ge .yui3-u,
+.yui3-cssgrids .yui3-gf div.first {
+        width: 24%;
+        _width: 23.8%;
+}
+
+.yui3-cssgrids .yui3-g .yui3-gb div.first,
+.yui3-cssgrids .yui3-gb div.first,
+.yui3-cssgrids .yui3-gc div.first,
+.yui3-cssgrids .yui3-gd div.first {
+        margin-left: 0;
+}
+
+/*
+Section: Deep Nesting
+*/
+.yui3-cssgrids .yui3-g .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-gc .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-gd .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-ge .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-gf .yui3-g .yui3-u {
+        width: 49%;
+        *width: 48.1%;
+        *margin-left: 0;
+}
+
+.yui3-cssgrids .yui3-g .yui3-gb div.first,
+.yui3-cssgrids .yui3-gb .yui3-gb div.first {
+        *margin-right: 0;
+        *width: 32%;
+        _width: 31.7%;
+}
+
+.yui3-cssgrids .yui3-g .yui3-gc div.first,
+.yui3-cssgrids .yui3-gd .yui3-g {
+        width: 66%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-g div.first {
+        *margin-right: 4%;
+        _margin-right: 1.3%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-gc div.first,
+.yui3-cssgrids .yui3-gb .yui3-gd div.first {
+        *margin-right: 0;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-gb .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-gc .yui3-u {
+        *margin-left: 1.8%;
+        _margin-left: 4%;
+}
+
+.yui3-cssgrids .yui3-g .yui3-gb .yui3-u {
+        _margin-left: 1.0%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-gd .yui3-u {
+        *width: 66%;
+        _width: 61.2%;
+}
+.yui3-cssgrids .yui3-gb .yui3-gd div.first {
+        *width: 31%;
+        _width: 29.5%;
+}
+
+.yui3-cssgrids .yui3-g .yui3-gc .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-gc .yui3-u {
+        width: 32%;
+        _float: right;
+        margin-right: 0;
+        _margin-left: 0;
+}
+.yui3-cssgrids .yui3-gb .yui3-gc div.first {
+        width: 66%;
+        *float: left;
+        *margin-left: 0;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-ge .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-gf .yui3-u {
+        margin: 0;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-gb .yui3-u {
+        _margin-left: .7%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-g div.first,
+.yui3-cssgrids .yui3-gb .yui3-gb div.first {
+        *margin-left:0;
+}
+
+.yui3-cssgrids .yui3-gc .yui3-g .yui3-u,
+.yui3-cssgrids .yui3-gd .yui3-g .yui3-u {
+        *width: 48.1%;
+        *margin-left: 0;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-gd div.first {
+        width: 32%;
+}
+.yui3-cssgrids .yui3-g .yui3-gd div.first {
+        _width: 29.9%;
+}
+
+.yui3-cssgrids .yui3-ge .yui3-g {
+        width: 24%;
+}
+.yui3-cssgrids .yui3-gf .yui3-g {
+        width: 74.2%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-ge div.yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-gf div.yui3-u {
+        float: right;
+}
+.yui3-cssgrids .yui3-gb .yui3-ge div.first,
+.yui3-cssgrids .yui3-gb .yui3-gf div.first {
+        float: left;
+}
+
+/* Width Accommodation for Nested Contexts */
+.yui3-cssgrids .yui3-gb .yui3-ge .yui3-u,
+.yui3-cssgrids .yui3-gb .yui3-gf div.first {
+        *width: 24%;
+        _width: 20%;
+}
+
+/* Width Accommodation for Nested Contexts */
+
+.yui3-cssgrids .yui3-gc .yui3-gf .yui3-u {
+        width: 74%;
+        _width: 73%;
+}
+
+.yui3-cssgrids .yui3-gc .yui3-gf div.first {
+        width: 24%;
+}
+
+.yui3-cssgrids .yui3-gb .yui3-ge div.first,
+.yui3-cssgrids .yui3-gb .yui3-gf .yui3-u {
+        *width: 73.5%;
+        _width: 65.5%;
+}
+
+/* Patch for GD within GE */
+.yui3-cssgrids .yui3-ge div.first .yui3-gd .yui3-u {
+        width: 65%;
+}
+.yui3-cssgrids .yui3-ge div.first .yui3-gd div.first {
+        width: 32%;
+}
+
+/*
+Section: Clearing. zoom for IE, :after for others
+*/
+
+.yui3-cssgrids #bd:after,
+.yui3-cssgrids .yui3-g:after,
+.yui3-cssgrids .yui3-gb:after,
+.yui3-cssgrids .yui3-gc:after,
+.yui3-cssgrids .yui3-gd:after,
+.yui3-cssgrids .yui3-ge:after,
+.yui3-cssgrids .yui3-gf:after,
+.yui3-cssgrids .yui3-t1:after,
+.yui3-cssgrids .yui3-t2:after,
+.yui3-cssgrids .yui3-t3:after,
+.yui3-cssgrids .yui3-t4:after,
+.yui3-cssgrids .yui3-t5:after,
+.yui3-cssgrids .yui3-t6:after {
+        content: ".";
+        display: block;
+        height: 0;
+        clear: both;
+        visibility: hidden;
+}
+.yui3-cssgrids #bd,
+.yui3-cssgrids .yui3-g,
+.yui3-cssgrids .yui3-gb,
+.yui3-cssgrids .yui3-gc,
+.yui3-cssgrids .yui3-gd,
+.yui3-cssgrids .yui3-ge,
+.yui3-cssgrids .yui3-gf,
+.yui3-cssgrids .yui3-t1,
+.yui3-cssgrids .yui3-t2,
+.yui3-cssgrids .yui3-t3,
+.yui3-cssgrids .yui3-t4,
+.yui3-cssgrids .yui3-t5,
+.yui3-cssgrids .yui3-t6 {
+        zoom: 1;
+}
+
+
+/* Style for a "Recommendation" */
+
+/*
+   Copyright 1997-2003 W3C (MIT, ERCIM, Keio). All Rights Reserved.
+   The following software licensing rules apply:
+   http://www.w3.org/Consortium/Legal/copyright-software */
+
+/* $Id: base.css,v 1.25 2006/04/18 08:42:53 bbos Exp $ */
+
+body {
+  padding: 2em 1em 2em 70px;
+  margin: 0;
+  font-family: sans-serif;
+  color: black;
+  background: white;
+  background-position: top left;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+:link { color: #00C; background: transparent }
+:visited { color: #609; background: transparent }
+a:active { color: #C00; background: transparent }
+
+a:link img, a:visited img { border-style: none } /* no border on img links */
+
+a img { color: white; }        /* trick to hide the border in Netscape 4 */
+@media all {                   /* hide the next rule from Netscape 4 */
+  a img { color: inherit; }    /* undo the color change above */
+}
+
+th, td { /* ns 4 */
+  font-family: sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 { text-align: left }
+/* background should be transparent, but WebTV has a bug */
+h1, h2, h3 { color: #005A9C; background: white }
+h1 { font: 170% sans-serif }
+h2 { font: 140% sans-serif }
+h3 { font: 120% sans-serif }
+h4 { font: bold 100% sans-serif }
+h5 { font: italic 100% sans-serif }
+h6 { font: small-caps 100% sans-serif }
+
+.hide { display: none }
+
+div.head { margin-bottom: 1em }
+div.head h1 { margin-top: 2em; clear: both }
+div.head table { margin-left: 2em; margin-top: 2em }
+
+p.copyright { font-size: small }
+p.copyright small { font-size: small }
+
+a:hover { background: #ffa }
+
+pre { margin-left: 2em }
+/*
+p {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+}
+*/
+dt, dd { margin-top: 0; margin-bottom: 0 } /* opera 3.50 */
+dt { font-weight: bold }
+
+pre, code { font-family: monospace } /* navigator 4 requires this */
+
+ul.toc, ol.toc {
+  list-style: disc; /* Mac NS has problem with 'none' */
+  list-style: none;
+}
+
+@media aural {
+  h1, h2, h3 { stress: 20; richness: 90 }
+  .hide { speak: none }
+  p.copyright { volume: x-soft; speech-rate: x-fast }
+  dt { pause-before: 20% }
+  pre { speak-punctuation: code }
+}
+
+
+/*
+ * Style sheet for the HTML 4.0 specification
+ * $Id: default.css,v 1.13 1999/03/08 17:25:02 ijacobs Exp $
+ */
+
+div.example {
+    width: 100%;
+    color: black;
+}
+div.dtd-example {
+    width: 100%;
+    color: black;
+}
+tt.example {
+    color: maroon;
+    margin-left: 1em;
+}
+pre {
+    color: maroon;
+    margin-left: 1em;
+}
+div.dtd-fragment {
+    width: 100%;
+    border: none;
+    background-color: #eee;
+}
+pre.dtd-fragment {
+    margin-left: 0;
+}
+pre.dtd {
+    color: black;
+    margin-left: 0;
+}
+div.illegal-example {
+    width: 100%;
+    color: red;
+    border: solid red;
+}
+div.illegal-example p {
+    color: black;
+}
+div.deprecated-example {
+    width: 100%;
+    color: red;
+    border: solid rgb(255,165,0); /* orange */
+}
+div.deprecated-example p {
+    color: black;
+}
+div.note {
+    color: green;
+    margin-left: 1em;
+}
+p.note {
+    color: green;
+    margin-left: 1em;
+}
+ul.toc {
+    list-style-type: none;
+}
+
+a.normref {
+    color : red;
+}
+
+a.informref {
+    color : green;
+}
+
+DIV.subtoc {padding: 1em; border: solid thin; margin: 1em 0;
+    background: #ddd}
+
+
+#hd {
+    background: #f5f5f5; /* old browsers */
+    background: -moz-linear-gradient(top, #dcdbd9 0%, #F6F5F3 100%); /* firefox was...(top, #ddd 0%, #f8f8f8 100%)*/
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#dcdbd9), color-stop(100%,#F6F5F3)); /* webkit */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#dcdbd9', endColorstr='#F6F5F3',GradientType=0 ); /* ie */
+
+    border-bottom: 1px solid #dfdfdf;
+    *zoom: 1;
+    padding: 1em;
+}
+#hd h1 {
+    font-size: 116%;
+    font-weight: bold;
+    color: #000;
+}
+#ft {
+    font-size: 85%;
+    font-style: italic;
+}
+#play {
+    margin-top: .75em;
+    zoom: 1;
+}
+#play:after { display: block; clear: both; visibility: hidden; content: '.'; height: 0;}
+
+#feeds {
+    margin-top: .75em;
+    min-height: 500px;
+    *height: 500px;
+    padding: .5em;
+    position: relative;
+
+    background: #F9F9FC;/*E6E9F5*/
+    border: 1px solid #D4D8EB;
+
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    -webkit-box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'Helvetica', 'Arial', sans-serif;
+    margin: 15px 0;
+    padding-bottom: 1px;
+
+}
+
+#feeds ul li {
+    background-repeat: no-repeat;
+    padding-left: 25px;
+    margin: 3px;
+    cursor: move;
+    zoom: 1;
+}
+#feeds ul li.disabled {
+    opacity: .5;
+    filter: alpha(opacity=50);
+    cursor: default;
+}
+
+ul.list {
+    border: 1px dashed #ccc;
+    margin: .5em;
+    width: 325px;
+    float: left;
+    min-height: 500px;
+    *height: 500px;
+    zoom: 1;
+
+}
+
+.yui3-dd-proxy {
+    text-align: left;
+    padding-left: 20px;
+    padding: 5px;
+    margin: 2px;
+}
+
+.yui3-dd-proxy li, #play li {
+    padding-left: 20px;
+    padding: 5px;
+    margin: 2px;
+}
+
+#play li.moving {
+    background: #F9F9FC;/*E6E9F5*/
+    border: 1px solid #D4D8EB;
+}
+
+div.mod {
+    position: relative;
+    zoom: 1;
+
+    background: #F9F9FC;/*E6E9F5*/
+    border: 1px solid #D4D8EB;
+
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    -moz-box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    -webkit-box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'Helvetica', 'Arial', sans-serif;
+    margin: 15px 0;
+    padding-bottom: 1px;
+
+
+
+}
+div.mod div.inner {
+    overflow: hidden;
+    zoom: 1;
+}
+div.mod div.inner div.loading {
+    background-image: url(progress.gif);
+    background-repeat: no-repeat;
+    background-position: 5px 5px;
+    padding: 5px 5px 5px 25px;
+
+}
+#play div.mod div.inner ul li {
+    padding-left: 20px;
+    font-size: 80%;
+}
+div.mod div.inner ul li a {
+    color: #000;
+}
+div.mod h2 {
+    position: relative;
+    zoom: 1;
+    cursor: move;
+    zoom: 1;
+
+    background: #E5E6F1;
+    -moz-border-radius: 4px 4px 0 0;
+    -webkit-border-radius: 4px 4px 0 0;
+    border-radius: 4px 4px 0 0;
+    color: #5E6BA4;
+    font-weight: bold;
+    font-size: 107.692%;
+    margin: 0;
+    padding: 4px 7px 5px;
+
+
+}
+
+div.mod h2 strong {
+    font-weight: bold;
+    background-repeat: no-repeat;
+    padding-left: 25px;
+}
+
+div.minned h2 {
+    border-bottom: 1px solid #ccc;
+}
+
+div.mod h2 a.close, div.mod h2 a.min {
+    background-color: #F9F9FC;
+    border:1px solid #E5E6F1;
+    color: #5E6BA4;
+    text-align: center;
+    display: block;
+    height: 13px;
+    width: 17px;
+    text-decoration: none;
+    font-weight: bold;
+    right: 4px;
+    top: 1px;
+    position: absolute;
+    font-size: 80%;
+    margin: 2px;
+    padding: 0;
+}
+div.mod h2 a.min {
+    right: 25px;
+}
+div.minned h2 a.min {
+    right: 25px;
+}
+div.mod h2 a:hover.close, div.mod h2 a:hover.min {
+    border-color: #D4D8EB;
+}
+
+
+.yui3-button {
+    /* Structure */
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    font-size: 100%;
+    margin: 0;
+    padding: 0 1em;
+    line-height: normal;
+    line-height: 2;
+    white-space: nowrap;
+    vertical-align: baseline;
+    text-align: center;
+    cursor: pointer;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    /* Presentation */
+    color: rgba(0,0,0, 0.80);
+    *color: #444;
+    background-color: #e6e6e6;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(255,255,255, 0.30)), color-stop(40%, rgba(255,255,255, 0.15)), to(transparent));
+    background-image: -webkit-linear-gradient(rgba(255,255,255, 0.30), rgba(255,255,255, 0.15) 40%, transparent);
+    background-image: -moz-linear-gradient(top, rgba(255,255,255, 0.30), rgba(255,255,255, 0.15) 40%, transparent);
+    background-image: -ms-linear-gradient(rgba(255,255,255, 0.30), rgba(255,255,255, 0.15) 40%, transparent);
+    background-image: -o-linear-gradient(rgba(255,255,255, 0.30), rgba(255,255,255, 0.15) 40%, transparent);
+    background-image: linear-gradient(rgba(255,255,255, 0.30), rgba(255,255,255, 0.15) 40%, transparent);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#80ffffff', endColorstr='#00ffffff', GradientType=0);
+    text-decoration: none;
+    border: none;
+    border: solid 1px #999\9; /*ie hack*/
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    -webkit-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 0 rgba(255,255,255, 0.30) inset, 0 1px 2px rgba(0,0,0, 0.15);
+    -moz-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 0 rgba(255,255,255, 0.30) inset, 0 1px 2px rgba(0,0,0, 0.15);
+    box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 0 rgba(255,255,255, 0.30) inset, 0 1px 2px rgba(0,0,0, 0.15);
+
+    /* Transitions */
+    -webkit-transition: 0.1s linear -webkit-box-shadow;
+    -moz-transition: 0.1s linear -moz-box-shadow;
+    -ms-transition: 0.1s linear box-shadow;
+    -o-transition: 0.1s linear box-shadow;
+    transition: 0.1s linear box-shadow;
+}
+
+input.yui3-button {
+    height: 2em; /* Fixes height for <input> in firefox/opera */
+}
+
+a.yui3-button {
+    color: rgba(0,0,0, 0.80);
+    color: #444;
+    text-decoration:none;
+}
+
+
+.yui3-button:hover {
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(transparent), color-stop(40%, rgba(0,0,0, 0.05)), to(rgba(0,0,0, 0.15)));
+    background-image: -webkit-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: -moz-linear-gradient(top, transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: -ms-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: -o-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#26000000', GradientType=0);
+}
+
+
+.yui3-button:active {
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(0,0,0, 0.10)), to(rgba(0,0,0, 0.15)));
+    background-image: -webkit-linear-gradient(rgba(0,0,0, 0.10), rgba(0,0,0, 0.15));
+    background-image: -moz-linear-gradient(top, rgba(0,0,0, 0.10), rgba(0,0,0, 0.15));
+    background-image: -ms-linear-gradient(rgba(0,0,0, 0.10), rgba(0,0,0, 0.15));
+    background-image: -o-linear-gradient(rgba(0,0,0, 0.10), rgba(0,0,0, 0.15));
+    background-image: linear-gradient(rgba(0,0,0, 0.10), rgba(0,0,0, 0.15));
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#1A000000', endColorstr='#26000000', GradientType=0);
+    -webkit-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 4px rgba(0,0,0, 0.30) inset;
+    -moz-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 4px rgba(0,0,0, 0.30) inset;
+    box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset, 0 2px 4px rgba(0,0,0, 0.30) inset;
+}
+
+
+.yui3-button-disabled,
+.yui3-button-disabled:hover,
+.yui3-button-disabled:active {
+    cursor: default;
+    background-image: none;
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+    filter: alpha(opacity=55);
+    -khtml-opacity: 0.55;
+    -moz-opacity: 0.55;
+    opacity: 0.55;
+    -webkit-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset;
+    -moz-box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset;
+    box-shadow: 0 0 0 1px rgba(0,0,0, 0.25) inset;
+}
+
+
+.yui3-button::-moz-focus-inner{
+    padding: 0;
+    border: 0;
+}
+
+
+/* sam button */
+.yui3-button-selected {
+    background-color: #345FCB;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset, 0 2px 0 rgba(255, 255, 255, 0.17) inset, 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+/* end sam button*/
+
+
+/* night button */
+.yui3-skin-night .yui3-button {
+    background-color: #343536;
+    color: #DCDCDC;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset, 0 2px 0 rgba(255, 255, 255, 0.15) inset, 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.yui3-skin-night .yui3-button-selected {
+    background-color: #747576;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+/*end night button*/
+
+.yui3-menu .yui3-menu {
+
+        position: absolute;
+        z-index: 1;
+
+}
+
+
+.yui3-menu .yui3-shim {
+
+        /*
+                Styles for the <iframe> shim used to prevent <select> elements from poking through
+                submenus in IE < 7.  Note: For peformance, creation of the <iframe> shim for each submenu
+                is deferred until it is initially made visible by the user.
+        */
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+        opacity: 0;
+        filter: alpha(opacity=0);  /* For IE since it doesn't implement the CSS3 "opacity" property. */
+        border: none;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+
+}
+
+.yui3-menu-hidden {
+
+        /*
+                Position hidden menus outside the viewport boundaries to prevent them from
+                triggering scrollbars on the viewport.
+        */
+
+        top: -10000px;
+        left: -10000px;
+
+        /*
+                Using "visibility:hidden" over "display" none because:
+
+                1)      As the "position" property for submenus is set to "absolute", they are out of
+                        the document flow and take up no space.  Therefore, from that perspective use of
+                        "display:none" is redundant.
+
+                2)      According to MSDN use of "display:none" is more expensive:
+                        "Display is the more expensive of the two CSS properties, so if you are
+                        making elements appear and disappear often, visibility will be faster."
+                        (See http://msdn.microsoft.com/en-us/library/bb264005(VS.85).aspx)
+        */
+
+        visibility: hidden;
+
+}
+
+.yui3-menu li {
+
+    list-style-type: none;
+
+}
+
+.yui3-menu ul,
+.yui3-menu li {
+
+    margin: 0;
+    padding: 0;
+
+}
+
+.yui3-menu-label,
+.yui3-menuitem-content {
+
+    text-align: left;
+    white-space: nowrap;
+    display: block;
+
+}
+
+.yui3-menu-horizontal li {
+
+        float: left;
+        width: auto;
+
+}
+
+.yui3-menu-horizontal li li {
+
+        float: none;
+
+}
+
+.yui3-menu-horizontal ul {
+
+        /*
+                Use of "zoom" sets the "hasLayout" property to "true" in IE (< 8).  When "hasLayout" is
+                set to "true", an element can clear its floated descendents.  For more:
+                http://msdn.microsoft.com/en-gb/library/ms533776(VS.85).aspx
+        */
+
+        *zoom: 1;
+
+}
+
+.yui3-menu-horizontal ul ul {
+
+        /*
+                No need to clear <ul>s of submenus of horizontal menus since <li>s of submenus
+                aren't floated.
+        */
+
+        *zoom: normal;
+
+}
+
+.yui3-menu-horizontal>.yui3-menu-content>ul:after {
+
+        /*  Self-clearing solution for Opera, Webkit, Gecko and IE > 7 */
+
+        content: "";
+        display: block;
+        clear: both;
+        line-height: 0;
+        font-size: 0;
+        visibility: hidden;
+
+}
+
+
+/*
+        The following two rules are for IE 7.  Triggering "hasLayout" (via use of "zoom") prevents
+        first-tier submenus from hiding when the mouse is moving from an menu label in a root menu to
+        its corresponding submenu.
+*/
+
+.yui3-menu-content {
+
+        *zoom: 1;
+
+}
+
+
+.yui3-menu-hidden .yui3-menu-content {
+
+        *zoom: normal;
+
+}
+
+
+/*
+        The following two rules are for IE 6 (Standards Mode and Quirks Mode) and IE 7 (Quirks Mode
+        only).  Triggering "hasLayout" (via use of "zoom") fixes a bug in IE where mousing mousing off
+        the text node of menuitem or menu label will incorrectly trigger the mouseout event.
+*/
+
+.yui3-menuitem-content,
+.yui3-menu-label {
+
+        _zoom: 1;
+
+}
+
+.yui3-menu-hidden .yui3-menuitem-content,
+.yui3-menu-hidden .yui3-menu-label {
+
+        _zoom: normal;
+
+}
+
+/*
+        TODO will need to remove settings on HTML since we can't namespace it.
+        TODO with the prefix, should I group by selector or property for weight savings?
+*/
+html{
+        color:#000;
+        background:#FFF;
+}
+/*
+        TODO remove settings on BODY since we can't namespace it.
+*/
+/*
+        TODO test putting a class on HEAD.
+                - Fails on FF.
+*/
+body,
+div,
+dl,
+dt,
+dd,
+ul,
+ol,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+pre,
+code,
+form,
+fieldset,
+legend,
+input,
+textarea,
+p,
+blockquote,
+th,
+td {
+        margin:0;
+        padding:0;
+}
+table {
+        border-collapse:collapse;
+        border-spacing:0;
+}
+fieldset,
+img {
+        border:0;
+}
+/*
+        TODO think about hanlding inheritence differently, maybe letting IE6 fail a bit...
+*/
+address,
+caption,
+cite,
+code,
+dfn,
+em,
+strong,
+th,
+var {
+        font-style:normal;
+        font-weight:normal;
+}
+
+ol,
+ul {
+        list-style:none;
+}
+
+caption,
+th {
+        text-align:left;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+        font-size:100%;
+        font-weight:normal;
+}
+q:before,
+q:after {
+        content:'';
+}
+abbr,
+acronym {
+        border:0;
+        font-variant:normal;
+}
+/* to preserve line-height and selector appearance */
+sup {
+        vertical-align:text-top;
+}
+sub {
+        vertical-align:text-bottom;
+}
+input,
+textarea,
+select {
+        font-family:inherit;
+        font-size:inherit;
+        font-weight:inherit;
+}
+/*to enable resizing for IE*/
+input,
+textarea,
+select {
+        *font-size:100%;
+}
+/*because legend doesn't inherit in IE */
+legend {
+        color:#000;
+}
+
+/*e
+        TODO will need to remove settings on HTML since we can't namespace it.
+        TODO with the prefix, should I group by selector or property for weight savings?
+*/
+.yui3-cssreset html{
+        color:#000;
+        background:#FFF;
+}
+/*
+        TODO remove settings on BODY since we can't namespace it.
+*/
+/*
+        TODO test putting a class on HEAD.
+                - Fails on FF.
+*/
+.yui3-cssreset body,
+.yui3-cssreset div,
+.yui3-cssreset dl,
+.yui3-cssreset dt,
+.yui3-cssreset dd,
+.yui3-cssreset ul,
+.yui3-cssreset ol,
+.yui3-cssreset li,
+.yui3-cssreset h1,
+.yui3-cssreset h2,
+.yui3-cssreset h3,
+.yui3-cssreset h4,
+.yui3-cssreset h5,
+.yui3-cssreset h6,
+.yui3-cssreset pre,
+.yui3-cssreset code,
+.yui3-cssreset form,
+.yui3-cssreset fieldset,
+.yui3-cssreset legend,
+.yui3-cssreset input,
+.yui3-cssreset textarea,
+.yui3-cssreset p,
+.yui3-cssreset blockquote,
+.yui3-cssreset th,
+.yui3-cssreset td {
+        margin:0;
+        padding:0;
+}
+.yui3-cssreset table {
+        border-collapse:collapse;
+        border-spacing:0;
+}
+.yui3-cssreset fieldset,
+.yui3-cssreset img {
+        border:0;
+}
+/*
+        TODO think about hanlding inheritence differently, maybe letting IE6 fail a bit...
+*/
+.yui3-cssreset address,
+.yui3-cssreset caption,
+.yui3-cssreset cite,
+.yui3-cssreset code,
+.yui3-cssreset dfn,
+.yui3-cssreset em,
+.yui3-cssreset strong,
+.yui3-cssreset th,
+.yui3-cssreset var {
+        font-style:normal;
+        font-weight:normal;
+}
+
+.yui3-cssreset ol,
+.yui3-cssreset ul {
+        list-style:none;
+}
+
+.yui3-cssreset caption,
+.yui3-cssreset th {
+        text-align:left;
+}
+.yui3-cssreset h1,
+.yui3-cssreset h2,
+.yui3-cssreset h3,
+.yui3-cssreset h4,
+.yui3-cssreset h5,
+.yui3-cssreset h6 {
+        font-size:100%;
+        font-weight:normal;
+}
+.yui3-cssreset q:before,
+.yui3-cssreset q:after {
+        content:'';
+}
+.yui3-cssreset abbr,
+.yui3-cssreset acronym {
+        border:0;
+        font-variant:normal;
+}
+/* to preserve line-height and selector appearance */
+.yui3-cssreset sup {
+        vertical-align:text-top;
+}
+.yui3-cssreset sub {
+        vertical-align:text-bottom;
+}
+.yui3-cssreset input,
+.yui3-cssreset textarea,
+.yui3-cssreset select {
+        font-family:inherit;
+        font-size:inherit;
+        font-weight:inherit;
+}
+/*to enable resizing for IE*/
+.yui3-cssreset input,
+.yui3-cssreset textarea,
+.yui3-cssreset select {
+        *font-size:100%;
+}
+/*because legend doesn't inherit in IE */
+.yui3-cssreset legend {
+        color:#000;
+}
+
+
+.yui3-g {
+    letter-spacing: -0.31em; /* webkit: collapse white-space between units */
+    *letter-spacing: normal; /* reset IE < 8 */
+    word-spacing: -0.43em; /* IE < 8 && gecko: collapse white-space between units */
+}
+
+.yui3-u,
+.yui3-u-1,
+.yui3-u-1-2,
+.yui3-u-1-3,
+.yui3-u-2-3,
+.yui3-u-1-4,
+.yui3-u-3-4,
+.yui3-u-1-5,
+.yui3-u-2-5,
+.yui3-u-3-5,
+.yui3-u-4-5,
+.yui3-u-1-6,
+.yui3-u-5-6,
+.yui3-u-1-8,
+.yui3-u-3-8,
+.yui3-u-5-8,
+.yui3-u-7-8,
+.yui3-u-1-12,
+.yui3-u-5-12,
+.yui3-u-7-12,
+.yui3-u-11-12,
+.yui3-u-1-24,
+.yui3-u-5-24,
+.yui3-u-7-24,
+.yui3-u-11-24,
+.yui3-u-13-24,
+.yui3-u-17-24,
+.yui3-u-19-24,
+.yui3-u-23-24 {
+    display: inline-block;
+    zoom: 1; *display: inline; /* IE < 8: fake inline-block */
+    letter-spacing: normal;
+    word-spacing: normal;
+    vertical-align: top;
+}
+
+.yui3-u-1 {
+    display: block;
+}
+
+.yui3-u-1-2 {
+    width: 50%;
+}
+
+.yui3-u-1-3 {
+    width: 33.33333%;
+}
+
+.yui3-u-2-3 {
+    width: 66.66666%;
+}
+
+.yui3-u-1-4 {
+    width: 25%;
+}
+
+.yui3-u-3-4 {
+    width: 75%;
+}
+
+.yui3-u-1-5 {
+    width: 20%;
+}
+
+.yui3-u-2-5 {
+    width: 40%;
+}
+
+.yui3-u-3-5 {
+    width: 60%;
+}
+
+.yui3-u-4-5 {
+    width: 80%;
+}
+
+.yui3-u-1-6 {
+    width: 16.656%;
+}
+
+.yui3-u-5-6 {
+    width: 83.33%;
+}
+
+.yui3-u-1-8 {
+    width: 12.5%;
+}
+
+.yui3-u-3-8 {
+    width: 37.5%;
+}
+
+.yui3-u-5-8 {
+    width: 62.5%;
+}
+
+.yui3-u-7-8 {
+    width: 87.5%;
+}
+
+.yui3-u-1-12 {
+    width: 8.3333%;
+}
+
+.yui3-u-5-12 {
+    width: 41.6666%;
+}
+
+.yui3-u-7-12 {
+    width: 58.3333%;
+}
+
+.yui3-u-11-12 {
+    width: 91.6666%;
+}
+
+.yui3-u-1-24 {
+    width: 4.1666%;
+}
+
+.yui3-u-5-24 {
+    width: 20.8333%;
+}
+
+.yui3-u-7-24 {
+    width: 29.1666%;
+}
+
+.yui3-u-11-24 {
+    width: 45.8333%;
+}
+
+.yui3-u-13-24 {
+    width: 54.1666%;
+}
+
+.yui3-u-17-24 {
+    width: 70.8333%;
+}
+
+.yui3-u-19-24 {
+    width: 79.1666%;
+}
+
+.yui3-u-23-24 {
+    width: 95.8333%;
+}
+/* YUI CSS Detection Stamp */
+#yui3-css-stamp.cssgrids { display: none; }
+</style>
+<script>
+var element = document.getElementById("styleElement");
+var cssText = element.textContent;
+var count = 0;
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of the CSS parser (using YUI's CSS).",
+    run: function() {
+        element.textContent = "";
+        element.textContent = cssText + "#some" + count + "{color:black};";
+        count++;
+    }
+});
+
+</script>
+</body>

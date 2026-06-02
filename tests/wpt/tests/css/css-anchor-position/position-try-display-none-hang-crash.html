@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html class="test-wait">
+
+<title>Browser doesn't hang when a child using position-try has an ancestor with display: none</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#fallback">
+
+<style>
+  .inner {
+    position: absolute;
+    position-try: top right;
+  }
+</style>
+
+<!-- not nested -->
+<div class="outer inner"></div>
+
+<!-- 1 level nest -->
+<div class="outer">
+  <div class="inner"></div>
+</div>
+
+<!-- 2 level nest -->
+<div class="outer">
+  <div>
+    <div class="inner"></div>
+  </div>
+</div>
+
+<!-- 3 level nest -->
+<div class="outer">
+  <div>
+    <div>
+      <div class="inner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let html = document.documentElement;
+  html.addEventListener("TestRendered", () => {
+    const outers = document.getElementsByClassName("outer");
+    for (let i = 0; i < outers.length; ++i)
+      outers[i].style.display = "none";
+
+    html.classList.remove("test-wait");
+  });
+</script>
+
+</html>

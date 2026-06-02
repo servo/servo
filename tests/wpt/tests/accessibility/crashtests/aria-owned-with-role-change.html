@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<!-- Test that setting the role an an aria-owns child does not crash. -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('paragraph1').role = 'tab';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.className = '';
+        });
+      });
+    });
+  });
+});
+</script>
+</head>
+<body>
+<main>
+  <fieldset id='owner' aria-owns="paragraph1">
+    <div>
+      <p id="paragraph1">
+        <mark>
+          Child
+        </mark>
+      </p>
+    </div>
+  </fieldset>
+</main>
+
+</body>
+</html>

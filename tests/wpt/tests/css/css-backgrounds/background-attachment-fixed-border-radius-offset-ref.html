@@ -1,0 +1,20 @@
+<!doctype html>
+<title>background-attachment: fixed with border-radius and offset (reference)</title>
+<style>
+  .stripe-not-fixed {
+    position: absolute;
+    top: calc(8px - 128px);
+    width: 200px;
+    height: 683px;
+    background-image: url("/images/grgr-256x256.png");
+    background-position: 0px -80px;
+    background-size: 1024px 768px;
+    background-repeat: no-repeat;
+    clip-path: inset(0 0 385px 0);
+  }
+  body {
+    overflow: hidden;
+    height: 300vh;
+  }
+</style>
+<div class="stripe-not-fixed"></div>

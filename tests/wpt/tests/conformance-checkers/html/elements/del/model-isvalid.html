@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;del&gt;</title>
+</head>
+<body>
+
+
+  <!-- can contain strictly inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <del>
+      <em>text</em>
+    </del>
+  </dfn></p>
+
+  <!-- can contain interactive if ancestor does not forbid it -->
+  <p>paragraph
+    <del>
+      <a>link</a>
+    </del>
+  </p>
+  <p><dfn>strictly inline
+    <del>
+      <a>link</a>
+    </del>
+  </dfn></p>
+
+  <div><del><p>foo</p></del></div><!-- with flow content and flow parent -->
+
+</body>
+</html>

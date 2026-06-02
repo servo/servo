@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Largest Contentful Paint after soft navigation: requestAnimationFrame can add additional LCP
+  entry.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<body>
+  <button id="click-target" onclick="clickHandler()">Click!</button>
+</body>
+<script>
+  // The click handler uses a RAF (requestAnimationFrame) loop to defer work, which
+  // ultimately causes as second (and larger) soft LCP entry to be added.
+  // The termination condition for the RAF loop is that the first soft LCP entry
+  // (from clickHandler) has been observed. So, this example guarantees that
+  // there are two soft LCP entries.
+  //
+  // Note: This test could become brittle if performance observer tasks were
+  // deprioritized by the scheduler, while RAF loop iterations were to run
+  // back-to-back; in that case, adding a setTimeout or scheduler.yield into the
+  // RAF loop may become necessary.
+  // See shaseley's comment on crrev.com/c/6658297.
+  function clickHandler() {
+    let smallLcpIssued = false;
+
+    new PerformanceObserver((list, observer) => {
+      if (list.getEntries().some((e) => e.id === "small-lcp")) {
+        smallLcpIssued = true;
+        observer.disconnect();
+      }
+    }).observe({ type: "interaction-contentful-paint" });
+
+    document.body.innerHTML = `
+          <div id='small-lcp'>Hello, world.</div>
+        `;
+    history.pushState({}, "", "/test");
+
+    function rafLoop() {
+      if (smallLcpIssued) {
+        const div = document.createElement("div");
+        div.innerHTML = "The quick brown fox jumps over the lazy dog.";
+        div.id = "large-lcp";
+        document.body.appendChild(div);
+      } else {
+        requestAnimationFrame(rafLoop);
+      }
+    }
+    rafLoop();
+  }
+
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries =
+        await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
+    assert_equals(lcpEntries.length, 1, "There should be only one LCP entry");
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+
+    const promise = Promise.all([
+      SoftNavigationTestHelper.getPerformanceEntries("soft-navigation"),
+      SoftNavigationTestHelper.getPerformanceEntries(
+        "interaction-contentful-paint",
+        /*minNumEntries=*/ 2,
+      ),
+    ]);
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    const [softNavigationEntries, softLcpEntries] = await promise;
+    assert_equals(
+      softNavigationEntries.length,
+      1,
+      "There should be only one soft navigation entry",
+    );
+    assert_equals(softLcpEntries.length, 2, "There should be two soft LCP entries");
+    assert_equals(
+      softLcpEntries[0].id,
+      "small-lcp",
+      "The first soft LCP entry should be the small text",
+    );
+    assert_equals(
+      softLcpEntries[1].id,
+      "large-lcp",
+      "The second soft LCP entry should be the large text",
+    );
+    assert_equals(
+      softNavigationEntries[0].navigationId,
+      softLcpEntries[0].navigationId,
+      "The soft navigation entry should have the same navigation ID as the first soft LCP entry",
+    );
+    assert_equals(
+      softNavigationEntries[0].navigationId,
+      softLcpEntries[1].navigationId,
+      "The soft navigation entry should have the same navigation ID as the second soft LCP entry",
+    );
+    assert_not_equals(
+      lcpEntries[0].navigationId,
+      softNavigationEntries[0].navigationId,
+      "The soft navigation entry should have a different navigation ID than the initial (hard) LCP entry",
+    );
+  }, "Largest Contentful Paint after soft navigation: requestAnimationFrame can add additional LCP entry.");
+</script>

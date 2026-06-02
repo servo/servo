@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#the-screen-wake-lock-powerful-feature">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'denied');
+
+  return navigator.permissions.query({name:'screen-wake-lock'}).then(status => {
+    assert_class_string(status, "PermissionStatus");
+    assert_equals(status.state, "denied");
+  });
+}, "PermissionDescriptor with name='screen-wake-lock' works");
+</script>

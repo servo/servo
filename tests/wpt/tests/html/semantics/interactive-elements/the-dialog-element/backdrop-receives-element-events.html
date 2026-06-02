@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<title>Test that ::backdrop receives events for the associated element</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<body>
+<style>
+/* ::backdrop takes up whole screen, actual <dialog> is hidden */
+dialog {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+dialog::backdrop {
+    visibility: visible;
+    pointer-events: initial;
+    background-color: red;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+dialog.clicked::backdrop {
+    background-color: green;
+}
+</style>
+<dialog></dialog>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+setup({ single_test: true });
+
+const dialog = document.querySelector("dialog");
+dialog.showModal();
+dialog.addEventListener("click", () => {
+    // Change style for debugging purposes, done() actually makes the test pass
+    dialog.className = "clicked";
+    done();
+});
+new test_driver.Actions()
+    .pointerMove(0, 0, {origin: "viewport"})
+    .pointerDown()
+    .pointerUp()
+    .send();
+</script>
+</body>
+</html>

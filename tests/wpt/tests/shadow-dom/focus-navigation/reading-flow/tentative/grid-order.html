@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<div class="test-case" data-expect="a1,b1,c1,d1,e1"
+      data-description="Grid items without `order` property">
+  <div class="wrapper">
+    <button id="a1">Item A</button>
+    <button id="b1">Item B</button>
+    <button id="c1">Item C</button>
+  </div>
+  <div class="wrapper">
+    <button id="d1">Item D</button>
+    <button id="e1">Item E</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="b2,c2,a2,e2,d2"
+      data-description="Grid items with `order` property">
+  <div class="wrapper">
+    <button id="a2" style="order: 2">Item A</button>
+    <button id="b2">Item B</button>
+    <button id="c2">Item C</button>
+  </div>
+  <div class="wrapper">
+    <button id="d2">Item D</button>
+    <button id="e2" style="order: -1">Item E</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="a3,c3,b3,f3,e3,d3,h3,h32,h31,g3,g31,g32"
+      data-description="Grid items with `order` property and tabindex. Positive tabindex doesn't reorder reading flow item, but can affect its descendants.">
+  <div class="wrapper">
+    <button id="a3" style="order: -1">Item A</button>
+    <button id="b3" style="order: 0">Item B</button>
+    <button id="c3" tabindex="1" style="order: -1">Item C</button>
+  </div>
+  <div class="wrapper">
+    <button id="d3" tabindex="1" style="order: 1">Item D</button>
+    <button id="e3" tabindex="2" style="order: 0">Item E</button>
+    <button id="f3" tabindex="2" style="order: -1">Item F</button>
+  </div>
+  <div class="wrapper">
+    <div id="g3" style="order: 2" tabindex="0">G
+      <div id="g31" tabindex="1">Item G1</div>
+      <div id="g32" tabindex="2">Item G2</div>
+    </div>
+    <div id="h3" style="order: 1" tabindex="0">H
+      <div id="h31" tabindex="0">Item H1</div>
+      <div id="h32" tabindex="1">Item H2</div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="d4,b4,c4,a4"
+      data-description="Items in display block are not in parent grid container.">
+  <div class="wrapper">
+    <button id="a4" style="order: 3">A</button>
+    <div style="order: 1" style="display: block">
+      <button id="b4" style="order: 2">B</button>
+      <button id="c4" style="order: -1">C</button>
+    </div>
+    <button id="d4">D</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

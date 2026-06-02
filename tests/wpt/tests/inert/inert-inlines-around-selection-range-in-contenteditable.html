@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Delete editable range around elements having inert attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../editing/include/editor-test-utils.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, "<span inert>a[bc</span><span>de]f</span>");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      !!editingHost.querySelector("span[inert]"),
+      true,
+      `${desc}: <span inert> should not be deleted`
+    );
+    assert_equals(
+      editingHost.querySelector("span[inert]").textContent,
+      "def",
+      `${desc}: <span inert> content should not be deleted`
+    );
+    assert_not_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should be deleted (but how to handle it is not tested here)`
+    );
+  }, "<span>a[bc</span><span inert>de]f</span>");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent-reverse" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name} (selection range direction is inverted)`
+    assert_equals(
+      !!editingHost.querySelector("span[inert]"),
+      true,
+      `${desc}: <span inert> should not be deleted`
+    );
+    assert_equals(
+      editingHost.querySelector("span[inert]").textContent,
+      "def",
+      `${desc}: <span inert> content should not be deleted`
+    );
+    assert_not_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should be deleted (but how to handle it is not tested here)`
+    );
+  }, "<span inert>d[ef</span><span>ab]c</span>");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent-reverse" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name} (selection range direction is inverted)`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, "<span>d[ef</span><span inert>ab]c</span>");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(editingHost.innerHTML, "af", `${desc}: <span inert> should be deleted`);
+  }, "a[bc<span inert>XYZ</span>de]f");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:contents">a[bc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:contents">{abc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:contents">a[bc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:contents">{abc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:none">a[bc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:none">{abc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:none">a[bc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:none">{abc</span></span><span>de]f</span>`);
+});
+</script>
+</head>
+<body>
+<div contenteditable></div>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<title>timeline-trigger shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#timeline-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target" style="font-size:10px"></div>
+<script>
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% / cover 0% cover 100%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+    test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10% cover 90%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain 20%',
+      'timeline-trigger-activation-range-end': 'contain 80%',
+      'timeline-trigger-active-range-start': 'cover 10%',
+      'timeline-trigger-active-range-end': 'cover 90%',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% / cover 0%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain 20%',
+      'timeline-trigger-activation-range-end': 'contain 80%',
+      'timeline-trigger-active-range-start': 'cover 10%',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% / cover',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain 20%',
+      'timeline-trigger-activation-range-end': 'contain 80%',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 0%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain 10%',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain 10%',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger',
+    '--my-trigger view() contain',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger', '--my-trigger view()',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'view()',
+      'timeline-trigger-activation-range-start': 'normal',
+      'timeline-trigger-activation-range-end': 'normal',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+  test_shorthand_value('timeline-trigger', '--my-trigger --my-timeline',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': '--my-timeline',
+      'timeline-trigger-activation-range-start': 'normal',
+      'timeline-trigger-activation-range-end': 'normal',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
+
+  test_shorthand_value('timeline-trigger', '--my-trigger1, --my-trigger2',
+    {
+      'timeline-trigger-name': '--my-trigger1, --my-trigger2',
+      'timeline-trigger-source': 'auto, auto',
+      'timeline-trigger-activation-range-start': 'normal, normal',
+      'timeline-trigger-activation-range-end': 'normal, normal',
+      'timeline-trigger-active-range-start': 'auto, auto',
+      'timeline-trigger-active-range-end': 'auto, auto',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain cover / normal exit, '+
+  '--my-trigger2 --my-timeline2 entry exit / contain normal',
+    {
+      'timeline-trigger-name': '--my-trigger1, --my-trigger2',
+      'timeline-trigger-source': '--my-timeline1, --my-timeline2',
+      'timeline-trigger-activation-range-start': 'contain, entry',
+      'timeline-trigger-activation-range-end': 'cover, exit',
+      'timeline-trigger-active-range-start': 'normal, contain',
+      'timeline-trigger-active-range-end': 'exit, normal',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain / cover',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain exit 0% / cover',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'exit 0%',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain cover 100% / cover exit 100%',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'contain',
+      'timeline-trigger-activation-range-end': 'cover',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'exit',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain 50% / cover 50%',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'contain 50%',
+      'timeline-trigger-activation-range-end': 'contain',
+      'timeline-trigger-active-range-start': 'cover 50%',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 contain 50% contain 90% / cover 50% cover 90%',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'contain 50%',
+      'timeline-trigger-activation-range-end': 'contain 90%',
+      'timeline-trigger-active-range-start': 'cover 50%',
+      'timeline-trigger-active-range-end': 'cover 90%',
+    });
+  test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 / cover ',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'normal',
+      'timeline-trigger-activation-range-end': 'normal',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'cover',
+    });
+    test_shorthand_value('timeline-trigger',
+  '--my-trigger1 --my-timeline1 / cover exit 100%',
+    {
+      'timeline-trigger-name': '--my-trigger1',
+      'timeline-trigger-source': '--my-timeline1',
+      'timeline-trigger-activation-range-start': 'normal',
+      'timeline-trigger-activation-range-end': 'normal',
+      'timeline-trigger-active-range-start': 'cover',
+      'timeline-trigger-active-range-end': 'exit',
+    });
+  test_computed_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% / cover 0% cover 100%',
+    '--my-trigger view() contain / cover');
+  test_computed_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10% cover 90%');
+  test_computed_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 0%',
+    '--my-trigger view() contain 20% contain 80% / cover');
+  test_computed_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10%',
+    '--my-trigger view() contain 20% contain 80% / cover 10%');
+  test_computed_value('timeline-trigger',
+      '--my-trigger view() contain 0% contain 100%',
+      '--my-trigger view() contain');
+  test_computed_value('timeline-trigger', 'view()');
+  test_computed_value('timeline-trigger',
+      '--my-trigger --my-timeline',
+      '--my-trigger --my-timeline');
+
+  test_computed_value('timeline-trigger', '--trigger1, --trigger2');
+
+  test_computed_value('timeline-trigger',
+      '--trigger1 view(), --trigger2 scroll()',
+      '--trigger1 view(), --trigger2 scroll()');
+  test_computed_value('timeline-trigger',
+      '--my-trigger --my-timeline normal / contain',
+      '--my-trigger --my-timeline / contain');
+  test_computed_value('timeline-trigger',
+      '--my-trigger --my-timeline / contain');
+
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% / cover 0% cover 100%',
+    '--my-trigger view() contain / cover');
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10% cover 90%');
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 0%',
+    '--my-trigger view() contain 20% contain 80% / cover');
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10%',
+    '--my-trigger view() contain 20% contain 80% / cover 10%');
+  test_valid_value('timeline-trigger',
+      '--my-trigger view() contain 0% contain 100%',
+      '--my-trigger view() contain');
+  test_valid_value('timeline-trigger', 'view()');
+  test_valid_value('timeline-trigger', '--my-trigger --my-timeline');
+
+  test_valid_value('timeline-trigger', '--trigger1, --trigger2');
+
+  test_valid_value('timeline-trigger',
+      '--trigger1 view(), --trigger2 scroll()',
+      '--trigger1 view(), --trigger2 scroll()');
+
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() normal normal / auto auto',
+    '--my-trigger view()');
+
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() normal normal / normal auto',
+    '--my-trigger view() / normal');
+
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() normal normal / cover auto',
+    '--my-trigger view() / cover');
+
+  test_valid_value('timeline-trigger',
+    '--my-trigger view() normal normal / cover 10% auto',
+    '--my-trigger view() / cover 10%');
+
+  test_valid_value('timeline-trigger',
+      '--my-trigger --my-timeline normal / contain',
+      '--my-trigger --my-timeline / contain');
+  test_valid_value('timeline-trigger',
+      '--my-trigger --my-timeline / contain');
+
+  test_invalid_value('timeline-trigger',
+    '--my-trigger view() contain 0% contain 100% // cover 0% cover 100%');
+  test_invalid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% contain / cover 10% cover 90%');
+  test_invalid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10% cover 90% cover 100%');
+  test_invalid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% /');
+  test_invalid_value('timeline-trigger',
+    '--my-trigger view() contain 20% contain 80% / cover 10% /');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain 20% contain 80% cover 10% cover 90% contan');
+  test_invalid_value('timeline-trigger', '--my-trigger view() /');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain / cover, contain /');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain / cover, contain contain /');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain / cover, contain contain contain / cover');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain contain cover cover');
+  test_invalid_value('timeline-trigger',
+      '--my-trigger view() contain contain cover');
+</script>

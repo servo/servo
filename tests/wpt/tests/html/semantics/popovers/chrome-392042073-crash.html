@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Chrome hidePopover() display:none transition crash</title>
+<link rel="help" href="https://crbug.com/392042073">
+<style>
+  #target {
+    transition-property: overlay, display;
+    transition-duration: 3600s;
+    transition-behavior: allow-discrete;
+  }
+</style>
+<p>PASS if no crash</p>
+<div style="position-area:top;position:absolute"></div>
+<button id="btn" popovertarget="target">First</button>
+<div id="target" popover="hint"></div>
+<script>
+  btn.click();
+  target.hidePopover();
+</script>

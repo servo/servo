@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: descriptor fallback</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-fallback">
+<link rel="match" href="descriptor-fallback-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: fixed;
+    symbols: a b c;
+    fallback: b;
+  }
+  @counter-style b {
+    system: fixed 4;
+    symbols: d e f;
+    fallback: a;
+  }
+  @counter-style c {
+    system: fixed 7;
+    symbols: g h i;
+    fallback: a;
+  }
+</style>
+<ol style="list-style-type: a">
+  <li><li><li>
+  <li><li><li>
+  <li><li><li>
+</ol>
+<ol style="list-style-type: b">
+  <li><li><li>
+  <li><li><li>
+  <li><li><li>
+</ol>
+<ol style="list-style-type: c">
+  <li><li><li>
+  <li><li><li>
+  <li><li><li>
+</ol>

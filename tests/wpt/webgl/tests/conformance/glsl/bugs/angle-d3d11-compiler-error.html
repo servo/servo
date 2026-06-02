@@ -1,0 +1,98 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ANGLE D3D11 Bug - Shader compilation error</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+
+<script id="vs" type="x-shader/x-fragment">
+precision mediump float;
+uniform float A;
+void main() {
+  bool B = bool(A);
+  float x = B ? -A : 1.+A;
+  float y = B ? 1.+A : -A;
+  gl_Position = vec4(x, y, 0, 0);
+}
+
+</script>
+<script id="fs" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+  gl_FragColor = vec4(1, 0, 0, 1);
+}
+</script>
+
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+// See http://crbug.com/371868 for original failing case.
+description("This test checks an ANGLE D3D11 shader compiler error.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking shader compilation and linking.");
+
+  checkCompilation();
+}
+
+function checkCompilation() {
+  var vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, document.getElementById("vs").text);
+  gl.compileShader(vs);
+  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+      testFailed("Vertex Shader failed to compile: " + gl.getShaderInfoLog(vs));
+      return;
+  }
+
+  var fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, document.getElementById("fs").text);
+  gl.compileShader(fs);
+  if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      testFailed("Fragment Shader failed to compile: " + gl.getShaderInfoLog(fs));
+      return;
+  }
+
+  var p = gl.createProgram();
+  gl.attachShader(p, vs);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      testFailed("Program failed to link: " + gl.getProgramInfoLog(p));
+      return;
+  }
+
+  testPassed("Linked Successfully");
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

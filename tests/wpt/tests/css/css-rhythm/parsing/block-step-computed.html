@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step computed values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step">
+<meta name="assert" content="Checking computed values for block-step">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    // Default values
+    test_computed_value("block-step", "none");
+    test_computed_value("block-step", "auto", "none");
+    test_computed_value("block-step", "margin-box", "none");
+    test_computed_value("block-step", "up", "none");
+
+    test_computed_value("block-step", "none auto", "none");
+    test_computed_value("block-step", "none margin-box", "none");
+    test_computed_value("block-step", "none up", "none");
+
+    test_computed_value("block-step", "auto none", "none");
+    test_computed_value("block-step", "auto margin-box", "none");
+    test_computed_value("block-step", "auto up", "none");
+
+    test_computed_value("block-step", "margin-box none", "none");
+    test_computed_value("block-step", "margin-box auto", "none");
+    test_computed_value("block-step", "margin-box up", "none");
+
+    test_computed_value("block-step", "up none", "none");
+    test_computed_value("block-step", "up auto", "none");
+    test_computed_value("block-step", "up margin-box", "none");
+
+    test_computed_value("block-step", "auto up margin-box", "none");
+    test_computed_value("block-step", "none auto up margin-box", "none");
+
+    // Non-default values
+    test_computed_value("block-step", "padding-box");
+    test_computed_value("block-step", "content-box");
+    test_computed_value("block-step", "100px");
+    test_computed_value("block-step", "center");
+    test_computed_value("block-step", "start");
+    test_computed_value("block-step", "end");
+    test_computed_value("block-step", "down");
+    test_computed_value("block-step", "nearest");
+
+    test_computed_value("block-step", "none padding-box up", "padding-box");
+    test_computed_value("block-step", "content-box 100px up", "100px content-box");
+    test_computed_value("block-step", "content-box start 100px", "100px content-box start");
+    test_computed_value("block-step", "100px center down padding-box", "100px padding-box center down");
+    test_computed_value("block-step", "start 100px", "100px start");
+    test_computed_value("block-step", "end 100px", "100px end");
+    test_computed_value("block-step", "end nearest 100px", "100px end nearest");
+    test_computed_value("block-step", "center content-box 100px", "100px content-box center");
+</script>
+</body>
+</html>

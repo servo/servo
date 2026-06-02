@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Row-major matrix test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderUniformMatrixRowMajor" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out highp vec4 my_FragColor;
+layout(std140, row_major) uniform b {
+    mat4x3 m;
+};
+void main() {
+    // If the matrix is interpreted as row-major, then the translation components will be 0,1,0, or solid green.
+    my_FragColor = mat4(m) * vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Row-major matrix layouts should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderUniformMatrixRowMajor',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: '',
+  uniformBlocks: [{name: "b", value: new Float32Array([
+    0, 0, 0, 0, // Red
+    0, 0, 0, 1, // Green
+    0, 0, 0, 0, // Blue
+  ])}]
+}
+], 2);
+</script>
+</body>
+</html>
+

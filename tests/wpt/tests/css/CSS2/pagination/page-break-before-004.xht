@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before (no inherit)</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'page-break-before' property is not inherited."/>
+<style type="text/css">
+	div.kidsIgnoreMe {
+		page-break-before: always;
+	}
+</style>
+</head>
+<body>
+<div class="kidsIgnoreMe">
+	<div>This test produces one or two pages of output on paged media. This sentence must be on the same page as the next sentence.</div>
+	<p>This sentence must appear on the same page as the text above.</p>
+</div>
+</body>
+</html>

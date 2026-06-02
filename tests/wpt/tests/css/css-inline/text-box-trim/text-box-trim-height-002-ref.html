@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  background: lightgray;
+  block-size: 20px;
+}
+.max-height > .spacer:first-child {
+  margin-top: 80px; /* avoid overlap */
+}
+
+.target {
+  font: 100px/1 Ahem;
+}
+
+.height > .target,
+.min-height > .target {
+  padding-top: 40px;
+  height: 80px;
+}
+
+.max-height > .target {
+  margin-top: -70px;
+  height: 80px;
+}
+</style>
+
+<div class="height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>
+
+<div class="min-height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>
+
+<div class="max-height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>

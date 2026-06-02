@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DeviceMotionEvent: A device with the screen upright</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author' title='Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-14 -->
+  </head>
+  <body>
+    <p>Put the device with the screen upright.</p>
+    <div id="log"></div>
+    <script>
+      var t = async_test();
+      var run = false;
+
+      /*
+       * A device with the screen upright has an acceleration of zero
+       * and the following value for accelerationIncludingGravity:
+       * {
+       *   x: 0,
+       *   y: -9.81,
+       *   z: 0
+       * };
+       */
+      window.addEventListener("devicemotion", function(e) {
+        if (!run) {
+          run = true;
+          t.step(function() {
+            var gvt = e.accelerationIncludingGravity;
+            var acc = e.acceleration;
+            var rot = e.rotationRate;
+
+            assert_approx_equals(gvt.x, 0, 1);
+            assert_approx_equals(gvt.y, -9.81, 1.5);
+            assert_approx_equals(gvt.z, 0, 1);
+
+            assert_approx_equals(acc.x, 0, 1);
+            assert_approx_equals(acc.y, 0, 1);
+            assert_approx_equals(acc.z, 0, 1);
+
+            assert_equals(rot, null);
+          });
+          t.done();
+        }
+      }, false);
+    </script>
+  </body>
+</html>
+

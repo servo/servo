@@ -1,0 +1,14 @@
+<!doctype HTML>
+<html class="test-wait" style="font-size: 200px; opacity: 0.5">
+<link rel="help" href="https://drafts.fxtf.org/compositing/#pagebackdrop">
+<link rel="match" href="root-element-opacity-change-ref.html">
+<meta name="assert" content="View background should be white after opacity changes from 0.5 to 1">
+<script src="/common/rendering-utils.js"></script>
+TEST
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.documentElement.style.opacity=1;
+  document.documentElement.classList.remove('test-wait');
+});
+</script>
+</html>

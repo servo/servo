@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<!-- Test that setting aria-owns from an aria-hidden subtree does not crash -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('owner').removeAttribute('aria-owns');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.className = '';
+        });
+      });
+    });
+  });
+});
+</script>
+</head>
+<body>
+<main aria-hidden="true">
+  <fieldset id='owner' aria-owns="paragraph1">
+    Text
+  </fieldset>
+</main>
+
+<div role="complementary" aria-label="Natural parent">
+  <p id="paragraph1">
+    <mark>
+      Child
+    </mark>
+  </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Absolutely positioned</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-mrow">
+<link rel="match" href="absolutely-positioned-001-ref.html"/>
+<meta name="assert" content="Verify visual rendering of absolutely positioned mtext elements.">
+<body>
+  <p>Test passes if you see a green square and no red.</p>
+  <div style="position: absolute; left: 100px; top: 100px;">
+    <math>
+      <mrow>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mspace width="100px" height="300px" style="background: red"/>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mtext style="position: absolute; left: 100px; top: 0px;"><span style="display: inline-block; width: 50px; height: 300px; background: green"></span></mtext>
+        <mtext style="position: absolute; left: 150px; top: 0px;"><span style="display: inline-block; width: 50px; height: 150px; background: green"></span></mtext>
+        <mtext style="position: absolute; left: 150px; top: 150px;"><span style="display: inline-block; width: 50px; height: 150px; background: green"></span></mtext>
+      </mrow>
+    </math>
+  </div>
+</body>
+</html>

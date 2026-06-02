@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: table width/height</title>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abs-non-replaced-width">
+<meta name="assert" content="Table css width/height are different. Make sure absolute position respects the differences.">
+<style>
+
+.container {
+  margin-bottom: 8px;
+  position: relative;
+  width: 300px;
+  height: 220px;
+  background: gray;
+}
+table {
+  position: absolute;
+  border: 10px solid green;
+  width: 100px;
+  height: 100px;
+  background: yellow;
+  right: 0;
+  bottom: 0;
+  padding: 10px;
+  border-spacing: 0 0;
+}
+.contentbox {
+  box-sizing: content-box;
+  width: 60px;
+  height: 60px;
+}
+td {
+  padding: 0;
+}
+
+</style>
+<p>Table css width/height are interpreted differently: they are the minimum width. Absolute positioning code should respect this.</p>
+<div class="container">
+  <table id="one">
+    <td>t1</td>
+  </table>
+</div>
+<div class="container">
+  <table id="two">
+    <td><div style="width:160px;height:160px;background:orange">div makes cell larger.</div></td>
+  </table>
+</div>
+<div class="container">
+  <table id="one-border" style="box-sizing: border-box">
+    <td>t1</td>
+  </table>
+</div>
+<div class="container">
+  <table id="two-border" style="box-sizing: border-box">
+    <td><div style="width:160px;height:160px;background:orange">div makes cell larger.</div></td>
+  </table>
+</div>
+<div class="container">
+  <table id="one-content" class="contentbox">
+    <td>t1</td>
+  </table>
+</div>
+<div class="container">
+  <table id="two-content" class="contentbox">
+    <td><div style="width:160px;height:160px;background:orange">div makes cell larger.</div></td>
+  </table>
+</div>
+<script>
+test(() => {
+  let t = document.getElementById("one");
+  assert_equals(t.offsetWidth, 100);
+  assert_equals(t.offsetHeight, 100);
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+}, 'table size is interpreted as border-box width by default');
+test(() => {
+  let t = document.getElementById("two");
+  assert_equals(t.offsetWidth, 200);
+  assert_equals(t.offsetHeight, 200);
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+}, 'table size is interpreted as minimum width');
+test(() => {
+  let t = document.getElementById("one-border");
+  assert_equals(t.offsetWidth, 100);
+  assert_equals(t.offsetHeight, 100);
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+}, 'table size border-box');
+test(() => {
+  let t = document.getElementById("two-border");
+  assert_equals(t.offsetWidth, 200);
+  assert_equals(t.offsetHeight, 200);
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+}, 'table size border-box interpreted as minimum width');
+test(() => {
+  let t = document.getElementById("one-content");
+  assert_equals(t.offsetWidth, 100);
+  assert_equals(t.offsetHeight, 100);
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+}, 'table size content-box');
+test(() => {
+  let t = document.getElementById("two-content");
+  assert_equals(t.offsetWidth, 200);
+  assert_equals(t.offsetHeight, 200);
+  assert_equals(t.parentNode.offsetWidth, t.offsetLeft + t.offsetWidth, "right position is 0");
+  assert_equals(t.parentNode.offsetHeight, t.offsetTop + t.offsetHeight, "bottom position is 0");
+}, 'table size content-box interpreted as minimum width');
+</script>

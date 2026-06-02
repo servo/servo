@@ -1,0 +1,44 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: JS Self-Profiling API (https://wicg.github.io/js-self-profiling/)
+
+[Exposed=Window]
+interface Profiler : EventTarget {
+  readonly attribute DOMHighResTimeStamp sampleInterval;
+  readonly attribute boolean stopped;
+
+  constructor(ProfilerInitOptions options);
+  Promise<ProfilerTrace> stop();
+};
+
+typedef DOMString ProfilerResource;
+
+dictionary ProfilerTrace {
+  required sequence<ProfilerResource> resources;
+  required sequence<ProfilerFrame> frames;
+  required sequence<ProfilerStack> stacks;
+  required sequence<ProfilerSample> samples;
+};
+
+dictionary ProfilerSample {
+  required DOMHighResTimeStamp timestamp;
+  unsigned long long stackId;
+};
+
+dictionary ProfilerStack {
+  unsigned long long parentId;
+  required unsigned long long frameId;
+};
+
+dictionary ProfilerFrame {
+  required DOMString name;
+  unsigned long long resourceId;
+  unsigned long long line;
+  unsigned long long column;
+};
+
+dictionary ProfilerInitOptions {
+  required DOMHighResTimeStamp sampleInterval;
+  required unsigned long maxBufferSize;
+};

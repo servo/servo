@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: At-rules</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#at-rules"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+
+  <meta name="flags" content="invalid" />
+  <style type="text/css">
+
+  p { color: green; }
+  @import "support/import-red.css";
+
+  </style>
+ </head>
+ <body>
+
+ <p class="import">This text should be green.</p>
+
+ </body>
+</html>

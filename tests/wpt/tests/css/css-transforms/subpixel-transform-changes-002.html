@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Transforms Test: Subpixel transform changes 'backface-visibility: hidden'</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-property">
+<link rel="match" href="reference/subpixel-transform-changes-002-ref.html">
+<meta name="assert" content="Test checks that subpixel transform changes work as expected regardless of 'backface-visibility: hidden'.">
+<style>
+div {
+  backface-visibility: hidden;
+}
+</style>
+
+<div id="translateX1" style="transform: translateX(0.12px);">transform: translateX(0.48px);</div>
+<div id="translateX2" style="transform: translateX(0.56px);">transform: translateX(3.17px);</div>
+<div id="translateX3" style="transform: translateX(1.87px);">transform: translateX(0.34px);</div>
+
+<div id="translateY1" style="transform: translateY(0.12px);">transform: translateY(0.48px);</div>
+<div id="translateY2" style="transform: translateY(0.56px);">transform: translateY(3.17px);</div>
+<div id="translateY3" style="transform: translateY(1.87px);">transform: translateY(0.34px);</div>
+
+<div id="translateZ1" style="transform: translateZ(0.12px);">transform: translateZ(0.48px);</div>
+<div id="translateZ2" style="transform: translateZ(0.56px);">transform: translateZ(3.17px);</div>
+<div id="translateZ3" style="transform: translateZ(1.87px);">transform: translateZ(0.34px);</div>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    translateX1.style.transform = "translateX(0.48px)";
+    translateX2.style.transform = "translateX(3.17px)";
+    translateX3.style.transform = "translateX(0.34px)";
+
+    translateY1.style.transform = "translateY(0.48px)";
+    translateY2.style.transform = "translateY(3.17px)";
+    translateY3.style.transform = "translateY(0.34px)";
+
+    translateZ1.style.transform = "translateZ(0.48px)";
+    translateZ2.style.transform = "translateZ(3.17px)";
+    translateZ3.style.transform = "translateZ(0.34px)";
+
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+</script>
+</html>

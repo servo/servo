@@ -1,0 +1,18 @@
+features:
+- name: transforms3d
+  files:
+  - large-scale3d-001.html
+  - preserve3d-*
+  - w-crossing-zero-001.html
+  - w-negative-*
+  - zero-perspective-001.html
+  - fragmented-block-in-inline-with-perspective.html
+- name: transforms2d
+  files:
+  - "*"
+  - "!large-scale3d-001.html"
+  - "!preserve3d-*"
+  - "!w-crossing-zero-001.html"
+  - "!w-negative-*"
+  - "!zero-perspective-001.html"
+  - "!fragmented-block-in-inline-with-perspective.html"

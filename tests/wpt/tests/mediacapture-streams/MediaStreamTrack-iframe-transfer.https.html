@@ -1,0 +1,31 @@
+<!doctype html>
+<title>MediaStreamTrack transfer to iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async () => {
+  const iframe = document.createElement("iframe");
+  await test_driver.bless('getDisplayMedia');
+  const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
+  const track = stream.getVideoTracks()[0];
+  const iframeLoaded = new Promise((resolve) => {iframe.onload = resolve});
+
+  iframe.src = "support/iframe-MediaStreamTrack-transfer.html";
+  document.body.appendChild(iframe);
+
+  await iframeLoaded;
+
+  const nextMessage = new Promise((resolve) => {
+    window.onmessage = resolve
+  });
+
+  assert_not_equals(track.readyState, "ended");
+  iframe.contentWindow.postMessage(track);
+  assert_equals(track.readyState, "ended");
+
+  const message = await nextMessage;
+  assert_not_equals(message.data.result, 'Failure', 'Failed: ' + message.data.error);
+});
+</script>

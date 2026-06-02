@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: element with inline child</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="content-with-inline-child-ref.html">
+<meta name="flags" content="ahem">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+
+#target {
+  width: 100px;
+  height: 100px;
+  overflow-clip-margin: 500px;
+  contain: paint;
+  view-transition-name: target;
+  background-color: grey;
+}
+
+#child {
+  position: relative;
+  left: 100px;
+  top: 100px;
+  color: lightgreen;
+  background-color: darkgreen;
+}
+
+#innerchild {
+  position: relative;
+  left: 100px;
+}
+
+html::view-transition-new(root) {
+  opacity: 0;
+}
+html::view-transition-old(root) {
+  opacity: 0;
+}
+
+html::view-transition-old(target) {
+  animation-duration: 3s;
+  animation-timing-function: steps(1, end);
+  opacity: 1;
+}
+html::view-transition-new(target) { animation: unset; opacity: 0; }
+
+</style>
+
+<div id="target" style="font: 25px/1 Ahem">
+  <span id="child">INLINE<br><span id="innerchild">BOX</span></span>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    // Remove the target to ensure the ref is compared against the snapshot.
+    document.getElementById("target").remove();
+
+    requestAnimationFrame(
+      () => requestAnimationFrame(
+      () => requestAnimationFrame(
+      () => requestAnimationFrame(takeScreenshot))));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

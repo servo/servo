@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Layout Instability: no shifts from advancing video track</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<video controls>
+  <source src="/media/white.webm" type="video/webm">
+</video>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  var video = document.querySelector("video");
+
+  await new Promise(resolve => { video.oncanplay = resolve; });
+  await waitForAnimationFrames(2);
+
+  // TODO(crbug.com/1088311): There are still some shifts from creating the
+  // <video>, so the score is already > 0 here. For now, just verify that
+  // advancing the track does not increase it further.
+  var currentScore = watcher.score;
+
+  video.currentTime = 5;
+
+  await waitForAnimationFrames(3);
+  cls_expect(watcher, {score: currentScore});
+
+}, "No shifts from advancing video track.");
+
+</script>

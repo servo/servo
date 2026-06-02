@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testParams = function(session, fakeDeviceController, t, sessionObjects) {
+  return new Promise((resolve, reject) => {
+    let gl = sessionObjects.gl;
+    try {
+      gl.makeXRCompatible().then(() => {
+        t.step(() => {
+          let fov = Math.PI;
+          let near = 0.2;
+          let far = 0.8;
+          let layer = new XRWebGLLayer(session, gl);
+          session.updateRenderState({ inlineVerticalFieldOfView: fov, depthNear: near, depthFar: far, baseLayer: layer });
+          // The update can only happen between frame boundaries, updateRenderState only queues changes.
+          assert_not_equals(session.renderState.inlineVerticalFieldOfView, fov);
+          assert_not_equals(session.renderState.depthNear, near);
+          assert_not_equals(session.renderState.depthFar, far);
+          assert_not_equals(session.renderState.baseLayer, layer);
+        });
+      });
+    } catch (err) {
+      assert_unreached("updateRenderState should not fail when all params are specified");
+    }
+    resolve();
+  });
+};
+
+let testName = "updateRenderState handles appropriately XRRenderStateInit params";
+xr_session_promise_test(testName, testParams, fakeDeviceInitParams, 'inline');
+
+</script>

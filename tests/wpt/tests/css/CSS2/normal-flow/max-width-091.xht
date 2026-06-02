@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-width using percentages with a minimum plus one value, 1%</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-29 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-max-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+        <link rel="match" href="max-width-003-ref.xht" />
+
+        <meta name="assert" content="The 'max-width' property sets a minimum plus one length value in percentages." />
+        <style type="text/css">
+            #div1
+            {
+                width: 100px;
+            }
+            div div
+            {
+                background: black;
+                height: 1in;
+                max-width: 1%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a thin vertical line.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

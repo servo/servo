@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+ <meta charset="UTF-8">
+
+ <title>CSS Ruby Test: Improperly-contained ruby annotation</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-ruby-1/#ruby-display">
+  <link rel="help" href="https://www.w3.org/TR/css-ruby-1/#box-fixup">
+  <link rel="match" href="reference/improperly-contained-annotation-001-ref.html">
+
+  <meta content="This test checks that an improperly-contained ruby annotation is wrapped in an anonymous ruby container.">
+
+  <style>
+  ruby
+    {
+      background-color: lightblue;
+      font-size: 40px;
+    }
+
+  rbc
+    {
+      display: ruby-base-container;
+    }
+  </style>
+
+  <ruby><rbc>B<rt>A</rt></rbc></ruby>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: snapshot containing block includes scrollbar gutters</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="snapshot-containing-block-includes-scrollbar-gutter-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-100">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  :root {
+    scrollbar-gutter: stable both-edges;
+    /* unset so ::view-transition is visible. */
+    view-transition-name: none;
+  }
+  ::view-transition {
+    background-color: palegreen;
+  }
+  #target {
+    position: absolute;
+    top: 100px;
+    left: 0px;
+    width: 200px;
+    height: 200px;
+    background-color: limegreen;
+    view-transition-name: target;
+  }
+  ::view-transition-group(target) {
+    animation-duration: 300s;
+  }
+</style>
+<!--
+  This box should be a scrollbar's width from the left edge and
+  exactly aligned with the light green background.
+-->
+<div id="target">
+</div>
+<script>
+  failIfNot(document.startViewTransition,
+      "Missing document.startViewTransition");
+
+  async function runTest() {
+    let transition = document.startViewTransition();
+    await transition.ready;
+    takeScreenshot();
+  }
+
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

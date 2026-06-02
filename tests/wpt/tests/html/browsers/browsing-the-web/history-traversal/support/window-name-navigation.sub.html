@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+    <script>
+        var url = new URL(window.location.href);
+        url.hostname = "{{GET[hostname]}}";
+        url.pathname = "/html/browsers/browsing-the-web/history-traversal/support/window-name-test.sub.html";
+        url.search = "shouldhavename={{GET[shouldhavename]}}&sendmessage={{GET[sendmessage]}}";
+        window.name = "test";
+        window.location = url.href;
+    </script>
+</html>

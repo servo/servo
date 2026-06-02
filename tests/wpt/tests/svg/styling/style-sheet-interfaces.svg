@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG11/styling.html#StyleElement"/>
+    <h:meta name="assert" content="SVGStyle objects have the properties specified in their interfaces"/>
+  </metadata>
+  <h:script src="/resources/testharness.js" type="text/javascript"/>
+  <h:script src="/resources/testharnessreport.js" type="text/javascript"/>
+  <style id="styleElement" type="text/css" media="all" title="internal style sheet" disabled="disabled">
+    @import url('support/a-green.css');
+    * { margin: 0; padding: 0; }
+  </style>
+  <script>
+    var styleElement = document.getElementById("styleElement");
+
+    var styleSheet;
+
+    // styleElement.sheet exists and is a CSSStyleSheet
+    test(function() {
+        assert_idl_attribute(styleElement, "sheet");
+        assert_readonly(styleElement, "sheet");
+        styleSheet = styleElement.sheet;
+        assert_true(styleSheet instanceof CSSStyleSheet);
+    }, "sheet_property");
+
+    // The sheet property on LinkStyle should always return the current associated style sheet.
+    test(function () {
+      var style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+      document.querySelector("svg").appendChild(style);
+      var sheet1 = style.sheet;
+      assert_equals(sheet1.cssRules.length, 0);
+      style.appendChild(document.createTextNode("a { color: green; }"));
+      assert_equals(style.sheet.cssRules.length, 1);
+    }, "sheet_property_updates");
+
+    // ownerRule, cssRules, insertRule and deleteRule properties exist on CSSStyleSheet
+    // ownerRule, cssRules are read only
+    test(function() {
+        assert_idl_attribute(styleSheet, "ownerRule");
+        assert_idl_attribute(styleSheet, "cssRules");
+        assert_inherits(styleSheet, "insertRule");
+        assert_inherits(styleSheet, "deleteRule");
+
+        assert_readonly(styleSheet, "ownerRule");
+        assert_readonly(styleSheet, "cssRules");
+    }, "CSSStyleSheet_properties");
+
+    var importSheet;
+    // CSSStyleSheet initial property values are correct
+    test(function() {
+        assert_equals(styleSheet.ownerRule, null);
+        assert_true(styleSheet.cssRules.length > 0);
+        assert_true(styleSheet.cssRules.item(0) instanceof CSSImportRule);
+        importSheet = styleSheet.cssRules.item(0).styleSheet;
+    }, "CSSStyleSheet_property_values");
+
+    // type, disabled, ownerNode, parentStyleSheet, href, title, and media properties exist on StyleSheet
+    // type, ownerNode, parentStyleSheet, href, and title properties are read only
+    test(function() {
+        assert_idl_attribute(styleSheet, "type");
+        assert_idl_attribute(styleSheet, "disabled");
+        assert_idl_attribute(styleSheet, "ownerNode");
+        assert_idl_attribute(styleSheet, "parentStyleSheet");
+        assert_idl_attribute(styleSheet, "href");
+        assert_idl_attribute(styleSheet, "title");
+        assert_idl_attribute(styleSheet, "media");
+
+        assert_readonly(styleSheet, "type");
+        assert_readonly(styleSheet, "ownerNode");
+        assert_readonly(styleSheet, "parentStyleSheet");
+        assert_readonly(styleSheet, "href");
+        assert_readonly(styleSheet, "title");
+    }, "StyleSheet_properties");
+
+    // StyleSheet initial property values are correct
+    test(function() {
+        assert_equals(styleSheet.type, "text/css");
+        assert_equals(styleSheet.disabled, false);
+
+        assert_equals(styleSheet.ownerNode, styleElement);
+        assert_equals(importSheet.ownerNode, null);
+
+        assert_equals(styleSheet.href, null);
+        assert_regexp_match(importSheet.href, /support\/a-green.css$/);
+
+        assert_equals(styleSheet.parentStyleSheet, null);
+        assert_equals(importSheet.parentStyleSheet, styleSheet);
+
+        assert_equals(styleSheet.title, "internal style sheet");
+        assert_equals(styleSheet.media.item(0), "all");
+    }, "StyleSheet_property_values");
+  </script>
+</svg>

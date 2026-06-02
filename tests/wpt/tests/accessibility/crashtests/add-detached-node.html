@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html  class="test-wait">
+<body onload="start()">
+<script>
+  function start() {
+    requestAnimationFrame(() => {
+      target2.placeholder = "string";
+      target1.type = "hidden";
+      document.documentElement.className = '';
+    });
+  }
+</script>
+
+<ol id=target1 inert>
+  <content>
+    <textarea id=target2></textarea>
+    <semantics>
+      <optgroup></optgroup>
+    </semantics>
+  </content>
+</ol>
+</body>
+</html>

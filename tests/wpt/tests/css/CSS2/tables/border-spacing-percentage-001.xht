@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Border-spacing - percentage value does not apply</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <meta content="invalid" name="flags" />
+  <meta content="'border-spacing' property does not accept percentage unit." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  background-color: red;
+  border-spacing: 0px;
+  border-spacing: 20%; /* invalid */
+  table-layout: fixed;
+  width: 200px;
+  }
+
+  td
+  {
+  background-color: white;
+  color: white;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <table>
+      <tr>
+          <td>a</td>
+          <td>b</td>
+      </tr>
+
+      <tr>
+          <td>c</td>
+          <td>d</td>
+      </tr>
+  </table>
+
+ </body>
+</html>

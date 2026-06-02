@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await navigation.navigate("#foo").committed;
+  assert_equals(navigation.entries().length, start_length + 1);
+
+  navigation.onnavigate = e => e.intercept();
+
+  let oncurrententrychange_back_called = false;
+  let onpopstate_back_called = false;
+  window.onpopstate = t.step_func(e => {
+    onpopstate_back_called = true;
+    assert_true(oncurrententrychange_back_called);
+  });
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_back_called = true;
+    assert_false(onpopstate_back_called);
+  });
+  let back_result = navigation.back();
+  assert_false(oncurrententrychange_back_called);
+  assert_false(onpopstate_back_called);
+  await back_result.finished;
+  assert_true(oncurrententrychange_back_called);
+  assert_true(onpopstate_back_called);
+
+  let oncurrententrychange_forward_called = false;
+  let onpopstate_forward_called = false;
+  window.onpopstate = t.step_func(e => {
+    onpopstate_forward_called = true;
+    assert_true(oncurrententrychange_forward_called);
+  });
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_forward_called = true;
+    assert_false(onpopstate_forward_called);
+  });
+  let forward_result = navigation.forward();
+  assert_false(oncurrententrychange_forward_called);
+  assert_false(onpopstate_forward_called);
+  await forward_result.finished;
+  assert_true(oncurrententrychange_back_called);
+  assert_true(onpopstate_forward_called);
+}, "currententrychange fires before popstate for navigation.back() and navigation.forward()");
+</script>

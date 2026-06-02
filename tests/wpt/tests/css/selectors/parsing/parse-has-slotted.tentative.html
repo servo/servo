@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>CSS Selectors: has slotted pseudo selectors</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector(":has-slotted(bar)");
+  test_valid_selector(':has-slotted([attr="foo"])');
+  test_valid_selector(":has-slotted(*)");
+  test_valid_selector(":has-slotted(.class)");
+  test_valid_selector(":has-slotted(#id)");
+  test_valid_selector(":has-slotted(:not(foo))");
+  test_valid_selector(':has-slotted(:not(:nth-last-of-type(2)):not([slot="foo"]))');
+  test_valid_selector(":has-slotted(:first-child)");
+  test_valid_selector(":has-slotted(:hover)");
+  test_valid_selector(":has-slotted(foo):first-child");
+  test_valid_selector(":has-slotted(foo):hover");
+  test_valid_selector(":has-slotted(foo):focus");
+  test_valid_selector(":has-slotted(foo):lang(en)");
+  test_valid_selector(":has-slotted(foo):dir(ltr)");
+  test_valid_selector(':has-slotted(foo) + :has-slotted(bar)');
+  test_valid_selector(":not(:has-slotted(foo))");
+  test_valid_selector(":has-slotted(div + div)");
+  test_valid_selector(":has-slotted(div:has(> span))");
+  test_valid_selector(":has-slotted");
+  test_invalid_selector("::has-slotted(foo)");
+  test_invalid_selector(":has-slotted()");
+  test_invalid_selector(":has-slotted(0)");
+  test_invalid_selector(":has-slotted(div > span)");
+</script>

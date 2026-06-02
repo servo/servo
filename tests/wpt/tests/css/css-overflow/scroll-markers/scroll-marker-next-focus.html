@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: next focus search start after ::scroll-marker activation is from its ultimate originating element</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-next-focus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    height: 10px;
+    width: 150px;
+  }
+
+  section {
+    background: red;
+  }
+
+  section:focus {
+    background: green;
+  }
+
+  section::scroll-marker {
+    content: "Section";
+    background: red;
+    width: 50px;
+    height: 10px;
+  }
+
+  section::scroll-marker:focus {
+    background: green;
+  }
+
+  button {
+    background: red;
+    height: 30px;
+  }
+
+  button:focus {
+    background: green;
+  }
+</style>
+<button>Before</button>
+<div id="scroller">
+  <section id="first_section" tabindex=0>Section 1</section>
+  <section id="second_section" tabindex=-1>
+    Section 2
+    <button id="target">Focusable</button>
+  </section>
+  <section tabindex=0>Section 3</section>
+</div>
+<button>After</button>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(5, 35)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(first_section, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "the first ::scroll-marker gets activated upon clicking");
+    const kTab = '\uE004';
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+    assert_equals(getComputedStyle(first_section).backgroundColor, "rgb(0, 128, 0)", "next focus search start after the first ::scroll-marker activation is from its ultimate originating element");
+
+    await new test_driver.Actions()
+      .pointerMove(55, 35)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(second_section, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "the second ::scroll-marker gets activated upon clicking");
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)", "next focus search start after the second ::scroll-marker activation is from its ultimate originating element");
+  });
+</script>

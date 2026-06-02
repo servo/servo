@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<div id="mc" style="columns:4; line-height:0;">
+  <ruby>
+    <div style="display:inline-block; width:10px; height:50px;"></div>
+    <rt>
+      <div style="display:inline-block; width:10px; height:50px;"></div>
+    </rt>
+  </ruby>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(mc.offsetHeight, 100);
+  }, "Ruby text should affect column height");
+</script>

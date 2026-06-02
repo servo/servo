@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED type element selector</title>
+  <style type="text/css"><![CDATA[div.stub span, div.stub address, div.stub *|q, div.stub *|r { background-color: red; }
+address, *|q, *|r { display: block; margin: 1em; }
+div.stub *:not(p) { background-color: lime; }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+ <div class="stub">
+  <p>
+   <span>The text in this paragraph should have a green background</span>
+  </p>
+  <address>This address should have a green background</address>
+  <q xmlns="http://www.example.org/a">This element in another namespace should have a green background.</q>
+  <r xmlns="">This element without a namespace should have a green background.</r>
+  <p>This paragraph should be unstyled.</p>
+ </div>
+</body>
+</html>

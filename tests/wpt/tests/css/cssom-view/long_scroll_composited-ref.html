@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Long scrolling should work properly</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+
+
+<style>
+.post {
+  height: 1000px;
+  width: 300px;
+  border: 1px solid black;
+
+}
+.before {
+  height: 213px;
+  border-top: 0;
+}
+.scroller {
+  overflow-y: scroll;
+  width: 500px;
+  height: 500px;
+  will-change: transform;
+}
+::-webkit-scrollbar {
+  display: none;
+}
+</style>
+
+<p>The number 7 should be visible in the scrolled window below.</p>
+
+<div id="scroller" class="scroller">
+  <div style="position: relative;">
+    <div style="position: relative;">
+      <div class="post before"></div>
+      <div class="post">7</div>
+    </div>
+  </div>
+</div>
+
+

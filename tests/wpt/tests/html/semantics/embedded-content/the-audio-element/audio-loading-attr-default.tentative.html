@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<audio id="target"></audio>
+
+<script>
+  const audio = document.getElementById("target");
+
+  test(() => {
+    assert_equals(
+      audio.loading,
+      "eager",
+      "Audio loading property should be 'eager' when attribute is not set"
+    );
+  }, "Audio loading attribute default should be eager when not set");
+</script>

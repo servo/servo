@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "choiceSet.json",
+  "title": "Definitions: Choice.",
+  "description": "Schemas in #/definitions detect or validate keys/objects used in describing Choice (Sections 3.2.7 and 3.2.8).",
+  "definitions":
+  {
+
+    "itemsDetected" :
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: items",
+      "description": "True when the object includes items key and value of items is an array containing at least 1 item, which can be a specificResource, an externalWebResource, a uri, a textualBody or another choice/set (Sections 3.2.7 and 3.2.8).",
+      "type": "object",
+      "properties" :
+      {
+        "items" :
+        {
+          "type" : "array",
+          "minItems": 1,
+          "items": {
+            "oneOf":
+              [
+                { "$ref": "specificResource.json#/definitions/specificeResourceDetected" },
+                { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected" },
+                { "$ref": "bodyTarget.json#/definitions/textualBodyFound" },
+                { "$ref": "id.json#/definitions/stringUri" },
+                { "allOf":
+                  [
+                     { "$ref" : "#/definitions/choiceOrSetTypeDefinition" },
+                     { "$ref": "#/definitions/itemsDetected"  }
+                  ]
+                }
+              ]
+          }
+        }
+      },
+      "required": [ "items" ]
+    },
+
+    "choiceTypeDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Choice type",
+      "description": "True when object has type key and object's type is 'Choice' (Section 3.2.7)",
+      "type": "object",
+      "properties":
+      {
+        "type":
+        {
+          "type": "string",
+          "enum": ["Choice"]
+        }
+      },
+      "required": [ "type" ]
+    },
+
+    "choiceOrSetTypeDefinition":
+    {
+       "$schema": "http://json-schema.org/draft-04/schema#",
+       "title": "Definition: Choice or Set type",
+       "description": "True when object has type key and object's type is any of 'Choice' (Section 3.2.7)",
+       "type": "object",
+       "properties":
+       {
+         "type":
+         {
+           "type": "string",
+           "enum": ["Choice"]
+         }
+       },
+            "required": [ "type" ]
+    },
+
+    "choiceDetected": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Detection: Choice",
+      "description": "True when object's type is 'Choice' and the object has an items array (Section 3.2.7)",
+      "type": "object",
+      "allOf":
+        [
+        { "$ref": "#/definitions/choiceTypeDefinition" },
+        { "$ref": "#/definitions/itemsDetected" }
+        ]
+    },
+
+    "choiceOrSetDetected": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Detection: Choice or Set",
+      "description": "True when object's type is one of Choice and the object has an items array (Section 3.2.7)",
+      "type": "object",
+      "allOf":
+        [
+           { "$ref": "#/definitions/choiceOrSetTypeDefinition" },
+           { "$ref": "#/definitions/itemsDetected" }
+        ]
+    },
+
+    "choiceSetWithValue" :
+    {
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "value" ] }
+           ]
+    },
+
+    "choiceSetWithSource" :
+    {
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "source" ] }
+           ]
+    },
+
+    "choiceSetWithPurpose" :
+    {
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "purpose" ] }
+           ]
+    }
+
+  }
+}

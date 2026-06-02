@@ -1,0 +1,101 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Media element src attribute must match src list - 'none' negative test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'none'; connect-src 'self';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/common/get-host-info.sub.js'></script>
+</head>
+<body>
+    <h1>Media element src attribute must match src list - 'none' negative test</h1>
+    <div id='log'></div>
+
+  <script>
+    const otherOrigin = get_host_info().OTHER_ORIGIN;
+    const audioUrl = otherOrigin + "/media/sound_5.oga";
+    const videoUrl = otherOrigin + "/media/A4.webm";
+
+    // Asynchronously returns the next `securitypolicyviolation` event.
+    async function nextViolation() {
+      return await new Promise((resolve) => {
+        window.addEventListener("securitypolicyviolation", resolve, {
+          once: true,
+        });
+      });
+    }
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const video = document.createElement("video");
+      video.type = "video/webm";
+      video.src = videoUrl;
+      video.onloadeddata = reject;
+      video.onerror = () => { resolve(violationPromise); };
+
+      document.body.appendChild(video);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, videoUrl, "blocked URI");
+    }), "Disallowed async video src");
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const video = document.createElement("video");
+      video.oncanplay = reject;
+      video.onloadedmetadata = reject;
+      video.onloadeddata = reject;
+
+      const source = document.createElement("source");
+      source.type = "video/webm";
+      source.src = videoUrl;
+      source.onerror = () => { resolve(violationPromise); };
+
+      video.appendChild(source);
+      document.body.appendChild(video);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, videoUrl, "blocked URI");
+    }), "Disallowed async video source element");
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const audio = document.createElement("audio");
+      audio.type = "audio/webm";
+      audio.src = audioUrl;
+      audio.oncanplay = reject;
+      audio.onloadedmetadata = reject;
+      audio.onloadeddata = reject;
+      audio.onerror = () => { resolve(violationPromise); };
+
+      document.body.appendChild(audio);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, audioUrl, "blocked URI");
+    }), "Disallowed audio src");
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const violationPromise = nextViolation();
+
+      const audio = document.createElement("audio");
+      audio.oncanplay = reject;
+      audio.onloadedmetadata = reject;
+      audio.onloadeddata = reject;
+
+      const source = document.createElement("source");
+      source.type = "audio/webm";
+      source.src = audioUrl;
+      source.onerror = () => { resolve(violationPromise); };
+
+      audio.appendChild(source);
+      document.body.appendChild(audio);
+    }).then((violation) => {
+      assert_equals(violation.violatedDirective, "media-src", "directive");
+      assert_equals(violation.blockedURI, audioUrl, "blocked URI");
+    }), "Disallowed audio source element");
+  </script>
+</body>
+</html>

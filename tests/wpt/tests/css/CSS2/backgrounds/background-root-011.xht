@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background propagation on &lt;body&gt; and &lt;html&gt; - fully transparent</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/08.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-011-ref.xht" />
+
+<style type="text/css"><![CDATA[
+   body { border: solid lime; background: transparent; }
+   html { border: solid blue; background: transparent; }
+   p, :link, :visited { color: black; background: white; }
+   * { margin: 1em; padding: 1em; }
+]]></style>
+
+</head>
+<body>
+<p>Enclosing this text should be a solid lime border around which
+there should be a solid blue one. The backgrounds are undefined.</p>
+
+
+</body>
+</html>

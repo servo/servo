@@ -1,0 +1,123 @@
+<svg version="1.1" baseProfile="basic" onload="onEvent(evt, 'Rect6', 'visible')" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted
+"
+    version="$Revision: 1.6 $" testname="$RCSfile: interact-events-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#SVGEvents">
+      <p>
+        Test 'onload' event attribute.
+      </p>
+      <p>
+        Six blue rectangles have been defined, each initially defined with
+        'visibility:hidden'. 'onload' event attributes are assigned in
+        a variety of ways, usually to set 'visibility:visible'.
+        The red text indicates the correct behavior
+        (whether a given rectangle should appear in the visual result).
+      </p>
+      <p>
+        The first rectangle has no associated 'onload' event so it remains invisible.
+        The second rectangle has an 'onload' event on itself, which invokes a script
+        which sets 'visibility:visible', so it should appear.
+        The third rectangle has an 'onload' event on its parent 'g', which invokes a script
+        which sets 'visibility:visible' on the rectangle, so it should appear.
+        The fourth rectangle has an 'onload' event on an ancestor 'svg', which invokes a script
+        which sets 'visibility:visible' on the rectangle, so it should appear.
+        The fifth rectangle has an 'onload' event both itself and its parent 'g'.
+        The rectangle's script sets 'visibility:visible' on the rectangle
+        but the parent's script sets  'visibility:hidden' on the rectangle,
+        which should happen afterwards, so the rectangle should not appear.
+        The sixth rectangle has an 'onload' event on the outermost 'svg', which invokes a script
+        which sets 'visibility:visible' on the rectangle, so it should appear.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if blue squares are visible for subtests 2, 3, 4 and 6 (only)
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-events-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <script type="text/ecmascript"><![CDATA[
+
+        function onEvent(evt, indicatorId, visibilityValue){
+        // Get Document
+        var target = evt.target;
+        var doc = target.ownerDocument;
+
+        // Mark test as passed
+        var elementToShow = doc.getElementById(indicatorId);
+        elementToShow.setAttribute('visibility', '' + visibilityValue);
+        }
+
+      ]]></script>
+    </defs>
+    <text font-family="Arial" font-size="40" x="30" y="40">
+      'onload' event attribute.
+    </text>
+    <g font-family="Arial" font-size="40" fill="blue" stroke="none">
+      <g transform="translate(77.5,45)">
+        <rect id="Rect1" width="80" height="80" visibility="hidden"/>
+        <text x="-30" y="120" fill="red">1: No</text>
+      </g>
+      <g transform="translate(202.5,45)">
+        <rect id="Rect2" width="80" height="80" onload="onEvent(evt, 'Rect2', 'visible')" visibility="hidden"/>
+        <text x="-30" y="120" fill="red">2: Yes</text>
+      </g>
+      <g transform="translate(327.5,45)">
+        <g onload="onEvent(evt, 'Rect3', 'visible')">
+          <rect id="Rect3" width="80" height="80" visibility="hidden"/>
+        </g>
+        <text x="-30" y="120" fill="red">3: Yes</text>
+      </g>
+      <g transform="translate(77.5,178)">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200" height="200" onload="onEvent(evt, 'Rect4', 'visible')">
+          <rect id="Rect4" width="80" height="80" visibility="hidden"/>
+        </svg>
+        <text x="-30" y="120" fill="red">4: Yes</text>
+      </g>
+      <g transform="translate(202.5,178)">
+        <g onload="onEvent(evt, 'Rect5', 'hidden')">
+          <rect id="Rect5" width="80" height="80" onload="onEvent(evt, 'Rect5', 'visible')" visibility="hidden"/>
+        </g>
+        <text x="-30" y="120" fill="red">5: No</text>
+      </g>
+      <g transform="translate(327.5,178)">
+        <rect id="Rect6" width="80" height="80" visibility="hidden"/>
+        <text x="-30" y="120" fill="red">6: Yes</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

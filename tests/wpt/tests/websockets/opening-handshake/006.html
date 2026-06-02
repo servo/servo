@@ -1,0 +1,58 @@
+<!doctype html>
+<title>WebSockets: Serialized connection attempts</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../constants.sub.js"></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id="log"></div>
+<script>
+async_test(function(t) {
+  const paths = ['/invalid1', '/invalid2', '/invalid3', '/echo']; // /echo is valid
+  let currentTestIndex = 0;
+  let isPreviousConnectionClosed = true;
+
+  function testNextPath() {
+    if (currentTestIndex < paths.length) {
+      t.step(function() {
+        assert_true(isPreviousConnectionClosed, "Previous connection should be closed before attempting a new one");
+        isPreviousConnectionClosed = false;
+
+        const path = paths[currentTestIndex];
+        const ws = new WebSocket(SCHEME_DOMAIN_PORT + path);
+
+        ws.onclose = t.step_func(function(e) {
+          if (path !== '/echo') {
+            assert_false(e.wasClean, "Connection should fail uncleanly for path: " + path);
+          } else {
+            assert_true(e.wasClean, "Connection to /echo should close cleanly");
+          }
+          isPreviousConnectionClosed = true;
+          currentTestIndex++;
+          t.step_timeout(testNextPath, 0); // Schedule the next test
+        });
+
+        ws.onopen = t.step_func(function() {
+          if (path === '/echo') {
+            assert_true(true, "Connection to /echo should succeed");
+            ws.close();
+          } else {
+            t.unreached_func("Invalid path should not succeed");
+          }
+        });
+
+        ws.onerror = t.step_func(function() {
+          if (path === '/echo') {
+            t.unreached_func("Connection to /echo should not encounter an error");
+          } // otherwise failure is expected
+        });
+      });
+    } else {
+      t.done();
+    }
+  }
+
+  testNextPath();
+});
+</script>

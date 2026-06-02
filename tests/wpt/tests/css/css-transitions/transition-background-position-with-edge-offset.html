@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - background-position</title>
+<link rel="author" title="Zhuoyu Qian" href="mailto:zhuoyu.qian@samsung.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-position">
+<meta name="assert" content="Test checks that the 'background-position' property with edge offset is animatable.">
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<style>
+  #test {
+    border: 1px solid;
+    background-image: url("support/cat.png");
+    background-repeat: no-repeat;
+    height: 200px;
+    transition-duration: 100s;
+    transition-property: background-position;
+    transition-timing-function: step-end;
+  }
+</style>
+<body>
+  <div id="test"></div>
+</body>
+<script>
+var startValue = "left 10px top 10px";
+var endValue = "right 10px bottom 10px";
+var div = document.getElementById("test");
+
+// getComputedStyle helper
+function gCS(aProperty) {
+  return document.defaultView
+         .getComputedStyle(div, "")
+         .getPropertyValue(aProperty);
+}
+
+(function() {
+  div.style.backgroundPosition = startValue;
+
+  // flush styles
+  gCS("background-position");
+
+  // set property to endValue
+  div.setAttribute("style", "background-position: " + endValue);
+
+  test(function() {
+    assert_true(gCS("background-position") != endValue);
+  }, "background-position not equals to end value");
+})();
+</script>

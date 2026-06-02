@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>OffscreenCanvas test: 2d.color.space.p3.convertToBlob.p3.canvas</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+
+<h1>2d.color.space.p3.convertToBlob.p3.canvas</h1>
+<p class="desc">test if toblob returns p3 data from p3 color space canvas</p>
+
+
+<script>
+var t = async_test("test if toblob returns p3 data from p3 color space canvas");
+var t_pass = t.done.bind(t);
+var t_fail = t.step_func(function(reason) {
+    throw reason;
+});
+t.step(function() {
+
+var offscreenCanvas = new OffscreenCanvas(100, 50);
+var ctx = offscreenCanvas.getContext('2d', {colorSpace: "display-p3"});
+
+ctx.fillStyle = "rgba(155, 27, 27, 1)";
+ctx.fillRect(0, 0, 1, 1);
+ctx.fillStyle = "rgba(27, 155, 27, 0)";
+ctx.fillRect(1, 0, 1, 1);
+ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+ctx.fillRect(0, 1, 1, 1);
+ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+ctx.fillRect(1, 1, 1, 1);
+expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+var image = new Image();
+image.onload = t.step_func_done(function() {
+    var dstCanvas = document.createElement("canvas");
+    dstCanvas.width = 2;
+    dstCanvas.height = 2;
+    var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+    ctx.drawImage(image, 0, 0);
+    var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+    assert_array_approx_equals(actualPixels, expectedPixels, 2);
+});
+
+offscreenCanvas.convertToBlob(function(blob) {
+    var urlCreator = window.URL || window.webkitURL;
+    image.src = urlCreator.createObjectURL(blob);
+}, 'image/png', 1);
+t.done()
+
+});
+</script>

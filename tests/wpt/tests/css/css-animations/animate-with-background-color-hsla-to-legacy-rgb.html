@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <link rel="match"
+        href="animate-with-background-color-hsla-to-legacy-rgb-ref.html">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    background-color: hsla(from blue h 50% 50% / 100%);
+    height: 200px;
+    width: 200px;
+  }
+  @keyframes anim {
+    to { background-color: #00f; }
+  }
+  #target.animated {
+    animation: anim 1s both;
+  }
+</style>
+<body>
+ <div id="target"></div>
+</body>
+<script>
+  window.onload = () => {
+    target.classList.add('animated');
+    const anim = document.getAnimations()[0];
+    anim.ready.then(() => { anim.finish() });
+    anim.finished.then(() => { requestAnimationFrame(takeScreenshot) });
+  };
+</script>
+</html>

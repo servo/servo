@@ -1,0 +1,14 @@
+<html class="test-wait">
+<script>
+window.onload = function fuzz() {
+  document.querySelector('audio').setAttribute('aria-owns', 'x1');
+  requestAnimationFrame(() => {
+    document.querySelector('audio').removeAttribute('aria-owns');
+    document.documentElement.className = '';
+  });
+}
+</script>
+<audio>
+  <span id="x1"></span>
+</audio>
+</html>

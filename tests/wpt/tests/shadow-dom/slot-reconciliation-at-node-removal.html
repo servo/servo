@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Slot reconciliation at node removal</title>
+<meta name="author" title="Ray Guo" href="mailto:rayguo17@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+
+<div id="test_reconciliation_at_removal">
+  <div id="host">
+    <template data-mode="closed">
+      <div id="container">
+        <slot id="s1" name="foo"></slot>
+      </div>
+    </template>
+    <div id="content" slot="foo">This is some Text</div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test_reconciliation_at_removal);
+  removeWhiteSpaceOnlyTextNodes(n.test_reconciliation_at_removal);
+  // Slot should have assigned nodes when it's in the shadow tree
+  assert_array_equals(n.s1.assignedNodes(), [n.content],
+                      'Slot should have assigned nodes before removal');
+
+  n.container.remove();
+  // Should be empty, the slot is not in the DOM tree anymore
+  assert_array_equals(n.s1.assignedNodes(), [],
+                      'Slot should have no assigned nodes after removal from shadow tree');
+}, 'Slot reconciliation: assignedNodes should be empty when slot is removed from shadow tree');
+</script>

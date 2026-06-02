@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in nested child iframe</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<h1>Long Tasks with detached iframe</h1>
+<div id="log"></div>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    t.step_timeout(() => {
+      busyWait();
+      iframe.remove();
+    });
+}, 'Performance longtask entries dont crash when a frame is detached.');
+</script>
+
+</body>

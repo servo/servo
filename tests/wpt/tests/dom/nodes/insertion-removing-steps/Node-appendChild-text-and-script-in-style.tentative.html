@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting text and script nodes in a style element</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style id="style"></style>
+<body>
+<script>
+const happened = []
+const style = document.getElementById("style");
+test(() => {
+  const r1 = new Text("body {}");
+  const r2 = new Text("body {}");
+  const script = document.createElement("script");
+  script.textContent = `
+    happened.push(style.sheet.cssRules.length);
+  `;
+
+  const df = document.createDocumentFragment();
+  df.appendChild(r1);
+  df.appendChild(script);
+  df.appendChild(r2);
+
+  assert_array_equals(happened, []);
+  style.appendChild(df);
+  assert_array_equals(happened, [2]);
+}, "All style rules appended to a <style> element are inserted and " +
+   "script-observable to scripts inserted in the `<style>` element, by the " +
+   "time scripts execute after DOM insertions.");
+</script>

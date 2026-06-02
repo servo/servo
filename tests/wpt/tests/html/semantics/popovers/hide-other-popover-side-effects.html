@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/4094463/8/third_party/blink/renderer/core/html/html_element.cc#1404">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popover1 popover=auto>popover1</div>
+<div id=popover2 popover=auto>popover2</div>
+
+<script>
+test(() => {
+  const popover2 = document.getElementById('popover2');
+  popover1.showPopover();
+  popover1.addEventListener('beforetoggle', () => {
+    popover2.remove();
+  });
+  assert_throws_dom('InvalidStateError', () => popover2.showPopover(),
+    "popover1's beforetoggle event handler removes popover2 so showPopover should throw.");
+  assert_false(popover2.matches(':popover-open'), 'popover2 should not match :popover-open once it is closed.');
+}, 'Removing a popover while it is opening and force closing another popover should throw an exception.');
+</script>

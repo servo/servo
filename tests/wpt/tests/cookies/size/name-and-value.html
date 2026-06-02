@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>Test cookie name size restrictions</title>
+  <meta name=help href="https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis#section-5.4">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/cookies/resources/cookie-test.js"></script>
+</head>
+
+<body>
+  <div id=log></div>
+  <script>
+    const nameAndValueSizeTests = [
+      {
+        cookie: cookieStringWithNameAndValueLengths(2048, 2048),
+        expected: cookieStringWithNameAndValueLengths(2048, 2048),
+        name: "Set max-size cookie with largest possible name and value (4096 bytes)",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(4097, 1),
+        expected: "",
+        name: "Ignore cookie with name larger than 4096 and 1 byte value",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(4096, 0),
+        expected: cookieStringWithNameAndValueLengths(4096, 0),
+        name: "Set max-size value-less cookie",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(4097, 0),
+        expected: "",
+        name: "Ignore value-less cookie with name larger than 4096 bytes",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(1, 4095),
+        expected: cookieStringWithNameAndValueLengths(1, 4095),
+        name: "Set max-size cookie with largest possible value (4095 bytes)",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(1, 4096),
+        expected: "",
+        name: "Ignore named cookie (with non-zero length) and value larger than 4095 bytes",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(4096, 1),
+        expected: "",
+        name: "Ignore named cookie with length larger than 4095 bytes, and a non-zero value",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(0, 4096),
+        expected: cookieStringWithNameAndValueLengths(0, 4096).slice(1), // it won't come back with leading =
+        name: "Set max-size name-less cookie",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(0, 4097),
+        expected: "",
+        name: "Ignore name-less cookie with value larger than 4096 bytes",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(0, 4097).slice(1), // slice off leading =
+        expected: "",
+        name: "Ignore name-less cookie (without leading =) with value larger than 4096 bytes",
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(2048, 2048) + '; Max-Age:43110;',
+        expected: cookieStringWithNameAndValueLengths(2048, 2048),
+        name: "Set max-size cookie that also has an attribute",
+      },
+    ];
+
+    for (const test of nameAndValueSizeTests) {
+      httpCookieTest(test.cookie, test.expected, test.name);
+    }
+  </script>
+</body>
+
+</html>

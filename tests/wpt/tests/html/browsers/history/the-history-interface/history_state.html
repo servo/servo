@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history_state</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var first;
+      var second;
+
+      first = window.history.state;
+      window.history.pushState(1, document.title, '?x=1');
+
+      second = window.history.state;
+      assert_equals(first, null, "first");
+      assert_equals(second, 1, "second");
+    }, "history state");
+    </script>
+  </body>
+</html>

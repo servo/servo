@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>TextTrackCueList functionality: length, operator[], and getCueById()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/settings.vtt" kind="captions" default>
+    <script>
+    async_test(function(t) {
+        var testTrack = document.querySelector("track");
+
+        testTrack.onload = t.step_func_done(function() {
+            var cues = testTrack.track.cues;
+
+            // Testing TextTrackCueList length.
+            assert_equals(cues.length, 4);
+
+            // Testing TextTrackCueList [] operator.
+            assert_equals(cues[0].id, "1");
+            assert_equals(cues[3].id, "4");
+            assert_equals(cues[4], undefined);
+
+            // Testing TextTrackCueList getCueById().
+            assert_equals(cues.getCueById("1").startTime, 0);
+            assert_equals(cues.getCueById("4").startTime, 121);
+            assert_equals(cues.getCueById("junk"), null);
+        });
+    });
+    </script>
+</video>

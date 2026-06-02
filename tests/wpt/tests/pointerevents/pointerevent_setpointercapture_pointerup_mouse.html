@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+    <head>
+        <title>setPointerCapture on pointerup</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events Capture Test - setPointerCapture on pointerup</h1>
+        <h4>
+            Test Description: This test checks if setPointerCapture works properly. Complete the following actions:
+            <ol>
+                <li> Press and hold left mouse button over black rectangle
+                <li> Release left mouse button
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+        <div id="target0" style="background:black; color:white"></div>
+        <br>
+        <script type='text/javascript'>
+            var count=0;
+            var event_log = [];
+            var actions_promise;
+
+            var detected_pointertypes = {};
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            var target0 = document.getElementById('target0');
+
+            setup({ explicit_done: true });
+
+            window.onload = function() {
+                on_event(target0, 'pointerdown', function(e) {
+                    event_log.push('pointerdown@target0');
+                    detected_pointertypes[e.pointerType] = true;
+                    test(function () {
+                        assert_equals(event.pointerType, "mouse", "Test should be run using a mouse as input");
+                    }, "Test should be run using a mouse as input");
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    event_log.push('gotpointercapture@target0');
+                    test(function () {
+                        assert_true(false, "target0 shouldn't receive gotpointercapture");
+                    }, "target0 shouldn't receive gotpointercapture");
+                });
+
+                on_event(target0, 'lostpointercapture', function(e) {
+                    event_log.push('lostpointercapture@target0');
+                    test(function () {
+                        assert_true(false, "target0 shouldn't receive lostpointercapture");
+                    }, "target0 shouldn't receive lostpointercapture");
+                });
+
+                on_event(target0, 'pointerup', function(e) {
+                    event_log.push('pointerup@target0');
+                    var thrown = false;
+                    try {
+                        target0.setPointerCapture(e.pointerId);
+                    } catch(e) {
+                        thrown = true;
+                    }
+                    test(function() {
+                        assert_false(thrown, "target0.setPointerCapture should not throw");
+                    }, "target0.setPointerCapture should not throw");
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        done();
+                    });
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerDown()
+                    .pointerMove(10, 0, {origin: target0})
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Relative URI in potentially-cached stylesheet</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#relative-urls">
+<link rel="match" href="inline-cache-base-uri-cssom-ref.html">
+<style>
+  :root { background-color: red; }
+</style>
+<base href="/images/">
+<style>
+  :root { background-color: red; }
+</style>
+<script>
+document.styleSheets[1].insertRule(`:root { background-image: url(green.png) }`);
+</script>

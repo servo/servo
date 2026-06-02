@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>Hit-tests of clip-path with geometry-box</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+rect {
+  width: 100px;
+  height: 100px;
+  stroke-width: 50px;
+  stroke: rgba(0, 0, 255, 0.5);
+  fill: lightblue;
+}
+</style>
+<svg id="svg" height="400" width="600">
+  <rect id="rect_a" x="50" y="50" style="clip-path: inset(0px) fill-box;"></rect>
+  <rect id="rect_b" x="250" y="50" style="clip-path: inset(10px) stroke-box;"></rect>
+  <rect id="rect_c" x="450" y="50" style="clip-path: inset(35px 35px 235px 435px) view-box;"></rect>
+
+  <g style="clip-path: inset(0px) fill-box;">
+    <rect id="g_rect_a" x="50" y="250"></rect>
+  </g>
+  <g style="clip-path: inset(10px) stroke-box;">
+    <rect id="g_rect_b" x="250" y="250"></rect>
+  </g>
+  <g style="clip-path: inset(235px 35px 35px 435px) view-box;">
+    <rect id="g_rect_c" x="450" y="250"></rect>
+  </g>
+</svg>
+<script>
+function assert_element_at(element, point_list) {
+  for (let point of point_list) {
+    let result = document.elementFromPoint(point[0], point[1]);
+    assert_equals(result, element, point.join(','));
+  }
+}
+
+function points_inside_rect(x, y, width, height) {
+  return [
+    [x + 1, y + 1],
+    [x + width - 1, y + 1],
+    [x + 1, y + height - 1],
+    [x + width - 1, y + height - 1]
+  ];
+}
+
+function points_outside_rect(x, y, width, height) {
+  return [
+    [x + 1, y - 1],
+    [x + width - 1, y - 1],
+    [x + 1, y + height + 1],
+    [x + width - 1, y - 1],
+    [x - 1, y + 1],
+    [x + width + 1, y + 1],
+    [x - 1, y + height - 1],
+    [x + width + 1, y + height - 1]
+  ];
+}
+
+test(function() {
+  assert_element_at(rect_a, points_inside_rect(50, 50, 100, 100));
+  assert_element_at(svg, points_outside_rect(50, 50, 100, 100));
+
+  // 225,25 150x150 inset by 10px on all sides is 235,35 130x130
+  assert_element_at(rect_b, points_inside_rect(235, 35, 130, 130));
+  assert_element_at(svg, points_outside_rect(235, 35, 130, 130));
+
+  // 425,25 150x150, inset by 10px on all sides is 435,35 130x130
+  assert_element_at(rect_c, points_inside_rect(435, 35, 130, 130));
+  assert_element_at(svg, points_outside_rect(435, 35, 130, 130));
+
+  assert_element_at(g_rect_a, points_inside_rect(50, 250, 100, 100));
+  assert_element_at(svg, points_outside_rect(50, 250, 100, 100));
+
+  // 225,225 150x150 inset by 10px on all sides is 235,235 130x130
+  assert_element_at(g_rect_b, points_inside_rect(235, 235, 130, 130));
+  assert_element_at(svg, points_outside_rect(235, 235, 130, 130));
+
+  // 425,225 150x150 inset by 10px on all sides is 435,235 130x130
+  assert_element_at(g_rect_c, points_inside_rect(435, 235, 130, 130));
+  assert_element_at(svg, points_outside_rect(435, 235, 130, 130));
+});
+</script>

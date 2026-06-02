@@ -1,0 +1,152 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-diffuse-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feDiffuseLightingElement">
+      <p>
+        Verify the basic operation of the feDiffuseLighting
+        element. The test shows three rows of 3 images. Each
+        rows tests a different aspect of the filter and shows
+        the result of the filtering operation.
+      </p>
+      <p>
+        The first row shows the result of varying the
+        surfaceScale attribute. The second row shows the result
+        of varying the diffuse constant (kd) attribute. The last
+        row shows the result of varying the lighting-color
+        property.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-diffuse-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Title -->
+    <text x="145" y="30" fill="black" font-size="12" font-family="Arial" font-weight="bold">Filters: feDiffuseLighting</text>
+    <!-- ===================================================================== -->
+    <!-- Filter definitions                                                    -->
+    <!-- ===================================================================== -->
+    <defs>
+      <!-- ================================================= -->
+      <!-- Surface scale                                     -->
+      <!-- ================================================= -->
+      <filter id="surfaceScaleA" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="1">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="surfaceScaleB" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="surfaceScaleC" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="-10">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <!-- ================================================= -->
+      <!-- Diffuse Constants                                 -->
+      <!-- ================================================= -->
+      <filter id="diffuseConstantA" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="0" surfaceScale="10">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="diffuseConstantB" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="diffuseConstantC" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="2" surfaceScale="10">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <!-- ================================================= -->
+      <!-- Lighting colors                                   -->
+      <!-- ================================================= -->
+      <filter id="lightingColorA" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="red">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="lightingColorB" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="yellow">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="lightingColorC" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="blue">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+    </defs>
+    <!-- ==================================================== -->
+    <!-- The same image is rendered multiple times with using -->
+    <!-- different filters.                                   -->
+    <!-- ==================================================== -->
+    <!-- Various Surface Scales -->
+    <g transform="translate(0, 50)">
+      <text x="90" y="25">Various values for surfaceScale: 1, 10 and -10</text>
+      <image xlink:href="../images/bumpMap2.png" x="90" y="30" width="50" height="30" filter="url(#surfaceScaleA)"/>
+      <image xlink:href="../images/bumpMap2.png" x="160" y="30" width="50" height="30" filter="url(#surfaceScaleB)"/>
+      <image xlink:href="../images/bumpMap2.png" x="230" y="30" width="50" height="30" filter="url(#surfaceScaleC)"/>
+    </g>
+    <!-- Various Diffuse Constants -->
+    <g transform="translate(0, 120)">
+      <text x="90" y="25">Various values for diffuseConstants: 0, 1 and 2</text>
+      <image xlink:href="../images/bumpMap2.png" x="90" y="30" width="50" height="30" filter="url(#diffuseConstantA)"/>
+      <image xlink:href="../images/bumpMap2.png" x="160" y="30" width="50" height="30" filter="url(#diffuseConstantB)"/>
+      <image xlink:href="../images/bumpMap2.png" x="230" y="30" width="50" height="30" filter="url(#diffuseConstantC)"/>
+    </g>
+    <!-- Various Light Colors -->
+    <g transform="translate(0, 190)">
+      <text x="90" y="25">Various values for lighting color: red, yellow and blue</text>
+      <image xlink:href="../images/bumpMap2.png" x="90" y="30" width="50" height="30" filter="url(#lightingColorA)"/>
+      <image xlink:href="../images/bumpMap2.png" x="160" y="30" width="50" height="30" filter="url(#lightingColorB)"/>
+      <image xlink:href="../images/bumpMap2.png" x="230" y="30" width="50" height="30" filter="url(#lightingColorC)"/>
+    </g>
+    <!-- ===================================================== -->
+    <!-- Legends                                               -->
+    <!-- ===================================================== -->
+    <!-- Surface Scale -->
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

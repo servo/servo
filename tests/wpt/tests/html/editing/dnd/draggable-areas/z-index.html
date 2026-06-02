@@ -1,0 +1,35 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – feedback overlay for heavily styled elements – 008</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  position: absolute;
+  top: 100px;
+  left: 10px;
+  z-index: 1;
+}
+
+div {
+  background-color: orange;
+  position: absolute;
+  height: 200px;
+  width: 200px;
+  top: 150px;
+  left: 20px;
+  z-index: 2;
+  opacity: 0.9;
+}
+
+
+</style>
+
+<p>Click and hold the part of the orange box that overlaps the blue box. Then
+move your pointing device. The blue box should <em>not</em> be dragged.
+
+<a draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'">TEST</a>
+
+<div></div>

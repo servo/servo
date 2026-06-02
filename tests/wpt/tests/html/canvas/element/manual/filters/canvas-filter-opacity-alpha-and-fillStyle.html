@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="match" href="canvas-filter-opacity-alpha-and-fillStyle-expected.html"/>
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-10000">
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  /*
+  The expected behavior when setting the opacity through different methods
+  is that the opacity of the resulting drawn element is the product of the opacity
+  value set by each of the methods.
+  */
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.filter = 'opacity(50%)';
+  ctx.fillRect(10, 10, 50, 50);
+
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.filter = 'opacity(25%)';
+  ctx.fillRect(70, 10, 50, 50);
+
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.filter = 'opacity(50%)';
+  ctx.fillRect(10, 70, 50, 50);
+
+  ctx.globalAlpha = 0.8;
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.filter = 'opacity(10%)';
+  ctx.fillRect(70, 70, 50, 50);
+</script>

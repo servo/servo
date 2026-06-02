@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: img + dynamic aspect-ratio</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+body.changed img {
+    aspect-ratio: 1/1;
+}
+</style>
+
+<body onload="document.body.classList.add('changed')">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<img src="support/20x50-green.png" style="width: 100px">
+
+</body>

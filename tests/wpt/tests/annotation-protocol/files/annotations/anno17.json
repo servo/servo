@@ -1,0 +1,12 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno17",
+  "type": "Annotation",
+  "motivation": "commenting",
+  "body": "http://example.net/comment1",
+  "target": {
+    "id": "http://example.com/video1",
+    "type": "Video",
+    "accessibility": "captions"
+  }
+}

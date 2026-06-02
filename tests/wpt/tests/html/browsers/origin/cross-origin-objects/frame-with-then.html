@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <script>
+    if (location.search == "?setdomain") {
+      document.domain = document.domain;
+    }
+  </script>
+  <body>
+    <!--- Some frames to test ordering -->
+    <iframe name="a"></iframe>
+    <!-- A subframe to test "then" behavior -->
+    <iframe name="then"></iframe>
+    <iframe name="b"></iframe>
+    <!-- Two subframes with names corresponding to IDL-defined properties; one
+         a cross-origin-exposed property and one not exposed cross-origin -->
+    <iframe name="close"></iframe>
+    <iframe name="open"></iframe>
+  </body>
+</html>

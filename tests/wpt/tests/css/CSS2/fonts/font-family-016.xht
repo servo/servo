@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test:  Font test </title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/family/006.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <style>
+  .a { font-family: Wingdings, Tahoma, sans-serif; }
+  .b { font-family: Symbol, Tahoma, sans-serif; }
+  </style>
+ </head>
+<body>
+<p>The following lines should all say "PASS":</p>
+<ul>
+ <li class="a"> PASS</li>
+ <li class="b"> PASS</li>
+ <li class="b"> &#x03A1;&#x0391;SS</li>
+</ul>
+<p>The following character should be a smiley face: <span class="a">&#x263A;</span></p>
+</body>
+</html>

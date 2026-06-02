@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#exponent-funcs">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
+<script>
+function test_serialization(t,s,c) {
+    test_specified_serialization('opacity', t, s);
+    test_specified_serialization('transform', `scale(${t})`, `scale(${s})`);
+    test_computed_serialization('opacity', t, c);
+    test_computed_serialization('transform', `scale(${t})`, `matrix(${c}, 0, 0, ${c}, 0, 0)`);
+}
+
+test_serialization(
+    'exp(0)',
+    'calc(1)',
+    '1');
+test_serialization(
+    'log(1)',
+    'calc(0)',
+    '0');
+
+test_serialization(
+    'calc(exp(0) + log(1) + log(1))',
+    'calc(1)',
+    '1');
+
+test_serialization(
+    'calc(log(1) + 0.5)',
+    'calc(0.5)',
+    '0.5');
+
+const t = 'calc(log(0))';
+const s = 'calc(-infinity)';
+const c = '0';
+test_specified_serialization('opacity', t, s);
+test_specified_serialization('transform', `scale(${t})`, `scale(${s})`);
+test_computed_serialization('opacity', t, c);
+</script>

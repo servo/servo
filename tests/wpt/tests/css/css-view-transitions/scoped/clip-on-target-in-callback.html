@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View Transitions: Clip on target in callback does not clip root</title>
+<!-- In this test #target is  participating in the view transition and
+     therefore should escape clipping on the scoped element. -->
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="clip-on-target-in-callback-ref.html">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Accommodate small color mismatch -->
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-48600">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  background: blue;
+  border: 5px solid black;
+}
+#container.after {
+  overflow: clip;
+}
+
+#target {
+  margin-top: 150px;
+  width: 100px;
+  height: 100px;
+  background: green;
+  view-transition-name: target;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  /* freeze all animations at start */
+  animation-duration: 100000s;
+  animation-timing-function: steps(1, jump-end);
+}
+</style>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+async function runTest() {
+  const vt = container.startViewTransition(() => {
+    container.classList.add("after");
+  });
+  await vt.ready;
+  takeScreenshotOnAnimationsReady();
+}
+
+waitForCompositorReady().then(runTest);
+</script>
+</body>
+</html>

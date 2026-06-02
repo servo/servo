@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: row offset with break-inside:avoid
+  and alignment.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+    height: 150px;
+    background: green;
+    align-content: space-between;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div id="flex">
+    <div style="height: 50px; width: 50px;"></div>
+    <div style="height: 10px; width: 25px; align-self: center;"></div>
+    <div style="height: 50px; width: 25px; break-inside: avoid;"></div>
+    <div style="height: 25px; width: 50px; background: green;"></div>
+  </div>
+  <div style="position: absolute; height: 13px; width: 50px; background: green;"></div>
+  <div style="position: absolute; bottom: 0px; height: 13px; width: 50px; background: green;"></div>
+</div>

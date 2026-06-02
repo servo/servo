@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;ins&gt;</title>
+</head>
+<body>
+  <!-- can contain inline while in inline context -->
+  <p>paragraph
+    <ins>
+      <em>some</em> <ul><li>inline</li></ul> content
+    </ins>
+  </p>
+
+  <!-- can contain strictly inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <ins>
+      <em>text</em>
+    </ins>
+  </dfn></p>
+
+  <!-- can contain blocks while in block context -->
+  <ins>
+    <p>text</p>
+  </ins>
+
+  <!-- can contain interactive if ancestor does not forbid it -->
+  <p>paragraph
+    <ins>
+      <a>link</a>
+    </ins>
+  </p>
+  <p><dfn>strictly inline
+    <ins>
+      <a>link</a>
+    </ins>
+  </dfn></p>
+  <ins>
+    <p><a>link</a></p>
+  </ins>
+
+  <!-- ins with flow content and phrasing parent -->
+  <span><ins><p>foo</p></ins></span>
+
+</body>
+</html>

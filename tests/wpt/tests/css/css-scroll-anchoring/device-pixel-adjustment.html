@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body {
+    height: 200vh;
+}
+#anchor {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+}
+
+</style>
+<div id="expander"></div>
+<div id="anchor"></div>
+<script>
+
+// This tests that scroll anchor adjustments can happen by quantities smaller
+// than a device pixel.
+//
+// Unfortunately, we can't test this by simply reading 'scrollTop', because
+// 'scrollTop' may be rounded to the nearest CSS pixel. So, to test that
+// subpixel adjustments can in fact happen, we repeatedly trigger a scroll
+// adjustment in a way that would produce a different final .scrollTop value,
+// depending on whether or not we rounded each adjustment as we apply it.
+
+test(() => {
+    let scroller = document.scrollingElement;
+    let expander = document.querySelector("#expander");
+    let anchor = document.querySelector("#anchor");
+    const initialTop = 10;
+
+    // Scroll 10px to activate scroll anchoring
+    scroller.scrollTop = initialTop;
+
+    // Helper to insert a div with specified height before the anchor node
+    function addChild(height) {
+        let child = document.createElement("div");
+        child.style.height = `${height}px`;
+        anchor.before(child);
+    }
+
+    // Calculate what fraction of a CSS pixel corresponds to one device pixel
+    let devicePixel = 1.0 / window.devicePixelRatio;
+    assert_true(devicePixel <= 1.0, "there should be more device pixels than CSS pixels");
+
+    // The 0.5 is an arbitrary scale when creating the subpixel delta
+    let delta = 0.5 * devicePixel;
+
+    // To help us check for for premature rounding of adjustments, we'll
+    // trigger "count" subpixel adjustments of size "delta", where "count" is
+    // the first positive integer such that:
+    //   round(count * delta) != count * round(delta)
+    // As round(X) and count are integers, this happens when:
+    //   count * delta = count * round(delta) +/- 1
+    // Solving for count:
+    //   count = 1 / abs(delta - round(delta))
+    // Note that we don't need to worry about the denominator being zero, as:
+    //   0 < devicePixel <= 1
+    // And so halving devicePixel should never yield a whole number.
+    let count = 1 / Math.abs(delta - Math.round(delta));
+
+    for (let i = 0; i < count; i++) {
+        addChild(delta);
+        // Trigger an anchor adjustment by forcing a layout flush
+        scroller.scrollTop;
+    }
+
+    let destination = Math.round(initialTop + delta * count);
+    assert_equals(scroller.scrollTop, destination,
+        `adjusting by ${delta}px, ${count} times, should be the same as adjusting by ${delta * count}px, once.`);
+}, "Test that scroll anchor adjustments can happen by a sub device-pixel amount.");
+
+</script>

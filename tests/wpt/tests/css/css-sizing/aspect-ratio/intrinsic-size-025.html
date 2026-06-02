@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: max-content contribution of image with width:max-content</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5032">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the image's max-content contribution considers the definite height transferring through the natural aspect-ratio.">
+
+<style>
+img {
+  vertical-align: top;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: max-content; background: red;">
+  <img src="support/200x200-green.png" style="height: 100px; width: max-content">
+</div>

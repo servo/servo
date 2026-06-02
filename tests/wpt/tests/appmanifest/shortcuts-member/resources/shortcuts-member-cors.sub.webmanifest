@@ -1,0 +1,22 @@
+{
+    "name": "Shortcut test",
+    "icons": [
+        {
+            "src": "https://{{host}}:{{ports[https][0]}}/appmanifest/shortcuts-member/resources/pass.png",
+            "sizes": "256x256"
+        }
+    ],
+    "start_url": "../shortcuts-member-cors-manual.sub.html",
+    "display": "fullscreen",
+    "scope": "../",
+    "shortcuts": [{
+        "name": "pass",
+        "short_name": "",
+        "description": "",
+        "url": "../shortcut_pass.html",
+        "icons": [{
+            "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/resources/pass.png",
+            "sizes": "256x256"
+        }]
+    }]
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report-only policy not allowed in meta tag</title>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- CSP headers
+         Content-Security-Policy: script-src 'unsafe-inline' 'self'
+         -->
+    <!-- since we try to set the report-uri in the meta tag, we have to set the cookie with the reportID in here instead of in the headers file -->
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="img-src 'none'; report-uri /reporting/resources/report.py?op=put&reportID={{$id:uuid()}}">
+</head>
+<body>
+  <script>
+    var test = async_test("Image should load");
+
+    <!-- Set cookie for checking if the report exists
+      -->
+    fetch(
+      "support/set-cookie.py?name=report-only-in-meta&value={{$id}}&path=" + encodeURIComponent("/content-security-policy/reporting/"),
+      {mode: 'no-cors', credentials: 'include'})
+    .then(() => {
+      const img = new Image();
+      img.onload = test.step_func_done();
+      img.onerror = test.unreached_func("Should have loaded the image");
+
+      img.src = "../support/pass.png";
+      document.body.appendChild(img);
+
+      <!-- this needs to be done after setting the cookie so we do it here -->
+      const script = document.createElement('script');
+      script.async = true;
+      script.defer = true;
+      script.src = '../support/checkReport.sub.js?reportExists=false'
+      document.body.appendChild(script);
+
+      // Immediately declare a test so that the harness does not infer
+      // completion if the image loads before the script.
+      var checkReportTest = async_test("checkReport tests loaded");
+      script.onload = checkReportTest.step_func_done();
+      script.onerror = checkReportTest.unreached_func();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transform of Background Image (rotate left)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com"> <!-- 2012-04-17 -->
+    <meta name="assert" content="Background images fall within the element's
+    border box, so they need to be transformed along with it.">
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-background-ref-1.html">
+    <meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-400">
+    <style>
+      div {
+        width: 100px;
+        height: 200px;
+        background: url(support/transform-triangle-right.svg);
+        transform: translate(50px, -50px) rotate(270deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

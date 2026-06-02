@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes test: text-align in orthogonal table cell</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#line-mappings">
+<meta assert="text-align values respect line-relative mappings of the table cell with padding included">
+<link rel="match" href="reference/table-cell-align-002-ref.html">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<meta name="flags" content="ahem" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+table {
+  font: 20px/1 Ahem;
+  border: 1px solid gray;
+  writing-mode: vertical-lr;
+}
+
+td {
+  inline-size: 2em;
+  padding: .5em 1em .25em .5em;
+  color: green;
+  writing-mode: horizontal-tb;
+  background-size: 2em 1em;
+  background-position: .5em .5em;
+  background-repeat: no-repeat;
+}
+
+/* If text-align works correctly on the cells, their green Ahem glyphs
+   should cover the red part of each background. */
+.left {
+  text-align: left;
+  background-image: linear-gradient(to right, red 50%, transparent 50%);
+}
+.center {
+  text-align: center;
+  background-image: linear-gradient(to right, transparent 25%, red 25%, red 75%, transparent 75%);
+}
+.right {
+  text-align: right;
+  background-image: linear-gradient(to right, transparent 50%, red 50%);
+}
+.start {
+  text-align: start;
+  background-image: linear-gradient(to right, red 50%, transparent 50%);
+}
+.start:dir(rtl) {
+  background-image: linear-gradient(to left, red 50%, transparent 50%);
+}
+.end {
+  text-align: end;
+  background-image: linear-gradient(to right, transparent 50%, red 50%);
+}
+.end:dir(rtl) {
+  background-image: linear-gradient(to left, transparent 50%, red 50%);
+}
+</style>
+
+<table>
+ <tr>
+  <td class=left>X</td>
+  <td class=center>X</td>
+  <td class=right>X</td>
+  <td class=start>X</td>
+  <td class=end>X</td>
+ </tr>
+</table>
+<br>
+<table>
+ <tr dir=rtl>
+  <td class=left>X</td>
+  <td class=center>X</td>
+  <td class=right>X</td>
+  <td class=start>X</td>
+  <td class=end>X</td>
+ </tr>
+</table>

@@ -1,0 +1,33 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+body {
+  background: #f3f5f6;
+}
+
+div {
+  font-size: 15px;
+  --width: 401px;
+  width: var(--width);
+  margin: 20px;
+  background: #fff;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+b {
+  height: 50px;
+  background: red;
+  width: calc((var(--width) - 4.5em) / 4); /* .5em gutters */
+}
+
+b:not(:last-child) {
+  margin-right: 1.5em;
+}
+</style>
+<div><b></b><b></b><b></b><b></b></div>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:nth-last-child test</title>
+    <style type="text/css">
+
+      div > p { float: left; width: 40px; height: 40px; margin-right: 10px; border: 1px solid black; }
+      div { clear: both; }
+
+      .odd, .even, .nth, .nth2, .negativen { background: green; }
+    </style>
+  </head>
+  <body>
+    <div id="odd">
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+      <p> </p>
+      <p class="odd"> </p>
+    </div>
+    <div id="even">
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+      <p class="even"> </p>
+      <p> </p>
+    </div>
+    <div id="nth">
+      <p class="nth"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth"> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+    </div>
+    <div id="nth2">
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+      <p> </p>
+      <p> </p>
+      <p class="nth2"> </p>
+    </div>
+    <div id="negativen">
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <p class="negativen"> </p>
+      <p> </p>
+      <p class="negativen"> </p>
+      <p> </p>
+      <p class="negativen"> </p>
+    </div>
+  </body>
+</html>

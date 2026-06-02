@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: @import with media queries</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#using-mixins">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      @import 'resources/imported-sheet-with-mixin.css' (width < 10000px);
+      @import 'resources/imported-sheet-with-red-mixin.css' (width > 10000px);
+      div {
+        color: red;
+        @apply --m1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">This text should be green.</div>
+    <script>
+      test(() => {
+        let target = document.getElementById('target');
+        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      });
+    </script>
+  </body>
+</html>

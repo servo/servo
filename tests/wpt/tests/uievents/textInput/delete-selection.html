@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>textInput: delete selection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+[contenteditable] { border: thin inset silver; }
+</style>
+<p>Press Delete (Fn+Backspace for macOS) in each text field below.</p>
+<input class=test-el value=abc>
+<textarea class=test-el>abc</textarea>
+<div contenteditable=true class=test-el>abc</div>
+<script src="support/common.js"></script>
+<script src="support/no-textInput.sub.js?key=Delete&selectionStart=1&selectionEnd=2&expectedValue=ac"></script>

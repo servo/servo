@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+  let windowLoadFired = false;
+
+  async_test(t => {
+    const audio = document.createElement("audio");
+    audio.id = "target";
+    audio.loading = "lazy";
+    audio.src = "/media/sine440.mp3?pipe=trickle(d2)";
+    audio.controls = true;
+
+    window.addEventListener("load", () => {
+      windowLoadFired = true;
+    });
+
+    audio.addEventListener("loadstart", () => {
+      assert_true(windowLoadFired, "Window load event should fire before loadstart for lazy audio in viewport");
+      t.done();
+    });
+
+    document.body.appendChild(audio);
+  }, "In-viewport audio with loading='lazy' fires window load before loadstart");
+</script>
+</body>

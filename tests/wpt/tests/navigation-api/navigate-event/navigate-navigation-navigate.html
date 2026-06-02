@@ -1,0 +1,28 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => addEventListener('load', () => t.step_timeout(resolve, 0), {once: true}));
+
+  let { promise, resolve } = Promise.withResolvers();
+  navigation.onnavigate = t.step_func_done(e => {
+    assert_equals(e.navigationType, "push");
+    assert_true(e.cancelable);
+    assert_true(e.canIntercept);
+    assert_false(e.userInitiated);
+    assert_true(e.hashChange);
+    assert_equals(e.downloadRequest, null);
+    assert_equals(new URL(e.destination.url).hash, "#foo");
+    assert_true(e.destination.sameDocument);
+    assert_equals(e.destination.key, "");
+    assert_equals(e.destination.id, "");
+    assert_equals(e.destination.index, -1);
+    assert_equals(e.formData, null);
+    assert_equals(e.sourceElement, null);
+    resolve();
+  });
+  navigation.navigate("#foo");
+  await promise;
+}, "navigate event for navigation.navigate()");
+</script>

@@ -1,0 +1,152 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL array as return value test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderReturnedArrayNotUsed" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int g = 0;
+
+int[2] plus() {
+    ++g;
+    return int[2](g, g);
+}
+
+void main() {
+    // The function call should be evaluated even if the returned array is not used.
+    plus();
+    my_FragColor = vec4(0.0, ((g == 1) ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script id="fshaderCompareReturnedArray" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int g = 0;
+
+int[2] createArray() {
+    ++g;
+    return int[2](g, g);
+}
+
+void main() {
+    // Comparing a returned array should work.
+    if (createArray() == int[2](1, 1)) {
+        my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    } else {
+        my_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+}
+</script>
+<script id="fshaderReturnReturnedArray" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int g = 0;
+
+int[2] foo() {
+    ++g;
+    return int[2](g, g);
+}
+
+int[2] bar(int addition) {
+    g += addition;
+    // Returning a returned array should work.
+    return foo();
+}
+
+void main() {
+    int a[2] = bar(1);
+    bool arrayCorrect = true;
+    for (int i = 0; i < 2; ++i) {
+        if (a[i] != 2) {
+            arrayCorrect = false;
+        }
+    }
+    my_FragColor = vec4(0.0, ((g == 2 && arrayCorrect) ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script id="fshaderReturnedArrayAsParameter" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int g = 0;
+
+int[2] createArray() {
+    ++g;
+    return int[2](g, g);
+}
+
+bool isSuccess(int[2] a) {
+    bool arrayCorrect = true;
+    for (int i = 0; i < 2; ++i) {
+        if (a[i] != 1) {
+            arrayCorrect = false;
+        }
+    }
+    return arrayCorrect;
+}
+
+void main() {
+    bool success = isSuccess(createArray());
+    my_FragColor = vec4(0.0, (success ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Arrays as return values should work");
+debug("");
+debug("This test is targeted to stress syntax tree transformations that might need to be done in shader translation when the platform doesn't natively support arrays as return values.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderReturnedArrayNotUsed',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Expression where a returned array is not used'
+},
+{
+  fShaderId: 'fshaderCompareReturnedArray',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Expression where a returned array is compared'
+},
+{
+  fShaderId: 'fshaderReturnReturnedArray',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Expression where a returned array is returned again'
+},
+{
+  fShaderId: 'fshaderReturnedArrayAsParameter',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Expression where a returned array is passed as a parameter'
+}
+], 2);
+</script>
+</body>
+</html>
+

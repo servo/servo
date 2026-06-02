@@ -1,0 +1,11 @@
+<!doctype html>
+<title>'viewBox' from referenced &lt;view> element</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#ViewElement">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<object style="height: 100px; background-color: red"
+        data="data:image/svg+xml,
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'>
+                <rect width='100' height='100' fill='green'/>
+                <view id='aspect' viewBox='0 0 100 100'/>
+              </svg>#aspect"></object>

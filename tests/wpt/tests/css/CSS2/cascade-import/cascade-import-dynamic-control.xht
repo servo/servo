@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Control test</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html" />
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <style type="text/css" id="test">
+   p { color: red; }
+  </style>
+ </head>
+ <body>
+  <p>This text should be green.</p>
+  <script type="text/javascript">
+   document.getElementsByTagName("head")[0].removeChild(document.getElementById("test"));
+   var style = document.createElement("style");
+   var text = document.createTextNode("body { color: green; }");
+   style.appendChild(text);
+   document.getElementsByTagName("head")[0].appendChild(style);
+  </script>
+ </body>
+</html>

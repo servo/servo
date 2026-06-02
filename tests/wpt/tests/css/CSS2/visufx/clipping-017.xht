@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+ <head>
+  <!-- Based on http://www.brothercake.com/Ref/clip.html -->
+  <title>CSS Test: Convoluted clip() test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/clipping/017.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping" />
+  <style type="text/css">
+   #test-outer {
+      width: 150px; height: 150px; border: 20px solid lime; background-color: teal;
+      position: absolute; left: 60px; top: 60px; clip: rect(0px, 100px, 100px, 0px);
+   }
+   #test-middle {
+      width: 250px; height: 150px; border: 10px solid fuchsia; background-color: red;
+      position: absolute; left: 0px; top: 0px; clip: rect(0px, 50px, 50px, 0px);
+   }
+   #test-inner {
+      width: 150px; height: 250px; border: 10px solid aqua; background-color: yellow;
+   }
+   p { margin: 20px; font: 20px/1 serif; }
+   #control-outer {
+      width: 80px; height: 80px; border: 20px lime; border-style: solid none none solid; background: teal;
+      margin: 20px 0 0 200px;
+   }
+   #control-middle {
+      width: 40px; height: 40px; border: 10px fuchsia; border-style: solid none none solid; background: red;
+   }
+   #control-inner {
+      width: 30px; height: 30px; border: 10px aqua; border-style: solid none none solid; background: yellow;
+   }
+  </style>
+ </head>
+ <body>
+  <p>The following two pictograms should look identical.</p>
+  <div id="test-outer">
+   <div id="test-middle">
+    <div id="test-inner">
+    </div>
+   </div>
+  </div>
+  <div id="control-outer">
+   <div id="control-middle">
+    <div id="control-inner">
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

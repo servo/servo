@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floats, shifting right until touching other floats</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-004-ref.xht" />
+
+        <meta name="assert" content="A right floated box shifts right until it touches another float." />
+        <style type="text/css">
+            #div1, #div2
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #div1
+            {
+                background: orange;
+                float: right;
+            }
+            #div2
+            {
+                background: blue;
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is to the left of the orange square and the squares top edges are aligned.</p>
+        <div>
+           <div id="div1"></div>
+           <div id="div2"></div>
+        </div>
+    </body>
+</html>

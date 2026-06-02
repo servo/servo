@@ -1,0 +1,36 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script>
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/false,
+          expect_topics_header_unavailable);
+    }, 'test <iframe browsingtopics src=[url]></iframe> in an insecure context, where the browsingtopics attribute is set via IDL.');
+
+    async_test(t => {
+      const same_origin_src = '/browsing-topics/resources/check-topics-request-header-notify-parent.py';
+      const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+            same_origin_src;
+
+      let frame = document.createElement('iframe');
+
+      window.addEventListener('message', t.step_func(function handler(evt) {
+        if (evt.source === frame.contentWindow) {
+          assert_equals(evt.data.topicsHeader, 'NO_TOPICS_HEADER');
+
+          document.body.removeChild(frame);
+          window.removeEventListener('message', handler);
+          t.done();
+        }
+      }));
+
+      document.body.appendChild(frame);
+
+      frame.setAttribute("browsingtopics", "123");
+      frame.src = cross_origin_src;
+    }, 'test <iframe browsingtopics src=[url]></iframe> in an insecure context, where the browsingtopics attribute is set via setAttribute().');
+  </script>
+</body>

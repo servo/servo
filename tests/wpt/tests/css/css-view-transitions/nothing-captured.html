@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: shared element with overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="nothing-captured-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+:root { view-transition-name: none; }
+.target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+  overflow-clip-margin: 50px;
+}
+.child {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  background: green;
+}
+
+/* None of these should apply, so make everything red if it does */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-image-pair(*) { visibility: hidden }
+html::view-transition { background: red; }
+</style>
+
+This text should appear unmodified, since the root isn't captured.
+<div class=target>
+  <div class=child>
+  </div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  await document.startViewTransition().ready;
+  requestAnimationFrame(takeScreenshot);
+}
+
+onload = async () => {
+  await waitForCompositorReady();
+  runTest();
+}
+
+</script>
+

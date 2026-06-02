@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MediaElementAudioSourceNode reflects HTMLMediaElement effective volume changes</title>
+  <link rel="help" href="https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediaelementsource">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../../resources/rms-utils.js"></script>
+</head>
+<body>
+<audio loop controls></audio>
+<script>
+
+// Verify that MediaElementAudioSourceNode output reflects changes in
+// HTMLMediaElement effective volume (including the muted attribute) by
+// observing via WebAudio API.
+
+const testLabel =
+    `createMediaElementSource() output reflects HTMLMediaElement effective `+
+    `volume changes (volume/muted)`;
+
+// Test media element with src
+promise_test(async t => {
+  const audio = document.querySelector("audio");
+  audio.src = "/media/sine440.mp3";
+  audio.onerror = t.unreached_func("audio error");
+  const ac = new AudioContext();
+  t.add_cleanup(() => {
+    ac.close()
+    audio.src = "";
+    audio.removeAttribute("src");
+  });
+
+  await testSourceVolumeChangeForMediaElementAudioSourceNode(audio, ac);
+}, testLabel + "(src-file)");
+
+// Test media element with srcObj
+promise_test(async t => {
+  const ac = new AudioContext();
+  const dest = ac.createMediaStreamDestination();
+  const osc = ac.createOscillator();
+  osc.frequency.value = 440;
+  osc.connect(dest);
+  osc.start();
+
+  const audio = document.querySelector("audio");
+  audio.srcObject = dest.stream;
+  audio.onerror = t.unreached_func("audio error");
+  t.add_cleanup(() => {
+    ac.close()
+    audio.srcObject = null;
+  });
+
+  await testSourceVolumeChangeForMediaElementAudioSourceNode(audio, ac);
+}, testLabel + "(src-stream)");
+
+// Helper functions
+async function testSourceVolumeChangeForMediaElementAudioSourceNode(audio, ac) {
+  const src = ac.createMediaElementSource(audio);
+  await test_driver.bless("start playback + resume AudioContext", async () => {
+    await ac.resume();
+    await audio.play();
+  });
+
+  // Expected audible from the graph.
+  let tempAudibleThreshold = 0.01; // temporary threshold to consider the input audible
+  let fullRms = await RMSUtils.waitForRmsOverThreshold(ac, src, tempAudibleThreshold);
+  assert_greater_than(fullRms, tempAudibleThreshold, `Expected audible baseline RMS ${fullRms}`);
+
+  // Heuristic, baseline-relative thresholds to avoid flakiness (not exact gain checks).
+  const AUDIBLE_RMS_THRESHOLD = fullRms * 0.7;
+  const SILENCE_RMS_THRESHOLD = 0;
+
+  // Lower the media element's volume.
+  audio.volume = 0.0;
+  let curRms = await RMSUtils.waitForRmsEqualToThreshold(ac, src, SILENCE_RMS_THRESHOLD);
+  assert_equals(
+    curRms, SILENCE_RMS_THRESHOLD,
+    "Expected exact silence after volume=0"
+  );
+
+  // Test a volume which is not zero and 1.0.
+  audio.volume = 0.3;
+  tempAudibleThreshold = AUDIBLE_RMS_THRESHOLD * audio.volume;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, src, tempAudibleThreshold);
+  assert_greater_than(
+    curRms, tempAudibleThreshold,
+    `Expected non-silent RMS ${curRms} after volume=0.3`
+  );
+
+  // Increase volume back to 1.0.
+  audio.volume = 1.0;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, src, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Expected RMS ${curRms} to recover after volume=1`
+  );
+
+  // Mute the media element.
+  audio.muted = true;
+  curRms = await RMSUtils.waitForRmsEqualToThreshold(ac, src, SILENCE_RMS_THRESHOLD);
+  assert_equals(
+    curRms, SILENCE_RMS_THRESHOLD,
+    "Expected exact silence after muted"
+  );
+
+  // Unmute the media element.
+  audio.muted = false;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, src, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Expected RMS ${curRms} to recover after unmuted`
+  );
+}
+
+</script>
+</body>
+</html>

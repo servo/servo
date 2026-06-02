@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Sync base 'begin' after removal from the document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect height="100" width="100">
+    <animate id="anim" begin="0s;anim.end" dur="50ms"
+             attributeName="width" from="50" to="100"/>
+  </rect>
+</svg>
+<script>
+  promise_test(t => {
+    const animation = document.getElementById('anim');
+    const watcher = new EventWatcher(t, animation, 'beginEvent');
+    // Wait for three 'beginEvent' events.
+    const p = watcher.wait_for(['beginEvent', 'beginEvent', 'beginEvent']);
+    const svg = document.querySelector('svg');
+    document.body.removeChild(svg);
+    document.body.appendChild(svg);
+    return p;
+  });
+</script>

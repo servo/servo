@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - "Basic" authenticated requests with user name and password passed to open() in first request, without in second</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[9]/ol[1]/li[1] following::ol[1]/li[9]/ol[1]/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest(),
+          urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/'),
+          user = token()
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth11/auth.py", false, user, 'pass')
+        client.setRequestHeader("x-user", user)
+        client.send(null)
+        // Repeat request but *without* credentials in the open() call.
+        // Is the UA supposed to cache credentials from above request and use them? Yes.
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth11/auth.py", false)
+        client.setRequestHeader("x-user", user)
+        client.send(null)
+
+        assert_equals(client.responseText, user + "\n" + 'pass')
+        //assert_equals(client.getResponseHeader('x-challenge'), 'DID-NOT')
+
+      }, document.title)
+    </script>
+  </body>
+</html>

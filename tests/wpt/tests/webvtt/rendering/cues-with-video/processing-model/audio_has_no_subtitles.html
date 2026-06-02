@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, &lt;audio&gt; should not have subtitles</title>
+<link rel="match" href="audio_has_no_subtitles-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+audio {
+    width: 320px;
+    height: 180px;
+    outline: solid
+}
+::cue {
+    font-family: Ahem, sans-serif;
+    color: green
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<audio autoplay controls onplaying="this.onplaying = null; this.pause(); this.currentTime = 0; takeScreenshotDelayed(1000);">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/test.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</audio>
+</html>

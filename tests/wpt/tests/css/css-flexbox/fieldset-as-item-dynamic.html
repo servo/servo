@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="display: flex; width: 100px; height: 0; background: green;">
+  <fieldset style="border: none; padding: 0;">
+    <div style="height: 100px;"></div>
+  </fieldset>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = 'auto';
+</script>

@@ -1,0 +1,22 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Ubuntu",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+
+
+	// Most dependencies are installed in the image, but we run mach bootstrap to ensure
+	// the environment matches what's expected in the current servo version, which might 
+	// have changed since the image was built.
+	"postCreateCommand":
+		"./mach bootstrap --yes",
+
+	"containerEnv": {
+		"CC": "clang",
+		"CXX": "clang++",
+		"UV_PROJECT_ENVIRONMENT": ".devcontainer-venv"
+	}
+}

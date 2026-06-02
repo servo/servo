@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Invalidation works properly across siblings on different slots</title>
+<style>
+.x { display: table-header-group; }
+.x + * { color: green }
+</style>
+<details open="">
+  <summary class="x" id="a">Main summary</summary>
+  <summary>Should be green</summary>
+</details>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<body>
+<div style="display:none">
+  <map name="map2">x</map>
+</div>
+<img usemap="#map2">
+<span class=removeme></span>
+</body>
+<style>
+/* The empty declarations are needed to repro the crash */
+div + div { }
+.doesnotexist + div { }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector('.removeme').remove();
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+
+</html>

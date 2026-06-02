@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>This Test is for clipboard content changes during the paste event handler</title>
+<meta name="variant" content="?id=text">
+<meta name="variant" content="?id=contenteditable">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<div contenteditable="true" id="contentCopy">Original text</div>
+<div id="pasteContainer">
+<input type="text" id="text">
+<div id="contenteditable" contenteditable="true"></div>
+</div>
+<script>
+"use strict";
+
+const testingId = new URLSearchParams(document.location.search).get("id");
+const testElement = document.getElementById(testingId);
+const utils = new EditorTestUtils(testElement);
+
+promise_test(async () => {
+  // Copy the content to the clipboard.
+  const range = document.createRange();
+  const contentToCopy = document.getElementById("contentCopy");
+  range.selectNodeContents(contentToCopy);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  await utils.sendCopyShortcutKey();
+
+  // Paste the content to the test element.
+  testElement.addEventListener("copy", (e) => {
+    e.preventDefault();
+    e.clipboardData.setData("text/plain", "New text");
+  }, { once: true });
+  testElement.addEventListener("paste", (e) => {
+    // Overwrite the clipboard content.
+    document.execCommand("copy");
+  }, { once: true });
+  await test_driver.click(testElement);
+  await utils.sendPasteShortcutKey();
+
+  // Check content.
+  assert_equals(testElement.isContentEditable ? testElement.textContent : testElement.value, "New text");
+}, "clipboard change during paste event handler");
+</script>

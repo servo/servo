@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>CSS Cascade Test: import conditions</title>
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#import-conditions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @layer {
+    .target { color: red; }
+  }
+</style>
+<div id="target" class="target"></div>
+<script>
+  const testCases = [
+    {
+      importCondition: "supports(display:block)",
+      matches: true
+    },
+    {
+      importCondition: "supports((display:flex))",
+      matches: true
+    },
+    {
+      importCondition: "supports((display:block) and (display:flex))",
+      matches: true
+    },
+    {
+      importCondition: "supports((display:block) and (foo:bar))",
+      matches: false
+    },
+    {
+      importCondition: "supports((display:block) or (display:flex))",
+      matches: true
+    },
+    {
+      importCondition: "supports((display:block) or (foo:bar))",
+      matches: true
+    },
+    {
+      importCondition: "supports(not (display: flex))",
+      matches: false
+    },
+    {
+      importCondition: "supports(display: block !important)",
+      matches: true
+    },
+    {
+      importCondition: "supports(foo:bar)",
+      matches: false
+    },
+    {
+      importCondition: "supports(supports(display:block))",
+      matches: false
+    },
+    {
+      importCondition: "supports(())",
+      matches: false
+    },
+    {
+      importCondition: "supports()",
+      matches: false
+    },
+    {
+      importCondition: "supports(display:block) (width >= 0px)",
+      matches: true
+    },
+    {
+      importCondition: "(width >= 0px) supports(foo:bar)",
+      matches: false
+    },
+    {
+      importCondition: "(width >= 0px) supports(display:block)",
+      matches: false
+    },
+
+    // selector()
+    {
+      importCondition: "supports(selector(a))",
+      matches: true
+    },
+    {
+      importCondition: "supports(selector(p a))",
+      matches: true
+    },
+    {
+      importCondition: "supports(selector(p > a))",
+      matches: true
+    },
+    {
+      importCondition: "supports(selector(p + a))",
+      matches: true
+    },
+
+    // font-tech()
+    {
+      importCondition: "supports(font-tech(color-COLRv1))",
+      matches: true
+    },
+    {
+      importCondition: "supports(font-tech(invalid))",
+      matches: false
+    },
+
+    // font-format()
+    {
+      importCondition: "supports(font-format(opentype))",
+      matches: true
+    },
+    {
+      importCondition: "supports(font-format(woff))",
+      matches: true
+    },
+    {
+      importCondition: "supports(font-format(invalid))",
+      matches: false
+    },
+    {
+      importCondition: "layer(A.B) supports(font-format(opentype))",
+      matches: true
+    },
+    {
+      importCondition: "layer supports(selector(a))",
+      matches: true
+    },
+  ];
+  let target = document.getElementById("target");
+  for (let testCase of testCases) {
+    promise_test(async t => {
+      let styleElement = document.createElement("style");
+      styleElement.innerText = "@import url(data:text/css,.target{color:green}) " + testCase.importCondition + ";";
+
+      await new Promise(resolve => {
+        styleElement.onload = resolve;
+        styleElement.onerror = resolve;
+        document.head.appendChild(styleElement);
+      });
+
+      try {
+        assert_equals(getComputedStyle(target).color, testCase.matches ? "rgb(0, 128, 0)" : "rgb(255, 0, 0)");
+      } finally {
+        styleElement.remove();
+      }
+    }, testCase.importCondition + " is " + (testCase.matches ? "" : "not ")  + "a valid import condition");
+  }
+</script>

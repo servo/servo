@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing continue with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef-continue">
+<meta name="assert" content="continue supports only the grammar 'auto | discard | collapse', as well as '-webkit-legacy' for legacy compatibility.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("continue", 'none');
+
+test_invalid_value("continue", 'auto discard');
+test_invalid_value("continue", 'auto collapse');
+test_invalid_value("continue", 'auto -webkit-legacy');
+</script>
+</body>
+</html>

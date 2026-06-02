@@ -1,0 +1,12 @@
+<myRes xmlns:its="http://www.w3.org/2005/11/its">
+  <head>
+    <its:rules version="2.0">
+      <its:allowedCharactersRule allowedCharacters="[^*+]" selector="//content"/>
+    </its:rules>
+  </head>
+  <body>
+    <content>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+      nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed
+      diam voluptua.</content>
+  </body>
+</myRes>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents in inline layout should affect style of descendants</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-pass-no-red-ref.html">
+<style>
+    #contents {
+        display: contents;
+        color: black;
+    }
+    .red { color: red; }
+</style>
+<p>You should see the word PASS and no red below.</p>
+<span>
+    P<span class="red"><div id="contents">AS</div></span>S
+</span>

@@ -1,0 +1,19 @@
+<!doctype html>
+<title>document.write script writing script; order of execution</title>
+<script src="/resources/testharness.js"></script><script src="/resources/testharnessreport.js"></script>
+<script>
+var t = async_test();
+var order = [];
+t.step(function() {
+  order.push(1);
+  document.write("<script>order.push(2); document.write('<script>order.push(3);</script'+'>'); order.push(4);<"+"/script>");
+  order.push(5);
+});
+</script>
+<script>
+t.step(function() {
+  assert_array_equals(order, [1,2,3,4,5]);
+});
+t.done();
+</script>
+<div id="log"></div>

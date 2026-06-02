@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Tests CSS animation of anchor(), dynamic anchor-name changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    border: 1px solid black;
+    width: 400px;
+    height: 400px;
+    position: relative;
+  }
+  #a1, #a2 {
+    width: 100px;
+    height: 100px;
+  }
+  #a1 {
+    background: tomato;
+  }
+  #a2 {
+    background: seagreen;
+  }
+  .anchor { anchor-name: --a; }
+  #anchored {
+    width: 50px;
+    height: 50px;
+    background: skyblue;
+    animation: --anim 1s steps(2, start);
+    position: absolute;
+    position-anchor: --a;
+  }
+  @keyframes --anim {
+    from { top: anchor(top); }
+    to { top: anchor(bottom); }
+  }
+</style>
+<div id=cb>
+  <div id=a1 class=anchor></div>
+  <div id=a2></div>
+  <div id=anchored></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 50);
+    a1.classList.toggle('anchor');
+    a2.classList.toggle('anchor');
+    assert_equals(anchored.offsetTop, 150);
+  }, 'Animation with anchor() responds to anchor-name change');
+</script>

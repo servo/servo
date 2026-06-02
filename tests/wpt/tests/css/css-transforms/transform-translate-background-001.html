@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Transforms: Translate gradient background on root element</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-rendering">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=988446">
+<link rel="match" href="transform-translate-background-001-ref.html">
+<meta name="assert" content="Checks that the linear gradient is not modified when you vertically translate the root element. The test passes if you see only green.">
+<style>
+  html {
+    background: linear-gradient(to bottom, green 0%, green 50%, red 50%, red 100%);
+    transform: translate(0, -250vh);
+    overflow: hidden;
+  }
+</style>
+<div style="height: 400vh;"></div>
+</html>

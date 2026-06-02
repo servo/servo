@@ -1,0 +1,10 @@
+<html>
+<head>
+  <title>Test large bufferOffset in copyToChannel()</title>
+</head>
+<script>
+  const a = new AudioBuffer({length: 0x10, sampleRate: 44100});
+  const b = new Float32Array(0x51986);
+  a.copyToChannel(b, 0, 0x40004000)
+</script>
+</html>

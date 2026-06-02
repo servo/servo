@@ -1,0 +1,8 @@
+{
+  "accounts_endpoint": "accounts_no_approved_clients.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "continue_on.py",
+  "disconnect_endpoint": "disconnect.py",
+  "login_url": "login.html"
+}
+

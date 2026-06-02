@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Script-created style element is not script-blocking</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<script>
+const style = document.createElement('style');
+const sheet = document.createTextNode('@import url(stylesheet.py?delay=1);');
+style.appendChild(sheet);
+document.head.appendChild(style);
+</script>
+<h1>Some text</h1>
+<script>
+test(() => {
+  assert_false(styleExists("h1 { color: purple; }"),
+               'stylesheet should still be pending');
+  const h1 = document.querySelector('h1');
+  assert_equals(getComputedStyle(h1).color, 'rgb(0, 0, 0)');
+});
+</script>

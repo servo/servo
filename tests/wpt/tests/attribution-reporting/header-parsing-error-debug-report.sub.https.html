@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/attribution-reporting/resources/helpers.js"></script>
+<script>
+attribution_reporting_promise_test(async t => {
+  registerAttributionSrc({
+    trigger: {
+      event_trigger_data: {},
+    },
+    extraHeaders: [
+      {
+        name: 'Attribution-Reporting-Info',
+        value: 'report-header-errors',
+      },
+    ],
+    method: 'img',
+  });
+
+  const payload = await pollVerboseDebugReports();
+  assert_equals(payload.reports.length, 1);
+  const report = JSON.parse(payload.reports[0].body);
+  assert_equals(report.length, 1);
+  assert_equals(report[0].type, 'header-parsing-error');
+  assert_own_property(report[0], 'body');
+  assert_equals(report[0].body.context_site, 'https://{{host}}');
+  assert_equals(report[0].body.header, 'Attribution-Reporting-Register-Trigger');
+  assert_equals(report[0].body.value, '{"event_trigger_data":{}}');
+}, 'Header error debug report is received.');
+</script>

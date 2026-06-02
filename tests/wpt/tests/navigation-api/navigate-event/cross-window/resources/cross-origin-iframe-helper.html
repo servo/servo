@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script>
+navigation.onnavigate = e => {
+  const message = {
+    navigationType: e.navigationType,
+    cancelable: e.cancelable,
+    canIntercept: e.canIntercept,
+    userInitiated: e.userInitiated,
+    hashChange: e.hashChange,
+    formData: e.formData,
+    destination: {
+      url: e.destination.url,
+      sameDocument: e.destination.sameDocument,
+      key: e.destination.key,
+      id: e.destination.id,
+      index: e.destination.index
+    }
+  };
+  e.preventDefault();
+  top.postMessage(message, "*");
+};
+
+window.onload = () => {
+  if (location.href.includes("postMessage-top-when-done")) {
+    top.postMessage("DONE", "*");
+  }
+};
+</script>

@@ -1,0 +1,23 @@
+<!doctype html>
+<title>-webkit-linear-gradient(right)</title>
+<link rel="author" title="Xidorn Quan" href="me@upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://compat.spec.whatwg.org/#css-gradients-webkit-linear-gradient">
+<meta name="assert" content="'right' in -webkit-linear-gradient is equivalent to 'to left' in modern syntax">
+<link rel="match" href="green-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4400">
+<style>
+  #outer {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+  }
+  #inner {
+    width: 200px;
+    height: 100px;
+    background-image: -webkit-linear-gradient(right, red 50%, green 50%);
+  }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>

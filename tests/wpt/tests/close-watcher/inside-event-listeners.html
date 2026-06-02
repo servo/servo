@@ -1,0 +1,94 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.oncancel = () => { watcher.destroy(); }
+
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.requestClose();
+  });
+  assert_array_equals(events, ["cancel[cancelable=true]"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]"], "since it was inactive, no more events fired");
+}, "destroy() inside oncancel");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.onclose = () => { watcher.destroy(); }
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
+}, "destroy() inside onclose");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.oncancel = () => { watcher.close(); }
+
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.requestClose();
+  });
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
+}, "close() inside oncancel");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.onclose = () => { watcher.close(); }
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
+}, "close() inside onclose");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.oncancel = () => { watcher.requestClose(); }
+
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.requestClose();
+  });
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
+}, "requestClose() inside oncancel");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.onclose = () => { watcher.requestClose(); }
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
+}, "requestClose() inside onclose");
+</script>

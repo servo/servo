@@ -1,0 +1,140 @@
+<!DOCTYPE HTML>
+<title>Input element programmatic selection support</title>
+<link rel="author" title="yaycmyk" href="mailto:evan@yaycmyk.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-select">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+/* all textual, non-hidden inputs support .select() */
+test(function() {
+  var valid = [
+    "text",
+    "search",
+    "url",
+    "tel",
+    "email",
+    "password",
+    "date",
+    "time",
+    "datetime-local",
+    "number",
+    "color",
+    "file",
+  ];
+
+  var invalid = [
+    "hidden",
+    "range",
+    "checkbox",
+    "radio",
+    "submit",
+    "image",
+    "reset",
+    "button"
+  ];
+
+  valid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+      var a;
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      input.select();
+
+    }, "input type " + type + " should support the select() method");
+  });
+
+  invalid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      var selectionStartBefore = input.selectionStart;
+      var selectionEndBefore = input.selectionEnd;
+      var selectionDirectionBefore = input.selectionDirection;
+
+      // Does not throw; see https://github.com/whatwg/html/issues/2275
+      input.select();
+
+      assert_equals(input.selectionStart, selectionStartBefore, "selectionStart must not change");
+      assert_equals(input.selectionEnd, selectionEndBefore, "selectionEnd must not change");
+      assert_equals(input.selectionDirection, selectionDirectionBefore, "selectionDirection must not change");
+
+    }, "input type " + type + " should do nothing when the select() method is called (but, not throw)");
+  });
+});
+
+/* only certain input types are allowed to have a variable-length selection */
+test(function() {
+  var valid = [
+    "text",
+    "search",
+    "url",
+    "tel",
+    "password"
+  ];
+
+  var invalid = [
+    "hidden",
+    "email",
+    "date",
+    "time",
+    "datetime-local",
+    "number",
+    "range",
+    "color",
+    "checkbox",
+    "radio",
+    "file",
+    "submit",
+    "image",
+    "reset",
+    "button"
+  ];
+
+  valid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+      var a;
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      a = input.selectionStart;
+      input.selectionStart = 0;
+      a = input.selectionEnd;
+      input.selectionEnd = 0;
+      a = input.selectionDirection;
+      input.selectionDirection = "none";
+      input.setSelectionRange(0, 0);
+      input.setRangeText('', 0, 0);
+
+    }, "input type " + type + " should support all selection attributes and methods");
+  });
+
+  invalid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      assert_equals(input.selectionStart, null, 'getting input.selectionStart');
+      assert_throws_dom("INVALID_STATE_ERR", function() { input.selectionStart = 0; });
+      assert_equals(input.selectionEnd, null, 'getting input.selectionEnd');
+      assert_throws_dom("INVALID_STATE_ERR", function() { input.selectionEnd = 0; });
+      assert_equals(input.selectionDirection, null, 'getting input.selectionDirection');
+      assert_throws_dom("INVALID_STATE_ERR", function() { input.selectionDirection = "none"; });
+      assert_throws_dom("INVALID_STATE_ERR", function() { input.setSelectionRange(0, 0); });
+      assert_throws_dom("INVALID_STATE_ERR", function() { input.setRangeText('', 0, 0); });
+
+    }, "input type " + type + " should not support variable-length selections");
+  });
+});
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View transitions: container of shared element writing-modes (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+html { writing-mode: vertical-lr; }
+.shared {
+  margin: 2px;
+  width: 90px;
+  height: 50px;
+  background: green;
+  contain: paint;
+}
+#two {
+  background: lightblue;
+  will-change: transform;
+}
+</style>
+
+<div id=one class=shared>T</div>
+<div id=two class=shared></div>
+
+

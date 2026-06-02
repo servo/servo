@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Test: Use element after cloning</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1866911">
+<link rel="match" href="/svg/linking/reftests/use-template-ref.html">
+<template>
+  <svg width="100" height="100">
+    <use href="#rect"></use>
+  </svg>
+</template>
+<svg width="0" height="0" style="position: absolute">
+  <symbol id="rect">
+    <rect width="100" height="100" fill="green" x="0" y="0"></rect>
+  </symbol>
+</svg>
+<script>
+  document.body.appendChild(document.querySelector("template").content.cloneNode(true));
+</script>

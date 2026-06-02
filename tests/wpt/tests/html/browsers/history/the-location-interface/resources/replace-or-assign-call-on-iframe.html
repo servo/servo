@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Referer with location.replace and location.assign</title>
+  </head>
+  <body>
+    <iframe src="/resources/blank.html" hidden></iframe>
+    <script>
+      window.addEventListener('message', function (e) {
+        const referrer = e.data;
+        window.parent.postMessage(referrer);
+      });
+      if (window.location.search === "?replace") {
+        document.querySelector("iframe").contentWindow.location.replace("iframe-contents.sub.html?replace");
+      } else if (window.location.search === "?assign") {
+        document.querySelector("iframe").contentWindow.location.assign("iframe-contents.sub.html?assign");
+      }
+    </script>
+  </body>
+</html>

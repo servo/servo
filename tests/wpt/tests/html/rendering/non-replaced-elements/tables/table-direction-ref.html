@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Table direction</title>
+
+<style>
+  table {
+    border-collapse: collapse;
+  }
+
+  td {
+    border: 2px solid black;
+    width: 20px;
+    height: 20px;
+  }
+
+  td.special {
+    border-left: 5px solid green;
+    border-right: 5px solid blue;
+  }
+</style>
+
+Normal table:
+<table>
+  <tr>
+    <td></td>
+    <td class="special"></td>
+  </tr>
+</table>
+
+<hr>
+
+RTL table:
+<table>
+  <tr>
+    <td class="special"></td>
+    <td></td>
+  </tr>
+</table>

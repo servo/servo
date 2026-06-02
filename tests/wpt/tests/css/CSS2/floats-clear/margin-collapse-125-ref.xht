@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border: black solid medium;
+  border-spacing: 0px;
+  display: inline-table;
+  margin: 1em 0em auto 1em;
+  }
+
+  td {padding: 0px;}
+
+  td.square { height: 4em; width: 4em; }
+  td.rectangle { height: 2em; width: 8em; }
+  td.lime { background-color: lime; }
+  td.aqua { background-color: aqua; }
+  td.yellow { background-color: yellow; }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two rectangles should be identical.</p>
+
+  <table>
+    <tr>
+     <td class="square aqua"></td>
+     <td class="square lime"></td>
+    </tr>
+    <tr>
+     <td colspan="2" class="rectangle yellow"></td>
+    </tr>
+   </table><table>
+    <tr>
+     <td class="square aqua"></td>
+     <td class="square lime"></td>
+    </tr>
+    <tr>
+     <td colspan="2" class="rectangle yellow"></td>
+    </tr>
+  </table>
+
+ </body>
+</html>

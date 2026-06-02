@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                var parent = document.createElement("div");
+                var child = document.createElement("div");
+                var child_of_child = document.createElement("div");
+                var other = document.createElement("div");
+
+                child.appendChild(child_of_child);
+                parent.appendChild(child);
+
+                assert_equals(parent.contains(parent), true, "test1-0, Node.contains");
+                assert_equals(parent.contains(child), true, "test1-1, Node.contains");
+                assert_equals(parent.contains(child_of_child), true, "test1-2, Node.contains");
+                assert_equals(parent.contains(other), false, "test1-3, Node.contains");
+            });
+        </script>
+    </head>
+</html>

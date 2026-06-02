@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS transforms: Creating containing block for fixed positioned elements</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-rendering">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="match" href="containing-block-dynamic-1-ref.html">
+<meta name="assert" content="For elements whose layout is governed by the CSS box model, any value other than none for the transform results in the creation of both a stacking context and a containing block. The object acts as a containing block for fixed positioned descendants.">
+<meta name="assert" content="The object acts as a containing block for fixed positioned descendants."
+<meta name="flags" content="dom">
+<style>
+  html, body { margin: 0; padding: 0 }
+  #changetransform {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+  }
+
+  #abscovered {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    background: red;
+    height: 100px;
+    width: 100px;
+  }
+
+  #fixedmoves {
+    position: fixed;
+    top: 150px;
+    left: 150px;
+    background: green;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <div id="changetransform" style="transform: translateX(4px)">
+    <div id="abscovered"></div>
+    <div id="fixedmoves"></div>
+  </div>
+  <script>
+    var changetransform = document.getElementById("changetransform");
+    var fixedmoves = document.getElementById("fixedmoves");
+    var causeFlush = fixedmoves.offsetTop;
+    changetransform.style.transform = "";
+  </script>
+</body>

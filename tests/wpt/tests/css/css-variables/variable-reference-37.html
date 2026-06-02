@@ -1,0 +1,18 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a non-custom shorthand property containing a variable reference, with a subsequent property in the declaration block that overrides one of the shorthand's components.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#variables-in-shorthands">
+<link rel="match" href="variable-reference-37-ref.html">
+<style>
+p {
+  --a: url(nothing) red;
+  background: var(--a);
+  background-color: green;
+  color: white;
+}
+</style>
+<p>This text must have a green background color.</p>

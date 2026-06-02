@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-with-blur-ref.html">
+<!-- Allow off by one errors on each color channel. -->
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-12100">
+<style>
+  @keyframes colorize {
+    0%   { background-color:  blue; }
+    50%  { background-color: green; }
+    100% { background-color:  red; }
+  }
+  #target {
+    height: 100px;
+    width:  100px;
+    animation-name: colorize;
+    animation-duration: 100000s;
+    animation-timing-function: steps(2, end);
+    display:  inline-block;
+    margin:  10px;
+  }
+  .blur {
+    filter:  blur(5px);
+  }
+  .color-shift {
+    animation-delay: -50000s;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="target"></div>
+  </div>
+</body>
+<script src="/common/reftest-wait.js"></script>
+<script type="text/javascript">
+  async function rAF() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+  };
+
+  window.onload = async () => {
+    const anim = document.getAnimations()[0];
+    await anim.ready;
+    await rAF();
+    // Add blur filter while animation is running.
+    container.classList.add('blur');
+    await rAF();
+    // Shift animation to the midpoint.
+    target.classList.add('color-shift');
+    await rAF();
+    takeScreenshot();
+  };
+</script>
+</html>

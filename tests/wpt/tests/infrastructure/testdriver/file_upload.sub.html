@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf8>
+<title>File upload using testdriver</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<form id="form">
+  <input id="file_input" name="file_input" type="file">
+</form>
+<script>
+promise_test(() => {
+  let form = document.getElementById("form");
+  let input = document.getElementById("file_input");
+  return test_driver
+    .send_keys(input, String.raw`{{fs_path(file_upload_data.txt)}}`)
+    .then(() =>
+      fetch("file_upload.py",
+        {method: "POST",
+         body: new FormData(form)}))
+     .then(response => response.text())
+     .then(data => {
+       assert_equals(data, "PASS");
+     });
+});
+</script>

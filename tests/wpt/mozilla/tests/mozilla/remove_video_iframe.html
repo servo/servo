@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing an iframe loading a video should not panic</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="video" src="resources/remove_video_iframe_inner.html"></iframe>
+<script>
+  async_test(function(t) {
+    setTimeout(function() {
+      document.getElementById('video').remove();
+      t.done();
+    }, 1000);
+  });
+</script>

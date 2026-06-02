@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<title>SpeechRecognition available</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  const options = { langs: ["en-US", "fr-FR"], processLocally: true };
+  window.SpeechRecognition = window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  // Test that it returns a promise.
+  const resultPromise = SpeechRecognition.available(options);
+  assert_true(
+    resultPromise instanceof Promise,
+    "available should return a Promise."
+  );
+
+  // Verify the resolved value is a string.
+  const result = await resultPromise;
+  assert_true(
+    typeof result === "string",
+    "The resolved value of the available promise should be a string."
+  );
+
+  assert_true(
+    result === "unavailable" || result === "downloadable" ||
+    result === "downloading" || result === "available",
+    "The resolved value of the available promise should be a " +
+    "valid value."
+  );
+}, "SpeechRecognition.available resolves with a string value for on-device.");
+
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  const frameWindow = iframe.contentWindow;
+  const frameDOMException = frameWindow.DOMException;
+  const frameSpeechRecognition =
+    frameWindow.SpeechRecognition || frameWindow.webkitSpeechRecognition;
+
+  const options = { langs: ["en-US"], processLocally: true };
+  iframe.remove();
+  await promise_rejects_dom(
+    t,
+    "InvalidStateError",
+    frameDOMException,
+    frameSpeechRecognition.available(options),
+  );
+}, "SpeechRecognition.available rejects in a detached context for on-device.");
+
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  // This policy should make the on-device speech recognition
+  // feature unavailable.
+  iframe.setAttribute("allow", "on-device-speech-recognition 'none'");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => {
+    if (iframe.contentWindow &&
+        iframe.contentWindow.document.readyState === 'complete') {
+      resolve();
+    } else {
+      iframe.onload = resolve;
+    }
+  });
+
+  const frameWindow = iframe.contentWindow;
+  const frameSpeechRecognition = frameWindow.SpeechRecognition ||
+    frameWindow.webkitSpeechRecognition;
+
+  assert_true(!!frameSpeechRecognition,
+    "SpeechRecognition should exist in iframe.");
+  assert_true(!!frameSpeechRecognition.available,
+    "available method should exist on SpeechRecognition in iframe.");
+
+  const options = { langs: ["en-US"], processLocally: true };
+  // Call available and expect it to resolve to "unavailable".
+  const availabilityStatus =
+    await frameSpeechRecognition.available(options);
+  assert_equals(availabilityStatus, "unavailable",
+    "available should resolve to 'unavailable' if " +
+    "'on-device-speech-recognition' Permission Policy is 'none'."
+  );
+}, "SpeechRecognition.available resolves to 'unavailable' for on-device if " +
+  "'on-device-speech-recognition' Permission Policy is 'none'.");
+
+promise_test(async (t) => {
+  const html = `
+    <!DOCTYPE html>
+    <script>
+      window.addEventListener('message', async (event) => {
+        // Ensure we only process the message intended to trigger the test.
+        if (event.data !== "runTestCallAvailable") return;
+
+        try {
+          const SpeechRecognition = window.SpeechRecognition ||
+                                    window.webkitSpeechRecognition;
+          if (!SpeechRecognition || !SpeechRecognition.available) {
+            parent.postMessage({
+              type: "error", // Use "error" for API not found or other issues.
+              name: "NotSupportedError",
+              message: "SpeechRecognition.available API not " +
+                       "available in iframe"
+            }, "*");
+            return;
+          }
+
+          const options = { langs: ["en-US"], processLocally: true };
+          // Call available and post its resolution.
+          const availabilityStatus =
+              await SpeechRecognition.available(options);
+          parent.postMessage(
+              { type: "resolution", result: availabilityStatus },
+              "*"
+          ); // Post the string status
+        } catch (err) {
+          // Catch any unexpected errors during the API call or message post.
+          parent.postMessage({
+            type: "error",
+            name: err.name,
+            message: err.message
+          }, "*");
+        }
+      });
+    <\/script>
+  `;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const blobUrl = URL.createObjectURL(blob);
+  // Important: Revoke the blob URL after the test to free up resources.
+  t.add_cleanup(() => URL.revokeObjectURL(blobUrl));
+
+  const iframe = document.createElement("iframe");
+  iframe.src = blobUrl;
+  // Sandboxing with "allow-scripts" is needed for the script inside
+  // the iframe to run.
+  // The cross-origin nature is primarily due to the blob URL's origin being
+  // treated as distinct from the parent page's origin for security
+  // purposes.
+  iframe.setAttribute("sandbox", "allow-scripts");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => iframe.onload = resolve);
+
+  const testResult = await new Promise((resolve, reject) => {
+    const timeoutId = t.step_timeout(() => {
+      reject(new Error("Test timed out waiting for message from iframe. " +
+                       "Ensure iframe script is correctly posting a message."));
+    }, 6000); // 6-second timeout
+
+    window.addEventListener("message", t.step_func((event) => {
+      // Basic check to ensure the message is from our iframe.
+      if (event.source !== iframe.contentWindow) return;
+      clearTimeout(timeoutId);
+      resolve(event.data);
+    }));
+
+    // Send a distinct message to the iframe to trigger its test logic.
+    iframe.contentWindow.postMessage("runTestCallAvailable", "*");
+  });
+
+  // Check if the iframe's script reported an error (e.g., API not found).
+  if (testResult.type === "error") {
+    const errorMessage =
+        `Iframe reported an error: ${testResult.name} - ` +
+        testResult.message;
+    assert_unreached(errorMessage);
+  }
+
+  assert_equals(
+    testResult.type,
+    "resolution",
+    "The call from the iframe should resolve and post a 'resolution' " +
+    "message."
+  );
+  assert_equals(
+    testResult.result, // Expecting the string "unavailable".
+    "unavailable",
+    "available should resolve to 'unavailable' for on-device in a cross-origin " +
+    "iframe."
+  );
+}, "SpeechRecognition.available should resolve to 'unavailable' for on-device " +
+   "in a cross-origin iframe.");
+</script>

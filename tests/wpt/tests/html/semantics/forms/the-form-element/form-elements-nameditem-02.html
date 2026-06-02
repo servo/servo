@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>form.elements: parsing</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-form-elements">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#parsing-main-intr">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<form id=form>
+<table>
+<tr>
+<td><input type="radio" name="radio1" id="r1" value=1></td>
+<td><input type="radio" name="radio2" id="r2" value=2></td>
+<input type="radio"  name="radio0" id="r0" value=0>
+</tr>
+</table>
+</form>
+</div>
+<script>
+test(function() {
+  var form = document.getElementById("form");
+  assert_array_equals(form.elements,
+                      [document.getElementById("r0"),
+                       document.getElementById("r1"),
+                       document.getElementById("r2")]);
+}, "form.elements should work correctly in the face of table syntax errors")
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script>
+    'use strict';
+
+    const iframe = document.createElement("iframe");
+    iframe.src = "https://{{hosts[][]}}:{{ports[https][0]}}/storage-access-api/resources/blob-url-creation.html";
+    document.body.appendChild(iframe);
+
+    // Send the blob URL back to the opener.
+    window.addEventListener("message", async e => {
+      if (e.data.type !== "blobURL") {
+        return;
+      }
+      const blob_url = e.data.message;
+      window.opener.postMessage({ type: "blobURL", message: blob_url }, "*");
+    });
+ </script>
+</body>

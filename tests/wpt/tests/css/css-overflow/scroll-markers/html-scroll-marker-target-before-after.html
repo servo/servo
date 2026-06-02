@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: :target-before and :target-after on html anchor scroll markers</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11600">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  .scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+  }
+
+  .scroller div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  .wrapper {
+    scroll-target-group: auto;
+  }
+
+  .wrapper a {
+    color: blue;
+  }
+
+  .wrapper a:target-current {
+    color: green;
+  }
+
+  .wrapper a:target-before {
+    color: red;
+  }
+
+  .wrapper a:target-after {
+    color: yellow;
+  }
+</style>
+<div class="scroller">
+  <div id="first"></div>
+  <div id="second"></div>
+  <div id="third"></div>
+  <div id="fourth"></div>
+  <div id="fifth"></div>
+  <div id="sixth"></div>
+</div>
+<div class="wrapper">
+  <a href="#first">First</a>
+  <a href="#second">Second</a>
+  <a href="#third">Third</a>
+  <a href="#fourth">Fourth</a>
+  <a href="#fifth">Fifth</a>
+  <a href="#sixth">Sixth</a>
+</div>
+<script>
+  function checkScrollMarkers(scrollMarkers, targetCurrentIndex) {
+    for (let i = 0; i < scrollMarkers.length; ++i) {
+      if (i < targetCurrentIndex) {
+        assert_equals(getComputedStyle(scrollMarkers[i]).color, "rgb(255, 0, 0)", "scroll marker before the :target-current one should be red as :target-before");
+      } else if (i === targetCurrentIndex) {
+        assert_equals(getComputedStyle(scrollMarkers[i]).color, "rgb(0, 128, 0)", "the :target-current scroll marker should be green");
+      } else {
+        assert_equals(getComputedStyle(scrollMarkers[i]).color, "rgb(255, 255, 0)", "scroll marker before the :target-current one should be yellow as :target-after");
+      }
+    }
+  }
+  const scroller = document.querySelector(".scroller");
+  const scrollTargets = scroller.querySelectorAll("div");
+  const wrapper = document.querySelector(".wrapper");
+  const scrollMarkers = wrapper.querySelectorAll("a");
+  for (let i = 0; i < scrollTargets.length; ++i) {
+    promise_test(async t => {
+      // Make i-th scroll marker :target-current.
+      scrollTargets[i].scrollIntoView();
+      await waitForAnimationFrames(2);
+      // Check the :target-before/:target-after relations on all scroll markers.
+      checkScrollMarkers(scrollMarkers, i);
+    }, i + "th scroll marker test");
+  }
+</script>

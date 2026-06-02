@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebPreferences Test: reducedMotion attribute tests</title>
+    <link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+    <link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#auto-pref%E2%91%A0" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src=./resources/preferences-helper.js></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        assert_true('preferences' in navigator, 'navigator.preferences defined');
+        assert_true('reducedMotion' in navigator.preferences, 'navigator.preferences.reducedMotion defined');
+      }, "navigator.preferences.reducedMotion supported");
+      test(() => {
+        assert_true('override' in navigator.preferences.reducedMotion, 'navigator.preferences.reducedMotion.override defined');
+        assert_equals(navigator.preferences.reducedMotion.override, null);
+      }, "navigator.preferences.reducedMotion.override supported");
+      test(() => {
+        assert_true('value' in navigator.preferences.reducedMotion, 'navigator.preferences.reducedMotion.value defined');
+        assert_equals(navigator.preferences.reducedMotion.value, 'no-preference');
+      }, "navigator.preferences.reducedMotion.value supported");
+      test(() => {
+        assert_true('validValues' in navigator.preferences.reducedMotion, 'navigator.preferences.reducedMotion.validValues defined');
+        assert_true(navigator.preferences.reducedMotion.validValues.includes('reduce'), 'navigator.preferences.reducedMotion.validValues includes "reduce"');
+        assert_true(navigator.preferences.reducedMotion.validValues.includes('no-preference'), 'navigator.preferences.reducedMotion.validValues includes "no-preference"');
+      }, "navigator.preferences.reducedMotion.validValues supported");
+      promise_test((t) => {
+        assert_true('requestOverride' in navigator.preferences.reducedMotion, 'navigator.preferences.reducedMotion.requestOverride() defined');
+        return navigator.preferences.reducedMotion.requestOverride('this-is-an-invalid-value')
+          .then(() => {
+            assert_not_reached('requestOverride with invalid value should not resolve');
+          })
+          .catch((e) => {
+            assert_true(e instanceof DOMException);
+            assert_equals(navigator.preferences.reducedMotion.override, null);
+            t.done();
+          });
+      }, "navigator.preferences.reducedMotion.requestOverride() with invalid value throws");
+      promise_test(async (t) => {
+        assert_true('clearOverride' in navigator.preferences.reducedMotion, 'navigator.preferences.reducedMotion.clearOverride() defined');
+        await navigator.preferences.reducedMotion.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedMotion.override, 'reduce');
+        navigator.preferences.reducedMotion.clearOverride();
+        assert_equals(navigator.preferences.reducedMotion.override, null);
+        t.done();
+      }, "navigator.preferences.reducedMotion.clearOverride() supported");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedMotion.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedMotion.override, 'reduce');
+        await navigator.preferences.reducedMotion.requestOverride(null);
+        assert_equals(navigator.preferences.reducedMotion.override, null);
+        t.done();
+      }, "navigator.preferences.reducedMotion.requestOverride(null) works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedMotion.requestOverride('reduce');
+        assert_equals(navigator.preferences.reducedMotion.override, 'reduce');
+        await navigator.preferences.reducedMotion.requestOverride('');
+        assert_equals(navigator.preferences.reducedMotion.override, null);
+        t.done();
+      }, "navigator.preferences.reducedMotion.requestOverride('') works like clearOverride()");
+      promise_test(async (t) => {
+        await navigator.preferences.reducedMotion.requestOverride('no-preference');
+        assert_true(window.matchMedia('(prefers-reduced-motion: no-preference)').matches, '(prefers-reduced-motion: no-preference) matches');
+        assert_equals(navigator.preferences.reducedMotion.value, 'no-preference');
+        await navigator.preferences.reducedMotion.requestOverride('reduce');
+        assert_true(window.matchMedia('(prefers-reduced-motion: reduce)').matches, '(prefers-reduced-motion: reduce) matches');
+        assert_equals(navigator.preferences.reducedMotion.value, 'reduce');
+        navigator.preferences.reducedMotion.clearOverride();
+        assert_true(window.matchMedia('(prefers-reduced-motion: no-preference)').matches);
+        assert_equals(navigator.preferences.reducedMotion.value, 'no-preference');
+        t.done();
+      }, "navigator.preferences.reducedMotion.requestOverride() updates (prefers-reduced-motion)");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedMotion.clearOverride();
+          navigator.preferences.reducedMotion.onchange = null;
+        });
+        navigator.preferences.reducedMotion.onchange = t.step_func_done();
+        navigator.preferences.reducedMotion.requestOverride('reduce');
+      }, "navigator.preferences.reducedMotion fires change event when requesting override");
+      async_test((t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedMotion.clearOverride();
+          navigator.preferences.reducedMotion.onchange = null;
+        });
+        navigator.preferences.reducedMotion.onchange = t.step_func_done();
+        navigator.preferences.reducedMotion.requestOverride('no-preference');
+      }, "navigator.preferences.reducedMotion fires change event when requesting override (without value change)");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedMotion.clearOverride();
+          navigator.preferences.reducedMotion.onchange = null;
+        });
+        await navigator.preferences.reducedMotion.requestOverride('reduce');
+        const eventPromise = changeEventPromise("reducedMotion", t);
+        await navigator.preferences.reducedMotion.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedMotion fires change event when clearing override");
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          navigator.preferences.reducedMotion.clearOverride();
+          navigator.preferences.reducedMotion.onchange = null;
+        });
+        await navigator.preferences.reducedMotion.requestOverride('no-preference');
+        const eventPromise = changeEventPromise("reducedMotion", t);
+        await navigator.preferences.reducedMotion.clearOverride();
+        await eventPromise;
+      }, "navigator.preferences.reducedMotion fires change event when clearing override (without value change)");
+    </script>
+  </body>
+</html>

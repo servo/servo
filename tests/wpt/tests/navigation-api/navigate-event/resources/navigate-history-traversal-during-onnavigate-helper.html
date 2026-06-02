@@ -1,0 +1,34 @@
+<!doctype html>
+<head>
+<script>
+onload = () => {
+  opener.postMessage("load", "*");
+};
+
+onmessage = () => {
+  runTest();
+}
+
+async function runTest() {
+  const params = new URLSearchParams(location.search);
+  const count = params.get("count") ?? 1;
+  for (let frag = 0; frag < count; ++frag) {
+    await navigation.navigate(`#${frag}`).finished;
+  }
+
+  const key = navigation.entries()[navigation.currentEntry.index - count].key;
+
+  navigation.onnavigate = async () => {
+    if (count === 1) {
+      navigation.back();
+    } else {
+      navigation.traverseTo(key);
+    }
+  }
+
+  opener.postMessage("done", "*");
+
+  history.back();
+}
+</script>
+</head>

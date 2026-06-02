@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: 'text-shadow' and upright text orientation</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#physical-only">
+  <link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-shadow-property">
+  <link rel="match" href="reference/text-shadow-orientation-upright-001-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <!--
+
+  Issue 229211: text-shadow is drawn at the invalid position in vertical writing mode
+  on Chromium for Mac
+  https://bugs.chromium.org/p/chromium/issues/detail?id=229211#c8
+
+  -->
+
+  <meta content="This test checks that text-shadow offsets are purely physical and do not change with vertical writing mode.">
+
+  <style>
+  div
+    {
+      color: yellow;
+      font-family: Ahem;
+      font-size: 100px;
+      line-height: 1;
+      margin: calc(1em + 8px) auto auto 1em;
+      text-orientation: upright;
+      writing-mode: vertical-rl;
+
+      text-shadow: 0em -1em purple, 1em 0em blue, 0em 1em fuchsia, -1em 0em orange;
+    }
+
+  /*
+
+  Value: [ <color>? && <length>{2,3} ]#
+
+  color: color of text-shadow
+
+  1st <length>
+    Specifies the horizontal offset
+    of the shadow. A positive value draws a shadow that is
+    offset to the right of the box, a negative length to the
+    left.
+
+  2nd <length>
+    Specifies the vertical offset
+    of the shadow. A positive value offsets the shadow down,
+    a negative one up.
+
+  */
+
+  </style>
+
+  <div>A</div>
+
+  <!--
+
+                  .........
+                  .       .
+                  .       . <-purple
+                  .       .
+           .......................
+           .      .       .      .
+  orange-> .      .  yel  .      . <-blue
+           .      .  low  .      .
+           .......................
+                  .       .
+                  .       . <-fuchsia
+                  .       .
+                  .........
+
+  -->

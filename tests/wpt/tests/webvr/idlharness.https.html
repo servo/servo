@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>WebVR IDL test</title>
+    <link rel="help" href="https://w3c.github.io/webvr/">
+
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src=/resources/WebIDLParser.js></script>
+    <script src=/resources/idlharness.js></script>
+  </head>
+  <body>
+    <h1 class="instructions">Description</h1>
+    <p class="instructions">
+      This test verifies that implementations of the WebVR API match its WebIDL definition.
+    </p>
+
+    <div id='log'></div>
+
+    <script>
+      idl_test(
+        ['webvr.tentative'],
+        ['gamepad', 'html', 'dom']
+      );
+    </script>
+  </body>
+</html>

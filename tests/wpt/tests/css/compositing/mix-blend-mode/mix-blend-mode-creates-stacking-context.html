@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: an element with mix-blend-mode other than normal creates a stacking context</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="Test checks that applying a blendmode other than normal
+        to the element must establish a new stacking context.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="blender"></div>
+        <script type="text/javascript">
+            var blendModes = ["multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn",
+                "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
+
+            test(function() {
+                var blender = document.getElementById("blender");
+                for (var i = 0; i < blendModes.length; ++i) {
+                    blender.style.mixBlendMode = blendModes[i];
+                    var blenderStyle = window.getComputedStyle(blender);
+                    assert_not_equals(blenderStyle.zIndex, "auto");
+                }
+            });
+        </script>
+    </body>
+</html>

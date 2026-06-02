@@ -1,0 +1,103 @@
+<svg version="1.1" baseProfile="full" preserveAspectRatio="xMidYMid meet" zoomAndPan="magnify" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: filters-morph-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feMorphologyElement">
+      <p>
+        Test which verifies the basic facilities of feMorphology.
+      </p>
+      <p>
+        The test shows the same graphics filtered with four different feMorphology
+        settings. The top two have the type erode and a radius of 1(left) and 2(right).
+        The bottom two have the type dilate and a radius of 1(left) and 3(right).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except for possible
+        variations in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-morph-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="240" y="16" text-anchor="middle" font-size="12pt">Filter Effect: feMorphology</text>
+    <g transform="translate(0, -6)">
+      <defs>
+        <filter id="erode1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feMorphology operator="erode" radius="1"/>
+        </filter>
+        <filter id="erode2" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feMorphology operator="erode" radius="2"/>
+        </filter>
+        <filter id="dilate1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feMorphology operator="dilate" radius="1"/>
+        </filter>
+        <filter id="dilate2" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feMorphology operator="dilate" radius="3"/>
+        </filter>
+        <g id="morphologySource">
+          <g fill-rule="nonzero" clip-rule="nonzero" stroke="#000000" stroke-miterlimit="4">
+            <g>
+              <path fill="#FFFFFF" stroke="#6666FF" stroke-width="7.1711" d="M81.403,78.289H3.585v-64.75h77.818v64.75z"/>
+              <path fill="none" stroke="#00FF00" stroke-width="7.1711" d="M93.261,77.536c0,23.285-18.581,42.163-41.503,42.163c-22.921,0-41.503-18.877-41.503-42.163c0-23.286,18.582-42.163,41.503-42.163c22.922,0,41.503,18.877,41.503,42.163z"/>
+              <path fill="none" stroke="#FF8000" stroke-width="7.1711" d="M98.31,28.445l13.288,27.354l29.714,4.385l-21.501,21.292l5.076,30.064L98.31,97.347l-26.577,14.194l5.076-30.064L55.307,60.184l29.714-4.385L98.31,28.445z"/>
+              <path fill="none" stroke="#FFFF00" stroke-width="7.1711" d="M131.563,26.338c0,28.559-22.79,51.709-50.901,51.709c-22.489,0-40.72-18.521-40.72-41.367c0-18.278,14.584-33.095,32.576-33.095c14.394,0,26.061,11.854,26.061,26.475     c0,11.698-9.334,21.181-20.849,21.181c-9.211,0-16.68-7.586-16.68-16.944c0-7.486,5.975-13.555,13.344-13.555c5.895,0,10.674,4.855,10.674,10.844c0,4.791-3.823,8.676-8.54,8.676c-3.773,0-6.832-3.107-6.832-6.941"/>
+            </g>
+          </g>
+        </g>
+      </defs>
+      <g text-anchor="middle">
+        <g transform="translate(0, 0)">
+          <use xlink:href="#morphologySource" x="35" y="25" filter="url(#erode1)"/>
+          <text x="110" y="156">type=erode radius=1</text>
+        </g>
+        <g transform="translate(255, 0)">
+          <use xlink:href="#morphologySource" x="35" y="25" filter="url(#erode2)"/>
+          <text x="110" y="156">type=erode radius=2</text>
+        </g>
+        <g transform="translate(0, 140)">
+          <use xlink:href="#morphologySource" x="35" y="25" filter="url(#dilate1)"/>
+          <text x="110" y="156">type=dilate radius=1</text>
+        </g>
+        <g transform="translate(255, 140)">
+          <use xlink:href="#morphologySource" x="35" y="25" filter="url(#dilate2)"/>
+          <text x="110" y="156">type=dilate radius=3</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Embedded Style: Media Queries</title>
+<script src="/common/reftest-wait.js"></script>
+<style>iframe {width:100%; height:500px}</style>
+<script>
+    onload = function() {
+        let iframeWindow = document.querySelector('iframe').contentWindow;
+        iframeWindow.requestAnimationFrame(() => {
+            iframeWindow.requestAnimationFrame(() => {
+                setTimeout(function() {
+                    takeScreenshot();
+                }, 100);
+            });
+        });
+    };
+</script>
+<iframe src="support/embedded_style_media_queries-iframe-ref.html"></iframe>

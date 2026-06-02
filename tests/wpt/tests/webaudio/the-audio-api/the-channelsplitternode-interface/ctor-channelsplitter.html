@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: ChannelSplitter
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script>
+
+      test(() => {
+        context = new OfflineAudioContext(1, 1, 48000);
+      }, 'initialize');
+
+      test(() => {
+        testInvalidConstructor_W3CTH('ChannelSplitterNode');
+      }, 'invalid constructor');
+
+      test(() => {
+        testDefaultConstructor_W3CTH('ChannelSplitterNode', context, {
+          prefix: 'node0',
+          numberOfInputs: 1,
+          numberOfOutputs: 6,
+          channelCount: 6,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'discrete',
+        });
+      }, 'default constructor');
+
+      test(() => {
+        const node = new ChannelSplitterNode(context);
+        node.channelCount = 6;
+        assert_equals(node.channelCount, 6, 'channelCount stays 6');
+
+        node.channelCountMode = 'explicit';
+        assert_equals(node.channelCountMode, 'explicit',
+            'channelCountMode stays explicit');
+
+        node.channelInterpretation = 'discrete';
+        assert_equals(node.channelInterpretation, 'discrete',
+            'channelInterpretation stays discrete');
+
+        assert_throws_dom(
+            'InvalidStateError', () => {
+              node.channelCount = 7;
+            },
+            'channelCount immutable');
+
+        assert_throws_dom(
+            'InvalidStateError', () => {
+              node.channelCountMode = 'max';
+            },
+            'channelCountMode immutable');
+
+        assert_throws_dom(
+            'InvalidStateError', () => {
+              node.channelInterpretation = 'speakers';
+            },
+            'channelInterpretation immutable');
+      }, 'AudioNodeOptions immutability');
+
+      test(() => {
+        const options = {
+          numberOfInputs: 3,
+          numberOfOutputs: 9,
+          channelInterpretation: 'discrete',
+        };
+        const node = new ChannelSplitterNode(context, options);
+        assert_equals(
+            node.numberOfInputs,
+            1,
+            `success ${JSON.stringify(options)} – numberOfInputs`);
+        assert_equals(
+            node.numberOfOutputs,
+            options.numberOfOutputs,
+            ` success ${JSON.stringify(options)} – numberOfOutputs`);
+        assert_equals(
+            node.channelInterpretation,
+            'discrete',
+            `success ${JSON.stringify(options)} – channelInterpretation`);
+
+        const badOutputs = {numberOfOutputs: 99};
+        assert_throws_dom(
+            'IndexSizeError',
+            () => new ChannelSplitterNode(context, badOutputs),
+            `error ${JSON.stringify(badOutputs)} – IndexSizeError`);
+
+        const badCount = {channelCount: 3};
+        assert_throws_dom(
+            'InvalidStateError',
+            () => new ChannelSplitterNode(context, badCount),
+            `error ${JSON.stringify(badCount)} – InvalidStateError`);
+
+        const badMode = {channelCountMode: 'max'};
+        assert_throws_dom(
+            'InvalidStateError',
+            () => new ChannelSplitterNode(context, badMode),
+            `error ${JSON.stringify(badMode)} – InvalidStateError`);
+      }, 'constructor options');
+    </script>
+  </body>
+</html>

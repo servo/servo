@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<title>CSS Grid: Grid container baseline</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-baselines">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-order">
+<link rel="help" href="https://crbug.com/234191">
+<meta name="assert" content="Check that grid container must use its first item in grid-modified document order (grid order) to compute its baseline."/>
+
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/alignment.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body { margin: 0; }
+.container {
+    position: relative;
+    font: 10px/1 Ahem;
+    border: 5px solid;
+    width: 470px;
+}
+.grid {
+    display: inline-grid;
+    grid-template-columns: 50px 50px;
+    width: 150px;
+    background-color: transparent;
+    position: relative;
+}
+.twoRows { grid-template-rows: 50px 50px; }
+.threeRows { grid-template-rows: 50px 50px 50px; }
+.empty {
+    border-color: black;
+    border-style: solid;
+    margin: 15px 0px 30px;
+    border-width: 5px 0px 10px;
+    padding: 10px 0px 20px;
+}
+.item {
+    height: 25px;
+    border-color: gray;
+    border-style: solid;
+}
+.grid.grid > * {
+    background: silver;
+    background: rgba(0,0,0,0.3);
+}
+.target.target {
+    background: blue;
+    border-color: navy;
+}
+.style1 {
+    border-width: 5px 0px 10px;
+    padding: 10px 0px 20px;
+}
+.style2 {
+    border-width: 10px 0px 5px;
+    padding: 20px 0px 10px;
+    margin-top: 10px;
+}
+.style3 {
+    border-width: 10px 0px 20px;
+    padding: 5px 0px 10px;
+    margin-top: 20px;
+}
+
+.bothRowFirstColumn, .secondRowSecondColumn {
+    margin-right: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-color: pink;
+}
+.firstRowBothColumn, .secondRowBothColumn {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    background-color: green;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+    setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid, container'); })">
+<div id="log"></div>
+<p>
+    The test shows 3 grids each of them with 3 items sorted differently in the DOM.<br>
+    Each grid container must use its first (grid order) item to compute its baseline, and using document-oder in case of element with same grid-order. Hence they might be baseline aligned each other accordingly.
+</p>
+
+<p>
+    This case shows 3 items located along the first row and in different columns.
+    The grid baseline is computed using the one located at first column (blue item)
+    regardless of source order.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="120">
+    <div class="grid" data-offset-x="0" data-offset-y="20">
+        <div class="item style1 firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="item style2 firstRowSecondColumn" data-offset-x="50"  data-offset-y="10"></div>
+        <div class="item style3 firstRowThirdColumn"  data-offset-x="100" data-offset-y="20"></div>
+    </div>
+    <div class="grid" data-offset-x="160" data-offset-y="10">
+        <div class="item style1 firstRowThirdColumn"  data-offset-x="100" data-offset-y="0"></div>
+        <div class="item style2 firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="10"></div>
+        <div class="item style3 firstRowSecondColumn" data-offset-x="50"  data-offset-y="20"></div>
+    </div>
+    <div class="grid" data-offset-x="320" data-offset-y="0">
+        <div class="item style1 firstRowSecondColumn" data-offset-x="50"  data-offset-y="0"></div>
+        <div class="item style2 firstRowThirdColumn"  data-offset-x="100" data-offset-y="10"></div>
+        <div class="item style3 firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="20"></div>
+    </div>
+</div>
+
+<p>
+    This case shows 3 items located along the first row and in different columns.
+    The baseline-aligned item (blue) always determines the grid baseline.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="120">
+    <div class="grid" data-offset-x="0" data-offset-y="0">
+        <div class="item style1 firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="item style2 firstRowSecondColumn" data-offset-x="50"  data-offset-y="10"></div>
+        <div class="item style3 firstRowThirdColumn alignSelfBaseline target"  data-offset-x="100" data-offset-y="20"></div>
+    </div>
+    <div class="grid" data-offset-x="160" data-offset-y="0">
+        <div class="item style1 firstRowThirdColumn"  data-offset-x="100" data-offset-y="0"></div>
+        <div class="item style2 firstRowFirstColumn"  data-offset-x="0"   data-offset-y="10"></div>
+        <div class="item style3 firstRowSecondColumn alignSelfBaseline target" data-offset-x="50"  data-offset-y="20"></div>
+    </div>
+    <div class="grid" data-offset-x="320" data-offset-y="20">
+        <div class="item style1 firstRowSecondColumn alignSelfBaseline target" data-offset-x="50"  data-offset-y="0"></div>
+        <div class="item style2 firstRowThirdColumn"  data-offset-x="100" data-offset-y="10"></div>
+        <div class="item style3 firstRowFirstColumn"  data-offset-x="0"   data-offset-y="20"></div>
+    </div>
+</div>
+
+<p>
+    This case shows 3 items' areas intersecting the first row and first column,
+    but none of them participate in baseline alignment in the first row,
+    so the dom order must be used to determine each grid's baseline.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="165">
+    <div class="grid twoRows" data-offset-x="0" data-offset-y="40">
+        <div class="firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+        <div class="bothRowFirstColumn style2" style="align-self: last baseline"  data-offset-x="0"></div>
+    </div>
+    <div class="grid twoRows" data-offset-x="160" data-offset-y="0">
+        <div class="bothRowFirstColumn target"  data-offset-x="0" data-offset-y="10"></div>
+        <div class="firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+    </div>
+    <div class="grid twoRows" data-offset-x="320" data-offset-y="55">
+        <div class="firstRowBothColumn target" data-offset-x="0"  data-offset-y="15"></div>
+        <div class="firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="bothRowFirstColumn"  data-offset-x="0" data-offset-y="10"></div>
+    </div>
+</div>
+
+<p>
+    This case shows 3 items' areas intersecting the first row and first column,
+    but one of the items participates in baseline alignment in the first row,
+    so such item is used to determine the grid's baseline
+    instead of using the dom order.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="165">
+    <div class="grid twoRows" data-offset-x="0" data-offset-y="55">
+        <div class="firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn alignSelfBaseline target" style="width: 100px; height: 20px;"  data-offset-x="0"  data-offset-y="15"></div>
+        <div class="bothRowFirstColumn" data-offset-x="0" data-offset-y="10"></div>
+    </div>
+    <div class="grid twoRows" data-offset-x="160" data-offset-y="40">
+        <div class="bothRowFirstColumn style2" style="align-self: last baseline" data-offset-x="0"></div>
+        <div class="firstRowFirstColumn alignSelfBaseline target" style="width: 50px; height: 50px;"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+    </div>
+    <div class="grid twoRows" data-offset-x="320" data-offset-y="0">
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+        <div class="firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="bothRowFirstColumn alignSelfBaseline target" style="width: 40px; height: 80px;"  data-offset-x="0" data-offset-y="10"></div>
+    </div>
+</div>
+
+<p>
+    This case shows one of the grids with no items,
+    hence its baseline must be synthesized from its margin box.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="250">
+    <div class="grid twoRows" data-offset-x="0" data-offset-y="140">
+        <div class="firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+        <div class="bothRowFirstColumn"  data-offset-x="0" data-offset-y="10"></div>
+    </div>
+    <div class="grid twoRows" data-offset-x="160" data-offset-y="100">
+        <div class="bothRowFirstColumn target"  data-offset-x="0" data-offset-y="10"></div>
+        <div class="firstRowFirstColumn"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+    </div>
+    <div class="grid empty twoRows target" data-offset-x="320" data-offset-y="15">
+    </div>
+</div>
+
+<p>
+    This case shows two of the grids with no items in their first row,
+    hence the items in the second row are evaluated.
+</p>
+<div class="container" data-expected-width="480" data-expected-height="250">
+    <div id=first class="grid twoRows" data-offset-x="0" data-offset-y="80">
+        <div class="firstRowFirstColumn target"  data-offset-x="0"   data-offset-y="0"></div>
+        <div class="firstRowBothColumn" data-offset-x="0"  data-offset-y="15"></div>
+        <div class="bothRowFirstColumn"  data-offset-x="0" data-offset-y="10"></div>
+    </div>
+    <div id=second class="grid threeRows" data-offset-x="160" data-offset-y="55">
+        <div class="thirdRowFirstColumn" data-offset-x="0" data-offset-y="100"></div>
+        <div class="secondRowBothColumn" data-offset-x="0" data-offset-y="65"></div>
+        <div class="secondRowSecondColumn style3 alignSelfBaseline target" id="first"  data-offset-x="50"   data-offset-y="60"></div>
+    </div>
+    <div class="grid empty threeRows" data-offset-x="320" data-offset-y="15">
+        <div class="thirdRowSecondColumn"  data-offset-x="50"   data-offset-y="110"></div>
+        <div class="secondRowFirstColumn target"  data-offset-x="0" data-offset-y="60"></div>
+        <div class="secondRowBothColumn" data-offset-x="0"  data-offset-y="75"></div>
+    </div>
+</div>
+
+</body>

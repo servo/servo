@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>The DOM Modification Criterion for Soft Navigation Detection.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="../../resources/soft-navigation-test-helper.js"></script>
+    <script>
+      // Uses Element.innerHTML to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML
+      function elementInnerHTML() {
+        document.getElementById("element-inner-html").innerHTML = "<div>Hello, World.</div>";
+        history.pushState({}, "", "/element-inner-html");
+      }
+
+      // Uses Node.appendChild to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Node/appendChild
+      function nodeAppendChild() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.pushState({}, "", "/node-append-child");
+      }
+
+      // Uses Node.insertBefore to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Node/insertBefore
+      function nodeInsertBefore() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.insertBefore(greeting, document.body.firstChild);
+        history.pushState({}, "", "/node-insert-before");
+      }
+
+      // Uses Document.importNode to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Document/importNode
+      function documentImportNode() {
+        const iframe = document.getElementById("iframe-example");
+        const oldNode = iframe.contentWindow.document.getElementById("import-this");
+        const newNode = document.importNode(oldNode, true);
+        document.body.appendChild(newNode);
+        history.pushState({}, "", "/document-import-node");
+      }
+
+      // Uses Document.adoptNode to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptNode
+      function documentAdoptNode() {
+        const iframe = document.getElementById("iframe-example");
+        const oldNode = iframe.contentWindow.document.getElementById("import-this");
+        const newNode = document.adoptNode(oldNode);
+        document.body.appendChild(newNode);
+        history.pushState({}, "", "/document-adopt-node");
+      }
+
+      // Uses a template element to add to the DOM.
+      // https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/template
+      function templateElement() {
+        const template = document.getElementById("template-example");
+        const cloned = template.content.cloneNode(true);
+        document.body.appendChild(cloned);
+        history.pushState({}, "", "/template-element");
+      }
+
+      // Uses Element.innerText to add to the DOM, without overriding existing text.
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/innerText
+      function elementInnerTextInitial() {
+        document.getElementById("element-inner-text-initial-dest").innerText = "Hello, World.";
+        history.pushState({}, "", "/element-inner-text-initial");
+      }
+
+      // Uses Element.innerText to add to the DOM, overriding existing text.
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/innerText
+      function elementInnerTextOverride() {
+        document.getElementById("element-inner-text-override-dest").innerText = "Hello, World.";
+        history.pushState({}, "", "/element-inner-text-override");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="element-inner-html" onclick="elementInnerHTML()">Click here!</div>
+    <div id="node-append-child" onclick="nodeAppendChild()">Click here!</div>
+    <div id="node-insert-before" onclick="nodeInsertBefore()">Click here!</div>
+    <div id="document-import-node" onclick="documentImportNode()">Click here!</div>
+    <div id="document-adopt-node" onclick="documentAdoptNode()">Click here!</div>
+    <div id="template-element" onclick="templateElement()">Click here!</div>
+    <div id="element-inner-text-initial" onclick="elementInnerTextInitial()">
+      Click here!
+      <div id="element-inner-text-initial-dest"></div>
+    </div>
+    <div id="element-inner-text-override" onclick="elementInnerTextOverride()">
+      Click here!
+      <div id="element-inner-text-override-dest">Some text already there.</div>
+    </div>
+
+    <iframe id="iframe-example" srcdoc="&lt;div id='import-this'>Hello, World.&lt;/div>"></iframe>
+
+    <template id="template-example">
+      <div>Hello, World.</div>
+    </template>
+
+    <script>
+      function test_template(test_id, description) {
+        promise_test(async (t) => {
+          const promise =
+              SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+          if (test_driver) {
+            test_driver.click(document.getElementById(test_id));
+          }
+          const helper = new SoftNavigationTestHelper(t);
+          const entries = await helper.withTimeoutMessage(
+            promise,
+            "Soft navigation event not fired.",
+            /* timeout= */ 3000,
+          );
+          assert_equals(entries.length, 1, "Expected exactly one soft navigation.");
+          assert_equals(
+            entries[0].name.replace(/.*\//, ""),
+            test_id,
+            "URL should end with the test ID.",
+          );
+        }, description);
+      }
+
+      test_template("element-inner-html", "Soft Navigation Detection supports Element.innerHTML.");
+      test_template("node-append-child", "Soft Navigation Detection supports Node.appendChild.");
+      test_template("node-insert-before", "Soft Navigation Detection supports Node.insertBefore.");
+      test_template(
+        "document-import-node",
+        "Soft Navigation Detection supports Document.importNode.",
+      );
+      test_template(
+        "document-adopt-node",
+        "Soft Navigation Detection supports Document.adoptNode.",
+      );
+      test_template("template-element", "Soft Navigation Detection supports template elements.");
+      test_template(
+        "element-inner-text-initial",
+        "Soft Navigation Detection supports Element.innerText when it does not override existing text.",
+      );
+      test_template(
+        "element-inner-text-override",
+        "Soft Navigation Detection supports Element.innerText when it overrides existing text.",
+      );
+    </script>
+  </body>
+</html>

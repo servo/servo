@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: margin collapsing - clear</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Matt Bradley" href="http://www.inventpartners.com/content/contact" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#flow-control" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+  <meta content="Margin-top of following siblings of a block on which 'clear' has been set (to a different value than 'none') must not be substracted when calculating clearance. When an element's own margins collapse, and that element has had clearance applied to it, its top margin collapses with the adjoining margins of following siblings." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#overlapped-red
+  {
+  background-color: red;
+  height: 100px;
+  position: absolute;
+  width: 100px;
+  z-index: -1;
+  }
+
+  div#overlapping-green-container
+  {
+  background-color: green;
+  width: 100px;
+  }
+
+  div#floated-left
+  {
+  float: left;
+  height: 1px;
+  }
+
+  div#clear-left {clear: left;}
+
+  div#following-sibling {margin-top: 99px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="overlapped-red"></div>
+
+  <div id="overlapping-green-container">
+    <div id="floated-left"></div>
+
+    <div id="clear-left"></div>
+
+    <div id="following-sibling"></div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: :focus pseudo-class - adjacent sibling selector</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/html4/interact/forms.html#h-17.11" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#adjacent-selectors" />
+  <meta name="flags" content="interact" />
+  <meta name="assert" content="An HTML 4 textarea must be focused in order to enter text into it. The :focus pseudo-class applies to a textarea while it has the focus (accepts keyboard events or other forms of text input)." />
+
+  <style type="text/css"><![CDATA[
+  span
+  {
+  color: white;
+  font-size: 150%;
+  }
+
+  textarea:focus + span
+  {
+  color: green;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Enter in the text field below with the pointing device or with the keyboard (with the tab key or with the "T" accesskey) and then enter some text into it. A message in green should then have appeared on its right-hand side indicating that such text field has received focus. In order to pass this test, the tester should not have to move the pointing device outside the text field.</p>
+
+  <div>
+   <textarea cols="32" rows="4" accesskey="T" tabindex="1"></textarea> <span>Focus received by text field</span>
+  </div>
+
+ </body>
+</html>

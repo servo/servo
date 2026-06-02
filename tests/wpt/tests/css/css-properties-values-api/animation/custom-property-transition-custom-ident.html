@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<custom-ident>",
+  from: "from",
+  to: "to",
+  expected: "to",
+  behavior: "allow-discrete",
+}, 'A custom property of type <custom-ident> can yield a discrete CSS Transition');
+
+</script>

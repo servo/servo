@@ -1,0 +1,11 @@
+features:
+- name: text-align
+  files:
+  - "text-align-*"
+  - "!text-align-last-*"
+  - "!text-align-*-last-*"
+- name: text-align-last
+  files:
+  - "text-align-last-*"
+  - "text-align-*-last-*"
+

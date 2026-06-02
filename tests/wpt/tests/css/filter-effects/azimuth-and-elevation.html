@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Azimuth and elevation should work if outside 0-360 degrees</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#element-attrdef-fedistantlight-azimuth">
+<link rel="match" href="reference/azimuth-and-elevation-ref.html">
+<svg width="450" height="250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="diffuse">
+      <feDiffuseLighting>
+        <feDistantLight azimuth="-45" elevation="390"/>
+      </feDiffuseLighting>
+    </filter>
+  </defs>
+
+  <rect x="100" y="100" width="100" height="100" filter="url(#diffuse)" />
+</svg>

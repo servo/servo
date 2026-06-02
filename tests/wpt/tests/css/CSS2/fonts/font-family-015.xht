@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Baselines and Fallback</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/family/005.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <style type="text/css">
+   div { margin-bottom: 5em; }
+   p { font: 900 5em/0 serif; }
+   span.a { color: red; font-family: Terminal, Courier New; }
+   span.b { color: green; font-family: Courier New; }
+   span span { color: silver; }
+  </style>
+ </head>
+ <body>
+  <div>There should be a green &#x05e2; character below (next to two different overlapped gray Xs).</div>
+  <p>
+   <span class="a">&#x05e2;<span>X</span></span>
+   <br/>
+   <span class="b">&#x05e2;<span>X</span></span>
+  </p>
+ </body>
+</html>

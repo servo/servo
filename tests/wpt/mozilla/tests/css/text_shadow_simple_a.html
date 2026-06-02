@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='text_shadow_simple_ref.html'>
+<!--
+     Tests that `text-shadow` works with multiple unblurred shadows in the right order with the
+     right offsets.
+-->
+<link rel="stylesheet" type="text/css" href="css/ahem.css">
+<style>
+section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 500px;
+    color: green;
+    text-shadow: 20px 10px blue, 30px 40px red;
+}
+</style>
+</head>
+<body><section>X</section></body>
+</html>

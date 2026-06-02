@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  let o = document.getElementById('c');
+  document.getElementById('d').appendChild(o.parentNode.removeChild(o));
+  document.getElementById('a').focus();
+  o = document.getElementById('e').parentNode;
+  o.removeChild(document.getElementById('e'));
+  let n =document.createElement('td');
+  n.id = 'e';
+  o.appendChild(n);
+  o = document.getElementById('e');
+  let p = document.getElementById('a');
+  p.id = [o.id, o.id=p.id][0];
+  o = document.getElementById('e');
+  document.getElementById('b').appendChild(o.parentNode.removeChild(o));
+  o = document.getElementById('d');
+  o.parentNode.removeChild(o);
+  try{
+    document.designMode = 'on';
+  } catch(e) {}
+});
+</script>
+</head>
+<body>
+<input id='a'/>
+<q id='b' cote=''></q>
+<label id='c' dropzone='link' contenteditable='true'></label>
+<output id='d'></output>
+<cite id='e' slate='no'></cite>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src='../resources/shadow-dom.js'></script>
+<script src='../resources/focus-utils.js'></script>
+
+<style>
+div.scroll {
+  overflow: auto;
+  width: 20em;
+  height: 5em;
+  display: block;
+}
+div.long {
+  width: 40em;
+  height: 40em;
+}
+</style>
+
+<button id="start">START</button>
+
+<div id="host-no-delegates-focus" class="scroll">
+  <template shadowrootmode="open">
+    <p>Scroller shadow root has delegatesFocus false.</p>
+    <button id="A">BUTTON A</button>
+    <slot></slot>
+  </template>
+  <div class=long></div>
+</div>
+
+<div id="host-no-delegates-focus-2" class="scroll">
+  <template shadowrootmode="open">
+    <p>Scroller shadow root has delegatesFocus false.</p>
+    <slot></slot>
+  </template>
+  <div class=long></div>
+</div>
+
+<div id="host-delegates-focus" class="scroll">
+  <template shadowrootmode="open" shadowrootdelegatesfocus>
+    <p>Scroller shadow root has delegatesFocus true.</p>
+    <button id="B">BUTTON B</button>
+    <slot></slot>
+  </template>
+  <div class=long></div>
+</div>
+
+<div id="host-delegates-focus-2" class="scroll">
+  <template shadowrootmode="open" shadowrootdelegatesfocus>
+    <p>Scroller shadow root has delegatesFocus true.</p>
+    <slot></slot>
+  </template>
+  <div class=long></div>
+</div>
+
+<button id="end">END</button>
+
+<script>
+
+  promise_test(async () => {
+  let elements = [
+    'start',
+    'host-no-delegates-focus/A',
+    'host-no-delegates-focus-2',
+    'host-delegates-focus/B',
+    'end'
+  ];
+
+  assert_focus_navigation_bidirectional(elements);
+}, 'Should focus on scroller across shadow boundaries depending on delegatesFocus value.');
+
+</script>

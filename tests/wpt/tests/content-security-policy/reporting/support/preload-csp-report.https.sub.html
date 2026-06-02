@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<!-- This image will cause a CSP violation, which will trigger an immediate report -->
+<script>
+    const href = "/reporting/resources/fail.png";
+
+    window.addEventListener('load', async () => {
+        // Trigger a CSP error.
+        await new Promise(resolve => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = href;
+            link.as = 'image';
+            document.head.appendChild(link);
+            link.addEventListener('error', resolve);
+        });
+
+        // Trigger a second CSP error by consuming.
+        await new Promise(resolve => {
+            const img = document.createElement('img');
+            img.src = href;
+            img.addEventListener('error', resolve);
+            document.body.appendChild(img);
+        });
+    });
+</script>
+</body>
+</html>
+

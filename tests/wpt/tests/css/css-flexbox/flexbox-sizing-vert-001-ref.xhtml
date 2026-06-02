@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { width: 10px; }
+      div.flexbox {
+        float: left;
+        border: 1px dashed blue;
+        font-size: 10px;
+        margin-right: 2px;
+      }
+      div.a {
+        height: 20px;
+        background: lightgreen;
+      }
+      div.b {
+        height: 40px;
+        background: purple;
+      }
+      div.c {
+        height: 40px;
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a" style="height: 30px"/>
+      <div class="b"/>
+      <div class="c" style="height: 50px"/>
+    </div>
+
+    <div class="flexbox" style="height: 200px">
+      <div class="a" style="height: 60px"/>
+      <div class="b" style="height: 60px"/>
+      <div class="c" style="height: 60px"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a" style="height: 10px"/>
+      <div class="b"/>
+      <div class="c" style="height: 20px"/>
+    </div>
+
+    <div class="flexbox" style="height: 20px">
+      <div class="b"/>
+      <div class="c" style="height: 10px"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a" style="height: 6px"/>
+      <div class="b"/>
+      <div class="c" style="height: 12px"/>
+    </div>
+
+    <div class="flexbox">
+      <div class="a" style="height: 40px"/>
+      <div class="b" style="height: 40px"/>
+      <div class="c" style="height: 60px"/>
+    </div>
+
+  </body>
+</html>

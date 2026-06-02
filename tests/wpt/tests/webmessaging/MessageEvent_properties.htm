@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> MessageEvent interface and properties </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="do_test()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+async_test(function() {
+    window.do_test = this.step_func(function() {
+        document.querySelector("iframe").contentWindow.postMessage("foo", "*");
+    })
+
+    window.addEventListener("message", this.step_func_done(function(e) {
+        e.preventDefault();
+        assert_true(e instanceof MessageEvent, "Should be MessageEvent");
+        assert_equals(e.type, "message");
+        assert_false(e.bubbles, "bubbles");
+        assert_false(e.cancelable, "cancelable");
+        assert_false(e.defaultPrevented, "defaultPrevented");
+    }), false);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!-- Note: this is a reflection test that will ultimately be removed in favor of using the
+ html/dom/elements-embedded.js file instead, once not tentative. -->
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<video id="target"></video>
+
+<script>
+  const video = document.getElementById("target");
+
+  test(() => {
+    video.removeAttribute("loading");
+    assert_equals(video.loading, "eager", "Default value should be 'eager'");
+  }, "Video loading attribute default value is 'eager'");
+
+  test(() => {
+    video.setAttribute("loading", "lazy");
+    assert_equals(video.loading, "lazy", "loading='lazy' should reflect as 'lazy'");
+  }, "Video loading attribute reflects 'lazy'");
+
+  test(() => {
+    video.setAttribute("loading", "eager");
+    assert_equals(video.loading, "eager", "loading='eager' should reflect as 'eager'");
+  }, "Video loading attribute reflects 'eager'");
+
+  test(() => {
+    video.setAttribute("loading", "invalid");
+    assert_equals(video.loading, "eager", "Invalid value should reflect as 'eager'");
+  }, "Video loading attribute with invalid value reflects as 'eager'");
+
+  test(() => {
+    video.setAttribute("loading", "");
+    assert_equals(video.loading, "eager", "Empty string should reflect as 'eager'");
+  }, "Video loading attribute with empty string reflects as 'eager'");
+
+  test(() => {
+    video.setAttribute("loading", "LAZY");
+    assert_equals(video.loading, "lazy", "Uppercase 'LAZY' should reflect as 'lazy'");
+  }, "Video loading attribute is case-insensitive for 'lazy'");
+
+  test(() => {
+    video.setAttribute("loading", "EAGER");
+    assert_equals(video.loading, "eager", "Uppercase 'EAGER' should reflect as 'eager'");
+  }, "Video loading attribute is case-insensitive for 'eager'");
+
+  test(() => {
+    video.loading = "lazy";
+    assert_equals(video.getAttribute("loading"), "lazy", "Setting IDL to 'lazy' should set content attribute");
+    assert_equals(video.loading, "lazy", "IDL should reflect 'lazy'");
+  }, "Setting video.loading IDL attribute to 'lazy'");
+
+  test(() => {
+    video.loading = "eager";
+    assert_equals(video.getAttribute("loading"), "eager", "Setting IDL to 'eager' should set content attribute");
+    assert_equals(video.loading, "eager", "IDL should reflect 'eager'");
+  }, "Setting video.loading IDL attribute to 'eager'");
+
+  test(() => {
+    video.loading = "invalid";
+    assert_equals(video.getAttribute("loading"), "invalid", "Setting IDL to 'invalid' should set content attribute");
+    assert_equals(video.loading, "eager", "IDL should reflect 'eager' for invalid content attribute");
+  }, "Setting video.loading IDL attribute to invalid value");
+</script>

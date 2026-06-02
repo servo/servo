@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: repeat(3, 50px);
+    grid-template-columns: repeat(4, 20px) min-content min-content;
+    gap: 10px;
+    grid-auto-flow: column;
+}
+</style>
+<body>
+  <p>Test that grid-lanes items with reverse auto placement and explicit placement are correctly positioned within the grid axis.</p>
+  <div class="grid">
+    <div style="background: lightgreen; width: 20px;">3</div>
+    <div style="background: lightskyblue; width: 20px;">2</div>
+    <div style="background: lavender; width: 20px;">1</div>
+    <div style="background: lavender; width: 20px;">5</div>
+    <div style="background: lightpink; grid-row: span 2; width: 20px;">4</div>
+    <div style="background: lightgreen; width: 20px; grid-row: 2;">7</div>
+    <div style="background: lightskyblue; width: 20px;">6</div>
+    <div style="background: lightpink; grid-row: 1 / span 2; width: 20px;">8</div>
+    <div style="background: lavender; width: 20px;">9</div>
+    <div style="background: lavender; width: 30px;">11</div>
+    <div style="background: lightskyblue; width: 20px;">10</div>
+    <div style="background: lightskyblue; width: 40px;">12</div>
+    <div style="background: lightgreen; width: 10px; transform: translateX(-10px);">14</div>
+    <div style="background: lightgreen; width: 50px; transform: translateX(-20px);">13</div>
+    <div style="background: lightskyblue; width: 40px; grid-row: 3;">15</div>
+  </div>
+</body>
+</html>

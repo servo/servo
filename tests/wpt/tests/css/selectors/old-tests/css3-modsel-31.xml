@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:nth-last-of-type() pseudo-class</title>
+  <style type="text/css"><![CDATA[.red { background-color : red }
+p:nth-last-of-type(3) { background-color : lime }
+dl > :nth-last-of-type(3n+1) { background-color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+<p class="red">This paragraph should have green background</p>
+<address>But this address is here only to fill space in the dom..</address>
+<p>So does this paragraph !</p>
+<p>And so does this one too.</p>
+<dl>
+  <dt>First definition term</dt>
+    <dd>First definition</dd>
+  <dt>Second definition term</dt>
+    <dd>Second definition</dd>
+  <dt class="red">Third definition term that should have green background</dt>
+    <dd class="red">Third definition that should have green background</dd>
+  <dt>Fourth definition term</dt>
+    <dd>Fourth definition</dd>
+  <dt>Fifth definition term</dt>
+    <dd>Fifth definition</dd>
+  <dt class="red">Sixth definition term that should have green background</dt>
+    <dd class="red">Sixth definition that should have green background</dd>
+</dl>
+</body>
+</html>

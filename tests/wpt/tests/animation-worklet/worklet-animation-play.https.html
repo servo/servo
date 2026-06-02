@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Basic use of Worklet Animation</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<div id="target"></div>
+
+<script>
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(500);
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    // wait until local times are synced back to the main thread.
+    await waitForAnimationFrameWithCondition(_ => {
+      return getComputedStyle(target).opacity != '1';
+    });
+    assert_equals(getComputedStyle(target).opacity, "0.5");
+
+    animation.cancel();
+  }, "A running worklet animation should output values at specified local time.");
+
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(500);
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+    });
+
+    const prevCurrentTime = animation.currentTime;
+    animation.play();
+    assert_equals(animation.playState, "running");
+    assert_equals(animation.currentTime, prevCurrentTime)
+
+    animation.cancel();
+  }, "Playing a running animation should be a no-op.");
+</script>

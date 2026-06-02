@@ -1,0 +1,4 @@
+features:
+- name: autofocus
+  files:
+  - autofocus.html

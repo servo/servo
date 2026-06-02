@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box on an iframe should be no-op</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-iframe-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<style>
+.default {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: fill;
+}
+</style>
+<iframe src="support/blue-green-red-yellow-50x100.svg"></iframe>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-left-color set to inherit</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-27 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-left-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+        <meta name="assert" content="The 'border-left-color' set to inherit causes the 'border-left-color' of the element to be the same as the 'border-left-color' designated on the parent element." />
+        <style type="text/css">
+            body
+            {
+                border-left-color: green;
+            }
+            div
+            {
+                border-left-style: solid;
+                border-left-width: 100px;
+                border-left-color: red;
+                border-left-color: inherit;
+                height: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>CSS Grid: 'auto' sizes with item's margins</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#layout-algorithm">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=357419">
+<meta name="assert" content="Check that the grid's rows and columns 'auto' sizes are updated accordingly to its grid-item's before and start margins."/>
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+
+<style>
+.grid {
+    grid-template-rows: auto auto;
+    grid-template-columns: auto auto;
+}
+
+.gridItem {
+    width: 20px;
+    height: 40px;
+}
+
+.marginTop {
+    margin-top: 20px;
+}
+
+.marginBottom {
+    margin-bottom: 20px;
+}
+
+.borderTop {
+    border-top: 5px solid;
+}
+
+.borderBottom {
+    border-bottom: 5px solid;
+}
+
+.paddingTop {
+    padding-top: 10px;
+}
+
+.paddingBottom {
+    padding-bottom: 10px;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div>
+    <div class="grid fit-content" data-expected-width="40" data-expected-height="120">
+        <div class="gridItem marginTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem marginBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div>
+    <div class="grid fit-content" data-expected-width="40" data-expected-height="120">
+        <div class="gridItem marginTop paddingTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem borderTop borderBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div>
+    <div class="grid fit-content" data-expected-width="40" data-expected-height="120">
+        <div class="gridItem marginTop paddingTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem borderTop borderBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+
+<div>
+    <div class="grid fit-content" data-expected-width="40" data-expected-height="120">
+        <div class="gridItem marginTop paddingTop firstRowFirstColumn"></div>
+        <div class="gridItem firstRowSecondColumn"></div>
+        <div class="gridItem paddingBottom secondRowFirstColumn"></div>
+        <div class="gridItem secondRowSecondColumn"></div>
+    </div>
+</div>
+</body>

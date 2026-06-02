@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tests for PaymentRequestEvent</title>
+<link rel="help" href="https://w3c.github.io/payment-handler/#the-paymentrequestevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<p>When the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+promise_test(async t => {
+  const methodName = window.location.origin + '/payment-handler/'
+      + 'payment-request-event-manual-manifest.json';
+  await test_driver.bless('invoking a payment app');
+  const response = await new PaymentRequest(
+    [
+      {supportedMethods: methodName, data: {}},
+      {supportedMethods: 'interledger', data: {supportedNetworks: ['mir']}},
+    ],
+    {
+      id: 'test-payment-request-identifier',
+      total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+      displayItems: [
+        {label: 'Item 1', amount: {currency: 'CAD', value: '0.005'}},
+        {label: 'Item 2', amount: {currency: 'EUR', value: '0.005'}},
+      ],
+      modifiers: [
+        {
+          supportedMethods: methodName,
+          data: {supportedNetworks: ['mir']},
+          total: {
+            label: 'MIR total',
+            amount: {currency: 'USD', value: '0.0099'},
+          },
+          additionalDisplayItems: [
+            {label: 'Item 3', amount: {currency: 'GBP', value: '-0.0001'}},
+          ],
+        },
+        {
+          supportedMethods: methodName,
+          data: {supportedNetworks: ['visa']},
+          total: {
+            label: 'VISA total',
+            amount: {currency: 'USD', value: '0.0098'},
+          },
+          additionalDisplayItems: [
+            {label: 'Item 4', amount: {currency: 'CNY', value: '-0.0002'}},
+          ],
+        },
+        {
+          supportedMethods: 'interledger',
+          data: {},
+          total: {
+            label: 'Prepaid total',
+            amount: {currency: 'USD', value: '0.0097'},
+          },
+          additionalDisplayItems: [
+            {label: 'Item 5', amount: {currency: 'JPY', value: '-0.0003'}},
+          ],
+        },
+      ],
+    },
+  ).show();
+  const promise = response.complete('success');
+  assert_equals(response.requestId, 'test-payment-request-identifier');
+  assert_equals(response.methodName, methodName);
+  return promise;
+}, 'Can perform payment');
+</script>

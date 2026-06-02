@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+
+  <script src="../../resources/loading-resource-lib.js"></script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p> This test verifies that, for a resource fetched with a setInterval,
+      the initiator_url points to the async caller script,
+      instead of the callee script.
+  </p>
+</body>
+<script>
+  var img = document.createElement("img");
+  document.body.appendChild(img);
+
+  const label = "initiator_url_setinterval";
+  const resource = "/images/blue.png?"+label;
+  const hostInfo = get_host_info();
+  const expectedInitiatorUrl = hostInfo["ORIGIN"] +
+    "/resource-timing/tentative/initiator-url/set-interval.html";
+  setInterval( function() {load_image(label, img)} , 10);
+
+  initiator_url_test(resource, expectedInitiatorUrl, resource +
+    " initiatorUrl from setInterval()", resource + " timeout");
+</script>

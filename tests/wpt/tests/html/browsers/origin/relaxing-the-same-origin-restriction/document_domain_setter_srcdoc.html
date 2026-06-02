@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- SEKRITS! -->
+<input id="sekrit" value="omg!">
+
+<script>
+  function postMessageToFrame(frame, message) {
+    return new Promise(resolve => {
+      var c = new MessageChannel();
+      c.port1.onmessage = e => {
+        resolve({ data: e.data, frame: frame })
+      };
+      frame.contentWindow.postMessage(message, '*', [c.port2]);
+    });
+  }
+
+  function createFrame() {
+    return new Promise(resolve => {
+      var i = document.createElement('iframe');
+      i.srcdoc = `
+          <script>
+            window.addEventListener('message', e => {
+              if (e.data.domain !== undefined) {
+                try {
+                  document.domain = e.data.domain;
+                  e.ports[0].postMessage('Done');
+                } catch(error) {
+                  e.ports[0].postMessage(error.name);
+                }
+              } else if (e.data == 'poke-at-parent') {
+                try {
+                  var sekrit = window.parent.document.body.querySelector('#sekrit').value;
+                  e.ports[0].postMessage(sekrit);
+                } catch(error) {
+                  e.ports[0].postMessage(error.name);
+                }
+              }
+            });
+            window.parent.postMessage('Hi!', '*');
+          </scr` + `ipt>`;
+      window.addEventListener('message', m => {
+        if (m.source == i.contentWindow)
+          resolve(i);
+      });
+      document.body.appendChild(i);
+    });
+  }
+
+  promise_test(t => {
+    return createFrame()
+      .then(f => postMessageToFrame(f, 'poke-at-parent'))
+      .then(result => {
+        assert_equals(result.data, document.querySelector('#sekrit').value);
+        result.frame.remove();
+      });
+  }, "srcdoc can access with no 'document.domain' modification.");
+
+  promise_test(t => {
+    return createFrame()
+      .then(f => postMessageToFrame(f, { domain: window.location.hostname }))
+      .then(result => {
+        assert_equals(result.data, 'Done');
+        return postMessageToFrame(result.frame, 'poke-at-parent')
+          .then(result => {
+        assert_equals(result.data, document.querySelector('#sekrit').value);
+            result.frame.remove();
+          });
+      });
+  }, "srcdoc can access with valid 'document.domain'.");
+
+  promise_test(t => {
+    return createFrame()
+      .then(f => {
+        document.domain = window.location.hostname;
+        return postMessageToFrame(f, 'poke-at-parent');
+      })
+      .then(result => {
+        assert_equals(result.data, document.querySelector('#sekrit').value);
+        result.frame.remove();
+      });
+  }, "srcdoc can access when parent modifies 'document.domain'.");
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>floating math</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="match" href="floating-math-ref.html"/>
+<meta name="assert" content="Verify that float applies to the <math> element.">
+</head>
+<body>
+  <p>Test passes if you see a blue square on the left and a smaller magenta square on the right.</p>
+  <div>
+    <div style="display: inline-block; width: 50px; height: 50px; background: magenta"></div>
+    <math style="float: left"><mspace width="100px" height="100px" style="background: blue"/></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

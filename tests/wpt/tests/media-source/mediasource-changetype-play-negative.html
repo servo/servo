@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Exercise scenarios expected to fail for changeType for supported test types, using mime types WITH and WITHOUT codecs.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-changetype-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+function generateNegativeChangeTypeTests(audio_types, video_types) {
+  async_test((test) => {
+    assert_true(audio_types.length > 0 && video_types.length > 0,
+      "Browser doesn't support at least one audio and one video test media for audio<->video changeType negative tests");
+
+    let audio_formats = new Set(Array.from(audio_types, t => t.mime_subtype));
+    let video_formats = new Set(Array.from(video_types, t => t.mime_subtype));
+
+    let has_intersected_av_format = false;
+    for (let elem of audio_formats) {
+      if (video_formats.has(elem))
+        has_intersected_av_format = true;
+    }
+    assert_true(has_intersected_av_format,
+        "Browser doesn't support at least 1 audio-only and 1 video-only test media with same bytestream formats");
+
+    test.done();
+  }, "Check if browser supports enough test media types across audio and video for changeType negative tests");
+
+  // Generate audio<->video changeType tests that should not succeed in
+  // reaching successful end of playback because the class of media (audio or
+  // video) must remain the same across either an implicit or explicit
+  // changeType.
+  for (let audio_type of audio_types) {
+    for (let video_type of video_types) {
+      // For implicit changeType negative tests, only pairs of test media files
+      // using the same bytestream format are used, because it is not
+      // guaranteed that all implementations can be expected to reliably detect
+      // an implicit switch of bytestream format (for example, MP3 parsers
+      // might skip invalid input bytes without issuing error.)
+      let do_implicit_changetype = (audio_type.mime_subtype ==
+                                    video_type.mime_subtype);
+
+      mediaSourceChangeTypeTest(
+          audio_type, video_type,
+          "Negative test audio<->video changeType for " +
+              audio_type.type + " <-> " + video_type.type,
+          { negative_test: true } );
+      mediaSourceChangeTypeTest(
+          video_type, audio_type,
+          "Negative test video<->audio changeType for " +
+              video_type.type + " <-> " + audio_type.type,
+          { negative_test: true } );
+
+      if (do_implicit_changetype) {
+        mediaSourceChangeTypeTest(
+            audio_type, video_type,
+            "Negative test audio<->video implicit changeType for " +
+                audio_type.type + " <-> " + video_type.type,
+            { implicit_changetype: true, negative_test: true } );
+        mediaSourceChangeTypeTest(
+            video_type, audio_type,
+            "Negative test video<->audio implicit changeType for " +
+                video_type.type + " <-> " + audio_type.type,
+            { implicit_changetype: true, negative_test: true } );
+      }
+
+      // Skip tests where the relaxed type is already fully specified and
+      // tested, above.
+      if (audio_type.type == audio_type.relaxed_type &&
+          video_type.type == video_type.relaxed_type) {
+        continue;
+      }
+
+      mediaSourceChangeTypeTest(
+          audio_type, video_type,
+          "Negative test audio<->video changeType for " +
+              audio_type.type + " <-> " + video_type.type +
+              " (using types without codecs parameters)",
+          { use_relaxed_mime_types: true, negative_test: true } );
+      mediaSourceChangeTypeTest(
+          video_type, audio_type,
+          "Negative test video<->audio changeType for " +
+              video_type.type + " <-> " + audio_type.type +
+              " (using types without codecs parameters)",
+          { use_relaxed_mime_types: true, negative_test: true } );
+
+      if (do_implicit_changetype) {
+        mediaSourceChangeTypeTest(
+            audio_type, video_type,
+            "Negative test audio<->video implicit changeType for " +
+                audio_type.type + " <-> " + video_type.type +
+                " (without codecs parameters for addSourceBuffer)",
+            { use_relaxed_mime_types: true,
+              implicit_changetype: true,
+              negative_test: true
+            } );
+
+        mediaSourceChangeTypeTest(
+            video_type, audio_type,
+            "Negative test video<->audio implicit changeType for " +
+                video_type.type + " <-> " + audio_type.type +
+                " (without codecs parameters for addSourceBuffer)",
+            { use_relaxed_mime_types: true,
+              implicit_changetype: true,
+              negative_test: true
+            } );
+      }
+    }
+  }
+}
+
+findSupportedChangeTypeTestTypes(generateNegativeChangeTypeTests);
+
+        </script>
+    </body>
+</html>

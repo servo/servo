@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector(All) scoped to a root element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div><h1 id="test"></h1><p><span>hello</span></p></div>
+
+<script>
+"use strict";
+const div = document.querySelector("div");
+const p = document.querySelector("p");
+
+test(() => {
+  assert_equals(div.querySelector(":scope > p"), p);
+  assert_equals(div.querySelector(":scope > span"), null);
+}, "querySelector with :scope");
+
+test(() => {
+  assert_equals(div.querySelector("#test + p"), p);
+  assert_equals(p.querySelector("#test + p"), null);
+}, "querySelector with id and sibling");
+
+test(() => {
+  assert_array_equals(div.querySelectorAll(":scope > p"), [p]);
+  assert_array_equals(div.querySelectorAll(":scope > span"), []);
+}, "querySelectorAll with :scope");
+
+test(() => {
+  assert_array_equals(div.querySelectorAll("#test + p"), [p]);
+  assert_array_equals(p.querySelectorAll("#test + p"), []);
+}, "querySelectorAll with id and sibling");
+</script>

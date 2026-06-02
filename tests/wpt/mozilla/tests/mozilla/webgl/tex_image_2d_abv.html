@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGL: texImage2D with Array Buffer View</title>
+<link rel="match" href="tex_image_2d_abv_ref.html">
+<style>html, body { margin: 0; padding: 0; }</style>
+<!-- This reftest should show a 512x512px red square -->
+<canvas id="c" width="512" height="512"></canvas>
+<script id="vertex_shader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec2 a_texCoord;
+attribute vec2 a_position;
+varying vec2 v_texCoord;
+
+void main() {
+   gl_Position = vec4(a_position, 0, 1);
+   v_texCoord = a_texCoord;
+}
+</script>
+
+<script id="fragment_shader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_image;
+varying vec2 v_texCoord;
+void main() {
+   gl_FragColor = texture2D(u_image, v_texCoord);
+}
+</script>
+<script>
+  var gl = document.getElementById('c').getContext('webgl');
+
+  // Clear black
+  gl.clearColor(1, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Create the program
+  var vertex_shader = gl.createShader(gl.VERTEX_SHADER),
+      fragment_shader = gl.createShader(gl.FRAGMENT_SHADER),
+      program = gl.createProgram();
+
+  gl.shaderSource(vertex_shader,
+                  document.getElementById('vertex_shader').textContent);
+  gl.shaderSource(fragment_shader,
+                  document.getElementById('fragment_shader').textContent);
+  gl.compileShader(vertex_shader);
+  gl.compileShader(fragment_shader);
+  gl.attachShader(program, vertex_shader);
+  gl.attachShader(program, fragment_shader);
+  console.log(gl.getShaderInfoLog(vertex_shader));
+  console.log(gl.getShaderInfoLog(fragment_shader));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  // Get the position from the fragment shader
+  var position = gl.getAttribLocation(program, "a_position");
+  var tex_position = gl.getAttribLocation(program, "a_texCoord");
+
+  var texture_coordinates = new Float32Array([
+    0.0,  0.0,
+    1.0,  0.0,
+    0.0,  1.0,
+    0.0,  1.0,
+    1.0,  0.0,
+    1.0,  1.0
+  ]);
+
+  var texture_buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, texture_buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, texture_coordinates, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(tex_position);
+  gl.vertexAttribPointer(tex_position, 2, gl.FLOAT, false, 0, 0);
+
+  var square_data = new Float32Array([
+    -1.0,  1.0, // top left
+     1.0,  1.0, // top right
+    -1.0, -1.0, // bottom left
+    -1.0, -1.0, // bottom left
+     1.0,  1.0, // top right
+     1.0, -1.0  // bottom right
+  ]);
+
+  // Create a buffer for the square with the square
+  // vertex data
+  var square_buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, square_data, gl.STATIC_DRAW);
+
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+  // Load the texture and draw
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  console.log(gl.getError() == gl.NO_ERROR);
+
+
+  // Create a 1x1 red texture, but repeated.
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
+                gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  console.log(gl.getError() == gl.NO_ERROR);
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HTML Test reference: BR separates bidi paragraph</title>
+    <link rel="author" title="Amir E. Aharoni" href="mailto:amir.aharoni@mail.huji.ac.il"/>
+    <link rel="author" title="Eyal Sela" href="mailto:eyal@post.isoc.org.il"/>
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com"/>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-br-element"/>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the rightmost character in the first line below is a full stop and to the left of it is a Hebrew letter.</p></div>
+    <div class="test">
+      A Hebrew letter and a full stop: &#x05d0;.&lrm;
+      <br />
+      &#x05d0; this line begins with a Hebrew letter.
+    </div>
+</p>
+</body>
+</html>

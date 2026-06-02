@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: text-decoration-thickness respects variable font properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property">
+<meta name="assert" content="text-decoration-thickness from-font respects MVAR table of variable fonts for variable metrics">
+<link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+<style>
+@font-face {
+font-family: underline-thin;
+src: url(../resources/UnderlineTest-Thin.ttf);
+}
+
+@font-face {
+font-family: underline-thick;
+src: url(../resources/UnderlineTest-Thick.ttf);
+}
+
+.test {
+text-underline-position: from-font;
+font-size: 64px;
+line-height: 1.8;
+}
+
+.thin_underline {
+text-decoration: underline;
+font-family: underline-thin;
+text-decoration-thickness: from-font;
+}
+
+.thick_underline {
+text-decoration: underline;
+font-family: underline-thick;
+text-decoration-thickness: from-font;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if the underline on the first line is thin and thick on the second line.</p>
+    <div class="test"><span class="thin_underline">aagaa</span></div>
+    <div class="test"><span class="thick_underline">aagaa</span></div>
+</body>
+</html>

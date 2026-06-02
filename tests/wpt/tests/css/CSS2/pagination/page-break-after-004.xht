@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after (invalid syntax)</title>
+<link rel="author" title="Michael Turnwall" href="mailto:mturnwall@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="flags" content="paged invalid" />
+<meta name="assert" content="The syntax of the 'page-break-after' property is auto | always | avoid | left | right."/>
+<style type="text/css">
+
+	div.noBreakAuto {
+		page-break-after:always;
+		page-break-after:auto auto;
+	}
+	div.noBreakLeft {
+		page-break-after:auto;
+		page-break-after:left always;
+	}
+	div.noBreakAlways {
+		page-break-after:always always;
+	}
+	.dummy {
+		color:gray;
+	}
+
+</style>
+</head>
+<body>
+	<div class="noBreakAuto">This test must produce two pages of output. This sentence must be on the first page.</div>
+	<div class="noBreakLeft">This sentence must be at the top of the second page.</div>
+	<div class="noBreakAlways dummy">Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</div>
+	<p>This must be the last sentence on the second and final page.</p>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Deseret, lowercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property"/>
+<link rel="match" href="text-transform-bicameral-022-ref.xht"/>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=22' />
+<meta name="assert" content="The UA will lowercase Unicode Deseret characters when text-transform is set to lowercase." />
+<style type='text/css'>
+.test span { text-transform: lowercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the left-hand character in each pair matches the right-hand one.</p>
+
+
+<div class="test">
+<div><span>𐐀</span> 𐐨</div>
+<div><span>𐐁</span> 𐐩</div>
+<div><span>𐐂</span> 𐐪</div>
+<div><span>𐐃</span> 𐐫</div>
+<div><span>𐐄</span> 𐐬</div>
+<div><span>𐐅</span> 𐐭</div>
+<div><span>𐐆</span> 𐐮</div>
+<div><span>𐐇</span> 𐐯</div>
+<div><span>𐐈</span> 𐐰</div>
+<div><span>𐐉</span> 𐐱</div>
+<div><span>𐐊</span> 𐐲</div>
+<div><span>𐐋</span> 𐐳</div>
+<div><span>𐐌</span> 𐐴</div>
+<div><span>𐐍</span> 𐐵</div>
+<div><span>𐐎</span> 𐐶</div>
+<div><span>𐐏</span> 𐐷</div>
+<div><span>𐐐</span> 𐐸</div>
+<div><span>𐐑</span> 𐐹</div>
+<div><span>𐐒</span> 𐐺</div>
+<div><span>𐐓</span> 𐐻</div>
+<div><span>𐐔</span> 𐐼</div>
+<div><span>𐐕</span> 𐐽</div>
+<div><span>𐐖</span> 𐐾</div>
+<div><span>𐐗</span> 𐐿</div>
+<div><span>𐐘</span> 𐑀</div>
+<div><span>𐐙</span> 𐑁</div>
+<div><span>𐐚</span> 𐑂</div>
+<div><span>𐐛</span> 𐑃</div>
+<div><span>𐐜</span> 𐑄</div>
+<div><span>𐐝</span> 𐑅</div>
+<div><span>𐐞</span> 𐑆</div>
+<div><span>𐐟</span> 𐑇</div>
+<div><span>𐐠</span> 𐑈</div>
+<div><span>𐐡</span> 𐑉</div>
+<div><span>𐐢</span> 𐑊</div>
+<div><span>𐐣</span> 𐑋</div>
+<div><span>𐐤</span> 𐑌</div>
+<div><span>𐐥</span> 𐑍</div>
+<div><span>𐐦</span> 𐑎</div>
+<div><span>𐐧</span> 𐑏 </div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

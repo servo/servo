@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS Forced Color Adjust: parsing forced-color-adjust with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_value("forced-color-adjust", "none");
+  test_valid_value("forced-color-adjust", "auto");
+  test_valid_value("forced-color-adjust", "preserve-parent-color");
+</script>

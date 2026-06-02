@@ -1,0 +1,50 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+//! Trait representing the concept of [transferable objects]
+//! (<https://html.spec.whatwg.org/multipage/#transferable-objects>).
+
+use std::hash::Hash;
+
+use base::id::NamespaceIndex;
+use rustc_hash::FxHashMap;
+use script_bindings::structuredclone::MarkedAsTransferableInIdl;
+
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::structuredclone::StructuredData;
+use crate::dom::globalscope::GlobalScope;
+
+pub(crate) trait Transferable: DomObject + MarkedAsTransferableInIdl
+where
+    Self: Sized,
+{
+    type Index: Copy + Eq + Hash;
+    type Data;
+
+    fn can_transfer(&self) -> bool {
+        true
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#transfer-steps>
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(NamespaceIndex<Self::Index>, Self::Data)>;
+
+    /// <https://html.spec.whatwg.org/multipage/#transfer-receiving-steps>
+    fn transfer_receive(
+        cx: &mut js::context::JSContext,
+        owner: &GlobalScope,
+        id: NamespaceIndex<Self::Index>,
+        serialized: Self::Data,
+    ) -> Result<DomRoot<Self>, ()>;
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<FxHashMap<NamespaceIndex<Self::Index>, Self::Data>>;
+}
+
+pub(crate) fn assert_transferable<T: Transferable>() {}

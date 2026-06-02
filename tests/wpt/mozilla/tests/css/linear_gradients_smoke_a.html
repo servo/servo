@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that linear gradients render *something*. -->
+<link rel=mismatch href=linear_gradients_smoke_ref.html>
+<style>
+section {
+    display: block;
+    width: 300px;
+    height: 150px;
+    border: solid black 1px;
+}
+#a {
+    background: linear-gradient(to bottom, white, black);
+}
+#b {
+    background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+</body>
+</html>
+
+

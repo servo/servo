@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - Event_obsolete</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Remove the manifest file (manifest/clock.manifest) from the server.</li>
+      <li>Refresh the page.</li>
+    </ol>
+
+    <div id="log"></div>
+
+    <script>
+      var t = async_test("obsolete event test");
+      var cache = window.applicationCache;
+
+      cache.onobsolete = t.done();
+    </script>
+  </body>
+</html>

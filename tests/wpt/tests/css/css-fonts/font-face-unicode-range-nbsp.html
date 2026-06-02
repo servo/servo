@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts testcase: using unicode-range to target non-breaking space</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="match" href="font-face-unicode-range-nbsp-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#unicode-range-desc">
+<meta name="assert" content="Check that using unicode-range for non-breaking space works">
+<style>
+@font-face {
+  font-family: test;
+  src: url(/fonts/Ahem.ttf);
+  unicode-range: U+00A0;
+  /* override metrics to ensure they match across the fonts: */
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+@font-face {
+  font-family: fallback;
+  src: url(/fonts/GentiumPlus-R.woff);
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+#test, #ref {
+  font: 24px/2 test, fallback, serif;
+}
+</style>
+<p>The first line should have much wider word spacing:</p>
+<div id=test>
+This&nbsp;is&nbsp;a&nbsp;test
+</div>
+<div id=ref>
+This is a test
+</div>

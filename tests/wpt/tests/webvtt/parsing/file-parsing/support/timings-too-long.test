@@ -1,0 +1,60 @@
+timings, too long
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-timestamp">
+
+assert_equals(cues.length, 2);
+
+assert_equals(cues[0].text, 'text0');
+assert_equals(cues[0].startTime, 0);
+assert_equals(cues[0].endTime, 1);
+
+assert_equals(cues[1].text, 'text1');
+assert_equals(cues[1].startTime, 0);
+assert_equals(cues[1].endTime, 1);
+
+===
+WEBVTT
+
+000:00:00.000 --> 00:00:01.000
+text0
+
+00::00:00.000 --> 00:00:01.000
+invalid
+
+00:000:00.000 --> 00:00:01.000
+invalid
+
+00:00::00.000 --> 00:00:01.000
+invalid
+
+00:00:000.000 --> 00:00:01.000
+invalid
+
+00:00:00..000 --> 00:00:01.000
+invalid
+
+00:00:00.0000 --> 00:00:01.000
+invalid
+
+00:00.0000 --> 00:00:01.000
+invalid
+
+000:00.000 --> 00:01.000
+invalid
+
+00::00.000 --> 00:01.000
+invalid
+
+00:000.000 --> 00:01.000
+invalid
+
+00:00..000 --> 00:01.000
+invalid
+
+00:00.0000 --> 00:01.000
+invalid
+
+00:00.000 --> 000:01.000
+invalid
+
+00:00:00.000 --> 000:00:01.000
+text1

@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Background and Borders Test: The 'border-image-width' property with four numbers as a value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-width" />
+        <link rel="match" href="reference/border-image-width-001-ref.html" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="This test checks that four numbers as a value of 'border-image-width' specify offsets that are used to divide the border image area into nine parts. They represent inward distances from the top, right, bottom, and left sides of the border image area. Numbers represent multiples of the corresponding computed border-width. Percentages refer to the size of the border image area: the width of the area for horizontal offsets, the height for vertical offsets" />
+        <style type="text/css">
+            div.subtest
+            {
+                background-color:red;
+                border: 10px double red;
+                border-image-slice: 10;
+                border-image-source: url("support/green_color.png");
+                height: 100px;
+                margin: 8px auto 8px 0px;
+                width: 100px;
+            }
+
+            #subtest1
+            {
+                border-image-width: 5 4 3 2;
+            }
+
+            #subtest2
+            {
+                border-image-width: 50px 10px;
+            }
+
+            #subtest3
+            {
+                border-image-width: 40% 20%;
+                height: 115px;
+                width: 90px;
+            }
+
+            #subtest4
+            {
+                border-image-slice: 20 40;
+                border-image-width: auto;
+            }
+
+            div div
+            {
+                background-color: lime;
+            }
+
+            div#subtest1 div , div#subtest3 div
+            {
+                height: 75px;
+                margin: 20px 5px;
+                width: 80px;
+            }
+
+            div#subtest2 div
+            {
+                height: 60px;
+                margin: 20px 0px;
+                width: 100px;
+            }
+
+            div#subtest4 div
+            {
+                height: 90px;
+                margin: 5px 15px;
+                width: 70px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="subtest" id="subtest1">
+            <div></div>
+        </div>
+
+        <div class="subtest" id="subtest2">
+            <div></div>
+        </div>
+
+        <div class="subtest" id="subtest3">
+            <div></div>
+        </div>
+
+        <div class="subtest" id="subtest4">
+            <div></div>
+        </div>
+    </body>
+</html>

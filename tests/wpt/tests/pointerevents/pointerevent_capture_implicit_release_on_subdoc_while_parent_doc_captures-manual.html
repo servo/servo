@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Pointer Events when mouse button up on a sub-document while an element in parent document captures the pointer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+setup({explicit_timeout: true});
+
+addEventListener("load", () => {
+  promise_test(async t => {
+    const button = document.querySelector("button");
+    const div = document.querySelector("button + div");
+    const iframe = document.querySelector("iframe");
+    const divInChild = iframe.contentDocument.querySelector("div");
+
+    let pointerEvents = [];
+    let mouseEvents = [];
+    function recordPointerEvent(event) {
+      pointerEvents.push(event);
+    }
+    function recordMouseEvent(event) {
+      mouseEvents.push(event);
+    }
+
+    function stringifyEvent(event) {
+      function stringifyTarget(target) {
+        switch (target) {
+          case button:
+            return "<button>";
+          case div:
+            return "<div> in parent which captured the pointer";
+          case divInChild:
+            return "<div> in child";
+          default:
+            return target?.nodeName;
+        }
+      }
+      return `"${event.type}" on ${stringifyTarget(event.target)}`;
+    }
+
+    const pointerEventTypes = ["pointerup", "lostpointercapture", "pointerover", "pointerout", "pointerenter", "pointerleave", "pointermove"];
+    const mouseEventTypes = ["mouseup", "mouseover", "mouseout", "mouseenter", "mouseleave", "mousemove"];
+    const promisePointerUp = new Promise(resolve => {
+      button.addEventListener("pointerdown", event => {
+        div.setPointerCapture(event.pointerId);
+        addEventListener("pointerup", event => {
+          recordPointerEvent(event);
+          [button, div, divInChild].forEach(target => {
+            pointerEventTypes.forEach(type => {
+                target.addEventListener(type, recordPointerEvent);
+            });
+            mouseEventTypes.forEach(type => {
+              target.addEventListener(type, recordMouseEvent);
+            });
+          });
+          resolve();
+        }, {once: true});
+      }, {once: true});
+    });
+
+    await promisePointerUp;
+    await new Promise(
+      resolve => requestAnimationFrame(
+       () => requestAnimationFrame(resolve)
+      )
+    );
+
+    const stringifiedPointerEvents = [];
+    const stringifiedMouseEvents = [];
+    for (const event of pointerEvents) {
+      stringifiedPointerEvents.push(stringifyEvent(event));
+    }
+    for (const event of mouseEvents) {
+      stringifiedMouseEvents.push(stringifyEvent(event));
+    }
+    const stringifiedExpectedPointerEvents = [
+      stringifyEvent({ type: "pointerup", target: div }),
+      stringifyEvent({ type: "lostpointercapture", target: div }),
+      stringifyEvent({ type: "pointerout", target: div }),
+      stringifyEvent({ type: "pointerleave", target: div }),
+      stringifyEvent({ type: "pointerover", target: divInChild }),
+      stringifyEvent({ type: "pointerenter", target: divInChild }),
+    ];
+    if (pointerEvents[pointerEvents.length - 1]?.type == "pointermove") {
+      stringifiedExpectedPointerEvents.push(
+        stringifyEvent({ type: "pointermove", target: divInChild })
+      );
+    }
+    const stringifiedExpectedMouseEvents = [
+      stringifyEvent({ type: "mouseup", target: div }),
+      stringifyEvent({ type: "mouseout", target: div }),
+      stringifyEvent({ type: "mouseleave", target: div }),
+      stringifyEvent({ type: "mouseover", target: divInChild }),
+      stringifyEvent({ type: "mouseenter", target: divInChild }),
+    ];
+    if (mouseEvents[mouseEvents.length - 1]?.type == "mousemove") {
+      stringifiedExpectedMouseEvents.push(
+        stringifyEvent({ type: "mousemove", target: divInChild })
+      );
+    }
+
+    t.step(() => {
+      assert_array_equals(stringifiedPointerEvents, stringifiedExpectedPointerEvents)
+      assert_array_equals(stringifiedMouseEvents, stringifiedExpectedMouseEvents)
+    });
+    t.done();
+  }, "boundary events should be fired for notifying web apps of over the element in child document");
+}, {once: true});
+</script>
+</head>
+<body>
+<div>
+  <p>Test steps:</p>
+  <ol>
+    <li>Press the button with primary button of your mouse and start dragging</li>
+    <li>Move the mouse cursor over the red border box and release the mouse button</li>
+  </ol>
+</div>
+<button>Start dragging from this button</button>
+<div><br></div>
+<iframe srcdoc="<div style='border: 1px solid red'>And release mouse button over this box</div>"></iframe>
+</body>
+</html>

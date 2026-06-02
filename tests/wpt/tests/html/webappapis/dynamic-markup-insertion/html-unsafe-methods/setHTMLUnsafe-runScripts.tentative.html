@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:jarhar@chromium.org" />
+<link rel="help" href="https://github.com/whatwg/html/pull/9538" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    window.did_run = false;
+    for (const containerType of ["Element", "ShadowRoot"]) {
+      const createContainer = (t) => {
+        const element = document.createElement("div");
+        document.body.appendChild(element);
+        t.add_cleanup(() => {
+          element.remove();
+        });
+
+        if (containerType === "Element")
+          return element;
+
+        window.target_shadow_root = element.attachShadow({ mode: "open" });
+        t.add_cleanup(() => {
+          delete window.target_shadow_root;
+        });
+        return window.target_shadow_root;
+      };
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: true }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with runScripts & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: false }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with runScripts=false & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: false }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: setHTMLUnsafe without runScripts & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<div><template shadowrootmode=open><script>window.did_run = true;</" +
+            "script></template></div>",
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with script inside declarative shadow DOM.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script async src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external async script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script defer src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external defer script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        container.innerHTML = "";
+        container.setHTMLUnsafe(
+          `<div><script>
+            (window.target_shadow_root || document).getElementById("after").textContent = "after";
+            <` + `/script><div id=after></div></div>`,
+          { runScripts: true }
+        );
+
+        assert_equals(container.querySelector("#after").textContent, "after");
+      }, `${containerType}: setHTMLUnsafe script cannot observe intermediate state.`);
+    }
+  </script>
+</body>

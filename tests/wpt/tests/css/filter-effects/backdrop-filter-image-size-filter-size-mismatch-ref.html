@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:clchambers@microsoft.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+
+<div>
+  <p>This test passes if the blue rectangle appears only slightly blurry on both sides, and fails if there if there is any pronounced 'extra' blur or other artifacts on the far side of the filter.</p>
+</div>
+
+<style>
+    div#outer {
+        display: inline-block;
+        will-change: backdrop-filter;
+    }
+
+    div#inner {
+        width: 200px;
+        height: 200px;
+        background-color: blue;
+        position: relative;
+    }
+
+    div#filter {
+        position: absolute;
+        /* although the blur only technically requires an extra radius of <blur radius>px,
+            most implementations have quite different effects if the backdrop size is ~2x
+            larger aroud a harsh color boundary, so to ease flakes, some buffer is added.
+            This shouldn't affect this test's ability to discriminate */
+        left: -25px;
+        width: 250px;
+        height: 200px;
+        backdrop-filter: blur(10px);
+    }
+</style>
+
+<div id="outer">
+  <div id="inner">
+    <div id="filter">
+    </div>
+  </div>
+</div>

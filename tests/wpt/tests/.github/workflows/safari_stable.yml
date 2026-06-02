@@ -1,0 +1,40 @@
+name: "All Tests: Safari (stable)"
+
+# We never interact with the GitHub API, thus we can simply disable all
+# permissions the GitHub token would have.
+permissions: {}
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - epochs
+    types:
+      - completed
+  push:
+    branches:
+      - epochs/daily
+      - triggers/safari_stable
+
+jobs:
+  check-workflow-run:
+    name: Check for appropriate epochs
+    uses: ./.github/workflows/check-workflow-run.yml
+    with:
+      check-refs: '["refs/heads/epochs/daily"]'
+    permissions:
+      actions: read
+
+  safari-stable-results:
+    name: "All Tests: Safari (stable)"
+    needs: check-workflow-run
+    if: |
+      github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)['refs/heads/epochs/daily'] != null
+    uses: ./.github/workflows/safari-wptrunner.yml
+    with:
+      artifact-name: safari-results
+      safari-technology-preview: false
+      safaridriver-diagnose: false
+      matrix: '{"current-chunk": [1, 2, 3, 4, 5, 6, 7, 8], "total-chunks": [8]}'
+      extra-options: --no-fail-on-unexpected
+      fetch-ref: ${{ fromJSON(needs.check-workflow-run.outputs.updated-refs || '{}')['refs/heads/epochs/daily'] }}

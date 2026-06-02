@@ -1,0 +1,18 @@
+[toolchain]
+# Be sure to also update the rust version in the following places when bumping the version:
+# - the 'rust-overlay' module's url in shell.nix to point to a
+#   commit which supports the required rustc version
+# - the version in support/crown/rust-toolchain.toml
+# - the version in .github/devcontainer.json
+channel = "1.91.0"
+
+components = [
+    "clippy",
+    # For support/crown
+    "llvm-tools",
+    # For support/crown
+    "rustc-dev",
+    "rustfmt",
+    # For rust-analyzer
+    "rust-src",
+]

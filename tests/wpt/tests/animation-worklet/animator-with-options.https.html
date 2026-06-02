@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Worklet Animation with options</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<div id="target"></div>
+
+<script id="animate_with_options" type="text/worklet">
+  registerAnimator("test_animator", class {
+    constructor(options) {
+      this.time_ = options.time;
+    }
+    animate(currentTime, effect) {
+      effect.localTime = this.time_;
+    }
+  });
+</script>
+
+<script>
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('animate_with_options').textContent);
+    const target = document.getElementById('target');
+    const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+    const options = {'time': 500};
+    const animation = new WorkletAnimation('test_animator', effect, document.timeline, options);
+    animation.play();
+
+    // wait until local times are synced back to the main thread.
+    await waitForAnimationFrameWithCondition(_ => {
+      return getComputedStyle(target).opacity != '1';
+    });
+    assert_equals(getComputedStyle(target).opacity, "0.5");
+  }, "Animator should be able to use options to update the animation");
+</script>

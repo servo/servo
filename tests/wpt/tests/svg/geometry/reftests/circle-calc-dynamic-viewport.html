@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Changing container size of SVG with calc() cx/cy/r on &lt;circle></title>
+<link rel="match" href="circle-calc-dynamic-viewport-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<div id="hcontainer" style="width: 50px; height: 100px; position: absolute">
+  <svg width="100%" height="100%">
+    <circle cy="50" style="r: calc(50% + 50px)"/>
+  </svg>
+  <svg width="100%" height="100%">
+    <circle style="cx: calc(25% + 25px)" cy="50" r="50"/>
+  </svg>
+</div>
+<div id="vcontainer" style="width: 100px; height: 50px; position: absolute; left: 116px">
+  <svg width="100%" height="100%">
+    <circle cx="50" style="r: calc(50% + 50px)"/>
+  </svg>
+  <svg width="100%" height="100%">
+    <circle cy="50" style="cy: calc(25% + 25px)" r="50"/>
+  </svg>
+</div>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    document.getElementById('hcontainer').style.width = '100px';
+    document.getElementById('vcontainer').style.height = '100px';
+    takeScreenshot();
+  });
+</script>

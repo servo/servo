@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<script>
+function init1()
+{
+  targetIframe = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
+  targetIframe.srcdoc = "<html></html>";
+  targetIframe.setAttribute("style", "width: 300px; height: 200px; border: 1px dotted green;");
+  targetIframe.addEventListener("load", init2);
+  document.body.appendChild(targetIframe);
+}
+
+function init2()
+{
+  targetWindow = targetIframe.contentWindow;
+  targetDocument = targetWindow.document;
+
+  var div = document.getElementById("div");
+  textNode = div.firstChild;
+
+  targetDocument.body.appendChild(targetDocument.adoptNode(div, true));
+
+  targetDocument.designMode = 'on';
+  setTimeout(init3, 0);
+}
+
+function init3()
+{
+  var rng = targetDocument.createRange();
+  rng.setStart(textNode, 1);
+  rng.setEnd(textNode, 1);
+  targetWindow.getSelection().addRange(rng);
+
+  try {
+    targetDocument.execCommand("inserthtml", false, "<p>");
+  } catch(e) {}
+
+  document.documentElement.removeAttribute("class");
+}
+</script>
+
+</head>
+
+<body onload="init1();">
+
+<div id="div"> </div>
+
+<script>
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for AudioWorklet module</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, test) {
+    return test_driver.bless(
+      'Enable WebAudio playback',
+      () => {
+        const audioContext = new AudioContext();
+
+        test.add_cleanup(() => audioContext.close());
+
+        return audioContext.audioWorklet.addModule(url);
+      }
+    );
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %], {mime: 'text/javascript'}),
+        t
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

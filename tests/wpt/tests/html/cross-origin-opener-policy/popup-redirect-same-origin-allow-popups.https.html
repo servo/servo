@@ -1,0 +1,96 @@
+<title>
+  Tests the interaction of COOP same-origin-allow-popups with redirects in a
+  newly opened popup.
+</title>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<div id=log></div>
+<script>
+
+const executor_path = "/common/dispatcher/executor.html?pipe=";
+const same_origin = {
+  host: get_host_info().HTTPS_ORIGIN,
+  name: "Same origin"
+};
+const cross_origin = {
+  host: get_host_info().HTTPS_REMOTE_ORIGIN,
+  name: "Cross origin"
+};
+const coep_header = '|header(Cross-Origin-Embedder-Policy,unsafe-none)';
+
+// Tests the interaction of COOP same-origin-allow-popups with redirects in a
+// newly created popup.
+// 1- Creates a page with origin SAME_ORIGIN and COOP same-origin-allow-popups.
+// 2- This page opens a popup.
+// 3- The popup navigates and gets a redirect response with COOP unsafe none
+//    and origin either SAME_ORIGIN or CROSS_ORIGIN
+// 4- The popup follows the redirect and ends up on a final page with COOP
+//    same-origin-allow-popups and origin SAME_ORIGIN
+// 5- The popup and its opener should no longer be in the same browsing context
+//    group (ie the popup doesn't have an opener and the window that opened the
+//    popup sees it as closed).
+function redirect_test(popup_redirect_origin) {
+  promise_test(async t => {
+    // Identifies the test window.
+    const this_window_token = token();
+
+    // Identifies the first window that will open the popup. It has COOP
+    // same-origin-allow-popups.
+    const opener_token= token();
+    const same_origin_allow_popups_header =
+        `|header(Cross-Origin-Opener-Policy,same-origin-allow-popups)`;
+    const opener_url = same_origin.host + executor_path +
+        same_origin_allow_popups_header + `&uuid=${opener_token}`;
+
+    // Identifies the popup. It will initial try to navigate to
+    // popup_redirect_origin, which has COOP unsafe-none. The navigation is
+    // then redirected to a final response of SAME_ORIGIN and COOP
+    // same-origin-allow-popups.
+    const popup_token = token();
+    const popup_final_url = same_origin.host + executor_path +
+        same_origin_allow_popups_header + `&uuid=${popup_token}`;
+    const redirect_header = 'status(302)' +
+      `|header(Location,${encodeURIComponent(
+        popup_final_url
+          .replace(/,/g, "\\,")
+          .replace(/\\\\,/g, "\\\\\\,")
+          .replace(/\(/g, "%28")
+          .replace(/\)/g, "%29"))})`;
+    const popup_initial_url = popup_redirect_origin.host + executor_path +
+        redirect_header + `&uuid=${popup_token}`;
+
+    // 1. Create the initial window.
+    let opener_window_proxy = window.open(opener_url);
+    t.add_cleanup(() => send(opener_token, "window.close()"));
+
+    // 2. The initial window opens a popup.
+    send(opener_token, `
+      popup = window.open("${popup_initial_url}");
+    `);
+    t.add_cleanup(() => send(popup_token, "window.close()"));
+
+    // 3. Check the opener status on the popup.
+    send(popup_token, `
+      send("${this_window_token}", window.opener !== null);
+    `);
+    assert_equals(await receive(this_window_token), "false", "opener");
+
+    // 4. Check the status of the popup from the initial window.
+    send(opener_token, `
+      send("${this_window_token}", popup.closed);
+    `);
+    assert_equals(await receive(this_window_token), "true", "popup.closed");
+
+  }, `${popup_redirect_origin.name} popup redirects to same-origin with same-origin-allow-popups`);
+}
+
+redirect_test(same_origin);
+redirect_test(cross_origin);
+
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#spanning-columns">
+<meta name="assert" content="Spanners may be nested inside blocks, as long as none of them establish a new formatting context">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="width:fit-content; columns:3; background:green;">
+    <div>
+      <div>
+	<div>
+	  <div style="column-span:all;">
+	    <div style="width:100px; height:100px;"></div>
+	  </div>
+	</div>
+      </div>
+    </div>
+  </div>
+</div>

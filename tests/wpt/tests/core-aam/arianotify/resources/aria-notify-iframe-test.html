@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onload = function() {
+  let result = { };
+
+  if (document.ariaNotify) {
+    result.supportsAriaNotify = true;
+    result.allowsFeature = document.featurePolicy?.allowsFeature('aria-notify');
+  } else {
+    result.supportsAriaNotify = false;
+  }
+
+  parent.postMessage(result, '*');
+}
+</script>

@@ -1,0 +1,23 @@
+<!doctype html>
+<title>origin of the script that invoked the method, data:</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="data:text/html,<script>onmessage = function(e) { parent.postMessage(e.origin, '*'); }; parent.postMessage('loaded', '*');</script>"></iframe>
+<div id=log></div>
+<script>
+async_test(function() {
+  onmessage = this.step_func(function(e) {
+    if (e.data === 'loaded') {
+      window[0].postMessage('', '*');
+      return;
+    }
+
+    assert_equals(e.data, location.protocol + '//' + location.host);
+    assert_equals(e.origin, 'null');
+    assert_array_equals(e.ports, []);
+    this.done();
+  });
+});
+</script>
+
+

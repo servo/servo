@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/targetted-form.js"></script>
+<body>
+<script>
+test(() => {
+  let form = populateForm('<input name=n10 value=v10>');
+  let counter = 0;
+  form.addEventListener('formdata', e => {
+    ++counter;
+    form.submit();
+  });
+  form.submit();
+  assert_equals(counter, 1);
+  new FormData(form);
+  assert_equals(counter, 2);
+}, 'If constructing entry list flag of form is true, then return');
+
+test(() => {
+  let form = populateForm('<input><input type=submit>');
+  let submitter1 = form.querySelector('input[type=submit]');
+  let valid = form.elements[0];
+  let counter = 0;
+  valid.oninvalid = () => {
+    ++counter;
+  };
+  form.onsubmit = () => {
+    valid.required = true;
+    submitter1.dispatchEvent(new MouseEvent("click"));
+  };
+  submitter1.dispatchEvent(new MouseEvent("click"));
+  assert_equals(counter, 0);
+}, "If firing submission events flag of form is true, then return");
+
+test(() => {
+  let form = populateForm('<input required><input type=submit><button type=submit></button>');
+  let submitter1 = form.querySelector('input[type=submit]');
+  let submitter2 = form.querySelector('button[type=submit]');
+  let invalid = form.querySelector('[required]');
+  let counter = 0;
+  invalid.oninvalid = () => {
+    ++counter;
+    // Needs to click different one because click() has reentrancy protection.
+    submitter2.click();
+  };
+  submitter1.click();
+  assert_equals(counter, 1);
+}, "If form's firing submission events is true, then return; 'invalid' event");
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit name=n value=i><button type=submit name=n value=b>');
+  let submitter1 = form.querySelector('input[type=submit]');
+  let submitter2 = form.querySelector('button[type=submit]');
+  let iframe = form.previousSibling;
+  form.onsubmit = () => {
+    // Needs to click different one because click() has reentrancy protection.
+    submitter2.click();
+  };
+  submitter1.click();
+  // We actually submit the form in order to check which 'click()' submits it.
+  await loadPromise(iframe);
+  assert_not_equals(iframe.contentWindow.location.search.indexOf('n=i'), -1);
+}, "If form's firing submission events is true, then return; 'submit' event");
+
+promise_test(async () => {
+  let form = populateForm('<button type=submit></button><input name=n1 value=submit type=submit>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('input[type=submit]');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  submitter.click();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; clicking a submit button');
+
+promise_test(async () => {
+  let form = populateForm('<input type=image name=n1>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('input[type=image]');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  submitter.click();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; clicking an image button');
+
+promise_test(async () => {
+  let form = populateForm('');
+  let iframe = form.previousSibling;
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, null);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit()');
+
+promise_test(async () => {
+  let form = populateForm('');
+  let iframe = form.previousSibling;
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit(null);
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, null);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit(null)');
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit><button type=submit></button>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('button');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  form.requestSubmit(submitter);
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; form.requestSubmit(submitter)');
+
+promise_test(async () => {
+  let form = populateForm('<input name=n1 value=v1>');
+  form.onformdata = (e) => { e.target.remove(); };
+  let wasLoaded = false;
+  let iframe = form.previousSibling;
+  // Request to load '/common/dummy.xhtml', and immediately submit the form to
+  // the same frame. If the form submission is aborted, the first request
+  // will be completed.
+  iframe.addEventListener("load", () => {
+    // This may be complicated by loads of the initial about:blank;
+    // we need to ignore them and only look at a load that isn't about:blank.
+    if (iframe.contentWindow.location == "about:blank") { return; }
+    wasLoaded = true;
+  });
+  iframe.src = '/common/dummy.xhtml';
+  assert_false(wasLoaded, 'Make sure the first loading is ongoing.');
+  form.submit();
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
+}, 'Cannot navigate (after constructing the entry list)');
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit>');
+  let iframe = form.previousSibling;
+  let event;
+  form.submit();
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.href.includes("?"));
+}, 'Submission URL should always have a non-null query part');
+</script>
+</body>

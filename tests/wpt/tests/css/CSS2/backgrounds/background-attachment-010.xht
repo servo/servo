@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-attachment set to fixed in paged media</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties"/>
+        <meta name="flags" content="image paged" />
+        <meta name="assert" content="Fixed backgrounds position with respect to their page box. All pages will have the background visible."/>
+        <style type="text/css">
+            body
+            {
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                background-image: url("support/blue96x96.png");
+                background-position: 0 2in;
+                height: 20in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Switch to paged media view and enable printing background images.</p>
+        <p>Test passes if there are multiple pages and there is a blue box on all pages.</p>
+    </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>document-tree child browsing context name property set</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#document-tree-child-browsing-context-name-property-set">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe src="//{{domains[www]}}:{{ports[http][1]}}/common/window-name-setter.html#spices"></iframe>
+<iframe name="spices"></iframe>
+<iframe name="fruits"></iframe>
+
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+window.onload = () => {
+  test(() => {
+    assert_equals(window.spices, undefined);
+    assert_not_equals(window.fruits, undefined);
+    assert_equals(window.fruits, window[2]);
+  }, "Cross origin child window's name shadows the second candidate of a same origin iframe");
+
+  done();
+};
+</script>

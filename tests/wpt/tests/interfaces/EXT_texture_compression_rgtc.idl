@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_texture_compression_rgtc Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_texture_compression_rgtc/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_texture_compression_rgtc {
+    const GLenum COMPRESSED_RED_RGTC1_EXT = 0x8DBB;
+    const GLenum COMPRESSED_SIGNED_RED_RGTC1_EXT = 0x8DBC;
+    const GLenum COMPRESSED_RED_GREEN_RGTC2_EXT = 0x8DBD;
+    const GLenum COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT = 0x8DBE;
+};

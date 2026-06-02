@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Raw Camera Access Module (https://immersive-web.github.io/raw-camera-access/)
+
+partial interface XRView {
+  [SameObject] readonly attribute XRCamera? camera;
+};
+
+[SecureContext, Exposed=Window]
+interface XRCamera {
+  readonly attribute unsigned long width;
+  readonly attribute unsigned long height;
+};
+
+partial interface XRWebGLBinding {
+  WebGLTexture? getCameraImage(XRCamera camera);
+};

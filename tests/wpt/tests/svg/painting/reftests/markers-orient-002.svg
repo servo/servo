@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>orient='auto' with 180 degree turns</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#RenderingMarkers"/>
+  <h:link rel="match" href="../../pservers/reftests/reference/green-100x100.svg"/>
+  <marker id="m" markerWidth="100" markerHeight="50" markerUnits="userSpaceOnUse"
+          orient="auto" refX="50" refY="50">
+    <path d="M50,-5L105,50h-110z" fill="green"/>
+  </marker>
+  <g marker-start="url(#m)">
+    <path d="M50,0v50z"/>
+    <path d="M100,50h-50z"/>
+    <path d="M50,100v-50z"/>
+    <path d="M0,50h50z"/>
+  </g>
+</svg>

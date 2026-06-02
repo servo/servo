@@ -1,0 +1,52 @@
+<!doctype html>
+<meta name="timeout" content="long" />
+<meta charset="utf-8" />
+<meta name="author" href="mailto:masonf@chromium.org" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<script src="/html/resources/common.js"></script>
+
+<meta name=variant content=?command=--custom-event&half=first>
+<meta name=variant content=?command=--custom-event&half=second>
+<meta name=variant content=?command=show-popover&half=first>
+<meta name=variant content=?command=show-popover&half=second>
+<meta name=variant content=?command=show-modal&half=first>
+<meta name=variant content=?command=show-modal&half=second>
+
+<div id="invokee"></div>
+
+<script>
+  // The command parameter is provided by variants, to
+  // effectively split this (slow) test into multiple runs.
+  const urlParams = new URLSearchParams(window.location.search);
+  command = urlParams.get('command');
+  half = urlParams.get('half');
+  const firstHalf = half === 'first';
+  assert_true(firstHalf || half === 'second');
+
+  const allowed = ['button','menuitem'];
+  const allTags = HTML5_ELEMENTS.filter(el => (!allowed.includes(el)));
+  const midpoint = Math.floor(allTags.length / 2);
+  const tags = firstHalf ? allTags.slice(0,midpoint) : allTags.slice(midpoint);
+  let gotEvent = false;
+  invokee.addEventListener('command',() => (gotEvent = true));
+  for(const tag of tags) {
+    promise_test(async () => {
+      gotEvent = false;
+      const element = document.createElement(tag);
+      element.setAttribute('commandfor','invokee');
+      element.setAttribute('command',command);
+      element.style.display = 'block'; // For normally invisible elements
+      document.body.appendChild(element);
+      // Click two ways
+      element.click();
+      await clickOn(element);
+      assert_false(gotEvent,'Command should not be fired');
+    },`command/commandfor on <${tag}> with command=${command} should not function`);
+  }
+</script>

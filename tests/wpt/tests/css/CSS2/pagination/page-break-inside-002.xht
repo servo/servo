@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-inside (inline elements)</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'page-break-inside' property applies to block-level elements only."/>
+<style type="text/css">
+	* {
+		margin: 0;
+		padding: 0;
+		orphans: 1;
+		widows: 1;
+	}
+	html, body {
+		height:100%;
+		line-height: 1;
+		font-size: 20px;
+	}
+	div.spacers {
+		height: 50%;
+	}
+	div#backUp {margin-top: -2em;}
+	div.break {
+		width: 0;
+	}
+	span {page-break-inside: avoid;}
+
+</style>
+</head>
+<body>
+	<div class="spacers">&nbsp;</div>
+	<div class="spacers" id="backUp">The text below should break onto two pages, with only the letter 'c' appearing on the second page.</div>
+	<div class="break">
+		<span>a b c</span>
+	</div>
+</body>
+</html>

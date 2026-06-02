@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test: auto values for width and height properties on foreignObject compute to zero</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#Sizing">
+<link rel="match" href="foreign-object-size-ref.html">
+<style>
+div { width: 100px; height: 100px; }
+</style>
+<svg>
+  <foreignObject width="100" height="100">
+    <div style="background-color: green;"></div>
+  </foreignObject>
+  <!--
+    The foreignObject takes its size from its width and height properties.
+    Unlike HTML elements, a value of auto for these properties (as omitting
+    the width="" and height="" presentation attributes will do) will compute
+    to zero, causing it not to be rendered.
+    -->
+  <foreignObject>
+    <div style="background-color: red;"></div>
+  </foreignObject>
+</svg>

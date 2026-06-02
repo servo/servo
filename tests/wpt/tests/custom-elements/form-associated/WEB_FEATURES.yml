@@ -1,0 +1,3 @@
+features:
+- name: form-associated-custom-elements
+  files: "**"

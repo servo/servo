@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before avoid</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="assert" content="The 'avoid' value of the 'page-break-before' property prevents a page break before the element when possible"/>
+<meta name="flags" content="paged"/>
+<style type="text/css">
+	html, body { height: 100%; line-height: 1; font-size: 20px; margin: 0; padding: 0; }
+	.spacer { height: 50%; }
+	.backup { margin-top: -3em; }
+	.start { page-break-before: always; }
+
+	p {
+		margin: 0;
+		color: blue;
+		orphans: 1;
+		widows: 1;
+		white-space: pre;
+	}
+
+	.avoidBefore {
+		page-break-before: avoid;
+	}
+	.avoidInside {
+		page-break-inside: avoid;
+		widows: 3;
+		orphans: 3;
+	}
+
+</style>
+</head>
+<body>
+	<div class="spacer">
+		Lines A-L must appear on the 6 pages of this test. The blue text
+		must accurately describe the page numbers.
+	</div><div class="spacer backup"></div>
+	<p>Page&nbsp;1&nbsp;Line&nbsp;A</p>
+	<p class="avoidBefore">Page&nbsp;1&nbsp;Line&nbsp;B
+Page&nbsp;1&nbsp;Line&nbsp;C
+Page&nbsp;2&nbsp;Line&nbsp;D</p>
+
+	<div class="spacer start"></div><div class="spacer backup"></div>
+	<p>Page&nbsp;3&nbsp;Line&nbsp;E
+Page&nbsp;3&nbsp;Line&nbsp;F
+Page&nbsp;4&nbsp;Line&nbsp;G</p>
+	<p class="avoidBefore">Page&nbsp;4&nbsp;Line&nbsp;H</p>
+
+	<div class="spacer start">[page 5]</div><div class="spacer backup"></div>
+	<p class="avoidInside">Page&nbsp;6&nbsp;Line&nbsp;I
+Page&nbsp;6&nbsp;Line&nbsp;J
+Page&nbsp;6&nbsp;Line&nbsp;K</p>
+	<p class="avoidBefore">Page&nbsp;6&nbsp;Line&nbsp;L</p>
+</body>
+</html>

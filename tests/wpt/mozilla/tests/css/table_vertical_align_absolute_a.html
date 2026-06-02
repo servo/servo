@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="table_vertical_align_absolute_ref.html">
+<style>
+body, html {
+    margin: 0;
+}
+tr {
+    vertical-align: bottom;
+    height: 300px;
+}
+tr::after {
+    content: "";
+    display: block;
+    position: absolute;
+    background: blue;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+}
+</style>
+<table><tr><td>
+

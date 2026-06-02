@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.5-bodyEWRNoPurpose.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "The description of an External Web Resource body cannot include an purpose key. purpose key is only valid with Specific Resources and Embedded Textual Bodies.",
+    "title": "If an **External Web Resource** is a body, it does NOT have an **_purpose_ key** - [model 3.3.5](https://www.w3.org/TR/annotation-model/#motivation-and-purpose)",
+    "description": "True when no External Web Resource bodies or when none of the External Web Recource bodies include the purpose key. (Section 3.3.5)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "bodyTarget.json#/definitions/ewrWithPurpose" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/ewrWithPurpose" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/sourceEwrWithPurpose" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/sourceEwrWithPurpose" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrWithPurpose" }  },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrWithPurpose" } } }
+                     ]                                }
+     }
+}

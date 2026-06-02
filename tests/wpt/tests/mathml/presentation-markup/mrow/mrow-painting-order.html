@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>mrow painting order</title>
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mfenced">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#stacking-contexts">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+    <meta name="assert" content="Verify in which order the children paint">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <link rel="match" href="mrow-painting-order-ref.html">
+    <style>
+      .container {
+          position: absolute;
+          left: 2em;
+          top: 10em;
+      }
+      math {
+          font: 50px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if there is no red and content is stacked such that</p>
+    <ul>
+      <li>foreground (dark colors) is above background (light colors)</li>
+      <li>yellow foreground is above green foreground which is itself above blue foreground</li>
+      <li>yellow background is above green background which is itself above blue background</li>
+    </ul>
+    <div class="container">
+      <math>
+        <mrow>
+          <mn style="color: blue; background: lightblue">XXÉ</mn>
+          <mn style="color: red">X</mn>
+          <mn style="color: green; background: lightgreen; margin-inline-start: -3em">p&#xA0;XXÉ</mn>
+          <mn style="color: red">X</mn>
+          <mn style="color: yellow; background: lightyellow; margin-inline-start: -3em">p&#xA0;X</mn>
+        </mrow>
+      </math>
+    </div>
+  </body>
+</html>

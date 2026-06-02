@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <title>cancelAnimationFrame does nothing</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://w3c.github.io/web-performance/specs/RequestAnimationFrame/Overview.html#dom-windowanimationtiming-cancelanimationframe"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function (t) {
+        window.cancelAnimationFrame(42);
+        assert_true(true);
+      }, "cancelAnimationFrame does nothing if there is no callback with the given handle");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<title>Option labels</title>
+<link rel="match" href="option-label-ref.html">
+<select size=12></select>
+<script>
+var select = document.getElementsByTagName("select")[0], option;
+
+option = document.createElement("option");
+select.appendChild(option);
+
+option = document.createElement("option");
+option.setAttribute("label", "")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.setAttribute("label", "label")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.setAttributeNS("http://www.example.com/", "label", "label")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.setAttribute("label", "")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.setAttribute("label", "label")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.setAttributeNS("http://www.example.com/", "label", "label")
+select.appendChild(option);
+
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.appendChild(document.createTextNode(" node "));
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.appendChild(document.createTextNode(" node "));
+option.setAttribute("label", "")
+select.appendChild(option);
+
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.appendChild(document.createTextNode(" node "));
+option.setAttribute("label", "label")
+select.appendChild(option);
+
+option = document.createElement("option");
+option.appendChild(document.createTextNode(" child "));
+option.appendChild(document.createTextNode(" node "));
+option.setAttributeNS("http://www.example.com/", "label", "label")
+select.appendChild(option);
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resizing pictures</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#resize">
+<meta name="flags" content="interact may">
+<meta name="assert" content="UAs may apply the resize property to <picture> regardless of the value of the overflow property.">
+<style>
+picture { resize: both; }
+</style>
+
+<p>Test passes if both <strong>width</strong> and <strong>height</strong> of the orange box below can be adjusted (for instance by dragging the bottom-right corner).</p>
+
+<picture>
+  <source srcset="support/orange.svg" type="image/svg+xml">
+  <img src="support/orange.png" alt="">
+</picture>

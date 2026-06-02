@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Test: Negative margin-right on an inline split by a block descendant</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-margin-right">
+<link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="The negative 'margin-right' doesn't hide the 'border-right'.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 200px; background: red">
+  <span style="font: 200px/1 Ahem; border-right: 200px solid green; margin-right: -200px">
+    <div><!-- This is a block that splits the inline --></div>
+  </span>
+</div>

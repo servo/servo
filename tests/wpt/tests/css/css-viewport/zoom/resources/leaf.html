@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<style>
+body {
+  background-color: aqua;
+  --target-width: 32px;
+  --target-height: 24px;
+  --scale: 1;
+  margin: calc(18px * var(--scale));
+}
+#target {
+  width: calc(var(--target-width) * var(--scale));
+  height: calc(var(--target-height) * var(--scale));
+  background-color: hotpink;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+let params = new URLSearchParams(location.search);
+if (params.has("scale")) {
+  document.body.style.setProperty("--scale", parseFloat(params.get("scale")));
+}
+</script>

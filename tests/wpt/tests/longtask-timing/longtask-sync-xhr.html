@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: synchronous XHR</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<h1>Long Task: synchronous XHR</h1>
+<div id="log"></div>
+<script>
+setup(() => assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.'));
+
+promise_test(async t => {
+    const receivedLongTask = new Promise(resolve =>
+    new PerformanceObserver(entries => resolve(entries.getEntries())).observe({entryTypes: ['longtask']}));
+    await new Promise(resolve => window.addEventListener('load', () => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/resource-timing/resources/delay-css.py?delay=100', false /* synchronous xhr */);
+        xhr.send();
+        resolve();
+    }));
+    const entries = await receivedLongTask;
+    assert_equals(entries.length, 1);
+}, 'A long synchronous XHR is a longtask');
+</script>
+</body>

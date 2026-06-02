@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break:auto-phrase in Japanese</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-001-ref.html">
+<meta name="assert" content="word-break:auto-phrase inserts virtual word boundaries at reasonable points.">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: normal
+}
+#test {
+  word-break: auto-phrase;
+}
+#ref {
+  border-color: blue;
+  word-break: keep-all;
+}
+</style>
+
+<p>Test passes if the black box is identical to the blue one.
+
+<div id=test lang=ja>
+  東京へ行きましょう。
+</div>
+<div id=ref lang=ja>
+  東京へ<wbr>行きましょう。
+</div>
+<!-- As phrase detection is up to the UA,
+    arguably an alternative decomposition
+    with wbr before AND after へ
+    might be OK,
+    but the last phrase is longer anyway,
+    so the difference is not visible.
+-->

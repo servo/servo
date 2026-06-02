@@ -1,0 +1,32 @@
+ <!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div#outer
+    {
+      height: 100px;
+      margin: 120px 0px 0px 104px;
+      overflow: auto;
+      width: 100px;
+    }
+
+  div#inner
+    {
+      background-color: green;
+      height: 300px;
+      width: 300px;
+    }
+  </style>
+
+ <body onload="document.getElementById('outer').scrollTop = 200; document.getElementById('outer').scrollLeft = 200;">
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="outer">
+    <div id="inner"></div>
+  </div>

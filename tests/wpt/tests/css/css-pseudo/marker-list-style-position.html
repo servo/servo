@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'list-style-position' property</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<!-- It's not clear whether inside ::marker should be affected by ::first-line.
+     In the 1st reference, #t3 markers inherit the blue color (like Firefox),
+     and in the 2nd reference they don't (like Chromium and WebKit).
+     See https://github.com/w3c/csswg-drafts/issues/4506 -->
+<link rel="match" href="marker-list-style-position-ref-001.html">
+<link rel="match" href="marker-list-style-position-ref-002.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<meta name="assert" content="It's the list-style-position on the list item element that decides where its ::marker is placed, not the value on the ::marker itself.">
+<style>
+body { color: black; background: white; }
+#t1 > li { list-style-position: inside; }
+#t1 li::marker { list-style-position: outside; color: blue; }
+
+#t2 > li { list-style-position: outside; }
+#t2 li::marker { list-style-position: inside; color: blue; }
+
+#t3 > li { list-style-position: inside; }
+#t3 > li::first-line { list-style-position: outside; color: blue; }
+#t3 li::marker { list-style-position: outside; }
+
+#t4 > li { list-style-position: inside; }
+#t4 > li::first-letter { list-style-position: outside; color: blue; }
+#t4 li::marker { list-style-position: outside; }
+
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol id="t1"><li></li><li>B</li><li><span>C</span></li></ol>
+<ol id="t2"><li></li><li>B</li><li><span>C</span></li></ol>
+<ol id="t3"><li></li><li>B</li><li><span>C</span></li></ol>
+<ol id="t4"><li></li><li>B</li><li><span>C</span></li></ol>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="timeout" content="long"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../webrtc/RTCPeerConnection-helper.js"></script>
+    <script src="../webrtc/RTCDataChannel-helper.js"></script>
+    <script src="../webrtc/RTCDataChannel-worker-shim.js"></script>
+  </head>
+  <body>
+    <script>
+
+async function getDcStats(pc) {
+  const stats = await pc.getStats();
+  return [...stats.values()].filter(({type}) => type == "data-channel");
+}
+
+// Oh boy here we go!
+for (const which of ['neither', 'offerer', 'answerer']) {
+
+  promise_test(async test => {
+    const {offerer, answerer, offererChannel, answererChannel} =
+      await makeDataChannelTestFixture(which, {},
+        which == 'offerer' ? new WorkerBackedDataChannel() : null,
+        which == 'answerer' ? new WorkerBackedDataChannel() : null);
+
+    const dcStats1 = await getDcStats(offerer);
+    assert_equals(dcStats1.length, 1,
+      "One RTCDataChannel results in one data-channel stats object (offerer)");
+
+    const dcStats2 = await getDcStats(answerer);
+    assert_equals(dcStats2.length, 1,
+      "One RTCDataChannel results in one data-channel stats object (answerer)");
+  }, `${which} on worker: Check that RTCDataChannelStats are present`);
+
+  promise_test(async test => {
+    const {offerer, answerer, offererChannel, answererChannel} =
+      await makeDataChannelTestFixture(which, {},
+        which == 'offerer' ? new WorkerBackedDataChannel() : null,
+        which == 'answerer' ? new WorkerBackedDataChannel() : null);
+
+    test.add_cleanup(() => offerer.close());
+    test.add_cleanup(() => answerer.close());
+
+    for (const [pc, channel, type] of [
+      [offerer, offererChannel, "offerer"],
+      [answerer, answererChannel, "answerer"],
+    ]) {
+      const dcStats = await getDcStats(pc);
+      assert_equals(dcStats.length, 1,
+      `One RTCDataChannel results in one data-channel stats object (${type})`);
+
+      assert_equals(dcStats[0].label, channel.label,
+        `Stats label should match (${type})`);
+      assert_equals(dcStats[0].protocol, channel.protocol,
+        `Stats protocol should match (${type})`);
+      assert_equals(dcStats[0].dataChannelIdentifier, channel.id,
+        `Stats dataChannelIdentifier/id should match (${type})`);
+      assert_equals(dcStats[0].state, channel.readyState,
+        `Stats state/readyState should match (${type})`);
+      assert_equals(dcStats[0].messagesSent, 0,
+        `Initial messagesSent should be 0 (${type})`);
+      assert_equals(dcStats[0].bytesSent, 0,
+        `Initial bytesSent should be 0 (${type})`);
+      assert_equals(dcStats[0].messagesReceived, 0,
+        `Initial messagesReceived should be 0 (${type})`);
+      assert_equals(dcStats[0].bytesReceived, 0,
+        `Initial bytesReceived should be 0 (${type})`);
+    };
+  }, `${which} on worker: Check that RTCDataChannelStats have a valid initial state`);
+
+  async function getDcCounterStats(pc) {
+    const dcStats = await getDcStats(pc);
+    return {
+      bytesSent: dcStats[0].bytesSent,
+      bytesReceived: dcStats[0].bytesReceived,
+      messagesSent: dcStats[0].messagesSent,
+      messagesReceived: dcStats[0].messagesReceived,
+    };
+  }
+
+  promise_test(async test => {
+    const {offerer, answerer, offererChannel, answererChannel} =
+      await makeDataChannelTestFixture(which, {},
+        which == 'offerer' ? new WorkerBackedDataChannel() : null,
+        which == 'answerer' ? new WorkerBackedDataChannel() : null);
+
+    test.add_cleanup(() => offerer.close());
+    test.add_cleanup(() => answerer.close());
+
+    for (const message of ['hello', '', '世界你好']) {
+      for (const [sender, senderDc, receiver, receiverDc] of [
+        [offerer, offererChannel, answerer, answererChannel],
+        [answerer, answererChannel, offerer, offererChannel],
+      ]) {
+        const senderCountersBefore = await getDcCounterStats(sender);
+        const receiverCountersBefore = await getDcCounterStats(receiver);
+
+        senderDc.send(message);
+        const recvEvent = await new Promise(r => receiverDc.onmessage = r);
+        assert_equals(recvEvent.data, message);
+        const encoder = new TextEncoder();
+        const byteLength = encoder.encode(message).length;
+
+        const senderCountersAfter = await getDcCounterStats(sender);
+        const receiverCountersAfter = await getDcCounterStats(receiver);
+
+        // Don't bother checking the other way around for zeroes
+        assert_equals(senderCountersAfter.bytesSent,
+          senderCountersBefore.bytesSent + byteLength,
+          "Got expected sender bytesSent");
+        assert_equals(senderCountersAfter.messagesSent,
+          senderCountersBefore.messagesSent + 1,
+          "Got expected sender messagesSent");
+
+        assert_equals(receiverCountersAfter.bytesReceived,
+          receiverCountersBefore.bytesReceived + byteLength,
+          "Got expected receiver bytesReceived");
+        assert_equals(receiverCountersAfter.messagesReceived,
+          receiverCountersBefore.messagesReceived + 1,
+          "Got expected receiver messagesReceived");
+      }
+    }
+  }, `${which} on worker: Check that RTCDataChannelStats messages/bytes Sent/Received are correct for various strings`);
+
+  // ASCII encoded buffer representation of the string
+  const helloBuffer = Uint8Array.of(0x68, 0x65, 0x6c, 0x6c, 0x6f);
+  const emptyBuffer = new Uint8Array();
+  const helloBlob = new Blob([helloBuffer]);
+
+  // UTF-8 encoded buffer representation of the string
+  const unicodeBuffer = Uint8Array.of(
+    0xe4, 0xb8, 0x96, 0xe7, 0x95, 0x8c,
+    0xe4, 0xbd, 0xa0, 0xe5, 0xa5, 0xbd);
+
+  // TODO: How finely-grained should we make these? Each one requires ICE, so we
+  // can't do each case separately. What should the top-level loop be?
+  for (const binaryType of ["arraybuffer", "blob"]) {
+    promise_test(async test => {
+    const {offerer, answerer, offererChannel, answererChannel} =
+      await makeDataChannelTestFixture(which, {},
+        which == 'offerer' ? new WorkerBackedDataChannel() : null,
+        which == 'answerer' ? new WorkerBackedDataChannel() : null);
+
+      test.add_cleanup(() => offerer.close());
+      test.add_cleanup(() => answerer.close());
+
+      for (const [message, bytes] of [
+        [helloBlob, 5],
+        [helloBuffer.buffer, 5],
+        [helloBuffer, 5],
+        [unicodeBuffer, 12]
+      ]) {
+        for (const [sender, senderDc, receiver, receiverDc] of [
+          [offerer, offererChannel, answerer, answererChannel],
+          [answerer, answererChannel, offerer, offererChannel],
+        ]) {
+
+          receiver.binaryType = binaryType;
+
+          const senderCountersBefore = await getDcCounterStats(sender);
+          const receiverCountersBefore = await getDcCounterStats(receiver);
+
+          senderDc.send(message);
+          const recvEvent = await new Promise(r => receiverDc.onmessage = r);
+
+          const senderCountersAfter = await getDcCounterStats(sender);
+          const receiverCountersAfter = await getDcCounterStats(receiver);
+
+          assert_equals(senderCountersAfter.bytesSent,
+            senderCountersBefore.bytesSent + bytes,
+            "Got expected sender bytesSent");
+          assert_equals(senderCountersAfter.messagesSent,
+            senderCountersBefore.messagesSent + 1,
+            "Got expected sender messagesSent");
+
+          assert_equals(receiverCountersAfter.bytesReceived,
+            receiverCountersBefore.bytesReceived + bytes,
+            "Got expected receiver bytesReceived");
+          assert_equals(receiverCountersAfter.messagesReceived,
+            receiverCountersBefore.messagesReceived + 1,
+            "Got expected receiver messagesReceived");
+        }
+      }
+    }, `${which} on worker: Check that RTCDataChannelStats messages/bytes Sent/Received are correct for various binary messages received as ${binaryType}`);
+  }
+}
+    </script>
+  </body>
+</html>

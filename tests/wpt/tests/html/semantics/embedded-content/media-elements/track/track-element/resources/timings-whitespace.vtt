@@ -1,0 +1,51 @@
+WEBVTT
+Whitespace (U+0020, U+0009, U+000C) surrounding cue-timings separator ("-->") is optional
+
+1
+00:00:00.100 -->00:00:01.500
+Single U+0020 SPACE left of cue-timings separator
+
+2
+00:00:00.100--> 00:00:01.500
+Single U+0020 SPACE right of cue-timings separator
+
+3
+00:00:00.100	-->00:00:01.500
+Single U+0009 TAB left of cue-timings separator
+
+4
+00:00:00.100-->	00:00:01.500
+Single U+0009 TAB right of cue-timings separator
+
+5
+00:00:00.100-->00:00:01.500
+Single U+000C FORM FEED left of cue-timings separator
+
+6
+00:00:00.100-->00:00:01.500
+Single U+000C FORM FEED right of cue-timings separator
+
+7
+00:00:00.100   -->00:00:01.500
+Several U+0020 SPACE left of cue-timings separator
+
+8
+00:00:00.100-->   00:00:01.500
+Several U+0020 SPACE right of cue-timings separator
+
+9
+00:00:00.100			-->00:00:01.500
+Several U+0009 TAB left of cue-timings separator
+
+10
+00:00:00.100-->			00:00:01.500
+Several U+0009 TAB right of cue-timings separator
+
+11
+00:00:00.100-->00:00:01.500
+Several U+000C FORM FEED left of cue-timings separator
+
+12
+00:00:00.100-->00:00:01.500
+Several U+000C FORM FEED right of cue-timings separator
+

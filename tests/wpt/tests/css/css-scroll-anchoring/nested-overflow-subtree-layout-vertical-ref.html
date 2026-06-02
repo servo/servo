@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+  <link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+  <script src="/common/reftest-wait.js"></script>
+</head>
+<style>
+#outer {
+  overflow: hidden;
+  width: 500px;
+  height: 500px;
+  writing-mode: vertical-rl;
+}
+#inner {
+  overflow: auto;
+  position: relative;
+  width: 2000px;
+  height: 500px;
+}
+p {
+  font: 48pt monospace;
+}
+</style>
+</head>
+<body>
+<div id="outer">
+  <div id="inner">
+    <p>Anchor</p>
+  </div>
+</div>
+<script>
+const outer = document.querySelector("#outer");
+const inner = document.querySelector("#inner");
+
+onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      outer.scrollTo(-70, 0);
+      takeScreenshot();
+    });
+  });
+};
+</script>

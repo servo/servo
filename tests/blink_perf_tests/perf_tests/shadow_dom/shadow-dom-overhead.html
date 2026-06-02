@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<body>
+<pre id="log"></pre>
+<script src="../resources/runner.js"></script>
+<script src="resources/declarative.js"></script>
+<script>
+
+/*
+This test tries to measure the overhead associated with parsing and
+attaching one shadow root to the tree, as compared to an "ordinary"
+element. To measure this, we make three timing measurements:
+
+  t1 = A + (b + d)x
+  t2 = A + (c + d)x
+  t3 = A + (2b + d)x
+
+where:
+  A = fixed overhead associated with parsing and tree building
+  b = per light-dom "ordinary" node time
+  c = per shadow root time
+  d = per "other element" node time. This is the other elements, e.g. <span>
+      and <!-- comment --> nodes, mixed in with the test markup. To solve
+      for the percent overhead, we need this to be non-zero (see below).
+  x = number of repeats of the test block, per run of the test.
+
+we want to solve for:
+  (c/b - 1) = percent overhead, per shadow root
+
+So:
+  (t2 - t1)/x = c - b = (c/b - 1)b
+  (t3 - t1)/x = b
+  (c/b - 1) = (t2-t1)/(t3-t1) = percent overhead
+*/
+
+const depth = 6;
+const copies = 100;
+const shadowHtml = getShadowMarkup(true, depth, copies);
+const lightDomHtml1 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/1);
+const lightDomHtml2 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/2);
+
+PerfTestRunner.measureValue({
+    description: 'This benchmark tests the overhead of declarative Shadow DOM',
+    unit: 'percent',
+    run: function() {
+      let samples = [];
+      for (let i = 0; i < 100; i++) {
+        const t1 = measureParse(lightDomHtml1);
+        const t2 = measureParse(shadowHtml);
+        const t3 = measureParse(lightDomHtml2);
+        if (t2 > t1 && t3 > t1) {
+          samples.push((t2-t1) / (t3-t1));
+        }
+      }
+      PerfTestRunner.assert_true(samples.length > 3,'Too many skipped measurements');
+      // The result is the total overhead, in *percent*, *per shadow root*.
+      return 100*median(samples);
+    },
+    warmUpCount: 2,
+    iterationCount: 30,
+});
+</script>

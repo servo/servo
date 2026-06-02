@@ -1,0 +1,24 @@
+<!doctype html>
+<title>Test initialize MediaStreamTrackGenerator in a service worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/service-workers/service-worker/resources/test-helpers.sub.js'></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+    const registration = await navigator.serviceWorker.register('service-worker.js');
+    await wait_for_state(t, registration.installing, 'activated');
+    const result = new Promise((resolve, reject) => {
+        navigator.serviceWorker.addEventListener('message', (e) => {
+            if (e.data.result === 'Failure') {
+                reject('Failed with error ' + e.data.error);
+            } else {
+                resolve();
+            }
+        });
+    });
+    registration.active.postMessage('hello world');
+    return result;
+}, 'A service worker is able to initialize a MediaStreamTrackGenerator without crashing');
+</script>

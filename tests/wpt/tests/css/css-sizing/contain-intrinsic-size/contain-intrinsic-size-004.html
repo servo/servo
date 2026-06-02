@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: width is min-content</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="contain-intrinsic-size-004-ref.html">
+<meta name="assert" content="div is sized to intrinsic-width if width is min-content">
+
+<style>
+#target {
+  background: lightblue;
+  contain-intrinsic-size: 111px 222px;
+  contain: size;
+  width: min-content;
+}
+</style>
+
+<div id=target></div>

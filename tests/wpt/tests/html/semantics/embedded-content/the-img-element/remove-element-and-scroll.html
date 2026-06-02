@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <title>Images with loading='lazy' load being removed and then scrolled to</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <img id="in_viewport" src='resources/image.png?in_viewport&pipe=trickle(d1)'>
+  <div style="height:1000vh"></div>
+  <div id="below_viewport_div"></div>
+  <img id="below_viewport" src='resources/image.png?below_viewport' loading="lazy">
+
+  <script>
+    const in_viewport_element = document.getElementById("in_viewport");
+    const below_viewport_element = document.getElementById("below_viewport");
+    const below_viewport_div = document.getElementById("below_viewport_div");
+
+    async_test(t => {
+      below_viewport_element.onload = t.unreached_func("Removed loading=lazy image " +
+        "should not load when its old position is scrolled to.");
+      below_viewport_element.remove();
+
+      in_viewport_element.onload = () => {
+        below_viewport_div.scrollIntoView();
+        t.step_timeout(t.step_func_done(), 2000);
+      };
+    }, "Test that <img> below viewport is not loaded when removed from the " +
+       "document and then scrolled to");
+  </script>
+</body>

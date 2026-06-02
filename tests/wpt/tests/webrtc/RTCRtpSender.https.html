@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const t1 = pc.addTransceiver("audio");
+    const t2 = pc.addTransceiver("video");
+
+    assert_not_equals(t1.sender.dtmf, null);
+    assert_equals(t2.sender.dtmf, null);
+}, "Video sender @dtmf is null");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    assert_equals(transceiver.sender.transport, null);
+  }, 'RTCRtpSender should have a null transport initially');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    assert_true(transceiver.sender.transport instanceof RTCDtlsTransport);
+  }, 'RTCRtpSender should have a transport after sLD(offer)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    await pc1.setLocalDescription({type: 'rollback', sdp: ''});
+    assert_equals(transceiver.sender.transport, null);
+  }, 'RTCRtpSender should have a null transport after rollback of sLD(offer)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const sender = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    const [transceiver] = pc2.getTransceivers();
+    assert_equals(transceiver.sender.transport, null);
+  }, 'RTCRtpSender should have a null transport after sRD(offer)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    assert_true(transceiver.sender.transport instanceof RTCDtlsTransport);
+    assert_true(transceiver.receiver.transport instanceof RTCDtlsTransport);
+    assert_equals(transceiver.sender.transport, transceiver.receiver.transport);
+  }, 'RTCRtpSender should have the same transport object as its corresponding RTCRtpReceiver');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection({bundlePolicy: 'max-bundle'});
+    t.add_cleanup(() => pc1.close());
+    const audioTransceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const videoTransceiver = pc1.addTransceiver('video', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    assert_equals(videoTransceiver.sender.transport, audioTransceiver.sender.transport);
+  }, 'RTCRtpSenders that share a bundle transport should have the same transport object');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection({bundlePolicy: 'max-compat'});
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const audioTransceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const videoTransceiver = pc1.addTransceiver('video', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    assert_not_equals(videoTransceiver.sender.transport, audioTransceiver.sender.transport);
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc1.setRemoteDescription(await pc2.createAnswer());
+    // pc2 will accept the bundle, so these should be the same now
+    assert_equals(videoTransceiver.sender.transport, audioTransceiver.sender.transport);
+  }, 'RTCRtpSenders that do not necessarily share a bundle transport should not have the same transport object');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    const transportBefore = transceiver.sender.transport;
+
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc1.setRemoteDescription(await pc2.createAnswer());
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+
+    const transportAfter = transceiver.sender.transport;
+    assert_equals(transportAfter, transportBefore);
+  }, 'RTCRtpSender should have the same transport object after an ICE restart');
+
+</script>

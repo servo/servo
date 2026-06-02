@@ -1,0 +1,152 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AE" author="VH" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-text-06-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
+        <p>
+          The purpose of this test is to validate the interaction of x/y
+          glyph positioning and ligatures.
+        </p>
+        <p>
+          The first line shows an example where there is a ligature (fi) which
+          should be accounted for before breaking into text chunks (see specification
+          section 10.5, additional x/y/dx/dy processing rules, bullet discussing
+          ligatures). In this first line, the ligatures cause the x position 180
+          (shown in orange), to be ignored. As a result, a glyph should be shown over
+          each pale blue square markers. The glyphs are black squares of increasing sizes
+          except for the initial ligature which has the form of two small black triangles
+          joined at their tops. The ligature should show on the first pale blue
+          marker position.
+        </p>
+        <p>
+          The second line shows the same test but using multiple y positions.
+        </p>
+        <p>
+          The third line shows the same test but using multiple x and y
+          positions.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>
+          The bottom left hand corners of the first row of black squares are
+          equal distance apart along the x axis and are centered inside the blue
+          squares.
+        </li>
+        <li>
+          The bottom left hand corners of the first row of black squares are
+          equal distance apart along the x and y axis and are centered inside
+          the blue squares.
+        </li>
+        <li>
+          The bottom left hand corners of the first row of black squares are
+          same distance apart in the x axis as the first row of squares and are
+          same distance apart in the y axis as the second row of squares.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-text-06-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <style type="text/css">
+  @font-face {
+    font-family: embeded;
+    src: url(woffs/embeded-text-text-06.woff) format("woff");
+    }
+  </style>
+    <g font-size="10">
+      <defs>
+        <font id="embeded" horiz-adv-x="224">
+          <font-face font-family="embeded" units-per-em="1000" panose-1="0 0 0 0 0 0 0 0 0 0" ascent="917" descent="-250" alphabetic="0"/>
+          <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+          <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="1500" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+          <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="1500" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+          <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="1500" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+          <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+          <glyph unicode="fi" glyph-name="fi" horiz-adv-x="1500" d="M 0 0 L 500 0 L 0 700 L 500 700 Z"/>
+        </font>
+      </defs>
+
+      <defs>
+        <g id="marker">
+          <line y2="-15" stroke="orange"/>
+          <rect x="-4" y="-4" width="8" height="8"/>
+        </g>
+      </defs>
+
+      <g transform="translate(20, 30)">
+        <g id="legend" transform="translate(10, 40)" font-size="12">
+          <text>x positioning</text>
+          <text y="40">y positioning</text>
+          <text y="140">x/y positioning</text>
+        </g>
+
+        <g transform="translate(100, 40)">
+          <use xlink:href="#marker" x="10" fill="#8888ff"/>
+          <use xlink:href="#marker" x="180" fill="orange"/>
+          <use xlink:href="#marker" x="40" fill="#8888ff"/>
+          <use xlink:href="#marker" x="70" fill="#8888ff"/>
+          <use xlink:href="#marker" x="100" fill="#8888ff"/>
+          <use xlink:href="#marker" x="130" fill="#8888ff"/>
+          <text x="10 180 40 70 100 130" y="0" font-family="embeded">fi1234</text>
+        </g>
+
+        <g transform="translate(100, 80)">
+          <use xlink:href="#marker" y="-10" fill="#8888ff"/>
+          <use xlink:href="#marker" x="15" y="50" fill="orange"/>
+          <use xlink:href="#marker" x="15" y="0" fill="#8888ff"/>
+          <use xlink:href="#marker" x="30" y="10" fill="#8888ff"/>
+          <use xlink:href="#marker" x="45" y="20" fill="#8888ff"/>
+          <use xlink:href="#marker" x="60" y="30" fill="#8888ff"/>
+          <text y="-10 50 0 10 20 30" x="0" font-family="embeded">fi1234</text>
+        </g>
+
+        <g transform="translate(100, 180)">
+          <use xlink:href="#marker" x="10" y="-10" fill="#8888ff"/>
+          <use xlink:href="#marker" x="180" y="50" fill="orange"/>
+          <use xlink:href="#marker" x="40" y="0" fill="#8888ff"/>
+          <use xlink:href="#marker" x="70" y="10" fill="#8888ff"/>
+          <use xlink:href="#marker" x="100" y="20" fill="#8888ff"/>
+          <use xlink:href="#marker" x="130" y="30" fill="#8888ff"/>
+          <text x="10 180 40 70 100 130" y="-10 50 0 10 20 30" font-family="embeded">fi1234</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

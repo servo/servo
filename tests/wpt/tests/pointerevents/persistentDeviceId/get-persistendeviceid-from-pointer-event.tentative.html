@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+   Tentative; contingent on merge of:
+   https://github.com/w3c/pointerevents/pull/495
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  div {
+    user-select: none; // Prevents text selection on drag.
+  }
+</style>
+<div id="logger" draggable="false"></div>
+<div id="console"></div>
+<!-- This test verifies that pointerEvent.persistentDeviceId is 0
+     by default for a pointer with an invalid hardware id - in this case
+     a testdriver generated event, which does not support hardware id. -->
+<script>
+    function CheckDeviceId(event) {
+        eventFired++;
+        assert_equals(event.persistentDeviceId, 0, "deviceId is 0");
+    }
+
+    window.addEventListener("pointerdown", CheckDeviceId, false);
+    window.addEventListener("pointermove", CheckDeviceId, false);
+
+    promise_test(async () => {
+        eventFired = 0;
+        let actions = new test_driver.Actions()
+          .addPointer("TestPointer", "pen")
+          .pointerDown()
+          .pointerMove(100, 100)
+          .pointerUp();
+
+        await actions.send();
+
+        assert_true(eventFired == 2);
+    }, 'PointerEvent.persistentDeviceId');
+</script>

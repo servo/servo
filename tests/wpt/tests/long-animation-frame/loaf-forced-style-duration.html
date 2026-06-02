@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: forcedStyleDuration</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: forcedStyleDuration</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    const element = document.createElement("div");
+    element.style.width = "100px";
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 2);
+      // Force style and layout recalculation by changing dimensions
+      // and reading a layout-dependent property
+      element.style.width = "200px";
+      void element.offsetHeight;
+      busy_wait(very_long_frame_duration / 2);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  assert_true("forcedStyleDuration" in script,
+      "forcedStyleDuration should be present on PerformanceScriptTiming");
+  assert_greater_than_equal(script.forcedStyleDuration, 0,
+      "forcedStyleDuration should be non-negative");
+  assert_less_than_equal(script.forcedStyleDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedStyleDuration should be <= forcedStyleAndLayoutDuration");
+}, "forcedStyleDuration attribute exists and is <= forcedStyleAndLayoutDuration");
+
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      // Just do a busy wait with no style/layout work
+      busy_wait(very_long_frame_duration);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  assert_equals(script.forcedStyleDuration, 0,
+      "forcedStyleDuration should be 0 when no forced style occurred");
+  assert_equals(script.forcedStyleAndLayoutDuration, 0,
+      "forcedStyleAndLayoutDuration should also be 0");
+}, "forcedStyleDuration is 0 when no forced style recalculation occurs");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.id = "test-element";
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 3);
+      // Force multiple style and layout recalculations by changing dimensions
+      for (let i = 0; i < 10; i++) {
+        element.style.width = (100 + i * 10) + "px";
+        void element.offsetHeight;
+      }
+      busy_wait(very_long_frame_duration / 3);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  // On very fast machines, style/layout may complete in < 1ms and report as 0
+  // due to millisecond truncation, so we only assert >= 0
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration, 0,
+      "forcedStyleAndLayoutDuration should be >= 0 after forced recalculations");
+  assert_greater_than_equal(script.forcedStyleDuration, 0,
+      "forcedStyleDuration should be >= 0 after forced style recalculations");
+  assert_less_than_equal(script.forcedStyleDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedStyleDuration should be <= forcedStyleAndLayoutDuration");
+}, "forcedStyleDuration accumulates multiple forced style recalculations");
+
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    const element = document.createElement("div");
+    element.style.width = "100px";
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 2);
+      // Force layout by changing dimensions and reading
+      element.style.width = "200px";
+      void element.offsetHeight;
+      busy_wait(very_long_frame_duration / 2);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  // When we force layout, we also force style
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration,
+      script.forcedStyleDuration,
+      "forcedStyleAndLayoutDuration >= forcedStyleDuration when layout is forced");
+}, "forcedStyleDuration is part of forcedStyleAndLayoutDuration when layout is also forced");
+
+</script>
+</body>
+

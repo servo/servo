@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resize - both - both width and height adjusted</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="8.1. 'resize' property" href="http://www.w3.org/TR/css3-ui/#resize">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that both width and height adjusted when resize set both.">
+<style>
+  #test {
+    border: 2px solid blue;
+    height: 100px;
+    overflow: auto;
+    resize: both;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if both <strong>width</strong> and <strong>height</strong> of blue border square below can be adjusted(for instance by dragging the bottom-right corner).</p>
+  <div id="test"></div>
+</body>

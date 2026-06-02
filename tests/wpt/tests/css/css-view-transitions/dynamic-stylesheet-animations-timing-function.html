@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: Dynamic stylesheet sets correct animations with proper timing function</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions/#setup-transition-pseudo-elements-algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+body { margin: 0; }
+:root { view-transition-name: none; }
+html::view-transition-group(*),
+html::view-transition-old(*),
+html::view-transition-new(*) {
+  animation-duration: 10s;
+  animation-delay: -5s;
+  animation-play-state: paused;
+}
+#target { view-transition-name: target; }
+.init {
+  width: 100px;
+  height: 100px;
+}
+.large {
+  width: 300px;
+  height: 300px;
+}
+.left {
+  margin-left: 100px;
+}
+.right {
+  margin-left: 300px;
+}
+/* For generating the transform with ease, as reference */
+@keyframes anim {
+  from { transform: translate(100px); }
+  to { transform: translate(300px); }
+}
+</style>
+<div id="target"></div>
+
+<script>
+promise_test(async t => {
+  const ref = createDiv(t);
+  ref.style.animation = "anim 10s -5s paused ease";
+  target.classList.add("init", "left");
+
+  const vt = document.startViewTransition(() => {
+    target.classList.remove("left");
+    target.classList.add("right");
+  });
+  await vt.ready;
+
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-group(target)").animationTimingFunction,
+    "ease",
+    "The default timing function"
+  );
+
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-group(target)").transform,
+    getComputedStyle(ref).transform,
+    "transform with ease at 50%"
+  );
+
+  await vt.skipTransition();
+  target.className = "";
+}, "The transform property with ease on ::view-transition-group()");
+
+promise_test(async t => {
+  document.styleSheets[0].insertRule(
+    "::view-transition-group(target) { animation-timing-function: linear; }",
+    document.styleSheets[0].cssRules.length
+  );
+  t.add_cleanup(() => {
+    document.styleSheets[0].deleteRule(
+      document.styleSheets[0].cssRules.length - 1
+    );
+  });
+  target.classList.add("init");
+
+  let vt = document.startViewTransition(() => {
+    target.classList.remove("init");
+    target.classList.add("large");
+  });
+  await vt.ready;
+
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-group(target)").width,
+    "200px",
+    "width at 50%"
+  );
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-group(target)").height,
+    "200px",
+    "height at 50%"
+  );
+
+  await vt.skipTransition();
+  target.className = "";
+}, "The sizing properties with linear on ::view-transition-group()");
+
+promise_test(async t => {
+  target.classList.add("init", "left");
+
+  let vt = document.startViewTransition(() => {
+    target.classList.remove("left");
+    target.classList.add("right");
+  });
+  await vt.ready;
+
+  document.styleSheets[0].insertRule(
+    "::view-transition-group(target) { animation-timing-function: linear; }",
+    document.styleSheets[0].cssRules.length
+  );
+  t.add_cleanup(() => {
+    document.styleSheets[0].deleteRule(
+      document.styleSheets[0].cssRules.length - 1
+    );
+  });
+
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-group(target)").transform,
+    "matrix(1, 0, 0, 1, 200, 0)",
+    "transform at 50% with linear"
+  );
+
+  await vt.skipTransition();
+  target.className = "";
+}, "Changing the timing function of ::view-transition-group() when animating");
+</script>
+
+</body>
+</html>

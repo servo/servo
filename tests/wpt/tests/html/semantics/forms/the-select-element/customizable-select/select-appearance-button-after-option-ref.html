@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<div class=customizable-select-button>
+  <span class=customizable-select-selectedcontent>option 1</span>
+</div>
+<div class=customizable-select-popover>
+  <div class="customizable-select-option selected">option 1</div>
+  <button>Hello option 1</button>
+  <div class=customizable-select-option>option 2</div>
+</div>
+
+<style>
+.customizable-select-button {
+  anchor-name: --select;
+}
+.customizable-select-popover {
+  position-anchor: --select;
+}
+</style>

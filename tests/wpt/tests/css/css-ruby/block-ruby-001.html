@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>CSS Ruby Test: basic 'block ruby' layout.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display/#propdef-display">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-layout">
+<link rel="match" href="block-ruby-001-ref.html">
+<style>
+@font-face
+{
+  font-family: "mplus-1p-regular";
+  src: url("/fonts/mplus-1p-regular.woff") format("woff");
+}
+
+html
+{
+  font-family: "mplus-1p-regular";
+}
+
+ruby { display: block ruby; background: lightblue; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+.columns {
+  columns: 3 auto;
+  column-rule: 1px;
+  background: lightgrey;
+  height: 2em;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+</style>
+A<ruby>べ<rt>る</rt></ruby>B
+A<ruby class="mbp">べ<rt>る</rt></ruby>B
+<div class="columns">A<ruby class=mbp>べ<rt>る</rt> べ<rt>る</rt>  べ<rt>る</rt> べ<rt>る</rt> べ<rt>る</rt></ruby>B</div>
+<div style="width:2.5em; border:1px solid;">
+    <ruby style="margin: 1em 0em;"><rb>一<rb>二<rb>三<rb>四<rb>五<rb>六<rb>七<rb>八</ruby>
+    <ruby style="margin: 1em 0em;"><rbc>一</rbc><rbc>二</rbc><rbc>三</rbc><rbc>四</rbc><rbc>五</rbc><rbc>六</rbc><rbc>七</rbc><rbc>八</rbc></ruby>
+</div>
+</html>

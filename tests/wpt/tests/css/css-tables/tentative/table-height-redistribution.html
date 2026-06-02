@@ -1,0 +1,317 @@
+<!doctype html>
+<title>TABLE height redistribution</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel='stylesheet' href='../support/base.css' />
+<link rel='stylesheet' href='./support/table-tentative.css' />
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#row-layout" />
+<style>
+  main table {
+    border-spacing: 0px;
+    background: rgba(255,0,0,0.3);
+    height: 100px;
+    width: 100px;
+  }
+  main td {
+    padding: 0;
+  }
+  main table tbody:nth-child(1) {
+    background: #CCC;
+  }
+  main table tbody:nth-child(2) {
+    background: #AAA;
+  }
+  main table tbody:nth-child(3) {
+    background: #999;
+  }
+  main table thead {
+    background: rgba(0,255,0,0.3);
+  }
+  main table tfoot {
+    background: rgba(255,255,0,0.3);
+  }
+
+  .debug {
+    width:100px;
+    height:1px;
+    position:relative;
+  }
+  .debug pre {
+    position:absolute;
+    font: 30px/30px monospace;
+    left: 120px;
+    top:-30px;
+  }
+
+</style>
+<main>
+ <h1>Tests for redistribution of table height to row group height.</h1>
+ <p>This algorithm has not been standardized. Browsers implementations disagree a lot.
+ Legacy Chrome used to always distribute all the height to the first tbody.</p>
+
+<pre class=error>Major incompatibility: Legacy:
+- ignores any height set on sections.
+- does not size the table unless section has a TR
+- does not grow sections without TDs
+- only distributes height to the 1st tbody
+FF
+- does not prioritize thead for height distribution most of the time.
+- y offset of multiple tbodies can be incorrect.
+</pre>
+
+<h2>Empty table</h2>
+<p>Empty tables always grow to specified height in all browsers.</p>
+<p class="testdesc">no sections</p>
+<table data-expected-height=100></table>
+
+<p class="testdesc">no sections, no border spacing</p>
+<table style="border-spacing: 0" data-expected-height=100></table>
+
+<p class="testdesc">collapsed table  no sections</p>
+<table style="border-collapse:collapse" data-expected-height=100></table>
+
+<p class="testdesc">fixed table  no sections</p>
+<table style="table-layout:fixed" data-expected-height=100></table>
+
+<h2>One TBODY</h2>
+<p>The big difference here is between empty TBODY, and a body with an empty TR</p>
+<li>FF: always sizes the table, only sizes TBODY if it has TR.</li>
+<li>Legacy: does not size the table unless TBODY has TR</li>
+<p>FF: sizes the table, but tbody size remains 0 unless tbody is not empty.</p>
+<p>Legacy table size remains 0, or border-spacing</p>
+
+<p class="testdesc">single empty tbody</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=100></tbody>
+</table>
+
+<p class="testdesc">single tbody+tr</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">border spacing</p>
+<p class="error">FF/Legacy do not apply border-spacing</p>
+<table style="border-spacing: 10px" data-expected-height=100>
+  <tbody data-expected-height=80><tr></tr></tbody>
+</table>
+
+<p class="testdesc">collapsed table</p>
+<table style="border-collapse:collapse" data-expected-height=100>
+    <tbody data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">fixed table</p>
+<table style="table-layout:fixed" data-expected-height=100>
+    <tbody data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">tbody has fixed height</p>
+<p class="error">FF adds tbody height to table?</p>
+<table data-expected-height=100>
+  <tbody style="height:50px" data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">tbody has fixed height > table</p>
+<p class="error">Legacy: table size wins. FF: table size wins, but body grows to 300px?</p>
+<table data-expected-height=200>
+  <tbody style="height:200px" data-expected-height=200><tr></tr></tbody>
+</table>
+
+<p class="testdesc">tr has fixed height > table</p>
+<p class="error">FF: table size wins, but body is 300.</p>
+<table data-expected-height=200>
+  <tbody data-expected-height=200><tr style="height:200px"></tr></tbody>
+</table>
+
+<p class="testdesc">tbody has percentage height > table</p>
+<table data-expected-height=100>
+  <tbody style="height:200%" data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">tr has percentage height > table</p>
+<p class=error>FF/Legacy: table wins. FF: body is 200px</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=100><tr style="height:200%"></tr></tbody>
+</table>
+
+<p class="testdesc">non-empty tbody</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">non-empty thead</p>
+<table data-expected-height=100>
+  <thead data-expected-height=100><tr></tr></thead>
+</table>
+
+<h2>THEAD TBODY</h2>
+
+<p class="testdesc">empty thead, empty tbody</p>
+<p class="error">FF thead/tbody both grow</p>
+<table data-expected-height=100>
+  <thead data-expected-height=0><tr></tr></thead>
+  <tbody data-expected-height=100><tr></tr></tbody>
+</table>
+
+<p class="testdesc">sized thead, empty tbody</p>
+<table data-expected-height=100>
+  <thead data-expected-height=20><td style="height:20px">thead</td></thead>
+  <tbody data-expected-height=80><tr></tr></tbody>
+</table>
+
+<p class="testdesc">table layout fixed, thead with td, tbody</p>
+<table style="table-layout:fixed" data-expected-height=100>
+  <thead data-expected-height=20>
+    <tr>
+      <td style="height:20px">thead</td>
+    </tr>
+  </thead>
+  <tbody data-expected-height=80><tr><td>x</td></tr></tbody>
+</table>
+
+<p class="testdesc">table layout fixed, thead+td, tbody+td</p>
+<table style="table-layout:fixed" data-expected-height=100>
+  <thead data-expected-height=20>
+    <tr>
+      <td style="height:20px">thead</td>
+    </tr>
+  </thead>
+  <tbody data-expected-height=80><tr><td>x</td></tr></tbody>
+</table>
+
+<p class="testdesc">thead with td</p>
+<table data-expected-height=100>
+  <thead data-expected-height=20>
+    <tr>
+      <td style="height:20px">thead</td>
+    </tr>
+  </thead>
+  <tbody data-expected-height=80>
+    <tr>
+    </tr>
+  </tbody>
+</table>
+
+<p class="testdesc">tfoot with td</p>
+<table data-expected-height=100>
+  <tfoot data-expected-height=20>
+    <tr>
+      <td style="height:20px">tfoot</td>
+    </tr>
+  </tfoot>
+  <tbody data-expected-height=80>
+    <tr>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Multiple TBODY</h2>
+<p class="error">Legacy does not distribute any heights when tr is empty.</p>
+<p class="error">Legacy always distributes everything to 1st tbody.</p>
+
+<p class="testdesc">2 tbody</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=50><tr></tr></tbody>
+  <tbody data-expected-height=50><tr></tr></tbody>
+</table>
+
+<p class="testdesc">2 tbody, with non-empty tds</p>
+<p class="error">Legacy distributes everything to 1st tbody</p>
+<table data-expected-height=100>
+  <tbody data-expected-height=50><tr><td>x</td></tr></tbody>
+  <tbody data-expected-height=50><tr><td>x</td></tr></tbody>
+</table>
+
+
+<p class="testdesc">2 tbody, 40%, auto, no td</p>
+<p class="error">FF: distributes everything to auto when empty. Legacy does not distribute</p>
+<table data-expected-height=100>
+  <tbody style="height:40%" data-expected-height=40><tr></tr></tbody>
+  <tbody data-expected-height=60><tr></tr></tbody>
+</table>
+
+<p class="testdesc">2 tbody, 40%, auto, non-empty td</p>
+<table data-expected-height=100>
+  <tbody style="height:40%" data-expected-height=40><tr><td>x</td></tr></tbody>
+  <tbody data-expected-height=60><tr><td>x</td></tr></tbody>
+</table>
+
+<p class="testdesc">2 tbody, 40px, auto, non-empty td</p>
+<p class="error">FF gets confused with 2nd body placement</p>
+<table data-expected-height=100>
+  <tbody style="height:40px" data-expected-height=40><tr><td>x</td></tr></tbody>
+  <tbody data-expected-height=60 data-offset-y=40><tr><td>x</td></tr></tbody>
+</table>
+
+<p class="testdesc">2 tbody, 40%, 40px, non-empty td</p>
+<p class="error">FF splits evenly</p>
+<table data-expected-height=100>
+  <tbody style="height:40%" data-expected-height=40><tr><td>x</td></tr></tbody>
+  <tbody style="height:40px" data-expected-height=60 data-offset-y=40><tr><td>x</td></tr></tbody>
+</table>
+
+<h2>Sized THEAD/TBODY</h2>
+<p class=error>FF does not prioritize TBODY for distribution</p>
+<p class="testdesc">20px thead, 30px tbody</p>
+<table data-expected-height=100>
+  <thead data-expected-height=20 style="height:20px">
+    <tr><td>x</td></tr>
+  </thead>
+  <tbody data-expected-height=80 style="height:30px">
+    <tr><td>x</td></tr>
+  </tbody>
+</table>
+
+<p class="testdesc">20px thead's tr, 30px tbody's tr</p>
+<table data-expected-height=100>
+  <thead data-expected-height=20 >
+    <tr style="height:20px"><td>x</td></tr>
+  </thead>
+  <tbody data-expected-height=80 >
+    <tr style="height:30px"><td>x</td></tr>
+  </tbody>
+</table>
+
+<p class="testdesc">20px thead's td, 30px tbody's td</p>
+<table data-expected-height=100>
+  <thead data-expected-height=20 >
+    <tr><td  style="height:20px">x</td></tr>
+  </thead>
+  <tbody data-expected-height=80 >
+    <tr><td  style="height:30px">x</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<script>
+  checkLayout("table");
+
+  // Display body sizes next to the table.
+  for (let table of Array.from(document.querySelectorAll("table"))) {
+    let d = document.createElement("div");
+    d.classList.add("debug");
+    let log = document.createElement("pre");
+    d.appendChild(log);
+
+    let text = "";
+    let x;
+    x = table.querySelector("thead");
+    if (x)
+      text += `h:${x.offsetHeight}\n`;
+    x = table.querySelectorAll("tbody");
+    if (x.length > 0)
+      for (body of Array.from(x))
+        text += `b:${body.offsetHeight}\n`;
+    x = table.querySelector("tfoot");
+    if (x)
+      text += `f:${x.offsetHeight}\n`;
+    log.innerText = text;
+
+    table.parentNode.insertBefore(d, table);
+  }
+</script>
+

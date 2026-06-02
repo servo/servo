@@ -1,0 +1,21 @@
+<svg id="svg-root" viewBox="0 0 800 600"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: 'context-fill' for markers with gradient</title>
+    <html:link rel="author"
+          title="Stefan Zager"
+          href="mailto:szager@chromium.org"/>
+  </g>
+
+  <defs>
+    <linearGradient id="lg" x1="10%">
+        <stop offset="0" stop-color="red"/>
+        <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+
+  <path id="test-reference" fill="url(#lg)"
+        d="M 90 75 h 400 v 50 h 200 v 400 h -540 v -350 h -60 Z"/>
+  <text x="290" y="105" style="font-size:96px" stroke="black" fill="none" rotate="45">A</text>
+</svg>

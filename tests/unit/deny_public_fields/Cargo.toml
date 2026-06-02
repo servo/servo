@@ -1,0 +1,15 @@
+[package]
+name = "deny_public_fields_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+test = false
+
+[dependencies]
+deny_public_fields = {path = "../../../components/deny_public_fields"}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html><head class="foo">
+        <title class="foo">getElementsByClassName</title>
+        <meta class="foo" content="big element listing" name="description">
+        <link class="foo">
+        <base class="foo">
+        <script class="foo"></script>
+        <style class="foo"></style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname" rel="help">
+</head>
+    <body class="foo">
+    <div id='log'></div>
+        <a class="foo">a</a>
+        <abbr class="foo">abbr</abbr>
+        <acronym class="foo">acronym</acronym>
+        <address class="foo">address</address>
+        <applet class="foo">applet</applet>
+        <b class="foo">b</b>
+        <bdo class="foo">bdo</bdo>
+        <big class="foo">big</big>
+        <blockquote class="foo">blockquote</blockquote>
+        <br class="foo">
+        <button class="foo">button</button>
+        <center class="foo">center</center>
+        <cite class="foo">cite</cite>
+        <code class="foo">code</code>
+        <del class="foo">del</del>
+        <dfn class="foo">dfn</dfn>
+        <dir class="foo">dir
+            <li class="foo">li</li>
+        </dir>
+        <div class="foo">div</div>
+        <dl class="foo">
+            <dt class="foo">
+                </dt><dd class="foo">dd</dd>
+        </dl>
+        <em class="foo">em</em>
+        <font class="foo">font</font>
+        <form class="foo">
+            <label class="foo">label</label>
+            <fieldset class="foo">
+                <legend class="foo">legend</legend>
+            </fieldset>
+        </form>
+        <h1 class="foo">h1</h1>
+        <hr class="foo">
+        <i class="foo">i</i>
+        <iframe class="foo">iframe</iframe>
+        <img class="foo">
+        <input class="foo">
+        <ins class="foo">ins</ins>
+        <kbd class="foo">kbd</kbd>
+        <map class="foo">
+            <area class="foo"></area>
+        </map>
+        <menu class="foo">menu</menu>
+        <noscript class="foo">noscript</noscript>
+        <object class="foo">
+            <param class="foo">
+        </object>
+        <ol class="foo">ol</ol>
+        <p class="foo">p</p>
+        <pre class="foo">pre</pre>
+        <q class="foo">q</q>
+        <s class="foo">s</s>
+        <samp class="foo">samp</samp>
+        <select class="foo">
+            <optgroup class="foo">optgroup</optgroup>
+            <option class="foo">option</option>
+        </select>
+        <small class="foo">small</small>
+        <span class="foo">span</span>
+        <strike class="foo">strike</strike>
+        <strong class="foo">strong</strong>
+        <sub class="foo">sub</sub>
+        <sup class="foo">sup</sup>
+        colgroup<table class="foo">
+            <caption class="foo">caption</caption>
+            <colgroup><col class="foo">
+            </colgroup><colgroup class="foo"></colgroup>
+            <thead class="foo">
+                <tr><th class="foo">th</th>
+            </tr></thead>
+            <tbody class="foo">
+                <tr class="foo">
+                    <td class="foo">td</td>
+                </tr>
+            </tbody>
+            <tfoot class="foo"></tfoot>
+        </table>
+        <textarea class="foo">textarea</textarea>
+        <tt class="foo">tt</tt>
+        <u class="foo">u</u>
+        <ul class="foo">ul</ul>
+        <var class="foo">var</var>
+        <script type="text/javascript">
+    test(function ()
+          {
+           var arrElements = [
+                "HEAD",
+                "TITLE",
+                "META",
+                "LINK",
+                "BASE",
+                "SCRIPT",
+                "STYLE",
+                "BODY",
+                "A",
+                "ABBR",
+                "ACRONYM",
+                "ADDRESS",
+                "APPLET",
+                "B",
+                "BDO",
+                "BIG",
+                "BLOCKQUOTE",
+                "BR",
+                "BUTTON",
+                "CENTER",
+                "CITE",
+                "CODE",
+                "DEL",
+                "DFN",
+                "DIR",
+                "LI",
+                "DIV",
+                "DL",
+                "DT",
+                "DD",
+                "EM",
+                "FONT",
+                "FORM",
+                "LABEL",
+                "FIELDSET",
+                "LEGEND",
+                "H1",
+                "HR",
+                "I",
+                "IFRAME",
+                "IMG",
+                "INPUT",
+                "INS",
+                "KBD",
+                "MAP",
+                "AREA",
+                "MENU",
+                "NOSCRIPT",
+                "OBJECT",
+                "PARAM",
+                "OL",
+                "P",
+                "PRE",
+                "Q",
+                "S",
+                "SAMP",
+                "SELECT",
+                "OPTGROUP",
+                "OPTION",
+                "SMALL",
+                "SPAN",
+                "STRIKE",
+                "STRONG",
+                "SUB",
+                "SUP",
+                "TABLE",
+                "CAPTION",
+                "COL",
+                "COLGROUP",
+                "THEAD",
+                "TH",
+                "TBODY",
+                "TR",
+                "TD",
+                "TFOOT",
+                "TEXTAREA",
+                "TT",
+                "U",
+                "UL",
+                "VAR"];
+
+                var collection = document.getElementsByClassName("foo");
+                for (var x = 0; x < collection.length; x++)
+                {
+                    assert_equals(collection[x].nodeName, arrElements[x]);
+                }
+}, "big element listing");
+        </script>
+</body></html>

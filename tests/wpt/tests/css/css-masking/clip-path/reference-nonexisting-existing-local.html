@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Masking: fragment of non valid URL as clip.</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="match" href="reference/reference-nonexisting-existing-local-ref.html">
+<meta name="assert" content="Test ensures that only local URLs with a valid fragment result in a valid clip."/>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  clip-path: url(notexisting.svg#c);
+}
+</style>
+<div style="background-color: red; width: 100px">
+  <div id="target"></div>
+</div>
+<svg>
+  <clipPath id="c" clipPathUnits="objectBoundingBox">
+    <circle cx="0.5" cy="0.5" r="0.5"/>
+  </clipPath>
+</svg>

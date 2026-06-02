@@ -1,0 +1,15 @@
+<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Width and Height as inline CSS properties on use and referencing symbol element doesn't have its width and height</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#SymbolElement"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement"/>
+    <html:link rel="match" href="reference/green-100x100.svg"/>
+  </metadata>
+  <defs>
+    <symbol id="sym">
+      <rect width="400" height="400" fill="green"/>
+    </symbol>
+  </defs>
+  <use href="#sym" style="width:100px; height:100px"/>
+</svg>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<map name="map1"><button><li>xyz</li></button></map>
+<script>
+ const image = document.createElement('img');
+ image.setAttribute('src', 'exists.gif');
+ image.setAttribute('usemap', '#map1');
+ document.documentElement.appendChild(image);
+</script>

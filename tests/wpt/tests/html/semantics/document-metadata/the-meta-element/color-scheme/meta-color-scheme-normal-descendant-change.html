@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Change color-scheme meta tag affecting normal descendant</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta id="meta" name="color-scheme" content="dark">
+<div style="color-scheme: dark; color: CanvasText" id="dark">
+  <div style="color-scheme: normal; color: CanvasText" id="normal"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(dark).color, getComputedStyle(normal).color);
+  }, "Normal initially dark");
+
+  meta.content = "light";
+
+  test(() => {
+    assert_not_equals(getComputedStyle(dark).color, getComputedStyle(normal).color);
+  }, "Normal should change to light from page color schemes");
+</script>

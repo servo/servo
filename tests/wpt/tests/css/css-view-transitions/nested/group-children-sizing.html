@@ -1,0 +1,66 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Nested View Transitions: group children sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="group-children-sizing-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+#clipper {
+  view-transition-group: contain;
+  view-transition-name: clipper;
+
+  height: 200px;
+  width: 200px;
+}
+
+.item {
+  view-transition-name: match-element;
+  background: blue;
+  position: relative;
+  top: -25px;
+  left: -10px;
+
+  height: 50px;
+  width: 250px;
+  margin: 1px;
+  border: 1px solid black;
+}
+
+.item.popout {
+  view-transition-group: root;
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+
+::view-transition-group-children(clipper) {
+  overflow: clip;
+}
+</style>
+
+<div id=clipper>
+  <div class=item></div>
+  <div class=item></div>
+  <div class="item popout"></div>
+  <div class=item></div>
+  <div class=item></div>
+</div>
+
+<script>
+
+function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+
+onload = () => {
+  waitForCompositorReady().then(runTest);
+}
+</script>
+
+

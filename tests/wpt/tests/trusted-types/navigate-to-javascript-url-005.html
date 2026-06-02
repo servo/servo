@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Main frame does not enforce Trusted Types. -->
+<script>
+  promise_test(async _ => {
+    // Load the subframe and waits the result its forwards from its subframe.
+    let result = await new Promise(async resolve => {
+      window.addEventListener("message", event => {
+        resolve(event.data);
+      }, {once: true});
+      let iframe = document.createElement("iframe");
+      iframe.src = "support/navigate-to-javascript-url-005-iframe.html";
+      document.head.appendChild(iframe);
+    });
+    assert_false(result.javaScriptExecuted, "JavaScript shouldn't have been executed");
+    assert_equals(result.violations.length, 1, "One violation reported");
+    assert_equals(result.exception, null, "No exception");
+  }, "A subframe navigating to a javascript: URL should use the CSP policy associated to its document for pre-navigation check and report a violation when it does not defined a default policy.");
+</script>

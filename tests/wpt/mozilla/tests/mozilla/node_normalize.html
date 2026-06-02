@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    test(function() {
+      var parent1 = document.createElement("div");
+      var child1 = document.createTextNode("aaa");
+      var child2 = document.createTextNode("");
+      var child3 = document.createTextNode("bb");
+
+      var parent2 = document.createElement("div");
+
+      parent1.appendChild(child1);
+      parent1.appendChild(child2);
+      parent1.appendChild(child3);
+
+      parent2.appendChild(document.createTextNode(""));
+
+      parent1.normalize();
+      parent2.normalize();
+
+      assert_equals(Array.prototype.map.call(parent1.childNodes, function(el) {return el.length}).indexOf(0), -1, "Node.normalize removes empty text nodes");
+      assert_equals(parent1.childNodes.length, 1, "Node.normalize merges text nodes in one");
+      assert_equals(parent1.childNodes[0].length, 5, "test 1-2, Node.normalize merges text nodes values");
+      assert_equals(parent2.childNodes.length, 0, "Node.normalize removes empty text nodes even if there is only one text node");
+      assert_equals(child2.textContent, "", "Node.normalize doesn't change removed children original content")
+      assert_equals(child3.textContent, "bb", "Node.normalize doesn't change removed children original content")
+    });
+    </script>
+  </body>
+</html>

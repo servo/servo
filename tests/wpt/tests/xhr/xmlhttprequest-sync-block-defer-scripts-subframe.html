@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+  var x = 0;
+</script>
+<!-- This script's URI is:
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'data:text/plain,aaa', false);
+  xhr.send();
+  x=1;
+  -->
+<script defer src="data:application/javascript,var%20x%20=%200;%20var%20xhr%20=%20new%20XMLHttpRequest();%20xhr.open('GET',%20'data:text/plain,aaa',%20false);%20xhr.send();%20x=1"></script>
+
+<!-- This script's URI is:
+  parent.postMessage(x, '*');
+-->
+<script defer src="data:application/javascript,parent.postMessage(x, '*');"></script>
+

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  {%- if subtests|length > 10 %}
+  <meta name="timeout" content="long">
+  {%- endif %}
+  <title>HTTP headers on request for HTML "link" element with rel="icon"</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  const params = {
+    body: `
+      <svg xmlns="http://www.w3.org/2000/svg" width="123" height="123">
+        <rect fill="lime" width="123" height="123"/>
+      </svg>
+    `,
+    mime: 'image/svg+xml'
+  };
+
+  /**
+   * The `link` element supports a `load` event. That event would reliably
+   * indicate that the browser had received the request. Multiple major
+   * browsers do not implement the event, however, so in order to promote the
+   * visibility of this test, a less efficient polling-based detection
+   * mechanism is used.
+   *
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1638188
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=1083034
+   */
+  function induceRequest(t, url, attributes) {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'icon');
+    link.setAttribute('href', url);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      link.setAttribute(name, value);
+    }
+
+    document.head.appendChild(link);
+    t.add_cleanup(() => link.remove());
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, [% subtest.origins %], params),
+      [%subtest.elementAttrs | default({}) | tojson%]
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+      });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%] [%subtest.elementAttrs | collection("attributes")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

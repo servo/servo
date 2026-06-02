@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTML "frame" element source</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  {%- if subtests|selectattr('userActivated')|list %}
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  {%- endif %}
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, test, userActivated) {
+    const frame = document.createElement('frame');
+
+    const setSrc = () => frame.setAttribute('src', url);
+
+    document.body.appendChild(frame);
+    test.add_cleanup(() => frame.remove());
+
+    return new Promise((resolve) => {
+       if (userActivated) {
+         test_driver.bless('enable user activation', setSrc);
+       } else {
+         setSrc();
+       }
+
+        frame.onload = frame.onerror = resolve;
+      });
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %], {mime: 'text/html'}),
+        t,
+        [%subtest.userActivated | default(false) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%][% " with user activation" if subtest.userActivated%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>elementFromPoint(...) on &lt;rect>s</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/interact.html#hit-testing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="420" height="300">
+  <rect id="border" x="0.5" y="0.5" width="419" height="299" stroke="#000" stroke-width="1" fill="none"/>
+
+  <rect id="rect1" x="40" y="30" width="20" height="20"/>
+</svg>
+<script>
+// Points are relative to the client rect of the <svg> root.
+const tests = [
+  // Points on the edge.
+  { x: 50, y: 30, expectedElemId: "rect1" },
+  { x: 60, y: 40, expectedElemId: "rect1" },
+  { x: 50, y: 50, expectedElemId: "rect1" },
+  { x: 40, y: 40, expectedElemId: "rect1" },
+];
+
+setup(() => {
+  const svg = document.getElementById("svg");
+  const svgBounds = svg.getBoundingClientRect();
+  window.svgOrigin = {
+    x: svgBounds.left << 0,
+    y: svgBounds.top << 0,
+  };
+});
+
+tests.forEach(testcase => {
+  test(t => {
+    const expectedElem = document.getElementById(testcase.expectedElemId);
+    const hitElem = document.elementFromPoint(svgOrigin.x + testcase.x, svgOrigin.y + testcase.y);
+    assert_equals(hitElem, expectedElem);
+  }, `${document.title}, element at (${testcase.x}, ${testcase.y})`);
+});
+</script>

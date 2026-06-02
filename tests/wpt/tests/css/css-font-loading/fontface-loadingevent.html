@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Tests FontFaceSet loading event</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const fontSet = document.fonts;
+  let loadingFired = false;
+
+  fontSet.addEventListener("loading", () => {
+    loadingFired = true;
+  });
+
+  const TestFont = new FontFace("GoodFont", "url(/fonts/Ahem.ttf)");
+  fontSet.add(TestFont);
+  await TestFont.load();
+  await fontSet.ready;
+  assert_true(loadingFired, "The 'loading' event should have fired");
+}, "FontFaceSet fires correct loading event");
+</script>

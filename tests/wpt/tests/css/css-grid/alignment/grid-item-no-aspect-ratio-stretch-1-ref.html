@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+  body {
+    line-height: 0;
+  }
+
+  div {
+    display: inline-block;
+    height: 250px;
+    width: 350px;
+    background: purple;
+    margin: 10px;
+  }
+
+  svg {
+    display: block;
+    background: green;
+  }
+  .justify {
+    width: 350px;
+  }
+  .align {
+    height: 250px;
+  }
+</style>
+<div>
+  <svg class="align justify"></svg>
+</div>
+<div>
+  <svg class="align"></svg>
+</div>
+<div>
+  <svg class="justify"></svg>
+</div>
+<div>
+  <svg></svg>
+</div>

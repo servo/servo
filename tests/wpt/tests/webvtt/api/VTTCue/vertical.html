@@ -1,0 +1,57 @@
+<!doctype html>
+<title>VTTCue.vertical</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-vertical">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    document.body.appendChild(video);
+});
+test(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+    var c1 = new VTTCue(0, 1, 'text1');
+    assert_true('vertical' in c1, 'vertical is not supported');
+    assert_equals(c1.vertical, '');
+    var track = document.createElement('track');
+    var t = track.track;
+    t.addCue(c1);
+    assert_equals(c1.vertical, '');
+    video.appendChild(track);
+    assert_equals(c1.vertical, '');
+    t.mode = 'showing';
+    assert_equals(c1.vertical, '');
+    c1.vertical = 'rl';
+    assert_equals(c1.vertical, 'rl');
+    c1.vertical = 'lr';
+    assert_equals(c1.vertical, 'lr');
+    c1.vertical = 'rl\u0000';
+    assert_equals(c1.vertical, 'lr');
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c1 = t.track.cues[0];
+        var c2 = t.track.cues[1];
+        var c3 = t.track.cues[2];
+        assert_equals(c1.vertical, '');
+        assert_equals(c2.vertical, 'rl');
+        assert_equals(c3.vertical, 'lr');
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = make_vtt_track('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 vertical:rl\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 vertical:lr\ntest', this);
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

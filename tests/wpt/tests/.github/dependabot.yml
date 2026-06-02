@@ -1,0 +1,25 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 1000
+- package-ecosystem: pip
+  directory: docs/
+  schedule:
+    interval: monthly
+  open-pull-requests-limit: 1000
+  # Upgrade sphinx manually only
+  ignore:
+  - dependency-name: "sphinx"
+- package-ecosystem: pip
+  directory: resources/test/
+  schedule:
+    interval: monthly
+  open-pull-requests-limit: 1000
+- package-ecosystem: pip
+  directory: tools/
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 1000

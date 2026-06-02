@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: stringifier</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = () => {
+  test(() => {
+    const selection = getSelection();
+    const p = document.querySelector("p");
+
+    const range = document.createRange();
+    range.selectNode(p);
+    selection.addRange(range);
+
+    // In Chrome there are trailing \n characters. There is no spec for the
+    // stringifier, just a link to
+    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=10583
+    assert_equals(selection.toString(), "foo bar");
+  });
+};
+</script>
+<!-- The structure of the document matters, in particular making this look like
+     in addRange.htm would mask the problem. -->
+<body>
+  <p>foo bar</p>
+</body>
+</html>

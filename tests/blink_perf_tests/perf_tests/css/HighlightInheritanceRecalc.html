@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<main></main>
+<style>
+/* non-::selection rules required when HighlightInheritance is disabled */
+:root { --bg: blue; }
+.green:root { --bg: green; }
+*::selection /* same as ::selection */ {
+    /* explicitly inherit all for worst case scenario */
+    all: inherit;
+    background-color: var(--bg);
+}
+</style>
+<script>
+createDOMTree(document.querySelector("main"), 4, 6);
+PerfTestRunner.measureTime({
+    description: 'Measure impact of highlight inheritance on content with universal ::selection rules (no selection, no paint)',
+    run: () => {
+        document.documentElement.classList.toggle("green");
+        forceStyleRecalc(document.documentElement);
+    },
+});
+</script>
+</body>

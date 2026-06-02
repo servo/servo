@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_05_05_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#event-dispatch">
+<meta name="assert" content="Event Dispatch: The MouseEvent relatedTarget attribute must return the adjusted related target">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_05_02_T01 = async_test('A_05_05_02_T01');
+
+A_05_05_02_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var invoked = false;
+
+    roots = createTestMediaPlayer(d);
+
+    //expected result of what relative target should be see
+    //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
+
+    //For #volume-shadow-root adjusted related target #volume-shadow-root
+    roots.volumeShadowRoot.addEventListener('mouseover',
+            A_05_05_02_T01.step_func(function(event) {
+            invoked = true;
+            assert_equals(event.relatedTarget, roots.volumeShadowRoot,
+                    'Wrong relatedTarget');
+        }), false);
+
+
+
+
+    var evt = document.createEvent("MouseEvents");
+    evt.initMouseEvent("mouseover", true, false, window,
+      0, 10, 10, 10, 10, false, false, false, false, 0, roots.volumeShadowRoot);
+
+    roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(evt);
+    assert_true(invoked, 'Event listener was not invoked');
+    A_05_05_02_T01.done();
+}));
+
+//TODO (sgrekhov) Add tests for other nodes from http://www.w3.org/TR/shadow-dom/#event-retargeting-example
+</script>
+</body>
+</html>

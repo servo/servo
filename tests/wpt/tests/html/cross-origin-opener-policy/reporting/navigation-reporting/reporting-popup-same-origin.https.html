@@ -1,0 +1,110 @@
+<meta name=timeout content=long>
+<title>reporting same origin</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report only, popup COEP report only, expected reports
+
+  // Open a cross-origin popup with a same-origin COOP and no COEP. COOP
+  // switches the browsing context group and hence produces one report.
+  // This test verifies that the navigated to document properly sends a
+  // navigation-to report. The navigationURI is the referrer.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "effectivePolicy": "same-origin",
+            "previousResponseURL": "",
+            "referrer": `${location.origin}/`, // referrer
+            "type": "navigation-to-response"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a unsafe-none COOP and no COEP. COOP switches
+  // the browsing context group and hence produces one report.
+  // This test verifies that having different policies on same origin documents
+  // still properly produces report to the navigated-to-document.
+  [
+    SAME_ORIGIN,
+    `unsafe-none; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "effectivePolicy": "unsafe-none",
+            "previousResponseURL": `${location.href}`,
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a cross-origin popup with a unsafe-none COOP (with reporting) and no
+  // COEP. COOP switches the browsing context group and hence produces one
+  // reports to the unsafe-none document. This test verifies that unsafe-none
+  // properly sends report in that configuration.
+  [
+    CROSS_ORIGIN,
+    `unsafe-none; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "previousResponseURL": "",
+            "referrer": `${location.origin}/`, // referrer
+            "type": "navigation-to-response"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a same-origin COOP Report only value, the
+  // report only matches the previous document COOP value, no report is sent.
+  [
+    SAME_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    []
+  ],
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

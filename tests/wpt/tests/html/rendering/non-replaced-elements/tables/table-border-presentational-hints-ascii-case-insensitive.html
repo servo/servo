@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#tables-2:presentational-hints">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#attribute-case">
+<link rel="match" href="table-border-presentational-hints-ascii-case-insensitive-ref.html">
+<meta name="assert" content="@rules + @frame values are ASCII case-insensitive">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+table {
+  display: inline-table;
+  font-family: Ahem;
+}
+table, table * {
+  border-width: 3px;
+}
+</style>
+<p>For every three tables below, the first two should have borders between some cells, but not the third:
+<table rules="rows"><tr><td>X<tr><td>X<tr><td>X</table>
+<table rules="RoWs"><tr><td>X<tr><td>X<tr><td>X</table>
+<table rules="rowſ"><tr><td>X<tr><td>X<tr><td>X</table>
+<br><br>
+<table rules="cols"><tr><td>X<td>X<td>X</table>
+<table rules="CoLs"><tr><td>X<td>X<td>X</table>
+<table rules="colſ"><tr><td>X<td>X<td>X</table>
+<br><br>
+<table rules="groups"><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<table rules="GrOuPs"><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<table rules="groupſ"><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<br><br>
+<p>For every three tables below, the first two should have borders on some edges, but not the third:
+<table frame="hsides"><tr><td>X</table>
+<table frame="HsIdEs"><tr><td>X</table>
+<table frame="hſideſ"><tr><td>X</table>
+<br><br>
+<table frame="lhs"><tr><td>X</table>
+<table frame="LhS"><tr><td>X</table>
+<table frame="lhſ"><tr><td>X</table>
+<br><br>
+<table frame="rhs"><tr><td>X</table>
+<table frame="RhS"><tr><td>X</table>
+<table frame="rhſ"><tr><td>X</table>
+<br><br>
+<table frame="vsides"><tr><td>X</table>
+<table frame="VsIdEs"><tr><td>X</table>
+<table frame="vſideſ"><tr><td>X</table>

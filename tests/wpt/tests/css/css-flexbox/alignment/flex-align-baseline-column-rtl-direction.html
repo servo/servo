@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Baseline aligned item should be aligned towards the start of the inline axis (right side)."
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-wrap-property">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-by-baseline">
+<style>
+.flexbox {
+  display: flex;
+  width: 100px;
+  height: 100px;
+  align-items: baseline;
+  flex-direction: column;
+  direction: rtl;
+  position: relative;
+}
+.item {
+  width: 50px;
+  height: 100px;
+  background-color: green;
+}
+.abspos {
+  position: absolute;
+  right: 50px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="flexbox">
+  <div class="abspos item"></div>
+  <div class="item"></div>
+</div>
+</body>
+</html>

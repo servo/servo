@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?duration=16"> <!-- 60fps -->
+<meta name="variant" content="?duration=42"> <!-- 24fps -->
+<title>Check whether `mouseup` events are fired after pending boundary events</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<style>
+div#parent {
+  width: 100%;
+  height: 50px;
+  background-color: gray;
+}
+div#child {
+  width: 100%;
+  height: 40px;
+  background-color: lime;
+}
+</style>
+</head>
+<body>
+<div id="parent"><div id="child"></div></div>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const duration = parseInt(searchParams.get("duration"));
+
+async function runTest(t) {
+  const parent = document.getElementById("parent");
+  const child = document.getElementById("child");
+  const mouseEvents = [];
+  function onMouseOverOrUp(event) {
+    // Ignore events before `mousedown` to make this test simpler.
+    if (mouseEvents[0]?.startsWith("mousedown")) {
+      mouseEvents.push(`${event.type}@${event.target.localName}${event.target.id ? `#${event.target.id}` : ""}`);
+    }
+  }
+  try {
+    child.getBoundingClientRect(); // flush layout
+    child.addEventListener("mousedown", event => {
+      event.target.remove();
+      mouseEvents.push("mousedown@div#child");
+    }, {once: true});
+    document.addEventListener("mouseover", onMouseOverOrUp, {capture: true});
+    document.addEventListener("mouseup", onMouseOverOrUp, {once: true, capture: true});
+    const actions = new test_driver.Actions(duration);
+    await actions.pointerMove(10, 10, {origin: child})
+                .pointerDown({button: actions.ButtonType.LEFT})
+                .pointerUp({button: actions.ButtonType.LEFT})
+                .send();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert_equals(
+      mouseEvents.toString(),
+      "mousedown@div#child,mouseover@div#parent,mouseup@div#parent",
+      t.name
+    );
+  } finally {
+    document.removeEventListener("mouseover", onMouseOverOrUp, {capture: true});
+    parent.appendChild(child);
+  }
+}
+
+// This test tries to detect intermittent case that mouseout might be fired
+// after a while from a DOM tree change.  Therefore, trying same test 30 times.
+for (let i = 0; i < 30; i++) {
+  promise_test(async t => {
+    await runTest(t);
+    // Make things stabler to start next test.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }, `mouseover should be fired before mouseup if mousedown target is removed (${i})`);
+}
+</script>
+</body>
+</html>

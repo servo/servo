@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='interact'>
+<style type="text/css">
+    button {
+        color: blue;
+    }
+
+    #locktarget {
+        position: relative;
+        background-color: grey;
+        width: 50px;
+        color: white;
+        line-height: 30px;
+        height: 30px;
+    }
+
+    #basic-log {
+        margin: 10px 0;
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that the pointer properly be locked in a DOM element, and exit afterwards.</p>
+    <hr/>
+
+    <h2>Manual Test Steps:</h2>
+    <p>
+        <ol>
+            <li>Click the "Lock Target" to test if requestPointerLock() and exitPointerLock() causing a pointerlockchange event.</li>
+            <li>Confirm the lock with a user action (in Firefox).</li>
+            <li>Exit the pointer lock with a user action (usually 'esc'), to test if the cursor is at the same location.</li>
+            <li>Click the "ReEnterLock" to test that no engagement gesture is required to reenter pointer lock if pointer lock is exited via exitPointerLock.</li>
+            <li>Exit the pointer lock with a user action (usually 'esc').</li>
+            <li>Click the "RepeatLock" to validate that each requestPointerLock() will fire a pointerlockchange event.</li>
+            <li>Exit the pointer lock with a user action (usually 'esc').</li>
+        </ol>
+    </p>
+    <hr/>
+
+    <button onclick="LockTarget();">Lock Target</button>
+    <button onclick="ReEnterLock();">ReEnter Lock</button>
+    <button onclick="RepeatLock();">Repeat Lock</button>
+    <div id="basic-log">Waiting... Please click the "Lock Target" button.</div>
+    <div id="locktarget">Target</div>
+    <hr/>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+        var locktarget = document.querySelector('#locktarget'),
+            lock_log = document.querySelector('#basic-log');
+
+        var pointerlockchangeIsFiredonRequest = false;
+        var posX = posY = 0;
+        var event_counter = 0;
+        var request_counter = 0;
+
+        var requestPointerLockTest = async_test("Test that the pointer properly be locked in a DOM element.");
+        var exitPointerLockTest = async_test("Test that the pointer lock properly be exited, the cursor is at the same location when exited.");
+        var reenterPointerLockTest = async_test("Test that no engagement gesture is required to reenter pointer lock if pointer lock is exited via exitPointerLock.");
+        var repeatLockPointerTest = async_test("Test validates that each requestPointerLock() will fire a pointerlockchange event.");
+
+        document.addEventListener("pointerlockchange", function() {
+            event_counter ++;
+
+            if(event_counter === 1) {
+                pointerlockchangeIsFiredonRequest = true;
+                runRequestPointerLockTest();
+            } else if(event_counter === 2) {
+                runExitPointerLockTest();
+            } else if(event_counter === 3) {
+                runReEnterPointerLockTest()
+            } else if(event_counter > 104) {
+                runRepeatLockPointerTest();
+            }
+        });
+
+        function runRequestPointerLockTest() {
+            posX = window.screenX;
+            posY = window.screenY;
+
+            requestPointerLockTest.step(function() {
+                assert_equals(pointerlockchangeIsFiredonRequest, true, "pointerlockchange is fired when requesting pointerlock");
+                assert_equals(document.pointerLockElement, locktarget, "pointer is locked at the target element");
+            });
+
+            lock_log.innerHTML = "Pointer is locked on the target element;";
+
+            requestPointerLockTest.done();
+        }
+
+        function runExitPointerLockTest() {
+            locktarget.requestPointerLock(); // To re-enter pointer lock
+
+            exitPointerLockTest.step(function() {
+                assert_equals(document.pointerLockElement, null, "pointer is unlocked");
+                assert_equals(posX, window.screenX, "mouse cursor X is at the same location that it was when pointer lock was entered");
+                assert_equals(posY, window.screenY, "mouse cursor Y is at the same location that it was when pointer lock was entered");
+            });
+
+            lock_log.innerHTML = "Status: Exited pointer lock; Please click the 'Re-enter Lock' button and exit the lock.";
+
+            exitPointerLockTest.done();
+        }
+
+        function runReEnterPointerLockTest() {
+            reenterPointerLockTest.step(function() {
+                assert_equals(document.pointerLockElement, locktarget, "Pointer is locked again without engagement gesture");
+            });
+
+            lock_log.innerHTML = "Status: Exited pointer lock; Please click the 'Repeat Lock' button and exit the lock.";
+
+            reenterPointerLockTest.done();
+        }
+
+        function runRepeatLockPointerTest() {
+            repeatLockPointerTest.step(function() {
+                assert_equals(request_counter + 5, event_counter, "Each requestPointerLock() will fire a pointerlockchange event");
+            });
+
+            lock_log.innerHTML = "Status: Test over.";
+
+            repeatLockPointerTest.done();
+        }
+
+        function LockTarget() {
+            locktarget.requestPointerLock();
+        }
+
+        function ReEnterLock() {
+            locktarget.requestPointerLock();
+        }
+
+        function RepeatLock() {
+            for(var i = 0; i < 100; i++) {
+                request_counter++;
+                locktarget.requestPointerLock();
+            }
+        }
+        </script>
+    </body>
+</html>

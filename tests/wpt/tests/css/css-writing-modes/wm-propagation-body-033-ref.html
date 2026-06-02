@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  img
+    {
+      vertical-align: top;
+    }
+
+  img + img
+    {
+      padding-left: 1em;
+    }
+  </style>
+
+  <div><img src="support/swatch-orange.png" width="100" height="100" alt="Image download support must be enabled"><img src="support/wm-propagation-body-003-exp-res.png" width="340" height="37" alt="Image download support must be enabled"></div>
+
+  <!--
+  The image says:
+  Test passes if there is an orange square
+  in the <strong>upper-left corner</strong> of the page.
+  -->

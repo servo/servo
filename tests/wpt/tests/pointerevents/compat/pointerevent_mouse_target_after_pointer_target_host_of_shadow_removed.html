@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Retarget source mouse event target to host parent if the target shadow of preceding pointer event is removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  async function doTest(t, sourceEventType, precedingEventType) {
+    const host = document.createElement("div");
+    host.setAttribute("id", "host");
+    host.setAttribute("style", "height: 100px");
+    const shadowRoot = host.attachShadow({mode:"open"});
+    const child = document.createElement("div");
+    child.setAttribute("id", "child");
+    child.setAttribute("style", "height: 100px");
+    shadowRoot.appendChild(child);
+    const parent = document.getElementById("parent");
+    parent.appendChild(host);
+    t.add_cleanup(() => {
+      host.remove();
+    });
+
+    const events = [];
+    function logEvent(event) {
+      if (!events.length && event.type == sourceEventType) {
+        return; // Ignore mouse events before removing the shadow DOM.
+      }
+      events.push(`${event.type}@${event.target.id ? event.target.id : event.target.localName}`);
+    }
+    addEventListener(sourceEventType, logEvent, {capture: true});
+    shadowRoot.addEventListener(precedingEventType, event => {
+      logEvent(event);
+      host.remove();
+      events.push("(shadow-host-removed)");
+    });
+    const childRect = child.getBoundingClientRect();
+    if (sourceEventType == "mousemove") {
+      await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: document.getElementById("initialPosition")})
+        .pointerMove(
+          childRect.x + childRect.width / 2,
+          childRect.y + childRect.height / 2,
+          {origin: "viewport"}
+        )
+        .send();
+    } else {
+      await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: document.getElementById("initialPosition")})
+        .pointerMove(
+          childRect.x + childRect.width / 2,
+          childRect.y + childRect.height / 2,
+          {origin: "viewport"}
+        )
+        .pointerDown()
+        .pointerUp()
+        .send();
+    }
+    removeEventListener(sourceEventType, logEvent, {capture: true});
+    assert_equals(
+      events.join(", "),
+      [
+        `${precedingEventType}@child`,
+        "(shadow-host-removed)",
+        `${sourceEventType}@parent`,
+      ].join(", ")
+    );
+  }
+  promise_test(async t => {
+    await doTest(t, "mousemove", "pointermove");
+  }, "mousemove event should be fired on the host parent when pointermove event listener removes the shadow DOM");
+  promise_test(async t => {
+    await doTest(t, "mousedown", "pointerdown");
+  }, "mousedown event should be fired on the host parent when pointerdown event listener removes the shadow DOM");
+  promise_test(async t => {
+    await doTest(t, "mouseup", "pointerup");
+  }, "mouseup event should be fired on the host parent when pointerup event listener removes the shadow DOM");
+}, {once: true});
+</script>
+<body>
+  <div id="initialPosition">Initial Position</div>
+  <div id="parent" style="height: 100px"></div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>CSS Nesting: Mutating selectorText of outer rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-nesting/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id=style>
+</style>
+<main style="container-type:size;width:50px;height:50px">
+  <div class=a>
+    <div class=x></div>
+  </div>
+  <div class=b>
+    <div class=x></div>
+  </div>
+</main>
+<script>
+  let cases = [
+    ['style',        '.a { & .x { z-index: 1; } }'],
+    ['@media',       '.a { @media (width) { & .x { z-index: 1; } } }'],
+    ['@supports',    '.a { @supports (width:1px) { & .x { z-index: 1; } } }'],
+    ['@layer',       '.a { @layer foo { & .x { z-index: 1; } } }'],
+    ['@container',   '.a { @container (width) { & .x { z-index: 1; } } }'],
+    ['@scope',       '.a { @scope (&) { & .x { z-index: 1; } } }'],
+    ['nested decl.', '.a { & .x { .y { } z-index: 1; } } '],
+  ];
+
+  for (let [test_name, style_text] of cases) {
+    test((t) => {
+      t.add_cleanup(() => { style.textContent = ''; });
+      style.textContent = style_text;
+      let ax = document.querySelector('.a > .x');
+      let bx = document.querySelector('.b > .x');
+      assert_equals(getComputedStyle(ax).zIndex, '1',
+        'z-index of "ax" element before selectorText mutation');
+      assert_equals(getComputedStyle(bx).zIndex, 'auto',
+        'z-index of "bx" element before selectorText mutation');
+      style.sheet.cssRules[0].selectorText = '.b';
+      assert_equals(getComputedStyle(ax).zIndex, 'auto',
+        'z-index of "ax" element after selectorText mutation');
+      assert_equals(getComputedStyle(bx).zIndex, '1',
+        'z-index of "bx" element after selectorText mutation');
+    }, `Outer selectorText text mutation with inner ${test_name} rule`);
+  }
+</script>

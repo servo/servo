@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Editing: designMode attribute test</title>
+  <link rel="author" title="Baidu" href="mailto: guopengcheng@baidu.com"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#making-entire-documents-editable:-the-designmode-idl-attribute"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <div id="log"></div>
+ </head>
+ <body>
+  <script type="text/javascript"><![CDATA[
+   test(function() {
+    assert_equals(document.designMode, "off", "check for designMode value");
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+   }, "initial designMode attribute");
+   document.designMode="on";
+   test(function() {
+    assert_equals(document.designMode, "on", "check for designMode value");
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+   }, "set designMode = \"on\"");
+   document.designMode="off";
+   test(function() {
+    assert_equals(document.designMode,"off", "check for designMode value");
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandSupported("delete") });
+    assert_throws_dom("InvalidStateError", function() { document.queryCommandEnabled("delete") });
+   }, "set designMode = \"off\"");
+  ]]></script>
+ </body>
+</html>

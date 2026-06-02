@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>MutationObservers: takeRecords</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mutationobservers.js"></script>
+<h1>MutationObservers: takeRecords</h1>
+<div id="log"></div>
+
+<section style="display: none">
+
+<p id='n00'></p>
+
+</section>
+
+<script>
+
+  var n00 = document.getElementById('n00');
+
+  var unused = async_test("unreachabled test");
+
+  var observer;
+  unused.step(function () {
+    observer = new MutationObserver(unused.unreached_func("the observer callback should not fire"));
+    observer.observe(n00, { "subtree": true,
+                          "childList": true,
+                          "attributes": true,
+                          "characterData": true,
+                          "attributeOldValue": true,
+                          "characterDataOldValue": true});
+    n00.id = "foo";
+    n00.id = "bar";
+    n00.className = "bar";
+    n00.textContent = "old data";
+    n00.firstChild.data = "new data";
+  });
+
+  test(function() {
+    checkRecords(n00, observer.takeRecords(), [{type: "attributes", attributeName: "id", oldValue: "n00"},
+                           {type: "attributes", attributeName: "id", oldValue: "foo"},
+                           {type: "attributes", attributeName: "class"},
+                           {type: "childList", addedNodes: [n00.firstChild]},
+                           {type: "characterData", oldValue: "old data", target: n00.firstChild}]);
+  }, "All records present");
+
+  test(function() {
+    checkRecords(n00, observer.takeRecords(), []);
+  }, "No more records present");
+</script>
+<script>
+  unused.done();
+
+</script>

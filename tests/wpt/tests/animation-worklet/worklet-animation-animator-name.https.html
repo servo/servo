@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+<title>Worklet Animation's animator name should be accessible via animatorName property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<script id="test_animator" type="text/worklet">
+  class NoopAnimator {
+    animate(currentTime, effect) {}
+  }
+  registerAnimator('Tokyo', NoopAnimator);
+  registerAnimator('دزفول', NoopAnimator);
+</script>
+
+<body></body>
+
+<script>
+promise_test(async t => {
+  await runInAnimationWorklet(document.getElementById('test_animator').textContent);
+
+  // An ascii name and a non-ascii one.
+  for (let name of ['Tokyo', 'دزفول']) {
+    const animation = new WorkletAnimation(name, new KeyframeEffect(document.body, {}));
+    assert_equals(name, animation.animatorName);
+  }
+}, 'Verify that animatorName matches passed name');
+</script>

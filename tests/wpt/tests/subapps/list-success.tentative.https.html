@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for list()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+<script>
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await mockSubAppsService.reset();
+    mockSubAppsService = null;
+  });
+
+  const url_1 = '/sub-app-1';
+  const url_2 = '/sub-app-2';
+
+  const mocked_response = [
+    { "manifestIdPath": url_1, "appName": "App 1" },
+    { "manifestIdPath": url_2, "appName": "App 2" },
+  ];
+
+  let expected_results = {
+    [url_1]: { "app_name": "App 1" },
+    [url_2]: { "app_name": "App 2" },
+  };
+
+  await createMockSubAppsService(Status.SUCCESS, [], mocked_response);
+
+  await navigator.subApps.list()
+    .catch(e => {
+      assert_unreached("Should not have rejected.");
+    })
+    .then(result => {
+      for (const app_id in expected_results) {
+        assert_own_property(result, app_id, "Return results are missing entry for subapp.")
+        assert_equals(JSON.stringify(result[app_id]), JSON.stringify(expected_results[app_id]), "Return results are not as expected.")
+      }
+    })
+}, 'List API call works with 2 sub apps.');
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await mockSubAppsService.reset();
+    mockSubAppsService = null;
+  });
+
+  let mocked_response = [];
+  await createMockSubAppsService(Status.SUCCESS, [], mocked_response);
+  await navigator.subApps.list()
+  .catch(e => {
+      assert_unreached("Should not have rejected.");
+    })
+  .then(result => {
+    assert_equals(Object.keys(result).length, 0);
+  })
+}, 'List API call works with no sub apps.');
+
+</script>

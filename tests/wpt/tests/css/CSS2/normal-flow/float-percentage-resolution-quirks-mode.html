@@ -1,0 +1,10 @@
+<title>In quirks mode a float should resolve its percentage height against its first ancestor with a defined height.</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#Computing_widths_and_margins">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p style="margin-top: 1em;">Test passes if there is a filled green square.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div>
+    <div></div>
+    <div style="float:left; width:100%; height:100%; background:green;"></div>
+  </div>
+</div>

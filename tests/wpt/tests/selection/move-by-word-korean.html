@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Korean/Latin transition is treated as a word boundary</title>
+
+<link rel="help" href="https://unicode.org/reports/tr29/#Word_Boundary_Rules">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1973393">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../editing/include/editor-test-utils.js"></script>
+
+<div contenteditable id="target">희진DJ</div>
+<textarea id="textareaTarget">DJ희진</textarea>
+
+<script>
+  const selection = getSelection();
+  const textNode = document.getElementById("target").childNodes[0];
+  const textareaNode = document.getElementById("textareaTarget");
+
+  test(() => {
+    selection.collapse(textNode, 0); // Start at beginning of text
+    selection.modify("move", "forward", "word");
+    assert_equals(selection.focusNode, textNode);
+    assert_equals(selection.focusOffset, 2, "Caret should move after the Korean characters");
+  }, "Korean/Latin transition should be considered a word boundary when moving forward");
+
+  test(() => {
+    selection.collapse(textNode, 4); // Start at end of text
+    selection.modify("move", "backward", "word");
+    assert_equals(selection.focusNode, textNode);
+    assert_equals(selection.focusOffset, 2, "Caret should move before the Latin characters");
+  }, "Korean/Latin transition should be considered a word boundary when moving backward");
+
+  promise_test(async () => {
+    textareaNode.focus();
+    textareaNode.setSelectionRange(0, 0); // Start at beginning of text
+    const utils = new EditorTestUtils(textareaNode);
+    await utils.sendMoveWordRightKey();
+    assert_equals(textareaNode.selectionStart, 2, "Caret should move after the Latin characters");
+  }, "Latin/Korean transition should be considered a word boundary when moving forward");
+
+  promise_test(async () => {
+    textareaNode.focus();
+    textareaNode.setSelectionRange(4, 4); // Start at end of text
+    const utils = new EditorTestUtils(textareaNode);
+    await utils.sendMoveWordLeftKey();
+    assert_equals(textareaNode.selectionStart, 2, "Caret should move before the Korean characters");
+  }, "Latin/Korean transition should be considered a word boundary when moving backward");
+</script>

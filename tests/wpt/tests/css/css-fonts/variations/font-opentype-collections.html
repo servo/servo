@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing support for OpenType collections in @font-face rules</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#src-desc" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      @font-face {
+          font-family: OpenType;
+          src: url(/fonts/Ahem.ttf);
+      }
+
+      @font-face {
+          font-family: OpenType-Collection;
+          src: url(./resources/ahem.ttc);
+        }
+    </style>
+</head>
+<body onload="test()">
+    <div id="opentype" style="display:inline-block; font-family:OpenType,Georgia;">Test</div><br>
+    <div id="collection" style="display:inline-block; font-family:OpenType-Collection,Verdana;">Test</div>
+    <script>
+
+        var opentypeElement = document.getElementById("opentype");
+        var collectionElement = document.getElementById("collection");
+
+        var loadTest = async_test("Verify that collection font is loaded");
+
+        function test() {
+            if (opentypeElement.offsetWidth == collectionElement.offsetWidth) {
+                loadTest.done();
+            }
+            else {
+                window.requestAnimationFrame(test);
+            }
+        }
+
+    </script>
+</body>
+</html>

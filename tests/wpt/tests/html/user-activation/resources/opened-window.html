@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+
+<body onload="run()">
+  <a id="link" href="?post-nav">link</a>
+</body>
+
+<script>
+  'use strict';
+  const post_nav_page = location.search.substring(1) === "post-nav";
+
+  function sendActivationStateToOpener(msg_type) {
+    window.opener.postMessage(JSON.stringify({
+        "type": msg_type,
+        "isActive": navigator.userActivation.isActive,
+        "hasBeenActive": navigator.userActivation.hasBeenActive
+    }), "*");
+  }
+
+  document.getElementById("link").addEventListener("click", () => {
+    assert_false(post_nav_page, "No click in the post-navigation page");
+    sendActivationStateToOpener("link-clicked");
+  });
+
+  function run() {
+    if (!post_nav_page) {
+      sendActivationStateToOpener("window-opened");
+    } else {
+      sendActivationStateToOpener("window-navigated");
+    }
+  }
+</script>

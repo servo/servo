@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions: getComputedStyle().transitionProperty</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
+<meta name="assert" content="transition-property keeps unrecognized properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("transition-property", "left, top, right, bottom");
+test_computed_value("transition-property", "one, two, three");
+</script>
+</body>
+</html>

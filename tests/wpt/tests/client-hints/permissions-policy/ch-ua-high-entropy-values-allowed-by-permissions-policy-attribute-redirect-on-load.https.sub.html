@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script>
+  var relative_path = '/permissions-policy/resources/permissions-policy-ch-ua-high-entropy-values.html';
+  var base_src = '/permissions-policy/resources/redirect-on-load.html#';
+  var same_origin_src = base_src + relative_path;
+  var cross_origin_src = base_src + get_host_info().REMOTE_ORIGIN +
+    relative_path;
+  var header_self = 'permissions policy allow="ch-ua-high-entropy-values"';
+  var header_none = `permissions policy allow="ch-ua-high-entropy-values='none'`;
+
+  async_test((test) => {
+    test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        feature_name: "ch-ua-high-entropy-values",
+    })
+  }, `${header_self} allows same-origin navigation in an iframe.`);
+
+  async_test((test) => {
+    test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+        feature_name: "ch-ua-high-entropy-values",
+    })
+  }, `${header_self} disallows cross-origin navigation in an iframe.`);
+
+  async_test((test) => {
+    test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        feature_name: "ch-ua-high-entropy-values='none'",
+    })
+  }, `${header_none} disallows same-origin navigation in an iframe.`);
+
+  async_test((test) => {
+    test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        feature_name: "ch-ua-high-entropy-values='none'",
+    })
+  }, `${header_none} disallows cross-origin navigation in an iframe.`);
+  </script>
+</body>

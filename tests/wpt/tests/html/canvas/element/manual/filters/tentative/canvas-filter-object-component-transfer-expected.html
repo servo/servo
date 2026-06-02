@@ -1,0 +1,65 @@
+<body>
+  <canvas id="canvas" width="500" height="100"></canvas>
+  <svg width="0", height="0">
+    <defs>
+      <filter color-interpolation-filters='sRGB' id="Identity" filterUnits="objectBoundingBox"
+              x="0%" y="0%" width="100%" height="100%">
+        <feComponentTransfer>
+          <feFuncR type="identity"/>
+          <feFuncG type="identity"/>
+          <feFuncB type="identity"/>
+          <feFuncA type="identity"/>
+        </feComponentTransfer>
+      </filter>
+      <filter color-interpolation-filters='sRGB' id="Table">
+        <feComponentTransfer>
+          <feFuncR type="table" tableValues="0 2 0.5 1"/>
+          <feFuncG type="table" tableValues="1 -1 5 0"/>
+          <feFuncB type="table" tableValues="0 1 1 0"/>
+        </feComponentTransfer>
+      </filter>
+      <filter color-interpolation-filters='sRGB' id="Discrete">
+        <feComponentTransfer>
+          <feFuncR type="discrete" tableValues="0 2 0.5 1"/>
+          <feFuncG type="discrete" tableValues="1 -1 5 0"/>
+          <feFuncB type="discrete" tableValues="0 1 1 0"/>
+        </feComponentTransfer>
+      </filter>
+      <filter color-interpolation-filters='sRGB' id="Linear">
+        <feComponentTransfer>
+          <feFuncR type="linear" slope=".5" intercept=".25"/>
+          <feFuncG type="linear" slope="1.5" intercept="0"/>
+          <feFuncB type="linear" slope="-0.5" intercept=".5"/>
+        </feComponentTransfer>
+      </filter>
+      <filter color-interpolation-filters='sRGB' id="Gamma">
+        <feComponentTransfer>
+          <feFuncR type="gamma" amplitude="2" exponent="5" offset="-0.5"/>
+          <feFuncG type="gamma" amplitude="0.9" exponent="3" offset="0.3"/>
+          <feFuncB type="gamma" amplitude="1.1" exponent="1" offset="0.1"/>
+        </feComponentTransfer>
+      </filter>
+    </defs>
+  </svg>
+</body>
+<script type="text/javascript">
+  const ctx = document.getElementById("canvas").getContext("2d");
+
+  const grad = ctx.createLinearGradient(10, 0, 490, 0);
+  grad.addColorStop(0, "#f00");
+  grad.addColorStop(0.33, "#0f0");
+  grad.addColorStop(0.67, "#00f");
+  grad.addColorStop(1, "#000");
+  ctx.fillStyle = grad;
+
+  ctx.filter = "url('#Identity')";
+  ctx.fillRect(10, 10, 480, 10);
+  ctx.filter = "url('#Table')";
+  ctx.fillRect(10, 30, 480, 10);
+  ctx.filter = "url('#Discrete')";
+  ctx.fillRect(10, 50, 480, 10);
+  ctx.filter = "url('#Linear')";
+  ctx.fillRect(10, 70, 480, 10);
+  ctx.filter = "url('#Gamma')";
+  ctx.fillRect(10, 90, 480, 10);
+</script>

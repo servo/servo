@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Basic shadow root</title>
+<link rel="match" href="shadow-root-001-ref.html">
+<link rel="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-trees">
+<meta name="assert" content="When a shadow root is attached, the shadow tree is rendered.">
+<script src="../../../html/resources/common.js"></script>
+<style>
+p { color: black; }
+* { color: red; }
+</style>
+</head>
+<body>
+<p>You should see green text saying "PASS" below.</p>
+<div id="host">FAIL</div>
+<script>
+var shadowRoot = window.host.attachShadow({mode: 'open'});
+shadowRoot.innerHTML =
+    '<style>#pass { color: green; }</style>\n' +
+    '<div id="pass">PASS</div>';
+</script>
+</body>
+</html>

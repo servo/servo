@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<title>Test Script-Based Focus for Fenced Frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+async function AttemptButtonFocus(frame, expecting_focus) {
+  await frame.execute(async (expecting_focus) => {
+    const button = document.createElement("button");
+    document.body.append(button);
+    button.focus();
+    assert_equals(document.activeElement == button, expecting_focus,
+        "Button's focus should match expected focus");
+  }, [expecting_focus]);
+}
+
+async function ClickOn(element, actions) {
+  // Wait until the window size is initialized.
+  while (window.innerWidth == 0) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }
+  await actions.pointerMove(0, 0, {origin: element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+}
+
+async function SetupTest(click=true) {
+  // Clean up any leftover frames from prior tests.
+  document.querySelectorAll("fencedframe").forEach(e => {
+    e.remove();
+  })
+
+  const actions = new test_driver.Actions();
+
+  const frame = attachFencedFrameContext();
+  const fencedframe_element = frame.element;
+
+  if (click)
+    await ClickOn(document.body, actions);
+
+  return [actions, frame, fencedframe_element];
+}
+
+promise_test(async () => {
+  const [actions, ff1, ff1_element] = await SetupTest(false);
+
+  await ClickOn(ff1_element, actions);
+  await AttemptButtonFocus(ff1, true);
+
+  const button = document.createElement("button");
+  document.body.append(button);
+  button.focus();
+  assert_true(document.activeElement == button,
+      "The button should have focus");
+  assert_false(navigator.userActivation.isActive,
+      "Window should not have user activation");
+}, "An embedder can focus out of a fenced frame");
+
+promise_test(async () => {
+  const [actions, frame, fencedframe_element] = await SetupTest();
+
+  await AttemptButtonFocus(frame, false);
+  await ClickOn(fencedframe_element, actions);
+  await AttemptButtonFocus(frame, true);
+}, "Fenced frames can't pull script focus until getting user activation");
+
+promise_test(async t => {
+  const [actions, frame, fencedframe_element] = await SetupTest();
+
+  await ClickOn(fencedframe_element, actions);
+  await ClickOn(document.body, actions);
+
+  await AttemptButtonFocus(frame, true);
+
+  // Give the browser time to receive the focus event before attempting
+  // another focus.
+  await t.step_timeout(async () => {await AttemptButtonFocus(frame, true);},
+      500);
+}, "Focused fenced frames can move programmatic focus within frame");
+
+promise_test(async () => {
+  const [actions, frame, fencedframe_element] = await SetupTest();
+
+  await ClickOn(fencedframe_element, actions);
+  await ClickOn(document.body, actions);
+
+  // This will pull focus across a frame boundary and consume user activation.
+  await AttemptButtonFocus(frame, true);
+
+  await ClickOn(document.body, actions);
+  await AttemptButtonFocus(frame, false);
+}, "Script focus into a fenced frame consumes user activation");
+
+promise_test(async () => {
+  const [actions, ff1, ff1_element] = await SetupTest();
+
+  const ff2 = attachFencedFrameContext();
+  const ff2_element = ff2.element;
+
+  await ClickOn(ff1_element, actions);
+
+  await AttemptButtonFocus(ff1, true);
+  await AttemptButtonFocus(ff2, false);
+}, "Another fenced frame cannot pull focus out of a focused fenced frame");
+
+promise_test(async () => {
+  const [actions, ff1, ff1_element] = await SetupTest();
+
+  await ClickOn(ff1_element, actions);
+  await AttemptButtonFocus(ff1, true);
+
+  await ff1.execute(async () => {
+    const ff2 = attachFencedFrameContext();
+
+    await ff2.execute(async () => {
+      const button = document.createElement("button");
+      document.body.append(button);
+      button.focus();
+      assert_false(document.activeElement == button,
+          "The button should not have focus");
+      assert_false(navigator.userActivation.isActive,
+          "The fenced frame should not have user activation");
+    });
+  });
+}, "A fenced frame nested in another fenced frame cannot pull focus");
+
+promise_test(async () => {
+  const [actions, ff1, ff1_element] = await SetupTest();
+
+  await ClickOn(document.body, actions);
+
+  const button = document.createElement("button");
+  document.body.append(button);
+  button.focus();
+  assert_equals(document.activeElement, button,
+      "The button in the main page should have focus.");
+
+  await ff1.execute(async () => {
+    assert_false(navigator.userActivation.isActive,
+        "The fenced frame should not have user activation.");
+    window.focus();
+  });
+
+  assert_equals(document.activeElement, button,
+      "The button in the main page should still have focus.");
+}, "A fenced frame cannot pull window.focus() without user activation");
+
+promise_test(async () => {
+  const [actions, ff1, ff1_element] = await SetupTest();
+
+  await ClickOn(ff1_element, actions);
+  await ClickOn(document.body, actions);
+
+  const button = document.createElement("button");
+  document.body.append(button);
+  button.focus();
+  assert_equals(document.activeElement, button,
+      "The button should have focus.");
+
+  await ff1.execute(async () => {
+    assert_true(navigator.userActivation.isActive,
+        "The fenced frame should have user activation.");
+    window.focus();
+    assert_false(navigator.userActivation.isActive,
+        "The fenced frame's user activation should be consumed by the focus");
+  });
+
+  assert_equals(document.activeElement, document.body,
+      "The main page's focus should be pulled away from the button.");
+}, "A fenced frame can pull window.focus() after user activation");
+
+promise_test(async () => {
+  var actions = new test_driver.Actions();
+
+  const frame = attachIFrameContext(
+      {origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+  const iframe_element =
+      document.body.getElementsByTagName('iframe')[0];
+
+  await frame.execute(async () => {
+    const button = document.createElement("button");
+    document.body.append(button);
+    button.focus();
+    assert_equals(document.activeElement, button,
+        "The button in the iframe should have focus.");
+  }, [true]);
+
+  const button = document.createElement("button");
+  document.body.append(button);
+  button.focus();
+  assert_equals(document.activeElement, button,
+      "The button in the main page should have focus.");
+}, "An cross-origin iframe can pull focus back and forth without activation");
+
+</script>
+</body>

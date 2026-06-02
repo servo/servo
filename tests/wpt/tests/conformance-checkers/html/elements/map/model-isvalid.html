@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;map&gt;</title>
+</head>
+<body>
+  <!-- is block, contains blocks and <area> -->
+  <map class="class" id="id" name="id" lang="en">
+    <h2>header</h2>
+    <p><area alt="text" href='foo' coords="1,2,3,4">p</p>
+    <p>text</p>
+    <p><area alt="text" href='foo' coords="3,2,5,4">p</p>
+    <p>text2</p>
+  </map>
+
+  <!-- can contain interactive -->
+  <map id='foo' name="foo">
+    <p><a>text</a></p>
+    <p><area alt="text" href='foo' coords="3,2,5,4">p</p>
+  </map>
+
+  <!-- map with flow content and flow parent -->
+  <div><map name=foo><p>foo</p></map></div>
+
+</body>
+</html>

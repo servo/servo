@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body.scrollable {
+        width: 200lvw;
+        height: 200lvh;
+      }
+
+      div {
+        width: 200px;
+        height: 200px;
+        background-color: skyblue;
+      }
+
+      ::view-transition-new(*) {
+        animation-duration: 30s;
+        opacity: 0;
+      }
+      ::view-transition-old(*) {
+        animation: unset;
+        opacity: 1;
+      }
+      */
+    </style>
+    <script>
+      function startTransition() {
+        window.transition = document.startViewTransition(() => {
+          document.body.classList.toggle('scrollable');
+        });
+      }
+
+      onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('scrollbar')) {
+          document.body.classList.add('scrollable');
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

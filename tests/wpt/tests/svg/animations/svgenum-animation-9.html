@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test SVGTextPathSpacingType/SVGTextPathMethodType enumeration animations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var path = createSVGElement("path");
+path.setAttribute("id", "path");
+path.setAttribute("d", "M 50 50 L 200 50");
+rootSVGElement.appendChild(path);
+
+var text = createSVGElement("text");
+text.setAttribute("id", "text");
+text.setAttribute("onclick", "executeTest()");
+rootSVGElement.appendChild(text);
+
+var textPath = createSVGElement("textPath");
+textPath.setAttributeNS(xlinkNS, "xlink:href", "#path");
+textPath.setAttribute("spacing", "auto");
+textPath.setAttribute("method", "align");
+textPath.textContent = "test";
+text.appendChild(textPath);
+
+var animate1 = createSVGElement("animate");
+animate1.setAttribute("id", "animation");
+animate1.setAttribute("attributeName", "spacing");
+animate1.setAttribute("begin", "0s");
+animate1.setAttribute("dur", "4s");
+animate1.setAttribute("from", "auto");
+animate1.setAttribute("to", "exact");
+animate1.setAttribute("fill", "freeze");
+textPath.appendChild(animate1);
+
+var animate2 = createSVGElement("animate");
+animate2.setAttribute("attributeName", "method");
+animate2.setAttribute("begin", "0s");
+animate2.setAttribute("dur", "4s");
+animate2.setAttribute("from", "align");
+animate2.setAttribute("to", "stretch");
+animate2.setAttribute("fill", "freeze");
+textPath.appendChild(animate2);
+
+// Setup animation test
+function sample1() {
+    assert_equals(textPath.method.animVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
+    assert_equals(textPath.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
+
+    assert_equals(textPath.spacing.animVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
+    assert_equals(textPath.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
+}
+
+function sample2() {
+    assert_equals(textPath.method.animVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
+    assert_equals(textPath.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
+
+    assert_equals(textPath.spacing.animVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
+    assert_equals(textPath.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 1.999, sample1],
+        ["animation", 2.001, sample2],
+        ["animation", 3.999, sample2],
+        ["animation", 4.001, sample2]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Layout Instability: sources attribute</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 10px; }
+#shifter { position: relative; width: 300px; height: 100px; background: blue; }
+
+</style>
+<div id="shifter"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+strrect = r => `[${r.x},${r.y},${r.width},${r.height}]`;
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  const shifter = document.querySelector("#shifter");
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  shifter.style = "top: 60px; left: 10px";
+  await watcher.promise;
+
+  const sources = watcher.lastEntry.sources;
+  assert_equals(sources.length, 1);
+
+  const source = sources[0];
+  assert_equals(source.node, shifter);
+  assert_equals(strrect(source.previousRect), "[10,10,300,100]");
+  assert_equals(strrect(source.currentRect), "[20,70,300,100]");
+}, "Sources attribute.");
+
+</script>

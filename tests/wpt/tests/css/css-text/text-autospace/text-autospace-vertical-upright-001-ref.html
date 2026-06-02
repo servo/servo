@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+#container {
+  writing-mode: vertical-rl;
+  font-size: 20px;
+}
+.upright {
+  text-orientation: upright;
+}
+.no-autospace {
+  text-autospace: no-autospace;
+}
+</style>
+<div id="container">
+  <div class="upright no-autospace">国X国</div>
+  <div class="upright no-autospace">国1国</div>
+  <div class="no-autospace">国<span class="upright">X</span>国</div>
+  <div class="no-autospace">国<span class="upright">1</span>国</div>
+</div>

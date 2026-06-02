@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#wb {
+  display: -webkit-box;
+  -webkit-box-align: center;
+  -webkit-box-orient: vertical;
+}
+</style>
+<div id="wb">
+  <span id="t">text</span>
+</div>
+<script>
+  test(function() {
+    var child = document.getElementById("t");
+    var webkitBox = document.getElementById("wb");
+    // |webkitBox| should be centered, this at least ensures it's not left
+    // aligned.
+    assert_greater_than(child.offsetLeft, webkitBox.offsetLeft);
+  }, "Child in vertically centered webkit-box is centered");
+</script>

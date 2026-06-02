@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?pointerType=mouse&preventDefault=">
+<meta name="variant" content="?pointerType=mouse&preventDefault=pointerdown">
+<meta name="variant" content="?pointerType=touch&preventDefault=">
+<meta name="variant" content="?pointerType=touch&preventDefault=pointerdown">
+<meta name="variant" content="?pointerType=touch&preventDefault=touchstart">
+<title>Test `click` event target when a parent element captures the pointer</title>
+<style>
+  #parent {
+    background: green;
+    border: 1px solid black;
+    width: 40px;
+    height: 40px;
+  }
+
+  #target {
+    background: blue;
+    border: 1px solid black;
+    width: 20px;
+    height: 20px;
+    margin: 10px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const pointerType = searchParams.get("pointerType");
+const preventDefaultType = searchParams.get("preventDefault");
+
+addEventListener(
+  "load",
+  () => {
+    const iframe = document.querySelector("iframe");
+    iframe.contentDocument.head.innerHTML = `<style>${
+      document.querySelector("style").textContent
+    }</style>`;
+
+    async function runTest(t, win, doc) {
+      let pointerId;
+      const parent = doc.getElementById("parent");
+      const target = doc.getElementById("target");
+      const body = doc.body;
+      const html = doc.documentElement;
+      let eventTypes = [];
+      let composedPaths = [];
+      function stringifyIfElement(eventTarget) {
+        if (!(eventTarget instanceof win.Node)) {
+          return eventTarget;
+        }
+        switch (eventTarget.nodeType) {
+          case win.Node.ELEMENT_NODE:
+            return `<${eventTarget.localName}${
+              eventTarget.id ? ` id="${eventTarget.id}"` : ""
+            }>`;
+          default:
+            return eventTarget;
+        }
+      }
+      function stringifyElements(eventTargets) {
+        return eventTargets.map(stringifyIfElement);
+      }
+      function captureEvent(e) {
+        eventTypes.push(e.type);
+        composedPaths.push(e.composedPath());
+      }
+      const expectedEvents = (() => {
+        const pathToTarget = [target, parent, body, html, doc, win];
+        const pathToParent = [parent, body, html, doc, win];
+        function getExpectedEventsForMouse() {
+          switch (preventDefaultType) {
+            case "pointerdown":
+              return {
+                types: ["pointerdown", "pointerup", "click"],
+                composedPaths: [
+                  pathToTarget, // pointerdown
+                  pathToParent, // pointerup
+                  // Captured by the parent element, `click` should be fired on
+                  // it.
+                  pathToParent, // click
+                ],
+              };
+            default:
+              return {
+                types: [
+                  "pointerdown",
+                  "mousedown",
+                  "pointerup",
+                  "mouseup",
+                  "click",
+                ],
+                composedPaths: [
+                  pathToTarget, // pointerdown
+                  // `mousedown` target should be considered without the
+                  // capturing element.
+                  pathToTarget, // mousedown
+                  pathToParent, // pointerup
+                  // However, `mouseup` target should be considered with the
+                  // capturing element.
+                  pathToParent, // mouseup
+                  // Captured by the parent element, `click` should be fired on
+                  // it.
+                  pathToParent, // click
+                ],
+              };
+          }
+        }
+        function getExpectedEventsForTouch() {
+          switch (preventDefaultType) {
+            case "pointerdown":
+              return {
+                types: [
+                  "pointerdown",
+                  "touchstart",
+                  "pointerup",
+                  "touchend",
+                  "click",
+                ],
+                composedPaths: [
+                  pathToTarget, // pointerdown
+                  // `touchstart` target should be considered without the
+                  // capturing element.
+                  pathToTarget, // touchstart
+                  pathToParent, // pointerup
+                  // Different from `mouseup`, `touchend` should always be fired
+                  // on same target as `touchstart`.
+                  pathToTarget, // touchend
+                  // `click` event is NOT a compatibility mouse event of Touch
+                  // Events because canceling `pointerdown` should cancel them.
+                  // So, the event target should be considered with `userEvent`
+                  // which caused this `click` event.  In this case, it's the
+                  // preceding `pointerup`.  Therefore, this should be
+                  // considered with the capturing element.
+                  pathToParent, // click
+                ],
+              };
+            case "touchstart":
+              return {
+                types: ["pointerdown", "touchstart", "pointerup", "touchend"],
+                composedPaths: [
+                  pathToTarget, // pointerdown
+                  // `touchstart` target should be considered without the
+                  // capturing element.
+                  pathToTarget, // touchstart
+                  pathToParent, // pointerup
+                  // Different from `mouseup`, `touchend` should always be fired
+                  // on same target as `touchstart`.
+                  pathToTarget, // touchend
+                  // `click` shouldn't be fired if `touchstart` is canceled
+                  // especially for the backward compatibility.
+                ],
+              };
+            default:
+              return {
+                types: [
+                  "pointerdown",
+                  "touchstart",
+                  "pointerup",
+                  "touchend",
+                  "mousedown",
+                  "mouseup",
+                  "click",
+                ],
+                composedPaths: [
+                  pathToTarget, // pointerdown
+                  // `touchstart` target should be considered without the
+                  // capturing element.
+                  pathToTarget, // touchstart
+                  pathToParent, // touchup
+                  // Different from `mouseup`, `touchend` should always be fired
+                  // on same target as `touchstart`.
+                  pathToTarget, // touchend
+                  // Compatibility mouse events should be fired on the element
+                  // at the touch point.
+                  pathToTarget, // mousedown
+                  pathToTarget, // mouseup
+                  // `click` should NOT be a compatibility mouse event of the
+                  // Touch Events since touchstart was not consumed.  So,
+                  // captured by the parent element, `click` should be fired on
+                  // it.
+                  pathToParent, //click
+                ],
+              };
+          }
+        }
+        return pointerType == "mouse"
+          ? getExpectedEventsForMouse()
+          : getExpectedEventsForTouch();
+      })();
+
+      win.addEventListener(
+        "pointerdown",
+        e => {
+          captureEvent(e);
+          pointerId = e.pointerId;
+          parent.setPointerCapture(pointerId);
+          if (preventDefaultType == e.type) {
+            e.preventDefault();
+          }
+        },
+        { once: true, passive: false }
+      );
+      win.addEventListener(
+        "pointerup",
+        e => {
+          captureEvent(e);
+          parent.releasePointerCapture(pointerId);
+        },
+        { once: true }
+      );
+      win.addEventListener(
+        "touchstart",
+        e => {
+          captureEvent(e);
+          if (preventDefaultType == e.type) {
+            e.preventDefault();
+          }
+        },
+        { once: true, passive: false }
+      );
+      win.addEventListener(
+        "touchend",
+        captureEvent,
+        { once: true }
+      );
+      win.addEventListener("mousedown", captureEvent, { once: true });
+      win.addEventListener("mouseup", captureEvent, { once: true });
+      win.addEventListener("click", captureEvent, { once: true });
+
+      await new test_driver.Actions()
+        .addPointer("TestPointer", pointerType)
+        .pointerMove(0, 0, { origin: target })
+        .pointerDown()
+        .pointerUp()
+        .pause(100) // XXX Required for preventing intermittent failure of Firefox
+        .send();
+
+      test(() => {
+        assert_array_equals(eventTypes, expectedEvents.types);
+      }, `${t.name}: all expected events should be fired`);
+      for (let i = 0; i < eventTypes.length; i++) {
+        const eventType = eventTypes[i];
+        const expectedEventIndex = expectedEvents.types.indexOf(eventType);
+        if (expectedEventIndex < 0) {
+          continue;
+        }
+        test(() => {
+          assert_array_equals(
+            stringifyElements(composedPaths[i]),
+            stringifyElements(expectedEvents.composedPaths[expectedEventIndex])
+          );
+        }, `${t.name}: "${eventType}" event should be fired on expected target`);
+      }
+    }
+
+    promise_test(async t => {
+      await runTest(t, window, document);
+    }, "Test in the topmost document");
+    promise_test(async t => {
+      await runTest(t, iframe.contentWindow, iframe.contentDocument);
+    }, "Test in the iframe");
+  },
+  { once: true }
+);
+</script>
+</head>
+<body>
+  <div id="parent">
+    <div id="target"></div>
+  </div>
+  <iframe srcdoc="<div id='parent'><div id='target'></div></div>"></iframe>
+</body>
+</html>

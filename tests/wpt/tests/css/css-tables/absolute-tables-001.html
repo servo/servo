@@ -1,0 +1,89 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="Anders Ruud" href="mailto:andruud@chromium.org">
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#the-width-property" title="See Note in <percentage>">
+<meta name="assert" content="percent lengths of an abspos table are resolved against the padding box of the parent" />
+<style>
+    main div {
+        position: relative;
+        border: 5px solid black;
+        height: 60px;
+        width: 60px;
+        padding: 5px 7px 11px 13px;
+        margin: 10px;
+    }
+
+    .tbl {
+        display: table;
+        background-color: skyblue;
+        position: absolute;
+        width: 50%;
+        height: 50%;
+    }
+
+    .cell {
+        display: table-cell;
+        outline: 1px dashed blue;
+    }
+
+    .topleft { left: 0; top: 0; }
+    .topright { right: 0; top: 0; }
+    .bottomright { right: 0; bottom: 0; }
+    .bottomleft { left: 0; bottom: 0; }
+
+    .vertical  { writing-mode: vertical-lr; }
+
+</style>
+<p>Tests that percent lengths of an absolutely positioned table is resolved
+against the <em>padding box</em> of the parent.
+<hr>
+<output id="log"></output>
+<main>
+<div>
+  <span class="tbl topleft" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=0 data-offset-y=0>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div>
+  <span class="tbl topright" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=40 data-offset-y=0>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div>
+  <span class="tbl bottomright" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=40 data-offset-y=38>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div>
+  <span class="tbl bottomleft" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=0 data-offset-y=38>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+
+<div class="vertical">
+  <span class="tbl topleft" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=0 data-offset-y=0>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div class="vertical">
+  <span class="tbl topright" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=40 data-offset-y=0>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div class="vertical">
+  <span class="tbl bottomright" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=40 data-offset-y=38>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+<div class="vertical">
+  <span class="tbl bottomleft" data-expected-client-width=40 data-expected-client-height=38 data-offset-x=0 data-offset-y=38>
+    <span class="cell" data-expected-client-width=40 data-expected-client-height=38>abc</span>
+  </span>
+</div>
+</main>
+<script>
+    checkLayout(".tbl");
+</script>

@@ -1,0 +1,47 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+
+    const rawSetterHeader = 'set;key=hello;value=world;ignore_if_present,'
+      + 'append;value=friend;key=hello';
+    const setterHeader = encodeURIComponent(rawSetterHeader);
+    const sameOriginSetterUrl =
+      `/shared-storage/resources/shared-storage-write.py?write=${setterHeader}`;
+    const sameOrigin = generateURL(sameOriginSetterUrl, []).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+    const crossOriginSetterUrl = crossOrigin + sameOriginSetterUrl;
+
+    promise_test(async t => {
+      let response = await fetch(sameOriginSetterUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      // JS does not see the `Shared-Storage-Write` response header.
+      assert_false(!!response.headers.get('Shared-Storage-Write'));
+
+      await verifyKeyValueForOrigin('hello', 'worldfriend', sameOrigin);
+    }, 'Writing to shared storage via the \'Shared-Storage-Write\' header '
+       + 'for a same-origin shared storage fetch request');
+
+    promise_test(async t => {
+      let response = await fetch(crossOriginSetterUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      // JS does not see the `Shared-Storage-Write` response header.
+      assert_false(!!response.headers.get('Shared-Storage-Write'));
+
+      await verifyKeyValueForOrigin('hello', 'worldfriend', crossOrigin);
+    }, 'Writing to shared storage via the \'Shared-Storage-Write\' header '
+       + 'for a cross-origin shared storage fetch request');
+  </script>
+</body>

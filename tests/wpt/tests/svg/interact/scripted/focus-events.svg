@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+    <title>Focus management</title>
+    <metadata>
+        <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#Focus"/>
+    </metadata>
+    <a id="a1" href="#"></a>
+    <a id="a2" href="#"></a>
+    <h:script src="/resources/testharness.js"/>
+    <h:script src="/resources/testharnessreport.js"/>
+    <script><![CDATA[
+    var a1 = document.getElementById('a1'),
+    a2 = document.getElementById('a2'),
+    t1 = async_test("focusing on a focusable element fires a focus event at the element"),
+    t2 = async_test("focusing on a focusable element fires a blur event at the previous focussed element");
+
+    a2.onfocus = t1.step_func_done(function(e){
+        assert_true(e.isTrusted, "focus event is trusted");
+        assert_false(e.bubbles, "focus event doesn't bubble");
+        assert_false(e.cancelable, "focus event is not cancelable");
+        assert_equals(document.activeElement, a2);
+    });
+
+    a1.onblur = t2.step_func_done(function(e){
+        assert_true(e.isTrusted, "blur event is trusted");
+        assert_false(e.bubbles, "blur event doesn't bubble");
+        assert_false(e.cancelable, "blur event is not cancelable");
+    });
+
+    a1.focus();
+    a2.focus();
+    ]]></script>
+</svg>

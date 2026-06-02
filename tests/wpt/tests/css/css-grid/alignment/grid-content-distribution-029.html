@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#positional-values">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<meta name="assert" content="Alignment must work after max-width clamps the aspect ratio.">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: grid; width: 100px; aspect-ratio: 2; max-width: 50px; align-content: center;">
+  <div style="width: 100px; height: 100px; background: green;"></div>
+</div>

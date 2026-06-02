@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>compute pressure iframe tester</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function messageHandler(e) {
+  if (e.data.command === 'start') {
+    return new Promise((resolve, reject) => {
+        const observer = new PressureObserver(()=> {
+            resolve('success');
+        });
+        observer.observe('cpu');
+        window.setTimeout(() => { reject('timeout'); }, 1000);
+    });
+  } else {
+    return Promise.reject(`unknown command "${e.data.command}"`);
+  }
+}
+
+window.onmessage = async (e) => {
+  let reply;
+  try {
+    reply = await messageHandler(e);
+  } catch (error) {
+    reply = error;
+  }
+  e.source.postMessage({ command: e.data.command, result: reply }, '*');
+}
+</script>

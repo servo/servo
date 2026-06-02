@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Historical Basic Card Changes</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+// https://github.com/w3c/payment-method-basic-card/pull/62
+test(() => {
+  try {
+    new PaymentRequest(
+      [
+        {
+          supportedMethods: "basic-card",
+          supportedTypes: [
+            "this was an enum value once - so this would have thrown",
+          ],
+        },
+      ],
+      { total: { label: "bar", amount: { currency: "BAZ", value: "0" } } }
+    );
+  } catch (err) {
+    assert_unreached("Unexpected error");
+  }
+}, "supportedTypes and BasicCardType enum were removed from the spec");
+</script>

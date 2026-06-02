@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class=foo>
+<meta charset=utf-8>
+<title>getElementsByClassName across documents</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script class=foo>
+async_test(function() {
+  var iframe = document.createElement("iframe");
+  iframe.onload = this.step_func_done(function() {
+    var collection = iframe.contentDocument.getElementsByClassName("foo");
+    assert_equals(collection.length, 3);
+    assert_equals(collection[0].localName, "html");
+    assert_equals(collection[1].localName, "head");
+    assert_equals(collection[2].localName, "body");
+  });
+  iframe.src = "getElementsByClassNameFrame.htm";
+  document.body.appendChild(iframe);
+});
+</script>

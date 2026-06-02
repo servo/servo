@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<title>::details-content pseudo element supports :hover</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#treelike">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#details-content-pseudo">
+<link rel="help" href="https://github.com/whatwg/html/pull/10265">
+<link rel="help" href="https://github.com/dbaron/details-styling/blob/main/phase-1.md">
+<link rel="help" href="https://crbug.com/1469418">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+
+html, body { margin: 0; padding: 0; }
+details { width: 200px; height: 100px; }
+summary { height: 30px; }
+
+body { color: black; background: white; }
+details::details-content:hover { color: green }
+
+</style>
+
+<details open>
+  <summary>summary</summary>
+  <div id="inside">contents</div>
+</details>
+
+<script>
+
+promise_test(async () => {
+  let cs = getComputedStyle(document.getElementById("inside"));
+  await new test_driver.Actions().pointerMove(300, 35).send();
+  assert_equals(cs.color, "rgb(0, 0, 0)", "no :hover styles when pointer is outside");
+  await new test_driver.Actions().pointerMove(100, 35).send();
+  assert_equals(cs.color, "rgb(0, 128, 0)", ":hover styles when pointer is inside");
+}, "::details-content matches :hover when mouse pointer is over it");
+
+</script>

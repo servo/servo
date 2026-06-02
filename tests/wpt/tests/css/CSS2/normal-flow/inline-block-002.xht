@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: inline-block: width</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline-block/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inlineblock-width" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   span { display: inline-block;
+          border: blue solid; color: silver;
+          margin: 0.5em; padding: 0.5em; }
+  </style>
+ </head>
+ <body>
+  <p> Make your window an inch or two bigger than than the width of
+  one inline-block: all inline-blocks should be the same size. Try
+  resizing the window so that inline-blocks wrap in one or two
+  columns. </p>
+  <p>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+   <span>this is an inline-block this is an inline-block this is an inline-block </span>
+  </p>
+ </body>
+</html>

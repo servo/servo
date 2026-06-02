@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  Tests that the margin-bottom of the last flex item extending beyond the fragmentainer
+  size.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="column-count: 2; height: 100px; width: 100px; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div style="display: flex;">
+    <div style="margin-bottom: 150px;">
+      <div style="height: 50px; width: 50px; background: green;"></div>
+    </div>
+  </div>
+  <div style="position: absolute; top: 50px; height: 50px; width: 50px; background: green;"></div>
+  <div style="height: 100px; width: 50px; background: green;"></div>
+</div>

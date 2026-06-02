@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1899272">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=element></div>
+<script>
+test(function() {
+  CSS.registerProperty({
+    name: '--length-calc',
+    syntax: '<length>',
+    initialValue: '0px',
+    inherits: true
+  });
+  CSS.registerProperty({
+    name: '--length-calc-reset',
+    syntax: '<length>',
+    initialValue: '0px',
+    inherits: false
+  });
+  let element = document.getElementById("element");
+  element.style = 'font-size: 11px; --length-calc: calc(10em + 10px); --unregistered:var(--length-calc-reset); --length-calc-reset: var(--length-calc)';
+  let cs = getComputedStyle(element);
+  for (let prop of ["--length-calc", "--length-calc-reset", "--unregistered"]) {
+    assert_equals(cs.getPropertyValue(prop), "120px", "Should resolve properly: " + prop);
+  }
+}, "Property dependency tracking across inherited and non-inherited properties");
+</script>

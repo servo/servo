@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>javascript: URL in iframe src</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const tests = [
+  // desc, url, expected_textContent
+  ['string', 'javascript:"foo"', 'foo'],
+  ['empty string', 'javascript:""', ''],
+  ['String object', 'javascript:new String("foo")', ''],
+  ['undefined', 'javascript:void(0)', ''],
+  ['number', 'javascript:1', ''],
+  ['boolean', 'javascript:true', ''],
+  ['null', 'javascript:null', ''],
+  ['global', 'javascript:window', ''],
+  ['host object', 'javascript:document', ''],
+  ['function', 'javascript:(() => { return function() {}; })()', ''],
+  ['regexp', 'javascript:/foo/', ''],
+  ['array', 'javascript:["foo"]', ''],
+  ['object', 'javascript:{"foo": "bar"}', ''],
+  ['ArrayBuffer', 'javascript:new ArrayBuffer(8)', ''],
+  ['TypeError', 'javascript:new TypeError("foo")', ''],
+];
+for (const [desc, url, expected_textContent] of tests) {
+  async_test(t => {
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.hidden = true;
+    let load_events = 0;
+    iframe.onload = t.step_func(() => {
+      load_events++;
+      assert_equals(iframe.contentDocument.URL, 'about:blank');
+      assert_equals(iframe.contentDocument.body.textContent, expected_textContent);
+      assert_equals(load_events, 1);
+      if (load_events === 1) {
+        t.step_timeout(() => {
+          t.done();
+        }, 100);
+      }
+    });
+    document.body.append(iframe);
+  }, `${desc}: ${url}`);
+}
+</script>

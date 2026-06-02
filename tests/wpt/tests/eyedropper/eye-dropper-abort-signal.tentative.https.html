@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>EyeDropper Test: abort signal</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id="eyedropperbutton">Open eyedropper!</button>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  promise_test(async t => {
+    const eyeDropperButton = document.getElementById("eyedropperbutton");
+    eyeDropperButton.addEventListener("click", async () => {
+      let eyeDropper = new EyeDropper();
+      let controller = new AbortController();
+      controller.abort();
+      await promise_rejects_dom(t, "AbortError", eyeDropper.open({signal: controller.signal}));
+    });
+    await clickOn(eyeDropperButton);
+  }, "Calling EyeDropper.open with signal's aborted flag set should directly throw AbortError");
+
+  promise_test(async t => {
+    const eyeDropperButton = document.getElementById("eyedropperbutton");
+    eyeDropperButton.addEventListener("click", () => {
+      let eyeDropper = new EyeDropper();
+      let controller = new AbortController();
+      this.step_timeout(() => {
+        controller.abort();
+      }, 500);
+      promise_rejects_dom(t, "AbortError", eyeDropper.open({signal: controller.signal}));
+    });
+    await clickOn(eyeDropperButton);
+  }, "Calling abort should dismiss the eyedropper");
+
+</script>

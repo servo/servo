@@ -1,0 +1,42 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Font Metrics API Level 1 (https://drafts.css-houdini.org/font-metrics-api-1/)
+
+partial interface Document {
+    FontMetrics measureElement(Element element);
+    FontMetrics measureText(DOMString text, StylePropertyMapReadOnly styleMap);
+};
+
+[Exposed=Window]
+interface FontMetrics {
+  readonly attribute double width;
+  readonly attribute FrozenArray<double> advances;
+
+  readonly attribute double boundingBoxLeft;
+  readonly attribute double boundingBoxRight;
+
+  readonly attribute double height;
+  readonly attribute double emHeightAscent;
+  readonly attribute double emHeightDescent;
+  readonly attribute double boundingBoxAscent;
+  readonly attribute double boundingBoxDescent;
+  readonly attribute double fontBoundingBoxAscent;
+  readonly attribute double fontBoundingBoxDescent;
+
+  readonly attribute Baseline dominantBaseline;
+  readonly attribute FrozenArray<Baseline> baselines;
+  readonly attribute FrozenArray<Font> fonts;
+};
+
+[Exposed=Window]
+interface Baseline {
+  readonly attribute DOMString name;
+  readonly attribute double value;
+};
+
+[Exposed=Window]
+interface Font {
+  readonly attribute DOMString name;
+  readonly attribute unsigned long glyphsRendered;
+};

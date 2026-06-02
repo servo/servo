@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1402156">
+<link rel="match" href="fixedpos-with-abspos-with-link-print-ref.html">
+<style>
+  body {
+    margin: 0;
+    height: 250vh;
+  }
+</style>
+<div style="position:fixed;">
+  <div style="position:absolute; width:max-content;">
+    <a href="/">This should be on every page (3 pages).<br>This too.</a>
+  </div>
+</div>

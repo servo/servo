@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: size' element is monolithic</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-multicol-1/#column-gaps-and-rules">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+  <link rel="match" href="reference/contain-size-monolithic-001-ref.html">
+
+  <meta content="This test checks that an element with size containment becomes monolithic. In this test, the only way to break the content of such monolithic element is to break (or slice) the content at each pair of characters. Since column rules are only drawn between two columns that both have content and since the test expects only 1 column filled with content, therefore the column rule should not be painted, thus the 'no red' test success condition." name="assert">
+  <meta name="fuzzy" content="maxDifference=0-16; totalPixels=0-2">
+
+  <style>
+  div#multi-column
+    {
+      column-count: 2;
+      column-fill: balance; /* balance is the initial column-fill value */
+      column-gap: 4ch;
+      column-rule: red solid 4ch;
+      column-width: 2ch;
+      font-family: monospace;
+      font-size: 20px;
+      width: 8ch;
+    }
+
+  div#size-contain
+    {
+      contain: size;
+    }
+  </style>
+
+  <p>Test passes if "AB", "CD", "EF" and "GH" are vertically aligned into 1 single column and if there is <strong>no red</strong>.
+
+  <div id="multi-column">
+    <div id="size-contain">AB CD EF GH</div>
+  </div>

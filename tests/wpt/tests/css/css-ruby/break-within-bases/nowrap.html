@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Don't break rubies with nowrap</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#break-within">
+<link rel="match" href="nowrap-ref.html">
+<style>
+.tw-nowrap {
+  text-wrap: nowrap;
+}
+.ws-nowrap {
+  white-space: nowrap;
+}
+
+span {
+  white-space: nowrap;
+}
+
+p {
+  inline-size: 6em;
+}
+</style>
+
+<p class="tw-nowrap"><ruby>垂直二等辺三角形<rt>すいちょくにとうへんさんかくけい</ruby></p>
+<p class="ws-nowrap"><ruby>垂直二等辺三角形<rt>すいちょくにとうへんさんかくけい</ruby></p>
+<p><ruby><span>垂直</span><span>二等辺</span><span>三角形</span><rt><span>すいちょく</span><span>にとうへん</span><span>さんかくけい</span></ruby></p>

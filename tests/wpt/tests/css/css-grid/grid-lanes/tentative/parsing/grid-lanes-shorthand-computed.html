@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Grid Lanes: grid-lanes getComputedStyle()</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/computed-testcommon.js"></script>
+  <script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_computed_value("grid-lanes", '"a b" 1fr 2fr row');
+    test_computed_value("grid-lanes", "8px column");
+    test_computed_value("grid-lanes", "8px column track-reverse fill-reverse", "8px column fill-reverse track-reverse");
+    test_computed_value("grid-lanes", '"a b c" 10% 20% 30% row track-reverse', '"a b c" 10% 20% 30% row track-reverse');
+    test_computed_value("grid-lanes", '"a b" 10px 20px column fill-reverse');
+    test_computed_value("grid-lanes", 'min-content row fill-reverse track-reverse', 'min-content row fill-reverse track-reverse');
+    test_computed_value("grid-lanes", 'repeat(5, auto)', 'repeat(5, auto) column');
+    test_computed_value("grid-lanes", 'row track-reverse repeat(3, 1fr) "a b b"', '"a b b" repeat(3, 1fr) row track-reverse');
+    test_computed_value("grid-lanes", '100px 200px', '100px 200px column');
+    test_computed_value("grid-lanes", '"a b c" row track-reverse 1fr 2fr 3fr', '"a b c" 1fr 2fr 3fr row track-reverse');
+    test_computed_value("grid-lanes", 'row fill-reverse minmax(100px, 1fr)', 'minmax(100px, 1fr) row fill-reverse');
+    test_computed_value("grid-lanes", 'fit-content(200px) "area" column', '"area" fit-content(200px) column');
+    test_computed_value("grid-lanes", 'column "a b" [line1] 1fr [line2] 2fr', '"a b" [line1] 1fr [line2] 2fr column');
+    test_computed_value("grid-lanes", 'row repeat(auto-fill, 100px)', 'repeat(auto-fill, 100px) row');
+  </script>
+</body>
+</html>

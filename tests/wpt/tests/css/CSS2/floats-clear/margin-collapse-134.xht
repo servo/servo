@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: clear with no floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/034.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-134-ref.xht" />
+
+  <style type="text/css">
+   table, td { padding: 0; border-spacing: 0; }
+   .comparator { border-spacing: 1em; }
+   .test, .control { border: solid; background: red; }
+
+   .test .container { display: block; background: yellow; margin: 0; width: 8em; }
+   .test .block { display: block; border-top: 1em solid lime;  margin: 0 0 0 0; }
+   .test .clear { display: block; border-top: 1em solid green; margin: 1em 0 0 0; clear: right; }
+
+   .control .lime { background: lime; height: 1em; width: 8em; }
+   .control .yellow { background: yellow; height: 1em; width: 8em; }
+   .control .green { background: green; height: 1em; width: 8em; }
+
+  </style>
+ </head>
+ <body>
+  <p>The following three rectangles should be identical, with no red present.</p>
+  <table class="comparator">
+   <tr>
+    <td class="test">
+     <div class="container">
+      <div class="block"> </div>
+      <div class="clear"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <div class="lime"> </div>
+     <div class="yellow"> </div>
+     <div class="green"> </div>
+    </td>
+   </tr>
+   <tr>
+    <td class="control">
+     <div class="lime"> </div>
+     <div class="yellow"> </div>
+     <div class="green"> </div>
+    </td>
+    <td></td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

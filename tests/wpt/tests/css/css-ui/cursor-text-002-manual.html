@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor:text with rotated text</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<link rel="help" href="http://www.w3.org/TR/css3-transforms/#two-d-transform-functions">
+<meta name="flags" content="interact may">
+<meta charset="UTF-8">
+<meta name="assert" content="User agents may automatically display any angle of I-beam/cursor for text that is rendered at any particular angle">
+<style>
+div {
+  cursor: text;
+  color: blue;
+  transform: rotate(45deg);
+  transform-origin: bottom left;
+}
+p {
+	cursor: text;
+}
+</style>
+<body>
+  <p>The test passes if, when moved over the blue rotated text, the cursor that indicates text that may be selected is rotated to match the angle of the text.</p>
+  <p>Disregard this test if there is no rotated text.</p>
+  <div>Lorem ipsum</div>
+</body>

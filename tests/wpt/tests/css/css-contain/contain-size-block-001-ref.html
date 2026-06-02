@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .basic {
+    border: 1em solid green;
+  }
+  .height-ref {
+    height: 50px;
+    background: lightblue;
+  }
+  .width-ref {
+    width: 50px;
+  }
+  .floatLBasic-ref {
+    float: left;
+  }
+  .floatLWidth-ref {
+    float: left;
+    width: 50px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  .innerContents {
+    color: transparent;
+    width: 0;
+    height: 0;
+  }
+  </style>
+</head>
+<body>
+  <div class="basic"></div>
+  <br>
+
+  <div class="basic height-ref"></div>
+  <br>
+
+  <div class="basic height-ref"></div>
+  <br>
+
+  <div class="basic width-ref"></div>
+  <br>
+
+  <div class="basic width-ref"></div>
+  <br>
+
+  <div class="basic floatLBasic-ref"></div>
+  <br>
+
+  <div class="basic floatLWidth-ref"></div>
+  <br>
+
+  <div class="flexBaselineCheck">
+  outside before<div class="basic innerContents">i</div>outside after
+  </div>
+</body>
+</html>

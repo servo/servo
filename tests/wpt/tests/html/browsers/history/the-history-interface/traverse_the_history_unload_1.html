@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Traversing the history, unload event is fired on doucment</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t = async_test();
+  started = false;
+  pages = []
+  unload_ran = false;
+  timer = setInterval(
+    function() {
+      if (pages.length < 2 || !unload_ran)
+        return;
+      clearInterval(timer);
+      setTimeout(t.step_func(
+        function() {
+          assert_array_equals(pages, [2, 1], "Pages opened during history navigation");
+          assert_true(unload_ran, "Unload event handler ran");
+          t.done();
+        }
+      ), 500);
+    }, 50);
+  t.step(function() {
+    win = window.open("history_entry.html?urls=traverse_the_history_unload_1-1.html");
+    t.add_cleanup(function() { win.close(); });
+  });
+</script>

@@ -1,0 +1,16 @@
+features:
+- name: constraint-validation
+  files:
+  - textarea-setcustomvalidity.html
+  - textarea-validity-clone.html
+  - textarea-validity-valueMissing-inside-datalist.html
+- name: change-event
+  files:
+  - change-to-empty-value.html
+- name: textarea
+  files:
+  - "*"
+  - "!textarea-setcustomvalidity.html"
+  - "!textarea-validity-clone.html"
+  - "!textarea-validity-valueMissing-inside-datalist.html"
+  - "!change-to-empty-value.html"

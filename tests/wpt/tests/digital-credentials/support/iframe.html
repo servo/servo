@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+  // @ts-check
+  /**
+   * @typedef {import('./dc-types').EventData} EventData
+   * @typedef {import('./dc-types').PostData} PostData
+   */
+
+  /**
+   * @param {MessageEvent<EventData>} event
+   */
+  async function messageListener(event) {
+    if (!event.data || typeof event.data !== "object") {
+      throw new Error(
+        `Message data must be an object in conforming to EventData (see dc-types.js): ${event.data}`
+      );
+    }
+    /** @type {EventData} */
+    const { data } = event;
+    const abortController = new AbortController();
+    if (data.abort) {
+      if (!data.options) {
+        data.options = {};
+      }
+      data.options.signal = abortController.signal;
+    }
+    if (data.needsActivation && !navigator.userActivation.isActive) {
+      await test_driver.bless("user activation");
+    }
+    let result;
+    try {
+      if (data.abort === "before") {
+        abortController.abort();
+      }
+      let promise;
+      switch (data.action) {
+        case "ping":
+          promise = Promise.resolve("pong");
+          break;
+        case "create":
+          promise = navigator.credentials.create(data.options);
+          break;
+        case "get":
+          promise = navigator.credentials.get(data.options);
+          break;
+        case "preventSilentAccess":
+          promise = navigator.credentials.preventSilentAccess();
+          break;
+        default:
+          throw new Error(
+            `Unsupported action in ${window.location}: ${data.action}`
+          );
+      }
+      if (data.abort === "after") {
+        abortController.abort();
+      }
+      result = await promise;
+    } catch (error) {
+      result = {
+        constructor: error.constructor.name,
+        name: error.name,
+        message: error.message,
+      };
+    } finally {
+      event.source?.postMessage(result, event.origin);
+    }
+  }
+
+  test_driver.set_test_context(parent);
+  window.addEventListener("message", messageListener);
+</script>

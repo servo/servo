@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>CSS Scroll Snap: Snap after style change respects scroll-behavior</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#actuation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+</head>
+<body>
+<style>
+#scroller {
+  width: 300px;
+  height: 100px;
+  overflow: auto;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+}
+.child {
+  display: inline-block;
+  width: 300px;
+  height: 100px;
+  scroll-snap-align: start;
+}
+#child1 {
+  background-color: blue;
+}
+#child2 {
+  background-color: green;
+}
+</style>
+
+<div id="scroller">
+  <div id="child1" class="child"></div>
+  <div id="child2" class="child"></div>
+</div>
+
+<script>
+promise_test(async t => {
+  const scroller = document.getElementById('scroller');
+  const child2 = document.getElementById('child2');
+
+  // 1. Scroll to a non-snap position.
+  let scrollend_promise =
+      waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  scroller.scrollLeft = 160;
+  await scrollend_promise;
+  assert_equals(scroller.scrollLeft, 160,
+      "Scroller should be at the initial test position.");
+
+  let saw_intermediate_scroll_position = false;
+  const final_snap_position = child2.offsetLeft - scroller.offsetLeft;
+
+  const onScroll = () => {
+    if (scroller.scrollLeft > 160 &&
+        scroller.scrollLeft < final_snap_position) {
+      saw_intermediate_scroll_position = true;
+    }
+  };
+  scroller.addEventListener('scroll', onScroll);
+  t.add_cleanup(() => scroller.removeEventListener('scroll', onScroll));
+
+  // 2. Arm the scrollend promise before dynamically enabling snapping.
+  scrollend_promise =
+      waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+
+  // 3. Dynamically enable snapping. This should trigger a scroll.
+  scroller.style.scrollSnapType = 'x mandatory';
+
+  // 4. Wait for the snap scroll to complete.
+  await scrollend_promise;
+
+  // 5. Assert that the scroll was smooth.
+  assert_equals(scroller.scrollLeft, final_snap_position,
+      "Scroller should have snapped to the final position.");
+  assert_true(saw_intermediate_scroll_position,
+      "A 'scroll' event with an intermediate scroll position must be fired, " +
+      "indicating a smooth scroll.");
+
+}, "Dynamically enabling scroll-snap should trigger a smooth scroll if " +
+   "scroll-behavior is smooth.");
+</script>
+</body>

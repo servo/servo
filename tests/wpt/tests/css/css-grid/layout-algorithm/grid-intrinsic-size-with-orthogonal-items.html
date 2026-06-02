@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Compute the grid's intrinsic size when there are orthogonal items</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-overview">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#establish-an-orthogonal-flow">
+<meta name="assert" content="The test checks that using track's max sizing function to estimate orthogonal items' block-axis size to compute the grid's intrinsic size may lead to content overflow.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+    display: inline-grid;
+    font: 25px/1 Ahem;
+    background: green;
+    height: 150px;
+}
+
+.item { writing-mode: vertical-lr; }
+
+.minmax-100-200 { grid: minmax(100px, 200px) / auto; }
+.minmax-auto-200 { grid: minmax(100px, 200px) / auto; }
+.minmax-auto-100 { grid: minmax(auto, 100px) / auto; }
+.minmax-100-auto { grid: minmax(100px, auto) / auto; }
+.minmax-100-fitcontent { grid: minmax(100px, fit-content) / auto; }
+.minmax-100-1fr { grid: minmax(100px, 1fr) / auto; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<pre>rows: auto</pre>
+
+<div class="grid" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(100px, 200px)</pre>
+
+<div class="grid minmax-100-200" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(auto, 200px)</pre>
+
+<div class="grid minmax-auto-200" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(100px, auto)</pre>
+
+<div class="grid minmax-100-auto" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(auto, 100px)</pre>
+
+<div class="grid minmax-auto-100" data-expected-width="100" data-expected-height="150">
+    <div class="item" data-expected-width="100" data-expected-height="100">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(100px, fit-content)</pre>
+
+<div class="grid minmax-auto-fitcontent" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+
+<pre>rows: minmax(100px, 1fr)</pre>
+
+<div class="grid minmax-auto-1fr" data-expected-width="75" data-expected-height="150">
+    <div class="item" data-expected-width="75" data-expected-height="150">XXX XX X XXX XX X</div>
+</div>
+

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/common/utils.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <!-- These policies are for test-harness itself-->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline'; img-src *; connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline'; img-src 'none'; connect-src *">
+  <script>
+    promise_test(async t => {
+      assert_true(await try_to_prefetch("/common/dummy.xml", t));
+    }, 'Prefetch should succeed when a directive in a policy is permissive, ' +
+       'even if a subsequent policy overrides that.');
+  </script>
+  </head>
+<body>
+</body>
+</html>

@@ -1,0 +1,66 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use euclid::RigidTransform3D;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
+
+use crate::{Hand, Input, JointFrame, Native};
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize, MallocSizeOf)]
+pub struct InputId(pub u32);
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub enum Handedness {
+    None,
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub enum TargetRayMode {
+    Gaze,
+    TrackedPointer,
+    Screen,
+    TransientPointer,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub struct InputSource {
+    pub handedness: Handedness,
+    pub target_ray_mode: TargetRayMode,
+    pub id: InputId,
+    pub supports_grip: bool,
+    pub hand_support: Option<Hand<()>>,
+    pub profiles: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
+pub struct InputFrame {
+    pub id: InputId,
+    pub target_ray_origin: Option<RigidTransform3D<f32, Input, Native>>,
+    pub grip_origin: Option<RigidTransform3D<f32, Input, Native>>,
+    pub pressed: bool,
+    pub hand: Option<Box<Hand<JointFrame>>>,
+    pub squeezed: bool,
+    pub button_values: Vec<f32>,
+    pub axis_values: Vec<f32>,
+    pub input_changed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SelectEvent {
+    /// Selection started
+    Start,
+    /// Selection ended *without* it being a contiguous select event
+    End,
+    /// Selection ended *with* it being a contiguous select event
+    Select,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SelectKind {
+    Select,
+    Squeeze,
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/common.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a connected serial device configured to act as a
+      "loopback" device, with the TX and RX pins and RTS and CTS pins wired
+      together.
+    </p>
+    <script>
+      manual_serial_test(async (t, port) => {
+        await port.open({
+            baudRate: 115200,
+            bufferSize: 255,
+            flowControl: 'none'
+        });
+        t.add_cleanup(async () => {
+          await port.close();
+        });
+
+        await port.setSignals({ requestToSend: true });
+        let signals = await port.getSignals();
+        assert_true(signals.clearToSend);
+
+        await port.setSignals({ requestToSend: false });
+        signals = await port.getSignals();
+        assert_false(signals.clearToSend);
+      }, 'Manual RTS control works with no flow control enabled');
+
+      manual_serial_test(async (t, port) => {
+        await port.open({
+            baudRate: 115200,
+            bufferSize: 255,
+            flowControl: 'hardware'
+        });
+
+        const writer = port.writable.getWriter();
+        t.add_cleanup(async () => {
+          writer.releaseLock();
+          await port.close();
+        });
+
+        assert_true((await port.getSignals()).clearToSend);
+
+        const buffer = new Uint8Array(1);
+        while ((await port.getSignals()).clearToSend) {
+          await writer.write(buffer);
+        }
+      }, 'Hardware flow control automatically sets RTS pin');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__Http-",
+    params: "Path=/",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__Http: Does not set via DOM 'Path=/'"
+  });
+
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__Http-",
+    params: "Secure; Path=/",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__Http: Does not set via DOM 'Secure; Path=/'"
+  });
+
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__Http-",
+    params: "Secure; Path=/;httponly",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__Http: Does not set via DOM 'Secure; Path=/; httponly'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Http-",
+    params: "Path=/",
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__Http: Does not set via HTTP with 'Path=/;' (without Secure)"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Http-",
+    params: "Secure;Path=/",
+    shouldExistViaHTTP: false,
+    origin: self.origin,
+    title: "__Http: Does not set via HTTP with 'Secure; Path=/'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Http-",
+    params: "Secure;Path=/;httponly",
+    shouldExistViaHTTP: true,
+    origin: self.origin,
+    title: "__Http: Does set via HTTP with 'Secure; Path=/;httponly'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Http-",
+    params: "Secure;Path=/cookies/;httponly",
+    shouldExistViaHTTP: true,
+    origin: self.origin,
+    title: "__Http: Does set via HTTP with 'Secure; Path=/cookies/;httponly'"
+  });
+</script>

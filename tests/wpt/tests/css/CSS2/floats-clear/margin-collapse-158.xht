@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<!-- variant of 023 --><head>
+  <title>CSS Test: Margin Collapsing: clear (with nearby collapse-through block)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/058.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-158-ref.xht" />
+
+  <style type="text/css">
+   table, td { padding: 0; border-spacing: 0; }
+   .comparator { border-spacing: 1em; }
+   .test, .control { background: red; }
+   .test .container { display: block; margin: 0; width: 6em; background: yellow; border: solid; }
+   .test .float { float: left; margin: 0; height: 2em; width: 3em; background: orange; }
+   .test .empty { display: block; background: red; margin: 2em 0; }
+   .test .clear { clear: left; display: block; border-top: 2em solid orange; margin-top: 1em; }
+   .control table { border: solid; }
+   .control .square { height: 2em; width: 3em; }
+   .control .thin { height: 2em; width: 6em; }
+   .control .thick { height: 2em; width: 6em; }
+   .control .yellow { background: yellow; }
+   .control .orange { background: orange; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if the 2 squares are identical.</p>
+  <table class="comparator">
+   <tr>
+    <td class="test">
+     <div class="container">
+      <div class="empty"> </div>
+      <div class="float"> </div>
+      <div class="empty"> </div>
+      <div class="clear"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <table>
+      <tr>
+       <td colspan="2" class="thick yellow"></td>
+      </tr>
+      <tr>
+       <td class="square orange"></td>
+       <td class="square yellow"></td>
+      </tr>
+      <tr>
+       <td colspan="2" class="thin orange"></td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

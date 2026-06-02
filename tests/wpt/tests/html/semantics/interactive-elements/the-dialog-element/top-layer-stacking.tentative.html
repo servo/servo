@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- This tests that top layer elements are rendered above z-indexed elements
+and stacked in the correct order amongst themselves. Also, layer features like
+transforms and z-index are tested inside a top layer element subtree. -->
+<html>
+<head>
+<link rel="match" href="top-layer-stacking-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+.box {
+    height:150px;
+    width:150px;
+}
+
+::backdrop {
+    display: none;
+}
+
+.container {
+    perspective: 500px;
+    border: 1px solid black;
+    background-color: magenta;
+}
+.transformed {
+    transform: rotateY(45deg);
+    background-color: cyan;
+}
+</style>
+</head>
+<body>
+<dialog id="hiddenDialog" style="display: none; color: red">This should not be displayed.</dialog>
+<dialog id="topDialog" style="position: fixed; top: 10px; z-index: -10;">
+    This white box is the topmost modal dialog. It should be on top of everything.
+</dialog>
+<div style="position: absolute; top: 0px; z-index: 3; background-color: red; left: 0; right: 0; height: 200px;">
+    <dialog id="bottomDialog" style="position: absolute; top: 50px; background-color: green; width: 75%; height: 400px;">
+        This green box is also a modal dialog. It should be rendered above the red and yellow regions.
+        <div class="container box">
+            <div class="transformed box">A transform within the dialog's subtree.</div>
+        </div>
+        <div class="box" style="position: absolute; top:300px; z-index: 2; background-color: cyan">
+            This shows z-index stacking within the dialog's subtree. The cyan box should be on top of the magenta one.
+        </div>
+        <div class="box" style="position: absolute; top:350px; left:50px; z-index: 1; background-color: magenta"></div>
+        <div style="position: fixed; top: 90px; left: 30px; background-color: green">This is part of the green dialog.</div>
+    </dialog>
+</div>
+<div style="position: absolute; top: 100px; left: 0px; right: 0px; height: 200em; background-color: yellow; z-index:1000">
+</div>
+<script>
+document.getElementById('bottomDialog').showModal();
+document.getElementById('topDialog').showModal();
+document.getElementById('hiddenDialog').showModal();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Positioned Layout Module Test: parsing overlay with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#overlay">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // overlay: none | auto
+  test_invalid_value("overlay", "browser");
+  test_invalid_value("overlay", "normal");
+  test_invalid_value("overlay", "none auto");
+  test_invalid_value("overlay", "none, auto");
+  test_invalid_value("overlay", "\'auto\'");
+  test_invalid_value("overlay", "\'none\'");
+</script>

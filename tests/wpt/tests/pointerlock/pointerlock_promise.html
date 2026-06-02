@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock returns a Promise.</p>
+    <hr/>
+
+    <button id="Button">lockTarget</button>
+
+    <div id="target">Target</div>
+
+    <script type="text/javascript" >
+        const button = document.getElementById('Button');
+        const target = document.getElementById('target');
+
+        async_test(t => {
+            button.addEventListener('mousedown', t.step_func(async () => {
+                const promise = target.requestPointerLock();
+                assert_true(promise instanceof Promise, "Test that requestPointerLock() returns Promise.");
+                await promise;
+                t.done();
+            }));
+        });
+
+        // Automated testing
+        test_driver.click(button);
+    </script>
+    </body>
+</html>

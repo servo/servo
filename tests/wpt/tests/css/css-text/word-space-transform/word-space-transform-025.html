@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform auto-phrase forbidden</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-phrase-detection">
+<link rel="match" href="reference/word-space-transform-025-ref.html">
+<meta name="assert" content="The UA must not insert a virtual word boundary between a typographic letter unit and an adjacent typographic character unit from the [UAX14] WJ line breaking class">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-space-transform: ideographic-space auto-phrase;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>東京&#x2060;へ&#x2060;行きましょう。</div>
+<div id=ref lang=ja>東京&#x2060;へ&#x2060;行きましょう。</div>

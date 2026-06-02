@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<head>
+    <link rel="match" href="canvas-filter-object-convolve-matrix-expected.html">
+    <style type="text/css">
+      canvas {
+        margin: 5px;
+      }
+    </style>
+</head>
+<body>
+</body>
+<script>
+function makeConvolveFilter(options) {
+  const KERNEL_MATRIX = [
+    [3, 0, 0],
+    [0, 0, 0],
+    [0, 0, -3],
+  ];
+
+  options = Object.assign(options, {
+    kernelMatrix: KERNEL_MATRIX, name: "convolveMatrix"});
+  return new CanvasFilter(options);
+}
+
+const test_cases = [
+  {},
+  {preserveAlpha: true},
+  {targetX: 2, targetY: 2},
+  {divisor: 3},
+  {bias: 0.5},
+  {edgeMode: "wrap"}
+];
+
+function draw(ctx) {
+  ctx.fillRect(0, 20, 120, 100);
+
+  ctx.beginPath();
+  ctx.arc(150, 70, 50, 0, 2*Math.PI);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(220, 20);
+  ctx.lineTo(170, 120);
+  ctx.lineTo(270, 120);
+  ctx.lineTo(220, 20);
+  ctx.fill();
+}
+
+for (tc of test_cases) {
+  const canvas = document.createElement("canvas");
+  document.body.prepend(canvas);
+  const ctx = canvas.getContext("2d");
+  ctx.filter = "blur(0px)";
+  ctx.fillStyle = "rgba(0,255,0,0.5)";
+  draw(ctx);
+  ctx.fillStyle = "rgba(255,0,255,0.5)";
+  ctx.filter = makeConvolveFilter(tc);
+  draw(ctx);
+}
+</script>

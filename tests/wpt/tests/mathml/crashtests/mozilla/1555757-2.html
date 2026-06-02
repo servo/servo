@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #testElem {
+        border: 1px solid black;
+        background: yellow;
+        contain: layout size;
+        width: 300px;
+    }
+  </style>
+  <script>
+    function go() {
+        /* trigger an incremental reflow.
+         * Note: elem.style is undefined for MathML elements, so we have
+         * to use setAttribute().
+         */
+        testElem.setAttribute("style", "width:150px");
+    }
+  </script>
+</head>
+<body onload="go()">
+  <math>
+    <mtable id="testElem">Change my size</mtable>
+  </math>
+</body>
+</html>

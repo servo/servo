@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6230">
+<style>
+  main table {
+    display: inline-table;
+    border-collapse: collapse;
+    background:gray;
+    font-size: 40px;
+  }
+  main thead {
+    background: yellow;
+  }
+  main tbody {
+    background: green;
+    border: 80px dotted blue;
+  }
+</style>
+<main>
+<div id="container" style="overflow-x:auto;max-width:500px">
+  <table>
+    <thead>
+      <td>header</td>
+    </thead>
+    <tbody>
+      <td>body body body body body body body body body body body</td>
+    </tbody>
+  </table>
+</div>
+
+<script>
+
+test(_ => {
+  let container = document.querySelector("#container");
+  let table = container.querySelector("table")
+  assert_equals(container.offsetWidth, 500, "The container grows to the max-width.");
+  assert_equals(table.offsetWidth, 500, "The table fills the container.");
+  assert_equals(container.scrollWidth, 500, "The collapsed border does not exceed the scroll container.");
+});
+</script>

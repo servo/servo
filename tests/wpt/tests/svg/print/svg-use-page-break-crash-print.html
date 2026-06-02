@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Printing with svg:use and break-before doesn't crash</title>
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1690658">
+<style>
+  * {
+    break-before: left;
+  }
+</style>
+<svg id='id_0'>
+  <rect width=10 height=10 fill=lime></rect>
+</svg>
+<svg>
+  <use xlink:href='#id_0'></use>
+</svg>

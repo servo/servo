@@ -1,0 +1,116 @@
+<!doctype html>
+
+<head>
+  <title>Test for resolving css variables on copy</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../include/editor-test-utils.js"></script>
+  <style>
+    /* Define custom properties */
+    :root {
+      --span-text-color: blue;
+      --row-text-color: red;
+      --font-size-span: 18px;
+      --cell-padding: 12px;
+      --font-family-span: Calibri, sans-serif;
+      --range: 100%;
+    }
+
+    span {
+      font-size: var(--font-size-span);
+      font-family: var(--font-family-span);
+      color: var(--span-text-color);
+      animation-range: 0 100%, 0 var(--range)
+    }
+
+    td {
+      padding: var(--cell-padding);
+      color: var(--row-text-color);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="test">
+    <span>Span text</span>
+    <table>
+      <tr>
+        <td>Row 1, Cell 1</td>
+        <td>Row 1, Cell 2</td>
+      </tr>
+    </table>
+  </div>
+  <div id="pasteTarget" contenteditable="true"></div>
+  <div id="results"></div>
+
+  <script>
+    // Function selects contents of the test div and executes copy command
+    async function copyContent() {
+      const divToCopy = document.getElementById("test");
+      const range = document.createRange();
+      range.selectNodeContents(divToCopy);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const utils = new EditorTestUtils(divToCopy);
+      await utils.sendCopyShortcutKey();
+    }
+
+    // Function to paste the copied content into the pasteTarget div
+    // Pasting in content editable div ensures
+    // text/html type data from clipboard is used.
+    async function pasteContent() {
+      const selection = window.getSelection();
+      const pasteTarget = document.getElementById("pasteTarget");
+      selection.collapse(pasteTarget, 0);
+      const utils = new EditorTestUtils(pasteTarget);
+      await utils.sendPasteShortcutKey();
+    }
+
+    // Function to get the pasted HTML and add it in the results div
+    function getPastedHTML() {
+      const pasteTarget = document.getElementById("pasteTarget");
+      const results = document.getElementById("results");
+
+      results.appendChild(document.createTextNode(pasteTarget.innerHTML));
+    }
+
+    promise_test(async t => {
+      await copyContent();
+      await pasteContent();
+      test(() => {
+        const pastedDiv = document.getElementById("pasteTarget");
+
+        const expectedSpanStyles = {
+          "font-size": "18px",
+          "font-family": "Calibri, sans-serif",
+          "color": "rgb(0, 0, 255)"
+        };
+
+        const expectedTdStyles = {
+          "padding": "12px",
+          "color": "rgb(255, 0, 0)"
+        };
+        const span = pastedDiv.querySelector("span");
+        const td = pastedDiv.querySelector("td");
+
+        for (const [property, value] of Object.entries(expectedSpanStyles)) {
+          assert_equals(span.style.getPropertyValue(property), value,
+            `Span ${property} should be ${value}`);
+        }
+
+        for (const [property, value] of Object.entries(expectedTdStyles)) {
+          assert_equals(td.style.getPropertyValue(property), value,
+            `TD ${property} should be ${value}`);
+        }
+      });
+    }, "Test serialized html on copy has resolved css values");
+
+  </script>
+</body>
+
+</html>

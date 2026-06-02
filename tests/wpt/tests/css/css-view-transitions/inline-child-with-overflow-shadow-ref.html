@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: inline child with overflowing shadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+body {
+  background: rebeccapurple;
+  margin: 0;
+}
+
+.target {
+  width: 100px;
+  height: 200px;
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  view-transition-name: target;
+}
+
+.child {
+  background: green;
+  font-size: 100px;
+  box-shadow: -20px -20px yellow;
+}
+</style>
+
+<div class=target>
+  <span class=child>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+</div>
+

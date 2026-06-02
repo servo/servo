@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and shape function with evenodd fill</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+  <link rel="match" href="reference/clip-path-path-002-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'shape()' for clipping. Test evenodd path function. On pass you should
+	see a green hollow square.">
+</head>
+<style>
+  * {
+    font-size: 16px;
+  }
+
+  html {
+    font-size: 10px;
+    --v50: 50px;
+  }
+
+  #rect {
+    width: 100px;
+    height: 100px;
+    font-size: 5px;
+    font-family: Ahem;
+    background-color: green;
+    clip-path: shape(evenodd from 10px 2ch,
+                     hline by 80px, vline by 80%, hline by -8rem, close,
+                     move to 25% 25px, hline by 10em, vline by var(--v50), hline by -50%);
+  }
+</style>
+<body>
+  <p>The test passes if there are a green hollow rect.</p>
+  <div id="rect"></div>
+</body>
+</html>

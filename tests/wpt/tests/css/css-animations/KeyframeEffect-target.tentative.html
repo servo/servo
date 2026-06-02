@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.effect.target</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim { }
+::before {
+  content: ''
+}
+::after {
+  content: ''
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+  const animation = div.getAnimations()[0];
+  assert_equals(animation.effect.target, div,
+    'Animation.target is the animatable div');
+}, 'Returned CSS animations have the correct effect target');
+
+test(t => {
+  addStyle(t, { '.after::after': 'animation: anim 10s, anim 100s;' });
+  const div = addDiv(t, { class: 'after' });
+  const anims = document.getAnimations();
+  assert_equals(anims.length, 2,
+                'Got animations running on ::after pseudo element');
+  assert_equals(anims[0].effect.target, anims[1].effect.target,
+                'Both animations return the same target object');
+}, 'effect.target should return the same CSSPseudoElement object each time');
+
+test(t => {
+  addStyle(t, { '.after::after': 'animation: anim 10s;' });
+  const div = addDiv(t, { class: 'after' });
+  const pseudoTarget = document.getAnimations()[0].effect.target;
+  const effect = new KeyframeEffect(pseudoTarget,
+                                    { background: ["blue", "red"] },
+                                    3 * MS_PER_SEC);
+  const newAnim = new Animation(effect, document.timeline);
+  newAnim.play();
+  const anims = document.getAnimations();
+  assert_equals(anims.length, 2,
+                'Got animations running on ::after pseudo element');
+  assert_not_equals(anims[0], newAnim,
+                    'The scriped-generated animation appears last');
+  assert_equals(newAnim.effect.target, pseudoTarget,
+                'The effect.target of the scripted-generated animation is ' +
+                'the same as the one from the argument of ' +
+                'KeyframeEffect constructor');
+  assert_equals(anims[0].effect.target, newAnim.effect.target,
+                'Both animations return the same target object');
+}, 'effect.target from the script-generated animation should return the same ' +
+   'CSSPseudoElement object as that from the CSS generated animation');
+
+</script>

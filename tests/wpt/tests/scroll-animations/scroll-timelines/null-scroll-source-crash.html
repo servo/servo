@@ -1,0 +1,24 @@
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1088319">
+<meta name="assert" content="Playing animation with null scroll source should not crash.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html {
+    overflow: scroll;
+  }
+
+  body {
+    overflow: scroll;
+  }
+</style>
+<div id="box"></div>
+<script>
+  test(() => {
+    const effect = new KeyframeEffect(box, []);
+    const timeline = new ScrollTimeline();
+    const animation = new Animation(effect, timeline);
+    assert_equals(document.scrollingElement, null,
+      "This test relies on scrolling element being nil");
+    animation.play();
+  }, "Playing animation with null scroll source should not crash");
+</script>

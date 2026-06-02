@@ -1,0 +1,133 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>payload type handling (assuming rtcp-mux)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+// Tests behaviour from https://www.rfc-editor.org/rfc/rfc8834.html#name-header-extensions
+
+function createOfferSdp(extmaps) {
+  let sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:6HHHdzzeIhkE0CKj
+a=ice-pwd:XYDGVpfvklQIEnZ6YnyLsAew
+`;
+  sdp += 'a=group:BUNDLE ' + ['audio', 'video'].filter(kind => extmaps[kind]).join(' ') + '\r\n';
+  if (extmaps.audio) {
+    sdp += `m=audio 9 RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:audio
+a=rtpmap:111 opus/48000/2
+a=setup:actpass
+` + extmaps.audio.map(ext => SDPUtils.writeExtmap(ext)).join('');
+  }
+  if (extmaps.video) {
+    sdp += `m=video 9 RTP/SAVPF 112
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:112 VP8/90000
+a=setup:actpass
+` + extmaps.video.map(ext => SDPUtils.writeExtmap(ext)).join('');
+  }
+  return sdp;
+}
+
+[
+  // https://www.rfc-editor.org/rfc/rfc8834.html#section-5.2.4
+  {
+    audio: [{id: 1, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid'}],
+    video: [{id: 1, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid'}],
+    description: 'MID',
+  },
+  {
+    // https://www.rfc-editor.org/rfc/rfc8834.html#section-5.2.2
+    audio: [{id: 1, uri: 'urn:ietf:params:rtp-hdrext:ssrc-audio-level'}],
+    description: 'Audio level',
+  },
+  {
+    // https://www.rfc-editor.org/rfc/rfc8834.html#section-5.2.5
+    video: [{id: 1, uri: 'urn:3gpp:video-orientation'}],
+    description: 'Video orientation',
+  }
+].forEach(testcase => {
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(testcase)});
+    const answer = await pc.createAnswer();
+    const sections = SDPUtils.splitSections(answer.sdp);
+    sections.shift();
+    sections.forEach(section => {
+      const rtpParameters = SDPUtils.parseRtpParameters(section);
+      assert_equals(rtpParameters.headerExtensions.length, 1);
+      assert_equals(rtpParameters.headerExtensions[0].id, testcase[SDPUtils.getKind(section)][0].id);
+      assert_equals(rtpParameters.headerExtensions[0].uri, testcase[SDPUtils.getKind(section)][0].uri);
+    });
+  }, testcase.description + ' header extension is supported.');
+});
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  pc.addTransceiver('video');
+  const offer = await pc.createOffer();
+  const section = SDPUtils.splitSections(offer.sdp)[1];
+  const extensions = SDPUtils.matchPrefix(section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  const extension_not_mid = extensions.find(e => e.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid');
+  await pc.setRemoteDescription({type :'offer', sdp: offer.sdp.replace(extension_not_mid.uri, 'bogus')});
+
+  await pc.setLocalDescription();
+  const answer_section = SDPUtils.splitSections(pc.localDescription.sdp)[1];
+  const answer_extensions = SDPUtils.matchPrefix(answer_section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  assert_equals(answer_extensions.length, extensions.length - 1);
+  assert_false(!!extensions.find(e => e.uri === 'bogus'));
+  for (const answer_extension of answer_extensions) {
+    assert_true(!!extensions.find(e => e.uri === answer_extension.uri));
+  }
+}, 'Negotiates the subset of supported extensions offered');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  // Some implementations may refuse 15 as invalid id because of
+  // https://www.rfc-editor.org/rfc/rfc8285#section-4.2
+  // which only applies to one-byte extensions with ids 0-14.
+  const sdp = createOfferSdp({audio: [{
+    id: 15, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid',
+  }]});
+  await pc.setRemoteDescription({type: 'offer', sdp});
+}, 'Supports header extensions with id=15');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const sdp = createOfferSdp({audio: [{
+    id: 16, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid',
+  }, {
+    id: 17, uri: 'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
+  }]});
+  await pc.setRemoteDescription({type: 'offer', sdp});
+  await pc.setLocalDescription();
+  const answer_section = SDPUtils.splitSections(pc.localDescription.sdp)[1];
+  const answer_extensions = SDPUtils.matchPrefix(answer_section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  assert_equals(answer_extensions.length, 2);
+  assert_true(!!answer_extensions.find(e => e.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid'));
+  assert_true(!!answer_extensions.find(e => e.uri === 'urn:ietf:params:rtp-hdrext:ssrc-audio-level'));
+}, 'Supports two-byte header extensions');
+</script>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>dialog element: close()</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-dialog-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<dialog id="d1">
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d2" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d3" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d4" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d5" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<script>
+  var d1 = document.getElementById('d1'),
+      d2 = document.getElementById('d2'),
+      d3 = document.getElementById('d3'),
+      d4 = document.getElementById('d4'),
+      d5 = document.getElementById('d5'),
+      t = async_test("close() fires a close event"),
+      was_queued = false;
+
+  test(function(){
+    d1.close("closedialog");
+    assert_equals(d1.returnValue, "");
+  }, "close() on a <dialog> that doesn't have an open attribute aborts the steps");
+
+  test(function(){
+    assert_true(d2.open);
+    assert_equals(d2.returnValue, "");
+    d2.close("closedialog");
+    assert_false(d2.hasAttribute("open"));
+    assert_equals(d2.returnValue, "closedialog");
+  }, "close() removes the open attribute and set the returnValue to the first argument");
+
+  test(function(){
+    assert_true(d3.open);
+    assert_equals(d3.returnValue, "");
+    d3.returnValue = "foobar";
+    d3.close();
+    assert_false(d3.hasAttribute("open"));
+    assert_equals(d3.returnValue, "foobar");
+  }, "close() without argument removes the open attribute and there's no returnValue");
+
+  d4.onclose = t.step_func_done(function(e) {
+    assert_true(was_queued, "close event should be queued");
+    assert_true(e.isTrusted, "close event is trusted");
+    assert_false(e.bubbles, "close event doesn't bubble");
+    assert_false(e.cancelable, "close event is not cancelable");
+  });
+
+  t.step(function() {
+    d4.close();
+    was_queued = true;
+  })
+
+  test(function(){
+    Object.defineProperty(HTMLDialogElement.prototype, 'returnValue', { set: function(v) { assert_unreached('JS-defined setter returnValue on the prototype was invoked'); }, configurable:true });
+    Object.defineProperty(d5, 'returnValue', { set: function(v) { assert_unreached('JS-defined setter returnValue on the instance was invoked'); }, configurable:true });
+     d5.close('foo');
+  }, "close() should set the returnValue IDL attribute but not the JS property");
+</script>

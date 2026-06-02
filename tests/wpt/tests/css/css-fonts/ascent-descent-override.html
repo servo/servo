@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<link rel="match" href="ascent-descent-override-ref.html">
+<title>Tests the ascent-override and descent-override descriptors of @font-face</title>
+<style>
+@font-face {
+  font-family: Ahem;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  /* The default ascent and descent are 80% and 20%, respectively. */
+  ascent-override: 100%;
+  descent-override: 50%;
+}
+
+.target {
+  font: 20px Ahem;
+  color: green;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.top-aligned {
+  display: inline-block;
+  background-color: green;
+  vertical-align: top;
+  width: 1em;
+  height: 1em; /* Same as the overridden ascent */
+}
+
+.bottom-aligned {
+  display: inline-block;
+  background-color: green;
+  vertical-align: bottom;
+  width: 1em;
+  height: 0.5em; /* Same as the overridden descent */
+}
+
+</style>
+<div class="target">
+  <span class="top-aligned"></span>X<span class="bottom-aligned"></span>
+</div>

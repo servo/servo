@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?buttonType=LEFT&button=0&buttons=1">
+<meta name="variant" content="?buttonType=MIDDLE&button=1&buttons=4">
+<title>Testing button state of synthesized mouse(out|over|leave|enter) events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+#parent {
+  background-color: lightseagreen;
+  padding: 0;
+  height: 40px;
+  width: 40px;
+}
+#child {
+  background-color: red;
+  margin: 0;
+  height: 30px;
+  width: 30px;
+}
+</style>
+</head>
+<body>
+<div id="parent"><div id="child">abc</div></div>
+<script>
+const searchParams = new URLSearchParams(document.location.search);
+const buttonType = searchParams.get("buttonType");
+const button = parseInt(searchParams.get("button"));
+const buttons = parseInt(searchParams.get("buttons"));
+
+let events = [];
+function eventToString(data) {
+  if (!data) {
+    return "{}";
+  }
+  return `{ '${data.type}' on '${data.target}': button=${data.button}, buttons=${data.buttons} }`;
+}
+
+function eventsToString(events) {
+  if (!events.length) {
+    return "[]";
+  }
+  let ret = "[";
+  for (const data of events) {
+    if (ret != "[") {
+      ret += ", ";
+    }
+    ret += eventToString(data);
+  }
+  return ret + "]";
+}
+
+function removeEventsBefore(eventType) {
+  while (events[0]?.type != eventType) {
+    events.shift();
+  }
+}
+
+const parentElement = document.getElementById("parent");
+const childElement = document.getElementById("child");
+
+function promiseLayout() {
+  return new Promise(resolve => {
+    (childElement.isConnected ? childElement : parentElement).getBoundingClientRect();
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", resolve, { once: true });
+  });
+
+  ["mouseout", "mouseover", "mouseleave", "mouseenter", "mousemove", "mousedown"].forEach(eventType => {
+    parentElement.addEventListener(eventType, event => {
+      if (event.target != parentElement) {
+        return;
+      }
+      events.push({
+        type: event.type,
+        target: "parent",
+        button: event.button,
+        buttons: event.buttons,
+      });
+    });
+    childElement.addEventListener(eventType, event => {
+      if (event.target != childElement) {
+        return;
+      }
+      events.push({
+        type: event.type,
+        target: "child",
+        button: event.button,
+        buttons: event.buttons,
+      });
+    });
+  });
+}, "Setup event listeners and wait for load");
+
+promise_test(async t => {
+  events = [];
+  await promiseLayout();
+  childElement.addEventListener("mousedown", () => childElement.remove(), {once: true});
+  const {x, y} = (function () {
+    const rect = childElement.getBoundingClientRect();
+    return { x: rect.left, y: rect.top };
+  })();
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(10, 10, {origin: childElement})
+               .pointerDown({button: actions.ButtonType[buttonType]})
+               .pause(100) // Allow browsers to synthesize mouseout, etc
+               .pointerUp({button: actions.ButtonType[buttonType]})
+               .send();
+  await promiseLayout();
+  removeEventsBefore("mousedown");
+  test(() => {
+    const maybeMouseDownEvent =
+      events.length && events[0].type == "mousedown" ? events.shift() : undefined;
+    assert_equals(
+      eventToString(maybeMouseDownEvent),
+      eventToString({ type: "mousedown",  target: "child", button, buttons })
+    );
+  }, `${t.name}: mousedown should've been fired`);
+  assert_true(events.length > 0, `${t.name}: Some events should've been fired after mousedown`);
+  test(() => {
+    // Before `mousedown` is fired, both parent and child must have received
+    // `mouseenter`, only the child must have received `mouseover`.  Then, the
+    // child is now moved away by the `mousedown` listener.  Therefore,
+    // `mouseout` and `mouseleave` should be fired on the child as the spec of
+    // UI Events defines. Then, they are not a button press events.  Therefore,
+    // the `button` should be 0, but buttons should be set to 4 because of
+    // pressing the middle button.
+    let mouseOutOrLeave = [];
+    while (events[0]?.type == "mouseout" || events[0]?.type == "mouseleave") {
+      mouseOutOrLeave.push(events.shift());
+    }
+    assert_equals(
+      eventsToString(mouseOutOrLeave),
+      eventsToString([
+        { type: "mouseout",   target: "child", button: 0, buttons },
+        { type: "mouseleave", target: "child", button: 0, buttons },
+      ])
+    );
+  }, `${t.name}: mouseout and mouseleave should've been fired on the removed child`);
+  test(() => {
+    // And `mouseover` should be fired on the parent as the spec of UI Events
+    // defines.
+    let mouseOver = [];
+    while (events[0]?.type == "mouseover") {
+      mouseOver.push(events.shift());
+    }
+    assert_equals(
+      eventsToString(mouseOver),
+      eventsToString([{ type: "mouseover",  target: "parent", button: 0, buttons }])
+    );
+  }, `${t.name}: mouseover should've been fired on the parent`);
+  test(() => {
+    // On the other hand, it's unclear about `mouseenter`.  The mouse cursor has
+    // never been moved out from the parent.  Therefore, it shouldn't be fired
+    // on the parent ideally, but all browsers do not pass this test and there
+    // is no clear definition about this case.
+    let mouseEnter = [];
+    while (events.length && events[0].type == "mouseenter") {
+      mouseEnter.push(events.shift());
+    }
+    assert_equals(eventsToString(mouseEnter), eventsToString([]));
+  }, `${t.name}: mouseenter should not have been fired on the parent`);
+  assert_equals(eventsToString(events), eventsToString([]), "All events should've been checked");
+  parentElement.appendChild(childElement);
+}, "Removing an element at mousedown");
+
+promise_test(async t => {
+  events = [];
+  await promiseLayout();
+  childElement.addEventListener("mouseup", () => childElement.remove(), {once: true});
+  const {x, y} = (function () {
+    const rect = childElement.getBoundingClientRect();
+    return { x: rect.left, y: rect.top };
+  })();
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(10, 10, {origin: childElement})
+               .pointerDown({button: actions.ButtonType[buttonType]})
+               .pointerUp({button: actions.ButtonType[buttonType]})
+               .send();
+  await promiseLayout();
+  removeEventsBefore("mousedown");
+  test(() => {
+    const maybeMouseDownEvent =
+      events.length && events[0].type == "mousedown" ? events.shift() : undefined;
+    assert_equals(
+      eventToString(maybeMouseDownEvent),
+      eventToString({ type: "mousedown",  target: "child", button, buttons })
+    );
+  }, `${t.name}: mousedown should've been fired`);
+  assert_true(events.length > 0, `${t.name}: Some events should've been fired after mousedown`);
+  // Same as the `mousedown` case except `buttons` value because `mouseout`,
+  // `mouseleave`, `mouseover` and `mouseenter` should (or may) be fired
+  // after the `mouseup`.  Therefore, `.buttons` should not have the button
+  // flag.
+  test(() => {
+    let mouseOutOrLeave = [];
+    while (events[0]?.type == "mouseout" || events[0]?.type == "mouseleave") {
+      mouseOutOrLeave.push(events.shift());
+    }
+    assert_equals(
+      eventsToString(mouseOutOrLeave),
+      eventsToString([
+        { type: "mouseout",   target: "child", button: 0, buttons: 0 },
+        { type: "mouseleave", target: "child", button: 0, buttons: 0 },
+      ])
+    );
+  }, `${t.name}: mouseout and mouseleave should've been fired on the removed child`);
+  test(() => {
+    let mouseOver = [];
+    while (events[0]?.type == "mouseover") {
+      mouseOver.push(events.shift());
+    }
+    assert_equals(
+      eventsToString(mouseOver),
+      eventsToString([{ type: "mouseover",  target: "parent", button: 0, buttons: 0 }])
+    );
+  }, `${t.name}: mouseover should've been fired on the parent`);
+  test(() => {
+    let mouseEnter = [];
+    while (events[0]?.type == "mouseenter") {
+      mouseEnter.push(events.shift());
+    }
+    assert_equals(eventsToString(mouseEnter), eventsToString([]));
+  }, `${t.name}: mouseenter should not have been fired on the parent`);
+  assert_equals(eventsToString(events), eventsToString([]), "All events should've been checked");
+  parentElement.appendChild(childElement);
+}, "Removing an element at mouseup");
+</script>
+</body>
+</html>

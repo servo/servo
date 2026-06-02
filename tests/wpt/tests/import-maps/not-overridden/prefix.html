@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const log = [];
+
+// First, use a module specifier
+promise_test(() => {
+  return import("../resources/log.js?pipe=sub&name=A")
+    .then(() => {
+      assert_array_equals(log, ["log:A"], "First import should use original module");
+    });
+}, "Initial import before import map");
+
+// Now try to redefine it with an import map
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "../resources/": "/foobar/"
+  }
+}
+</script>
+<script type="module">
+// Testing that the resolution is correct using `resolve`, as you can't import
+// the same module twice.
+test(() => {
+  assert_false(import.meta.resolve("../resources/log.js?pipe=sub&name=A")
+              .endsWith("/foobar/log.js?pipe=sub&name=A"));
+  assert_true(import.meta.resolve("../resources/log.js?pipe=sub&name=A")
+              .endsWith("/resources/log.js?pipe=sub&name=A"));
+}, "Prefix resolution after import map should not be redefined");
+</script>
+</body>
+</html>
+

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Values Test: getComputedStyle() for linear-gradient() with sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#linear-gradients">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #t1 {
+    background-image: linear-gradient(white, rgb(0 0 calc(sibling-index() * 200)));
+  }
+  #t2 {
+    background-image: cross-fade(linear-gradient(white, rgb(0 0 calc(sibling-index() * 200))) 40%, rgb(0 0 calc(sibling-index() * 200)) 60%);
+  }
+  #t3 {
+    background-image: image-set(linear-gradient(white, rgb(0 0 calc(sibling-index() * 200))) 1x);
+  }
+</style>
+<div>
+  <div id="t1"></div>
+</div>
+<div>
+  <div id="t2"></div>
+</div>
+<div>
+  <div id="t3"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(t1).backgroundImage, "linear-gradient(rgb(255, 255, 255), rgb(0, 0, 200))");
+  }, "Check that sibling-index() is resolved in serialization of computed value of linear-gradient()");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).backgroundImage, "cross-fade(linear-gradient(rgb(255, 255, 255), rgb(0, 0, 200)) 40%, rgb(0, 0, 200) 60%)");
+  }, "Check that sibling-index() is resolved in serialization of computed value of linear-gradient() inside cross-fade()");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).backgroundImage, "image-set(linear-gradient(rgb(255, 255, 255), rgb(0, 0, 200)) 1dppx)");
+  }, "Check that sibling-index() is resolved in serialization of computed value of linear-gradient() inside image-set()");
+</script>

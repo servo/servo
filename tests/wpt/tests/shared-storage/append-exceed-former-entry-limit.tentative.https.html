@@ -1,0 +1,52 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+const PREV_ENTRY_LIMIT = 10000;
+
+promise_test(async () => {
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key]);
+  let url2 = generateURL("/shared-storage/resources/frame2.html",
+                         [ancestor_key]);
+
+  const numEntriesToAppend = PREV_ENTRY_LIMIT + 1;
+
+  // Create an array of promises.
+  const append_promises = [];
+  for (let i = 0; i < numEntriesToAppend; i++) {
+    append_promises.push(sharedStorage.append(i.toString(), 'x'));
+  }
+
+  // Wait for all promises to resolve in parallel.
+  await Promise.all(append_promises);
+
+  await addModuleOnce("/shared-storage/resources/verify-length-module.js");
+  let select_url_result = await sharedStorage.selectURL(
+      "verify-length", [{url: url0}, {url: url1}, {url: url2}],
+      {data: {'expectedLength': numEntriesToAppend},
+      resolveToConfig: true, keepAlive: true});
+  assert_true(validateSelectURLResult(select_url_result, true));
+  attachFencedFrame(select_url_result, 'opaque-ads');
+
+  // frame1_loaded implies that the legnth is as expected and so the calls to
+  // append() were all successful.
+  assert_equals(await nextValueFromServer(ancestor_key), "frame1_loaded");
+
+  // Clean up.
+  await sharedStorage.clear();
+}, 'sharedStorage.append() is not constrained by the former entry limit of '
+   + PREV_ENTRY_LIMIT.toString());
+
+</script>
+</body>

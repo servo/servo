@@ -1,0 +1,56 @@
+<!doctype html>
+<title>VTTCue()</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-vttcue">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var cue = new VTTCue(3, 12, 'foo bar');
+
+    assert_equals(cue.startTime, 3);
+    assert_equals(cue.endTime, 12);
+    assert_equals(cue.text, 'foo bar');
+    assert_equals(cue.id, '');
+    assert_equals(cue.region, null);
+    assert_equals(cue.pauseOnExit, false);
+    assert_equals(cue.snapToLines, true);
+    assert_equals(cue.line, 'auto');
+    assert_equals(cue.lineAlign, 'start');
+    assert_equals(cue.position, 'auto');
+    assert_equals(cue.positionAlign, 'auto');
+    assert_equals(cue.size, 100);
+    assert_equals(cue.align, 'center');
+}, document.title + ', initial values');
+
+test(function() {
+    var cue = new VTTCue(-1, 12, 'foo bar');
+
+    assert_equals(cue.startTime, -1);
+    assert_equals(cue.endTime, 12);
+}, document.title + ', bad start time');
+
+
+test(function() {
+    var cue = new VTTCue(2, -1, 'foo bar');
+
+    assert_equals(cue.startTime, 2);
+    assert_equals(cue.endTime, -1);
+}, document.title + ', bad end time');
+
+test(function() {
+    var cue = new VTTCue(2, +Infinity, 'foo bar');
+
+    assert_equals(cue.startTime, 2);
+    assert_equals(cue.endTime, +Infinity);
+}, document.title + ', unbounded end time');
+
+test(function() {
+    var cue = new VTTCue(3, 12, '<i>foo bar</i>');
+
+    var frag = cue.getCueAsHTML();
+    assert_equals(frag.childNodes.length, 1);
+    assert_equals(frag.childNodes[0].localName, 'i');
+    assert_equals(frag.childNodes[0].textContent, 'foo bar');
+}, document.title + ', text formatting');
+</script>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): Filter on an element in a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+html { overflow: hidden }
+body {
+  perspective: 500px;
+  perspective-origin: 400px 299px;
+  background: rgb(200, 200, 200);
+}
+div {
+  width: 1140px;
+  height: 990px;
+  transform-style: preserve-3d;
+  position: absolute;
+  top: 299.5px;
+  left: 400px;
+  transform: translate3d(-570px, -495px, 500px) rotateY(64.24deg) translateY(23px) rotateX(90deg);
+  background-image: url('support/tile-bg.png');
+  background-size: 100% 100%;
+}
+
+p.patch {
+  margin: 0;
+  position: absolute;
+  background: red;
+  height: 200px;
+  width: 800px;
+  left: 0px;
+  top: 400px;
+  z-index: -1;
+}
+</style>
+
+<div></div>
+
+<!--
+  This reference is the same as the test, but with this additional red
+  patch underneath it (in z-order).  This means that if any content is
+  missing when drawing the test, the red patch will show through and the
+  test will fail.  But if all the content is drawn, then the test will
+  pass.
+-->
+<p class="patch"></p>

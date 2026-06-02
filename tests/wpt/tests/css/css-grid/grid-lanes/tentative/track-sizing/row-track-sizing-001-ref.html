@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: 5% repeat(3, 10px 15%) repeat(1, 15px 5px 20px);
+    grid-template-columns: 100px 100px 100px 100px 100px;
+    height: 500px;
+    gap: 10px;
+}
+</style>
+<body>
+  <p>Test that grid-lanes tracks are correctly sized.</p>
+  <div class="grid">
+    <div style="height: 100%; width: 50px; background: orange;"></div>
+    <div style="height: 100%; width: 60px; background: pink; transform: translateX(-50px);"></div>
+    <div style="height: 100%; width: 40px; background: lime; transform: translateX(-90px);"></div>
+
+    <div style="height: 100%; width: 30px; background: yellow; grid-column: 1;"></div>
+    <div style="height: 100%; width: 100px; background: blue; transform: translateX(-70px);"></div>
+
+    <div style="height: 100%; width: 25px; background: green; grid-column: 1;"></div>
+    <div style="height: 100%; width: 25px; background: green; transform: translateX(-75px);"></div>
+    <div style="height: 100%; width: 90px; background: teal; transform: translateX(-150px);"></div>
+
+    <div style="height: 100%; width: 100px; background: blue; grid-column: 1;"></div>
+    <div style="height: 100%; width: 80px; background: purple;"></div>
+
+    <div style="height: 100%; width: 80px; background: purple; grid-column: 1;"></div>
+    <div style="height: 100%; width: 50px; background: orange; transform: translateX(-20px);"></div>
+
+    <div style="height: 100%; width: 60px; background: pink; grid-column: 1;"></div>
+    <div style="height: 100%; width: 15px; background: coral; transform: translateX(-40px);"></div>
+    <div style="height: 100%; width: 30px; background: yellow; transform: translateX(-125px);"></div>
+    <div style="height: 100%; width: 90px; background: teal; transform: translateX(-195px);"></div>
+
+    <div style="height: 100%; width: 40px; background: lime; grid-column: 1;"></div>
+    <div style="height: 100%; width: 80px; background: purple; transform: translateX(-60px);"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia; transform: translateX(-80px);"></div>
+
+    <div style="height: 100%; width: 90px; background: teal; grid-column: 1;"></div>
+    <div style="height: 100%; width: 25px; background: green; transform: translateX(-10px);"></div>
+    <div style="height: 100%; width: 15px; background: coral; transform: translateX(-85px);"></div>
+
+    <div style="height: 100%; width: 15px; background: coral; grid-column: 1;"></div>
+    <div style="height: 100%; width: 30px; background: yellow; transform: translateX(-85px);"></div>
+    <div style="height: 100%; width: 40px; background: lime; transform: translateX(-155px);"></div>
+    <div style="height: 100%; width: 60px; background: pink; transform: translateX(-215px);"></div>
+
+    <div style="height: 100%; width: 10px; background: fuchsia; grid-column: 1;"></div>
+    <div style="height: 100%; width: 50px; background: orange; transform: translateX(-90px);"></div>
+    <div style="height: 100%; width: 10px; background: fuchsia; transform: translateX(-140px);"></div>
+    <div style="height: 100%; width: 100px; background: blue; transform: translateX(-230px);"></div>
+  </div>
+</body>
+</html>

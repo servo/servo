@@ -1,0 +1,5 @@
+<its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its">
+ <its:termRule selector="//term" term="yes"
+  termInfoPointer="../def"/>
+ <its:termRule selector="//kw" term="yes"/>
+</its:rules>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<title>
+  CSS Scroll Snap Reference
+</title>
+
+<style>
+
+.wrapper {
+  /* lay out in a nice grid */
+  display: grid;
+  gap: 0.25em;
+  grid-template-columns: repeat(6, max-content);
+}
+
+.scroller {
+  width: 50px;
+  height: 50px;
+  border: solid silver;
+  border-block-start-color: blue;
+  border-inline-start-color: blue;
+  position: relative;
+}
+
+.target {
+  width: 30px;
+  height: 30px;
+  background: orange;
+  top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute;
+}
+
+.TB  { writing-mode: horizontal-tb; }
+.LR  { writing-mode: vertical-lr; }
+.RL  { writing-mode: vertical-rl; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+
+/* not absolutizing the border colors, so that the test passes even if css-logical is not supported; */
+.large.invert {
+  border: solid silver;
+  border-block-end-color: blue;
+  border-inline-end-color: blue;
+}
+
+.TB.large.invert .target::before { top: auto; }
+.LR.large.invert .target::before { left: auto; }
+.RL.large.invert .target::before { right: auto; }
+
+.TB.ltr.large.invert .target::before { left:   auto; }
+.TB.rtl.large.invert .target::before { right:  auto; }
+.LR.ltr.large.invert .target::before { top:    auto; }
+.LR.rtl.large.invert .target::before { bottom: auto; }
+.RL.ltr.large.invert .target::before { top:    auto; }
+.RL.rtl.large.invert .target::before { bottom: auto; }
+
+.large.invert .target::before {
+  width: 9px;
+  height: 9px;
+  background: orange;
+  top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute;
+  content: '';
+}
+
+.large.invert .target {
+  display: block;
+  background: none;
+  width: 30px;
+  height: 30px;
+  border-block-start: 20px solid red;
+  border-inline-start: 20px solid red;
+}
+
+</style>
+
+<p>Test passes if there is an orange square tucked into each blue corner without gaps,
+and there is no red, except for the large inverted cases which should have red
+in the silver corner and smaller orange boxes in the blue corner.
+
+<div class="wrapper">
+<!-- Simple Small Cases -->
+
+<div class="scroller TB ltr small">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR ltr small">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL ltr small">
+  <div class="target"></div>
+</div>
+
+<div class="scroller TB rtl small">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR rtl small">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL rtl small">
+  <div class="target"></div>
+</div>
+
+<!-- Target-inverted Small Cases
+     This row should be identical to the previous. -->
+
+<div class="scroller TB ltr small invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR ltr small invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL ltr small invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller TB rtl small invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR rtl small invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL rtl small invert">
+  <div class="target"></div>
+</div>
+
+<!-- Simple Large Cases -->
+
+<div class="scroller TB ltr large">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR ltr large">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL ltr large">
+  <div class="target"></div>
+</div>
+
+<div class="scroller TB rtl large">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR rtl large">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL rtl large">
+  <div class="target"></div>
+</div>
+
+<!-- Target-inverted Large Cases
+     This is the fun one. -->
+
+<div class="scroller TB ltr large invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR ltr large invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL ltr large invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller TB rtl large invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller LR rtl large invert">
+  <div class="target"></div>
+</div>
+
+<div class="scroller RL rtl large invert">
+  <div class="target"></div>
+</div>
+
+</div> <!-- wrapper -->
+

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clip does not create a stacking context</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#propdef-clip">
+<link rel="match" href="clip-no-stacking-context-ref.html">
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+
+<style>
+  #bottom {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: red;
+    z-index: 1;
+  }
+  #clip {
+    position: absolute;
+    clip: rect(0px, 100px, 100px, 0px);
+  }
+  #top {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: green;
+    z-index: 3;
+  }
+</style>
+
+<p>Expected: A green box with no red visible.</p>
+<div id="bottom"></div>
+<!-- If #clip creates a stacking context, it will be below #bottom (which has a
+     higher z-index) which will force #top to be below #bottom as well. This
+     should not happen because #clip should not create a stacking context. -->
+<div id="clip">
+  <div id="top"></div>
+</div>

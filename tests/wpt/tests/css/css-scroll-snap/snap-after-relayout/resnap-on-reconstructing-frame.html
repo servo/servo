@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1948861">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  scroll-snap-type: y mandatory;
+  width: 500px;
+  height: 200px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.child {
+  scroll-snap-align: start;
+  width: 500px;
+  height: 100%;
+}
+video {
+  height: 100%;
+}
+</style>
+<div id="container">
+  <div id="scroller">
+    <div class="child">
+      <video src="dummy.webm" controls autoplay>
+    </div>
+    <div class="child">
+      <video src="dummy.webm" controls autoplay>
+    </div>
+    <div class="child">
+      <video src="dummy.webm" controls autoplay>
+    </div>
+  </div>
+</div>
+<script>
+promise_test(async () => {
+  // Ensure this document has been already loaded.
+  if (document.readyState != "complete") {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+  }
+
+  assert_equals(scroller.scrollTop, 0);
+
+  const scrollendPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollend", resolve);
+  });
+  // Try to scroll downward, it will snap to the second green box.
+  scroller.scrollBy({ top: 100, behavior: "smooth" });
+  await scrollendPromise;
+
+  // Change the parent position style so that the scroll container will
+  // be reconstructed.
+  container.style.position = "fixed";
+
+  assert_equals(scroller.scrollTop, 200, "Should stay at the last snap point");
+}, "Stay at the last snap point even after reconstrucing the scroll container");
+</script>

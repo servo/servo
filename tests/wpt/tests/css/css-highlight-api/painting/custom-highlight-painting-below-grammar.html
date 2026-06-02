@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-below-grammar-ref.html">
+<meta name="assert" value="Highlight overlay is painted below all other pseudo overlays (comparing only to grammar suffices since it's the one immediately above ::highlight, assuming ::grammar-error is painted in the correct order)">
+<style>
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+  ::grammar-error {
+    background-color: lime;
+    color: green;
+  }
+</style>
+<!--
+  The grammar mistakes in the text below are intentional and part of this test.
+
+  https://html.spec.whatwg.org/multipage/interaction.html#spelling-and-grammar-checking
+  • contenteditable makes the text “checkable for the purposes of [spelling and grammar checking]”
+  • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
+  • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
+-->
+<span contenteditable="true" spellcheck="true" lang="en">Many thing can happen.</div>
+<script>
+  let r = new Range();
+  r.setStart(document.body, 0);
+  r.setEnd(document.body, 1);
+  CSS.highlights.set("example-highlight", new Highlight(r));
+</script>

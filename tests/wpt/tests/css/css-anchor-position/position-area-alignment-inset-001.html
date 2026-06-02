@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>position-area normal alignment vs insets</title>
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#position-area-alignment">
+<meta name="assert" content="Test passes if normal alignment aligns towards the non-auto inset.">
+<style>
+  .container {
+    position: relative;
+    width: 100px;
+    height: 120px;
+    border: solid;
+    margin: 1em;
+    float: left;
+  }
+  .anchor {
+    border: solid blue 10px;
+    anchor-name: --foo;
+    inset: 0;
+    place-self: center;
+    position: absolute;
+  }
+  .test {
+    border: solid 5px;
+    position: absolute;
+    position-anchor: --foo;
+  }
+  .inset1 {
+    top: 0;
+    right: 0;
+    border-color: orange;
+  }
+  .inset2 {
+    bottom: 0;
+    left: 0;
+    border-color: teal;
+  }
+  .center {
+    place-self: center;
+    border-color: aqua;
+  }
+</style>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="test inset1" style="position-area: top left"></div>
+  <div class="test center" style="position-area: top left"></div>
+  <div class="test inset2" style="position-area: top left"></div>
+
+  <div class="test inset1" style="position-area: bottom right"></div>
+  <div class="test center" style="position-area: bottom right"></div>
+  <div class="test inset2" style="position-area: bottom right"></div>
+
+  <div class="test inset1" style="position-area: center"></div>
+  <div class="test center" style="position-area: center"></div>
+  <div class="test inset2" style="position-area: center"></div>
+</div>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="test inset1" style="position-area: top"></div>
+  <div class="test center" style="position-area: top"></div>
+  <div class="test inset2" style="position-area: top"></div>
+
+  <div class="test inset1" style="position-area: bottom"></div>
+  <div class="test center" style="position-area: bottom"></div>
+  <div class="test inset2" style="position-area: bottom"></div>
+
+  <div class="test inset1" style="position-area: center span-all"></div>
+  <div class="test center" style="position-area: center span-all"></div>
+  <div class="test inset2" style="position-area: center span-all"></div>
+</div>
+
+
+<div class="container" style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="test inset1" style="position-area: top left"></div>
+  <div class="test center" style="position-area: top left"></div>
+  <div class="test inset2" style="position-area: top left"></div>
+
+  <div class="test inset1" style="position-area: bottom right"></div>
+  <div class="test center" style="position-area: bottom right"></div>
+  <div class="test inset2" style="position-area: bottom right"></div>
+
+  <div class="test inset1" style="position-area: center"></div>
+  <div class="test center" style="position-area: center"></div>
+  <div class="test inset2" style="position-area: center"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl">
+  <div class="anchor"></div>
+  <div class="test inset1" style="position-area: top"></div>
+  <div class="test center" style="position-area: top"></div>
+  <div class="test inset2" style="position-area: top"></div>
+
+  <div class="test inset1" style="position-area: bottom"></div>
+  <div class="test center" style="position-area: bottom"></div>
+  <div class="test inset2" style="position-area: bottom"></div>
+
+  <div class="test inset1" style="position-area: center span-all"></div>
+  <div class="test center" style="position-area: center span-all"></div>
+  <div class="test inset2" style="position-area: center span-all"></div>
+</div>

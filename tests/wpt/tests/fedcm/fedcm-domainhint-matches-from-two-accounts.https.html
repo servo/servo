@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API domain hint matches an account from two accounts.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+
+<script type="module">
+import {
+  fedcm_test,
+  request_options_with_domain_hint,
+  select_manifest,
+  fedcm_get_and_select_first_account
+} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let options = request_options_with_domain_hint(
+    'manifest_with_two_accounts.json', 'example');
+  await select_manifest(t, options);
+
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, 'account_id=john_doe');
+}, "Domain hint matches an account from two accounts.");
+  </script>

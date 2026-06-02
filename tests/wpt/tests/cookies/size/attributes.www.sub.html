@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>Test cookie attribute size restrictions</title>
+  <meta name=help href="https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis#section-5.4">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/cookies/resources/cookie-test.js"></script>
+</head>
+
+<body>
+  <div id=log></div>
+  <script>
+    const host = "{{host}}";
+    const attrSizeTests = [
+      {
+        cookie: `test=1; path=/cookies/size; path=/cookies/siz${"e".repeat(1024)}`,
+        expected: "test=1",
+        name: "Too long path attribute (>1024 bytes) is ignored; previous valid path wins.",
+        defaultPath: false,
+      },
+      {
+        cookie: `test=2; path=/cookies/siz${"e".repeat(1024)}; path=/cookies/size`,
+        expected: "test=2",
+        name: "Too long path attribute (>1024 bytes) is ignored; next valid path wins.",
+        defaultPath: false,
+      },
+      {
+        // Look for the cookie using the default path to ensure that it
+        // doesn't show up if the path attribute actually takes effect.
+        cookie: `test=3; path=/${"a".repeat(1023)};`,
+        expected: "",
+        name: "Max size path attribute (1024 bytes) is not ignored",
+      },
+      {
+        // Look for the cookie using the default path to ensure that it
+        // shows up if the path is ignored.
+        cookie: `test=4; path=/${"a".repeat(1024)};`,
+        expected: "test=4",
+        name: "Too long path attribute (>1024 bytes) is ignored",
+      },
+      {
+        // This page opens on the www subdomain, so we set domain to {{host}}
+        // to see if anything works as expected. Using a valid domain other
+        // than ${host} will cause the cookie to fail to be set.
+
+        // NOTE: the domain we use for testing here is technically invalid per
+        // the RFCs that define the format of domain names, but currently
+        // neither RFC6265bis or the major browsers enforce those restrictions
+        // when parsing cookie domain attributes. If that changes, update these
+        // tests.
+        cookie: `test=5; domain=${host}; domain=${"a".repeat(1024)}.com`,
+        expected: "test=5",
+        name: "Too long domain attribute (>1024 bytes) is ignored; previous valid domain wins.",
+      },
+      {
+        cookie: `test=6; domain=${"a".repeat(1024)}.com; domain=${host}`,
+        expected: "test=6",
+        name: "Too long domain attribute (>1024 bytes) is ignored; next valid domain wins.",
+      },
+      {
+        cookie: `test=7; domain=${"a".repeat(1020)}.com;`,
+        expected: "",
+        name: "Max size domain attribute (1024 bytes) is not ignored"
+      },
+      {
+        cookie: `test=8; domain=${"a".repeat(1021)}.com;`,
+        expected: "test=8",
+        name: "Too long domain attribute (>1024 bytes) is ignored"
+      },
+      {
+        cookie: cookieStringWithNameAndValueLengths(2048, 2048) +
+          `; domain=${"a".repeat(1020)}.com; domain=${host}`,
+        expected: cookieStringWithNameAndValueLengths(2048, 2048),
+        name: "Set cookie with max size name/value pair and max size attribute value",
+      },
+      {
+        // RFC6265bis doesn't specify a maximum size of the entire Set-Cookie
+        // header, although some browsers do
+        cookie: cookieStringWithNameAndValueLengths(2048, 2048) +
+          `; domain=${"a".repeat(1020)}.com` +
+          `; domain=${"a".repeat(1020)}.com` +
+          `; domain=${"a".repeat(1020)}.com` +
+          `; domain=${"a".repeat(1020)}.com; domain=${host}`,
+        expected: cookieStringWithNameAndValueLengths(2048, 2048),
+        name: "Set cookie with max size name/value pair and multiple max size attributes (>8k bytes total)",
+      },
+      {
+        cookie: `test=11; max-age=${"1".repeat(1024)};`,
+        expected: "test=11",
+        name: "Max length Max-Age attribute value (1024 bytes) doesn't cause cookie rejection"
+      },
+      {
+        cookie: `test=12; max-age=${"1".repeat(1025)};`,
+        expected: "test=12",
+        name: "Too long Max-Age attribute value (>1024 bytes) doesn't cause cookie rejection"
+      },
+      {
+        cookie: `test=13; max-age=-${"1".repeat(1023)};`,
+        expected: "",
+        name: "Max length negative Max-Age attribute value (1024 bytes) doesn't get ignored"
+      },
+      {
+        cookie: `test=14; max-age=-${"1".repeat(1024)};`,
+        expected: "test=14",
+        name: "Too long negative Max-Age attribute value (>1024 bytes) gets ignored"
+      },
+    ];
+
+    for (const test of attrSizeTests) {
+      httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+    }
+  </script>
+</body>
+
+</html>

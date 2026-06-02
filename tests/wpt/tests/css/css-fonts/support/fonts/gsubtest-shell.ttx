@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ttFont sfntVersion="OTTO" ttLibVersion="2.2">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name="space"/>
+    <GlyphID id="2" name="F"/>
+    <GlyphID id="3" name="P"/>
+  </GlyphOrder>
+
+  <head>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="1.0"/>
+    <fontRevision value="1.0"/>
+    <checkSumAdjustment value="0xae4c554b"/>
+    <magicNumber value="0x5f0f3cf5"/>
+    <flags value="00000000 00000011"/>
+    <unitsPerEm value="1000"/>
+    <created value="Tue Mar 22 13:46:27 2011"/>
+    <modified value="Tue Mar 22 13:46:27 2011"/>
+    <xMin value="100"/>
+    <yMin value="-10"/>
+    <xMax value="2204"/>
+    <yMax value="710"/>
+    <macStyle value="00000000 00000000"/>
+    <lowestRecPPEM value="3"/>
+    <fontDirectionHint value="2"/>
+    <indexToLocFormat value="0"/>
+    <glyphDataFormat value="0"/>
+  </head>
+
+  <hhea>
+    <tableVersion value="1.0"/>
+    <ascent value="750"/>
+    <descent value="-250"/>
+    <lineGap value="9"/>
+    <advanceWidthMax value="2304"/>
+    <minLeftSideBearing value="100"/>
+    <minRightSideBearing value="100"/>
+    <xMaxExtent value="2204"/>
+    <caretSlopeRise value="1"/>
+    <caretSlopeRun value="0"/>
+    <caretOffset value="0"/>
+    <reserved0 value="0"/>
+    <reserved1 value="0"/>
+    <reserved2 value="0"/>
+    <reserved3 value="0"/>
+    <metricDataFormat value="0"/>
+    <numberOfHMetrics value="4"/>
+  </hhea>
+
+  <maxp>
+    <tableVersion value="0x5000"/>
+    <numGlyphs value="4"/>
+  </maxp>
+
+  <OS_2>
+    <version value="4"/>
+    <xAvgCharWidth value="1525"/>
+    <usWeightClass value="400"/>
+    <usWidthClass value="5"/>
+    <fsType value="00000000 00000000"/>
+    <ySubscriptXSize value="650"/>
+    <ySubscriptYSize value="600"/>
+    <ySubscriptXOffset value="0"/>
+    <ySubscriptYOffset value="75"/>
+    <ySuperscriptXSize value="650"/>
+    <ySuperscriptYSize value="600"/>
+    <ySuperscriptXOffset value="0"/>
+    <ySuperscriptYOffset value="350"/>
+    <yStrikeoutSize value="50"/>
+    <yStrikeoutPosition value="300"/>
+    <sFamilyClass value="0"/>
+    <panose>
+      <bFamilyType value="0"/>
+      <bSerifStyle value="0"/>
+      <bWeight value="0"/>
+      <bProportion value="0"/>
+      <bContrast value="0"/>
+      <bStrokeVariation value="0"/>
+      <bArmStyle value="0"/>
+      <bLetterForm value="0"/>
+      <bMidline value="0"/>
+      <bXHeight value="0"/>
+    </panose>
+    <ulUnicodeRange1 value="00000000 00000000 00000000 00000001"/>
+    <ulUnicodeRange2 value="00000000 00000000 00000000 00000000"/>
+    <ulUnicodeRange3 value="00000000 00000000 00000000 00000000"/>
+    <ulUnicodeRange4 value="00000000 00000000 00000000 00000000"/>
+    <achVendID value="None"/>
+    <fsSelection value="00000001 11000000"/>
+    <fsFirstCharIndex value="32"/>
+    <fsLastCharIndex value="80"/>
+    <sTypoAscender value="750"/>
+    <sTypoDescender value="-250"/>
+    <sTypoLineGap value="0"/>
+    <usWinAscent value="1000"/>
+    <usWinDescent value="0"/>
+    <ulCodePageRange1 value="00100000 00000000 00000000 00000001"/>
+    <ulCodePageRange2 value="00000000 00000000 00000000 00000000"/>
+    <sxHeight value="500"/>
+    <sCapHeight value="750"/>
+    <usDefaultChar value="0"/>
+    <usBreakChar value="32"/>
+    <usMaxContex value="0"/>
+  </OS_2>
+
+  <name>
+    <namerecord nameID="1" platformID="1" platEncID="0" langID="0x0">
+      __familyName__
+    </namerecord>
+    <namerecord nameID="2" platformID="1" platEncID="0" langID="0x0">
+      Regular
+    </namerecord>
+    <namerecord nameID="3" platformID="1" platEncID="0" langID="0x0">
+      1.000;TPSP;__familyName__-Regular
+    </namerecord>
+    <namerecord nameID="4" platformID="1" platEncID="0" langID="0x0">
+      __familyName__
+    </namerecord>
+    <namerecord nameID="5" platformID="1" platEncID="0" langID="0x0">
+      Version 1.000
+    </namerecord>
+    <namerecord nameID="6" platformID="1" platEncID="0" langID="0x0">
+      __familyName__-Regular
+    </namerecord>
+    <namerecord nameID="9" platformID="3" platEncID="0" langID="0x0">
+      Tal Leming with modifications by John Daggett
+    </namerecord>
+    <namerecord nameID="14" platformID="3" platEncID="0" langID="0x0">
+      http://scripts.sil.org/OFL
+    </namerecord>
+    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
+      __familyName__
+    </namerecord>
+    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
+      Regular
+    </namerecord>
+    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
+      1.000;TPSP;__familyName__-Regular
+    </namerecord>
+    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
+      __familyName__
+    </namerecord>
+    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
+      Version 1.000
+    </namerecord>
+    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
+      __familyName__-Regular
+    </namerecord>
+    <namerecord nameID="9" platformID="3" platEncID="1" langID="0x409">
+      Tal Leming with modifications by John Daggett
+    </namerecord>
+    <namerecord nameID="14" platformID="3" platEncID="1" langID="0x409">
+      http://scripts.sil.org/OFL
+    </namerecord>
+  </name>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name="space"/><!-- SPACE -->
+      <map code="0x46" name="F"/><!-- LATIN CAPITAL LETTER F -->
+      <map code="0x50" name="P"/><!-- LATIN CAPITAL LETTER P -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name="space"/><!-- SPACE -->
+      <map code="0x46" name="F"/><!-- LATIN CAPITAL LETTER F -->
+      <map code="0x50" name="P"/><!-- LATIN CAPITAL LETTER P -->
+    </cmap_format_4>
+  </cmap>
+
+  <post>
+    <formatType value="3.0"/>
+    <italicAngle value="0.0"/>
+    <underlinePosition value="-75"/>
+    <underlineThickness value="50"/>
+    <isFixedPitch value="0"/>
+    <minMemType42 value="0"/>
+    <maxMemType42 value="0"/>
+    <minMemType1 value="0"/>
+    <maxMemType1 value="0"/>
+  </post>
+
+  <CFF>
+
+    <CFFFont name="__familyName__-Regular">
+      <version value="001.000"/>
+      <FullName value="__familyName__"/>
+      <FamilyName value="__familyName__"/>
+      <Weight value="Normal"/>
+      <isFixedPitch value="0"/>
+      <ItalicAngle value="0"/>
+      <UnderlineThickness value="50"/>
+      <PaintType value="0"/>
+      <CharstringType value="2"/>
+      <FontMatrix value="0.001 0 0 0.001 0 0"/>
+      <FontBBox value="100 0 2204 750"/>
+      <StrokeWidth value="0"/>
+      <!-- charset is dumped separately as the 'GlyphOrder' element -->
+      <Encoding name="StandardEncoding"/>
+      <Private>
+        <BlueValues value="0 0"/>
+        <BlueScale value="0.039625"/>
+        <BlueShift value="7"/>
+        <BlueFuzz value="1"/>
+        <ForceBold value="0"/>
+        <LanguageGroup value="0"/>
+        <ExpansionFactor value="0.06"/>
+        <initialRandomSeed value="0"/>
+        <defaultWidthX value="750"/>
+        <nominalWidthX value="2406"/>
+      </Private>
+      <CharStrings>
+        <CharString name=".notdef">
+          endchar
+        </CharString>
+        <CharString name="F">
+          -102 787 hmoveto
+          31 119 rlineto
+          203 hlineto
+          32 -119 rlineto
+          246 hlineto
+          -213 700 rlineto
+          -296 hlineto
+          -213 -700 rlineto
+          -477 hmoveto
+          237 244 245 162 -245 130 287 164 -524 hlineto
+          1586 -700 rmoveto
+          518 180 -281 520 -237 hlineto
+          -332 -700 rmoveto
+          237 700 -237 hlineto
+          -434 -196 rmoveto
+          60 -228 rlineto
+          -120 hlineto
+          endchar
+        </CharString>
+        <CharString name="P">
+          -107 394 306 rmoveto
+          153 86 82 115 115 -86 82 -153 hvcurveto
+          -294 -15 91 -670 -91 -15 297 15 -101 291 hlineto
+          632 -291 rmoveto
+          -15 276 15 -67 vlineto
+          -254 690 rlineto
+          -12 hlineto
+          -219 -593 rlineto
+          -69 -25 -46 -28 -59 hhcurveto
+          -5 -15 259 15 -26 hlineto
+          -67 -35 34 71 26 hvcurveto
+          43 116 rlineto
+          232 hlineto
+          78 -221 rlineto
+          599 695 rmoveto
+          -28 -11 -5 -6 -14 -22 -44 34 -78 hhcurveto
+          -124 -91 -73 -106 -95 52 -64 147 -61 hvcurveto
+          126 -52 30 -44 -79 vvcurveto
+          -81 -55 -50 -81 -103 -85 70 168 -17 vhcurveto
+          -15 -253 15 hlineto
+          22 4 13 15 18 45 32 -37 98 hhcurveto
+          130 92 82 116 83 -32 66 -173 73 hvcurveto
+          -120 50 -33 43 72 vvcurveto
+          71 51 49 82 90 65 -92 -119 13 vhcurveto
+          15 226 hlineto
+          -1118 -207 rmoveto
+          -119 -49 -63 -96 vhcurveto
+          -82 364 82 hlineto
+          96 49 -63 -119 hvcurveto
+          312 53 rmoveto
+          108 -305 rlineto
+          -221 hlineto
+          1420 459 rmoveto
+          -28 -11 -5 -6 -14 -22 -44 34 -78 hhcurveto
+          -124 -91 -73 -106 -95 52 -64 147 -61 hvcurveto
+          126 -52 30 -44 -79 vvcurveto
+          -81 -55 -50 -81 -103 -85 70 168 -17 vhcurveto
+          -15 -253 15 hlineto
+          22 4 13 15 18 45 32 -37 98 hhcurveto
+          130 92 82 116 83 -32 66 -173 73 hvcurveto
+          -120 50 -33 43 72 vvcurveto
+          71 51 49 82 90 65 -92 -119 13 vhcurveto
+          15 226 hlineto
+          endchar
+        </CharString>
+        <CharString name="space">
+          endchar
+        </CharString>
+      </CharStrings>
+    </CFFFont>
+
+    <GlobalSubrs>
+      <!-- The 'index' attribute is only for humans; it is ignored when parsed. -->
+    </GlobalSubrs>
+
+  </CFF>
+
+  <hmtx>
+    <mtx name=".notdef" width="750" lsb="0"/>
+    <mtx name="F" width="2304" lsb="100"/>
+    <mtx name="P" width="2299" lsb="100"/>
+    <mtx name="space" width="750" lsb="0"/>
+  </hmtx>
+
+</ttFont>

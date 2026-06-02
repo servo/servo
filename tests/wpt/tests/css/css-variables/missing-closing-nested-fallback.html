@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Variable substitution with missing closing parenthesis</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2013337">
+<link rel="help" href="https://drafts.csswg.org/css-variables/">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<div
+  style="box-shadow:var(--token-62be83f1-0097-4872-b224-94c7b2aa11d6, 10px 10px 10px 10px rgb(245, 245, 245), 0px 0px 4px 2px var(--token-63fea906-5b5e-4ed0-9785-37e4c202cb5f, rgb(1, 255, 148)"
+></div>
+<script>
+test(function() {
+  assert_equals(
+    getComputedStyle(document.querySelector("div")).boxShadow,
+    "rgb(245, 245, 245) 10px 10px 10px 10px, rgb(1, 255, 148) 0px 0px 4px 2px",
+    "Should substitute correctly"
+  );
+});
+</script>

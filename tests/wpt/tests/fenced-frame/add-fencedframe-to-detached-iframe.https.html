@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test Add Fenced Frame to Detached Iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async (t) => {
+  const iframe = attachIFrame("resources/dummy.html");
+
+  const doc = document.querySelector("iframe").contentDocument;
+  iframe.remove();
+
+  const ff = doc.createElement("fencedframe");
+  doc.body.append(ff);
+}, 'Add fenced frame to detached iframe test');
+
+promise_test(async (t) => {
+  const iframe = attachIFrame("resources/dummy.html");
+  const doc = document.querySelector("iframe").contentDocument;
+
+  const nested_iframe = doc.createElement('iframe');
+  nested_iframe.src = "resources/dummy.html";
+  doc.body.append(nested_iframe);
+  const nested_doc = doc.querySelector("iframe").contentDocument;
+
+  iframe.remove();
+
+  const ff = nested_doc.createElement("fencedframe");
+  nested_doc.body.append(ff);
+}, 'Add fenced frame to nested iframe in detached frame test');
+
+</script>
+</body>
+</html>

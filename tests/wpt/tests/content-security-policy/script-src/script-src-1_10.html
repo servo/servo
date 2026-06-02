@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>data: as script src should not run with a policy that doesn't specify data: as an allowed source</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>data: as script src should not run with a policy that doesn't specify data: as an allowed source</h1>
+    <div id='log'></div>
+
+    <script>
+        var dataScriptRan = false;
+        var t_spv = async_test("Test that securitypolicyviolation event is fired");
+
+        window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+            assert_equals(e.violatedDirective, "script-src-elem");
+        }));
+    </script>
+
+    <!-- This is our test case, but we don't expect it to actually execute if CSP is working. -->
+    <script src="data:text/javascript;charset=utf-8;base64,ZGF0YVNjcmlwdFJhbiA9IHRydWU7"></script>
+
+    <script>
+        test(function () {
+            assert_false(dataScriptRan, "data script ran");
+        }, "Verify that data: as script src doesn't run with this policy");
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: requestIdleCallback() (https://w3c.github.io/requestidlecallback/)
+
+partial interface Window {
+  unsigned long requestIdleCallback(IdleRequestCallback callback, optional IdleRequestOptions options = {});
+  undefined cancelIdleCallback(unsigned long handle);
+};
+
+dictionary IdleRequestOptions {
+  unsigned long timeout;
+};
+
+[Exposed=Window] interface IdleDeadline {
+  DOMHighResTimeStamp timeRemaining();
+  readonly attribute boolean didTimeout;
+};
+
+callback IdleRequestCallback = undefined (IdleDeadline deadline);

@@ -1,0 +1,17 @@
+h1 {
+  font-size: 20px;
+}
+
+.grid-container {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(var(--grid-width), max-content);
+  font-size: 13px;
+  text-align: center;
+}
+
+.grid-cell-content {
+  display: block;
+  margin: 0 auto;
+  outline: 1px solid black;
+}

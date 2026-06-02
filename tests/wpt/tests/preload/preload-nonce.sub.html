@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-wpt' 'nonce-script'; default-src 'none'; style-src 'nonce-style'; connect-src 'self';">
+<title>Makes sure that preload requests use their nonce for the CSP</title>
+<script src="/resources/testharness.js" nonce="wpt"></script>
+<script src="/resources/testharnessreport.js" nonce="wpt"></script>
+<script src="/preload/resources/preload_helper.js" nonce="wpt"></script>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=style>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=style nonce="style">
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=script>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=script nonce="script">
+<body>
+<script nonce="wpt">
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const keys = [];
+  const links = document.querySelectorAll('link:not([nonce])');
+  for (const link of links) {
+    if (link.rel === 'preload') {
+      const r = /\?key=([a-zA-Z0-9\-]+)$/;
+      keys.push(link.href.match(r)[1]);
+    }
+  }
+  await new Promise((resolve) => step_timeout(resolve, 3000));
+
+  for (const key of keys) {
+    assert_false(await hasArrivedAtServer(key));
+  }
+}, 'Preload requests without a nonce are blocked by CSP.');
+
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const keys = [];
+  const links = document.querySelectorAll('link[nonce]');
+  for (const link of links) {
+    if (link.rel === 'preload') {
+      const r = /\?key=([a-zA-Z0-9\-]+)$/;
+      keys.push(link.href.match(r)[1]);
+    }
+  }
+  await new Promise((resolve) => step_timeout(resolve, 3000));
+
+  for (const key of keys) {
+    assert_true(await hasArrivedAtServer(key));
+  }
+}, 'Preload requests with a correct nonce are allowed by CSP.');
+</script>
+

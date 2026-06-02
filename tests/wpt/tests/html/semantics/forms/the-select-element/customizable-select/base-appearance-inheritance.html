@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/393500003">
+<link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/7062764/comment/13e22855_e8a342a7/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.custom, .custom::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select class=custom>
+  <option>option</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.querySelector('select');
+  const option = document.querySelector('option');
+  const nestedSelect = document.createElement('select');
+  const nestedSelectOption = document.createElement('option');
+  select.appendChild(nestedSelect);
+  nestedSelect.appendChild(nestedSelectOption);
+
+  assert_equals(getComputedStyle(select).display, 'inline-flex',
+    'outer select should have base appearance.');
+  assert_equals(getComputedStyle(option).display, 'flex',
+    'outer option should have base appearance.');
+  assert_equals(getComputedStyle(nestedSelect).display, 'inline-block',
+    'nested select should have auto appearance.');
+  assert_equals(getComputedStyle(nestedSelectOption).display, 'block',
+    'nested option should have auto appearance.');
+}, 'base appearance should not propagate to nested elements which support appearance.');
+</script>

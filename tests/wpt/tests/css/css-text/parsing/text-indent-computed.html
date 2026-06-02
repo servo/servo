@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text: getComputedStyle().textIndent</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-indent">
+<meta name="assert" content="text-indent computed value is computed <length-percentage> value, plus any specified keywords.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("text-indent", "10px");
+test_computed_value("text-indent", "20%");
+test_computed_value("text-indent", "calc(50% + 60px)");
+test_computed_value("text-indent", "-30px");
+test_computed_value("text-indent", "-40%");
+test_computed_value("text-indent", "calc(10px - 0.5em)", "-10px");
+
+test_computed_value("text-indent", "10px hanging");
+test_computed_value("text-indent", "20% each-line");
+test_computed_value("text-indent", "calc(50% + 60px) hanging each-line");
+test_computed_value("text-indent", "each-line hanging calc(10px + 0.5em)", "30px hanging each-line");
+</script>
+</body>
+</html>

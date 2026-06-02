@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (attachment position repeat)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-09-18 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <link rel="match" href="../reference/ref-nothing-below.xht" />
+
+        <meta name="assert" content="Background with (attachment position repeat) does not set anything on the background. Background attachment, position and repeat subproperties have no rendering effect in this test since background-image is not set." />
+        <style type="text/css">
+            div
+            {
+                background: scroll bottom repeat-x;
+                height: 200px;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is nothing below.</p>
+        <div></div>
+    </body>
+</html>

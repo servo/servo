@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: test that the scroll-marker of a target whose target position
+    has not been reached only gets selected when it is within half a scroll
+    port's distance from the current scroll offset</title>
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#example-d2ca6884">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="support/scroll-marker-support.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <style>
+  .wrapper {
+    display: grid;
+    justify-content: center;
+    position: relative;
+  }
+
+  .carousel {
+    width: 600px;
+    height: 512px;
+    overflow-x: scroll;
+    scroll-snap-type: x mandatory;
+    list-style-type: none;
+    scroll-behavior: smooth;
+    border: solid 2px grey;
+    padding-left: 0px;
+    white-space: nowrap;
+    position: relative;
+
+    &>.item {
+      height: 80%;
+      width: 120px;
+      border: 1px solid;
+      place-content: center;
+      background-color: white;
+      margin-right: 1200px;
+      display: inline-block;
+
+      &::scroll-marker {
+        content: ' ';
+        width: 35px;
+        height: 35px;
+        border: 3px solid gray;
+        border-radius: 50%;
+        margin: 3px;
+        background-color:red;
+      }
+
+      &::scroll-marker:target-current {
+        background-color: green;
+      }
+    }
+
+    scroll-marker-group: after;
+    &::scroll-marker-group {
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: solid 1px black;
+      border-radius: 30px;
+    }
+  }
+
+  </style>
+  <div id="wrapper" class="wrapper">
+    <div class="carousel" id="carousel">
+      <div class="item" id="item1" tabindex=0>1</div>
+      <div class="item" id="item2" tabindex=0>2</div>
+    </div>
+  </div>
+  <script>
+    RED = "rgb(255, 0, 0)";
+    GREEN = "rgb(0, 128, 0)";
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const items = carousel.querySelectorAll(".item");
+
+      assert_equals(carousel.scrollLeft, 0,  "carousel is not scrolled");
+      verifySelectedMarker(0, items, GREEN, RED);
+
+      // Scroll a bit, but not enough to bring item2 into view. Item1 should
+      // still be selected.
+      let pos = item2.offsetLeft - carousel.clientWidth - 10;
+      await waitForScrollReset(t, carousel, pos);
+      verifySelectedMarker(0, items, GREEN, RED);
+
+      // Scroll a bit more; bring item2 into view but only into the second half
+      // of the scroll port. Item1 should still be selected.
+      pos = item2.offsetLeft - carousel.clientWidth + item2.offsetWidth;
+      await waitForScrollReset(t, carousel, pos);
+      verifySelectedMarker(0, items, GREEN, RED);
+
+      // Scroll to place item2 within the half a scroll port's width from the
+      // current scroll offset. Item2 should now be selected.
+      pos += carousel.clientWidth / 2;
+      await waitForScrollReset(t, carousel, pos);
+      verifySelectedMarker(1, items, GREEN, RED);
+    }, "target whose target position is not yet reached only get selected " +
+       "when its less than half a scroll port away.");
+  </script>
+</body>
+
+</html>

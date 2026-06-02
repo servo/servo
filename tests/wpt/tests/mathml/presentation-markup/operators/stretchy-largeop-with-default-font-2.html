@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <title>Stretchy/Largeop with default fonts</title>
+    <meta charset="utf-8"/>
+    <link rel="help" href="https://www.w3.org/TR/mathml-core/#layout-of-operators">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1092053">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript">
+      function contentOf(aElement) {
+        return document.getElementById(aElement).textContent;
+      }
+      function boxOf(aElement) {
+        return document.getElementById(aElement).getBoundingClientRect();
+      }
+      promise_test(() => {
+        return new Promise(resolve => {
+          window.addEventListener("load", resolve);
+        }).then(() => {
+          const numTests = 10; // zero indexed
+          for (let i = 0; i < numTests; i++) {
+            const operatorName = contentOf(`mo${i}`);
+            const box = boxOf(`mo${i}`);
+            const ref = boxOf(`moRef${i}`);
+            assert_greater_than(box.width, ref.width, `width of largeop '${operatorName}'`);
+            assert_greater_than(box.height, ref.height, `height of largeop '${operatorName}'`);
+          }
+        });
+      }, "Test that non-stretchy largeops are bigger in display mode.");
+    </script>
+  </head>
+  <body>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo0">&bigodot;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo1">&bigoplus;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo2">&#x2a03;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo3">&#x2a05;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo4">&#x2a07;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo5">&#x2a08;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo6">&#x2a09;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo7">&#x2a0a;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo8">&#x2afc;</mo>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mo id="mo9">&#x2aff;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef0">&bigodot;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef1">&bigoplus;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef2">&#x2a03;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef3">&#x2a05;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef4">&#x2a07;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef5">&#x2a08;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef6">&#x2a09;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef7">&#x2a0a;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef8">&#x2afc;</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="moRef9">&#x2aff;</mo>
+      </math>
+    </p>
+  </body>
+</html>

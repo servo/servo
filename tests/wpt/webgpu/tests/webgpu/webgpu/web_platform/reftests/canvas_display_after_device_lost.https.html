@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_display_after_device_lost</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta name="assert" content="WebGPU canvas should be presented correctly after device lost" />
+  <link rel="match" href="./ref/canvas_display_after_device_lost-ref.html" />
+  <style>
+    body { background-color: #F0E68C; }
+  </style>
+  <canvas id="cvs0" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs1" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs2" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs3" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <script type="module" src="canvas_display_after_device_lost.html.js"></script>
+</html>

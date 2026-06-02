@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Anchor-positioned element attempting to anchor to itself as a fallback</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/401633680">
+<style>
+  @position-try --pf {
+    position-anchor: --problem;
+  }
+</style>
+<div style="anchor-name:--a;"></div>
+<div style="position:absolute; anchor-name:--problem; position-anchor:--a; left:anchor(right); margin-left:10px; position-try-fallbacks:--pf;"></div>

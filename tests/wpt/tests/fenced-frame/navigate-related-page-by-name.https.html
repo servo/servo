@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Test named frame navigation of related pages.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  // A: top-level frame
+  //   C: fencedframe
+  // B: auxiliary browsing context
+  //
+  // C should not be able to navigate B.
+
+  // Create an auxiliary browsing context with a particular name.
+  const second_window = attachWindowContext({target: "target_name"});
+
+  // Create a fenced frame, and use the same target name inside of it.
+  const frame = attachFencedFrameContext();
+  await frame.execute(async () => {
+    window.open("resources/dummy.html", "target_name");
+  });
+
+  // Confirm that the top-level frame's related page (`second_window`)
+  // wasn't navigated by the fenced frame, i.e. that name resolution
+  // for related pages is fenced.
+  await second_window.execute(() => {});
+}, 'navigate related pages from inside a fenced frame');
+
+promise_test(async () => {
+  // A: top-level frame
+  // B: auxiliary browsing context
+  //   C: fencedframe
+  //
+  // A should not be able to navigate C.
+
+  // Create an auxiliary browsing context.
+  const second_window = attachWindowContext();
+  await second_window.execute(async () => {
+    // Create a fenced frame inside that context and give it a particular name.
+    window.frame = attachFencedFrameContext();
+    await window.frame.execute(() => {
+      window.name = "target_name";
+    });
+  });
+
+  // Navigate that target name from the original top-level frame.
+  window.open("resources/dummy.html", "target_name");
+
+  // Confirm that the fenced frame wasn't navigated.
+  await second_window.execute(async () => {
+    await frame.execute(() => {});
+  });
+}, 'navigate fenced frames inside related pages from the embedder');
+
+</script>
+</body>

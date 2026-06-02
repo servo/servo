@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: css-position-3</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#absolute-positioning-containing-block">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#padding-physical">
+<meta name="assert" content="abspos resolves padding %-ge sizes correctly.">
+<style>
+#outer-horizontal-padding {
+    position: relative;
+    padding: 10px;
+    width: 30px;
+    height: 80px;
+    background: green;
+}
+#inner-horizontal-padding {
+    position: absolute;
+    left: 50px;
+    height: 100px;
+    top: 0px;
+    padding-left: 50%;
+    padding-right: 50%;
+    background: green;
+}
+#outer-vertical-padding {
+    position: relative;
+    padding: 10px;
+    width: 30px;
+    height: 80px;
+    background: green;
+}
+#inner-vertical-padding {
+    position: absolute;
+    left: 50px;
+    width: 50px;
+    top: 0px;
+    padding-top: 100%;
+    padding-bottom: 100%;
+    background: green;
+}
+</style>
+<div id="outer-horizontal-padding">
+  <div id="inner-horizontal-padding"></div>
+</div>
+<div id="outer-vertical-padding">
+  <div id="inner-vertical-padding"></div>
+</div>
+<script>
+document.body.offsetTop;
+test(() => {
+  let target = document.querySelector("#inner-horizontal-padding");
+  assert_equals(target.offsetWidth, 50);
+}, 'absolute positioned element should resolve padding left+right against container padding-box width' );
+
+test(() => {
+  let target = document.querySelector("#inner-vertical-padding");
+  assert_equals(target.offsetHeight, 100);
+}, 'absolute positioned element should resolve padding top+bottom against container padding-box width' );
+</script>

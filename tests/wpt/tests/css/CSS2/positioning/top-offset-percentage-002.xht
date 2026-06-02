@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: position absolute - top offset percentage and inherit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="match" href="left-offset-percentage-002-ref.xht" />
+
+  <meta content="'top: inherit' makes the top property take the same computed value as the top property for the element's parent; in the case of a percentage value, the computed value is the specified percentage value. 'top: [percentage]' refers to height of containing block." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {position: absolute;}
+
+  #grand-parent-abs-pos
+  {
+  height: 400px;
+  width: 600px;
+  }
+
+  #red-abs-pos-overlapped
+  {
+  background-color: red;
+  color: white;
+  height: 100px;
+  left: 300px;
+  top: 100px;
+  width: 100px;
+  }
+
+  #parent-abs-pos
+  {
+  height: 0px;
+  left: 50%; /* 50% x 600px == 300px */
+  /* 'left: [percentage]' refers to width of containing block. */
+  top: 25%; /* 25% x 400px == 100px */
+  /* 'top: [percentage]' refers to height of containing block. */
+  width: 0px;
+  }
+
+  #green-child-abs-pos-inherit-overlapping
+  {
+  background-color: green;
+  left: 0px;
+  top: inherit;
+  /*
+  =====================================
+  top: inherit should resolve as top: 25% because
+  "the property takes the same computed value as the
+  property for the element's parent"
+  CSS 2.1, section 6.2.1 The 'inherit' value
+  http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit
+  and
+  "Computed value: (...) if specified as a percentage, [then]
+  the specified [percentage] value"
+  http://www.w3.org/TR/CSS21/visuren.html#position-props
+
+  So, the top offset of #green-child-abs-pos-inherit-overlapping
+  should be 25%, which is 25% of the height of its containing
+  block (#parent-abs-pos) which is 0px.
+  =====================================
+  */
+  height: 100px;
+  width: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="grand-parent-abs-pos">
+    <div id="red-abs-pos-overlapped">test FAILED</div>
+    <div id="parent-abs-pos">
+      <div id="green-child-abs-pos-inherit-overlapping"></div>
+    </div>
+  </div>
+
+ </body>
+</html>

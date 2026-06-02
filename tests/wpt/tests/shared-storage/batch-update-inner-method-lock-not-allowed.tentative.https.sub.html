@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  return promise_rejects_dom(t, "DataError",
+    sharedStorage.batchUpdate([
+      new SharedStorageSetMethod("key0", "value0", {withLock: "lock1"})
+    ]));
+}, 'batchUpdate() with a set method that specifies the \'withLock\' option');
+
+</script>
+</body>

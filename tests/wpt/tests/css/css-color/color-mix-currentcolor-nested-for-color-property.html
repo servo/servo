@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="color-mix-currentcolor-nested-for-color-property-ref.html">
+<title>currentColor is inherited correctly with a nested color-mix() for the color attribute</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="author" title="Aaron Krajeski" href="https://github.com/mysterydate">
+<style>
+body {
+    color: color(srgb 0 0 1);
+}
+div {
+    color: color-mix(in srgb, color-mix(in srgb, currentColor 50%, color(srgb 0 1 0)), white);
+}
+div > div {
+    color: inherit;
+}
+</style>
+<div>
+    <div>This text should be a light blue-green</div>
+</div>

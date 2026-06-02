@@ -1,0 +1,23 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1935471">
+<style>
+@property --my-url {
+  syntax: "<url> | none";
+  inherits: true;
+  initial-value: none;
+}
+:root {
+  --my-url: url(blah);
+}
+
+* {
+  --foo: var(--my-url);
+}
+</style>
+<body>
+<script>
+  // Get some styling off-thread.
+  for (let i = 0; i < 10000; ++i) {
+    document.body.appendChild(document.createElement("span"));
+  }
+</script>

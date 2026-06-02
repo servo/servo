@@ -1,0 +1,22 @@
+<!doctype html>
+<title>drag &amp; drop - manually closing a tab while a drag is in operation</title>
+<style type="text/css">
+p.gone, ul { display: none; }
+p.gone + ul { display: block; }
+</style>
+<script type="text/javascript">
+window.onload = function() {
+  if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
+  document.getElementsByTagName('ul')[0].ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+};
+</script>
+<p><a href="#popup" target="_blank">Open this page in a new tab</a>.</p>
+<ul draggable='true'>
+  <li>Drag this text downwards, and do not release the drag.</li>
+  <li>Use a keyboard shortcut (eg. Ctrl+W on Windows) to close the tab.</li>
+  <li>The browser may optionally cancel the drag. The browser may optionally close the tab. Fail if the drag placeholder gets stuck. Fail if the browser crashes.</li>
+</ul>
+<noscript><p>Enable JavaScript and reload</p></noscript>

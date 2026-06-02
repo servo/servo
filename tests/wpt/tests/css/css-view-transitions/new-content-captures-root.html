@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: capture root elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-content-captures-root-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.box {
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  will-change: transform;
+}
+#e1 {
+  top: 10px;
+  left: 30px;
+}
+#shared {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  background: red;
+  view-transition-name: shared;
+}
+
+div.dst { background: lightgreen; }
+/* We're verifying what we capture, so just display the old contents for 5 minutes.  */
+html::view-transition { background: pink; }
+html::view-transition-group(shared) { animation-duration: 300s; }
+html::view-transition-image-pair(shared) { visibility: hidden }
+html::view-transition-old(root) { animation-duration: 0s; opacity: 0 }
+html::view-transition-new(root) { animation-duration: 0s; opacity: 1 }
+</style>
+<body style="background: red">
+<div id=e1 class=box></div>
+<div id=shared></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let t = document.startViewTransition(() => {
+    e1.classList.add("dst");
+    document.body.style = "";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</body>

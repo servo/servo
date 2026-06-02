@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Logical Properties: {max-,min-}block-size</title>
+<link rel="author" title="Xu Xing" href="mailto:openxu@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-dimension-properties">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.tests {
+  width: 600px;
+}
+
+.block {
+  border: 1px solid #000;
+}
+#block1 {
+  block-size: 40px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+}
+#block2 {
+  block-size: 100px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+}
+#block3 {
+  block-size: 120px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+}
+
+.override {
+  border: 1px solid #000;
+}
+#override1 {
+  block-size: 100px;
+  height: 50px;
+}
+#override2 {
+  height: 50px;
+  block-size: 100px;
+}
+
+.table {
+  border: 1px solid #000;
+  display: table;
+}
+.tablecell {
+  display: table-cell;
+}
+#table1_cell {
+  block-size: 40px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+  inline-size: 100px;
+  background-color: red;
+}
+#table2_cell {
+  block-size: 100px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+  inline-size: 100px;
+  background-color: blue;
+}
+#table3_cell {
+  block-size: 120px;
+  min-block-size: 50px;
+  max-block-size: 100px;
+  inline-size: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="log"></div>
+
+<h3>Maximum and minimim block sizes in blocks</h3>
+<div class="tests">
+  <p><code>block-size</code> &lt; <code>min-block-size</code></p>
+  <div class="block" id="block1" data-expected-width="600" data-expected-client-height="50"></div>
+
+  <p><code>min-block-size</code> &lt; <code>block-size</code> &le; <code>max-block-size</code></p>
+  <div class="block" id="block2" data-expected-width="600" data-expected-client-height="100"></div>
+
+  <p><code>block-size</code> &gt; <code>max-block-size</code></p>
+  <div class="block" id="block3" data-expected-width="600" data-expected-client-height="100"></div>
+</div>
+
+<h3>Overridance of <code>height</code> and <code>block-size</code></h3>
+<div class="tests">
+  <p>Check that <code>height</code> overrides <code>block-size</code></p>
+  <div class="override" id="override1" data-expected-width="600" data-expected-client-height="50"></div>
+
+  <p>Check that <code>block-size</code> overrides <code>height</code></p>
+  <div class="override" id="override2" data-expected-width="600" data-expected-client-height="100"></div>
+</div>
+
+<h3>Maximum and minimim block sizes in table cells</h3>
+<div class="tests">
+  <p><code>block-size</code> &lt; <code>min-block-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table1_cell" data-expected-client-width="100" data-expected-client-height="40"></div>
+  </div>
+
+  <p><code>min-block-size</code> &lt; <code>block-size</code> &le; <code>max-block-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table2_cell" data-expected-client-width="100" data-expected-client-height="100"></div>
+  </div>
+
+  <p><code>block-size</code> &gt; <code>max-block-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table3_cell" data-expected-client-width="100" data-expected-client-height="120"></div>
+  </div>
+</div>
+
+<script>
+checkLayout(".block", false);
+checkLayout(".override", false);
+checkLayout(".tablecell", false);
+done();
+</script>

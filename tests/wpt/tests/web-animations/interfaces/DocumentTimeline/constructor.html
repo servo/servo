@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DocumentTimeline constructor tests</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-documenttimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/timing-override.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const timeline = new DocumentTimeline();
+
+  assert_times_equal(timeline.currentTime, document.timeline.currentTime);
+}, 'An origin time of zero is used when none is supplied');
+
+test(t => {
+  const timeline = new DocumentTimeline({ originTime: 0 });
+  assert_times_equal(timeline.currentTime, document.timeline.currentTime);
+}, 'A zero origin time produces a document timeline with a current time ' +
+   'identical to the default document timeline');
+
+test(t => {
+  const timeline = new DocumentTimeline({ originTime: 10 * MS_PER_SEC });
+
+  assert_times_equal(timeline.currentTime,
+                     (document.timeline.currentTime - 10 * MS_PER_SEC));
+}, 'A positive origin time makes the document timeline\'s current time lag ' +
+   'behind the default document timeline');
+
+test(t => {
+  const timeline = new DocumentTimeline({ originTime: -10 * MS_PER_SEC });
+
+  assert_times_equal(timeline.currentTime,
+                (document.timeline.currentTime + 10 * MS_PER_SEC));
+}, 'A negative origin time makes the document timeline\'s current time run ' +
+   'ahead of the default document timeline');
+
+</script>
+</body>

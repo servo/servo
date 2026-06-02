@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<title>Contain layout performance</title>
+<style>
+#listContainer {
+  margin: 0 auto;
+  width: 600px;
+  border: 1px solid blue;
+  contain: content;
+}
+.listItem {
+  outline: 2px solid green;
+  padding: .4em;
+  overflow: hidden;
+  contain: content;
+}
+</style>
+</head>
+<body>
+<div id="listContainer"></div>
+<script>
+const LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+let listContainer = null;
+
+function createListItem() {
+  let item = document.createElement("div");
+  item.classList.add("listItem");
+  item.textContent = LOREM_IPSUM.substr(
+      Math.floor(Math.random()*100), Math.floor(Math.random()*200)+150);
+  listContainer.appendChild(item);
+}
+
+var height = 0;
+function runTest() {
+  height++;
+  listContainer.firstChild.style.height = height + "px";
+  if (height > 50)
+    height = 0;
+}
+
+function setupTest() {
+  listContainer = document.getElementById("listContainer");
+  for (let i = 0; i < 5000; ++i) {
+    createListItem();
+  }
+  PerfTestRunner.forceLayout();
+}
+
+setupTest();
+
+PerfTestRunner.measureFrameTime({
+    description: "Measures performance of changing the height of a child of a contain:contents object.",
+    iterationCount: 50,
+    run: runTest
+});
+
+</script>

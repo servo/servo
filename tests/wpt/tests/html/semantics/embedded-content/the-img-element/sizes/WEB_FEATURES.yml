@@ -1,0 +1,8 @@
+features:
+- name: srcset
+  files:
+  - "*"
+  - "!sizes-auto*"
+- name: sizes-auto
+  files:
+  - "sizes-auto*"

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Individual transform: combine individual transform properties</title>
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#individual-transforms">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#ctm">
+    <meta name="assert" content="Tests that we combine transforms in the correct order when animating."/>
+    <link rel="match" href="individual-transform-ordering-ref.html">
+    <style>
+      .block {
+        display:  inline-block;
+        width: 50px;
+        height: 50px;
+        margin:  50px;
+        padding:  0;
+        transform-origin: 0 0;
+        background:  lime;
+        /* Freeze the animation at the midpoint. */
+        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        animation-duration:  1000000s;
+        animation-delay:  -500000s;
+      }
+      @keyframes anim-1 {
+        to {
+          translate: 50px 50px;
+          rotate: 45deg;
+          scale: 2 1;
+        }
+      }
+      #div-1 {
+        animation-name: anim-1;
+      }
+      @keyframes anim-2 {
+        to {
+          rotate: 45deg;
+          scale: 2 1;
+          translate: 50px 50px;
+        }
+      }
+      #div-2 {
+        animation-name:  anim-2;
+      }
+      @keyframes anim-3 {
+        to {
+          transform: scale(2, 1);
+          translate: 50px 50px;
+          rotate: 45deg;
+        }
+      }
+      #div-3 {
+        animation-name:  anim-3;
+      }
+      @keyframes anim-4 {
+        to {
+          transform: rotate(45deg) scale(2, 1);
+          translate: 50px 50px;
+        }
+      }
+      #div-4 {
+        animation-name: anim-4;
+      }
+      @Keyframes anim-5 {
+        to { transform: rotate(45deg); }
+      }
+      @Keyframes anim-6 {
+        from { transform:  none; }
+        to { transform: translate(50px, 50px) rotate(45deg) scale(2, 1); }
+      }
+      /* anim-6 replaces anim-5 since both updating the transform property. */
+      #div-5 {
+        animation-name: anim-5, anim-6;
+      }
+      @keyframes anim-7 {
+        to {
+          rotate: 45deg;
+          scale:  2 2;
+        }
+      }
+      @keyframes anim-8 {
+        from {
+          translate: 0px 0px;
+          scale: 1 1;
+        }
+        to {
+          translate: 50px 50px;
+          scale: 2 1;
+        }
+      }
+      /*
+       * The scale property is overridden in anim-8, but the rotate property
+       * from anim-7 is still relevant and must be applied in the correct order
+       * (after translate but before scale).
+       */
+      #div-6 {
+        animation-name: anim-7, anim-8;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div id="div-1" class="block"></div>
+      <div id="div-2" class="block"></div>
+    </div>
+    <div>
+      <div id="div-3" class="block"></div>
+      <div id="div-4" class="block"></div>
+    </div>
+    <div>
+      <div id="div-5" class="block"></div>
+      <div id="div-6" class="block"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding='iso-8859-1'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" /><title>CSS Test: http vs. bom</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<!-- placeholdercomment -->
+<link rel='help' href='http://www.w3.org/TR/CSS21/syndata.html#charset' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-character-encoding/generate?test=45' />
+<meta name='flags' content='http' />
+<meta name="assert" content="A UTF-8 signature for a stylesheet takes precedence over an HTTP encoding declaration." />
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test { font-size: 40px; }
+.test img { vertical-align: middle;  }
+.test td { padding-right: 60px; }
+</style>
+<link rel="stylesheet" type="text/css" href="support/http1-bom.css" />
+</head>
+<body>
+<p class='instructions'>Test passes if there is a green rectangle below.</p><p class='instructionNote'>This test is only valid if the user agent recognises the HTTP declarations and BOM function.</p>
+
+
+<div class="test"><span class="ýäè">text</span></div>
+
+
+<!--p class="notes">Notes: <br />The HTML page is served as ISO 8859-1. The CSS contains a UTF-8 signature at the beginning, but the HTTP header says ISO 8859-1.</p-->
+</body>
+</html>

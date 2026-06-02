@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html id="html" class="reftest-wait">
+  <title>Verifies that 'background-color' from a transition inherits explicitly down if requested</title>
+  <link rel="help" href="https://crbug.com/1325340">
+  <link rel="match" href="inherit-background-color-transition-ref.html">
+  <script src="support/helper.js"></script>
+  <style>
+    body { transition: background-color 1s; color: white; background-color: black; }
+    .light { color: black; background-color: white; }
+  </style>
+</head>
+<body id="body">
+  <div style="background-color: inherit">
+    <div style="background-color: inherit">PASS if black on white</div>
+  </div>
+  <script>
+    body.offsetTop;
+
+    async function run() {
+      let transitionEnd = new Promise((resolve) => {
+        body.addEventListener('transitionend', resolve);
+      });
+
+      // Trigger transition:
+      body.classList.toggle('light');
+
+      const transition = body.getAnimations()[0];
+      await transition.ready;
+      await waitForFrame();
+
+      // Expedite transition, but let it finish naturally.
+      transition.currentTime = transition.effect.getTiming().duration - 1;
+      await transitionEnd;
+
+      await waitForFrame();
+    }
+
+    run().then(() => html.classList.toggle('reftest-wait'));
+  </script>
+</body>
+</html>

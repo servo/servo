@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_locale_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    /** Get the current locale */
+    function get_current_locale() {
+        return new Intl.DateTimeFormat().resolvedOptions().locale;
+    }
+
+    const SOME_LOCALE = 'de-DE';
+    const ANOTHER_LOCALE = 'es-ES';
+
+    promise_test(async () => {
+        // Get the initial locale.
+        const initial_locale = get_current_locale();
+
+        // Set the locale override
+        await test_driver.bidi.emulation.set_locale_override({
+            locale: SOME_LOCALE
+        });
+        // Assert locale is updated.
+        assert_equals(get_current_locale(), SOME_LOCALE)
+
+        // Set another locale override.
+        await test_driver.bidi.emulation.set_locale_override({
+            locale: ANOTHER_LOCALE
+        });
+        // Assert locale is updated.
+        assert_equals(get_current_locale(), ANOTHER_LOCALE)
+
+        // Remove locale override.
+        await test_driver.bidi.emulation.set_locale_override({});
+        // Assert locale is the default one.
+        assert_equals(get_current_locale(), initial_locale)
+    }, "emulate locale and clear override");
+</script>

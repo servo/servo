@@ -1,0 +1,52 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Multiplication assignment operator compilation bug</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform mat3 rot;
+float foo(vec3 bar) {
+    bar *= rot;
+    return 0.0;
+}
+
+void main(void){
+    gl_FragColor = vec4(foo(vec3(0)));
+}
+</script>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+description();
+debug("");
+debug('Verify multiplication assignment operator compiles correctly - regression test for <a href="https://code.google.com/p/chromium/issues/detail?id=384847">Chromium bug 384847</a>');
+
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "vec3 *= mat3 multiplication assignment operator",
+}
+]);
+
+</script>
+</body>
+</html>

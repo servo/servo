@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const key = token();
+  const urn = await generateURNFromFledge("resources/embeddee.html", [key]);
+  const iframe = document.createElement("iframe");
+  iframe.src = urn;
+  document.body.appendChild(iframe);
+
+  // Wait for the page in the iframe to load and tell us that it's loaded.
+  await nextValueFromServer(key);
+
+  // Get access to the iframe's window's fence object before removing.
+  let inner_fence = iframe.contentWindow.fence;
+
+  // window.fence calls should succeed before the iframe is removed.
+  inner_fence.setReportEventDataForAutomaticBeacons({
+    eventType: "reserved.top_navigation_commit",
+    eventData: 'This is the event data!',
+    destination: ['buyer']
+  });
+
+  // Remove the iframe to make the iframe's document an inactive document.
+  iframe.remove();
+
+  // window.fence calls should fail once the iframe is removed and the document
+  // becomes inactive.
+  try {
+    inner_fence.setReportEventDataForAutomaticBeacons({
+      eventType: "reserved.top_navigation_commit",
+      eventData: 'This is the event data!',
+      destination: ['buyer']
+    });
+    assert_unreached("The call should not have succeeded.");
+  } catch (error) {
+    assert_equals(error.name, "SecurityError");
+  }
+}, 'attempts to call set report event in an inactive document should fail');
+</script>
+</body>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>View transitions: 3d transform ref</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+div { box-sizing: border-box; will-change: transform }
+.wrap_perspective {
+  perspective: 100px;
+  width: max-content;
+  transform: translate(200px);
+}
+.rotatex {
+  transform-style: preserve-3d;
+  transform: rotateX(20deg);
+  background: blue;
+}
+.shared {
+  width: 100px;
+  height: 100px;
+  view-transition-name: shared;
+}
+body { background: pink }
+
+</style>
+
+<div class="wrap_perspective"><div class="rotatex shared"></div></div>
+
+

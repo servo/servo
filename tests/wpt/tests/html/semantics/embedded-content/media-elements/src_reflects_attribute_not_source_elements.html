@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+ <head>
+  <title>{audio,video}.src - reflection test</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p><a href="https://html.spec.whatwg.org/multipage/#dom-media-src">spec reference</a></p>
+  <audio id="audio" src="foo">
+   <source src="barbaz" />
+  </audio>
+  <video id="video" src="foo">
+   <source src="barbaz" />
+  </video>
+  <div id="log"></div>
+  <script>
+test(function() {
+ assert_equals(
+   document.getElementById("audio").src.indexOf("barbaz"),
+   -1,
+   "audioElement.src should reflect src attribute, not source child elements");
+}, "audio.src - reflection test");
+
+test(function() {
+ assert_equals(
+   document.getElementById("video").src.indexOf("barbaz"),
+   -1,
+   "videoElement.src should reflect src attribute, not source child elements");
+}, "video.src - reflection test");
+  </script>
+ </body>
+</html>

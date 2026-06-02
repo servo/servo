@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#height-distribution-algorithm">
+<link rel="match" href="td-different-subpixel-padding-in-same-row-vertical-rl-ref.html">
+Passes if there is an unbroken rectangular border.
+<style>td { width: 20px; height: 20px }</style>
+<table style="position: absolute; top: 30.3px; border: 2px solid black;
+              border-collapse: collapse; writing-mode: vertical-rl">
+  <tr>
+    <td style="padding: 2px 1px"></td>
+    <td style="padding: 2px 1.2px"></td>
+    <td style="padding: 2px 1.5px"></td>
+    <td style="padding: 2px 1.7px"></td>
+    <td style="padding: 2px"></td>
+  </tr>
+</table>

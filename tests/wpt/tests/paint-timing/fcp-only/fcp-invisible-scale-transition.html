@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP in transition</title>
+<style>
+    #main {
+        width: 100px;
+        height: 100px;
+        left: 0px;
+        transform: scale(0);
+        transition: transform 1s;
+        position: relative;
+        top: 0;
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful {
+        transform: scale(1);
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main">TEXT</div>
+<script>
+    test_fcp("First contentful paint fires when revealed during transition.");
+</script>
+</body>
+</html>

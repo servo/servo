@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>mask-image with a slow loading image-set() with a truncated image</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="reference/mask-image-ref.html">
+<style>
+  svg > rect {
+    mask-image: image-set(url("support/green-100x100.png?pipe=slice(1,200)"));
+  }
+</style>
+<p>The test passes if there is a green square and no red below.</p>
+<svg height="200">
+  <rect width="200" height="200" fill="green"/>
+</svg>

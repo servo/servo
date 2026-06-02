@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection payload type demuxing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  exchangeIceCandidates(caller, callee);
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+  stream.getTracks().forEach(track => caller.addTrack(track.clone(), stream.clone()));
+
+  let callCount = 0;
+  let metadataToBeLoaded = new Promise(resolve => {
+    callee.ontrack = (e) => {
+      const stream = e.streams[0];
+      const v = document.createElement('video');
+      v.autoplay = true;
+      v.srcObject = stream;
+      v.id = stream.id
+      v.addEventListener('loadedmetadata', () => {
+        if (++callCount === 2) {
+          resolve();
+        }
+      });
+    };
+  });
+
+  // Restrict first transceiver to VP8, second to H264.
+  const {codecs} = RTCRtpSender.getCapabilities('video');
+  const vp8 = codecs.find(c => c.mimeType === 'video/VP8');
+  const h264 = codecs.find(c => c.mimeType === 'video/H264');
+  caller.getTransceivers()[0].setCodecPreferences([vp8]);
+  caller.getTransceivers()[1].setCodecPreferences([h264]);
+
+  const offer = await caller.createOffer();
+  // Replace the mid header extension and all ssrc lines
+  // with bogus. The receiver will be forced to do payload type demuxing.
+  const sdp = offer.sdp
+    .replace(/rtp-hdrext:sdes/g, 'rtp-hdrext:something')
+    .replace(/a=ssrc:/g, 'a=notssrc');
+
+  await callee.setRemoteDescription({type: 'offer', sdp});
+  await caller.setLocalDescription(offer);
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  assert_equals(callee.getReceivers().length, 2);
+
+  await metadataToBeLoaded;
+}, 'Can demux two video tracks with different payload types on a bundled connection');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection({bundlePolicy: 'max-compat'});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  exchangeIceCandidates(caller, callee);
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+  stream.getTracks().forEach(track => caller.addTrack(track.clone(), stream.clone()));
+
+  let callCount = 0;
+  let metadataToBeLoaded = new Promise(resolve => {
+    callee.ontrack = (e) => {
+      const stream = e.streams[0];
+      const v = document.createElement('video');
+      v.autoplay = true;
+      v.srcObject = stream;
+      v.id = stream.id
+      v.addEventListener('loadedmetadata', () => {
+        if (++callCount === 2) {
+          resolve();
+        }
+      });
+    };
+  });
+
+  const offer = await caller.createOffer();
+  // Replace BUNDLE, the mid header extension and all ssrc lines
+  // with bogus. The receiver will be forced to do payload type demuxing
+  // which is still possible because the different m-lines arrive on
+  // different ports/sockets.
+  const sdp = offer.sdp.replace('BUNDLE', 'SOMETHING')
+    .replace(/rtp-hdrext:sdes/g, 'rtp-hdrext:something')
+    .replace(/a=ssrc:/g, 'a=notssrc');
+
+  await callee.setRemoteDescription({type: 'offer', sdp});
+  await caller.setLocalDescription(offer);
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  assert_equals(callee.getReceivers().length, 2);
+
+  await metadataToBeLoaded;
+}, 'Can demux two video tracks with the same payload type on an unbundled connection');
+
+</script>

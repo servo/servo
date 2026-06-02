@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Masking: Test clip-path rect() interpolation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-rect">
+  <link rel="match" href="clip-path-xywh-interpolation-001-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'rect()' for clipping. Test the interpolation of xywh function.">
+  <style>
+    @keyframes anim {
+      from {
+        clip-path: rect(0px 100px 100% 0px round 10px);
+      }
+      to {
+        clip-path: rect(20px 80px calc(20px + 60%) 20px round 20px);
+      }
+    }
+    #rect {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      animation: anim 10s -5s paused linear;
+    }
+  </style>
+</head>
+<body>
+  <div id="rect"></div>
+</body>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</html>

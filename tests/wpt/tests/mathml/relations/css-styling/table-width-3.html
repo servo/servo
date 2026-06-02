@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>table-width-3</title>
+    <meta charset="utf-8"/>
+    <link rel="match" href="table-width-3-ref.html"/>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=415413"/>
+    <style type="text/css">
+      html { background-color: grey; }
+      td { border: 1px solid white;
+      padding-top: 0;
+      padding-bottom: 0;
+      padding-right: 1px;
+      padding-left: 1px;
+      background-color: black;
+      color: black; }
+      mi, mtext { font-size: 3em; }
+      span { font-style: italic; display: inline-block; }
+    </style>
+  </head>
+  <body>
+
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mi>f</mi>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mi>f</mi>
+            <mi>f</mi>
+            <mi>f</mi>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mi style="font-style: italic;">fff</mi>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mtext><span>fff</span></mtext>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mtext><span>f</span></mtext>
+            <mtext><span>f</span></mtext>
+            <mtext><span>f</span></mtext>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mtext><span>f</span><span>f</span><span>f</span></mtext>
+          </math>
+        </td>
+      </tr>
+    </table>
+
+  </body>
+</html>

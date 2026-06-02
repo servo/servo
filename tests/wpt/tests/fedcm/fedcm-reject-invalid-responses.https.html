@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required();
+  test_options.identity.providers = [];
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_js(t, TypeError, cred);
+}, "Reject when provider list is empty");
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required();
+  delete test_options.identity.providers[0].configURL;
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_js(t, TypeError, cred);
+}, "Reject when configURL is missing" );
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required();
+  test_options.identity.providers[0].configURL = 'test';
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_dom(t, "InvalidStateError", cred);
+}, "Reject when configURL is invalid");
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required();
+  test_options.identity.providers[0].clientId = '';
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_dom(t, "InvalidStateError", cred);
+}, "Reject when clientId is empty");
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required();
+  delete test_options.identity.providers[0].clientId;
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_js(t, TypeError, cred);
+}, "Reject when clientId is missing" );
+</script>

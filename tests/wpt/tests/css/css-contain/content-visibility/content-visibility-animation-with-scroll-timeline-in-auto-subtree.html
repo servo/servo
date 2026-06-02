@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset=utf8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test getComputedStyle on a CSS animation with scroll timeline in a content visibility subtree using content-visibility: auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+  content-visibility: auto;
+}
+
+#scrollContainer {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-timeline-name: --targetTimeline;
+}
+#innerspacer {
+    height: 300vh;
+}
+@keyframes fade {
+  from { opacity: 1; }
+  to { opacity: 0;  }
+}
+#target {
+  background: green;
+  height: 100px;
+  width: 100px;
+}
+.animate {
+  animation-name: fade;
+  animation-duration: 1ms;
+  animation-direction: alternate;
+  animation-timeline: --targetTimeline;
+}
+
+</style>
+<body>
+  <div id="log"></div>
+  <div id="spacer"></div>
+  <div id="scrollContainer">
+    <div id="container"></div>
+    <div id="innerspacer"></div>
+  </div>
+
+</body>
+<script>
+"use strict";
+
+function createAnimatingElement(test, name) {
+  const container = document.getElementById('container');
+  const target = document.createElement('div');
+  container.appendChild(target);
+  target.id = 'target';
+  target.className = name;
+  return target;
+}
+
+promise_test(async t => {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement(t, 'animate');
+  scrollContainer.scrollTop = 10000;
+  const animation = target.getAnimations()[0];
+  await animation.ready;
+  await waitForAnimationFrames(1);
+  let expectedOpacity = parseFloat(getComputedStyle(target).opacity);
+  assert_approx_equals(expectedOpacity, 0, 0.1, 'scrollContainer scrolls to bottom, so the opacity should be 0');
+  document.getElementById('spacer').style.height = '300vh';
+  await waitForAnimationFrames(1);
+  assert_equals(parseFloat(getComputedStyle(target).opacity), expectedOpacity, 'Opacity does not change when it is hidden by c-v');
+
+  scrollContainer.scrollTop = 0;
+  assert_equals(parseFloat(getComputedStyle(target).opacity), expectedOpacity, 'The animation is hidden by c-v, so opacity does not change even if scrollTop changes');
+
+  await waitForAnimationFrames(2);
+
+  document.getElementById('spacer').style.height = '0vh';
+  await waitForAnimationFrames(2);
+  assert_equals(getComputedStyle(target).opacity, '1', 'Now that the animation is visible, opacity should be updated');
+}, 'Animation with scroll-timeline should be affected c-v');
+
+</script>

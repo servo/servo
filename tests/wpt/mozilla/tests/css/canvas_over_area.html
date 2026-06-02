@@ -1,0 +1,37 @@
+<!doctype html>
+<body>
+<link rel='match' href='canvas_over_area_ref.html'>
+<style>
+
+#base {
+  background-color: red;
+  height: 100px;
+  width: 100px;
+}
+
+#painted {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: -100px;
+}
+</style>
+
+<div id="base"></div>
+<canvas id="painted"></canvas>
+
+
+<script>
+onload = function() {
+  var obj = document.getElementById("painted");
+  obj.width = 500;
+  obj.height = 500;
+  var context = obj.getContext("2d");
+  context.save();
+  context.fillStyle = "green";
+  context.fillRect(0, 0, 500, 500);
+  context.restore();
+};
+</script>
+</body>
+</html>

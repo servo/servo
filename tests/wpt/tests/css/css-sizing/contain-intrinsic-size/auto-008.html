@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="help" href="https://drafts.csswg.org/resize-observer-1/#html-event-loop">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7659">
+<meta name="assert" content="Tests that the last remembered size is set immediately before invoking ResizeObserver callbacks." />
+
+<style>
+.target {
+  width: max-content;
+  height: max-content;
+  border: 1px solid;
+}
+.target::before {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 50px;
+}
+.cis-auto .target {
+  contain-intrinsic-size: auto 40px auto 20px;
+}
+.skip-contents {
+  content-visibility: hidden;
+}
+</style>
+
+<div id="log"></div>
+
+<div class="target" id="target1"></div>
+<div class="target" id="target2"></div>
+<div class="target" id="target3"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function checkSize(target, expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+let step = 0;
+
+// Animation frame callbacks are invoked before ResizeObserver callbacks,
+// so the last remembered size shouldn't have been set yet.
+const test1 = async_test("requestAnimationFrame");
+const target1 = document.getElementById("target1");
+function step1(entries, ro) {
+  assert_equals(++step, 1, "Step 1");
+  target1.classList.add("skip-contents");
+  checkSize(target1, 40, 20, "No last remembered size");
+}
+requestAnimationFrame(test1.step_func_done(step1));
+
+// The last remembered size should be set immediately before invoking
+// ResizeObserver callbacks, even if the ResizeObserver is created before
+// laying out an element that can record a last remembered size.
+const test2 = async_test("Early ResizeObserver");
+const target2 = document.getElementById("target2");
+function step2(entries, ro) {
+  assert_equals(++step, 2, "Step 2");
+  ro.disconnect();
+  target2.classList.add("skip-contents");
+  checkSize(target2, 100, 50, "Using last remembered size");
+}
+new ResizeObserver(test2.step_func_done(step2)).observe(target2);
+
+// Let elements record a last remembered size and force layout.
+document.body.classList.add("cis-auto");
+document.body.offsetLeft;
+
+// The last remembered size should also have been set in the callback of
+// a ResizeObserver creater after laying out an element that can record
+// a last remembered size.
+const test3 = async_test("Late ResizeObserver");
+const target3 = document.getElementById("target3");
+function step3(entries, ro) {
+  assert_equals(++step, 3, "Step 3");
+  ro.disconnect();
+  target3.classList.add("skip-contents");
+  checkSize(target3, 100, 50, "Using last remembered size");
+}
+new ResizeObserver(test3.step_func_done(step3)).observe(target3);
+</script>

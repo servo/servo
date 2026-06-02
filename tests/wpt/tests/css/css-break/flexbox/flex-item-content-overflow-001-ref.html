@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1811548">
+
+  <style>
+  div {
+    box-sizing: border-box;
+  }
+  .multicol {
+    column-count: 2;
+    column-gap: 0;
+    column-fill: auto;
+    inline-size: 300px;
+    block-size: 100px;
+    border: 10px solid purple;
+  }
+  .flexbox {
+    display: block;
+    inline-size: 130px;
+    block-size: 70px;
+    border: 10px solid black;
+  }
+  .item {
+    block-size: 50px;
+    border: 10px solid teal;
+  }
+  .grandchild {
+    border: 10px solid orange;
+    block-size: 140px;
+  }
+  </style>
+
+  <div class="multicol">
+    <div class="flexbox">
+      <div class="item">
+        <div class="grandchild"></div>
+      </div>
+    </div>
+  </div>
+</html>

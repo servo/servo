@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test that 'column-wrap' is part of the 'columns' shorthand for animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-columns">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-columns">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .multicol {
+    columns: 100px / 100px;
+    column-wrap: nowrap;
+    transition: columns 2s allow-discrete;
+  }
+  #mid {
+    transition-delay: -1s;
+  }
+  #end {
+    transition-delay: -2s;
+  }
+</style>
+<div id="start" class="multicol"></div>
+<div id="mid" class="multicol"></div>
+<div id="end" class="multicol"></div>
+<script>
+  test(()=> {
+    assert_equals(getComputedStyle(start).columnWrap, "nowrap");
+    assert_equals(getComputedStyle(mid).columnWrap, "nowrap");
+    assert_equals(getComputedStyle(end).columnWrap, "nowrap");
+
+    document.querySelectorAll(".multicol").forEach(elm => {
+      // Set `columns` to the same as before.
+      // This should reset `column-wrap` to `auto`.
+      elm.style.columns = '100px / 100px';
+    });
+
+    assert_equals(getComputedStyle(start).columnWrap, "nowrap");
+    assert_equals(getComputedStyle(mid).columnWrap, "auto");
+    assert_equals(getComputedStyle(end).columnWrap, "auto");
+  }, "Animate and reset column-wrap");
+</script>

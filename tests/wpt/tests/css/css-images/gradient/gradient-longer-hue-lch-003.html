@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Gradient using "longer hue"</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<link rel="match" href="gradient-longer-hue-lch-003-ref.html">
+<meta name="assert" content="Tests that gradient with 'longer hue' renders correctly">
+<meta name="fuzzy" content="maxDifference=0-19;totalPixels=0-2120">
+
+<style>
+div {
+  margin: 20px 0px 20px 50px;
+  height: 40px;
+  width: 100px;
+  position: relative;
+  background: linear-gradient(to right in lch longer hue,
+                              red var(--from),
+                              blue var(--to));
+}
+
+.swatch {
+  --from: 20px;
+  --to: 80px;
+}
+
+.swatch::before {
+  content: '\feff';
+  position: absolute;
+  bottom: 40px;
+  height: 10px;
+  left: calc(var(--from) - 0.5px);
+  border: 0.5px solid red;
+}
+
+.swatch::after {
+  content: '\feff';
+  position: absolute;
+  top: 40px;
+  height: 10px;
+  left: calc(var(--to) - 0.5px);
+  border: 0.5px solid blue;
+}
+</style>
+
+<div class="swatch"></div>

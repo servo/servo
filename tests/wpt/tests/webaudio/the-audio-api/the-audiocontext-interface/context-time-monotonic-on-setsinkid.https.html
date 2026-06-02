@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>currentTime and getOutputTimestamp().contextTime after setSinkId</title>
+<meta name="flags" content="--use-fake-device-for-media-stream">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  // A timeout for waiting for the audio context to transition to a new state.
+  const TRANSITION_TIMEOUT = 250;
+
+  const context = new AudioContext();
+  t.add_cleanup(() => context.close());
+  await context.resume();
+
+  // Let it run for a bit to ensure time values are advancing.
+  await new Promise(resolve => t.step_timeout(resolve, TRANSITION_TIMEOUT));
+
+  const initialCurrentTime = context.currentTime;
+  const initialContextTime = context.getOutputTimestamp().contextTime;
+  assert_true(
+      initialCurrentTime > 0,
+      'Pre-check: currentTime should be > 0 after running for a while');
+  assert_true(
+      initialContextTime > 0,
+      'Pre-check: contextTime should be > 0 after running for a while');
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const audioOutputDevices = devices.filter(d => d.kind === 'audiooutput');
+  if (audioOutputDevices.length < 2) {
+    // This test requires at least two audio output devices.
+    assert_unreached(
+        'Not enough audio output devices to run this test. Need at least 2.');
+  }
+
+  // Find a device that is not the current one.
+  const newDeviceId =
+      audioOutputDevices.find(d => d.deviceId !== context.sinkId)?.deviceId;
+  if (!newDeviceId) {
+    assert_unreached('Could not find a different device to switch to.');
+  }
+
+  // Capture timestamps just before the switch.
+  const timeBeforeSetSinkId = context.currentTime;
+  const contextTimeBeforeSetSinkId = context.getOutputTimestamp().contextTime;
+
+  await context.setSinkId(newDeviceId);
+
+  // Capture timestamps immediately after the switch.
+  const timeAfterSetSinkId = context.currentTime;
+  const contextTimeAfterSetSinkId = context.getOutputTimestamp().contextTime;
+
+  // The time should not go backwards for either currentTime or contextTime.
+  assert_true(
+      timeAfterSetSinkId >= timeBeforeSetSinkId,
+      `currentTime should not go backwards after setSinkId. Before: ${
+          timeBeforeSetSinkId}, after: ${timeAfterSetSinkId}`);
+  assert_true(
+      contextTimeAfterSetSinkId >= contextTimeBeforeSetSinkId,
+      `contextTime should not go backwards after setSinkId. Before: ${
+          contextTimeBeforeSetSinkId}, after: ${contextTimeAfterSetSinkId}`);
+
+  // The time should not jump too far ahead. A small delta is expected for the
+  // device change while the context is running.
+  assert_true(
+      timeAfterSetSinkId - timeBeforeSetSinkId < 1,
+      `setSinkId took too long or currentTime jumped. Before: ${
+          timeBeforeSetSinkId}, after: ${timeAfterSetSinkId}`);
+
+  // Let it run for a bit more to ensure it's still advancing.
+  await new Promise(resolve => t.step_timeout(resolve, TRANSITION_TIMEOUT));
+
+  const finalCurrentTime = context.currentTime;
+  const finalContextTime = context.getOutputTimestamp().contextTime;
+  assert_true(
+      finalCurrentTime > timeAfterSetSinkId,
+      `currentTime should increase after setSinkId. After switch: ${
+          timeAfterSetSinkId}, final: ${finalCurrentTime}`);
+  assert_true(
+      finalContextTime > contextTimeAfterSetSinkId,
+      `contextTime should increase after setSinkId. After switch: ${
+          contextTimeAfterSetSinkId}, final: ${finalContextTime}`);
+}, 'currentTime and getOutputTimestamp().contextTime should not reset after ' +
+       'setSinkId');
+</script>
+</body>
+</html>

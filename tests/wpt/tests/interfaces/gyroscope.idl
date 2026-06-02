@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Gyroscope (https://w3c.github.io/gyroscope/)
+
+[SecureContext, Exposed=Window]
+interface Gyroscope : Sensor {
+  constructor(optional GyroscopeSensorOptions sensorOptions = {});
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
+};
+
+enum GyroscopeLocalCoordinateSystem { "device", "screen" };
+
+dictionary GyroscopeSensorOptions : SensorOptions {
+  GyroscopeLocalCoordinateSystem referenceFrame = "device";
+};

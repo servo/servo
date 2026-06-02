@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  .cb {
+    position: relative;
+  }
+  audio, video, canvas, iframe, svg {
+    border: 1px solid blue;
+    position: absolute;
+    /* This value corresponds to the difference between wrapper
+       divs' width in the testcase. It causes the elements to
+       be shifted right to prevent the test from spuriously
+       passing by just placing them on the leftmost side. */
+    left: 100px;
+  }
+</style>
+<body>
+  <div class="cb">
+    <audio controls></audio>
+    <video controls style="top: 50px;"></video>
+    <canvas style="top: 210px;"></canvas>
+    <iframe style="top: 370px;"></iframe>
+    <svg style="top: 530px;" width="300" height="20"></svg>
+  </div>
+</body>

@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Blob Perf (IPC)</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script>
+let runnerParams = { size: 1024, numBlobs: 20 };
+let test = {
+  description:
+    'Benchmark for creating blobs using IPC transport then reading both synchronously and in parallel.',
+  unit: 'ms',
+  iterationCount: 50,
+  tracingCategories: 'Blob',
+  traceEventsToMeasure: [
+    'BlobReader::ReadBytesItem', 'Registry::RegisterBlob'
+  ],
+  path: 'resources/blob-perf-runner.html',
+  params: runnerParams
+}
+PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+</script>

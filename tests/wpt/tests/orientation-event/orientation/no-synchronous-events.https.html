@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData = generateOrientationData(1.1, 2.2, 3.3, false);
+  await helper.setData(orientationData);
+
+  return new Promise((resolve, reject) => {
+    let result = reject;
+    window.addEventListener('deviceorientation', event => result());
+    result = resolve;
+  });
+}, 'Tests that events are never fired synchronously from a call to window.addEventListener().');
+</script>

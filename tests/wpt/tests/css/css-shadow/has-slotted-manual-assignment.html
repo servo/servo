@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>:has-slotted with manual assignment</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<test-element id="host"></test-element>
+<script>
+  customElements.define('test-element', class extends HTMLElement {
+    connectedCallback() {
+      this.attachShadow({mode: 'open', slotAssignment: 'manual'});
+      this.shadowRoot.append(document.createElement('slot'))
+    }
+    assign(...nodes) {
+      this.shadowRoot.querySelector('slot').assign(...nodes)
+    }
+  });
+
+  const slot = host.shadowRoot.querySelector('slot');
+
+  test(function () {
+    assert_equals(slot.assignedNodes().length, 0, "slot element should not match :has-slotted");
+    assert_equals(host.shadowRoot.querySelectorAll(':has-slotted').length, 0, "slot element should not match :has-slotted");
+    assert_false(slot.matches(':has-slotted'), "slot element should not match :has-slotted");
+  }, ":has-slotted does not match or querySelector with no manual assigned nodes");
+
+  test(function () {
+    host.append(document.createElement("div"));
+    assert_equals(slot.assignedNodes().length, 0, "slot element should not match :has-slotted");
+    assert_equals(host.shadowRoot.querySelectorAll(':has-slotted').length, 0, "slot element should not match :has-slotted");
+    assert_false(slot.matches(':has-slotted'), "slot element should not match :has-slotted");
+  }, ":has-slotted does not match or querySelector with no manual assigned nodes - 2");
+
+  test(function () {
+    host.assign(...host.children);
+    assert_equals(slot.assignedNodes().length, 1, "slot element should match :has-slotted with 1 child node");
+    assert_equals(host.shadowRoot.querySelectorAll(':has-slotted').length, 1, "slot element should match :has-slotted with 1 child node");
+    assert_true(slot.matches(':has-slotted'), "slot element should match :has-slotted with 1 child node");
+  }, ":has-slotted does match when a child is manually assigned");
+
+  test(function () {
+    host.assign();
+    assert_equals(slot.assignedNodes().length, 0, "slot element should not match :has-slotted after empty");
+    assert_equals(host.shadowRoot.querySelectorAll(':has-slotted').length, 0, "slot element should not match :has-slotted after empty");
+    assert_false(slot.matches(':has-slotted'), "slot element should not match :has-slotted after empty");
+  }, ":has-slotted no longer matches when no children become manually assigned");
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Redirect destination for non-HTML documents to close themselves</title>
+<script>
+'use strict';
+const channel = new URL(location).searchParams.get('channel');
+const bc = new BroadcastChannel(channel);
+bc.onmessage = () => close();
+bc.postMessage({name: 'FAIL', closed: 'FAIL' });
+</script>

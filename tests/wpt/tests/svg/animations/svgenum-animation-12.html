@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test SVGSpreadMethodType enumeration animations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var gradient = createSVGElement("linearGradient");
+gradient.setAttribute("id", "gradient");
+rootSVGElement.appendChild(gradient);
+
+var stop = createSVGElement("stop");
+stop.setAttribute("offset", "1");
+stop.setAttribute("stop-color", "green");
+gradient.appendChild(stop);
+
+var feBlend = createSVGElement("feBlend");
+feBlend.setAttribute("in", "SourceGraphic");
+feBlend.setAttribute("in2", "img");
+feBlend.setAttribute("mode", "lighten");
+gradient.appendChild(feBlend);
+
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("onclick", "executeTest()");
+rect.setAttribute("fill", "url(#gradient)");
+rect.setAttribute("width", "100");
+rect.setAttribute("height", "100");
+rootSVGElement.appendChild(rect);
+
+var animate1 = createSVGElement("animate");
+animate1.setAttribute("id", "animation");
+animate1.setAttribute("attributeName", "spreadMethod");
+animate1.setAttribute("begin", "0s");
+animate1.setAttribute("dur", "3s");
+animate1.setAttribute("values", "pad;reflect;repeat");
+animate1.setAttribute("fill", "freeze");
+gradient.appendChild(animate1);
+
+// Setup animation test
+function sample1() {
+    assert_equals(gradient.spreadMethod.animVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+    assert_equals(gradient.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+}
+
+function sample2() {
+    assert_equals(gradient.spreadMethod.animVal, SVGGradientElement.SVG_SPREADMETHOD_REFLECT);
+    assert_equals(gradient.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+}
+
+function sample3() {
+    assert_equals(gradient.spreadMethod.animVal, SVGGradientElement.SVG_SPREADMETHOD_REPEAT);
+    assert_equals(gradient.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 0.001, sample1],
+        ["animation", 0.999, sample1],
+        ["animation", 1.001, sample2],
+        ["animation", 1.999, sample2],
+        ["animation", 2.001, sample3],
+        ["animation", 2.999, sample3],
+        ["animation", 3.001, sample3]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

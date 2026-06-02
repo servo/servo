@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Filter Effects Test: feImage referencing a tspan</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feImageElement">
+<meta name="assert" content="feImage non-image references should render 'according to the behavior of the use element', which is nothing for a standalone tspan.">
+<link rel="match" href="reference/svg-feimage-ref.html">
+<p>The test passes if you see a black square and no red.</p>
+<svg width="500" height="500">
+  <defs>
+    <filter id="filter-tspan" x="0" y="0" width="5" height="5">
+      <feImage href="#tspan"></feImage>
+    </filter>
+    <filter id="filter-use-tspan" x="0" y="0" width="5" height="5">
+      <feImage href="#use-tspan"></feImage>
+    </filter>
+    <text>
+      <tspan id="tspan" x="0" y="1em" fill="red">FAIL</tspan>
+    </text>
+    <use id="use-tspan" href="#tspan"></use>
+  </defs>
+  <rect width="300" height="300" fill="black"></rect>
+  <rect width="300" height="150" fill="red" filter="url(#filter-tspan)"></rect>
+  <rect width="300" height="150" fill="red" y="150" filter="url(#filter-use-tspan)"></rect>
+</svg>

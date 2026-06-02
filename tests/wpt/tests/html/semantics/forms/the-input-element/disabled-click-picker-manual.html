@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Disabled input elements must not open pickers</title>
+<p>
+  Click the Open buttons below. If clicking them does not open any pickers, then consider this as a passing test.<br>
+  (This is manual because we don't have an event to check whether the picker is opened or not.)
+</p>
+<input disabled type="color" id="color"><button>Open</button><br>
+<input disabled type="file" id="file"><button>Open</button>
+<script>
+  for (const button of document.getElementsByTagName("button")) {
+    button.onclick = () => {
+      const input = button.previousElementSibling;
+      input.dispatchEvent(new MouseEvent("click"));
+    }
+  }
+</script>

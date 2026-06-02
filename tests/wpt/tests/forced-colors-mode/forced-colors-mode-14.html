@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - active selection.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+<link rel=match href="forced-colors-mode-14-ref.html">
+<style>
+  br::selection {
+    background-color: transparent;
+    forced-color-adjust: none;
+  }
+  span {
+    /* inline-block to ensure the selection bounding rectangle matches that of the
+       span. This allows us to test selection using a reference test. */
+    display: inline-block;
+  }
+  .select::selection {
+    background-color: rgba(255, 0, 0, 0.99); /* alpha < 1 so that we don't blend the background color with white. */
+    color: blue;
+  }
+  #adjust-none {
+    forced-color-adjust: none;
+  }
+  #adjust-none-on-highlight::selection {
+    forced-color-adjust: none;
+  }
+
+  <!--
+  "
+  The forced-color-adjust property cannot be set on highlight pseudo-elements;
+  however a highlight pseudo-element must honor any forced colors mode applied
+  to its originating element (and is therefore subject to the control of the
+  originating element’s forced-color-adjust value).
+  "
+  coming from
+  https://www.w3.org/TR/css-pseudo-4/#highlight-styling
+  -->
+
+</style>
+<body>
+  <div id="adjust-none">
+    <span class="select">AAA</span>
+  </div>
+  <span id="adjust-none-on-highlight" class="select">AAA</span>
+</body>
+
+<script>
+  var node1 = document.getElementsByClassName('select')[0].firstChild;
+  var node2 = document.getElementsByClassName('select')[1].firstChild;
+  var range = document.createRange();
+  range.setStart(node1, 0);
+  range.setEnd(node2, node2.length);
+  window.getSelection().addRange(range);
+</script>

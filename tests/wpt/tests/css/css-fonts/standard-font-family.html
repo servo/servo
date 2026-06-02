@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#standard-font-families"/>
+<link rel="match" href="standard-font-family-ref.html"/>
+<meta name="assert" content="Standard fonts don't work unless they are accessed from their correct names"/>
+</head>
+<body>
+This test makes sure that the design system UI fonts don't work unless they are accessed from their correct names. The test passes if all the text below is rendered in Times.
+<div>
+<div style="display: inline-block; font: 72px '.AppleSystemUIFontSerif';">HeJllo</div>
+<div style="display: inline-block; font: 72px '.SF NS Mono';">HeJllo</div>
+<div style="display: inline-block; font: 72px '.SF UI Mono';">HeJllo</div>
+<div style="display: inline-block; font: 72px '.AppleSystemUIFontRounded';">HeJllo</div>
+<div style="display: inline-block; font: 72px '.AppleSystemUIFont';">HeJllo</div>
+</div>
+</body>
+</html>

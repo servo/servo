@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<div id="main"></div>
+
+<script>
+setup({"hide_test_state": true});
+async_test(function(t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    t.step(function() {
+        const bufferedEntries = performance.getEntriesByType('paint');
+        assert_equals(bufferedEntries.length, 0, "No paint entries yet");
+    });
+    const div = document.createElement("div");
+    div.style.width = "100px";
+    div.style.height = "100px";
+    div.style.backgroundColor = "red";
+    div.style.color = "blue";
+    div.innerHTML = "test"
+    document.getElementById("main").appendChild(div);
+    assertPaintTimingEntries(t, 20);
+}, "Basic test to check existence of FP and FCP.");
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text 3 test: effects of text-transform on plain text copy&paste</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#text-transform-property">
+<meta name=flags content="interact">
+<meta name=assert content="text-transform must not affect the content of a plain text copy and paste operation.">
+<!--
+I wish this test could be written automatedly, but I don't think it can.
+We can work around the fact that  document.execCommand(‘copy’) only works when triggered by user interactions
+by using test_driver.bless,
+but even then there's no way to read the content of the clipboard in an automated way:
+* document.execCommand(‘paste’) isn't supported in regular web pages by anyone but IE
+* The Clipboard API is not supported across the board,
+  and Firefox only supports reading the clipboard in browser extensions,
+  not in regular web pages.
+-->
+<style>
+div {
+  text-transform: uppercase;
+  border: solid 5px blue;
+}
+textarea { border: solid 5px orange; }
+div, textarea { padding: 1em; }
+</style>
+
+<p>Copy the content of the blue box, then paste it in the orange box.
+<p>The test passes if the result is in lowercase.
+
+<div id=source>there is no need to shout</div>
+<textarea></textarea>

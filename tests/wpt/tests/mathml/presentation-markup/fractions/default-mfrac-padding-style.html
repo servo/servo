@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test the mfrac element</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792@gmail.com">
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="Verify default mfrac style.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <div>
+    <math>
+        <mfrac id="mfrac">
+            <mn>1</mn>
+            <mn>2</mn>
+        </mfrac>
+    </math>
+  </div>
+<script>
+    test(function () {
+        var style = window.getComputedStyle(document.getElementById("mfrac"));
+        assert_equals(style.paddingInlineStart, "1px");
+        assert_equals(style.paddingInlineEnd, "1px");
+    }, "Default CSS properties on mfrac");
+</script>
+</body>
+</html>

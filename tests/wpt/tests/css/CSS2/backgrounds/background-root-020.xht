@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background: Test Seventeen</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/17.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#Computing_heights_and_margins"/>
+  <meta name="assert" content="Rules governing visual formating of block level non-replaced elements and calculations of height apply to the document root element just as to any other element. Document root element should not stretch vertically to fit the viewport; document root element should only be as tall as required to enclose its content."/>
+  <link rel="match" href="background-root-020-ref.xht" />
+
+<style type="text/css"><![CDATA[
+   body, html { background: green; border: lime 1em solid; margin: 1em; padding: 1em; color: yellow; }
+   :link, :visited { color: inherit; background: transparent; }
+   * { margin: 1em; padding: 1em; text-align: justify; }
+]]></style>
+
+</head>
+<body>
+
+  <p>Test is passed if this paragraph has two thick bright green borders surrounding it
+    and if the background of the whole page is green. The box formed by the outer
+    bright green border should not become taller (or smaller) if the window height is
+    increased or maximized (or decreased): its sides should be approximately
+    equidistant from the edges of this text.</p>
+
+</body>
+</html>

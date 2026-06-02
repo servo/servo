@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>View transitions: Test pageswap fires before document capture</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+
+#target.oldPage {
+  view-transition-name: target;
+}
+#target.newPage {
+  view-transition-name: target;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  addEventListener('pageswap', e => {
+    document.documentElement.classList.add('oldPage');
+  });
+
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace("?mode=new");
+    }));
+  };
+  break;
+case "new":
+  addEventListener('pagereveal', async e => {
+    document.documentElement.classList.add('newPage');
+    if (e.viewTransition) {
+      await e.viewTransition.ready;
+      const old_position = getComputedStyle(
+        document.documentElement,
+        "::view-transition-old(target)").position;
+      const new_position = getComputedStyle(
+        document.documentElement,
+        "::view-transition-new(target)").position;
+      if (old_position == "absolute" && new_position == "absolute") {
+        window.opener.did_reveal("pass");
+      } else {
+        window.opener.did_reveal("fail: " + old_position + " " + new_position);
+      }
+    } else {
+      window.opener.did_reveal("fail: no viewTransition");
+    }
+  });
+  break;
+}
+</script>
+<div id=target></div>

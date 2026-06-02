@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: multiple forced page breaks case</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="When multiple 'page-break-before' and/or 'page-break-after' properties with values of 'always', 'left' or 'right' apply at a margin, only one of them generates page breaks."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	@page :left {
+		@top-center
+		{
+			content: "[This page intentionally left blank]";
+		}
+	}
+	p {page-break-after: always;}
+	div {page-break-before: right;}
+</style>
+</head>
+<body>
+	<p>This test requires three pages. This must be on the first page.</p>
+	<div>This must be on the third page. There must be a blank page (and only one blank page) before this sentence.</div>
+</body>
+</html>

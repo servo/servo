@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseXML MIME type tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#document-response-entity-body" data-tested-assertations="following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[6] following::ol[1]/li[10]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request(type, succeed) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("GET", "resources/status.py?content=<x><\/x>&type=" + encodeURIComponent(type), false)
+          client.send(null)
+          if(!succeed)
+            assert_equals(client.responseXML, null)
+          else
+            assert_equals(client.responseXML.documentElement.localName, "x")
+        }, document.title + " ('" + type + "', should "+(succeed?'':'not')+" parse)")
+      }
+      request("", true)
+      request("text/html", false)
+      request("bogus", true)
+      request("bogus+xml", true)
+      request("text/plain;+xml", false)
+      request("text/plainxml", false)
+      request("video/x-awesome+xml", true)
+      request("video/x-awesome", false)
+      request("text/xml", true)
+      request("application", true)
+      request("text/xsl", false)
+      request("text/plain", false)
+      request("application/rdf", false)
+      request("application/xhtml+xml", true)
+      request("image/svg+xml", true)
+    </script>
+  </body>
+</html>

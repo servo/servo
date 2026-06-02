@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test behavior of rel="noopener" links</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe name="oursubframe"></iframe>
+<a href="support/noopener-target-2.html" rel="noopener" target="ourpopup"></a>
+<a href="support/noopener-target-2.html" rel="noopener" target="oursubframe"></a>
+<script>
+var tests = [];
+// First test the special targets
+function target1Loaded(win) {
+  // Find the relevant test
+  var test = tests.find((t) => t.openedWindow == win);
+  test.step(function() {
+    assert_equals(win.opener, window);
+    win.close();
+    test.done();
+  });
+}
+/**
+ * Test that <a rel="noopener"> targeted at one of _self, _parent, _top does the
+ * load in the appropriate existing browsing context instead of opening a new
+ * one.  The test is run in a separate popup window we open and which we can
+ * navigate without causing the test harness going into conniptions.
+ */
+for (var target of ["self", "parent", "top"]) {
+  var t = async_test("Check that rel=noopener with target=_" + target + " does a normal load");
+  tests.push(t);
+  t.openedWindow = window.open("support/noopener-popup.html");
+  t.targetName = target;
+  t.openedWindow.onload = t.step_func(function() {
+    this.openedWindow.findLink(this.targetName).click();
+  });
+}
+
+/**
+ * And now check that a noopener load targeted at something other than one of
+ * the three special targets above is still able to reuse existing things with the
+ * given name.  We do this in two ways.  First, by opening a window named
+ * "ourpopup" and then doing a load via <a rel="noopener" target="ourpopup"> and
+ * verifying that the load happens in a window with a null opener, etc, while
+ * the opener of the thing we opened is not modified.  And second, by targeting
+ * <a rel="noopener"> at a name that an existing subframe has, and ensuring that
+ * this subframe is not navigated.
+ */
+var t1 = async_test("Check that targeting of rel=noopener with a given name reuses an existing window with that name");
+var w;
+t1.add_cleanup(function() { w.close(); });
+var channel = new BroadcastChannel("ourpopup");
+channel.onmessage = t1.step_func_done(function(e) {
+  var data = e.data;
+  assert_true(data.hasOpener);
+  assert_false(data.hasParent);
+  assert_equals(data.name, "ourpopup");
+  assert_equals(w.opener, window);
+  assert_not_equals(w.location.href, "about:blank");
+});
+t1.step(function() {
+  w = window.open("", "ourpopup");
+  assert_equals(w.opener, window);
+  document.querySelectorAll("a")[0].click();
+});
+
+var t2 = async_test("Check that targeting of rel=noopener with a given name reuses an existing subframe with that name");
+var channel = new BroadcastChannel("oursubframe");
+channel.onmessage = t2.step_func_done(function(e) {
+  var data = e.data;
+  assert_false(data.hasOpener);
+  assert_true(data.hasParent);
+  assert_equals(data.name, "oursubframe");
+  assert_not_equals(document.querySelector("iframe").contentWindow.location.href,
+                    "about:blank");
+});
+t2.step(function() {
+  document.querySelectorAll("a")[1].click();
+});
+</script>

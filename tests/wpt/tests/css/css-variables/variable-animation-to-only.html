@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variables - Animation - From and To Values</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @keyframes valueanim
+        {
+            to { --value: green; }
+        }
+
+        /* Start the animation in the paused state and fill at both ends so we can inspect values from both keyframes. */
+        #target
+        {
+            animation-name: valueanim;
+            animation-duration: 1s;
+            animation-play-state: paused;
+            animation-fill-mode: both;
+        }
+        #target
+        {
+            --value: blue;
+        }
+        #target span
+        {
+            color: var(--value);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="target"><span>This text should animate from blue to green over a period of 1 second.</span></div>
+
+<script type="text/javascript">
+    "use strict";
+
+    // Force an initial layout pass
+    document.documentElement.offsetHeight;
+
+    test(function() {
+        assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("--value").trim(), "blue", "--value is blue before animation runs");
+        }, "Verify CSS variable value before animation");
+
+    var animationTest = async_test("Verify CSS variable value after animation");
+
+    animationTest.step(function() {
+        // Set event handler
+        document.getElementById("target").addEventListener("animationend", animationTest.step_func(function() {
+            assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("--value").trim(), "green", "--value is green after animation runs")
+            animationTest.done();
+            }));
+
+        // Trigger animation
+        document.getElementById("target").style.animationPlayState = "running";
+    });
+</script>
+
+</body>
+</html>

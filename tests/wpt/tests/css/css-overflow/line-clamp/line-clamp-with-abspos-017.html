@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: abspos whose containing block is an inline that gets displaced by the ellipsis</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-030-ref.html">
+<meta name="assert" content="Absolute positioned boxes in a line-clamp container are shown if and only if their containing block precedes or contains the clamp point. In this case, the containing block is an inline whose start gets displaced by the ellipsis. Therefore, it counts as being all after the clamp point, and the abspos is hidden.">
+<style>
+.clamp {
+  line-clamp: 3;
+  background-color: yellow;
+}
+.child {
+  font: 16px / 32px monospace;
+  width: 13.1ch;
+}
+.rel {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background-color: skyblue;
+}
+</style>
+<div class="clamp">
+  <div class="child">
+    Line 1 <br>
+    Line 2 <br>
+    Line 3 <span class="rel">hidden<br>
+    fdgdgjldsfg <br>
+    <div class="abspos"></div></span>
+  </div>
+</div>
+<p>Following content.</p>

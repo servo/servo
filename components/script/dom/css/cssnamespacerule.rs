@@ -1,0 +1,87 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::RefCell;
+
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::shared_lock::ToCssWithGuard;
+use style::stylesheets::{CssRuleType, NamespaceRule};
+
+use super::cssrule::{CSSRule, SpecificCSSRule};
+use super::cssstylesheet::CSSStyleSheet;
+use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
+#[dom_struct]
+pub(crate) struct CSSNamespaceRule {
+    css_rule: CSSRule,
+    #[ignore_malloc_size_of = "Stylo"]
+    #[no_trace]
+    namespace_rule: RefCell<Arc<NamespaceRule>>,
+}
+
+impl CSSNamespaceRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        namespacerule: Arc<NamespaceRule>,
+    ) -> CSSNamespaceRule {
+        CSSNamespaceRule {
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            namespace_rule: RefCell::new(namespacerule),
+        }
+    }
+
+    pub(crate) fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        namespacerule: Arc<NamespaceRule>,
+        can_gc: CanGc,
+    ) -> DomRoot<CSSNamespaceRule> {
+        reflect_dom_object(
+            Box::new(CSSNamespaceRule::new_inherited(
+                parent_stylesheet,
+                namespacerule,
+            )),
+            window,
+            can_gc,
+        )
+    }
+
+    pub(crate) fn update_rule(&self, namespacerule: Arc<NamespaceRule>) {
+        *self.namespace_rule.borrow_mut() = namespacerule;
+    }
+}
+
+impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
+    /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix>
+    fn Prefix(&self) -> DOMString {
+        self.namespace_rule
+            .borrow()
+            .prefix
+            .as_ref()
+            .map(|s| s.to_string().into())
+            .unwrap_or_default()
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri>
+    fn NamespaceURI(&self) -> DOMString {
+        (**self.namespace_rule.borrow().url).into()
+    }
+}
+
+impl SpecificCSSRule for CSSNamespaceRule {
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Namespace
+    }
+
+    fn get_css(&self) -> DOMString {
+        let guard = self.css_rule.shared_lock().read();
+        self.namespace_rule.borrow().to_css_string(&guard).into()
+    }
+}

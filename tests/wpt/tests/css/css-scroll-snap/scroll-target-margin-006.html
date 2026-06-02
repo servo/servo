@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<title>scrollIntoView() and scroll-margin applied to an inline element</title>
+<link rel='author' title='Martin Robinson' href='http://igalia.com'>
+<link rel='help' href='https://www.w3.org/TR/css-scroll-snap-1/#scroll-margin'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type='text/css'>
+  .container {
+    border: solid black 1px;
+    height: 40px;
+    width: 40px;
+    overflow: auto;
+  }
+</style>
+
+<div class="container">
+  <div style="height: 1000px; width: 2000px;"></div>
+  <div style="width: 2000px;">
+    <span>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+    <span id="target">TARGETTARGETTARGETTARGET</span>
+    <span>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+  </div>
+  <div style="height: 1000px; width: 2000px;"></div>
+</div>
+
+<script>
+
+test(() => {
+  target.scrollIntoView();
+  const scroller = target.parentElement.parentElement;
+  let expectedScrollPosition = [scroller.scrollLeft - 20, scroller.scrollTop - 20];
+  scroller.scrollTo(0, 0);
+
+  target.style.scrollMarginTop = "20px";
+  target.style.scrollMarginLeft = "20px";
+  target.scrollIntoView();
+  assert_equals(scroller.scrollLeft, expectedScrollPosition[0]);
+  assert_equals(scroller.scrollTop, expectedScrollPosition[1]);
+
+  target.style.scrollMarginTop = "0px";
+  target.style.scrollMarginLeft = "0px";
+
+  scroller.scrollTo(2000, 2000);
+  target.scrollIntoView({"block": "end", "inline": "end"});
+  expectedScrollPosition = [scroller.scrollLeft + 20, scroller.scrollTop + 20];
+  scroller.scrollTo(2000, 2000);
+
+  target.style.scrollMarginBottom = "20px";
+  target.style.scrollMarginRight = "20px";
+  target.scrollIntoView({"block": "end", "inline": "end"});
+  assert_equals(scroller.scrollLeft, expectedScrollPosition[0]);
+  assert_equals(scroller.scrollTop, expectedScrollPosition[1]);
+
+}, "scroll-margin is taken into account when scrolling an inline element into view");
+</script>

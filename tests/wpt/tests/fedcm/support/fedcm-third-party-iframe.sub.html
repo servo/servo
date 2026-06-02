@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+import {request_options_with_mediation_required,
+        select_manifest,
+        fedcm_expect_dialog,
+        fedcm_get_dialog_type_promise} from './fedcm-helper.sub.js';
+
+// Loading the iframe in the test will make a FedCM call on load, and
+// trigger a postMessage upon completion.
+//
+// message {
+//   string result: "Pass" | "Fail"
+//   string token: token.token
+//   string errorType: error.name
+// }
+
+window.onload = async () => {
+  window.test_driver.set_test_context(window.top);
+  try {
+    let options = request_options_with_mediation_required("manifest_iframe.py");
+    if (location.search == "?active") {
+      options.identity.mode = "active";
+      await test_driver.bless();
+    }
+    const credentialPromise = navigator.credentials.get(options);
+    let type = await fedcm_expect_dialog(
+      credentialPromise,
+      fedcm_get_dialog_type_promise(null)
+    );
+    if (type != "AccountChooser")
+      throw "Incorrect dialog type: " + type;
+    let titleAndSubtitle = await test_driver.get_fedcm_dialog_title();
+    let iframeOrigin = "{{hosts[alt][]}}";
+    let found = titleAndSubtitle.title.indexOf(iframeOrigin) != -1 ||
+        (titleAndSubtitle.subtitle &&
+         titleAndSubtitle.subtitle.indexOf(iframeOrigin) != -1);
+    if (!found) {
+      throw "Did not find iframe origin in title or subtitle: " +
+          title + ", " + subtitle;
+    }
+    window.top.postMessage({result: "Pass"}, '*');
+  } catch (error) {
+    window.top.postMessage({result: "Fail: " + (error.name || error)}, '*');
+  }
+  try {
+    await test_driver.fedcm_cancel_dialog();
+  } catch (ex) {}
+};
+
+</script>

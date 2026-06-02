@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Inheritance</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-inheritance-003-ref.html">
+<meta name="assert" value="Unstyled highlights should not be visible">
+<style>
+  div {
+    color: #00000080;
+    background-color: red;
+    width: 0;
+  }
+</style>
+<body>
+<div id="target">foobar</div>
+<script>
+  const node = document.getElementById("target");
+  let r = new Range();
+  r.setStart(node.firstChild, 0);
+  r.setEnd(node.firstChild, 3);
+  CSS.highlights.set("div-highlight", new Highlight(r));
+</script>
+</body>

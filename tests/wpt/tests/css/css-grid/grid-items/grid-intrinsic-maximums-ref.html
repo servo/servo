@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: Grid item intrinsic maximum sizes</title>
+<link rel="author" title="Serio Villar" href="mailto:svillar@igalia.com">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+
+.item {
+    font: 10px/1 Ahem;
+    background: cyan;
+    grid-column: 1 / -1;
+}
+
+.abs {
+    width: 100%;
+    height: 5px;
+    position: absolute;
+}
+
+.grid {
+    border: 2px solid black;
+    display: grid;
+    position: relative;
+    padding-top: 10px;
+    margin-bottom: 10px;
+    width: 100px;
+    justify-items: start;
+}
+
+.float {
+    float: left;
+    width: 200px;
+}
+
+.col1 { grid-column: 1 / 2; background: orange; }
+.col2 { grid-column: 2 / 3; background: indigo; }
+.col3 { grid-column: 3 / 4; background: green; }
+
+</style>
+
+<div class="float">
+
+<div class="grid" style="grid-template: 20px / 35px 5px;">
+    <div class="item" style="min-width: 15px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 50px 5px;">
+    <div class="item" style="min-width: 55px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 85px 5px;">
+    <div class="item min-width-max-content">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 5px 85px;">
+    <div class="item" style="min-width: 15px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 5px 85px;">
+    <div class="item" style="min-width: 55px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 5px 85px;">
+    <div class="item min-width-max-content">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+</div>
+
+</div>
+
+<div class="float">
+
+<div class="grid" style="grid-template: 20px / 17.5px 5px 67.5px;">
+    <div class="item" style="min-width: 15px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 25px 5px 60px;">
+    <div class="item" style="min-width: 55px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / calc(85px / 2) 5px calc(85px / 2);">
+    <div class="item min-width-max-content">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 77.5px 5px 17.5px;">
+    <div class="item" style="min-width: 15px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 70px 5px 25px;">
+    <div class="item" style="min-width: 55px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / calc(105px/2) 5px calc(85px/2);" style="justify-items: start">
+    <div class="item min-width-max-content">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+</div>
+
+<div class="float">
+
+<div class="grid" style="grid-template: 20px / calc(10px + (90px - 15px)/2) 5px calc((90px - 15px)/2 + 10px);">
+    <div class="item" style="min-width: 15px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / calc(50px + (90px - 55px)/2) 5px calc((90px - 55px)/2 + 10px);">
+    <div class="item" style="min-width: 55px;">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+<div class="grid" style="grid-template: 20px / 85px 5px 10px;">
+    <div class="item min-width-max-content">XXXX XXXX</div>
+    <div class="abs col1"></div>
+    <div class="abs col2"></div>
+    <div class="abs col3"></div>
+</div>
+
+</div>

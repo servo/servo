@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variables and SVG presentation attributes</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <!-- This is not directly specified in the spec but should work -->
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        body {
+            --stroke3: 5px
+        }
+    </style>
+</head>
+<body style="--prop: ;">
+    <svg id="svg" width="300px" height="100px">
+        <defs>
+            <linearGradient id="gradient">
+                <stop offset="0" stop-color="#ff8800"></stop>
+                <stop offset="1" stop-color="#ffff00"></stop>
+            </linearGradient>
+        </defs>
+        <rect id="box1" x="15" y="15" width="50" height="50" fill="lightgreen" stroke-width="var(--stroke1)" stroke="green" style="--stroke1: 10px"></rect>
+        <rect id="box2" x="115" y="15" width="50" height="50" fill="lightgreen" stroke-width="var(--stroke2)" stroke="green" style="--stroke2: 20px"></rect>
+        <rect id="box3" x="215" y="15" width="50" height="50" fill="lightgreen" stroke-width="var(--stroke3)" stroke="green"></rect>
+        <symbol id="test4" clip="var(--clip)" style="--clip: rect(1px 10em 3rem 2ch)"></symbol>
+    </svg>
+
+    <script>
+        "use strict";
+
+        var testcases = [
+            { element: "box1",      property:"stroke-width",    expectedPropertyValue: "10px" },
+            { element: "box2",      property:"stroke-width",    expectedPropertyValue: "20px" },
+            { element: "box3",      property:"stroke-width",    expectedPropertyValue: "5px" },
+            { element: "test4",     property:"clip",            expectedPropertyValue: "rect(1px, 160px, 48px, 16px)" },
+        ];
+
+        testcases.forEach(function (testcase) {
+            test( function () {
+                var element = document.getElementById(testcase.element);
+                var computedStyle = window.getComputedStyle(element);
+                var computedPropertyValue = computedStyle.getPropertyValue(testcase.property);
+                assert_equals(computedPropertyValue, testcase.expectedPropertyValue);
+            }, "Testing '" + testcase.property + "' on '#" + testcase.element + "'.");
+        });
+
+        let testproperties = [
+            { property: "alignment-baseline", valuesToTest:["baseline", "before-edge", "text-before-edge", "middle", "central", "after-edge", "text-after-edge", "ideographic", "alphabetic", "hanging", "mathematical"], default: "baseline" },
+            { property: "baseline-shift", valuesToTest:["baseline", "sub", "super", "13%", "28px"], default: "baseline" },
+            { property: "clip-rule", valuesToTest:["nonzero", "evenodd"], default: "nonzero" },
+            { property: "color", valuesToTest:["rgb(128, 0, 128)"], default: "rgb(0, 0, 0)" },
+            { property: "color-interpolation-filters", valuesToTest:["auto", "sRGB", "linearRGB"], default: "" },
+            { property: "cursor", valuesToTest:["auto", "crosshair", "default", "pointer", "move", "e-resize", "ne-resize", "nw-resize", "n-resize", "se-resize", "sw-resize", "s-resize", "w-resize", "text", "wait", "help"], default: "auto" },
+            { property: "direction", valuesToTest:["ltr", "rtl"], default: "ltr" },
+            { property: "display", valuesToTest:["inline", "block", "list-item", "table", "inline-table", "table-row-group", "table-header-group", "table-footer-group", "table-row", "table-column-group", "table-column", "table-cell", "table-caption", "none"], default: "inline" },
+            { property: "dominant-baseline", valuesToTest:["auto", "ideographic", "alphabetic", "hanging", "mathematical", "central", "middle", "text-after-edge", "text-before-edge"], default: "auto" },
+            { property: "fill", valuesToTest:["red", "url(#gradient) black"], default: "black" },
+            { property: "fill-opacity", valuesToTest:["0.8"], default: "1" },
+            { property: "fill-rule", valuesToTest:["nonzero", "evenodd"], default: "nonzero" },
+            { property: "filter", valuesToTest:["none"], default: "none" },
+            { property: "flood-color", valuesToTest:["currentColor", "green"], default: "" },
+            { property: "flood-opacity", valuesToTest:["0.7"], default: "1" },
+            { property: "font-family", valuesToTest:["Arial", "Times New Roman"], default: "Times New Roman" },
+            { property: "font-size", valuesToTest:["31px"], default: "16px" },
+            { property: "font-size-adjust", valuesToTest:["22", "none"], default: "none" },
+            { property: "font-stretch", valuesToTest:["100%", "50%", "62.5%", "75%", "87.5%", "112.5%", "125%", "150%", "200%"], default: "100%" },
+            { property: "font-style", valuesToTest:["normal", "italic"], default: "normal" },
+            { property: "font-weight", valuesToTest:["100", "200", "300", "400", "500", "600", "700", "800", "900"], default: "400" },
+            { property: "glyph-orientation-horizontal", valuesToTest:["13deg"], default: "0deg" },
+            { property: "glyph-orientation-vertical", valuesToTest:["auto", "19deg"], default: "auto" },
+            { property: "kerning", valuesToTest:["auto", "15"], default: "auto" },
+            { property: "letter-spacing", valuesToTest:["normal", "21px"], default: "normal" },
+            { property: "lighting-color", valuesToTest:["currentColor", "pink"], default: "" },
+            { property: "opacity", valuesToTest:["0.11"], default: "1" },
+            { property: "overflow", valuesToTest:["visible", "hidden", "scroll", "auto"], default: "visible" },
+            { property: "pointer-events", valuesToTest:["visiblePainted", "visibleFill", "visibleStroke", "visible", "painted", "fill", "stroke", "all", "none"], default: "visiblePainted" },
+            { property: "stop-color", valuesToTest:["currentColor", "maroon"], default: "" },
+            { property: "stop-opacity", valuesToTest:["0.225"], default: "1" },
+            { property: "stroke", valuesToTest:["green", "url(#gradient)"], default: "" },
+            { property: "stroke-dasharray", valuesToTest:["none", "2px"], default: "none" },
+            { property: "stroke-dashoffset", valuesToTest:["14%", "98px"], default: "0px" },
+            { property: "stroke-linecap", valuesToTest:["butt", "round", "square"], default: "butt" },
+            { property: "stroke-linejoin", valuesToTest:["miter", "round", "bevel"], default: "miter" },
+            { property: "stroke-miterlimit", valuesToTest:["2"], default: "4" },
+            { property: "stroke-opacity", valuesToTest:["0.221"], default: "1" },
+            { property: "stroke-width", valuesToTest:["88%", "31px"], default: "1px" },
+            { property: "text-anchor", valuesToTest:["start", "middle", "end"], default: "start" },
+            { property: "text-decoration-line", valuesToTest:["none", "underline", "overline", "line-through"], default: "none" },
+            { property: "text-decoration-style", valuesToTest:["solid", "double", "dotted", "dashed", "wavy"], default: "solid" },
+            { property: "visibility", valuesToTest:["visible", "hidden", "collapse"], default: "visible" },
+            { property: "word-spacing", valuesToTest:["31px"], default: "0px" },
+            { property: "writing-mode", valuesToTest:["lr-tb", "rl-tb"], default: "lr-tb" },
+        ];
+
+        testproperties.forEach(function (testcase) {
+            test( function () {
+                let svg = document.getElementById("svg");
+                let rect = document.createElement("rect");
+                svg.appendChild(rect);
+                let computedStyle = window.getComputedStyle(rect);
+                let expectedDefaultValue = testcase.default ? testcase.default : "";
+                let actualValue = computedStyle.getPropertyValue(testcase.property);
+                assert_equals(actualValue, expectedDefaultValue, "Default value.");
+                rect.style.cssText = testcase.property + ":var(--prop);";
+
+                for (var value of testcase.valuesToTest)
+                {
+                    document.body.style.setProperty("--prop", value);
+                    computedStyle = window.getComputedStyle(rect);
+                    let actualValue = computedStyle.getPropertyValue(testcase.property);
+                    assert_equals(actualValue, value, "Value Test.");
+                }
+
+                svg.removeChild(rect);
+            }, "Testing '" + testcase.property + "'.");
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG inside HTML 'BODY' element parses correctly" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    if(document.body.childNodes[3].localName=="svg")
+                    {
+                        document.getElementsByTagName("rect")[0].setAttribute("fill","green");
+                    }
+                    else
+                    {
+                        document.getElementsByTagName("rect")[0].setAttribute("fill","red");
+                    }
+                }
+                catch(ex)
+                {
+                    document.getElementsByTagName("rect")[0].setAttribute("fill","red")
+                }
+            }
+        </script>
+    </head>
+
+    <body onLoad="RunTest()">
+        <div class="testdata">
+            <p id="instructions"> Test passes if a green rectangle is visible on the page below this line. </p>
+        </div>
+        <svg width="100px" height="100px" >
+            <rect x="0" y="0" width="100px" height="100px" />
+        </svg>
+
+    </body>
+</html>

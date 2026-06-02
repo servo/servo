@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<iframe src="{{GET[childsrc]}}">
+</iframe>
+<script>
+const frame = document.getElementsByTagName('iframe')[0];
+const reply = op => window.parent.postMessage('DONE ' + op, '*');
+
+window.onmessage = e => {
+  switch (e.data) {
+  case 'REMOVE FRAME':
+    frame.remove();
+    reply(e.data);
+    break;
+  case 'NAVIGATE FRAME':
+    frame.srcdoc = '<html></html>';
+    frame.onload = () => reply(e.data);
+    break;
+  }
+};
+</script>
+</html>

@@ -1,0 +1,46 @@
+{
+  "name": "Mismatching scopes schema",
+  "importMapBaseURL": "https://base.example/",
+  "tests": {
+    "should throw if a scope's value is not an object": {
+      "expectedParsedImportMap": null,
+      "tests": {
+        "null": {
+          "importMap": {
+            "scopes": {
+              "https://example.com/": null
+            }
+          }
+        },
+        "boolean": {
+          "importMap": {
+            "scopes": {
+              "https://example.com/": true
+            }
+          }
+        },
+        "number": {
+          "importMap": {
+            "scopes": {
+              "https://example.com/": 1
+            }
+          }
+        },
+        "string": {
+          "importMap": {
+            "scopes": {
+              "https://example.com/": "foo"
+            }
+          }
+        },
+        "array": {
+          "importMap": {
+            "scopes": {
+              "https://example.com/": []
+            }
+          }
+        }
+      }
+    }
+  }
+}

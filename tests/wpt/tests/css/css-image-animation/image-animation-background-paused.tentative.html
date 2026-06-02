@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>pausing animated image for background image</title>
+<link rel="help" href="https://webplatform.design/projects/image-animation/image-animation-property/spec/overview">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-background-paused.tentative-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  takeScreenshotDelayed(300);
+</script>
+
+<style>
+  div {
+    width:20px;
+    height:10px;
+    image-animation:paused;
+  }
+  #box1 {
+    background-image: url("../../images/anim-gr.gif");
+  }
+  #box2 {
+    background-image: url("../../images/anim-gr.png");
+  }
+</style>
+
+<div id="box1"></div>
+<div id="box2"></div>
+
+</html>

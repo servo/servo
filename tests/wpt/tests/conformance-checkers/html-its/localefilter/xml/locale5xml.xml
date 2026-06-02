@@ -1,0 +1,8 @@
+
+<book xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+<info>
+<its:span localeFilterList="en-CA, fr-CA">
+<para>This legal notice is only for Canadian locales.</para>
+</its:span>
+</info>
+</book>

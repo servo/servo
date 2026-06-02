@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Pseudo elements as anchors</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#position-anchor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .cb {
+    position: relative;
+    width: 200px;
+    height: 200px;
+  }
+  #anchor1::before {
+    display: block;
+    width: 100px;
+    height: 100px;
+    content: "";
+    anchor-name: --a1;
+    background: blue;
+  }
+  #anchor2::after {
+    display: block;
+    width: 100px;
+    height: 100px;
+    content: "";
+    anchor-name: --a2;
+    background: pink;
+  }
+  .anchored {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: anchor(right);
+    top: anchor(bottom);
+    background: orange;
+  }
+  #anchored1 { position-anchor: --a1; }
+  #anchored2 { position-anchor: --a2; }
+</style>
+<div class="cb">
+  <div id="anchor1"></div>
+  <div id="anchored1" class="anchored"></div>
+</div>
+<div class="cb">
+  <div id="anchor2"></div>
+  <div id="anchored2" class="anchored"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored1.offsetLeft, 100);
+    assert_equals(anchored1.offsetTop, 100);
+  }, "::before as anchor");
+  test(() => {
+    assert_equals(anchored2.offsetLeft, 100);
+    assert_equals(anchored2.offsetTop, 100);
+  }, "::after as anchor");
+</script>

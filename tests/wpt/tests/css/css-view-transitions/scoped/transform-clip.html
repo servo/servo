@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <!-- TODO: update link -->
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <link rel="match" href="transform-clip-ref.html">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- accommodate anti-aliasing at edge of circle -->
+  <meta name="fuzzy" content="maxDifference=0-150; totalPixels=0-600">
+  <title>Scoped view transform with transform and clip.</title>
+</head>
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #clipper {
+    view-transition-group: contain;
+    view-transition-name: clipper;
+    overflow: clip;
+    height: 100px;
+    width: 100px;
+    border-radius: 50px;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+#target {
+  height: 50px;
+  background-color: forestgreen;
+  view-transition-name: target;
+  will-change: transform;
+}
+
+::view-transition-group(clipper) {
+  animation-play-state: paused;
+  background-color: hotpink;
+  overflow: clip;
+  border-radius: 50px;
+}
+
+.lower {
+  transform: translateY(25px);
+}
+
+</style>
+<body>
+  <div id=clipper>
+    <div id=target></div>
+  </div>
+</body>
+<script>
+
+async function runTest() {
+  const clipper = document.getElementById('clipper');
+  const target = document.getElementById('target');
+  await waitForNextFrame();
+  const vt = clipper.startViewTransition(() => target.classList.add("lower"));
+  await vt.ready;
+  document.getAnimations().forEach(a => {
+    if (a.playState != 'paused') {
+      a.finish();
+    }
+  });
+  requestAnimationFrame(takeScreenshot);
+}
+onload = () => {
+  waitForCompositorReady().then(runTest);
+}
+</script>
+</html>

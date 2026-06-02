@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="../resources/runner.js"></script>
+</head>
+<body>
+<script>
+function appendBranchWithDepth(depth)
+{
+    var node = document.body;
+    while (depth) {
+        var child = document.createElement('div');
+        node.appendChild(child);
+        node = child;
+        depth--;
+    }
+    return node;
+}
+
+function appendChildren(root, childCount)
+{
+    while (childCount) {
+        root.appendChild(document.createElement('div'));
+        childCount--;
+    }
+}
+
+// This makes a tree of depth 50 with 500 leaves.
+var tipOfBranch = appendBranchWithDepth(50);
+appendChildren(tipOfBranch, 500);
+var customEvent = new Event('foo');
+
+function run()
+{
+    for (var node = tipOfBranch.firstChild; node; node = node.nextSibling)
+      node.dispatchEvent(customEvent);
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measure events dispatching",
+    run: run
+});
+</script>
+</body>
+</html>

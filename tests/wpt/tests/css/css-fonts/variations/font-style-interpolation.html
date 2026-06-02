@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing the interpolation of new font-style values introduced in CSS Fonts level 4</title>
+    <meta name="timeout" content="long">
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-style-prop" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @keyframes fontStyleAnimation {
+            from { font-style: oblique -12deg; }
+            to   { font-style: oblique  12deg; }
+        }
+
+        #animation-test.animate {
+            animation: fontStyleAnimation 1s infinite alternate;
+        }
+
+        #transition-test {
+            font-style: oblique -12deg;
+            transition-property: font-style;
+            transition-duration: 10s;
+        }
+
+        #transition-test.animate {
+            font-style: oblique 12deg;
+        }
+
+    </style>
+</head>
+<body>
+    <div style="font-family: serif;">
+        <div id="animation-test">Animation test</div>
+        <div id="transition-test">Transition test</div>
+    </div>
+
+    <script>
+
+        async_test(function (test) {
+            var animationElement = document.getElementById("animation-test");
+
+            // Verify starting value
+            assert_equals(window.getComputedStyle(animationElement).fontStyle, "normal", "Font style before animation");
+
+            // Start animation
+            animationElement.classList.add("animate");
+
+            var waitForAnimationStep = test.step_func(function() {
+                var computedFontStyle = window.getComputedStyle(animationElement).fontStyle;
+                if (computedFontStyle != "normal" &&
+                    computedFontStyle != "oblique -12deg" &&
+                    computedFontStyle != "oblique 12deg") {
+                    test.done();
+                }
+                else {
+                    window.requestAnimationFrame(waitForAnimationStep);
+                }
+            });
+            waitForAnimationStep();
+
+        }, "font-style animation");
+
+        async_test(function (test) {
+            var transitionElement = document.getElementById("transition-test");
+
+            // Verify starting value
+            assert_equals(window.getComputedStyle(transitionElement).fontStyle, "oblique -12deg", "Font style before transition");
+
+            // Start transition
+            transitionElement.classList.add("animate");
+
+            var waitForTransitionStep = test.step_func(function() {
+                var computedFontStyle = window.getComputedStyle(transitionElement).fontStyle;
+                if (computedFontStyle != "normal" &&
+                    computedFontStyle != "oblique -12deg" &&
+                    computedFontStyle != "oblique 12deg") {
+                    test.done();
+                }
+                else {
+                    window.requestAnimationFrame(waitForTransitionStep);
+                }
+            });
+            waitForTransitionStep();
+
+        }, "font-style transition");
+
+    </script>
+</body>
+</html>

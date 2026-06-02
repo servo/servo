@@ -1,0 +1,174 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_polygon_offset_clamp Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_polygon_offset_clamp extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+var ext;
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the parameter without the extension");
+    shouldBeNull("gl.getParameter(0x8E1B /* POLYGON_OFFSET_CLAMP_EXT */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.POLYGON_OFFSET_CLAMP_EXT", "0x8E1B");
+}
+
+function checkQueries() {
+    debug("");
+    debug("Check default state");
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_FACTOR)', '0.0');
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_UNITS)', '0.0');
+    shouldBe('gl.getParameter(ext.POLYGON_OFFSET_CLAMP_EXT)', '0.0');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    debug("");
+    debug("Check state update using the new function");
+    ext.polygonOffsetClampEXT(1.0, 2.0, 3.0);
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_FACTOR)', '1.0');
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_UNITS)', '2.0');
+    shouldBe('gl.getParameter(ext.POLYGON_OFFSET_CLAMP_EXT)', '3.0');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    debug("");
+    debug("Check that the unextended function resets the clamp value to zero");
+    gl.polygonOffset(4.0, 5.0);
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_FACTOR)', '4.0');
+    shouldBe('gl.getParameter(gl.POLYGON_OFFSET_UNITS)', '5.0');
+    shouldBe('gl.getParameter(ext.POLYGON_OFFSET_CLAMP_EXT)', '0.0');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkClamping() {
+    debug("");
+    debug("Check polygon offset clamp operation");
+
+    // The shader creates a depth slope from left (0) to right (1).
+    //
+    // This test issues two draw calls:
+    //
+    //           Draw 2 (green): factor width, offset 0, clamp 0.5, depth test: Greater
+    //          ^     |       __________________
+    //          |     |    __/      __/
+    //          |     V __/      __/  <--- Draw 1 (red): factor width, offset 0, clamp 0.25
+    //          |    __/      __/
+    //          | __/      __/
+    //          |/      __/
+    //          |    __/
+    //          | __/
+    //          |/
+    //          |
+    //          |
+    //          +------------------------------->
+    //
+    // Result:  <---------green--------><--red-->
+
+
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    const colorLoc = gl.getUniformLocation(program, "u_color");
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, -1, 1, -1, 1, -1, 1, -1, 1, 1, 1]),
+        gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clearDepth(0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.enable(gl.DEPTH_TEST);
+
+    gl.depthFunc(gl.ALWAYS);
+    gl.uniform4f(colorLoc, 1, 0, 0, 1);
+    ext.polygonOffsetClampEXT(w, 0, 0.25);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    gl.depthFunc(gl.GREATER);
+    gl.uniform4f(colorLoc, 0, 1, 0, 1);
+    ext.polygonOffsetClampEXT(w, 0, 0.5);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    wtu.checkCanvasRect(
+        gl,
+        0, 0, 3 * w / 4 - 1, h,
+        [0, 255, 0, 255], "should be green");
+
+    wtu.checkCanvasRect(
+        gl,
+        3 * w / 4 + 1, 0, w / 4 - 1, h,
+        [255, 0, 0, 255], "should be red");
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function runTestExtension() {
+    checkEnums();
+    checkQueries();
+    checkClamping();
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("EXT_polygon_offset_clamp");
+
+    wtu.runExtensionSupportedTest(gl, "EXT_polygon_offset_clamp", ext !== null);
+
+    if (ext !== null) {
+        runTestExtension();
+    } else {
+        testPassed("No EXT_polygon_offset_clamp support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: report-only-unsafe-eval={{$id:uuid()}}; Path=/content-security-policy/reporting/
+Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'nonce-abc'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}

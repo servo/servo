@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Text test: letter-spacing and Bengali ya-phala (yo-pholo)</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="match" href="reference/letter-spacing-bengali-yaphala-001-ref.html">
+<meta name="assert" content="Letter-spacing does not separate yaphala from the preceding letter.">
+<link rel="help" href="https://drafts.csswg.org/css-text/#letter-spacing-property">
+<link rel="help" href="https://github.com/w3c/line_paragraph_tests/issues/81">
+
+<style>
+/* We try various "likely" font names, as well as generics; those not available
+   on the platform will simply fall back to a default. */
+.outer.a {
+  font-family: sans-serif;
+}
+.outer.b {
+  font-family: serif;
+}
+.outer.c {
+  font-family: Bangla MN, serif;
+}
+.outer.d {
+  font-family: Bangla Sangam MN, sans-serif;
+}
+.outer.e {
+  font-family: Nirmala UI, Vrinda, sans-serif;
+}
+.outer.f {
+  font-family: Noto Sans Bengali, sans-serif;
+}
+.inner {
+  position: relative;
+  margin: 1em;
+  height: 2em;
+}
+.test {
+  padding: 0.25em;
+  color: red;
+  letter-spacing: 1em;
+  position: absolute;
+}
+.mask {
+  padding: 0.25em;
+  color: green;
+  background: green;
+  position: absolute;
+}
+span {
+  display: inline-block;
+}
+</style>
+
+<p>Test passes if the red Bengali text is entirely hidden by the green blocks.</p>
+
+<div class="outer a">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>
+
+<div class="outer b">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>
+
+<div class="outer c">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>
+
+<div class="outer d">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>
+
+<div class="outer e">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>
+
+<div class="outer f">
+  <div class="inner" lang="bn">
+    <div class="test">অ্যান্টিগুয়া</div><!-- there should be 3 letter-spacing opportunities in this word -->
+    <div class="mask">অ্যান্টিগুয়া<span style="width:3em"></span></div>
+  </div>
+  <div class="inner" lang="bn">
+    <div class="test">এ্যাডভোকেট</div><!-- there should be 4 letter-spacing opportunities in this word -->
+    <div class="mask">এ্যাডভোকেট<span style="width:4em"></span></div>
+  </div>
+</div>

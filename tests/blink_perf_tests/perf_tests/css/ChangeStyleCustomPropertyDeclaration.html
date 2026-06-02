@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+    <title>CSS Custom Properties and Variables: Changes in property's declaration</title>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<style>
+    .crosshair { --prop: crosshair; }
+    .default { --prop: default; }
+    body > div > div { background-color: grey; }
+</style>
+<body>
+    <script>
+        function createDOMTree() {
+            let div = document.createElement('div');
+            div.innerHTML = '<div><div><div><div><div style="cursor: var(--prop)">' + '' + '</div></div></div></div></div>';
+            for (let i = 0; i < 10000; i++) {
+                document.body.appendChild(div.cloneNode(true));
+            }
+        }
+        createDOMTree();
+        var theme;
+        PerfTestRunner.measureTime({
+            description: "Measures the performance in the propagation of a custom property declaration.",
+            setup: () => {
+                document.body.classList.remove(theme);
+                theme = theme == 'crosshair' ? 'default' : 'crosshair';
+            },
+            run: function() {
+                document.body.classList.add(theme);
+                forceStyleRecalc(document.body);
+            },
+        });
+    </script>
+</body>

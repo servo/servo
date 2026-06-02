@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>transition:all interpolates the same as transition:the-actual-property</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#transition-property-property">
+
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+const cases = [
+  // Property name, from-value, to-value, transition at 50%
+  ["width", "100px", "200px", "150px"],
+  ["height", "100px", "200px", "150px"],
+  ["z-index", "100", "200", "150"],
+  ["display", "none", "block", "block"],
+  ["margin-left", "100px", "200px", "150px"],
+  ["font-kerning", "normal", "none", "none"],
+  ["font-optical-sizing", "none", "auto", "auto"],
+  ["font-size", "10px", "12px", "11px"],
+  ["font-stretch", "100%", "150%", "125%"],
+  ["font-style", "normal", "oblique 10deg", "oblique 5deg"],
+  ["font-variant-ligatures", "common-ligatures", "none", "none"],
+  ["font-variant-caps", "normal", "small-caps", "small-caps"],
+  ["font-variant-east-asian", "normal", "ruby", "ruby"],
+  ["font-variant-numeric", "normal", "slashed-zero", "slashed-zero"],
+  ["font-weight", "400", "600", "500"],
+  ["text-rendering", "none", "optimizespeed", "optimizespeed"],
+  ["background-attachment", "scroll", "local", "local"],
+  ["background-clip", "border-box", "text", "text"],
+  ["background-image", "auto", "none", "none"],
+  ["background-origin", "border-box", "padding-box", "padding-box"],
+  ["background-position-x", "100px", "200px", "150px"],
+  ["background-position-y", "100px", "200px", "150px"],
+  ["background-repeat", "repeat-x", "repeat-y", "repeat-y"],
+  ["background-size", "auto", "cover", "cover"],
+  ["border-image-outset", "10px", "20px", "15px"],
+  ["border-image-repeat", "stretch", "repeat", "repeat"],
+  ["border-image-slice", "100", "200", "150"],
+  ["border-image-width", "100px", "200px", "150px"],
+  ["border-left-color", "black", "white", "rgb(128, 128, 128)"],
+  ["counter-increment", "example-counter 10", "example-counter 20", "example-counter 20"],
+  ["vertical-align", "10px", "20px", "15px"],
+  ["vertical-align", "baseline", "super", "super"],
+];
+
+for (const c of cases) {
+  let propertyName = c[0];
+  let fromValue = c[1];
+  let toValue = c[2];
+  let midValue = c[3];
+  promise_test(async t => {
+    // Start a 100s transition 50% of the way through.
+    const div = addDiv(t, {
+        style: `transition: ${propertyName} 100s -50s linear allow-discrete; ${propertyName}: ${fromValue}`,
+    });
+    getComputedStyle(div)[propertyName];
+    div.style[propertyName] = toValue;
+    assert_equals(getComputedStyle(div)[propertyName],
+        midValue,
+        'Transition should be initially 50% complete');
+
+    // Now do the same with transition:all.
+    const div2 = addDiv(t, {
+      style: `transition: all 100s -50s linear allow-discrete; ${propertyName}: ${fromValue}`,
+    });
+    getComputedStyle(div2)[propertyName];
+    div2.style[propertyName] = toValue;
+    assert_equals(getComputedStyle(div2)[propertyName],
+        midValue,
+        'Transition should be initially 50% complete, with transition:all');
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-rend-desc">
+<link rel="match" href="font-variation-settings-descriptor-01-ref.html">
+<meta name="assert" content="slant feature should be handled with font-variation-settings defined as font-face rule.">
+<style>
+  @font-face {
+    font-family: "slant";
+    src: url(variations/resources/Inter.var.subset.ttf);
+    font-variation-settings: 'slnt' -20;
+  }
+  .slantOn {
+    font-family: slant;
+  }
+</style>
+<body>
+ <p>Test passes if the line below has slanted text.</p>
+ <div class="slantOn">
+  <span>filler text</span>
+ </div>
+</body>
+</html>

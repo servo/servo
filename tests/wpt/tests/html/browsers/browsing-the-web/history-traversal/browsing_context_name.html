@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Retaining window.name on history traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<pre id="step_log"></pre>
+
+<script>
+var t = async_test();
+t.step(() => {
+  win = window.open("browsing_context_name-0.html");
+  t.add_cleanup(() => win.close());
+});
+</script>

@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+:root {
+  font-family: sans-serif;
+}
+.parent {
+  display: inline-flex;
+  --addon-size: 1rem;
+}
+.child {
+  min-width: 0;
+  display: inline-flex;
+}
+.overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addon-child {
+  display: inline-flex;
+  width: var(--addon-size);
+}
+span {
+  outline: 1px dashed red;
+  outline-offset: -1px;
+}
+p > span > span {
+  padding: .5rem .25rem;
+}
+</style>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>

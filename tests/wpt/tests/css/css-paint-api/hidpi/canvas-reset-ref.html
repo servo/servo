@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="canvas"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext("2d");
+
+// Adjust the canvas to get highdpi rendering.
+canvas.style.width = '270px';
+canvas.style.height = '275px';
+canvas.width = 270 * devicePixelRatio;
+canvas.height = 275 * devicePixelRatio;
+ctx.scale(devicePixelRatio, devicePixelRatio);
+
+var fillW = 250;
+var fillH = 50;
+ctx.beginPath();
+ctx.rect(0, 0, fillW, fillH);
+ctx.closePath();
+ctx.clip();
+ctx.fillStyle = 'green';
+ctx.fillRect(0, 0, fillW, fillH);
+</script>
+</body>
+</html>

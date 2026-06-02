@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>MediaSource.removeSourceBuffer() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_class_string(sourceBuffer, "SourceBuffer", "New SourceBuffer returned");
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              var sourceBuffer2 = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_class_string(sourceBuffer2, "SourceBuffer", "New SourceBuffer returned");
+              assert_not_equals(sourceBuffer, sourceBuffer2, "SourceBuffers are different instances.");
+              assert_equals(mediaSource.sourceBuffers.length, 1, "sourceBuffers.length == 1");
+
+              test.done();
+          }, "Test addSourceBuffer(), removeSourceBuffer(), addSourceBuffer() sequence.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              assert_throws_js(TypeError,
+                          function() { mediaSource.removeSourceBuffer(null); },
+                          "removeSourceBuffer() threw an exception when passed null.");
+              test.done();
+          }, "Test removeSourceBuffer() with null");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_class_string(sourceBuffer, "SourceBuffer", "New SourceBuffer returned");
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              assert_throws_dom("NotFoundError",
+                  function() { mediaSource.removeSourceBuffer(sourceBuffer); },
+                  "removeSourceBuffer() threw an exception for a SourceBuffer that was already removed.");
+
+              test.done();
+          }, "Test calling removeSourceBuffer() twice with the same object.");
+
+          mediasource_test(function(test, mediaElement1, mediaSource1)
+          {
+              var sourceBuffer1 = mediaSource1.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+              assert_class_string(sourceBuffer1, "SourceBuffer", "New SourceBuffer returned");
+
+              var mediaElement2 = document.createElement("video");
+              document.body.appendChild(mediaElement2);
+              test.add_cleanup(function() { document.body.removeChild(mediaElement2); });
+
+              var mediaSource2 = new MediaSource();
+              var mediaSource2URL = URL.createObjectURL(mediaSource2);
+              mediaElement2.src = mediaSource2URL;
+              test.expectEvent(mediaSource2, "sourceopen", "Second MediaSource opened");
+              test.waitForExpectedEvents(function()
+              {
+                  URL.revokeObjectURL(mediaSource2URL);
+
+                  var sourceBuffer2 = mediaSource2.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+                  assert_class_string(sourceBuffer2, "SourceBuffer", "Second new SourceBuffer returned");
+                  assert_not_equals(mediaSource1, mediaSource2, "MediaSources are different instances");
+                  assert_not_equals(sourceBuffer1, sourceBuffer2, "SourceBuffers are different instances");
+                  assert_equals(mediaSource1.sourceBuffers[0], sourceBuffer1);
+                  assert_equals(mediaSource2.sourceBuffers[0], sourceBuffer2);
+                  assert_throws_dom("NotFoundError",
+                      function() { mediaSource1.removeSourceBuffer(sourceBuffer2); },
+                      "MediaSource1.removeSourceBuffer() threw an exception for SourceBuffer2");
+                  assert_throws_dom("NotFoundError",
+                      function() { mediaSource2.removeSourceBuffer(sourceBuffer1); },
+                      "MediaSource2.removeSourceBuffer() threw an exception for SourceBuffer1");
+                  mediaSource1.removeSourceBuffer(sourceBuffer1);
+                  mediaSource2.removeSourceBuffer(sourceBuffer2);
+                  test.done();
+              });
+          }, "Test calling removeSourceBuffer() for a sourceBuffer belonging to a different mediaSource instance.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_class_string(sourceBuffer, "SourceBuffer", "New SourceBuffer returned");
+
+              mediaSource.endOfStream();
+              assert_equals(mediaSource.readyState, "ended", "MediaSource in ended state");
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              assert_equals(mediaSource.sourceBuffers.length, 0, "MediaSource.sourceBuffers is empty");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "MediaSource.activesourceBuffers is empty");
+
+              test.done();
+          }, "Test calling removeSourceBuffer() in ended state.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+
+              test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+              test.expectEvent(mediaElement, "loadedmetadata", "loadedmetadata done.");
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.sourceBuffers.length, 1, "MediaSource.sourceBuffers is not empty");
+                  assert_equals(mediaSource.activeSourceBuffers.length, 1, "MediaSource.activesourceBuffers is not empty");
+                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA);
+                  assert_equals(mediaSource.duration, segmentInfo.duration);
+                  test.expectEvent(mediaSource.activeSourceBuffers, "removesourcebuffer", "SourceBuffer removed from activeSourceBuffers.");
+                  test.expectEvent(mediaSource.sourceBuffers, "removesourcebuffer", "SourceBuffer removed.");
+                  mediaSource.removeSourceBuffer(sourceBuffer);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.sourceBuffers.length, 0, "MediaSource.sourceBuffers is empty");
+                  assert_equals(mediaSource.activeSourceBuffers.length, 0, "MediaSource.activesourceBuffers is empty");
+                  test.done();
+              });
+          }, "Test removesourcebuffer event on activeSourceBuffers.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+              var mimetype = MediaSourceUtil.AUDIO_VIDEO_TYPE;
+              var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
+              sourceBuffer.appendBuffer(new Uint8Array(0));
+              assert_true(sourceBuffer.updating, "Updating flag set when a buffer is appended.");
+              test.expectEvent(sourceBuffer, 'abort');
+              test.expectEvent(sourceBuffer, 'updateend');
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+              assert_false(sourceBuffer.updating, "Updating flag reset after abort.");
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+          }, "Test abort event when removeSourceBuffer() called while SourceBuffer is updating");
+        </script>
+    </body>
+</html>

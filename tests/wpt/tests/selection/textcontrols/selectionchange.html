@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selectionchange events from text controls</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  input,
+  textarea {
+    font: 16px/1 Ahem;
+  }
+</style>
+
+<input id="input" width="200"><br>
+<textarea id="textarea" width="200"></textarea>
+
+<script>
+  class SelectionChangeCollector {
+    /**
+     * @param {HTMLElement} target
+     */
+    constructor(target) {
+      this.target = target;
+      this.events = [];
+      target.addEventListener("selectionchange", ev => {
+        this.events.push(ev);
+      });
+    }
+    clear() {
+      this.events.length = 0;
+    }
+  }
+
+  const data = {
+    collectors: [
+      new SelectionChangeCollector(input),
+      new SelectionChangeCollector(input.cloneNode()),
+      new SelectionChangeCollector(textarea),
+      new SelectionChangeCollector(textarea.cloneNode(true)),
+    ],
+    async initialize() {
+      for (const collector of this.collectors) {
+        collector.target.value = "XXXXXXXXXXXXXXXXXXX";
+        collector.target.blur();
+        collector.target.setSelectionRange(0, 0);
+      }
+      await this.spin();
+      for (const collector of this.collectors) {
+        collector.clear();
+      }
+    },
+    spin() {
+      return new Promise(setTimeout);
+    },
+    async assert_empty_spin() {
+      // firing selectionchange must be asynchronous
+      for (const collector of this.collectors) {
+        assert_equals(collector.events.length, 0);
+      }
+      await this.spin();
+    }
+  };
+
+  for (const collector of data.collectors) {
+    const target = collector.target;
+    const name = `the ${!target.parentNode ? "disconnected " : ""}${target.localName} element`;
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionStart = 1;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Modifying selectionStart value of ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionEnd = 1;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Modifying selectionEnd value of ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.setSelectionRange(0, 4);
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling setSelectionRange() on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.select();
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling select() on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.setRangeText("newmiddle", 2, 3, "select");
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling setRangeText() on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionStart = 0;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 0);
+    }, `Setting initial zero selectionStart value on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionStart = 2;
+      target.selectionStart = 2;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Setting the same selectionStart value twice on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionEnd = 0;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 0);
+    }, `Setting initial zero selectionEnd value on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.selectionEnd = 2;
+      target.selectionEnd = 2;
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Setting the same selectionEnd value twice on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.setSelectionRange(0, 0);
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 0);
+    }, `Setting initial zero selection range on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.setSelectionRange(3, 3);
+      target.setSelectionRange(3, 3);
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Setting the same selection range twice on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.select();
+      target.select();
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling select() twice on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.select();
+      target.setRangeText("foo", 2, 6);
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling setRangeText() after select() on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.select();
+      target.setRangeText("", 10, 12);
+      target.setRangeText("", 10, 12);
+      target.setRangeText("", 10, 12);
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling setRangeText() repeatedly on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
+      target.value = "";
+      target.setRangeText("foo");
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 0);
+    }, `Calling setRangeText() on empty ${name}`);
+  }
+</script>

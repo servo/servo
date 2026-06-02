@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    grid-template-columns: 80px repeat(4, 10px) 20px 10px;
+    grid-template-rows: repeat(4, 60px);
+    grid-auto-flow: column;
+}
+.left {
+    transform: translateX(-40px);
+}
+</style>
+<body>
+  <p>Ensure that dense-packing correctly accounts for the gaps between items when placing them in track openings. Items to be placed in track openings are yellow.</p>
+  <div class="grid">
+    <div style="background: aquamarine; width: 120px; grid-row: 1;" >
+      1
+    </div>
+    <div style="background: blue; width: 40px; grid-row: 2;" >
+      2
+    </div>
+    <div style="background: blueviolet; width: 20px; grid-row: 3;">
+      3
+    </div>
+    <div style="background: lightsteelblue; width: 60px; grid-row: 4;">
+      4
+    </div>
+    <div class="left" style="background: yellow; width: 10px; grid-row: 2 / span 2;">
+      10
+    </div>
+    <div class="left" style="background: yellow; width: 10px; grid-row: 2 / span 3;">
+      6
+    </div>
+    <div class="left" style="background: yellow; width: 10px; grid-row: 2 / span 3;">
+      7
+    </div>
+    <div class="left" style="background: yellow; width: 10px; grid-row: 2 / span 3;">
+      8
+    </div>
+    <div class="left" style="background: aqua; width: 20px; grid-row: span 4;">
+      5
+    </div>
+    <div class="left" style="background: green; width: 10px; grid-row: span 3;">
+      9
+    </div>
+  </div>
+</body>
+</html>

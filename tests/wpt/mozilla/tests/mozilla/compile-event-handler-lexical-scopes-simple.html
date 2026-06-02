@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Lexical scopes when compiling an inline event handler (easy mode)</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#getting-the-current-value-of-the-event-handler">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+setup({allow_uncaught_exception: true});
+</script>
+
+<!-- Testing just the core of
+     html/webappapis/scripting/events/compile-event-handler-lexical-scopes.html
+     to have a test for it that works while #25199 is open -->
+
+<form method="POST">
+  <input value="hello" onclick="
+    window.testResults.value = value;
+    window.testResults.self = this;
+    window.testResults.method = method;
+    window.testResults.contentType = contentType;
+    window.testResults.input_var = input_var;
+    window.testResults.form_var = form_var;
+    window.testResults.doc_var = doc_var;
+    ">
+</form>
+
+<script>
+"use strict";
+
+test(() => {
+  window.testResults = {};
+
+  document.querySelector("input").input_var = 1;
+  document.querySelector("form").form_var = 2;
+  document.doc_var = 3;
+
+  document.querySelector("input").click();
+
+  assert_equals(window.testResults.value, "hello");
+  assert_in_array(window.testResults.method, ["POST","post"]);
+  assert_equals(window.testResults.contentType, "text/html");
+  assert_equals(window.testResults.self, document.querySelector("input"));
+  assert_equals(window.testResults.input_var, 1);
+  assert_equals(window.testResults.form_var, 2);
+  assert_equals(window.testResults.doc_var, 3);
+}, "Element, form owner, and document all expose expandos and IDL properties");
+</script>

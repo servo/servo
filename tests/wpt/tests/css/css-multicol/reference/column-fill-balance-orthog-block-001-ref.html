@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div#outer
+    {
+      background-color: yellow;
+      height: 250px;
+    }
+
+  div#inner
+    {
+      background-color: lime;
+      font-size: 50px;
+      line-height: 1.2;
+      writing-mode: vertical-rl;
+    }
+  </style>
+
+  <p>Test passes if the word "TEXT" is unbroken and rotated 90 degrees clock-wise.
+
+  <div id="outer">
+    <div id="inner">TEXT</div>
+  </div>

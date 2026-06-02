@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+.no-marker ::marker {
+  content: none;
+}
+.inside {
+  list-style-position: inside;
+}
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "string";
+}
+.image {
+  list-style-image: url("/images/green-100x50.png");
+}
+</style>
+<div>
+  <ol class="inside">
+    <li class="symbol">inside symbol</li>
+    <li class="decimal">inside decimal</li>
+    <li class="string">inside string</li>
+    <li class="image">inside image</li>
+  </ol>
+  <ol class="outside">
+    <li class="symbol">outside symbol</li>
+    <li class="decimal">outside decimal</li>
+    <li class="string">outside string</li>
+    <li class="image">outside image</li>
+  </ol>
+</div>
+<div class="no-marker">
+  <ol class="inside">
+    <li class="symbol">inside symbol</li>
+    <li class="decimal">inside decimal</li>
+    <li class="string">inside string</li>
+    <li class="image">inside image</li>
+  </ol>
+  <ol class="outside">
+    <li class="symbol">outside symbol</li>
+    <li class="decimal">outside decimal</li>
+    <li class="string">outside string</li>
+    <li class="image">outside image</li>
+  </ol>
+</div>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../../permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-ch-ua-high-entropy-values.html";
+    const cross_origin_src =
+      "https://{{hosts[alt][]}}:{{ports[https][0]}}" + same_origin_src;
+      const header = 'Permissions policy header "ch-ua-high-entropy-values=()"';
+
+    promise_test(async () => {
+      // bitness is a high-entropy hint: we expect it to not be returned due to
+      // Permissions-Policy, but instead just the low-entropy hints
+      return navigator.userAgentData.getHighEntropyValues(["bitness"]).then(
+        hints => {
+          assert_own_property(hints, "brands");
+          assert_own_property(hints, "mobile");
+          assert_own_property(hints, "platform");
+          assert_not_own_property(hints, "bitness");
+        }
+      );
+    }, `${header} disallows high-entropy values via getHighEntropyValues() in top-level document.`);
+
+    async_test((test) => {
+      return test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+      });
+    }, `${header} disallows high-entropy values via getHighEntropyValues() in same-origin iframes.`);
+
+    async_test((test) => {
+      return test_feature_availability({
+        feature_description: "navigator.userAgentData.getHighEntropyValues()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+      });
+    }, `${header} disallows high-entropy values via getHighEntropyValues() in cross-origin iframes.`);
+  </script>
+</body>

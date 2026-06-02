@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element without src and type attributes represents nothing</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-embed-element">
+<link rel="match" href="embed-represent-nothing-ref.html">
+<meta name="assert" content="Check if the embed element without src and type attributes represents nothing">
+<style>
+  embed {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <embed>
+</body>

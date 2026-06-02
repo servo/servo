@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+'use strict';
+
+// Verifies that FormControlRange updates its start/end offsets for
+// programmatic text mutations mirroring DOM Range behavior in the control’s
+// value space. Each test first exercises a DOM Range in a contenteditable div,
+// then performs the equivalent operation with FormControlRange to ensure
+// behavior parity.
+
+const controls = ['input', 'textarea'];
+
+function setup(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  element.focus();
+  return element;
+}
+
+function makeFormControlRange(element, start, end) {
+  const range = new FormControlRange();
+  range.setFormControlRange(element, start, end);
+  return range;
+}
+
+function setupEditable(value) {
+  // Create a contenteditable div with a single text node.
+  const editable = document.createElement('div');
+  editable.setAttribute('contenteditable', 'true');
+  editable.textContent = value;
+  document.body.appendChild(editable);
+  const text = editable.firstChild;
+  return { editable, text };
+}
+
+function makeDomRange(text, start, end) {
+  // Construct a DOM Range in the given text node.
+  const r = document.createRange();
+  r.setStart(text, start);
+  r.setEnd(text, end);
+  return r;
+}
+
+controls.forEach(control => {
+  test(() => {
+    // DOM: full replace (shorter) collapses to [0,0].
+    const d1 = setupEditable('ABCDEFG');
+    const domRange1 = makeDomRange(d1.text, 2, 5);
+    d1.text.replaceData(0, 7, 'XY');
+    assert_equals(domRange1.startOffset, 0, 'DOM shorter: start collapsed to 0');
+    assert_equals(domRange1.endOffset, 0, 'DOM shorter: end collapsed to 0');
+
+    // FormControlRange: full .value replacement (shorter) collapses to [0,0].
+    let element = setup(control, 'ABCDEFG');
+    let range = makeFormControlRange(element, 2, 5);
+    element.value = 'XY';
+    assert_equals(range.startOffset, 0, 'FormControlRange shorter: start collapsed to 0');
+    assert_equals(range.endOffset, 0, 'FormControlRange shorter: end collapsed to 0');
+
+    // DOM: full replace (longer) collapses to [0,0].
+    const d2 = setupEditable('ABC');
+    const domRange2 = makeDomRange(d2.text, 1, 3);
+    d2.text.replaceData(0, 3, 'ABCDEFGHIJKLMNOP');
+    assert_equals(domRange2.startOffset, 0, 'DOM longer: start collapsed to 0');
+    assert_equals(domRange2.endOffset, 0, 'DOM longer: end collapsed to 0');
+
+    // FormControlRange: full .value replacement (longer) collapses to [0,0].
+    element = setup(control, 'ABC');
+    range = makeFormControlRange(element, 1, 3);
+    element.value = 'ABCDEFGHIJKLMNOP';
+    assert_equals(range.startOffset, 0, 'FormControlRange longer: start collapsed to 0');
+    assert_equals(range.endOffset, 0, 'FormControlRange longer: end collapsed to 0');
+  }, `Full replace collapses to start (shorter & longer) (${control})`);
+
+  test(() => {
+    // DOM: full replace when prior range spans whole old value; collapse to [0,0].
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 0, 5);
+    d.text.replaceData(0, 5, 'VWXYZ');
+    assert_equals(domRange.startOffset, 0, 'DOM whole-old: start collapsed to 0');
+    assert_equals(domRange.endOffset, 0, 'DOM whole-old: end collapsed to 0');
+
+    // FormControlRange: same scenario.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 0, 5);
+    element.value = 'VWXYZ';
+    assert_equals(range.startOffset, 0, 'FormControlRange whole-old: start collapsed to 0');
+    assert_equals(range.endOffset, 0, 'FormControlRange whole-old: end collapsed to 0');
+  }, `Full replace from whole-old range collapses to 0 (${control})`);
+
+  test(() => {
+    // DOM: full replace with equal length; collapse to [0,0].
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 1, 4);
+    d.text.replaceData(0, 5, 'VWXYZ');
+    assert_equals(domRange.startOffset, 0, 'DOM equal-length: start collapsed to 0');
+    assert_equals(domRange.endOffset, 0, 'DOM equal-length: end collapsed to 0');
+
+    // FormControlRange: same scenario.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 1, 4);
+    element.value = 'VWXYZ';
+    assert_equals(range.startOffset, 0, 'FormControlRange equal-length: start collapsed to 0');
+    assert_equals(range.endOffset, 0, 'FormControlRange equal-length: end collapsed to 0');
+  }, `Full replace (equal length) collapses to 0 (${control})`);
+
+  test(() => {
+    // DOM: replace [3,7) with "XX".
+    const d = setupEditable('0123456789');
+    const domRange = makeDomRange(d.text, 2, 8);
+    d.text.replaceData(3, 4, 'XX');
+    assert_equals(d.editable.textContent, '012XX789', 'DOM value reflects replace');
+    assert_equals(domRange.startOffset, 2, 'DOM start unchanged before replaced segment');
+    assert_equals(domRange.endOffset, 6, 'DOM end adjusted by net delta');
+
+    // FormControlRange: same replace via setRangeText.
+    const element = setup(control, '0123456789');
+    const range = makeFormControlRange(element, 2, 8);
+    element.setRangeText('XX', 3, 7);
+    assert_equals(element.value, '012XX789', 'FormControlRange value reflects setRangeText replace');
+    assert_equals(range.startOffset, 2, 'FormControlRange start unchanged before replaced segment');
+    assert_equals(range.endOffset, 6, 'FormControlRange end adjusted by net delta');
+  }, `Partial replacement adjusts end (${control})`);
+
+  test(() => {
+    // DOM: no mutation; range unchanged.
+    const d = setupEditable('HELLO');
+    const domRange = makeDomRange(d.text, 1, 4);
+    assert_equals(domRange.startOffset, 1, 'DOM start unchanged on no-op');
+    assert_equals(domRange.endOffset, 4, 'DOM end unchanged on no-op');
+
+    // FormControlRange: setting same value (no-op); range unchanged.
+    const element = setup(control, 'HELLO');
+    const range = makeFormControlRange(element, 1, 4);
+    element.value = 'HELLO';
+    assert_equals(range.startOffset, 1, 'FormControlRange start unchanged on no-op');
+    assert_equals(range.endOffset, 4, 'FormControlRange end unchanged on no-op');
+  }, `No-op leaves range unchanged (${control})`);
+
+  test(() => {
+    // DOM: insert before the range; shift both endpoints by +1.
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 2, 4);
+    d.text.insertData(1, 'Q');
+    assert_equals(d.editable.textContent, 'AQBCDE', 'DOM value after insertion before range');
+    assert_equals(domRange.startOffset, 3, 'DOM start +1');
+    assert_equals(domRange.endOffset, 5, 'DOM end +1');
+
+    // FormControlRange: same insert via setRangeText.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 2, 4);
+    element.setRangeText('Q', 1, 1);
+    assert_equals(element.value, 'AQBCDE', 'FormControlRange value after insertion before range');
+    assert_equals(range.startOffset, 3, 'FormControlRange start +1');
+    assert_equals(range.endOffset, 5, 'FormControlRange end +1');
+    assert_equals(range.toString(), 'CD', 'FormControlRange range text stable');
+  }, `Insertion before range shifts both endpoints (${control})`);
+
+  test(() => {
+    // DOM: delete [2,3) inside the range; end shrinks by 1.
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 1, 5);
+    d.text.deleteData(2, 1);
+    assert_equals(d.editable.textContent, 'ABDE', 'DOM value after interior deletion');
+    assert_equals(domRange.startOffset, 1, 'DOM start unchanged');
+    assert_equals(domRange.endOffset, 4, 'DOM end -1');
+
+    // FormControlRange: same delete via setRangeText.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 1, 5);
+    element.setRangeText('', 2, 3);
+    assert_equals(element.value, 'ABDE', 'FormControlRange value after interior deletion');
+    assert_equals(range.startOffset, 1, 'FormControlRange start unchanged');
+    assert_equals(range.endOffset, 4, 'FormControlRange end -1');
+    assert_equals(range.toString(), 'BDE', 'FormControlRange range reflects deletion');
+  }, `Interior deletion shrinks end (${control})`);
+
+  test(() => {
+    // DOM: replace before the range with net -2.
+    const d = setupEditable('ABCDEFGHIJ');
+    const domRange = makeDomRange(d.text, 7, 10);
+    d.text.replaceData(2, 3, 'Z');
+    assert_equals(d.editable.textContent, 'ABZFGHIJ', 'DOM value after before-range shrink');
+    assert_equals(domRange.startOffset, 5, 'DOM start -2');
+    assert_equals(domRange.endOffset, 8, 'DOM end -2');
+
+    // FormControlRange: same replacement via setRangeText.
+    const element = setup(control, 'ABCDEFGHIJ');
+    const range = makeFormControlRange(element, 7, 10);
+    element.setRangeText('Z', 2, 5);
+    assert_equals(element.value, 'ABZFGHIJ', 'FormControlRange value after before-range shrink');
+    assert_equals(range.startOffset, 5, 'FormControlRange start -2');
+    assert_equals(range.endOffset, 8, 'FormControlRange end -2');
+    assert_equals(range.toString(), 'HIJ', 'FormControlRange text unchanged');
+  }, `Before-range shrink shifts left (${control})`);
+
+  test(() => {
+    // DOM: edits after the range; unchanged.
+    const d = setupEditable('ABCDEFGHIJ');
+    const domRange = makeDomRange(d.text, 2, 5);
+    d.text.replaceData(7, 2, 'WXYZ');
+    assert_equals(d.editable.textContent, 'ABCDEFGWXYZJ', 'DOM value after after-range grow');
+    assert_equals(domRange.startOffset, 2, 'DOM start unchanged');
+    assert_equals(domRange.endOffset, 5, 'DOM end unchanged');
+
+    // FormControlRange: same replacement via setRangeText.
+    const element = setup(control, 'ABCDEFGHIJ');
+    const range = makeFormControlRange(element, 2, 5);
+    element.setRangeText('WXYZ', 7, 9);
+    assert_equals(element.value, 'ABCDEFGWXYZJ', 'FormControlRange value after after-range grow');
+    assert_equals(range.startOffset, 2, 'FormControlRange start unchanged');
+    assert_equals(range.endOffset, 5, 'FormControlRange end unchanged');
+    assert_equals(range.toString(), 'CDE', 'FormControlRange text unchanged');
+  }, `After-range grow leaves range unchanged (${control})`);
+
+  test(() => {
+    // DOM: superset replacement collapses to start of change.
+    const d = setupEditable('ABCDEFG');
+    const domRange = makeDomRange(d.text, 2, 5);
+    d.text.replaceData(1, 5, 'Q');
+    assert_equals(d.editable.textContent, 'AQG', 'DOM value after superset replacement');
+    assert_equals(domRange.startOffset, 1, 'DOM collapsed to change start');
+    assert_equals(domRange.endOffset, 1, 'DOM collapsed');
+
+    // FormControlRange: same replacement via setRangeText.
+    const element = setup(control, 'ABCDEFG');
+    const range = makeFormControlRange(element, 2, 5);
+    element.setRangeText('Q', 1, 6);
+    assert_equals(element.value, 'AQG', 'FormControlRange value after superset replacement');
+    assert_equals(range.startOffset, 1, 'FormControlRange collapsed to change start');
+    assert_equals(range.endOffset, 1, 'FormControlRange collapsed');
+    assert_true(range.collapsed, 'FormControlRange collapsed flag true');
+  }, `Superset replacement collapses to change start (${control})`);
+
+  test(() => {
+    // DOM: insert exactly at range.start; start unchanged, end advances.
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 2, 4);
+    d.text.insertData(2, 'QQ');
+    assert_equals(d.editable.textContent, 'ABQQCDE', 'DOM value after insert at start boundary');
+    assert_equals(domRange.startOffset, 2, 'DOM start unchanged at boundary');
+    assert_equals(domRange.endOffset, 6, 'DOM end +2');
+
+    // FormControlRange: same insertion via setRangeText.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 2, 4);
+    element.setRangeText('QQ', 2, 2);
+    assert_equals(element.value, 'ABQQCDE', 'FormControlRange value after insert at start boundary');
+    assert_equals(range.startOffset, 2, 'FormControlRange start unchanged at boundary');
+    assert_equals(range.endOffset, 6, 'FormControlRange end +2');
+  }, `Insert at range.start extends end (${control})`);
+
+  test(() => {
+    // DOM: insert exactly at range.end; both boundaries unchanged.
+    const d = setupEditable('ABCDE');
+    const domRange = makeDomRange(d.text, 2, 4);
+    d.text.insertData(4, 'QQ');
+    assert_equals(d.editable.textContent, 'ABCDQQE', 'DOM value after insert at end boundary');
+    assert_equals(domRange.startOffset, 2, 'DOM start unchanged');
+    assert_equals(domRange.endOffset, 4, 'DOM end unchanged at boundary');
+
+    // FormControlRange: same insertion via setRangeText.
+    const element = setup(control, 'ABCDE');
+    const range = makeFormControlRange(element, 2, 4);
+    element.setRangeText('QQ', 4, 4);
+    assert_equals(element.value, 'ABCDQQE', 'FormControlRange value after insert at end boundary');
+    assert_equals(range.startOffset, 2, 'FormControlRange start unchanged');
+    assert_equals(range.endOffset, 4, 'FormControlRange end unchanged at boundary');
+  }, `Insert at range.end leaves range unchanged (${control})`);
+
+  test(() => {
+    // DOM: replace [1,3) (emoji is 2 code units) with two emojis (4 code units).
+    const d = setupEditable('A😀BC');
+    const domRange = makeDomRange(d.text, 1, 4);
+    d.text.replaceData(1, 2, '🙂🙂');
+    assert_equals(domRange.startOffset, 1, 'DOM start unchanged inside growth');
+    assert_equals(domRange.endOffset, 6, 'DOM end +2 code units');
+
+    // FormControlRange: same replacement via setRangeText.
+    const element = setup(control, 'A😀BC');
+    const range = makeFormControlRange(element, 1, 4);
+    element.setRangeText('🙂🙂', 1, 3);
+    assert_equals(range.startOffset, 1, 'FormControlRange start unchanged inside growth');
+    assert_equals(range.endOffset, 6, 'FormControlRange end +2 code units');
+    assert_true(range.toString().length >= 3, 'FormControlRange range text non-empty after expansion');
+  }, `Surrogate pair expansion grows end (${control})`);
+
+  test(() => {
+    // DOM: chained interior edits accumulate deltas.
+    const d = setupEditable('012345');
+    const domRange = makeDomRange(d.text, 2, 5);
+    d.text.replaceData(3, 1, 'XX'); // [3,4) -> "XX"
+    d.text.deleteData(3, 2);        // delete the "XX"
+    assert_equals(d.editable.textContent, '01245', 'DOM final value after chained edits');
+    assert_equals(domRange.startOffset, 2, 'DOM start unchanged across interior edits');
+    assert_equals(domRange.endOffset, 4, 'DOM end reflects cumulative delta');
+
+    // FormControlRange: same edits via setRangeText.
+    const element = setup(control, '012345');
+    const range = makeFormControlRange(element, 2, 5);
+    element.setRangeText('XX', 3, 4);
+    element.setRangeText('', 3, 5);
+    assert_equals(element.value, '01245', 'FormControlRange final value after chained edits');
+    assert_equals(range.startOffset, 2, 'FormControlRange start unchanged across interior edits');
+    assert_equals(range.endOffset, 4, 'FormControlRange end reflects cumulative delta');
+    assert_equals(range.toString(), '24', 'FormControlRange final range text');
+  }, `Chained interior edits cumulatively adjust range (${control})`);
+});
+</script>

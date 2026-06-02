@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Test that reports are sent to multiple named endpoints</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+
+<body>
+  <script>
+    const t = async_test("Test that image does not load");
+    async_test(function (t) {
+      const observer = new ReportingObserver((reports, observer) => {
+        t.step(() => {
+          assert_equals(reports[0].type, 'csp-violation');
+        });
+        t.done();
+      }, { types: ['csp-violation'] });
+      observer.observe();
+    }, "csp violation report observed");
+
+    promise_test(async t => {
+      return new Promise(resolve => {
+        new ReportingObserver((reports, observer) => resolve(reports),
+          { types: ['document-policy-violation'] }).observe();
+      }).then((reports) => {
+        assert_equals(reports[0].type, 'document-policy-violation');
+      })
+    }, "document policy violation observed");
+  </script>
+  <img src='/reporting/resources/fail.png' onload='t.unreached_func("The image should not have loaded");'
+    onerror='t.done();'>
+  <script>
+    // Attempt a synchronous XHR - this should succeed but cause a report to be sent.
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", document.location.href, false);
+    xhr.send();
+  </script>
+  <script>
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const group1_id = '0d334af1-1c5c-4e59-9079-065131ff2a45';
+    const group2_id = '09c1a265-5fc7-4c49-b35c-32078c2d0c19';
+    promise_test(async t => {
+      await wait(3000);
+      // Verify CSP reports are sent to configured endpoint.
+      const csp_reports = await pollReports(endpoint, group1_id);
+      checkReportExists(csp_reports, 'csp-violation', location.href);
+      // Verify Document Policy reports are sent to configured endpoint.
+      const dp_reports = await pollReports(endpoint, group2_id);
+      checkReportExists(dp_reports, 'document-policy-violation', location.href);
+    }, "Reporting endpoints received reports.");
+  </script>
+
+</body>
+
+</html>

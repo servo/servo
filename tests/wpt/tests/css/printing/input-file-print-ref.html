@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>Reference case</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=133984">
+  <style>
+    input[type="file"] { height: auto; }
+    .with-outline {
+      outline: 2px solid teal;
+    }
+    .wrapper {
+      border: 2px solid fuchsia;
+    }
+  </style>
+</head>
+<body>
+  <input type="file">
+  <br><br>
+  <input type="file" class="with-outline">
+  <br><br>
+  <div class="wrapper"><input type="file"></div>
+</body>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Test window.fence availability in iframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+
+promise_test(async(t) => {
+  const frame = await attachIFrameContext();
+  await frame.execute(() => {
+    assert_equals(window.fence, null);
+  });
+}, 'window.fence is unavailable in normal (non-urn) iframes');
+
+promise_test(async(t) => {
+  // window.fence works in urn iframes.
+  var frame = await attachIFrameContext({generator_api: 'fledge'});
+  await frame.execute(() => {
+    assert_not_equals(window.fence, null);
+  });
+  // window.fence works after navigating to a new urn.
+  frame = await replaceFrameContext(frame, {generator_api: 'fledge'});
+  await frame.execute(() => {
+    assert_not_equals(window.fence, null);
+  });
+  // window.fence still works after embedder-initiated navigations to non-urns,
+  // because the concept of "embedder-initiated" navigations is nebulous in
+  // iframes.
+  frame = await replaceFrameContext(frame);
+  await frame.execute(() => {
+    assert_not_equals(window.fence, null);
+  });
+}, 'window.fence is available in urn iframes');
+
+promise_test(async(t) => {
+  // window.fence works in urn iframes.
+  const frame = await attachIFrameContext({generator_api: 'fledge'});
+  await frame.execute(async () => {
+    assert_not_equals(window.fence, null);
+    const nested_frame = await attachIFrameContext();
+    await nested_frame.execute(() => {
+      assert_not_equals(window.fence, null);
+    });
+  });
+}, 'window.fence is available in same-origin subframes of urn iframes');
+
+</script>
+</body>

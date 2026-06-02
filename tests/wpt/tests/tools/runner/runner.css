@@ -1,0 +1,216 @@
+
+html {
+    margin: 0 8px;
+}
+
+body {
+    margin: 0;
+}
+
+html.done {
+    border: 2px solid #32cd32;
+    margin: 3px;
+    padding: 3px;
+}
+
+html:not(.done) {
+    height: 100%;
+}
+
+html:not(.done) body {
+    height: 100%;
+}
+
+html:not(.done) #wrapper {
+    height: 100%;
+    margin-top: -1.5em;
+    padding-top: 1.5em;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+section {
+    display: block;
+    border: thin solid black;
+    padding: 0.5em 0;
+}
+
+section h1 {
+    margin: 0;
+    font-size: 1em;
+}
+
+html.done section h1 {
+    text-align: center;
+}
+
+section ol {
+    padding: 0;
+    margin: 0;
+    list-style-position: inside;
+}
+
+html.done section ol {
+    -webkit-column-count: 3;
+    column-count: 3;
+}
+
+section li {
+    padding: 0.1em 0.5em;
+}
+
+section li.pass:nth-child(odd)  {
+    background: #e5ffe5;
+}
+section li.pass:nth-child(even) {
+    background: #def8de;
+}
+
+section li.fail:nth-child(odd)  {
+    background: #ffe5e5;
+}
+
+section li.fail:nth-child(even) {
+    background: #f8dede;
+}
+
+section p {
+    margin: 0;
+}
+
+html:not(.done) section {
+    border-top: none;
+}
+
+html.done section + section {
+    border-top: none;
+}
+
+#manualUI {
+    position: fixed;
+    z-index: 2000;
+    top: -20px;
+    left: 0;
+    right: 0;
+    display: block;
+    padding: 40px;
+    background: rgba(255, 200, 0, 0.5);
+}
+
+#current_test {
+  visibility: hidden;
+}
+
+#current_test a {
+  display: inline-block;
+  margin-left: 1em;
+}
+
+#current_test .match {
+  background-color: #BDF1FF;
+}
+
+#manualUI .panel {
+    max-width: 800px;
+    margin: auto;
+    box-shadow: 2px 2px 10px #666;
+}
+
+body > p {
+    text-align: center;
+}
+
+body > p > textarea {
+    width: 90%;
+    height: 20em;
+}
+
+body {
+    padding-top: 70px;
+}
+
+.container {
+    max-width: 800px;
+}
+
+.navbar-brand > img {
+    display: inline;
+}
+
+.navbar-inverse .navbar-brand {
+    color: #fff;
+}
+
+.form-group {
+    clear:both;
+}
+
+.horizontal-form .form-group {
+    padding: 6px;
+}
+
+header.navbar-inverse {
+    background: linear-gradient(to bottom, rgb(7, 62, 128) 0px, rgb(0, 45, 80) 100%);
+}
+
+ul.error, ul.warning {
+    padding:    0;
+}
+
+td.PASS {
+    color:  #48cfad;
+}
+
+td.FAIL {
+    color:  #ed5565;
+}
+
+td.TIMEOUT {
+    color:  #f6bb42;
+}
+
+td.NOTRUN {
+    color:  #00c;
+}
+
+td.ERROR {
+    color: #da4453;
+    font-weight: bold;
+}
+.stopped {
+    background-image: linear-gradient(to bottom, #fc0000 0, #770000 100%);
+}
+
+.col-sm-9 label {
+    margin-right: 20px;
+}
+
+.instructions {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+@keyframes alert_updating {
+  from {
+    background-color: inherit;
+  }
+  to {
+    background-color: #f6bb42;
+  }
+}
+
+.loading-manifest {
+  background-image: none;
+  color: #333;
+  animation-duration: 1.5s;
+  animation-name: alert_updating;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.reftestWarn {
+    color: yellow;
+    background: black;
+    padding: 8px;
+}

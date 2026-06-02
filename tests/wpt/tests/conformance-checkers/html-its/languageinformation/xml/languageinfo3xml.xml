@@ -1,0 +1,20 @@
+<text language="en">
+<head>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="langParam">fr-CA</its:param>
+<its:langRule selector="//par/q[@language=$langParam]" langPointer="@language"/>
+</its:rules>
+</head>
+<content>
+<par>
+The motto of Québec is:
+<q language="fr-CA">Je me souviens</q>
+.
+</par>
+<par>
+The one of Canada:
+<q language="la">A mari usque ad mare</q>
+.
+</par>
+</content>
+</text>

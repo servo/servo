@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Padding applied to element with display table and with a set width</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <!--
+  Inspired by Known issues at
+  http://caniuse.com/#feat=css-table
+  -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" title="17.6.1 The separated borders model" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="The width of a CSS table is the distance from the left inner padding edge to the right inner padding edge: so the width of a CSS table does not include its padding area." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#red-overlapped
+  {
+  background-color: red;
+  height: 100px;
+  position: absolute;
+  width: 100px;
+  z-index: -1;
+  }
+
+  div#green-overlapping-table
+  {
+  background-color: green;
+  display: table;
+  padding: 25px;
+  table-layout: fixed;
+  width: 50px;
+  }
+
+  div.table-row {display: table-row;}
+
+  div.table-cell
+  {
+  display: table-cell;
+  height: 25px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="red-overlapped"></div>
+
+  <div id="green-overlapping-table">
+		<div class="table-row">
+          	<div class="table-cell"></div><div class="table-cell"></div>
+		</div>
+		<div class="table-row">
+			<div class="table-cell"></div><div class="table-cell"></div>
+		</div>
+  </div>
+
+ </body>
+</html>

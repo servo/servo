@@ -1,0 +1,54 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Assigning an assignment to a swizzled value inside function</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+vec2 f()
+{
+    vec2 r = vec2(0);
+    r.x = r.y = 1.0;
+    return r;
+}
+
+void main()
+{
+    gl_FragColor.ga = f();
+}
+
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+// Minimal test case based on report at http://crbug.com/798117
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Assigning an assignment to a swizzled value inside a user-defined function"
+}
+]);
+</script>
+</body>
+</html>

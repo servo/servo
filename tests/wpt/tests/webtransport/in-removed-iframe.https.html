@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+setup({ single_test: true });
+
+function iframeOnLoad() {
+  const target = document.querySelector('#target');
+  const wt = target.contentWindow.wt;
+  target.remove();
+  const streams = wt.incomingBidirectionalStreams;
+  assert_equals(typeof streams, 'object', 'streams should be an object');
+  done();
+}
+</script>
+
+<iframe id=target onload="iframeOnLoad()" srcdoc="
+<!doctype html>
+<script src=/common/get-host-info.sub.js></script>
+<script src=resources/webtransport-test-helpers.sub.js></script>
+<script>
+window.wt = new WebTransport(webtransport_url('echo.py'));
+</script>
+"></iframe>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_01_04_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-attributes">
+<meta name="assert" content="ShadowRoot Object: innerHTML of type DOMString; Test getter">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    assert_equals(s.innerHTML.toLowerCase(), '<span>some text</span>',
+            'Wrong value of ShadowRoot innerHTML attribute');
+
+}), 'A_10_01_01_04_01_T01');
+</script>
+</body>
+</html>

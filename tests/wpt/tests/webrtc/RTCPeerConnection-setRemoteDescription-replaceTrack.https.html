@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setRemoteDescription - replaceTrack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   getUserMediaTracksAndStreams
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    getUserMediaTracksAndStreams(2)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      return sender.replaceTrack(tracks[1])
+      .then(t.step_func(() => {
+        assert_equals(sender.track, tracks[1]);
+        t.done();
+      }));
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'replaceTrack() sets the track attribute to a new track.');
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      return sender.replaceTrack(null)
+      .then(t.step_func(() => {
+        assert_equals(sender.track, null);
+        t.done();
+      }));
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'replaceTrack() sets the track attribute to null.');
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    getUserMediaTracksAndStreams(2)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      assert_equals(sender.track, tracks[0]);
+      sender.replaceTrack(tracks[1]);
+      // replaceTrack() is asynchronous, there should be no synchronously
+      // observable effects.
+      assert_equals(sender.track, tracks[0]);
+      t.done();
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'replaceTrack() does not set the track synchronously.');
+
+  async_test(t => {
+    const expectedException = 'InvalidStateError';
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    getUserMediaTracksAndStreams(2)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      caller.close();
+      return sender.replaceTrack(tracks[1])
+      .then(t.step_func(() => {
+        assert_unreached('Expected replaceTrack() to be rejected with ' +
+                         expectedException + ' but the promise was resolved.');
+      }),
+      t.step_func(e => {
+        assert_equals(e.name, expectedException);
+        t.done();
+      }));
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'replaceTrack() rejects when the peer connection is closed.');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    const sender = caller.addTrack(tracks[0], streams[0]);
+    caller.removeTrack(sender);
+    await sender.replaceTrack(tracks[1]);
+    assert_equals(sender.track, tracks[1], "Make sure track gets updated");
+  }, 'replaceTrack() does not reject when invoked after removeTrack().');
+
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const [tracks, streams] = await getUserMediaTracksAndStreams(2);
+    const sender = caller.addTrack(tracks[0], streams[0]);
+    let p = sender.replaceTrack(tracks[1])
+    caller.removeTrack(sender);
+    await p;
+    assert_equals(sender.track, tracks[1], "Make sure track gets updated");
+  }, 'replaceTrack() does not reject after a subsequent removeTrack().');
+
+  // TODO(hbos): Verify that replaceTrack() changes what media is received on
+  // the remote end of two connected peer connections. For video tracks, this
+  // requires Chromium's video tag to update on receiving frames when running
+  // content_shell. https://crbug.com/793808
+
+</script>

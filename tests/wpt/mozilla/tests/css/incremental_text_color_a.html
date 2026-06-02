@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel='match' href='incremental_text_color_ref.html'>
+    <meta charset="UTF-8">
+    <title>Incremental layout text color test</title>
+    <style>
+      span {
+        color: orange;
+      }
+      span.selected {
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <span>A</span>
+    <script>
+      document.body.offsetWidth; // force layout
+      document.querySelector('span').classList.add('selected');
+    </script>
+  </body>
+</html>

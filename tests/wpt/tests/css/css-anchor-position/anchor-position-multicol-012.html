@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Anchors with same name, one crossing column boundaries.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-anchor">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="position:relative;">
+    <div style="position:relative;">
+      <div style="anchor-name:--a1; margin-left:10px; height:20px;"></div>
+      <div style="anchor-name:--a1; position:absolute; left:0px; top:30px; right:0; height:170px;"></div>
+    </div>
+    <div style="position:absolute; left:anchor(--a1 left); top:anchor(--a1 top); width:50px; height:200px; margin-top:-30px; background:green;"></div>
+  </div>
+</div>

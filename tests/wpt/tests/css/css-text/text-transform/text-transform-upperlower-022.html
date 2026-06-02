@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Armenian, uppercase</title>
+<meta name="assert" content="For the ArmenianUnicode block, text-transform: uppercase puts all letters in uppercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-022-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/NotoSansArmenian-Regular') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Noto Sans Armenian', webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+0561">&#x0561; &#x0531;</span> <span title="U+0562">&#x0562; &#x0532;</span> <span title="U+0563">&#x0563; &#x0533;</span> <span title="U+0564">&#x0564; &#x0534;</span> <span title="U+0565">&#x0565; &#x0535;</span> <span title="U+0566">&#x0566; &#x0536;</span> <span title="U+0567">&#x0567; &#x0537;</span> <span title="U+0568">&#x0568; &#x0538;</span> <span title="U+0569">&#x0569; &#x0539;</span> <span title="U+056A">&#x056A; &#x053A;</span> <span title="U+056B">&#x056B; &#x053B;</span> <span title="U+056C">&#x056C; &#x053C;</span> <span title="U+056D">&#x056D; &#x053D;</span> <span title="U+056E">&#x056E; &#x053E;</span> <span title="U+056F">&#x056F; &#x053F;</span> <span title="U+0570">&#x0570; &#x0540;</span> <span title="U+0571">&#x0571; &#x0541;</span> <span title="U+0572">&#x0572; &#x0542;</span> <span title="U+0573">&#x0573; &#x0543;</span> <span title="U+0574">&#x0574; &#x0544;</span> <span title="U+0575">&#x0575; &#x0545;</span> <span title="U+0576">&#x0576; &#x0546;</span> <span title="U+0577">&#x0577; &#x0547;</span> <span title="U+0578">&#x0578; &#x0548;</span> <span title="U+0579">&#x0579; &#x0549;</span> <span title="U+057A">&#x057A; &#x054A;</span> <span title="U+057B">&#x057B; &#x054B;</span> <span title="U+057C">&#x057C; &#x054C;</span> <span title="U+057D">&#x057D; &#x054D;</span> <span title="U+057E">&#x057E; &#x054E;</span> <span title="U+057F">&#x057F; &#x054F;</span> <span title="U+0580">&#x0580; &#x0550;</span> <span title="U+0581">&#x0581; &#x0551;</span> <span title="U+0582">&#x0582; &#x0552;</span> <span title="U+0583">&#x0583; &#x0553;</span> <span title="U+0584">&#x0584; &#x0554;</span> <span title="U+0585">&#x0585; &#x0555;</span> <span title="U+0586">&#x0586; &#x0556;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x0559; &#x055A; &#x055B; &#x055C; &#x055D; &#x055E; &#x055F; &#x0587; &#x0589; &#x058A; &#x058D; &#x058E; &#x058F;
+-->
+</body>
+</html>

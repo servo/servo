@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+  Web-font styled text that gets resized during block period should not make a
+  LCP emission.
+-->
+<style>
+  @font-face {
+    font-family: 'ADTestFaceBlock';
+    src: url('/fonts/AD.woff');
+    font-display: block;
+  }
+
+  .test {
+    font-family: 'ADTestFaceBlock';
+  }
+
+</style>
+<div class="test">LCP: Web Font Styled Text Resize</div>
+<script>
+  function LCPEntryList(t) {
+    return new Promise(resolve => {
+      let = lcpEntries = [];
+      new PerformanceObserver((entryList, observer) => {
+        lcpEntries = lcpEntries.concat(entryList.getEntries());
+        if (lcpEntries) {
+          // Adding timeout to wait a bit more so that if there are more than
+          // expected LCP entries emitted, they can be observed.
+          t.step_timeout(() => {
+            resolve(lcpEntries);
+            observer.disconnect();
+          }, 200);
+        }
+      }).observe({ type: 'largest-contentful-paint', buffered: true });
+    });
+  }
+
+  promise_test(async t => {
+    await document.fonts.ready;
+
+    // Verify web font is downloaded.
+    assert_own_property(window, 'PerformanceResourceTiming', "ResourceTiming not supported");
+    let url = '/fonts/AD.woff';
+    var absoluteURL = new URL(url, location.href).href;
+    assert_equals(performance.getEntriesByName(absoluteURL).length, 1, 'Web font\
+    should be downloaded');
+
+    // Verify web font is available.
+    assert_true(document.fonts.check('16px ADTestFaceBlock'), 'Font should be the web font added');
+
+    // Verify there is only one LCP entry.
+    let entryList = await LCPEntryList(t);
+    assert_equals(entryList.length, 1, 'Web font styled text resize that occurs during block period should not make a new LCP emission.');
+
+  }, "LCP should be not updated if the web font styled text resize occurs during the block period.");
+</script>

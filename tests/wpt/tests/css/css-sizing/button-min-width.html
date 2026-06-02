@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>min-width: Should apply to buttons</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#min-max-widths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.button-row {
+  background-color: #BBB;
+  display: flex;
+  flex-direction: row;
+  width: 400px;
+  margin-top: 8px;
+}
+button {
+  flex: 0 0 auto;
+  margin: 0px;
+}
+</style>
+<div>
+  <p>Expected: All buttons should be 200px wide</p>
+</div>
+<div class="button-row">
+    <button style="min-width: 200px">Foo</button>
+    <button style="min-width: 200px">Bar</button>
+</div>
+<div class="button-row">
+    <button style="min-width: 50%">Foo</button>
+    <button style="min-width: 50%">Bar</button>
+</div>
+<div class="button-row" style="writing-mode: vertical-rl; height: 100px;flex-direction:column">
+    <button style="min-width: 200px">Foo</button>
+    <button style="min-width: 200px">Bar</button>
+</div>
+<div class="button-row" style="zoom:2">
+    <button style="min-width: 200px">Foo</button>
+    <button style="min-width: 200px">Bar</button>
+</div>
+<script>
+test(() => {
+  let buttons = document.querySelectorAll("button");
+  for (let button of document.querySelectorAll("button"))
+    assert_equals(button.offsetWidth, 200);
+}, 'min-width should force all buttons to be 200px wide');
+</script>

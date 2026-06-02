@@ -1,0 +1,20 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>The range is repainted if the ID first identifies no list, then a list takes on that ID</title>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1805105">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel=match href=range-tick-marks-05-ref.html>
+<script src=/common/reftest-wait.js></script>
+<input type=range step=3 value=1 min=-5 max=5 list=nonexistentlist>
+<datalist>
+  <option value=4>
+  <option value=-2>
+</datalist>
+<script>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const dataListWithIDOfNonExistentList = document.querySelector("datalist");
+      dataListWithIDOfNonExistentList.id = "nonexistentlist";
+      takeScreenshot();
+    }));
+</script>

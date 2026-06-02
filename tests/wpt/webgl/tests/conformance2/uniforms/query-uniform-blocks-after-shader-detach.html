@@ -1,0 +1,95 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uniform Buffers Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+
+in vec4 position;
+
+uniform localInputs
+{
+    mat4 projectionModelViewMatrix;
+};
+
+void main ()
+{
+    gl_Position = projectionModelViewMatrix * position;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+
+out lowp vec4 resultColor;
+
+void main()
+{
+    resultColor = vec4(0,1,0,1);
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+// Adopted from the test case provided in crbug.com/735784
+"use strict";
+description("This tests UBO block lookups still work after detaching shaders");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+function runTest(gl) {
+    var program = wtu.loadProgramFromScript(gl, "vshader", "fshader");
+    if (!program) {
+        testFailed("Loading program failed");
+        return;
+    }
+
+    var shaders = gl.getAttachedShaders(program);
+    if (!shaders || shaders.length != 2) {
+        testFailed("getAttachedShaders failed");
+        return;
+    }
+    gl.detachShader (program, shaders[0]);
+    gl.detachShader (program, shaders[1]);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+    var index = gl.getUniformBlockIndex(program, "localInputs");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from getUniformBlockIndex");
+    if (index == gl.INVALID_INDEX) {
+        testFailed("getUniformBlockIndex returns INVALID_INDEX");
+    } else {
+        testPassed("getUniformBlockIndex returns valid index");
+    }
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    runTest(gl);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>CSS Selectors Invalidation: :has() containing :empty, :first-child, :last-child, pseudoclasses only</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1931432">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#subject {
+  color: grey;
+}
+
+#subject.empty:has(:empty) {
+  color: red;
+}
+
+#subject.first:has(:first-child) {
+  color: orange;
+}
+
+#subject.last:has(:last-child) {
+  color: yellow;
+}
+
+/* :empty :empty never matches, so use something else. */
+#subject.empty-subtree:has(:first-child :empty) {
+  color: green;
+}
+
+#subject.first-subtree:has(:first-child :first-child) {
+  color: blue;
+}
+
+#subject.last-subtree:has(:last-child :last-child) {
+  color: purple;
+}
+</style>
+<div id="subject"></div>
+<script>
+const grey = "rgb(128, 128, 128)";
+const red = "rgb(255, 0, 0)";
+const orange = "rgb(255, 165, 0)";
+const yellow = "rgb(255, 255, 0)";
+const green = "rgb(0, 128, 0)";
+const blue = 'rgb(0, 0, 255)';
+const purple = 'rgb(128, 0, 128)';
+
+function testColor(test_name, color) {
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, color);
+  }, test_name);
+}
+
+function runTest(test_class, child, insert, color_after_add, desc) {
+  subject.classList.add(test_class);
+  testColor(desc + ' color initial', grey);
+  insert(child);
+  testColor(desc + ' color after adding', color_after_add);
+  subject.replaceChildren();
+  testColor(desc + ' color after removing', grey);
+  subject.classList.remove(test_class);
+}
+
+function createSimpleTree() {
+  const root = document.createElement('div');
+  root.replaceChildren(document.createElement('div'), document.createElement('div'));
+  return root;
+}
+
+const tests = {
+  ':empty': {cls: 'empty', child: document.createElement('div'), color_after_add: red},
+  ':first-child': {cls: 'first', child: document.createElement('div'), color_after_add: orange},
+  ':last-child': {cls: 'last', child: document.createElement('div'), color_after_add: yellow},
+  ':empty subtree': {cls: 'empty-subtree', child: createSimpleTree(), color_after_add: green},
+  ':first-child subtree': {cls: 'first-subtree', child: createSimpleTree(), color_after_add: blue},
+  ':last-child subtree': {cls: 'last-subtree', child: createSimpleTree(), color_after_add: purple},
+};
+
+const element = document.createElement('div');
+for (const [t, options] of Object.entries(tests)) {
+  runTest(options.cls, options.child, (e) => subject.appendChild(e), options.color_after_add, t + ' append');
+  runTest(options.cls, options.child, (e) => subject.insertBefore(e, null), options.color_after_add, t + ' insert');
+}
+</script>

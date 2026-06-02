@@ -1,0 +1,18 @@
+<html>
+<body>
+  <canvas id="myCanvas" width="400" height="400"></canvas>
+</body>>
+<script>
+var canvas = document.getElementById('myCanvas');
+ctx = canvas.getContext('2d');
+image = document.createElement("img");
+image.src = "../../../resources/black_white.png"
+image.onload = function() {
+  Promise.all([
+    createImageBitmap(image, { imageOrientation: 'flipY' }),
+    ]).then(function(sprites) {
+  // Draw image onto the canvas
+  ctx.drawImage(sprites[0], 0, 0);
+});
+}
+</script>

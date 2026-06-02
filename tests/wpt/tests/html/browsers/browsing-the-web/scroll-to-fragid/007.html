@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- this tests the spec as it hopefully will be once bug https://www.w3.org/Bugs/Public/show_bug.cgi?id=17155 is fixed -->
+<title>Fragment Navigation: hashchange event multiple changes old/newURL</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var original_url = location.href;
+  assert_equals(location.hash, "", "Page must be loaded with no hash");
+
+  var count = 0;
+
+  location.hash = "test";
+
+  hashes = [];
+
+  addEventListener("hashchange",
+                   t.step_func(function(e) {
+                     if (count < 100) {
+                       location.hash = "test" + count++;
+                       hashes.push(location.hash);
+                     } else if (count === 100) {
+                       expected = [];
+                       for (var i=0; i<100; i++) {
+                          expected.push("#test" + i);
+                       }
+                       assert_array_equals(hashes, expected);
+                       location.hash = "";
+                       t.done();
+                     }
+                   }), true);
+});
+</script>

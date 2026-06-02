@@ -1,0 +1,295 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width, initial-scale:1, user-scalable=no">
+<title>Test for handling of "fire a pointer event named pointerrawupdate"</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div#initPosition {
+  height: 1em;
+  margin: 50px;
+}
+div#parent, div#child {
+  width: 200px;
+  height: 200px;
+  margin: 0px;
+  padding: 0;
+}
+</style>
+<script>
+"use strict";
+
+/**
+ * `pointerrawupdate` is defined as:
+ * > The user agent MUST fire a pointer event named pointerrawupdate, and only
+ * > do so within a secure context, when a pointer changes any properties that
+ * > don't fire pointerdown or pointerup events.
+ *
+ * The following `pointermove` event is also defined as:
+ * > The user agent MUST fire a pointer event named pointermove
+ *
+ * So, when a set of `pointerrawupdate` and `pointermove` is dispatched, the
+ * "fire a pointer event" runs twice.
+ *
+ * "fire a pointer event" defines:
+ * > If the event is not a gotpointercapture, lostpointercapture, click,
+ * > auxclick or contextmenu event, run the process pending pointer capture
+ * > steps for this PointerEvent.
+ *
+ *  And also the section defines:
+ * > Determine the target at which the event is fired as follows:
+ * > - If the pointer capture target override has been set for the pointer, set
+ * >   the target to pointer capture target override object.
+ * > - Otherwise, set the target to the object returned by normal hit test
+ * >   mechanisms (out of scope for this specification).
+ *
+ * So, dispatching `pointerrawupdate` should fix the pointer capture override
+ * and cause dispatching `gotpointercapture` and/or `lostpointercapture` and
+ * `pointermove` event should be retarget to the new pointer capture override.
+ */
+
+ addEventListener("load", () => {
+  const ticksToPreventCoalescedPointerMove = 300;
+  const initDiv = document.getElementById("initPosition");
+  const parent = document.getElementById("parent");
+  const child = document.getElementById("child");
+
+  let events;
+  function logEvent(event) {
+    events.push({type: event.type, target: event.target});
+  }
+  function stringifyEvents(arrayOfEvents) {
+    function stringifyEvent(event) {
+      return `${event.type}@${event.target.localName}${
+        event.target.id ? `#${event.target.id}` : ""
+      }`;
+    }
+    let str = "";
+    for (const event of arrayOfEvents) {
+      if (str) {
+        str += ", ";
+      }
+      str += stringifyEvent(event);
+    }
+    return str;
+  }
+  for (const type of ["pointerdown", "pointerup",
+                      "pointerrawupdate", "pointermove",
+                      "gotpointercapture", "lostpointercapture"]) {
+    parent.addEventListener(type, logEvent, {capture: true});
+  }
+
+  promise_test(async t => {
+    events = [];
+    child.addEventListener("pointerdown", pointerDownEvent => {
+      parent.setPointerCapture(pointerDownEvent.pointerId);
+      parent.addEventListener("pointerrawupdate", pointerRawUpdateEvent => {
+        parent.releasePointerCapture(pointerRawUpdateEvent.pointerId);
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initDiv})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(0, 0, {origin: child})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: child})
+      .pointerUp()
+      .pointerMove(0, 0, {origin: initDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerrawupdate", target: child},
+        {type: "pointermove", target: child},
+        {type: "pointerdown", target: child}, // set pending pointer capture to parent
+        // The following `pointerrawupdate` event dispatching runs the
+        // "process pending pointer capture" steps.
+        {type: "gotpointercapture", target: parent},
+        {type: "pointerrawupdate", target: parent}, // set pending pointer capture to null
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps again.
+        {type: "lostpointercapture", target: parent},
+        {type: "pointermove", target: child},
+        {type: "pointerup", target: child},
+      ])
+    );
+  }, "Setting pointer capture at `pointerdown` and releasing pointer capture at `pointerrawupdate`");
+
+  promise_test(async t => {
+    events = [];
+    child.addEventListener("pointerdown", () => {
+      parent.addEventListener("pointerrawupdate", pointerRawUpdateEvent => {
+        parent.setPointerCapture(pointerRawUpdateEvent.pointerId);
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initDiv})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(0, 0, {origin: child})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: child})
+      .pointerUp()
+      .pointerMove(0, 0, {origin: initDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerrawupdate", target: child},
+        {type: "pointermove", target: child},
+        {type: "pointerdown", target: child},
+        {type: "pointerrawupdate", target: child}, // set pending pointer capture to parent
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps.
+        {type: "gotpointercapture", target: parent},
+        {type: "pointermove", target: parent},
+        {type: "pointerup", target: parent},
+        {type: "lostpointercapture", target: parent},
+      ])
+    );
+  }, "Setting pointer capture at `pointerrawupdate`");
+
+  promise_test(async t => {
+    events = [];
+    child.addEventListener("pointerdown", pointerDownEvent => {
+      parent.setPointerCapture(pointerDownEvent.pointerId);
+      parent.addEventListener("gotpointercapture", gotPointerCaptureEvent => {
+        parent.releasePointerCapture(gotPointerCaptureEvent.pointerId);
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initDiv})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(0, 0, {origin: child})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: child})
+      .pointerUp()
+      .pointerMove(0, 0, {origin: initDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerrawupdate", target: child},
+        {type: "pointermove", target: child},
+        {type: "pointerdown", target: child}, // set pending pointer capture to parent
+        // The following `pointerrawupdate` event dispatching runs the
+        // "process pending pointer capture" steps.
+        {type: "gotpointercapture", target: parent}, // set pending pointer capture to null
+        {type: "pointerrawupdate", target: parent},
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps again.
+        {type: "lostpointercapture", target: parent},
+        {type: "pointermove", target: child},
+        {type: "pointerup", target: child},
+      ])
+    );
+  }, "Setting pointer capture at `pointerdown` and releasing pointer capture at `gotpointercapture`");
+
+  promise_test(async t => {
+    events = [];
+    child.addEventListener("pointerdown", pointerDownEvent => {
+      parent.setPointerCapture(pointerDownEvent.pointerId);
+      parent.addEventListener("pointermove", pointerMoveEvent => {
+        parent.releasePointerCapture(pointerMoveEvent.pointerId);
+        parent.addEventListener("lostpointercapture", lostPointerCaptureEvent => {
+          parent.setPointerCapture(lostPointerCaptureEvent.pointerId);
+        }, {once: true});
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initDiv})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(0, 0, {origin: child})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: child})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(2, 2, {origin: child})
+      .pointerUp()
+      .pointerMove(0, 0, {origin: initDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerrawupdate", target: child},
+        {type: "pointermove", target: child},
+        {type: "pointerdown", target: child}, // set pending pointer capture to parent
+        // The following `pointerrawupdate` event dispatching runs the
+        // "process pending pointer capture" steps.
+        {type: "gotpointercapture", target: parent},
+        {type: "pointerrawupdate", target: parent},
+        {type: "pointermove", target: parent}, // set pending pointer capture to null
+        // The following `pointerrawupdate` event dispatching runs the
+        // "process pending pointer capture" steps again.
+        {type: "lostpointercapture", target: parent}, // set pending pointer capture to parent again
+        {type: "pointerrawupdate", target: child},
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps again.
+        {type: "gotpointercapture", target: parent},
+        {type: "pointermove", target: parent},
+        {type: "pointerup", target: parent},
+        {type: "lostpointercapture", target: parent},
+      ])
+    );
+  }, "Setting pointer capture at `lostpointercapture`");
+
+  promise_test(async () => {
+    parent.removeEventListener("pointerrawupdate", logEvent, {capture: true});
+    // Now, there is no `pointerrawupdate` event listener.  So, browsers should
+    // not dispatch `pointerrawupdate` event and the "fire a pointer event" steps
+    // including the "process pending pointer capture" steps should not run twice
+    // per `pointermove`.
+    assert_true(true, "There is no `pointerrawupdate` event listener anymore");
+  });
+
+  promise_test(async t => {
+    events = [];
+    child.addEventListener("pointerdown", pointerDownEvent => {
+      parent.setPointerCapture(pointerDownEvent.pointerId);
+      parent.addEventListener("gotpointercapture", gotPointerCaptureEvent => {
+        parent.releasePointerCapture(gotPointerCaptureEvent.pointerId);
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initDiv})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(0, 0, {origin: child})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: child})
+      .pause(ticksToPreventCoalescedPointerMove)
+      .pointerMove(2, 2, {origin: child})
+      .pointerUp()
+      .pointerMove(0, 0, {origin: initDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointermove", target: child},
+        {type: "pointerdown", target: child}, // set pending pointer capture to parent
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps.
+        {type: "gotpointercapture", target: parent}, // set pending pointer capture to null
+        {type: "pointermove", target: parent},
+        // The following `pointermove` event dispatching runs the
+        // "process pending pointer capture" steps again.
+        {type: "lostpointercapture", target: parent},
+        {type: "pointermove", target: child},
+        {type: "pointerup", target: child},
+      ])
+    );
+  }, "Setting pointer capture at `pointerdown` and releasing pointer capture at `gotpointercapture` when no `pointerrawupdate` event listener");
+ }, {once: true});
+</script>
+</head>
+<body>
+  <div id="initPosition"></div>
+  <div id="parent">
+    <div id="child">
+    </div>
+  </div>
+</body>
+</html>

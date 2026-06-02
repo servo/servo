@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<style id=style>
+  .toggle { z-index: 42; }
+</style>
+<main id=root></main>
+<main id=unrelated></main>
+<script>
+
+function createTree(siblings, depth) {
+  let element = document.createElement('div');
+  if (--depth > 0) {
+    element.append(...[...Array(siblings).keys()].map(() => createTree(siblings, depth)));
+  }
+  return element;
+}
+
+let leafNodes = null;
+
+function setup() {
+  const NUM_IDENTICAL_STYLES = 1024;
+  const NUM_CHAINS = 64;
+  const CHAIN_DEPTH = 64;
+  const STYLE = `
+    @scope {
+      :scope { z-index: 42; }
+    }
+  `;
+
+  // Insert many identical <style> elements into #unrelated.
+  // We're not going to recalc styles for any elements in #unrelated,
+  // so these styles only exist to share their StyleSheetContents
+  // (and therefore share the same StyleScope) as the style added
+  // beneath #root.
+  for (let i = 0; i < NUM_IDENTICAL_STYLES; i++) {
+    let style = document.createElement('style');
+    style.textContent = STYLE;
+    let div = document.createElement('div');
+    div.append(style);
+    unrelated.append(div);
+  }
+
+  // Add a identical style to #root.
+  let style = document.createElement('style');
+  style.textContent = STYLE;
+  root.append(style);
+
+  // Add NUM_CHAINS to root, where each child is the root of a linear
+  // chain of descendants. These are separate linear chains instead
+  // of a more realistic tree to avoid the on-stack cache (StyleScopeFrame).
+  let chains = [...Array(NUM_CHAINS).keys()]
+    .map(() => createTree(1 /* siblings */, CHAIN_DEPTH /* depth */));
+  root.append(...chains);
+
+  // We'll recalc of all leaf nodes within #root during measureTime.
+  // For each leaf, we'll traverse up the chain, trying to figure out
+  // if the @scope added below #root is active or not. Hopefully,
+  // the performance of figuring that out is not affected by the large
+  // amount of identical styles in #unrelated.
+  leafNodes = root.querySelectorAll('div:empty');
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Implicit @scope with identical unrelated styles',
+    run: () => {
+      root.offsetTop;
+      leafNodes.forEach(e => e.classList.toggle('toggle'));
+      root.offsetTop;
+      leafNodes.forEach(e => e.classList.toggle('toggle'));
+    }
+});
+
+</script>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Tests that XML and CSS attributeTypes can be switched between.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var polygon = createSVGElement("polygon");
+polygon.setAttribute("id", "polygon");
+polygon.setAttribute("points", "100 0 200 0 200 100 100 100");
+polygon.setAttribute("fill", "green");
+polygon.setAttribute("onclick", "executeTest()");
+
+var set = createSVGElement("set");
+set.setAttribute("id", "set");
+set.setAttribute("attributeName", "points");
+set.setAttribute("attributeType", "XML");
+set.setAttribute("to", "300 0 400 0 400 100 300 100");
+set.setAttribute("begin", "0s");
+polygon.appendChild(set);
+rootSVGElement.appendChild(polygon);
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(polygon.animatedPoints.getItem(0).x, 100, epsilon);
+    assert_equals(polygon.points.getItem(0).x, 100);
+}
+
+function sample2() {
+    assert_approx_equals(polygon.animatedPoints.getItem(0).x, 300, epsilon);
+    // change the animationType to CSS which is invalid.
+    set.setAttribute("attributeType", "CSS");
+}
+
+function sample3() {
+    // verify that the animation resets.
+    assert_approx_equals(polygon.animatedPoints.getItem(0).x, 100, epsilon);
+    // change the animation to a CSS animatable value.
+    set.setAttribute("attributeName", "opacity");
+    set.setAttribute("to", "0.8");
+}
+
+function sample4() {
+    assert_approx_equals(parseFloat(getComputedStyle(polygon).opacity), 0.8, epsilon);
+    // change the animation to a non-CSS animatable value.
+    set.setAttribute("attributeName", "points");
+    set.setAttribute("to", "200 0 300 0 300 100 200 100");
+}
+
+function sample5() {
+    // verify that the animation does not run.
+    assert_approx_equals(polygon.animatedPoints.getItem(0).x, 100, epsilon);
+    assert_approx_equals(parseFloat(getComputedStyle(polygon).opacity), 1.0, epsilon);
+    // change the animationType to XML which is valid.
+    set.setAttribute("attributeType", "XML");
+}
+
+function sample6() {
+    assert_approx_equals(polygon.animatedPoints.getItem(0).x, 200, epsilon);
+    assert_equals(polygon.points.getItem(0).x, 100);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["set", 0.0, sample1],
+        ["set", 0.5, sample2],
+        ["set", 1.0, sample3],
+        ["set", 1.5, sample4],
+        ["set", 2.0, sample5],
+        ["set", 2.5, sample6]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.clickX = 150;
+
+</script>

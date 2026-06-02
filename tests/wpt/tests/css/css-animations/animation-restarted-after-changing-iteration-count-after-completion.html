@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Setting 'animation-iteration-count: infinite' after a CSS Animation is completed restarts the animation</title>
+<link rel="help" href="https://www.w3.org/TR/css-animations-1/#animation-iteration-count">
+<style>
+
+@keyframes anim {
+    to { margin-left: 100px }
+}
+
+</style>
+</head>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="target"></div>
+<script>
+
+promise_test(async test => {
+    const target = document.getElementById("target");
+    target.style.animation = "anim 0.1s linear";
+
+    const initialAnimations = target.getAnimations();
+    assert_equals(initialAnimations.length, 1, "An animation runs initially.");
+
+    await initialAnimations[0].finished;
+    assert_equals(target.getAnimations().length, 0, "An animation no longer runs after its completion.");
+
+    await new Promise(setTimeout);
+    target.style.animationIterationCount = "infinite";
+    assert_equals(target.getAnimations().length, 1, "An animation runs again once animation-iteration-count is set.");
+}, "Setting 'animation-iteration-count: infinite' after a CSS Animation is completed restarts the animation.");
+
+</script>
+</body>
+</html>

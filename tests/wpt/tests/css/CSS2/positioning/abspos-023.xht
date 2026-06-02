@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: left:auto for fixed-pos blocks inside abs-pos blocks</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/021.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width"/>
+  <meta name="flags" content="may"/>
+  <style type="text/css">
+   body { color: navy; }
+   .control { margin-left: 50%; border-top: 1em solid red; width: 1em; }
+   .container { position: absolute; left: 50%; }
+   .test { position: fixed; left: auto; width: 1em; height: 1em;
+           background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a green square roughly centered below and no red.</p>
+  <div class="container">
+   <div class="test"> </div>
+  </div>
+  <div class="control"></div>
+</body>
+</html>

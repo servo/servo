@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border-shape interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+  <script>
+    // Outer and inner shapes are identical when only one value is specified.
+    test_interpolation({
+      property: 'border-shape',
+      from: 'circle(10px at 10px 10px)',
+      to: 'circle(30px at 30px 30px)',
+    }, [
+      { at: 0, expect: 'circle(10px at 10px 10px)' },
+      { at: 0.5, expect: 'circle(20px at 20px 20px)' },
+      { at: 1, expect: 'circle(30px at 30px 30px)' },
+    ]);
+
+    // Explicit inner shape animates alongside the outer shape.
+    test_interpolation({
+      property: 'border-shape',
+      from: 'circle(20px at 10px 20px) circle(10px at 10px 20px)',
+      to: 'circle(40px at 30px 40px) circle(20px at 30px 40px)',
+    }, [
+      { at: 0, expect: 'circle(20px at 10px 20px) circle(10px at 10px 20px)' },
+      { at: 0.5, expect: 'circle(30px at 20px 30px) circle(15px at 20px 30px)' },
+      { at: 1, expect: 'circle(40px at 30px 40px) circle(20px at 30px 40px)' },
+    ]);
+
+    // With different shapes, we interpolate discretely.
+    test_interpolation({
+      property: 'border-shape',
+      behavior: 'allow-discrete',
+      from: 'circle(20px at 10px 20px) circle(10px at 10px 20px)',
+      to: 'polygon(10px 10px, 100px 10px, 10px 100px) polygon(20px 20px, 80px 20px, 20px 80px)',
+    }, [
+      { at: 0, expect: 'circle(20px at 10px 20px) circle(10px at 10px 20px)' },
+      { at: 1, expect: 'polygon(10px 10px, 100px 10px, 10px 100px) polygon(20px 20px, 80px 20px, 20px 80px)' },
+    ]);
+
+    // With different coordinate boxes, we interpolate discretely.
+    test_interpolation({
+      property: 'border-shape',
+      behavior: 'allow-discrete',
+      from: 'circle() border-box circle() content-box',
+      to: 'circle() content-box circle() border-box',
+    }, [
+      { at: 0, expect: 'circle() border-box circle() content-box' },
+      { at: 1, expect: 'circle() content-box circle() border-box' },
+    ]);
+
+    // With the same coordinate boxes, we interpolate normally.
+    test_interpolation({
+      property: 'border-shape',
+      from: 'circle(20px at 10px 20px) border-box circle(10px at 10px 20px) padding-box',
+      to: 'circle(40px at 30px 40px) border-box circle(20px at 30px 40px) padding-box',
+    }, [
+      { at: 0, expect: 'circle(20px at 10px 20px) circle(10px at 10px 20px)' },
+      { at: 0.5, expect: 'circle(30px at 20px 30px) circle(15px at 20px 30px)' },
+      { at: 1, expect: 'circle(40px at 30px 40px) circle(20px at 30px 40px)' },
+    ]);
+
+    // With different number of shapes, inner shape becomes identical to outer shape.
+    test_interpolation({
+      property: 'border-shape',
+      from: 'circle(20px at 10px 20px)',
+      to: 'circle(40px at 30px 40px) half-border-box circle(40px at 30px 40px) half-border-box',
+    }, [
+      { at: 0, expect: 'circle(20px at 10px 20px) half-border-box circle(20px at 10px 20px) half-border-box' },
+      { at: 0.5, expect: 'circle(30px at 20px 30px) half-border-box circle(30px at 20px 30px) half-border-box' },
+      { at: 1, expect: 'circle(40px at 30px 40px) half-border-box circle(40px at 30px 40px) half-border-box' },
+    ]);
+
+    // From none to a shape, we interpolate discretely.
+    test_interpolation({
+      property: 'border-shape',
+      behavior: 'allow-discrete',
+      from: 'none',
+      to: 'circle() circle()',
+    }, [
+      { at: 0, expect: 'none' },
+      { at: 0.5, expect: 'circle() circle()' },
+      { at: 1, expect: 'circle() circle()' },
+    ]);
+  </script>
+</body>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="support/dropEffect-test-helper.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>dropEffect matches effectAllowed for PNG image drag and drop</title>
+  <style type="text/css">
+    div {
+      display: inline-block;
+      vertical-align: top;
+      background-color: olive;
+      color: white;
+      padding: 20px;
+      width: 100px;
+      height: 100px;
+    }
+
+    div:nth-child(2) {
+      background-color: green;
+    }
+
+    div:nth-child(3) {
+      background-color: teal;
+    }
+
+  </style>
+</head>
+<body>
+  <p>
+    Drag these images. Each has a different effectAllowed.
+  </p>
+  <p>
+    <img id="copy-drag" ondragstart="event.dataTransfer.effectAllowed = 'copy'"
+      src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAACgElEQVR4nO2dWXaDMBAEB06ukyf5cHAczKJlNGpD1QFYuujB9jNiMnFSsm/n7U2e2/NG8eCmlOwrYkcp2WzmK7wVCSHeLahFoT3DDkBFwh6j5ITvVF3EmmgxYTv7NBFrosTMETv5dBlmcefQ1foVRGzRsy1dNnxVEWt6iHEfWXeRYdbnXF2F3EnGgvc5u1TujiK28BhhzQ1Bxh8eWTQJQcY7rZlUC0HGPi3ZVAlBxjm1GRULQUY+NVkVCUFGOaWZhfyWBflkC6Ed9ZRklyUEGe3kZngqBBl+5GTJPUSMQyG0w5+zTGmIGLtCaEc/jrLdFIKM/uxlzMgS400I7YhjK2saIsY/IbQjnnXmNEQMhIjxFMK4Gsdr9jREDISIsQgZ/uQQPBxMZtw/VEjJJkaWGAgRY2JcaUFDxECIGAgRAyFiIEQMhIiBEDEQIgZCxECIGAgRAyFiIEQMhIiBEDEQIgZCxECIGAgRY1ZYzRke8DcgQRAixmz2fEsADGRxsIjgv1nj+TZjZMmBEDFen6Di4+8gXrOnIWIgRIz1c+qMrWDWmdMQMbbWOqElQWxlTUPE2Fsvi5Z0Zi/joxXlkNKJo2wZWWKcrUpKS5w5y5SGiJGzsjUtcSIny9y135HSSG6GJW9HQEolJdlxDxGj9A07tKSQ0sxq3kGFlExqsqp9SxtSTqjNqOU9hkjZoSWbpps6Ut5pzaT5UxZS/vDIwjXMuy6G5nlRun4PuWNbvM/Z/YvhnaT0ONeu4V11hPW86EKu5quIiWh/yG9ZVxhjUecQHtSntSX6Yhp25aqLGdVqiVGiIkdhtA4/gA2mlOwrYke/j5FJXAwLikL+4d0ehRYc8QOJtqy7EhNjOwAAAABJRU5ErkJggg=="
+      alt="Green circle with copy" />
+    <img id="move-drag" ondragstart="event.dataTransfer.effectAllowed = 'move'"
+      src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAEq0lEQVR42u1dvU4bQRAeR0RCCilSp0peIoKGB4DSXYRDlcZlFClKBI4bB/kV/AymIDwCTahiicaioEOxhCsjWVTJziyKMfYZn+9ud3bvG2mEZB13u9+nndmf2Rki7fKFXtEBbVKD9o22jB4bPaND6hm9Mjo0enevw/vfevKMfbYl/8vv4HdBUkvFALhltG2A7dN3+pur8jv53fwN/hZkjjRo3eiuAatjdJA7CcnkDOSb/G1uQ6mFzUeDagaQrvl764yEJOU22LbUymXaGrRhOt40OvJOQvLIGUkbP9GLeIn4SM9NJ+tOTVI+Jq0ubY9sVFRNxy6DIWKWmEvpQ/ByQNumI+fBEjHrZ86lT8HJV3ptGn8aDRGzxJxKHwMZFe9Mg6+jJWNCyrX0VbUc0nuj4+jJmPiWsfRZodN+ZvSoNETMjpYjwUCFfKaXpjEnpSVjQsqJYOF5ZLw1elF6MiakXAgmnpw378DegIgZUm4EGw8jA2QsIuUbvXHpM2CmljFfhfsUO5uCA0/j6AudfZV5arv6WuVHcYs+ALwqKTkvHnmLoEwr8CJW9Llts9iNwvj3plzsfeWyIRnzrq37kfIzq6naBpA5a6bzlJgOl/SMkl+rklEFgIX5k5THwTYgIdwzcP2jhM/o19KsOeoArnBS6suaqo2gQnXCJWSwXNwXB4gBMFekNBeTwSGUmiMK4yNktDhsleNaAZRrUvYWmasuQHJOSDdpdKyriEIvo9maexWC70gAIF/bKTvzzFUH4HgbJZ3HdFSw9vC6lfKHpq7X8X07AOOblK2HhLQBindC2g/9Rx+gePcj/cnqHIDoUFm1c9gjwNAy/d0kyXIAMLSYrQ8kqScAhhbH3iLJBwIwtBByTJKkBWBoIeSMJHMOwNBCyG+SdEYAQ4tTvyLJMQUwtBAyJEn8BTC0EHIHQhQSApOlzGTBqaty6jzVAhhaCOlhYahuYYitE02EHGNzURchLZItX4ChhZB9HFBpUjmgwhGuHv0feI0gBw1T3j7CgHT5jzYC5XQRsjUdSsrhjADGl7ka0EylBgRb+ySkMy9rww7A8Waududf2MH9Qh9k3CbXLsGVNh/mqrvojuEeQHI+Qmq4Fq1ndIyeruaDxAEuCWk+ncmB0z3gepubtQenMUHyGTWELJl8xk6B15CeqVAyLtPXtUICsyJnVivWs+J0dAAwbzLOkQRTk2YuKsapTQFkXqPjlDILEinnRcZ1fpXdkGo866xqnH9FNyTjz0JIQZXcuPQCAE5rqo6oMEFBl7RknBRfTg8lj5Yl48JdGT0ueIWiYIvIuHFfPg9l85LJcF42b+JTUFjysZnyVlhy2qfA0asovTo9+0JxYnWC8t0KBQXuFYrdkIy3mBj3LbeNQrejZTuqOlbcl8znGTqcfjXoM3pboqgaPhEPxda1qgcVYsRt5TanDkgISWzcV1N1hCS3jdu4dNxUDMIhlBzXysHGGspkcBtsW2pPh3fGLrZ2ya5cXHFp0qxJ6si3E68EQCpy344vQRZxO5jfye+2d/oqgHsV02Z3lvcl9QTnA+EkLZw5h9MZcY4pTvxldXj/W0+esc+25H/5HQGYon+Q5f+MwFz+8QAAAABJRU5ErkJggg=="
+      alt="PNG circle" />
+    <img id="link-drag" ondragstart="event.dataTransfer.effectAllowed = 'link'"
+      src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAACf0lEQVR4nO2dW7aCMBAEgyvPytUP5KgYII/JpIWqBQh00cO9HkmmoE6MD+PPm0w/zxjFk5tCjHeXI8V4CyHYCm9EQ4h1C2oRaM+4E1CRsMUgOf4HVRexxlmM38H+TcQaJzE3j4P8vYwQ3K6hr/UziEjRsS19PvisItZ0EGM/sq4iI4Qu12or5EoyFoyv2aZyVxSRwmCEtTcEGW8MsmgTgoxfGjOpF4KMbRqyqROCjGMqMyoXgox8KrIqE4KMcgoz8/kuC7LJF0I76inILk8IMtrJzPBYCDLsyMiSZ4gY+0Johz0HmdIQMbaF0I5+7GSbFoKM/mxkzMgS41cI7fAjkTUNEeNbCO3wZ5U5DREDIWK8hTCuxvGRPQ0RAyFiLEKGvzkEs4NZBM8PDWKcGFliIESMiXGlBQ0RAyFiIEQMhIiBEDEQIgZCxECIGAgRAyFiIEQMhIiBEDEQIgZCxECIGAgRAyFiIESMm8JqzvCCnwHpgRAxZiHzLgEwkpeDRQS/zRrPIwRGlhwIEePzDSr+/B3FR/Y0RAyEiLF+T52x5c0qcxoiRmqtE1riRSJrGiLG1npZtKQ3GxnvrSiHlF7sZMvIEuNoVVJaYs1BpjREjJyVrWmJFRlZ5q79jpRWMjMs2R0BKbUUZMczRIzSHXZoSSmFmdXsQYWUXCqyqt2lDSlHVGbUso8hUrZoyKZ1p0+krGnMxGIvXKQsGGRhG+ZVF0MzvCmt91O/XluMr9n+H8MrSelwrX3DO+sI63jT+dzNZxHj0H6f77LOMMacrsE/qH9ri/PNNO7OVRczqNUao0RFjsBoHX4CCaYQ493lSPNrZBo3wwtFId9Yt0egBXs8ARi2rLuBEoTxAAAAAElFTkSuQmCC"
+      alt="PNG circle" />
+  </p>
+  <p>
+    Drop targets for each effect:
+  </p>
+  <p>
+    <div id="copy-drop" ondragover="onDragOver(event, 'copy')">copy</div>
+    <div id="move-drop" ondragover="onDragOver(event, 'move')">move</div>
+    <div id="link-drop" ondragover="onDragOver(event, 'link')">link</div>
+  </p>
+</body>
+<script>
+  function onDragOver(event, effect) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = effect;
+  }
+
+  async function test() {
+    await new Promise(loaded => window.addEventListener("load", loaded));
+
+    for (const effect of ['copy', 'move', 'link']) {
+      const dragImage = document.getElementById(effect + '-drag');
+      const dropDiv = document.getElementById(effect + '-drop');
+
+      dragDropTest(
+        dragImage, dropDiv, dropEffectOnDropCallBack,
+        'dropEffect should match effectAllowed on drop for ' + effect);
+    }
+  }
+  test();
+
+</script>
+
+</html>

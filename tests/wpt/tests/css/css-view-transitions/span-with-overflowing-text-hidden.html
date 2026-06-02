@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: span with overflowing text is rendered correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="span-with-overflowing-text-hidden-ref.html">
+
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#target {
+  view-transition-name: target;
+  background: grey;
+}
+.hidden {
+  view-transition-name: hidden;
+}
+span {
+  text-shadow: red 2px 5px;
+  visibility: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+html::view-transition-group(root) { visibility: hidden; }
+
+html::view-transition-group(target) {
+  animation: unset;
+}
+
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 0;
+}
+
+html::view-transition-new(target) {
+  animation: unset;
+  opacity: 1;
+}
+
+html::view-transition {
+  background: pink;
+}
+</style>
+
+<div id ="target">
+  <span>This text should render correctly</span>
+</div>
+<div class="hidden"></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

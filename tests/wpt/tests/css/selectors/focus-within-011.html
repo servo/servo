@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait test">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: :focus-within selector</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+    <meta name="assert" content="Test checks :focus-within works after focus change">
+    <link rel="match" href="focus-within-011-ref.html">
+    <style>
+      div {
+        border: solid 15px blue;
+        outline: none;
+      }
+      div:focus-within {
+        border-color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if, when the upper element is unfocused and the lower element is focused, the upper element is blue and the lower one is green, and they are surrounded by a thick green border.</p>
+    <div id="parent">
+      <div id="child1" tabindex="1"></div>
+      <div id="child2" tabindex="2"></div>
+    </div>
+    <script>
+      var child1 = document.getElementById('child1');
+      child1.focus();
+      document.body.offsetWidth;
+
+      var child2 = document.getElementById('child2');
+      child2.focus();
+      document.body.offsetWidth;
+      document.documentElement.classList.remove('reftest-wait');
+    </script>
+  </body>
+</html>

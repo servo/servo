@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <meta  charset="utf-8">
+        <title>SourceBuffer.remove() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(-1, 2);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with an negative start.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              [ undefined, NaN, Infinity, -Infinity ].forEach(function(item)
+              {
+                  assert_throws_js(TypeError, function()
+                  {
+                      sourceBuffer.remove(item, 2);
+                  }, "remove");
+              });
+
+              test.done();
+          }, "Test remove with non-finite start.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(11, 12);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a start beyond the duration.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(2, 1);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a start larger than the end.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(0, Number.NEGATIVE_INFINITY);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a NEGATIVE_INFINITY end.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(0, Number.NaN);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a NaN end.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              mediaSource.removeSourceBuffer(sourceBuffer);
+
+              assert_throws_dom("InvalidStateError", function()
+              {
+                  sourceBuffer.remove(1, 2);
+              }, "remove");
+
+              test.done();
+          }, "Test remove after SourceBuffer removed from mediaSource.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              assert_false(sourceBuffer.updating, "updating is false");
+              assert_equals(mediaSource.duration, NaN, "duration isn't set");
+
+              assert_throws_js(TypeError, function()
+              {
+                  sourceBuffer.remove(0, 0);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a NaN duration.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+              sourceBuffer.remove(1, 2);
+
+              assert_true(sourceBuffer.updating, "updating");
+
+              assert_throws_dom("InvalidStateError", function()
+              {
+                  sourceBuffer.remove(3, 4);
+              }, "remove");
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+          }, "Test remove while update pending.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
+
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+              sourceBuffer.remove(1, 2);
+
+              assert_true(sourceBuffer.updating, "updating");
+
+              assert_throws_dom("InvalidStateError", function()
+              {
+                  sourceBuffer.abort();
+              }, "abort");
+
+              assert_true(sourceBuffer.updating, "updating");
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+          }, "Test aborting a remove operation.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_less_than(mediaSource.duration, 10)
+
+                  mediaSource.duration = 10;
+
+                  sourceBuffer.remove(mediaSource.duration, mediaSource.duration + 2);
+
+                  assert_true(sourceBuffer.updating, "updating");
+                  test.expectEvent(sourceBuffer, "updatestart");
+                  test.expectEvent(sourceBuffer, "update");
+                  test.expectEvent(sourceBuffer, "updateend");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+
+          }, "Test remove with a start at the duration.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_less_than(mediaSource.duration, 10)
+
+                  mediaSource.duration = 10;
+
+                  sourceBuffer.remove(1, 1 + 0.9 / (1000 * 1000));
+
+                  assert_true(sourceBuffer.updating, "updating");
+                  test.expectEvent(sourceBuffer, "updatestart");
+                  test.expectEvent(sourceBuffer, "update");
+                  test.expectEvent(sourceBuffer, "updateend");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+
+          }, "Test remove with a nanosecond range.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.waitForExpectedEvents(function()
+              {
+                  mediaSource.endOfStream();
+
+                  assert_equals(mediaSource.readyState, "ended");
+
+                  test.expectEvent(sourceBuffer, "updatestart");
+                  test.expectEvent(sourceBuffer, "update");
+                  test.expectEvent(sourceBuffer, "updateend");
+                  test.expectEvent(mediaSource, "sourceopen");
+                  sourceBuffer.remove(1, 2);
+
+                  assert_true(sourceBuffer.updating, "updating");
+                  assert_equals(mediaSource.readyState, "open");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, "updating");
+                  test.done();
+              });
+          }, "Test remove transitioning readyState from 'ended' to 'open'.");
+
+          function removeAppendedDataTests(callback, description)
+          {
+              mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+              {
+                  test.expectEvent(sourceBuffer, "updatestart");
+                  test.expectEvent(sourceBuffer, "update");
+                  test.expectEvent(sourceBuffer, "updateend");
+                  sourceBuffer.appendBuffer(mediaData);
+
+                  test.waitForExpectedEvents(function()
+                  {
+                      mediaSource.endOfStream();
+                      assert_false(sourceBuffer.updating, "updating");
+
+                      var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
+                      var duration = mediaElement.duration.toFixed(3);
+                      var subType = MediaSourceUtil.getSubType(segmentInfo.type);
+
+                      assertBufferedEquals(sourceBuffer, "{ [" + start + ", " + duration + ") }", "Initial buffered range.");
+                      callback(test, mediaSource, sourceBuffer, duration, subType, segmentInfo);
+                  });
+              }, description);
+          };
+          function removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, start, end, expected)
+          {
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+              sourceBuffer.remove(start, end);
+
+              test.waitForExpectedEvents(function()
+              {
+                  mediaSource.endOfStream();
+                  assert_false(sourceBuffer.updating, "updating");
+
+                  assertBufferedEquals(sourceBuffer, expected, "Buffered ranges after remove().");
+                  test.done();
+              });
+          }
+
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
+          {
+              removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 0, Number.POSITIVE_INFINITY, "{ }");
+          }, "Test removing all appended data.");
+
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
+          {
+              var expectations = {
+                webm: ("{ [3.315, " + duration + ") }"),
+                mp4: ("{ [3.298, " + duration + ") }"),
+              };
+
+              // Note: Range doesn't start exactly at the end of the remove range because there isn't
+              // a keyframe there. The resulting range starts at the first keyframe >= the end time.
+              removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 0, 3, expectations[subType]);
+          }, "Test removing beginning of appended data.");
+
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
+          {
+              var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
+              var expectations = {
+                webm: ("{ [" + start + ", 1.005) [3.315, " + duration + ") }"),
+                mp4: ("{ [" + start + ", 0.997) [3.298, " + duration + ") }"),
+              };
+
+              // Note: The first resulting range ends slightly after start because the removal algorithm only removes
+              // frames with a timestamp >= the start time. If a frame starts before and ends after the remove() start
+              // timestamp, then it stays in the buffer.
+              removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 1, 3, expectations[subType]);
+          }, "Test removing the middle of appended data.");
+
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
+          {
+              var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
+              var expectations = {
+                webm: "{ [" + start + ", 1.013) }",
+                mp4: "{ [" + start + ", 1.022) }",
+              };
+
+              removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 1, Number.POSITIVE_INFINITY, expectations[subType]);
+          }, "Test removing the end of appended data.");
+        </script>
+    </body>
+</html>

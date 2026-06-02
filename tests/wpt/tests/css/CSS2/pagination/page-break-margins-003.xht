@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page break margin handling</title>
+<link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#allowed-pg-brk" />
+<meta name="assert" content="When a page break occurs in the vertical margin between sibling block boxes, the used values of the adjoining 'margin-bottom' and 'margin-top' properties are set to '0'."/>
+<!-- The portion of this assertion relative to the top margin is also tested by allowed-breaks-000-b.  This test uses a tight layout to attempt to prove the bottom margin portion of the assertion and that may mask some defects exposed by allowed-breaks-000-b.
+-->
+<meta name="flags" content="paged" />
+<style type="text/css">
+	html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+    }
+	body {
+	    background: red;
+	}
+	div {
+        background: white;
+    }
+    #top {
+        height: 100%;
+        margin-bottom: -2in;
+    }
+    div.one {
+		page-break-before: avoid;
+		page-break-after: always;
+		background: white;
+		height: 2in;
+		margin-bottom: 2in;
+	}
+	div.two {
+        background: white;
+        margin: 2in 0 0 0;
+        height: 100%;
+}
+
+</style>
+</head>
+<body>
+
+    <div id="top">When printed, this test produces two pages of output.  The text below must be displayed on the bottom half of the page. </div>
+
+	<div class="one">There must be a page break after this paragraph.  There must be no red on the page.</div>
+	<div class="two">This text must be at the top of the second page (right below the top margin, not 2 inches below the top margin).  There must be no red on this page.</div>
+
+
+</body>
+</html>

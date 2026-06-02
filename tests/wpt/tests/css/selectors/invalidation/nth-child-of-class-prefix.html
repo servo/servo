@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: :nth-child(... of class prefix)</title>
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="match" href="nth-child-of-class-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<style>
+  p:nth-child(even of [class^=t]) {
+    color: green;
+  }
+</style>
+<div>
+  <p>Ignored</p>
+  <p>Ignored</p>
+  <p class="t1">Not ignored</p>
+  <p id="toggler" class="t2">Selectively ignored</p>
+  <p class="t3">Not ignored</p>
+  <p class="t4">Not ignored</p>
+  <p class="t5">Not ignored</p>
+  <p>Ignored</p>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  toggler.setAttribute("class", "new-class");
+</script>
+

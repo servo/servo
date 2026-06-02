@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Calculating the interval
+  distance between keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  // In Firefox there was a floating precision bug in the calculation of the
+  // progress at the end of the 0.2<->1.0 interval. This test exercises that
+  // calculation in case other UAs suffer from the same problem.
+  const target = createDiv(t);
+  const anim = target.animate(
+    [
+      { opacity: 0 },
+      { offset: 0.2, opacity: 1, easing: 'step-end' },
+      { opacity: 0 },
+    ],
+    {
+      duration: 1000,
+      fill: 'forwards',
+    }
+  );
+
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).opacity, '0');
+}, 'Interval distance is calculated correctly (precision test)');
+
+</script>
+</body>

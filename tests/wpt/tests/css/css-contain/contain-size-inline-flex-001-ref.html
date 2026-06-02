@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .basic {
+    border: 1em solid green;
+    display: inline-flex;
+  }
+  .width-ref {
+    width: 50px;
+  }
+  .innerContents {
+    color: transparent;
+    width: 0;
+    height: 0;
+  }
+  </style>
+</head>
+<body>
+  aa<div class="basic"><div class="innerContents">i</div></div>bb
+  <br>
+
+  aa<div class="basic width-ref"><div class="innerContents">i</div></div>bb
+</body>
+</html>

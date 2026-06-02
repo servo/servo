@@ -1,0 +1,33 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test: background-clip: text animated text</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="author" href="mailto:nathan@knowler.dev" title="Nathan Knowler">
+<link rel="match" href="clip-text-animated-text-ref.html">
+<style>
+  .text {
+    background-color: DeepPink;
+    background-clip: text;
+    font-size: 50px;
+    font-family: sans-serif;
+    font-weight: 600;
+    color: transparent;
+  }
+
+  .text p {
+    animation: fade-in 0.1s both;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+  }
+</style>
+<div class="text">
+  <p>Text</p>
+</div>
+<script>
+  const [animation] = document.querySelector(".text p").getAnimations();
+  animation.finished.then(() => {
+    document.documentElement.classList.remove("reftest-wait");
+  });
+</script>

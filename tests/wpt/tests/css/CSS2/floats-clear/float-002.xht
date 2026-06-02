@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Float set to 'right'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" />
+        <meta name="assert" content="The 'float' property set to 'right' correctly aligns the element to the right and text/objects flow around it." />
+        <style type="text/css">
+            #div1
+            {
+                border: 2px solid orange;
+                width: 500px;
+            }
+            #div2
+            {
+                float: right;
+                background: blue;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is in the upper right corner of the orange box and the "Filler Text" flows around the blue square.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+        </div>
+    </body>
+</html>

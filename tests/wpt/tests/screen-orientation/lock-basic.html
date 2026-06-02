@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+import { attachIframe, makeCleanup, getOppositeOrientation } from "./resources/orientation-utils.js";
+
+promise_test(async t => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen")
+  await document.documentElement.requestFullscreen();
+  const value = await screen.orientation.lock('any');
+  assert_equals(value, undefined);
+}, "Test that screen.orientation.lock returns a promise which will be fulfilled with a void value.");
+
+promise_test(async t => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen")
+  await document.documentElement.requestFullscreen();
+  const initialOrientation = screen.orientation.type;
+  const orientations = [
+    'any',
+    'natural',
+    'portrait',
+    'landscape',
+    'portrait-secondary',
+    'landscape-primary',
+    'landscape-secondary',
+    'portrait-primary',
+  ];
+  for (const orientation of orientations) {
+    try {
+      await screen.orientation.lock(orientation);
+    } catch(err) {
+      if (err.name === "NotSupportedError") {
+        continue;
+      }
+      assert_unreached("Unknown error: " + err);
+    }
+    const { type } = screen.orientation;
+    switch (orientation) {
+    case 'any':
+      break;
+    case 'natural':
+      assert_true(type.endsWith("primary"), `Expected primary orientation for "${orientation}", got "${type}"`);
+      break;
+    case 'portrait':
+      assert_true(type.startsWith("portrait"), `Expected portrait orientation for "${orientation}", got "${type}"`);
+      break;
+    case 'landscape':
+      assert_true(type.startsWith("landscape"), `Expected landscape orientation for "${orientation}", got "${type}"`);
+      break;
+    default:
+      assert_equals(type, orientation, "Expected orientation to change");
+      break;
+    }
+    await screen.orientation.lock(initialOrientation);
+  }
+}, "Test that screen.orientation.lock returns a pending promise.");
+
+promise_test(async t => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen")
+  await document.documentElement.requestFullscreen();
+  const initialType = screen.orientation.type;
+  const newType = getOppositeOrientation();
+  const p = screen.orientation.lock(newType);
+  assert_equals(screen.orientation.type, initialType, "Must not change orientation until next spin of event loop");
+  await p;
+  const finalType = screen.orientation.type;
+  assert_true(finalType.startsWith(newType), `Expected type to start with ${newType}, got "${finalType}"`);
+}, "Test that screen.orientation.lock() is actually async");
+</script>

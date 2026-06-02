@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>Test that scrolling to a content-visibility: auto subtree restarts animations in it</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+
+<style>
+#target {
+  position: relative;
+  background: green;
+  height: 100px;
+  width: 100px;
+  left: 100px;
+}
+</style>
+<body>
+  <div id="container">
+    <div id="target"></div>
+  </div>
+</body>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: CSS3 text-decoration-color when |::selection| and another pseudo style exists</title>
+<meta name="assert" content="When selected, text decorations apply the selection color when other pseudo styles are present">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-color-property">
+<link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+<link rel="match" href="reference/text-decoration-color-selection-pseudo-01-ref.html">
+<style>
+    p::first-line {
+        text-decoration: underline;
+	}
+    p::selection {
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <p>
+      Underlined, and green when selected.
+    </p>
+    <script>
+      document.execCommand("SelectAll")
+    </script>
+</body>
+</html>

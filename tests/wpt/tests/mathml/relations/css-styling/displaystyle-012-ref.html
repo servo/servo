@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Test the effect of displaystyle on munder, mover and munderover -->
+    <math>
+      <mstyle displaystyle="true">
+        <munder><mo>O</mo><mo>O</mo></munder>
+        <mover><mo>O</mo><mo>O</mo></mover>
+        <munderover><mo>O</mo><mo>O</mo><mo>O</mo></munderover>
+      </mstyle>
+      <mstyle displaystyle="false">
+        <msub><mo>O</mo><mo>O</mo></msub>
+        <msup><mo>O</mo><mo>O</mo></msup>
+        <msubsup><mo>O</mo><mo>O</mo><mo>O</mo></msubsup>
+      </mstyle>
+    </math>
+
+  </body>
+</html>

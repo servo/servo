@@ -1,0 +1,30 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  await navigation.navigate("#1").finished;
+
+  navigation.onnavigate = e => e.intercept();
+  navigation.oncurrententrychange = e => {
+    if (e.navigationType == "traverse") {
+      assert_equals(location.hash, "");
+      assert_equals(navigation.currentEntry.index, start_index);
+      assert_equals(navigation.entries().length, start_length + 1);
+      navigation.navigate("#2");
+    }
+  };
+  let back_result = navigation.back();
+  await back_result.committed;
+  assert_equals(location.hash, "#2");
+  await promise_rejects_dom(t, "AbortError", back_result.finished);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+  assert_equals(navigation.entries().length, start_length + 1);
+}, "Using intercept() then navigate() in the ensuing currententrychange should abort the finished promise (but not the committed promise)");
+</script>

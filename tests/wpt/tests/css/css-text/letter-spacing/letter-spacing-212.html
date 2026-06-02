@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing at element boundaries</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#letter-spacing'>
+<link rel='help' href='https://www.w3.org/TR/css-ruby-1/'>
+<link rel='match' href='reference/letter-spacing-212-ref.html'>
+<meta name="assert" content="Ruby annotations are centered on bases, not bases + trailing letter-spacing.">
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    margin: 1em; }
+  .ls1 {
+    letter-spacing: 1em;
+  }
+  .control p {
+    white-space: pre-wrap;
+    color: blue;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+  }
+</style>
+
+<div id='instructions'>Test passes if the blue pattern is identical to the black one.</div>
+
+<div class="contain">
+  <p class="ls1"><ruby>A<rt>a</rt>BB<rt>b</rt></ruby></p>
+</div>
+
+<div class="contain control">
+  <p><ruby>A<rt>a</rt></ruby> <ruby>B B<rt>b</rt></ruby></p>
+</div>

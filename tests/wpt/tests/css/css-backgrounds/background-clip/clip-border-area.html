@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test:  background-clip:border-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-ref.html">
+<meta name="assert" content="border-area: The border area is filled with the background image">
+<meta name="fuzzy" content="maxDifference=0-130; totalPixels=0-1100">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid transparent;
+        background-clip: border-area;
+        background-image: url(../resources/blue-100.png);
+    }
+
+    .rounded {
+        border-radius: 40%;
+    }
+
+    .missing-border {
+        border-right-style: hidden;
+    }
+
+    .double {
+        border-style: double;
+    }
+
+    .inset {
+        border-style: inset;
+    }
+
+    .complex {
+        border-right-style: double;
+        border-bottom-style: dashed;
+        border-left-style: dotted;
+    }
+</style>
+</head>
+<body>
+
+<div class="test"></div>
+<div class="test rounded"></div>
+<div class="test missing-border"></div>
+<div class="test double"></div>
+<div class="test inset"></div>
+<div class="test complex"></div>
+
+</body>
+</html>

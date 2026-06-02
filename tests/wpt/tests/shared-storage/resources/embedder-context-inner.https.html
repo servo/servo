@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+<body>
+<script>
+
+async function init() {
+  const [ancestorKey] = parseKeylist();
+
+  await addModuleOnce("/shared-storage/resources/embedder-context-module.js");
+  await sharedStorage.run("report-context",
+                          {
+                            data: {'ancestorKey': ancestorKey}
+                          });
+
+  await writeValueToServer(ancestorKey, "embedder_context_inner_loaded");
+}
+
+init();
+</script>
+</body>
+</html>

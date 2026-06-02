@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-range">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/#the-counter-style-rule">
+<link rel="match" href="negative-calc-to-non-negative-integer-ref.html">
+<meta name="assert" content="Negative calc() passed to <non-negative-integer> property value as argument should be addressed properly.">
+<style>
+@counter-style foo {
+  system: additive;
+  additive-symbols: 1 'I', calc(-1) 'X';
+  range: infinite infinite;
+}
+</style>
+<ol style="list-style-type: foo" start=-1>
+<li></li>
+<li></li>
+<li></li>
+</ol>

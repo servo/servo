@@ -1,0 +1,10 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1711189">
+<div></div>
+<script>
+  let div = document.querySelector("div");
+  let cs = getComputedStyle(div);
+  for (let i = 0; i < cs.length; ++i)
+    div.style.setProperty(cs[i], cs.getPropertyValue(cs[i]));
+  div.style.cssText
+</script>

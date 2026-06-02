@@ -1,0 +1,14 @@
+features:
+- name: form
+  files:
+  - '*'
+  - '!form-checkvalidity.html'
+  - '!form-action-reflection-with-base-url.html'
+  - '!form-action-submission-with-base-url.html'
+- name: constraint-validation
+  files:
+  - form-checkvalidity.html
+- name: base
+  files:
+  - form-action-reflection-with-base-url.html
+  - form-action-submission-with-base-url.html

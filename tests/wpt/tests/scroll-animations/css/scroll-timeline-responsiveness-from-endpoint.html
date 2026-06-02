@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Root-scrolling timeline with animation moving from end point</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#update-an-animations-finished-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+
+<style>
+  @keyframes anim {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+
+  .fill-vh {
+    width: 100px;
+    height: 100vh;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+setup(assert_implements_animation_timeline);
+
+promise_test(async t => {
+  const div = addDiv(t, { style: 'width: 50px; height: 100px;' });
+  const filling = addDiv(t, { class: 'fill-vh' });
+  const scroller = document.scrollingElement;
+  scroller.scrollTop = 0;
+  await waitForNextFrame();
+
+  div.style.animation = 'anim 100s linear';
+  div.style.animationTimeline = 'scroll(root)';
+  await waitForCSSScrollTimelineStyle();
+
+  const anim = div.getAnimations()[0];
+  await anim.ready;
+  assert_percents_equal(anim.timeline.currentTime, 0,
+                        'Timeline time when animation is ready');
+  assert_equals(getComputedStyle(div).width, '100px',
+                'Width at animation start');
+
+  await waitForNextFrame();
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = maxScroll;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(div).width, '200px',
+                'Width at scroll limit');
+
+  document.scrollingElement.scrollTop = 0;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(div).width, '100px',
+                'Width after reset to scroll top');
+}, 'Test that the scroll animation is still responsive after moving from 100%');
+
+</script>
+</body>

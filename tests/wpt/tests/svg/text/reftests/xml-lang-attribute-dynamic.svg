@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml"
+     class="reftest-wait">
+  <metadata>
+    <title>Update of lang attribute should recalculate style</title>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#LangSpaceAttrs"/>
+    <h:link rel="match" href="lang-attribute-dynamic-ref.svg"/>
+  </metadata>
+  <style>
+tspan:lang(ja) { fill: lime; }
+  </style>
+  <text>
+    <tspan x="10" y="100" font-size="90">Quick</tspan>
+    <tspan x="10" y="200" font-size="90">Brown</tspan>
+    <tspan x="10" y="300" font-size="90">Fox</tspan>
+  </text>
+  <script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('tspan')[0].setAttributeNS(
+        'http://www.w3.org/XML/1998/namespace', 'xml:lang', 'ja');
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+  </script>
+</svg>

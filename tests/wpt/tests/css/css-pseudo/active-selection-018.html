@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection, color and background-color</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="reference/active-selection-018-ref.html">
+
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      color: green;
+      font-size: 300%;
+    }
+
+  span
+    {
+      color: red;
+    }
+
+  div::selection
+    {
+      background-color: white;
+    }
+  /*
+  This div::selection rule is necessary. Without it,
+  "Selected Text" would be using the OS-default
+  highlight colors for ::selection
+  because neither color nor background-color would have
+  been specified by the author.
+  */
+
+  span::selection
+    {
+      color: white;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("parent"));
+  /* Then we set the range boundaries to the children of div#parent */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if each glyph of "Selected Text" is green, if background color of each glyph of "Selected Text" is white and if there is <strong>no red</strong>.
+
+  <div id="parent" class="highlight_reftest">Selected Text <span>FAIL</span></div>

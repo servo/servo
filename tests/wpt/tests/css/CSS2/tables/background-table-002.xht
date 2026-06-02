@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: background-repeat on table rows</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/table/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <style type="text/css">
+   table { background: green; color: white; }
+   tr { background: url(support/1x1-red.png) -1em 0 no-repeat; } /* -1em means it's outside the element */
+   td { background-repeat: repeat; }
+  </style>
+ </head>
+ <body>
+  <table><tbody><tr><td>This text should have a green background.</td></tr></tbody></table>
+
+
+</body>
+</html>

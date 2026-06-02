@@ -1,0 +1,16 @@
+<!doctype html>
+<title>pagehide IDL attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var iframe;
+var t = async_test();
+onload = function() {
+  setTimeout(function() {
+    var iframe = document.getElementsByTagName("iframe")[0];
+    iframe.src="about:blank";
+  }, 100)
+};
+</script>
+<iframe src="008-1.html"></iframe>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-last-child with selector list specificity</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel="match" href="nth-last-child-specificity-2-ref.html">
+<style>
+    /* (1, 1, 0) */
+    :nth-last-child(even of .foo, #bar, target) {
+        background-color: red;
+        color: white;
+        border: 5px solid purple;
+    }
+
+    /* (0, 1, 1) */
+    target.foo {
+        color: red;
+    }
+
+    /* (0, 2, 0) */
+    .foo.foo {
+        background-color: green;
+    }
+    /* (1, 0, 1) */
+    target#bar {
+        border: 5px solid blue;
+    }
+
+    target {
+        display: block;
+        margin: 2px;
+    }
+</style>
+</head>
+<body>
+    <div>
+        <target>White text on red background with a purple border.</target>
+        <target>Black text on white background.</target>
+        <target class="foo">White text on red background with a purple border.</target>
+        <target class="foo">Red text on green background.</target>
+        <target id="bar">White text on red background with a purple border.</target>
+        <target id="bar">Black text on white background with a blue border.</target>
+        <target class="foo" id="bar">White text on red background with a purple border.</target>
+        <target class="foo" id="bar">Red text on green background with a blue border.</target>
+    </div>
+</body>
+</html>

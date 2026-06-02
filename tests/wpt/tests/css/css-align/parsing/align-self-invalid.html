@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing align-self with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-self">
+<meta name="assert" content="align-self supports only the grammar 'auto | normal | stretch | <baseline-position> | <overflow-position>? <self-position>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("align-self", "baseline last");
+test_invalid_value("align-self", "center baseline");
+test_invalid_value("align-self", "first");
+test_invalid_value("align-self", "flex-start flex-end");
+test_invalid_value("align-self", "last");
+test_invalid_value("align-self", "left");
+test_invalid_value("align-self", "legacy center");
+test_invalid_value("align-self", "legacy left");
+test_invalid_value("align-self", "legacy");
+test_invalid_value("align-self", "normal baseline");
+test_invalid_value("align-self", "right legacy");
+test_invalid_value("align-self", "safe");
+test_invalid_value("align-self", "self-end unsafe");
+test_invalid_value("align-self", "space-around");
+test_invalid_value("align-self", "space-between");
+test_invalid_value("align-self", "space-evenly");
+test_invalid_value("align-self", "start safe");
+test_invalid_value("align-self", "unsafe right");
+test_invalid_value("align-self", "unsafe");
+</script>
+</body>
+</html>

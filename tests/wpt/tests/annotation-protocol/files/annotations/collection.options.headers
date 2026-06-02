@@ -1,0 +1,2 @@
+Allow: POST,GET,OPTIONS,HEAD,DELETE,PUT
+Vary: Accept, Prefer

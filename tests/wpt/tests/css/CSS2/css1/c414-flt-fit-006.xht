@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Replaced Float Not Fitting Beside Opposite Float</title>
+  <meta name="flags" content="image" />
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-05 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="match" href="c414-flt-fit-006-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   img { background: red; color: yellow; }
+   .control { padding: 1em; }
+   .control img { width: 10em; height: 1em; display: block; }
+   .control img.right { margin-left: 5em; }
+   .test { width: 15em; margin: 1em; }
+   .test div { margin: 0; padding: 0; background: red; }
+   .test img { width: 10em; height: 1em; }
+   .test img.left { float: left; }
+   .test img.right { float: right;}
+  ]]></style>
+
+ </head>
+ <body>
+  <p>Test passes if the 2 patterns are identical with <strong>no red</strong>.</p>
+  <div class="control">
+   <img src="support/square-teal.png" alt="FAIL: You need image support for this test." class="left"/>
+   <img src="support/square-purple.png" alt="FAIL: You need image support for this test." class="right"/>
+  </div>
+  <div class="test">
+   <div>
+    <img src="support/square-teal.png" alt="FAIL: You need image support for this test." class="left"/>
+    <img src="support/square-purple.png" alt="FAIL: You need image support for this test." class="right"/>
+   </div>
+  </div>
+ </body>
+</html>

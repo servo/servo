@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Parsing of invalid @rules with blocks</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="An at-rule consists of everything up to and including the next semi-colon or the next block." />
+        <style type="text/css">
+           @invalidat-block bad at rule
+           this entire "at rule" should be ignored{declaration;{sub-block;}}
+           div
+           {
+               color: green;
+           }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

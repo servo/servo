@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Tests the overhead of many paint layers - don't add code which iterates over every paint layer upon each layout!</title>
+<style>
+#container {
+  position: relative;
+  width: 100px;
+  height: 200px;
+  overflow: hidden;
+}
+#container > div {
+  overflow: hidden;
+}
+#target {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  top: 0px;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<body>
+  <pre id="log"></pre>
+  <div id="container"></div>
+  <div id="target"></div>
+  <script>
+    let container = document.getElementById('container');
+    for (let i = 0; i < 50000; i++) {
+      container.appendChild(document.createElement('div'));
+    }
+    PerfTestRunner.measureRunsPerSecond({
+      description: 'Measures performance of many paint layers existing in the DOM',
+      run: () => {
+        let target = document.getElementById('target');
+        target.style.top = '10px';
+        PerfTestRunner.forceLayout();
+        target.style.top = '0px';
+        PerfTestRunner.forceLayout();
+      },
+    });
+  </script>
+</body>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    div {
+      margin: 0em;
+      padding: 2em;
+    }
+
+    #source1,
+    #source2 {
+      color: blue;
+      border: 1px solid black;
+    }
+
+    #target {
+      border: 1px solid black;
+    }
+  </style>
+  <script>
+    function getSolidColorImageBase64(color) {
+      var canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL();
+    }
+    function setDragImage(ev) {
+      var dragImage = document.createElement('img');
+      if (ev.type === 'dragstart') {
+        dragImage = document.getElementById('dragImage');
+      }
+      if (ev.type === 'dragover') {
+        // Red color image
+        dragImage.src = getSolidColorImageBase64('#FF0000');
+      }
+      if (ev.type === 'dragenter') {
+        // Green color image
+        dragImage.src = getSolidColorImageBase64('#00FF00');
+      }
+      if (ev.type === 'drop') {
+        // Yellow color image
+        dragImage.src = getSolidColorImageBase64('#FFFF00');
+      }
+      ev.dataTransfer.setDragImage(dragImage, 10, 10);
+    }
+
+    function dragstart_with_image_handler(ev) {
+      ev.dataTransfer.setData("text/plain", ev.target.id);
+      setDragImage(ev);
+    }
+
+    function dragstart_without_image_handler(ev) {
+      ev.dataTransfer.setData("text/plain", ev.target.id);
+    }
+
+    function dragover_handler(ev) {
+      setDragImage(ev);
+      ev.preventDefault();
+    }
+
+    function drag_enter(ev) {
+      setDragImage(ev);
+      ev.preventDefault();
+    }
+
+    function drop_handler(ev) {
+      setDragImage(ev);
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("text");
+      ev.target.appendChild(document.getElementById(data));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="dragImageDiv">
+  </div>
+  <div>
+    <p id="source1" ondragstart="dragstart_with_image_handler(event);" draggable="true">
+      Select this element, drag it to the Drop Zone and drag image
+      should be visible. The drag image should be identical to the above image.
+      And the drag image should not change through out the drag and drop operation.
+    </p>
+  </div>
+  <div>
+    <p id="source2" ondragstart="dragstart_without_image_handler(event);" draggable="true">
+      Select this element, drag it to the Drop Zone and drag image
+      should not be visible.
+    </p>
+  </div>
+  <div id="target" ondragenter="drag_enter(event);" ondrop="drop_handler(event);" ondragover="dragover_handler(event);">
+    Drop Zone
+  </div>
+  <script>
+    var initialDragImage = document.createElement('img')
+    // Blue color image
+    initialDragImage.src = getSolidColorImageBase64('#0000FF')
+    initialDragImage.id = "dragImage"
+    var dragImageDiv = document.getElementById('dragImageDiv')
+    dragImageDiv.appendChild(initialDragImage);
+  </script>
+</body>
+
+</html>

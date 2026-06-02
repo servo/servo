@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+
+    function get_response() {
+      return new Promise(resolve => {
+        window.addEventListener('message', e => {
+          resolve(e.data);
+        }, { once: true });
+      });
+    }
+
+    promise_test(async () => {
+      // - opaque-origin-history1.html navigates itself to opaque-origin-history2.html.
+      // - opaque-origin-history2.html call window.history.back() to navigate
+      // back to opaque-origin-history1.html
+      // - opaque-origin-history1.html should still be able to access fullscreen
+      // feature after the history.back() navigation.
+      const iframe = document.createElement('iframe');
+      // sandbox iframe so that it has opaque origin.
+      iframe.sandbox = 'allow-scripts';
+      iframe.src = 'resources/opaque-origin-history1.sub.https.html';
+      iframe.allow = "fullscreen 'src'";
+      document.body.appendChild(iframe);
+
+
+      assert_equals(
+        await get_response(),
+        'fullscreen enabled in opaque-origin-history1.html',
+        'iframe should be able to access fullscreen.'
+      );
+
+      iframe.contentWindow.postMessage('redirect', '*');
+
+      assert_equals(
+        await get_response(),
+        'fullscreen enabled in opaque-origin-history1.html',
+        'iframe should still be able to access fullscreen after history.back() navigation.'
+      );
+    });
+  </script>
+</body>

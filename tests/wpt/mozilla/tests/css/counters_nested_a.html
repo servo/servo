@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='counters_nested_ref.html'>
+<!-- Tests that `counters` works with nested counters. -->
+<style>
+section {
+    counter-reset: section 0;
+}
+h1, h2, h3 {
+    counter-increment: section 1;
+    font-size: 24px;
+}
+h1:before, h2:before, h3:before {
+    content: counters(section, ".") ". ";
+}
+</style>
+</head>
+<body>
+<section>
+    <h1>Foo</h1>
+    <section>
+        <h2>Boo</h2>
+        <h2>Quux</h2>
+        <section>
+            <h3>Blah</h3>
+        </section>
+    </section>
+    <h1>Bar</h1>
+    <section></section>
+    <h2>Boo</h2>
+    <h2>Quux</h2>
+    <h1>Baz</h1>
+</section>
+</body>
+</html>
+

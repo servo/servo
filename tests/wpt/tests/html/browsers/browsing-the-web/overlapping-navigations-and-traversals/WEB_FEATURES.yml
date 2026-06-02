@@ -1,0 +1,4 @@
+features:
+- name: hashchange
+  files:
+  - cross-document-traversal-same-document-traversal.html

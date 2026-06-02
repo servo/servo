@@ -1,0 +1,14 @@
+<!doctype html>
+<title>animated background-image at a particular time</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<style>
+  .one {
+    width: 100px;
+    height: 100px;
+    background-image: url("support/green-at-3s.svg#t=npt:3,3.01");
+  }
+</style>
+<div style="position: relative">
+  <div class="one"></div>
+</div>

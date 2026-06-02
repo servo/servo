@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>position-area and anchor() to all four edges works inside vertical-rl multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<style>
+  .container {
+    border: solid transparent; border-width: 3px 5px 7px 9px;
+    columns: 3; column-fill: auto; gap: 10px;
+    inline-size: 230px; block-size: 100px;
+    writing-mode: vertical-rl;
+  }
+  .test {
+    position: absolute;
+    position-anchor: --a1;
+    place-self: stretch;
+  }
+  .test.area {
+    position-area: center;
+  }
+  .test.func {
+    inset: anchor(inside);
+  }
+  .test.inside {
+    border: solid 5px green;
+  }
+  .test.inside.area {
+    margin: 5px;
+  }
+  .test.outside.func {
+    margin: 5px; background: green;
+    z-index: -1;
+  }
+  .test.outside.area {
+    border: 5px solid green;
+    z-index: -1;
+  }
+  .anchor {
+    anchor-name:--a1;
+    background: red;
+  }
+</style>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; top: -3px; left: -9px">
+  <div class="test outside area"></div>
+  <div class="test outside func"></div>
+  <div class="container">
+    <div style="block-size:30px;"></div>
+    <div style="position:relative; inline-size:100px; block-size:200px;">
+      <div style="block-size:20px;"></div>
+      <div class="anchor" style="inline-size:20px; block-size:70px;"></div>
+      <div class="test inside area"></div>
+      <div class="test inside func"></div>
+    </div>
+  </div>
+</div>

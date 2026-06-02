@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+promise_test(async t => {
+  let w = window.open("/common/blank.html");
+  await new Promise(resolve => w.onload = resolve);
+
+  await test_driver.bless("navigate", async function() {
+    w.navigation.navigate(new URL('resources/navigate-history-traversal-during-onnavigate-helper.html?count=1', location.href).href);
+  });
+
+  await new Promise(resolve => onmessage = resolve);
+  w.postMessage("start", "*");
+  await new Promise(resolve => onmessage = resolve);
+
+  await new Promise(resolve => w.onhashchange = resolve);
+
+  w.onpopstate = () => assert_unreached("No more popstate events");
+
+  assert_equals(w.navigation.currentEntry.index, 1);
+  assert_equals(new URL(w.navigation.currentEntry.url).pathname, "/navigation-api/navigate-event/resources/navigate-history-traversal-during-onnavigate-helper.html");
+  assert_equals(new URL(w.navigation.currentEntry.url).hash, "");
+  w.close();
+}, "Test that navigation.back() silently aborts during onnavigate");
+
+promise_test(async t => {
+  let w = window.open("/common/blank.html");
+  await new Promise(resolve => w.onload = resolve);
+
+  await test_driver.bless("navigate", async function() {
+    w.navigation.navigate(new URL('resources/navigate-history-traversal-during-onnavigate-helper.html?count=3', location.href).href);
+  });
+
+  await new Promise(resolve => onmessage = resolve);
+  w.postMessage("start", "*");
+  await new Promise(resolve => onmessage = resolve);
+
+  await new Promise(resolve => w.onhashchange = resolve);
+  assert_equals(w.navigation.currentEntry.index, 3);
+  assert_equals(new URL(w.navigation.currentEntry.url).pathname, "/navigation-api/navigate-event/resources/navigate-history-traversal-during-onnavigate-helper.html");
+  assert_equals(new URL(w.navigation.currentEntry.url).hash, "#1");
+
+  await new Promise(resolve => w.onhashchange = resolve);
+  assert_equals(w.navigation.currentEntry.index, 1);
+  assert_equals(new URL(w.navigation.currentEntry.url).pathname, "/navigation-api/navigate-event/resources/navigate-history-traversal-during-onnavigate-helper.html");
+  assert_equals(new URL(w.navigation.currentEntry.url).hash, "");
+  w.close();
+}, "Test that navigation.traverseTo() works during onnavigate");
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow (height)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/018.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid; background: red; }
+   td { padding: 0; width: 1em; }
+   /* test */
+   .test .outer { background: orange; }
+   .test .a { background: red; margin: 0; height: auto; }
+   .test .aa { background: yellow; margin: 0 0 1em 0; height: 1em; }
+   .test .b { background: lime; margin: 0; height: 1em; }
+   /* control */
+   .control .a { border-top: 1em yellow solid; }
+   .control .b { border-top: 1em orange solid; }
+   .control .c { border-top: 1em lime solid; }
+  </style>
+ </head>
+ <body>
+  <p>The following box should contain exactly three bands, one yellow, one orange, and one lime, with <strong>absolutely no red visible</strong>.</p>
+  <table>
+   <tr>
+    <td class="test">
+     <div class="outer">
+      <div class="a">
+       <div class="aa"></div>
+      </div>
+      <div class="b"></div>
+     </div>
+    </td>
+    <td class="control">
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

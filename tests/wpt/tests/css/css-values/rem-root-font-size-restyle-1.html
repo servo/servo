@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS Test: Test for rem units on the root element</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-values/#rem">
+<link rel="match" href="rem-root-font-size-restyle-1-ref.html">
+<style>
+:root {
+  font-size: 2rem;
+}
+
+div {
+  width: 10rem;
+  height: 10rem;
+  background: green;
+}
+</style>
+<div></div>
+<script>
+  document.documentElement.offsetTop;
+  // Force a style recalc.
+  document.documentElement.style.color = "green";
+</script>

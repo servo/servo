@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/line-layout-perf-test.js"></script>
+<style>
+#parent {
+  width: 400px;
+}
+#container {
+  width: fit-content;
+  word-break: break-word;
+}
+</style>
+<body onload="run()">
+<div id="parent">
+  <div id="container"></div>
+</div>
+<script>
+'use strict';
+
+function run() {
+  var test = new LineLayoutPerfTest(container);
+  test.lineCount = 2000;
+  test.run('Measures performance of "width: fit-content" of long text.');
+}
+</script>
+</body>

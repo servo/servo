@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<link rel="match" href="reference/text-decoration-inset-025-ref.html">
+
+<style>
+div > div {
+  font: 20px/2 sans-serif;
+  inline-size: fit-content;
+  margin-bottom: 10px;
+  border: 1px solid silver;
+  color: silver;
+  text-decoration: 3px blue overline;
+  text-decoration-inset: -0.5em;
+}
+u {
+  text-decoration: 3px green underline;
+  text-decoration-inset: 2em;
+}
+.p1 {
+  padding: 0 1em;
+}
+.m1 {
+  margin: 0 1em;
+}
+.b1 {
+  border: 1em solid transparent;
+}
+.p2 {
+  padding: 0 0.5em;
+}
+.m2 {
+  margin: 0 0.5em;
+}
+.b2 {
+  border: 0.5em solid transparent;
+}
+</style>
+
+<div>
+<p>Reference case:</p>
+<div class=p1>
+  <u>now testing text-decoration inset</u>
+</div>
+</div>
+
+<p>All the following lines should have the same shortened underline and extended overline:</p>
+
+<div style="columns: 2">
+
+<div>
+  <u class=p1>now testing text-decoration inset</u>
+</div>
+
+<div>
+  <u class=m1>now testing text-decoration inset</u>
+</div>
+
+<div>
+  <u class=b1>now testing text-decoration inset</u>
+</div>
+
+<div>
+  <u><span class=p1>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u><span class=m1>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u><span class=b1>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u class=m2><span class=p2>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u class=b2><span class=m2>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u class=p2><span class=b2>now testing text-decoration inset</span></u>
+</div>
+
+<div>
+  <u><span class=p2><span class=m2>now testing text-decoration inset</span></span></u>
+</div>
+
+<div>
+  <u><span class=m2><span class=b2>now testing text-decoration inset</span></span></u>
+</div>
+
+<div>
+  <u><span class=b2><span class=p2>now testing text-decoration inset</span></span></u>
+</div>
+
+</div>

@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-bodyRights.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a body may include rights key with one or more values each of format uri.",
+    "title": "Implements **body _rights_ key** which has one or more values, each of which is a **string of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+    "description": "True when Annotation includes one or more Bodies, one or more of which include rights key with one or more values that are each of format uri. (Section 3.3.6)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/rightsPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemRightsPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceRightsPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/rightsPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemRightsPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceRightsPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

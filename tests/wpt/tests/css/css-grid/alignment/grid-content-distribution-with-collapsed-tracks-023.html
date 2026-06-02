@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution 'stretch' with collapsed tracks on 4x4 grid</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-align">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#collapsed-track">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Content Distribution alignment ignore collapsed grid tracks and render correctly with a value of 'stretch'.">
+<style>
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 200px;
+  height: 200px;
+}
+.block > div {
+  position: absolute;
+  background: red;
+  width: 50px;
+  height: 50px;
+}
+.grid {
+  z-index: 1;
+  display: grid;
+  width: 200px;
+  height: 200px;
+  grid-template-columns: repeat(auto-fit, minmax(25px, auto));
+  grid-template-rows: repeat(auto-fit, minmax(25px, auto));
+  align-content: stretch;
+  justify-content: stretch;
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 0px; left: 50px;"></div>
+    <div style="top: 0px; left: 100px;"></div>
+    <div style="top: 50px; left: 100px;"></div>
+    <div style="top: 100px; left: 100px;"></div>
+    <div style="top: 150px; left: 0px;"></div>
+    <div style="top: 150px; left: 150px;"></div>
+</div>
+<div class="grid">
+    <div class="item" style="grid-row: 1; grid-column: 2;"></div>
+    <div class="item" style="grid-row: 1; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 3; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 4; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 6; grid-column: 1;"></div>
+    <div class="item" style="grid-row: 6; grid-column: 7;"></div>
+</div>

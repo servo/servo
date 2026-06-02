@@ -1,0 +1,20 @@
+<!doctype html>
+<title>CSS Pseudo Test: ::placeholder inherits from its originating element</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#treelike">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  input { background-color: green; }
+  input::placeholder {
+    color: green;
+    background-color: inherit;
+  }
+</style>
+<input id="inp" type="text">
+<script>
+  test(() => {
+    const style = getComputedStyle(inp, "::placeholder");
+    assert_equals(style.color, "rgb(0, 128, 0)", "Check that ::placeholder is supported via color");
+    assert_equals(style.backgroundColor, "rgb(0, 128, 0)", "::placeholder inheriting background-color");
+  }, "::placeholder should inherit from its originating element");
+</script>

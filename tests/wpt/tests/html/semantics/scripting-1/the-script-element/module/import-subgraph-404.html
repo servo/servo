@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="module">
+import { delayedLoaded }  from "./resources/delayed-modulescript.py";
+import { A } from "./404.js";
+window.loadSuccess = delayedLoaded;
+</script>
+<script type="module">
+test(function () {
+    assert_equals(window.loadSuccess, undefined,
+      "module tree w/ its sub graph 404 should fail to load without crashing");
+}, "Import a module graph w/ sub-graph 404.");
+</script>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Double focus/blur events</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+
+    <input>
+
+    <script>
+
+    async_test(function(t) {
+
+      var input = document.querySelector("input");
+
+      var actions = [
+        input.focus,
+        input.focus,
+        input.blur,
+        input.blur,
+        input.focus,
+        input.focus,
+        input.blur,
+        input.blur,
+        input.focus,
+      ];
+
+      var expected_events = [
+        "focus",
+        "blur",
+        "focus",
+        "blur",
+        "focus",
+      ];
+
+      var received_events = [];
+
+      var action_idx = 0;
+
+      var onEvent = t.step_func(function(e) {
+        received_events.push(e.type);
+        if (action_idx == actions.length - 1) {
+          // All actions executed
+          assert_array_equals(expected_events, received_events);
+          t.done();
+        }
+      });
+
+      function next() {
+        actions[action_idx].apply(input);
+        action_idx++;
+        if (action_idx < actions.length) {
+          // This can't be done on focus or blur events
+          // as we don't expect focus() to trigger a focus
+          // event if the input was already focused.
+          setTimeout(next, 0);
+        }
+      }
+
+      input.addEventListener("focus", onEvent, false);
+      input.addEventListener("blur", onEvent, false);
+
+      next();
+
+    });
+
+    </script>
+
+  </body>
+</html>

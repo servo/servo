@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="../prefetch/no-vary-search/test-utils.js"></script>
+<script src="../prefetch/no-vary-search/test-inputs.js"></script>
+
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-4">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-8">
+<meta name="variant" content="?9-9">
+<meta name="variant" content="?10-10">
+<meta name="variant" content="?11-11">
+<meta name="variant" content="?12-12">
+<meta name="variant" content="?13-13">
+<meta name="variant" content="?14-14">
+<meta name="variant" content="?15-15">
+<meta name="variant" content="?16-16">
+<meta name="variant" content="?17-17">
+<meta name="variant" content="?18-18">
+<meta name="variant" content="?19-19">
+<meta name="variant" content="?20-20">
+<meta name="variant" content="?21-21">
+<meta name="variant" content="?22-22">
+<meta name="variant" content="?23-23">
+<meta name="variant" content="?24-24">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-28">
+<meta name="variant" content="?29-29">
+<meta name="variant" content="?30-last">
+
+<body></body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function prerender_no_vary_search_test(description, noVarySearch, prefetchQuery, navigateQuery, shouldUse) {
+  promise_test(async t => {
+    const prefetchQueryParams = new URLSearchParams(prefetchQuery);
+    const navigateQueryParams = new URLSearchParams(navigateQuery);
+
+    addNoVarySearchHeaderUsingPipe(prefetchQueryParams, noVarySearch);
+    addNoVarySearchHeaderUsingPipe(navigateQueryParams, noVarySearch);
+
+    const params = {
+      'prerendering': prefetchQueryParams,
+      'activating': navigateQueryParams
+    };
+
+    const {exec, tryToActivate, getNetworkRequestCount, prerenderingURL, activatingURL} =
+        await create_prerendered_page(t, params);
+
+    if (shouldUse) {
+      // The request should be sent only one time for prerendering.
+
+      // Test that the URL changes, and that popstate isn't called as part of
+      // activation changing the URL.
+      await exec(() => {
+        window.popstateFired = false;
+        window.addEventListener("popstate", () => {
+          window.popstateFired = true;
+        });
+      });
+      assert_equals(await exec(() => location.href), prerenderingURL, 'location.href before activation');
+
+      assert_equals(await tryToActivate(), 'activated');
+      assert_equals(await getNetworkRequestCount(), '1');
+
+      assert_equals(await exec(() => location.href), activatingURL, 'location.href after activation');
+      assert_equals(await exec(() => window.popstateFired), false, 'popstate must not be fired');
+    } else {
+      // The request should be sent twice for prerendering and real navigation
+      // that doesn't activate the prerendered page.
+      assert_equals(await tryToActivate(), 'discarded');
+      assert_equals(await getNetworkRequestCount(), '2');
+    }
+  }, description);
+}
+
+test_inputs.forEach(({description, noVarySearch, prefetchQuery, navigateQuery, shouldUse}) => {
+  subsetTest(prerender_no_vary_search_test, description, noVarySearch, prefetchQuery, navigateQuery, shouldUse);
+});
+</script>

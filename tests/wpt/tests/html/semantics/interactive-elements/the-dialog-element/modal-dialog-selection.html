@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Content selection in modal dialog</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#content-selection">
+<meta name="assert" content="Checks that text can be selected in a modal dialog, except with 'user-select: none'.">
+
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+dialog {
+  font: 10px/1 Ahem;
+  text-align: center;
+}
+</style>
+
+<dialog>123456789A</dialog>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+const dialog = document.querySelector("dialog");
+dialog.showModal();
+
+function selectSomeText() {
+  // Clear existing selection.
+  getSelection().removeAllRanges();
+
+  // The dialog contains 10 characters. Select the 6 ones at the center.
+  return new test_driver.Actions()
+    .pointerMove(-3e1, 0, {origin: dialog})
+    .pointerDown()
+    .pointerMove(+3e1, 0, {origin: dialog})
+    .pointerUp()
+    .send();
+}
+
+function clickOnBackdrop() {
+  getSelection().removeAllRanges();
+
+  return new test_driver.Actions()
+    .pointerMove(10, 10)
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+promise_test(async function() {
+  await selectSomeText();
+  assert_equals(getSelection().toString(), "345678");
+}, "By default, text inside a modal dialog can be selected");
+
+promise_test(async function() {
+  await clickOnBackdrop();
+  assert_equals(getSelection().toString(), "");
+}, "Clicking on backdrop doesn't select text");
+
+promise_test(async function() {
+  dialog.style.userSelect = "none";
+
+  await selectSomeText();
+  assert_equals(getSelection().toString(), "");
+
+  dialog.style.userSelect = "";
+}, "'user-select: none' prevents text from being selected");
+</script>

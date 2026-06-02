@@ -1,0 +1,21 @@
+<!doctype html>
+<title>WebSockets: uppercase 'WS:'</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var scheme = SCHEME_DOMAIN_PORT.split('://')[0];
+  var domain = SCHEME_DOMAIN_PORT.split('://')[1];
+  var ws = new WebSocket(scheme.toUpperCase()+'://'+domain+'/echo');
+  ws.onopen = t.step_func(function(e) {
+    ws.close();
+    t.done();
+  })
+  ws.onclose = ws.onerror = ws.onmessage = t.step_func(function() {assert_unreached()});
+});
+</script>

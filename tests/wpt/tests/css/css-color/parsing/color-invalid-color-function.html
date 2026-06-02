@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid color() function syntax</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#color-function">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-color-function-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-color-function-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+const RGB_SPACES = ["srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb"];
+const XYZ_SPACES = ["xyz", "xyz-d50", "xyz-d65"];
+
+for (const colorSpace of RGB_SPACES) {
+    test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 10%)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+    // Missing parameters should not parse
+    test_invalid_value("color", `color(${colorSpace} 50% -200)`);
+    test_invalid_value("color", `color(${colorSpace} 50%)`);
+    test_invalid_value("color", `color(${colorSpace})`);
+    test_invalid_value("color", `color(${colorSpace} 50% -200 / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} 50% / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} / 0.5)`);
+}
+
+for (const colorSpace of XYZ_SPACES) {
+    test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 10%)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+    // Missing parameters should not parse
+    test_invalid_value("color", `color(${colorSpace} 1 1)`);
+    test_invalid_value("color", `color(${colorSpace} 1)`);
+    test_invalid_value("color", `color(${colorSpace})`);
+    test_invalid_value("color", `color(${colorSpace} 1 1 / .5)`);
+    test_invalid_value("color", `color(${colorSpace} 1 / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} / 50%)`);
+}
+
+test_invalid_value("color", "color()");  // Empty
+test_invalid_value("color", "color(banana 1 1 1)");  // Bad color space
+test_invalid_value("color", "color(displayp3 1 1 1)");  // Bad Display P3 color space
+test_invalid_value("color", "color(1 1 1)");  // No color space
+test_invalid_value("color", "color(srgb 1 1)");  // One missing component
+test_invalid_value("color", "color(srgb 1)");  // Two missing components
+test_invalid_value("color", "color(srgb 0, 0, 0)");  // Commas as separators
+
+test_invalid_value("color", "color(srgb 1 1 1 1)");  // Too many parameters
+test_invalid_value("color", "color(srgb 1 1 1 1 1)");  // Way too many parameters
+test_invalid_value("color", "color(srgb 1 eggs 1)");  // Bad parameters
+test_invalid_value("color", "color(srgb 1 1 1 / bacon)");  // Bad alpha
+test_invalid_value("color", "color(srgb 1 1 1 / 1 cucumber)");  // Junk after alpha
+
+for (const colorSpace of [...RGB_SPACES, ...XYZ_SPACES]) {
+    test_invalid_value("color", `${colorSpace}(0 0 0)`);
+}
+</script>
+</body>
+</html>

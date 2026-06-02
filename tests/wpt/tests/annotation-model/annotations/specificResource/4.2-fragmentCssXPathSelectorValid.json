@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.2-fragmentCssXPathSelectorValid.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains a Fragment, Css or XPath selector that is NOT of format uri and NOT an object having a value key with a single sting value.",
+  "title": "If present all **Selectors of _type_ FragmentSelector, CssSelector, or XPathSelector** have a **_value_ key** with a **single value** - [model 4.2](https://www.w3.org/TR/annotation-model/#selectors)",
+  "description": "True when no Fragment, Css or XPath selectors present or all such selectors values are of format uri or are objects having a value key with a single value. (Section 4.2)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {
+      "oneOf":
+      [
+        {"$ref": "id.json#/definitions/stringUri" },
+        {
+            "allOf":
+            [
+              { "$ref": "#/definitions/selectorSchema" },
+              { "$ref": "#/definitions/itemsSchema" }
+            ]
+        },
+        {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            {
+                "oneOf":
+                [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                        "allOf":
+                        [
+                          { "$ref": "#/definitions/selectorSchema" },
+                          { "$ref": "#/definitions/itemsSchema" }
+                        ]
+                    }
+                ]
+            }
+        }
+      ]
+    }
+  },
+  "definitions":
+  {
+      "selectorSchema":
+      {
+        "type": "object",
+        "properties":
+         {
+           "selector":
+            {
+             "oneOf":
+              [
+                {"$ref": "id.json#/definitions/stringUri" },
+                {
+                 "type":"object",
+                 "allOf":
+                 [
+                  { "$ref": "specificResource.json#/definitions/fragmentSelectorTypeValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/cssSelectorTypeValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/xpathSelectorTypeValidIfPresent" }
+                 ]
+                },
+                {
+                 "type": "array",
+                 "minItems": 1,
+                 "items":
+                 {
+                   "oneOf":
+                   [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                     "type":"object",
+                     "allOf":
+                     [
+                      { "$ref": "specificResource.json#/definitions/fragmentSelectorTypeValidIfPresent" },
+                      { "$ref": "specificResource.json#/definitions/cssSelectorTypeValidIfPresent" },
+                      { "$ref": "specificResource.json#/definitions/xpathSelectorTypeValidIfPresent" }
+                     ]
+                    }
+                   ]
+                 }
+                }
+              ]
+            }
+         }
+      },
+
+      "itemsSchema":
+      {
+        "type": "object",
+        "properties":
+        {
+            "items":
+            {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf":
+                    [
+                        {"$ref": "id.json#/definitions/stringUri" },
+                        {"$ref": "#/definitions/selectorSchema" }
+                    ]
+                }
+            }
+        }
+      }
+  }
+}

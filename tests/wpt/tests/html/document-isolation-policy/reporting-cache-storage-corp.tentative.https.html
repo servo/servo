@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="./resources/common.js"></script>
+<script>
+const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
+
+const header = (name, value) => `|header(${name},${value})`;
+const dip_reporting_header = header("document-isolation-policy", "isolate-and-require-corp") +
+  header("document-isolation-policy-report-only", "isolate-and-require-corp");
+
+async function putInCache(resourceUrl) {
+  const cache = await caches.open('v1');
+  const request = new Request(resourceUrl, { mode: 'no-cors' });
+  const response = await fetch(request);
+  await cache.put(request, response);
+}
+
+function checkReport(report, contextUrl, blockedUrl, disposition, destination) {
+  assert_equals(report.type, 'dip');
+  assert_equals(report.url, contextUrl);
+  assert_equals(report.body.type, 'corp');
+  assert_equals(report.body.blockedURL, blockedUrl);
+  assert_equals(report.body.disposition, disposition);
+  assert_equals(report.body.destination, destination);
+}
+
+function validateReports(reports, expected_count, check, context_url, resource_url) {
+  assert_equals(reports.length, expected_count);
+  check(reports, context_url, resource_url);
+}
+
+async function runRemoteContextTest(uuid, expected_count, check, context_url, resource_url) {
+  // Cache the resource in the local context, which does not have DocumentIsolationPolicy.
+  await putInCache(resource_url);
+
+  // Have the remote context load the resource and wait for the expected number
+  // of reports.
+  const ctx = new RemoteContext(uuid);
+  const reports = await ctx.execute_script(
+    async (url, count) => {
+      const reports_received = [];
+
+      // Register an observer that will wait for reports.
+      const receivedEveryReports = new Promise(resolve => {
+        if (count == 0)
+          resolve();
+
+        const observer = new ReportingObserver((rs) => {
+          for (const r of rs) {
+            reports_received.push(r.toJSON());
+          }
+          if (count <= reports_received.length)
+            resolve();
+        });
+        observer.observe();
+
+      });
+
+      // Try to fetch the resource in the cache. This might be blocked by
+      // DocumentIsolationPolicy.
+      const cache = await caches.open('v1');
+      try {
+        const response = await cache.match(url);
+      } catch(error) {}
+
+      await receivedEveryReports;
+      return reports_received;
+    }, [resource_url, expected_count]);
+  validateReports(reports, expected_count, check, context_url, resource_url);
+}
+
+async function runIFrameTest(t, check, resource_url, expected_count) {
+  // Load an iframe with DocumentIsolationPolicy reporting.
+  const context = await createIframeContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
+}
+
+async function runDedicatedWorkerTest(t, check, resource_url, expected_count) {
+  // Create a worker which will inherit DocumentIsolationPolicy reporting from its creator.
+  const context = await createDedicatedWorkerContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
+}
+
+async function runSharedWorkerTest(t, check, resource_url, expected_count) {
+  // Create a shared worker with DocumentIsolationPolicy reporting.
+  const context = await createSharedWorkerContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
+}
+
+async function runIFrameWithServiceWorkerTest(t, check, resource_url, expected_count) {
+  // Create an iframe with DocumentIsolationPolicy reporting and a ServiceWorker.
+  const context = await createIframeWithSWContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
+}
+
+// We want to test several URLs in various environments (document,
+// dedicated worker, shared worser, service worker). As expectations
+// are independent of environment except for the context URLs in reports,
+// we define ENVIRONMENTS and CASES to reduce the code duplication.
+//
+// ENVIRONMENTS is a list of dictionaries. Each dictionary consists of:
+//  - tag: the name of the environment
+//  - run: an async function which generates reports
+//    - test: a testharness Test object
+//    - url: the URL for a test case (see below)
+//
+// CASES is a list of test cases. Each test case consists of:
+//  - name: the name of the test case
+//  - url: the URL of the test case
+//  - check: a function to check the results
+//    - reports: the generated reports
+//    - url: the URL of the test case
+//    - contextUrl: the URL of the environment settings object (see
+//                  ENVORONMENTS)
+
+const ENVIRONMENTS = {
+  "document": runIFrameTest,
+  "dedicated worker": runDedicatedWorkerTest,
+  "shared worker": runSharedWorkerTest,
+  "document with service worker": runIFrameWithServiceWorkerTest,
+};
+
+const CASES = [
+  {
+    name: 'same-origin',
+    url: '/common/square.png',
+    expected_count: 0,
+    check: (reports, url, contextUrl) => {}
+  },
+  {
+    name: 'blocked due to DIP',
+    url: `${REMOTE_ORIGIN}/common/square.png`,
+    expected_count: 2,
+    check: (reports, contextUrl, url) => {
+      checkReport(reports[0], contextUrl, url, 'reporting', '');
+      checkReport(reports[1], contextUrl, url, 'enforce', '');
+    }
+  },
+  {
+    name: 'blocked during redirect',
+    url: `${ORIGIN}/common/redirect.py?location=` +
+      encodeURIComponent(`${REMOTE_ORIGIN}/common/square.png`),
+    expected_count: 2,
+    check: (reports, contextUrl, url) => {
+      checkReport(reports[0], contextUrl, url, 'reporting', '');
+      checkReport(reports[1], contextUrl, url, 'enforce', '');
+    },
+  }
+];
+
+for (const [tag, run] of Object.entries(ENVIRONMENTS)) {
+  for (const testcase of CASES) {
+    promise_test(async (t) => {
+      const reports =
+        await run(t, testcase.check, testcase.url, testcase.expected_count);
+    }, `[${tag}] ${testcase.name}`);
+  }
+}
+
+</script>

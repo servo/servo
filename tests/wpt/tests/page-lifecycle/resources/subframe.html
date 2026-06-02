@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+window.addEventListener('load', () => {
+  window.parent.postMessage('load');
+});
+
+document.addEventListener('freeze', () => {
+  window.parent.postMessage('freeze');
+});
+
+document.addEventListener('resume', () => {
+  window.parent.postMessage('resume');
+});
+
+</script>

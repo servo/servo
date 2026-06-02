@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This checks that a float 'shadowing' a shape-outside float works as expected.">
+<style>
+#container { width: 100px; line-height: 0; }
+#float_1 { float: right; width: 30px; height: 30px; background: green; }
+#float_2 { float: left; width: 20px; height: 100px; background: green; shape-outside: inset(0 20px 0 0); }
+#float_3 { float: left; width: 30px; height: 50px; background: green; }
+.atomic { display: inline-block; background: green; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="float_1"></div>
+  <div id="float_2"></div>
+  <div id="float_3"></div>
+  <div class="atomic" style="width: 20px; height: 30px;"></div>
+  <div class="atomic" style="width: 50px; height: 20px;"></div>
+  <div class="atomic" style="width: 80px; height: 50px;"></div><div class="atomic" style="width: 20px; height: 50px;"></div>
+</div>

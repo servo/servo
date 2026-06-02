@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>View Transitions: Clip on target in callback does not clip root (Ref)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  background: blue;
+  border: 5px solid black;
+}
+#target-inside {
+  margin-top: 150px;
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+#target-outside {
+  width: 100px;
+  height: 50px;
+  background-color: rgba(0, 128, 0, 0.5);
+}
+</style>
+
+<div id="container">
+  <div id="target-inside"></div>
+  <div id="target-outside"></div>
+</div>

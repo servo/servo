@@ -1,0 +1,31 @@
+<!doctype html>
+<title>API availability following history traversal - 1</title>
+<script>
+var controller = opener;
+var t = controller.t;
+var assert_not_equals = controller.assert_not_equals;
+
+t.step(function() {
+  // If this document is discarded as a result of navigation, then this script
+  // will be executed a second time. The semantics this test intends to verify
+  // cannot be observed under these conditions, the discarding is not itself a
+  // violation. Silently pass the test in that case.
+  if (controller.hasNavigated) {
+    t.done();
+    return;
+  }
+
+  t.step_timeout(function() {
+    assert_not_equals(window.history, null, 'history');
+    assert_not_equals(window.localStorage, null, 'localStorage');
+    assert_not_equals(window.location, null, 'location');
+    assert_not_equals(window.navigator, null, 'navigator');
+    assert_not_equals(window.opener, null, 'opener');
+    assert_not_equals(window.sessionStorage, null, 'sessionStorage');
+
+    t.done();
+  }, 1000);
+
+  controller.navigate();
+});
+</script>

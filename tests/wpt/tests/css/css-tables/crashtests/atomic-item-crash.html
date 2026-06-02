@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://crbug.com/403617975">
+<style>
+  #target { appearance: textarea; container-type: size; offset: auto url(); }
+</style>
+<table>
+  <th id="target">
+    <marquee>
+      <a>crash</a>
+    </marquee>
+    <dialog id="dialog" open="true">
+      <textarea id="textarea"></textarea>
+    </dialog>
+  </th>
+</table>
+<script>
+requestAnimationFrame(() => {
+  const callback = window.requestIdleCallback(() => {});
+  dialog.close();
+  textarea.cols = callback;
+  document.documentElement.classList.remove('test-wait');
+});
+</script>
+</html>

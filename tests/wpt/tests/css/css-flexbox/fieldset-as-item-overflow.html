@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1149714">
+<link rel="match" href="fieldset-as-item-overflow-ref.html">
+<meta name="assert" content="A fieldset element when flex-shrink is applied has scrollable overflow.">
+<div style="display: flex; flex-direction: column; width: 100px; height: 100px; border: solid;">
+  <fieldset style="margin: 0; border: none; padding: 0; overflow-y: scroll; overflow-x: hidden; flex-grow: 1;">
+    <div style="height: 200px; background: green;"></div>
+  </fieldset>
+</div>

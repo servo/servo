@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Change perspective property</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://crbug.com/1365255">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+#target {
+  width: 10px;
+  height: 10px;
+  background: red;
+  transform: translateZ(-10px);
+}
+#container {
+  width: 100px;
+  height: 100px;
+  background: green;
+  perspective: 100px;
+  perspective-origin: -10px -10px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    container.style.perspective = '1px';
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>

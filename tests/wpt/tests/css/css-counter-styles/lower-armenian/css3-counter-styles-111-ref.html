@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-armenian, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name="assert" content="list-style-type: lower-armenian produces numbers up to 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: lower-armenian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<div><bdi>ա. </bdi>ա</div>
+<div><bdi>բ. </bdi>բ</div>
+<div><bdi>գ. </bdi>գ</div>
+<div><bdi>դ. </bdi>դ</div>
+<div><bdi>ե. </bdi>ե</div>
+<div><bdi>զ. </bdi>զ</div>
+<div><bdi>է. </bdi>է</div>
+<div><bdi>ը. </bdi>ը</div>
+<div><bdi>թ. </bdi>թ</div>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

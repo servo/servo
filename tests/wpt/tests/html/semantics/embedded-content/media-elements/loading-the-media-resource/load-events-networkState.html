@@ -1,0 +1,91 @@
+<!doctype html>
+<title>load() fires abort/emptied events when networkState is not NETWORK_EMPTY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id=log></div>
+<script>
+// Load media resource
+// https://html.spec.whatwg.org/multipage/media.html#loading-the-media-resource
+function load_test(t, v) {
+  assert_not_equals(v.networkState, v.NETWORK_EMPTY);
+
+  var expected_events = [];
+  if (v.networkState == v.NETWORK_LOADING || v.networkState == v.NETWORK_IDLE) {
+    expected_events.push('abort');
+  }
+
+  if (v.networkState != v.NETWORK_EMPTY) {
+    expected_events.push('emptied');
+  }
+
+  if (v.currentTime != 0.0) {
+    expected_events.push('timeupdate');
+  }
+
+  var actual_events = [];
+  v.onabort = v.onemptied = v.ontimeupdate = t.step_func(function(e) {
+    actual_events.push(e.type);
+  });
+
+  v.onloadstart = t.step_func(function() {
+    assert_array_equals(actual_events, expected_events);
+    t.done();
+  });
+
+  v.load();
+
+  assert_array_equals(actual_events, [], 'events should be fired in queued tasks');
+}
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  // suspend is fired optionally "if the user agent intends to not attempt to
+  // fetch the resource" or "once the entire media resource has been fetched"
+  v.preload = 'none';
+  v.src = getAudioURI('/media/sound_5');
+  v.onerror = t.unreached_func();
+  v.onsuspend = t.step_func(function() {
+    v.onsuspend = null;
+    assert_equals(v.networkState, v.NETWORK_IDLE);
+    load_test(t, v);
+  });
+}, 'NETWORK_IDLE');
+
+// Test if media element receives `emptied` before `timeupdate`
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = getAudioURI('/media/sound_5');
+  v.onerror = t.unreached_func();
+  v.onloadeddata = t.step_func(function() {
+    v.onloadeddata = null;
+    assert_not_equals(v.networkState, v.NETWORK_EMPTY);
+    // Modify current time to ensure that loading would trigger `timeupdate` by
+    // resetting the current time.
+    v.currentTime = 1.0;
+    load_test(t, v);
+  });
+}, 'NETWORK_DISPATCH_EMPTIED_BEFORE_TIMEUPDATE');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = 'resources/delayed-broken-video.py';
+  v.onerror = t.unreached_func();
+  v.onloadstart = t.step_func(function() {
+    v.onloadstart = null;
+    assert_equals(v.networkState, v.NETWORK_LOADING);
+    load_test(t, v);
+  });
+}, 'NETWORK_LOADING');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = 'data:,';
+  v.onerror = t.step_func(function() {
+    v.onerror = null;
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE);
+    load_test(t, v);
+  });
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE);
+}, 'NETWORK_NO_SOURCE');
+</script>

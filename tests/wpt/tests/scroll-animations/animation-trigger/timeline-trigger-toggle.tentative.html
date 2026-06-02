@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="support/support.js"></script>
+</head>
+
+<body>
+  <style>
+    @keyframes expand {
+      from {
+        width: 100px;
+      }
+
+      to {
+        width: 100px;
+      }
+    }
+
+    #scroller {
+      width: 300px;
+      height: 300px;
+      overflow: scroll;
+    }
+
+    #source {
+      height: 100px;
+      width: 100px;
+      background-color: seagreen;
+    }
+
+    .trigger-source {
+      timeline-trigger: --trigger view() contain;
+    }
+
+    .blob {
+      height: 50px;
+      background-color: lightgrey;
+    }
+
+    .blob:nth-child(even) {
+      background-color: darkgrey;
+    }
+
+    #target {
+      background-color: tomato;
+      position: absolute;
+      animation: expand linear 1s both;
+      animation-trigger: --trigger play-forwards play-backwards;
+      width: 50px;
+    }
+  </style>
+  <div id=scroller>
+    <div class=blob></div>
+    <div class=blob></div>
+    <div id=source>Source</div>
+    <div id=target>Target</div>
+    <div class=blob></div>
+    <div class=blob></div>
+    <div class=blob></div>
+    <div class=blob></div>
+    <div class=blob></div>
+    <div class=blob></div>
+  </div>
+  <hr>
+  <button id=button>Toggle timeline-trigger</button>
+  <pre id=pre></pre>
+  <hr>
+  <script>
+    const scroller = document.getElementById("scroller");
+    const source = document.getElementById("source");
+    const target = document.getElementById("target");
+    const animation = target.getAnimations()[0];
+
+    async function scrollSourceOutOfView() {
+      // First, scroll source to the top of the viewport.
+      let scrollend_promise =
+            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+      source.scrollIntoView({block: "start"});
+      await scrollend_promise;
+      // Now scroll a litte further to push it just out of view.
+      scrollend_promise =
+            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+      scroller.scrollBy({top: 50});
+      await scrollend_promise;
+      await waitForCompositorCommit();
+    }
+
+    async function scrollSourceIntoView() {
+      let scrollend_promise =
+            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+      source.scrollIntoView({block: "center"});
+      await scrollend_promise;
+      await waitForCompositorCommit();
+    }
+
+    promise_test(async(test) => {
+      assert_equals(getComputedStyle(source).timelineTrigger, "none");
+      assert_equals(animation.playState, "paused");
+
+      // Toggle the trigger on.
+      source.style.timelineTrigger = "--trigger view() contain";
+      assert_equals(getComputedStyle(source).timelineTrigger,
+        "--trigger view() contain");
+      await waitForCompositorCommit();
+
+      // Animation should be playing forwards as source is already in view.
+      assert_equals(animation.playState, "running");
+
+      // Simulate the animation finishing (instead of stalling the test).
+      animation.finish();
+      assert_equals(animation.playState, "finished");
+
+      await scrollSourceOutOfView();
+      // Animation should be playing backwards.
+      assert_equals(animation.playState, "running");
+
+      // Simulate the backwards finish.
+      animation.finish();
+      assert_equals(animation.playState, "finished");
+      assert_equals(animation.currentTime, 0);
+
+      // Toggle the trigger off.
+      source.style.timelineTrigger = "initial";
+      assert_equals(getComputedStyle(source).timelineTrigger, "none");
+      await waitForCompositorCommit();
+
+      // There should be no change to the animation.
+      assert_equals(animation.playState, "finished");
+
+      await scrollSourceIntoView();
+
+      // There should still be no change to the animation.
+      assert_equals(animation.playState, "finished");
+      assert_equals(animation.currentTime, 0);
+    }, "Toggling trigger on starts controlling attached animation; toggling " +
+       "off stops");
+  </script>
+</body>
+</html>

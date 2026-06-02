@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations painted with nested multicol with column wrap.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-005-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer-container {
+        column-count: 2;
+        column-gap: 10px;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-color: blue;
+        border: 1px solid #ccc;
+        width: 210px;
+        height: 50px;
+    }
+
+    .nested-container {
+        column-count: 2;
+        column-gap: 10px;
+        width: 100px;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-color: gold;
+        row-gap: 10px;
+        row-rule-width: 10px;
+        row-rule-style: solid;
+        row-rule-color: purple;
+        column-wrap: wrap;
+        column-fill: auto;
+        column-height: 20px;
+    }
+
+    .column1 {
+        background: rgb(96 139 168 / 0.2);
+        width: 100px;
+        height: 50px
+    }
+
+    .nested-column {
+        background: black;
+        width: 45px;
+        height: 20px;
+    }
+</style>
+
+<div class="outer-container">
+    <div class="column1">
+    </div>
+    <div class="column2">
+        <div class="nested-container">
+            <div class="nested-column"></div>
+            <div class="nested-column"></div>
+            <div class="nested-column"></div>
+            <div class="nested-column"></div>
+        </div>
+    </div>
+</div>

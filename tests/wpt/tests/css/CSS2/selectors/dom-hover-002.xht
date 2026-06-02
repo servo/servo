@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Effect of DOM mutations on :hover matching</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+    <link rel="help"
+          href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+    <meta name="flags" content="dom interact" />
+    <script type="text/javascript">
+      function remove() {
+        var node = document.getElementById("target");
+        node.parentNode.removeChild(node);
+      }
+    </script>
+    <style>
+      div:hover { color: red; }
+      div#green { color: green; }
+    </style>
+  </head>
+  <body>
+    <div>
+      Dummy text. Dummy text.
+      <div id="target" onmouseover="setTimeout(remove, 1000)"><span>Hover this text,
+         then wait till it disappears.  At that point there should be no red.</span>
+      </div>
+    </div>
+    <div id="green">
+      Dummy text. Dummy text.
+    </div>
+  </body>
+</html>

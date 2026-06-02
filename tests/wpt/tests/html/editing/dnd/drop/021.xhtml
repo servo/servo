@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop: removing dropzone attribute ondragstart</title>
+<style type="text/css">
+div
+  {display:inline-block;
+  vertical-align:top;
+  background-color:maroon;
+  color:white;
+  padding:20px;
+  width:100px;
+  height:100px;}
+div:nth-child(2)
+  {background-color:purple;}
+div:nth-child(3)
+  {background-color:fuchsia;}
+</style>
+<script type="application/ecmascript">
+function selectText()
+  {window.getSelection().selectAllChildren(document.querySelector('p'))}
+function dropSelection(event,element)
+  {document.querySelectorAll('div')[element].appendChild(document.createTextNode(' FAIL '));
+  selectText();}
+function start(event)
+  {for(var i = 0; i != 3; i++)
+    {document.querySelectorAll('div')[i].removeAttribute('dropzone')}
+  }
+</script>
+</head>
+<body onload="selectText()">
+<div ondrop="dropSelection(event,0)" dropzone="copy string:text/plain"/>
+<div ondrop="dropSelection(event,1)" dropzone="move string:text/plain"/>
+<div ondrop="dropSelection(event,2)" dropzone="link string:text/plain"/>
+<p ondragstart="start(event)">Drag me</p>
+<p>You should not be able to drop selection onto any of the red boxes above.</p>
+</body>
+</html>

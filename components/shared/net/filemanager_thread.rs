@@ -1,0 +1,188 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cmp::{max, min};
+use std::ops::Range;
+
+use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
+use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
+use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
+use servo_url::ImmutableOrigin;
+use uuid::Uuid;
+
+use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
+
+/// A token modulating access to a file for a blob URL.
+#[derive(Clone)]
+pub enum FileTokenCheck {
+    /// Checking against a token not required,
+    /// used for accessing a file
+    /// that isn't linked to from a blob URL.
+    NotRequired,
+    /// Checking against token required.
+    Required(Uuid),
+    /// Request should always fail,
+    /// used for cases when a check is required,
+    /// but no token could be acquired.
+    ShouldFail,
+}
+
+/// Relative slice positions of a sequence,
+/// whose semantic should be consistent with (start, end) parameters in
+/// <https://w3c.github.io/FileAPI/#dfn-slice>
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct RelativePos {
+    /// Relative to first byte if non-negative,
+    /// relative to one past last byte if negative,
+    pub start: i64,
+    /// Relative offset from first byte if Some(non-negative),
+    /// relative to one past last byte if Some(negative),
+    /// None if one past last byte
+    pub end: Option<i64>,
+}
+
+impl RelativePos {
+    /// Full range from start to end
+    pub fn full_range() -> RelativePos {
+        RelativePos {
+            start: 0,
+            end: None,
+        }
+    }
+
+    /// Instantiate optional slice position parameters
+    pub fn from_opts(start: Option<i64>, end: Option<i64>) -> RelativePos {
+        RelativePos {
+            start: start.unwrap_or(0),
+            end,
+        }
+    }
+
+    /// Slice the inner sliced range by repositioning
+    pub fn slice_inner(&self, rel_pos: &RelativePos) -> RelativePos {
+        RelativePos {
+            start: self.start + rel_pos.start,
+            end: match (self.end, rel_pos.end) {
+                (Some(old_end), Some(rel_end)) => Some(old_end + rel_end),
+                (old, None) => old,
+                (None, rel) => rel,
+            },
+        }
+    }
+
+    /// Compute absolute range by giving the total size
+    /// <https://w3c.github.io/FileAPI/#slice-method-algo>
+    pub fn to_abs_range(&self, size: usize) -> Range<usize> {
+        let size = size as i64;
+
+        let start = {
+            if self.start < 0 {
+                max(size + self.start, 0)
+            } else {
+                min(self.start, size)
+            }
+        };
+
+        let end = match self.end {
+            Some(rel_end) => {
+                if rel_end < 0 {
+                    max(size + rel_end, 0)
+                } else {
+                    min(rel_end, size)
+                }
+            },
+            None => size,
+        };
+
+        let span: i64 = max(end - start, 0);
+
+        Range {
+            start: start.to_usize().unwrap(),
+            end: (start + span).to_usize().unwrap(),
+        }
+    }
+
+    // Per <https://fetch.spec.whatwg.org/#concept-scheme-fetch> step 3.blob.14.8:
+    // "A range header denotes an inclusive byte range, while the slice blob algorithm input range does not.
+    // To use the slice blob algorithm, we have to increment rangeEnd."
+    pub fn to_abs_blob_range(&self, size: usize) -> Range<usize> {
+        let orig_range = self.to_abs_range(size);
+        let start = orig_range.start;
+        let end = usize::min(orig_range.end + 1, size);
+        Range { start, end }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum FileManagerThreadMsg {
+    /// Select a file or files.
+    SelectFiles(
+        EmbedderControlId,
+        FilePickerRequest,
+        IpcSender<EmbedderControlResponse>,
+    ),
+
+    /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
+    ReadFile(
+        IpcSender<FileManagerResult<ReadFileProgress>>,
+        Uuid,
+        ImmutableOrigin,
+    ),
+
+    /// Add an entry as promoted memory-based blob
+    PromoteMemory(Uuid, BlobBuf, bool, ImmutableOrigin),
+
+    /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
+    /// as part of a valid Blob URL
+    AddSlicedURLEntry(
+        Uuid,
+        RelativePos,
+        IpcSender<Result<Uuid, BlobURLStoreError>>,
+        ImmutableOrigin,
+    ),
+
+    /// Decrease reference count and send back the acknowledgement
+    DecRef(
+        Uuid,
+        ImmutableOrigin,
+        IpcSender<Result<(), BlobURLStoreError>>,
+    ),
+
+    /// Activate an internal FileID so it becomes valid as part of a Blob URL
+    ActivateBlobURL(
+        Uuid,
+        IpcSender<Result<(), BlobURLStoreError>>,
+        ImmutableOrigin,
+    ),
+
+    /// Revoke Blob URL and send back the acknowledgement
+    RevokeBlobURL(
+        Uuid,
+        ImmutableOrigin,
+        IpcSender<Result<(), BlobURLStoreError>>,
+    ),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ReadFileProgress {
+    Meta(BlobBuf),
+    Partial(Vec<u8>),
+    EOF,
+}
+
+pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum FileManagerThreadError {
+    /// The selection action is invalid due to exceptional reason
+    InvalidSelection,
+    /// The selection action is cancelled by user
+    UserCancelled,
+    /// Errors returned from file system request
+    FileSystemError(String),
+    /// Blob URL Store error
+    BlobURLStoreError(BlobURLStoreError),
+}

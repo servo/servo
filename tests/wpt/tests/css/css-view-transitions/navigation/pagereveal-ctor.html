@@ -1,0 +1,42 @@
+<!doctype html>
+<title>ßPageRevelEvent constructor</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-pagerevealevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+    var e = new PageRevealEvent("something");
+    assert_true(e instanceof PageRevealEvent);
+    assert_equals(e.type, "something");
+    assert_equals(e.viewTransition, null);
+}, "Constructing pagereveal event");
+
+test(function() {
+    var e = new PageRevealEvent("pagereveal");
+    assert_true(e instanceof PageRevealEvent);
+    assert_equals(e.type, "pagereveal");
+    assert_equals(e.viewTransition, null);
+}, "Constructing pagereveal event with a custom name");
+
+test(function() {
+    var e = new PageRevealEvent("pagereveal", {});
+    assert_true(e instanceof PageRevealEvent);
+    assert_equals(e.type, "pagereveal");
+    assert_equals(e.viewTransition, null);
+}, "Constructing pagereveal event with empty dictionary");
+
+test(function() {
+    var e = new PageRevealEvent("pagereveal", {viewTransition: null});
+    assert_true(e instanceof PageRevealEvent);
+    assert_equals(e.type, "pagereveal");
+    assert_equals(e.viewTransition, null);
+}, "Constructing pagereveal event with a null viewTransition");
+test(function() {
+    const viewTransition = document.startViewTransition();
+    var e = new PageRevealEvent("pagereveal", {viewTransition});
+    assert_true(e instanceof PageRevealEvent);
+    assert_equals(e.type, "pagereveal");
+    assert_equals(e.viewTransition, viewTransition);
+}, "Constructing pagereveal event with a viewTransition");
+</script>

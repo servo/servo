@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="300" height="200">
+  <style>
+    line {
+      stroke: blue;
+      stroke-dasharray: 24 8;
+    }
+  </style>
+  <line id="interval" x1="50" y1="100" x2="250" y2="100"/>
+</svg>

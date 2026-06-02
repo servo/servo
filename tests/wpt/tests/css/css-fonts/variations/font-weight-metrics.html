@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Fonts - Test that variable-font glyph advances depend on applied weight</title>
+<link rel="author" title="Jonathan Kew" href="jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-weight-prop"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-prop-desc"/>
+<link rel="match" href="font-weight-metrics-ref.html">
+<meta name="assert" content="Ensures that glyph advances are adjusted appropriately when the weight axis is varied."/>
+<meta charset="utf-8">
+
+<style>
+@font-face {
+  font-family: test;
+  font-weight: 100 900;
+  src: url(resources/Inter.var.subset.ttf);
+}
+div {
+  font: 32px test;
+  position: absolute;
+  margin: 1em;
+}
+.light {
+  background: red;
+  color: red;
+  font-weight: 100;
+}
+.heavy {
+  background: green;
+  color: green;
+  font-weight: 900;
+}
+</style>
+
+Test passes if there is a green rectangle and <strong>no red</strong>:
+
+<!-- Red background that should be entirely covered by the div with the heavy face -->
+<div class=light>
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+</div>
+
+<!-- The string here is two characters shorter, but the advance width of the heavy
+     glyphs should be large enough that the light div is still completely covered. -->
+<div class=heavy>
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+</div>

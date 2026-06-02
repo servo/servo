@@ -1,0 +1,337 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpSender.prototype.replaceTrack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        readonly attribute MediaStreamTrack? track;
+        Promise<void>           replaceTrack(MediaStreamTrack? withTrack);
+        ...
+      };
+
+      replaceTrack
+        Attempts to replace the track being sent with another track provided
+        (or with a null track), without renegotiation.
+   */
+
+  /*
+    5.2.  replaceTrack
+      4.  If connection's [[isClosed]] slot is true, return a promise rejected
+          with a newly created InvalidStateError and abort these steps.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver('audio');
+    const { sender } = transceiver;
+    pc.close();
+
+    return promise_rejects_dom(t, 'InvalidStateError',
+      sender.replaceTrack(track));
+  }, 'Calling replaceTrack on closed connection should reject with InvalidStateError');
+
+  /*
+    5.2.  replaceTrack
+      7.  If withTrack is non-null and withTrack.kind differs from the
+          transceiver kind of transceiver, return a promise rejected with a
+          newly created TypeError.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver('audio');
+    const { sender } = transceiver;
+
+    return promise_rejects_js(t, TypeError,
+      sender.replaceTrack(track));
+  }, 'Calling replaceTrack with track of different kind should reject with TypeError');
+
+  /*
+    5.2.  replaceTrack
+      5.  If transceiver.stopped is true, return a promise rejected with a newly
+          created InvalidStateError.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver('audio');
+    const { sender } = transceiver;
+    transceiver.stop();
+    return promise_rejects_dom(t, 'InvalidStateError',
+      sender.replaceTrack(track));
+  }, 'Calling replaceTrack on stopped sender should reject with InvalidStateError');
+
+  /*
+    5.2.  replaceTrack
+      8.  If transceiver is not yet associated with a media description [JSEP]
+          (section 3.4.1.), then set sender's track attribute to withTrack, and
+          return a promise resolved with undefined.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver('audio');
+    const { sender } = transceiver;
+    assert_equals(sender.track, null);
+
+    return sender.replaceTrack(track)
+    .then(() => {
+      assert_equals(sender.track, track);
+    });
+  }, 'Calling replaceTrack on sender with null track and not set to session description should resolve with sender.track set to given track');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
+
+    const transceiver = pc.addTransceiver(track1);
+    const { sender } = transceiver;
+
+    assert_equals(sender.track, track1);
+
+    return sender.replaceTrack(track2)
+    .then(() => {
+      assert_equals(sender.track, track2);
+    });
+  }, 'Calling replaceTrack on sender not set to session description should resolve with sender.track set to given track');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver(track);
+    const { sender } = transceiver;
+
+    assert_equals(sender.track, track);
+
+    return sender.replaceTrack(null)
+    .then(() => {
+      assert_equals(sender.track, null);
+    });
+  }, 'Calling replaceTrack(null) on sender not set to session description should resolve with sender.track set to null');
+
+  /*
+    5.2.  replaceTrack
+      10. Run the following steps in parallel:
+          1.  Determine if negotiation is needed to transmit withTrack in place
+              of the sender's existing track.
+
+              Negotiation is not needed if withTrack is null.
+
+          3.  Queue a task that runs the following steps:
+              2.  Set sender's track attribute to withTrack.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const transceiver = pc.addTransceiver(track);
+    const { sender } = transceiver;
+
+    assert_equals(sender.track, track);
+
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => sender.replaceTrack(null))
+    .then(() => {
+      assert_equals(sender.track, null);
+    });
+  }, 'Calling replaceTrack(null) on sender set to session description should resolve with sender.track set to null');
+
+  /*
+    5.2.  replaceTrack
+      10. Run the following steps in parallel:
+          1.  Determine if negotiation is needed to transmit withTrack in place
+              of the sender's existing track.
+
+              Negotiation is not needed if the sender's existing track is
+              ended (which appears as though the track was muted).
+
+          3.  Queue a task that runs the following steps:
+              2.  Set sender's track attribute to withTrack.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream1.getTracks();
+
+    const transceiver = pc.addTransceiver(track1);
+    const { sender } = transceiver;
+    assert_equals(sender.track, track1);
+
+    track1.stop();
+
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => sender.replaceTrack(track2))
+    .then(() => {
+      assert_equals(sender.track, track2);
+    });
+  }, 'Calling replaceTrack on sender with stopped track and and set to session description should resolve with sender.track set to given track');
+
+  /*
+    5.2.  replaceTrack
+      10. Run the following steps in parallel:
+          1.  Determine if negotiation is needed to transmit withTrack in place
+              of the sender's existing track.
+
+              (tracks generated with default parameters *should* be similar
+              enough to not require re-negotiation)
+
+          3.  Queue a task that runs the following steps:
+              2.  Set sender's track attribute to withTrack.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const stream1 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream1.getTracks();
+
+    const transceiver = pc.addTransceiver(track1);
+    const { sender } = transceiver;
+    assert_equals(sender.track, track1);
+
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => sender.replaceTrack(track2))
+    .then(() => {
+      assert_equals(sender.track, track2);
+    });
+  }, 'Calling replaceTrack on sender with similar track and and set to session description should resolve with sender.track set to new track');
+
+  /*
+    TODO
+      5.2.  replaceTrack
+        To avoid track identifiers changing on the remote receiving end when
+        a track is replaced, the sender must retain the original track
+        identifier and stream associations and use these in subsequent
+        negotiations.
+
+    Non-Testable
+      5.2.  replaceTrack
+        10. Run the following steps in parallel:
+            1.  Determine if negotiation is needed to transmit withTrack in place
+                of the sender's existing track.
+
+                Ignore which MediaStream the track resides in and the id attribute
+                of the track in this determination.
+
+                If negotiation is needed, then reject p with a newly created
+                InvalidModificationError and abort these steps.
+
+            2.  If withTrack is null, have the sender stop sending, without
+                negotiating. Otherwise, have the sender switch seamlessly to
+                transmitting withTrack instead of the sender's existing track,
+                without negotiating.
+            3.  Queue a task that runs the following steps:
+              1.  If connection's [[isClosed]] slot is true, abort these steps.
+  */
+
+  promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream1 = await getNoiseStream({video: {signal: 20}});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({video: {signal: 250}});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
+    const sender = pc1.addTrack(track1);
+    pc2.ontrack = (e) => {
+      v.srcObject = new MediaStream([e.track]);
+    };
+    const metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
+    await metadataToBeLoaded;
+    await detectSignal(t, v, 20);
+    await sender.replaceTrack(track2);
+    await detectSignal(t, v, 250);
+  }, 'ReplaceTrack transmits the new track not the old track');
+
+  promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream1 = await getNoiseStream({video: {signal: 20}});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({video: {signal: 250}});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
+    const sender = pc1.addTrack(track1);
+    pc2.ontrack = (e) => {
+      v.srcObject = new MediaStream([e.track]);
+    };
+    const metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
+    await metadataToBeLoaded;
+    await detectSignal(t, v, 20);
+    await sender.replaceTrack(null);
+    await sender.replaceTrack(track2);
+    await detectSignal(t, v, 250);
+  }, 'ReplaceTrack null -> new track transmits the new track');
+</script>

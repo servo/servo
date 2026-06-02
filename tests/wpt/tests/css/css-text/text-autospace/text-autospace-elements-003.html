@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-elements-002-ref.html">
+<style>
+div {
+  text-autospace: normal;
+  font-size: 22px;
+  font-family: sans-serif;
+}
+</style>
+<div>
+  <div>abc永</div>
+  <div style="display: inline;">abc永</div><br>
+  <div style="display: contents;">abc永</div><br>
+  <div style="display: inline;"><span>abc</span>永</div><br>
+  <div style="display: inline;"><span>ab</span>c永</div><br>
+  <div style="display: ruby;">abc永</div><br>
+</div>

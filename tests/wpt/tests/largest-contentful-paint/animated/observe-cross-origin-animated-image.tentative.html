@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Largest Contentful Paint: observe image.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/largest-contentful-paint-helpers.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.LargestContentfulPaint,
+                        "LargestContentfulPaint is not implemented");
+      const beforeLoad = performance.now();
+      // Offsets inside `anim-gr.png`:
+      //   IHDR: 8..33
+      //   acTL: 33..53
+      //   fcTL (1st frame): 53..91
+      //   IDAT (1st frame): 91..254
+      //   fcTL (2nd frame): 254..292
+      //      fcTL payload starts at offset 262
+      //   fdAT (2nd frame): 292..448
+      //      fdAT payload starts at offset 304
+      //
+      // The HTTP request below will stall for 2 seconds after all pixels of
+      // the 1st frame are available, but before any 2nd frame pixels are
+      // available.  The test will verify that LargestContentfulPaint fires
+      // "immediately", without waiting for the rest of the bytes.
+      //
+      // See https://crbug.com/393205780 why this offset (and not an earlier
+      // one) is used in the test.
+      const {REMOTE_ORIGIN} = get_host_info();
+      const url = REMOTE_ORIGIN +
+                  '/images/anim-gr.png?pipe=trickle(304:d1)';
+      const entry = await load_and_observe(url);
+      // anim-gr.png is 100 by 50.
+      const size = 100 * 50;
+      checkImage(entry, url, 'image_id', size, beforeLoad, ["animated"]);
+    }, "Same origin animated image is observable and has a first frame.");
+  </script>
+</body>
+</html>

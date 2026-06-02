@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test Reference: scroll-target-group property invalidation - dynamic change of href</title>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  .scroller div {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  #target-current {
+    color: green;
+  }
+</style>
+<div>
+  <a href="#target3">t1</a>
+  <a id="target-current" href="#target4">t2</a>
+</div>
+<div class="scroller">
+  <div></div>
+  <div></div>
+</div>
+<div id="scroller2" class="scroller">
+  <div id="target3"></div>
+  <div id="target4"></div>
+</div>
+<script>
+  scroller2.scrollTop = 200;
+</script>

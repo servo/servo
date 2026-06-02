@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: computed transform for position fixed elements doesn't include scroll pos (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+.box {
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  position: fixed;
+}
+body { background: lightpink; }
+</style>
+<div class=box></div>
+<div style="height: 1000px;"></div>
+<script>
+  addEventListener("scroll", () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  }, { once: true, capture: true });
+  document.documentElement.scrollTop = 500;
+</script>
+</html>

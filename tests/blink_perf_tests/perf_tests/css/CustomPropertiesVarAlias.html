@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+    <div id=target></div>
+</body>
+    <script>
+        const property_chain_count = 4;
+        const property_chain_length = 500;
+
+        // Create a rule which defines `property_chain_count` chains of custom
+        // properties, each `property_chain_length` long, with linear var()
+        // dependencies.
+        function createRule() {
+            let lines = ['#target {'];
+            for (let chain = 0; chain < property_chain_count; chain++) {
+              for (let property = 0; property < property_chain_length;
+                   property++) {
+                let value = '#fefefe';
+                if (property > 0) {
+                    value = `var(--prop-${chain}-${property-1})`;
+                }
+                lines.push(`--prop-${chain}-${property}: ${value};`);
+              }
+            }
+            lines.push('}');
+            return lines.join('\n');
+        }
+
+        applyCSSRule(createRule());
+
+        PerfTestRunner.measureTime({
+            description: 'Measures performance of var()-as-alias resolution',
+            run: function() {
+                target.style = 'display: none';
+                forceStyleRecalc(target);
+                target.style = '';
+                forceStyleRecalc(target);
+            }
+        });
+    </script>
+</html>

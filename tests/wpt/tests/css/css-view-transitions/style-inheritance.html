@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html class=paused>
+<title>View transitions: ensure correct style inheritance for pseudo tree</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.paused::view-transition-group(*) {
+  animation-play-state: paused;
+}
+
+::view-transition {
+  background-color: red;
+}
+
+::view-transition-group(*) {
+  background-color: inherit;
+  color: blue;
+  animation-duration: 0.321s;
+  animation-delay: 0.05s;
+  animation-iteration-count: 2;
+  animation-direction: reverse;
+  animation-timing-function: linear;
+}
+
+::view-transition-image-pair(*) {
+  color: inherit;
+  overflow-x: clip;
+}
+
+::view-transition-old(*), ::view-transition-new(*) {
+  overflow-x: inherit;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  let transition = document.startViewTransition();
+  await transition.ready;
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition").backgroundColor, "rgb(255, 0, 0)", "::view-transition");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").backgroundColor, "rgb(255, 0, 0)", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").color, "rgb(0, 0, 255)", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDuration, "0.321s", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDelay, "0.05s", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationTimingFunction, "linear", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationIterationCount, "2", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDirection, "reverse", "group");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationPlayState, "paused", "group");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").color, "rgb(0, 0, 255)", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").overflowX, "clip", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDuration, "0.321s", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDelay, "0.05s", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationTimingFunction, "linear", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationIterationCount, "2", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDirection, "reverse", "wrapper");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationPlayState, "paused", "wrapper");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").overflowX, "clip", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDuration, "0.321s", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDelay, "0.05s", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationTimingFunction, "linear", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationIterationCount, "2", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDirection, "reverse", "outgoing");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationPlayState, "paused", "outgoing");
+
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").overflowX, "clip", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDuration, "0.321s", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDelay, "0.05s", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationTimingFunction, "linear", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationIterationCount, "2", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDirection, "reverse", "incoming");
+  assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationPlayState, "paused", "incoming");
+
+  document.documentElement.classList.remove("paused");
+  await transition.finished;
+}, "style inheritance of pseudo elements");
+</script>

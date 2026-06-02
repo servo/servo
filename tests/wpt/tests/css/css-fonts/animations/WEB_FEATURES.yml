@@ -1,0 +1,25 @@
+features:
+- name: font-palette-animation
+  files:
+  - font-palette-animation-not-specified-endpoints.html
+  - font-palette-interpolation.html
+  - multiple-elements-font-palette-animation.html
+- name: font-size
+  files:
+  - font-size-composition.html
+  - font-size-interpolation-*
+- name: font-size-adjust
+  files:
+  - font-size-adjust-*
+- name: font-style
+  files:
+  - font-style-interpolation.html
+- name: font-weight
+  files:
+  - font-weight-composition.html
+- name: font-variation-settings
+  files:
+  - font-variation-settings-*
+- name: font-stretch
+  files:
+  - font-stretch-interpolation.html

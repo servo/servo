@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+  <h1>iframe</h1>
+  <script>
+    self.addEventListener('securitypolicyviolation', e => {
+      window.parent.postMessage({ violatedDirective: e.violatedDirective,
+      originalPolicy: e.originalPolicy, blockedURI: e.blockedURI });
+    });
+  </script>
+</body>
+</html>

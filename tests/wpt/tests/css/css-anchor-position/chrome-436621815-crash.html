@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Crash test</title>
+<div id="target" style="top:0">
+  PASS if no crash
+</div>
+<script>
+  document.body.offsetTop;
+  target.style.top = 'calc(anchor(top) + 10px)';
+</script>

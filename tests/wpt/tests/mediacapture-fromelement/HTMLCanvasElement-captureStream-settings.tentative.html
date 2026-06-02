@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTMLCanvasElement.captureStream().track.getSettings()</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+// Tentative pending resolution of https://github.com/w3c/mediacapture-fromelement/issues/48.
+
+promise_test(async t => {
+  if (!document.body) {
+    await new Promise(r => document.addEventListener("DOMContentLoaded", r, {once: true}));
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = 166;
+  canvas.height = 72;
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  const stream = canvas.captureStream();
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const [track] = stream.getTracks();
+
+  assert_equals(track.getSettings().width, 166, "Track width setting initially set");
+  assert_equals(track.getSettings().height, 72, "Track height setting initially set");
+
+  canvas.width = 200;
+  canvas.height = 100;
+  assert_equals(track.getSettings().width, 200, "Track width setting follows canvas");
+  assert_equals(track.getSettings().height, 100, "Track height setting follows canvas");
+}, "HTMLCanvasElement.captureStream() creates tracks that populate resolution settings");
+</script>

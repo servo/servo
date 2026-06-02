@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <title>Zero height box immediately after a forced page-break</title>
+  <link rel="author" title="Emily McDonough" href="mailto:emcdonough@mozilla.com"/>
+  <link rel="match" href="zero-height-page-break-001-print-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/css-break-3/#page-break-values"/>
+  <meta name="assert" content="Ensures that a zero-height frame after a forced page-break appears on the following page."/>
+  <!-- This will cause a failure of there is only one page, regardless of matching the ref -->
+  <meta name="reftest-pages" content="1,2"/>
+  <body>
+    <div style="break-after: page; height: 100%">Page 1</div>
+    <div></div>
+  </body>
+</html>

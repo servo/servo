@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: 'border-radius: 50%' with a box-shadow that has a tall and wide spread</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-shadow-property">
+  <link rel="match" href="reference/box-shadow-border-radius-001-ref.html">
+  <link rel="mismatch" href="reference/box-shadow-border-radius-001-notref.html">
+
+  <meta content="" name="flags">
+
+  <!--
+
+  [css-backgrounds] The shape of box-shadow should be a circle for a box with border-radius:50% and big spread
+  https://github.com/w3c/csswg-drafts/issues/7103
+
+  https://lists.w3.org/Archives/Public/www-archive/2022Sep/att-0012/shadow-radius.html
+
+  -->
+
+  <meta name="fuzzy" content="maxDifference=0-56;totalPixels=0-1192">
+
+  <style>
+  div
+    {
+      background-color: black;
+      border-radius: 50%;
+      box-shadow: black 0 0 0 149px;
+      height: 2px;
+      margin: 157px 149px 0px;
+      width: 2px;
+    }
+
+  /*
+
+      149px
+    +
+        2px
+    +
+      149px
+    ========
+      300px
+
+  */
+  </style>
+
+  <div></div>

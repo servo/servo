@@ -1,0 +1,55 @@
+# Python
+*.py[co]
+.cache/
+.coverage*
+.mypy_cache/
+.pytest_cache/
+.tox/
+.virtualenv/
+_venv*/
+_virtualenv/
+
+# Node
+node_modules/
+
+# WPT repo stuff
+.wptcache/
+/MANIFEST.json
+/_certs
+/config.json
+# The default manifest location when running infrastructure tests locally with
+# `--metadata=infrastructure/metadata`.
+/infrastructure/metadata/MANIFEST.json
+
+# Files generated when regenerating pre-generated certs
+/tools/certs/0*.pem
+/tools/certs/index.txt*
+/tools/certs/serial*
+
+# Various OS/editor specific files
+*#
+*.orig
+*.rej
+*.svn
+*.sw[po]
+*.xcodeproj
+*Thumbs.db
+*~
+.DS_Store
+.directory*
+.idea/
+.vscode/
+\#*
+scratch
+
+# Testsuite-specific rules
+/conformance-checkers/vnu.jar
+/cors/resources/log.txt
+/css/build-temp
+/css/dist
+/css/dist_last
+/url/tools/IdnaTestV2.txt
+/webaudio/idl/*
+
+# w3c-test.org PR-branch mirroring
+/submissions/

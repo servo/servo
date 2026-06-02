@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Width and Height (in auto) as presentation attributes on image</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#TermPresentationAttribute"/>
+  <html:link rel="match" href="image-sizing-min-content-expected.svg" />
+  <image width="128" height="128" style="width:min-content;height:min-content" href="/images/green-256x256.png"/>
+</svg>

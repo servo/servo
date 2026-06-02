@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  background-color: green;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var entries = [];
+
+promise_test(async function(t) {
+  var target = document.getElementById("target");
+  var root = document.getElementById("root");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    0,
+    [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
+  );
+  target.style.display = "none";
+
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    1,
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false],
+  );
+
+  target.style.display = "";
+
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    2,
+    [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
+  );
+});
+</script>

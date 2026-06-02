@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8"/>
+<title>href click</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+<link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript">
+<link rel="match" href="href-click-001.tentative-ref.html"/>
+<meta name="assert" content="Verify that a click on a link moves to the target.">
+<script type="text/javascript">
+  function test()
+  {
+    var event = new MouseEvent('click', {bubbles: true, cancelable: true});
+    document.getElementById('link').dispatchEvent(event);
+    document.documentElement.className = "";
+  }
+</script>
+</head>
+<body onload="test()">
+
+  <p>This test passes if you see a green square.</p>
+
+  <div style="width: 150px; height: 150px; overflow: hidden">
+    <math>
+      <mrow id="link" href="#target">
+        <mspace id="space" width="150px" height="150px" style="background: red"/>
+      </mrow>
+    </math>
+    <div style="height: 500px;"></div>
+    <math id="target">
+      <mspace width="150px" height="150px" style="background: green"/>
+    </math>
+  </div>
+
+</body>
+</html>

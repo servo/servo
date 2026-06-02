@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: disabled ::scroll-button() shouldn't be focusable</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div::scroll-button(inline-start) {
+  content: "";
+  background-color: green;
+}
+
+div::scroll-button(inline-start):focus {
+  background-color: red;
+}
+</style>
+<div id="target"></div>
+<script>
+  promise_test(async t => {
+    const kTab = '\uE004';
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+    assert_equals(getComputedStyle(target, "::scroll-button(inline-start)").backgroundColor, "rgb(0, 128, 0)");
+  });
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>text-emphasis-position default values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-decor/#text-emphasis-position-property">
+<link rel="match" href="text-emphasis-position-default-001-ref.html">
+<style>
+p {
+	border: solid silver;
+	text-emphasis: dot;
+	margin: 0.5em;
+}
+
+div {
+	float: left;
+	margin: 0.5em;
+}
+</style>
+
+<div style="writing-mode: horizontal-tb">
+	<p>text
+	<p style="text-emphasis-position: over">text
+	<p style="text-emphasis-position: under">text
+</div>
+
+<div style="writing-mode: vertical-rl">
+	<p>text
+	<p style="text-emphasis-position: over">text
+	<p style="text-emphasis-position: under">text
+</div>
+
+<div style="writing-mode: vertical-lr">
+	<p>text
+	<p style="text-emphasis-position: over">text
+	<p style="text-emphasis-position: under">text
+</div>

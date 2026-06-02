@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/attribution-reporting/resources/helpers.js"></script>
+<script>
+attribution_reporting_promise_test(async t => {
+  const host = 'https://{{host}}';
+
+  registerAttributionSrcByImg(createRedirectChain([
+    {
+      trigger: {
+        event_trigger_data: [{}],
+        aggregatable_debug_reporting: {
+          key_piece: '0x5',
+          debug_data: [
+            {
+              types: ['trigger-no-matching-source'],
+              key_piece: '0x40',
+              value: 123
+            }
+          ]
+        }
+      },
+    },
+  ]));
+
+  const payload = await pollAggregatableDebugReports();
+  assert_equals(payload.reports.length, 1);
+  const report = JSON.parse(payload.reports[0].body);
+  assert_own_property(report, 'shared_info');
+  const shared_info = JSON.parse(report.shared_info);
+  assert_own_property(shared_info, 'api');
+  assert_equals(shared_info.api, 'attribution-reporting-debug');
+  assert_own_property(shared_info, 'report_id');
+  assert_own_property(shared_info, 'reporting_origin');
+  assert_own_property(shared_info, 'scheduled_report_time');
+  assert_own_property(shared_info, 'version');
+  assert_equals(shared_info.version, '1.0');
+  assert_own_property(shared_info, 'attribution_destination');
+  assert_equals(shared_info.attribution_destination, host);
+  assert_not_own_property(shared_info, 'source_registration_time');
+  assert_own_property(report, 'aggregation_service_payloads');
+  assert_equals(report.aggregation_service_payloads.length, 1);
+  const aggregation_service_payload = report.aggregation_service_payloads[0];
+  assert_own_property(aggregation_service_payload, 'payload');
+  assert_own_property(aggregation_service_payload, 'key_id');
+}, 'Aggregatable debug report is received.');
+</script>

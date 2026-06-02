@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS-contain test: layout containment and forced breaks</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <meta content="forced breaks within layout containment do not propagate to the parent." name="assert">
+
+  <link href="reference/contain-layout-breaks-002-ref.html" rel="match">
+
+  <link href="https://drafts.csswg.org/css-contain-1/#containment-layout" rel="help">
+  <link href="https://drafts.csswg.org/css-break-3/#forced-break" rel="help">
+
+  <style>
+  article
+    {
+      column-fill: auto; /* columns are filled sequentially */
+      column-gap: 0em;
+      columns: 2 100px; /* 2 columns each 100px wide */
+      float: left; /* to make multi-column element shrink-wrap */
+      height: 400px; /* give more than enough to go wrong */
+    }
+
+  div#yellow-normal
+    {
+      border-top: yellow solid 100px;
+    }
+
+  div#blue-parent
+    {
+      border-top: blue solid 100px;
+      contain: layout;
+    }
+
+  div#orange-child
+    {
+      border-top: orange solid 100px;
+      break-before: column;
+    }
+  </style>
+
+  <p>Test passes if there is a) a blue square below a yellow square and b) an orange square below a blue square.
+
+  <article>
+
+    <div id="yellow-normal"></div>
+
+    <div id="blue-parent">
+      <div id="orange-child"></div>
+    </div>
+
+  </article>

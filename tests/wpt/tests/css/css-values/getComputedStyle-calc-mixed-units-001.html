@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values Test: computed value of 3 calc() values</title>
+
+
+  <!--
+  "
+  Where percentages are not resolved at computed-value time,
+  they are not resolved in math functions, e.g.
+  'calc(100% - 100% + 1px)' resolves to 'calc(0% + 1px)', not to
+  '1px'. If there are special rules for computing percentages
+  in a value (e.g. the 'height' property), they apply whenever
+  a math function contains percentages.
+  "
+  § 10.11 Computed Value
+  https://www.w3.org/TR/css-values-4/#calc-computed-value
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-computed-value">
+
+  <meta name="flags" content="">
+  <meta content="This test verifies that terms with a percentage unit that can not be resolved at computed-value time will require a calc() wrapper. A term with an em value, on the other hand, must be resolved at computed-value time and therefore must be absolutized to 'px'." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  html, body
+    {
+      font-size: 16px;
+      height: 570px;
+    }
+
+  div#target
+    {
+      background-color: yellow;
+      background-image: url("support/cat.png");
+      background-position: top center;
+      background-repeat: no-repeat;
+      background-size: 14% 50%; /* entirely arbitrary and random background-size values */
+      height: 200px;
+    }
+  </style>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, specified_value, expected_value)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, `testing ${property_name}: ${specified_value}`);
+    }
+
+    verifyComputedStyle("background-size", "calc(67% - 54% + 4em) 50%", "calc(13% + 64px) 50%");
+
+    /*
+    "Where percentages are not resolved at computed-value time,
+    they are not resolved in math functions (...)"
+    https://www.w3.org/TR/css-values-4/#calc-serialize
+
+    Therefore here, the percentage is preserved and
+    a calc() wrapper must be used. The 4em term
+    must be resolved though.
+    */
+
+    verifyComputedStyle("background-position", "calc(100% - 100% + 20em)", "calc(0% + 320px) 50%");
+
+    /*
+    Here too, the percentage is preserved and
+    a calc() wrapper must be used. The 20em term
+    must be resolved though.
+    */
+
+
+    verifyComputedStyle("height", "calc(60% - 50% + 3em)", "105px");
+
+    /*
+
+    The height of the containing block of div#target is not auto.
+    So, such percentage can and must be resolved at
+    computed-value time.
+
+     570px mult 10% == 57px
+
+                 +     48px
+                 ============
+                      105px
+
+    */
+  }
+
+  startTesting();
+
+  </script>

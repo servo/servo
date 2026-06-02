@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests getComputedStyle() for inset properties using position-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+  }
+  #anchor {
+    anchor-name: --a;
+    margin-left: 80px;
+    margin-top: 130px;
+    width: 100px;
+    height: 100px;
+  }
+  .anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: center center;
+  }
+  #t1 {
+    inset: 10px;
+  }
+  #t2 {
+    inset: auto;
+  }
+</style>
+<div id="container">
+  <div id="anchor"></div>
+  <div id="t1" class="anchored"></div>
+  <div id="t2" class="anchored"></div>
+</div>
+<script>
+  test(() => {
+    const style = getComputedStyle(t1);
+    assert_equals(style.top, "10px");
+    assert_equals(style.left, "10px");
+    assert_equals(style.bottom, "10px");
+    assert_equals(style.right, "10px");
+  }, "position-area does not affect resolved inset properties");
+
+  test(() => {
+    const style = getComputedStyle(t2);
+    assert_equals(style.top, "0px");
+    assert_equals(style.left, "0px");
+    assert_equals(style.bottom, "0px");
+    assert_equals(style.right, "0px");
+  }, "'auto' inset properties resolve to 0px when position-area is non-initial");
+</script>

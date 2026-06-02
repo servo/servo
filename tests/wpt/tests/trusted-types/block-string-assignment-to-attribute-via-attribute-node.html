@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<div id="testcases">
+  <script src="x"></script>
+  <iframe srcdoc="x"></iframe>
+  <div onclick="x"></div>
+</div>
+<div id="sanitycheck">
+  <div style=sdf></div>
+  <p class=""></p>
+</div>
+<script>
+test(t => {
+  const nodes = document.querySelectorAll("#sanitycheck *");
+  nodes[0].attributes[0].textContent = "xxx";
+  nodes[1].attributes[0].nodeValue = "yyy";
+}, "Sanity check: Setting non-TT attributes still works.");
+
+for (const element of document.querySelectorAll("#testcases *")) {
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      element.attributes[0].textContent = "sldkjsfldk";
+    });
+  }, `Set ${element.localName}.${element.attributes[0].localName} via textContent`);
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      element.attributes[0].nodeValue = "sdflkgjdlkgjdg";
+    });
+  }, `Set ${element.localName}.${element.attributes[0].localName} via nodeValue`);
+};
+</script>
+</body>
+</html>

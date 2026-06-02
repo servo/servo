@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .item {
+    display: block;
+    width: 50px;
+    height: 40px;
+    margin-bottom: 20px;
+    background: cyan;
+  }
+  .column {
+    float: left;
+    width: 100px;
+  }
+  .rule {
+    float: left;
+    width: 2px;
+    margin-left: 9px;
+    margin-right: 9px;
+    background: black;
+  }
+</style>
+<div style="width:340px; height:160px; line-height:20px; background:yellow;">
+  <div class="column">
+    <div class="item">a<br>b</div>
+    <div class="item">g<br>h</div>
+    <div class="item">m<br>n</div>
+  </div>
+  <div class="rule" style="height:40px;"></div>
+  <div class="rule" style="position: absolute; top: 68px; left: 108px; height:40px;"></div>
+  <div class="rule" style="position: absolute; top: 128px; left: 108px; height:40px;"></div>
+  <div class="column">
+    <div class="item">c<br>d</div>
+    <div class="item">i<br>j</div>
+    <div class="item">o<br>p</div>
+  </div>
+  <div class="rule" style="height:40px;"></div>
+  <div class="rule" style="position: absolute; top: 68px; left: 228px; height:40px;"></div>
+  <div class="column">
+    <div class="item">e<br>f</div>
+    <div class="item">k<br>l</div>
+  </div>
+</div>

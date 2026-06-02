@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Soft navigation visited link paint tests.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  <a id=visited>link that is really long so it is the LCP</a>
+  </main>
+  <script>
+    const visited = document.getElementById("visited");
+    const fake_url = "./fake_" + Math.random();
+    visited.href = fake_url;
+    const visitFakeURLAndAddInvisibleText = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        history.replaceState({}, "", fake_url);
+      }));
+      const main = document.getElementById("main");
+      const div = document.createElement("div");
+      const text = document.createTextNode(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, ' +
+          'sed do eiusmod tempor incididunt ut labore et dolore magna ' +
+          'aliqua. Ut enim ad minim veniam, quis nostrud exercitation ' +
+          'ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis ' +
+          'aute irure dolor in reprehenderit in voluptate velit esse ' +
+          'cillum dolore eu fugiat nulla pariatur. Excepteur sint ' +
+          'occaecat cupidatat non proident, sunt in culpa qui officia ' +
+          'deserunt mollit anim id est laborum.');
+      div.appendChild(text);
+      main.appendChild(div);
+    }
+    testSoftNavigation({
+      testName: "Test that a visited link doesn't trigger LCP after a soft " +
+            "navigation is detected",
+      addContent: async () => {
+        await visitFakeURLAndAddInvisibleText();
+      },
+      extraValidations: async (t) => {
+        await new Promise(r => step_timeout(r, 100));
+        const icps = await getBufferedEntries('interaction-contentful-paint');
+        assert_not_equals(icps[icps.length - 1].id,
+                          "visited",
+                          "Soft Nav ICP ID should not be visited");
+      },
+          });
+  </script>
+</body>
+</html>

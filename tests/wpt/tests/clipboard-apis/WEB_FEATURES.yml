@@ -1,0 +1,25 @@
+features:
+- name: async-clipboard
+  files:
+  # `clipboard-item.https.html` tests both `async-clipboard` and
+  # `clipboard-supports`
+  - async-*
+  - "!async-custom-formats-*"
+  - "!async-svg-read-write.tentative.https.html"
+  - "!async-unsanitized-*"
+  - "!async-navigator-clipboard-change-event.tentative.https.html"
+- name: clipboard-custom-format
+  files:
+  - async-custom-formats-*
+- name: clipboard-events
+  files:
+  - clipboard-events-synthetic.html
+- name: clipboard-svg
+  files:
+  - async-svg-read-write.tentative.https.html
+- name: clipboard-unsanitized-formats
+  files:
+  - async-unsanitized-*
+- name: clipboardchange
+  files:
+  - async-navigator-clipboard-change-event.tentative.https.html

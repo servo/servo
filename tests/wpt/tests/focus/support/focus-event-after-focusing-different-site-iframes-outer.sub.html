@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus event after focusing different site iframes outer</title>
+<iframe src="http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-event-after-focusing-iframes-inner.html"></iframe>
+<script>
+let outerlog = "outerlog:";
+
+let iframe = document.querySelector("iframe");
+window.onmessage = function(e) {
+  if (e.data == "start") {
+    window.onfocus = function() {
+      outerlog += "windowfocus,";
+    };
+  } else if (e.data == "focus") {
+    outerlog += "willfocusiframe,";
+    iframe.focus();
+    outerlog += "didfocusiframe,";
+  } else if (e.data == "getlog") {
+    iframe.contentWindow.postMessage("getlog", "*");
+  } else {
+    opener.postMessage(outerlog + e.data, "*");
+  }
+};
+
+window.onload = function() {
+  window.onblur = function() {
+    outerlog += "windowblur,";
+  };
+
+  opener.postMessage("ready", "*");
+};
+</script>

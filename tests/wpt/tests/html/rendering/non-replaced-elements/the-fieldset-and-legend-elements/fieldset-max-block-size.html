@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/1151858">
+<link rel="match" href="fieldset-max-block-size-ref.html">
+<style>
+fieldset {
+  border: 2px solid gray;
+  margin: 1em;
+  padding: 0;
+  width: 20em;
+}
+
+.f1 {
+  overflow: auto;
+  max-height: 3em;
+}
+.f2 {
+  max-height: 0;
+}
+</style>
+
+<fieldset class="f1">
+<div>foo</div>
+<div>foo</div>
+<div>foo</div>
+<div>foo</div>
+<div>foo</div>
+</fieldset>
+
+<fieldset class="f1">
+<div>foo</div>
+</fieldset>
+
+<fieldset class="f2">
+<div>foo</div>
+</fieldset>
+

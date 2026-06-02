@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<div id="log"></div>
+<script id="prependScript">;</script>
+<script id="appendScript">;</script>
+<script id="replaceChildrenScript">;</script>
+<script id="beforeScript">;</script>
+<script id="afterScript">;</script>
+<script id="replaceWithScript">;</script>
+<script>
+test(t => {
+  prependScript.prepend("1", "2", "3");
+  assert_equals(prependScript.textContent, "123;");
+
+  appendScript.append("1", "2", "3");
+  assert_equals(appendScript.textContent, ";123");
+
+  replaceChildrenScript.replaceChildren("1", "2", "3");
+  assert_equals(replaceChildrenScript.textContent, "123");
+
+  beforeScript.firstChild.before("1", "2", "3");
+  assert_equals(beforeScript.textContent, "123;");
+
+  afterScript.firstChild.after("1", "2", "3");
+  assert_equals(afterScript.textContent, ";123");
+
+  replaceWithScript.firstChild.replaceWith("1", "2", "3");
+  assert_equals(replaceWithScript.textContent, "123");
+}, "Legacy sinks for TrustedScript accept arbitrary strings.");
+</script>

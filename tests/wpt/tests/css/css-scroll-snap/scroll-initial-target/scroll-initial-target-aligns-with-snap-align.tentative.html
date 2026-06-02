@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> CSS Scroll Snap 2 Test: scroll-initial-target*</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      #space {
+        width: 1000px;
+        height: 1000px;
+        border: solid 1px red;
+      }
+      #scroller {
+        width: 400px;
+        height: 400px;
+        overflow: hidden;
+        border: solid 1px blue;
+        position: absolute;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background-color: pink;
+        scroll-initial-target: nearest;
+        position: absolute;
+        top: 400px;
+        left: 400px;
+      }
+    </style>
+    <div id="scroller">
+      <div id="space"></div>
+      <div id="target"></div>
+    </div>
+    <script>
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        assert_equals(scroller.scrollTop, 400,
+            "scroller is vertically scrolled to target");
+        assert_equals(scroller.scrollLeft, 400,
+            "scroller is horizontally scrolled to target");
+
+        target.style.scrollSnapAlign = "center";
+        await waitForCompositorCommit();
+
+        assert_equals(scroller.scrollTop, 250,
+            "scroller is vertically aligned to target's center");
+        assert_equals(scroller.scrollLeft, 250,
+            "scroller is horizontally aligned to target's center");
+
+        target.style.scrollSnapAlign = "end";
+        await waitForCompositorCommit();
+
+        assert_equals(scroller.scrollTop, 100,
+            "scroller is vertically aligned to target's bottom");
+        assert_equals(scroller.scrollLeft, 100,
+            "scroller is horizontally aligned to target's right");
+
+       target.style.scrollSnapAlign = "start";
+        await waitForCompositorCommit();
+
+        assert_equals(scroller.scrollTop, 400,
+            "scroller is vertically aligned to target's top");
+        assert_equals(scroller.scrollLeft, 400,
+            "scroller is horizontally aligned to target's left");
+      }, "scroll-initial-target aligns with scroll-snap-align");
+    </script>
+  </body>
+</html>

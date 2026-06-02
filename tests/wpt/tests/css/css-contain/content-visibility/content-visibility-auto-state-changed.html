@@ -1,0 +1,139 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: ContentVisibilityAutoStateChange event.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="timeout" content="long">
+<meta name="assert" content="ContentVisibilityAutoStateChange fires when things enter/exit viewport">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<style>
+.spacer {
+  height: 3000px;
+}
+.auto { content-visibility: auto; }
+</style>
+
+<script>
+let contentattrfired = false;
+let contentattrfiredonsvg = false;
+
+function contentattrDidFire() {
+  contentattrfired = true;
+}
+
+function contentattrDidFireOnSvg() {
+  contentattrfiredonsvg = true;
+}
+
+</script>
+
+<div id=upper></div>
+<div id=attrtest></div>
+<div id=contentattrtest oncontentvisibilityautostatechange="contentattrDidFire()" class=auto></div>
+<svg id="svgcontentattrtest" oncontentvisibilityautostatechange="contentattrDidFireOnSvg()" class="auto"></svg>
+<div class=spacer></div>
+<div id=middle></div>
+<div class=spacer></div>
+<div id=lower></div>
+
+<script>
+promise_test(t => new Promise(async (resolve, reject) => {
+  let shouldSkip = false;
+  const listener = (e) => {
+    if (!e.skipped)
+      resolve();
+  };
+
+  upper.addEventListener("contentvisibilityautostatechange", listener);
+  t.add_cleanup(() => upper.removeEventListener("contentvisibilityautostatechange", listener));
+  upper.classList.add("auto");
+}), "ContentVisibilityAutoStateChange fires when relevant element gains `content-visibility:auto`");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  let shouldSkip = false;
+  const listener = (e) => {
+    if (!e.skipped)
+      resolve();
+  };
+
+  attrtest.oncontentvisibilityautostatechange = listener;
+  t.add_cleanup(() => { attrtest.oncontentvisibilityautostatechange = null });
+  attrtest.classList.add("auto");
+}), "ContentVisibilityAutoStateChange fires when relevant element gains `content-visibility:auto` (oncontentvisibilityautostatechange syntax)");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  let shouldSkip = false;
+  const listener = (e) => {
+    if (e.skipped)
+      resolve();
+    else
+      reject();
+  };
+
+  lower.addEventListener("contentvisibilityautostatechange", listener);
+  t.add_cleanup(() => lower.removeEventListener("contentvisibilityautostatechange", listener));
+  lower.classList.add("auto");
+}), "ContentVisibilityAutoStateChange fires when not relevant element gains `content-visibility:auto`");
+
+promise_test(async t => {
+  await waitForAtLeastOneFrame();
+  assert_true(contentattrfired, "contentattrfired");
+}, "ContentVisibilityAutoStateChange content attribute test");
+
+
+promise_test(async t => {
+  await waitForAtLeastOneFrame();
+  assert_true(contentattrfiredonsvg, "contentattrfiredonsvg");
+}, "ContentVisibilityAutoStateChange content attribute test on svg");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  await new Promise((waited, _) => {
+    requestAnimationFrame(() => requestAnimationFrame(waited));
+  });
+
+  const listener = (e) => {
+    if (e.skipped)
+      resolve();
+  };
+
+  upper.addEventListener("contentvisibilityautostatechange", listener);
+  t.add_cleanup(() => upper.removeEventListener("contentvisibilityautostatechange", listener));
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    middle.scrollIntoView();
+  }));
+}), "ContentVisibilityAutoStateChange fires when skipped");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  await new Promise((waited, _) => {
+    requestAnimationFrame(() => requestAnimationFrame(waited));
+  });
+
+  const listener = (e) => {
+    if (!e.skipped)
+      resolve();
+    else
+      reject();
+  }
+
+  lower.addEventListener("contentvisibilityautostatechange", listener);
+  t.add_cleanup(() => {
+    lower.removeEventListener("contentvisibilityautostatechange", listener);
+  });
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    lower.scrollIntoView();
+  }));
+}), "ContentVisibilityAutoStateChange fires when not skipped");
+
+</script>
+

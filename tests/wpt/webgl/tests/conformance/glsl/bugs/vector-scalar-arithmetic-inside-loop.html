@@ -1,0 +1,101 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL vector/scalar arithmetic inside a for loop</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fShaderVectorMulAndAddInsideForLoop" type="x-shader/x-fragment">
+void main(){
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+  for (int i = 0; i < 2; i++)
+  {
+    gl_FragColor += (2.0 * gl_FragCoord.x);
+  }
+  if (gl_FragColor.g == gl_FragColor.r &&
+      gl_FragColor.b == gl_FragColor.r &&
+      gl_FragColor.a == gl_FragColor.r)
+  {
+    gl_FragColor = vec4(0, 1, 0, 1);
+  }
+}
+</script>
+<script id="fShaderVectorCompoundMulAndAddInsideForLoop" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+  for (int i = 0; i < 2; i++)
+  {
+    float x = gl_FragCoord.x;
+    gl_FragColor = gl_FragColor + (x *= 2.0);
+  }
+  if (gl_FragColor.g == gl_FragColor.r &&
+      gl_FragColor.b == gl_FragColor.r &&
+      gl_FragColor.a == gl_FragColor.r)
+  {
+    gl_FragColor = vec4(0, 1, 0, 1);
+  }
+}
+</script>
+<script id="fShaderVectorCompoundDivAndAddInsideForLoop" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+  for (int i = 0; i < 2; i++)
+  {
+    float x = gl_FragCoord.x;
+    gl_FragColor = gl_FragColor + (x /= 2.0);
+  }
+  if (gl_FragColor.g == gl_FragColor.r &&
+      gl_FragColor.b == gl_FragColor.r &&
+      gl_FragColor.a == gl_FragColor.r)
+  {
+    gl_FragColor = vec4(0, 1, 0, 1);
+  }
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+// See http://crbug.com/772651
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fShaderVectorMulAndAddInsideForLoop',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Adding a scalar to a vector inside for loop should work."
+},
+{
+  fShaderId: 'fShaderVectorCompoundMulAndAddInsideForLoop',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Adding a scalar (target of a compound assignment/multiplication operation) to a vector inside for loop should work."
+},
+{
+  fShaderId: 'fShaderVectorCompoundDivAndAddInsideForLoop',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Adding a scalar (target of a compound assignment/division operation) to a vector inside for loop should work."
+}
+]);
+</script>
+</body>
+</html>

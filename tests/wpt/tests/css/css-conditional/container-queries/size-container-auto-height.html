@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: auto sized height container query</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @container (height = 0px) {
+    #target { color: green }
+  }
+</style>
+<div style="container-type:size">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "auto height size container matches zero height query");
+</script>

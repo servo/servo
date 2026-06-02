@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRPlane objects are the same across frames";
+
+xr_session_promise_test(
+  testName,
+  (session, controller, t) => {
+    controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+
+    let firstFramePlane = null;
+
+    return new Promise((resolve) => {
+      session.requestAnimationFrame((time, frame) => {
+        t.step(() => {
+          let planes = frame.detectedPlanes;
+          assert_equals(planes.size, 1);
+          // XRPlaneSet is set-like, we use forEach to get the first/only plane.
+          planes.forEach(p => { firstFramePlane = p; });
+          assert_not_equals(firstFramePlane, null);
+        });
+
+        session.requestAnimationFrame((time, frame) => {
+          t.step(() => {
+            let secondFramePlanes = frame.detectedPlanes;
+            assert_equals(secondFramePlanes.size, 1);
+            let secondFramePlane = null;
+          // XRPlaneSet is set-like, we use forEach to get the first/only plane.
+            secondFramePlanes.forEach(p => { secondFramePlane = p; });
+
+            assert_equals(firstFramePlane, secondFramePlane, "XRPlane objects should be identical across frames");
+          });
+
+          resolve();
+        });
+      });
+    });
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+</script>

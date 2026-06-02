@@ -1,0 +1,77 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>Tests for pressing space in editable button element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<button contenteditable>HelloWorld</button>
+<div contenteditable><button>HelloWorld</button></div>
+<button><div contenteditable>HelloWorld</div></button>
+<script>
+"use strict";
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", resolve, {once: true});
+  });
+  const button = document.querySelector("button[contenteditable]");
+  getSelection().collapse(button.firstChild, "Hello".length);
+  let clickEvent = null;
+  button.addEventListener("click", event => clickEvent = event, {once: true});
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(button.textContent, "HelloWorld", "The button label shouldn't be changed");
+  assert_not_equals(clickEvent, null, "Click event should be fired on the <button>");
+}, "Type space key in <button contenteditable> should be handled by the <button>");
+
+promise_test(async () => {
+  document.querySelector("div[contenteditable]").focus();
+  const button = document.querySelector("div[contenteditable] > button");
+  getSelection().collapse(button.firstChild, "Hello".length);
+  let clickEvent = null;
+  button.addEventListener("click", event => clickEvent = event, {once: true});
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(button.textContent, "Hello World", "A space should be inserted into the button label");
+  assert_equals(clickEvent, null, "Click event should not be fired on the <button>");
+}, "Type space key in editable <button> shouldn't be handled by the <button> when it's not focused");
+
+promise_test(async () => {
+  const button = document.querySelector("div[contenteditable] > button");
+  button.textContent = "HelloWorld";
+  button.focus();
+  let clickEvent = null;
+  button.addEventListener("click", event => clickEvent = event, {once: true});
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(button.textContent, "HelloWorld", "The button label shouldn't be changed");
+  assert_not_equals(clickEvent, null, "Click event should be fired on the <button>");
+}, "Type space key in editable <button> should be handled by the <button> when it's focused");
+
+promise_test(async () => {
+  const div = document.querySelector("button > div[contenteditable]");
+  div.focus();
+  getSelection().collapse(div.firstChild, "Hello".length);
+  let clickEvent = null;
+  div.parentElement.addEventListener("click", event => clickEvent = event, {once: true});
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(div.textContent, "Hello World", "A space should be inserted into the button label");
+  assert_equals(clickEvent, null, "Click event should not be fired on the <button>");
+}, "Type space key in editable element in <button> shouldn't be handled by the <button>");
+</script>
+</body>
+</html>

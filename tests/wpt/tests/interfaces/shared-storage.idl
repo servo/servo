@@ -1,0 +1,145 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Shared Storage API (https://wicg.github.io/shared-storage/)
+
+typedef (USVString or FencedFrameConfig) SharedStorageResponse;
+
+[Exposed=(Window)]
+interface SharedStorageWorklet : Worklet {
+  Promise<SharedStorageResponse> selectURL(DOMString name,
+                               sequence<SharedStorageUrlWithMetadata> urls,
+                               optional SharedStorageRunOperationMethodOptions options = {});
+  Promise<any> run(DOMString name,
+                   optional SharedStorageRunOperationMethodOptions options = {});
+};
+
+callback RunFunctionForSharedStorageSelectURLOperation = Promise<unsigned long>(sequence<USVString> urls, optional any data);
+
+[Exposed=SharedStorageWorklet, Global=SharedStorageWorklet]
+interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
+  undefined register(DOMString name,
+                     Function operationCtor);
+
+  readonly attribute SharedStorage sharedStorage;
+  readonly attribute PrivateAggregation privateAggregation;
+
+  Promise<sequence<StorageInterestGroup>> interestGroups();
+
+  readonly attribute SharedStorageWorkletNavigator navigator;
+};
+
+dictionary SharedStorageUrlWithMetadata {
+  required USVString url;
+  object reportingMetadata;
+};
+
+partial interface Window {
+  [SecureContext] readonly attribute SharedStorage? sharedStorage;
+};
+
+[Exposed=(Window,SharedStorageWorklet)]
+interface SharedStorageModifierMethod {};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageSetMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, DOMString value, optional SharedStorageSetMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageAppendMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, DOMString value, optional SharedStorageModifierMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageDeleteMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, optional SharedStorageModifierMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageClearMethod : SharedStorageModifierMethod {
+  constructor(optional SharedStorageModifierMethodOptions options = {});
+};
+
+dictionary SharedStorageModifierMethodOptions {
+  DOMString withLock;
+};
+
+dictionary SharedStorageSetMethodOptions : SharedStorageModifierMethodOptions {
+  boolean ignoreIfPresent;
+};
+
+[Exposed=(Window,SharedStorageWorklet)]
+interface SharedStorage {
+  Promise<DOMString> get(DOMString key);
+  Promise<any> set(DOMString key,
+                   DOMString value,
+                   optional SharedStorageSetMethodOptions options = {});
+  Promise<any> append(DOMString key,
+                      DOMString value,
+                      optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> delete(DOMString key, optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> clear(optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> batchUpdate(sequence<SharedStorageModifierMethod> methods,
+                           optional SharedStorageModifierMethodOptions options = {});
+
+  [Exposed=Window]
+  Promise<SharedStorageResponse> selectURL(DOMString name,
+                               sequence<SharedStorageUrlWithMetadata> urls,
+                               optional SharedStorageRunOperationMethodOptions options = {});
+
+  [Exposed=Window]
+  Promise<any> run(DOMString name,
+                   optional SharedStorageRunOperationMethodOptions options = {});
+
+  [Exposed=Window]
+  Promise<SharedStorageWorklet> createWorklet(USVString moduleURL, optional SharedStorageWorkletOptions options = {});
+
+  [Exposed=Window]
+  readonly attribute SharedStorageWorklet worklet;
+
+  [Exposed=SharedStorageWorklet]
+  Promise<unsigned long> length();
+
+  [Exposed=SharedStorageWorklet]
+  Promise<double> remainingBudget();
+
+  [Exposed=SharedStorageWorklet]
+  async_iterable<DOMString, DOMString>;
+};
+
+dictionary SharedStoragePrivateAggregationConfig {
+  USVString aggregationCoordinatorOrigin;
+  USVString contextId;
+  [EnforceRange] unsigned long long filteringIdMaxBytes;
+  [EnforceRange] unsigned long long maxContributions;
+};
+
+dictionary SharedStorageRunOperationMethodOptions {
+  object data;
+  boolean resolveToConfig = false;
+  boolean keepAlive = false;
+  SharedStoragePrivateAggregationConfig privateAggregationConfig;
+  DOMString savedQuery;
+};
+
+dictionary SharedStorageWorkletOptions : WorkletOptions {
+  USVString dataOrigin = "context-origin";
+};
+
+interface mixin HTMLSharedStorageWritableElementUtils {
+  [CEReactions, SecureContext] attribute boolean sharedStorageWritable;
+};
+
+HTMLIFrameElement includes HTMLSharedStorageWritableElementUtils;
+HTMLImageElement includes HTMLSharedStorageWritableElementUtils;
+
+partial dictionary RequestInit {
+  boolean sharedStorageWritable;
+};
+
+[
+  Exposed=SharedStorageWorklet
+] interface SharedStorageWorkletNavigator {};
+
+SharedStorageWorkletNavigator includes NavigatorLocks;

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>View transitions: setup transition from pagereveal</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+#target {
+  view-transition-name: none;
+}
+#target.transition {
+  view-transition-name: target;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  onload = () => {
+    document.getElementById('target').classList.add('transition');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace("?mode=new");
+    }));
+  };
+  break;
+case "new":
+  addEventListener('pagereveal', async e => {
+    if (e.viewTransition) {
+      // Setup the view-transition-name from the event. Ensure this is not
+      // too late to be discovered to create a shared element animation.
+      document.getElementById('target').classList.add('transition');
+      await e.viewTransition.ready;
+
+      const position = getComputedStyle(
+        document.documentElement,
+        "::view-transition-new(target)").position;
+      if (position == "absolute") {
+        window.opener.did_reveal("pass");
+      } else {
+        window.opener.did_reveal("fail: position " + position);
+      }
+    } else {
+      window.opener.did_reveal("fail: no viewTransition");
+    }
+  });
+  break;
+}
+</script>
+<body>
+ <div id="target"></div>
+</body>

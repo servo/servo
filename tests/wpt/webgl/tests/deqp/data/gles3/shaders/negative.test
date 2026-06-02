@@ -1,0 +1,100 @@
+# Generic invalid cases that don't fall into other categories
+
+group c_cast "C-style casts"
+
+	case float_0
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+			void main ()
+			{
+				float a = 0.0;
+				float b = (float)a;
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case float_1
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+			void main ()
+			{
+				int a = 0;
+				float b = (float)a;
+				${POSITION_FRAG_COLOR} = vec4(b);
+			}
+		""
+	end
+
+	case float_2
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			void main ()
+			{
+				highp float a = 0.0;
+				mediump float b = (mediump float)a;
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case int
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+			void main ()
+			{
+				float a = 0.0;
+				int b = (int)a;
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case uint
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+			void main ()
+			{
+				float a = 0.0;
+				uint b = (uint)a;
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case bool
+		expect compile_fail
+		version 300 es
+		both ""
+			#version 300 es
+			precision highp float;
+			${DECLARATIONS}
+			void main ()
+			{
+				int a = 1;
+				bool b = (bool)a;
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+end # casts

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: *-rule parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#propdef-column-rule">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="*-rule supports the full grammar '[ <gap-rule-list> | <gap-auto-rule-list> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+const properties = ["column-rule", "row-rule", "rule"];
+for (let property of properties) {
+    test_invalid_value(property, "auto");
+
+    test_invalid_value(property, "red 5px solid red");
+    test_invalid_value(property, "repeat(auto, red 5px green ridge)");
+    test_invalid_value(property, "repeat(auto, 5px solid red), 5px solid red, repeat(auto, 5px solid red)");
+    test_invalid_value(property, "repeat(0, 5px red)");
+    test_invalid_value(property, "repeat(-1, thin green red)");
+    test_invalid_value(property, "repeat(auto, )");
+    test_invalid_value(property, "repeat()");
+    test_invalid_value(property, "");
+}
+</script>
+</body>
+</html>

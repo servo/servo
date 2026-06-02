@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient in HSL space</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that 'decreasing' hue renders the expected gradient">
+    <meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-32500">
+    <link rel="match" href="gradient-decreasing-hue-hsl-ref.html">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 100px;
+            margin: 10px;
+        }
+
+        div.a {
+            background-image: linear-gradient(to right in hsl decreasing hue,
+                                              hsl(0deg, 100%, 50%),
+                                              hsl(40deg, 100%, 50%));
+        }
+
+        div.b {
+            background-image: linear-gradient(to right in hsl decreasing hue,
+                                              hsl(40deg, 100%, 50%),
+                                              hsl(0deg, 100%, 50%));
+        }
+
+        div.c {
+            background-image: linear-gradient(to right in hsl decreasing hue,
+                                              hsl(0deg, 100%, 50%),
+                                              hsl(270deg, 100%, 50%));
+        }
+
+        div.d {
+            background-image: linear-gradient(to right in hsl decreasing hue,
+                                              hsl(270deg, 100%, 50%),
+                                              hsl(0deg, 100%, 50%));
+        }
+    </style>
+</head>
+
+<body>
+    <div class=a></div>
+    <div class=b></div>
+    <div class=c></div>
+    <div class=d></div>
+</body>
+</html>

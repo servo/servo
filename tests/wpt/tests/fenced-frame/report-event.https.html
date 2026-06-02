@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Test that window.fence.reportEvent() succeeds in a fenced frame.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <script>
+  promise_test(async(t) => {
+    const fencedframe = await attachFencedFrameContext({generator_api: 'fledge',
+                                                        register_beacon: true});
+
+    // This page will call reportEvent twice: Once for an enum event, and once
+    // for a custom URL event. Both beacons are expected to send successfully.
+    await fencedframe.execute(() => {
+      const destination_enum_event = {
+        eventType: 'click',
+        eventData: 'enum',
+        destination: ['buyer']
+      }
+      window.fence.reportEvent(destination_enum_event);
+
+      const destination_url = new URL(BEACON_URL + "?type=url",
+          get_host_info().HTTPS_ORIGIN);
+
+      const destination_url_event = {
+        destinationURL: destination_url
+      }
+      window.fence.reportEvent(destination_url_event);
+    });
+
+  const [enum_origin, enum_referrer] = await nextBeacon("click", "enum")
+      .then(data => data.split(','));
+  const [url_origin, url_referrer] = await nextBeacon("url", "<No data>")
+      .then(data => data.split(','));
+
+  assert_equals(enum_origin, location.origin,
+      'The enum origin should be correctly set.');
+  // GET requests do not set an 'Origin' header if same-origin to the request's
+  // destination.
+  assert_equals(url_origin, '<No data>',
+      'The url origin should be correctly set.');
+
+  assert_equals(enum_referrer, location.origin + "/",
+      'The enum referrer should be correctly set.');
+  assert_equals(url_referrer, location.origin + "/",
+      'The url referrer should be correctly set.');
+  }, 'Test that window.fence.reportEvent() succeeds in a fenced frame.');
+  </script>
+  </body>

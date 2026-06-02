@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<datalist id="move">
+  <option dir="rtl">
+    <details id="details"><summary>Summary</summary></details>
+  </option>
+</datalist>
+<svg>
+  <tspan id="tspan"/><use href="#tspan"/>
+</svg>
+<script>
+  onload = () => {
+    document.getElementById("details").appendChild(document.createElement("div"));
+    document.getElementById("tspan").appendChild(move);
+  }
+</script>

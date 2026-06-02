@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a USB device to be connected.
+    </p>
+    <script>
+      const kGetDescriptorRequest = 0x06;
+      const kDeviceDescriptorType = 0x01;
+      const kDeviceDescriptorLength = 18;
+
+      manual_usb_test(async (t, device) => {
+        await device.open();
+        t.add_cleanup(async () => {
+          await device.close();
+        });
+
+        // This test exercises the behavior that the device remains open when it
+        // is reset. If the device changes its properties too drastically when
+        // reset it may appear to disconnect instead.
+        await device.reset();
+
+        // Read the device descriptor in order to validate that communication
+        // with the device is still possible after a reset.
+        const result = await device.controlTransferIn({
+          requestType: 'standard',
+          recipient: 'device',
+          request: kGetDescriptorRequest,
+          value: kDeviceDescriptorType << 8,
+          index: 0,
+        }, kDeviceDescriptorLength);
+
+        assert_equals(result.status, 'ok', 'transfer status');
+        assert_equals(
+            result.data.byteLength, kDeviceDescriptorLength, 'transfer length');
+      }, 'reset() does not disconnect the device');
+    </script>
+  </body>
+</html>

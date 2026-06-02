@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Ruby Layout: parsing ruby-merge with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#propdef-ruby-merge">
+<meta name="assert" content="ruby-merge supports the full grammar 'separate | merge | auto'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("ruby-merge", "separate");
+test_valid_value("ruby-merge", "merge");
+test_valid_value("ruby-merge", "auto");
+</script>
+</body>
+</html>

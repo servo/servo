@@ -1,0 +1,61 @@
+<!doctype HTML>
+<html lang="tr" class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute is inherited from the document in offscreen canvas</title>
+  <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen canvas inherits the lang from the document." />
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    #canvas-tr {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-en {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+    function drawText(language) {
+      var canvas = document.getElementById('canvas-' + language);
+      var bitmap_ctx = canvas.getContext('bitmaprenderer');
+
+      var offscreen = new OffscreenCanvas(300, 100);
+      var offscreen_ctx = offscreen.getContext('2d');
+
+      offscreen_ctx.font = '25px Lato-Medium';
+      offscreen_ctx.fillText('fi', 5, 50);
+
+      const bitmap = offscreen.transferToImageBitmap();
+      bitmap_ctx.transferFromImageBitmap(bitmap);
+    }
+
+    function runTest() {
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        drawText('tr');
+        document.documentElement.setAttribute('lang', 'en');
+        drawText('en');
+        takeScreenshot();
+      });
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas lang="tr" id="canvas-tr" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas lang="en" id="canvas-en" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

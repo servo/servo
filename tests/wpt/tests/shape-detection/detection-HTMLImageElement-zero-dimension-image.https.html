@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// This test verifies *Detector.detect() returns an empty list when fed with
+// an HTMLImageElement with an image with 0x0 dimensions.
+const zeroDimensionsTests = [
+  {
+    createDetector: () => { return new FaceDetector(); },
+    name: "Face - detect(0x0)"
+  },
+  {
+    createDetector: () => { return new BarcodeDetector(); },
+    name: "Barcode - detect(0x0)"
+  },
+  {
+    createDetector: () => { return new TextDetector(); },
+    name: "Text - detect(0x0)"
+  }
+];
+
+for (let zeroDimensionsTest of zeroDimensionsTests) {
+  promise_test(async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "/images/red-zerosize.svg";
+    await imgWatcher.wait_for("load");
+
+    const detector = zeroDimensionsTest.createDetector();
+    const detectionResult = await detector.detect(img);
+    assert_equals(detectionResult.length, 0);
+  }, zeroDimensionsTest.name);
+}
+</script>

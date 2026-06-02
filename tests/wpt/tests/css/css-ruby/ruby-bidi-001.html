@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Position of ruby annotation in RTL text</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#bidi">
+<link rel="match" href="ruby-bidi-001-ref.html">
+<style>
+  body { color: transparent; }
+  rb { background: green; }
+  rtc { background: red; }
+  rt { background: cyan; }
+</style>
+<body dir="rtl">
+  <ruby><rb>base<rtc><rt>text</ruby>
+</body>

@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1832528">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+:root {
+  --icon: url("/images/green.png?variable-cors-no-reload");
+}
+.item::before,
+.item::after {
+  display: block;
+  content: "";
+  height: 1.25rem;
+  width: 1.25rem;
+  transform: rotate(180deg);
+  background: var(--icon) 50%/2rem 2rem;
+}
+.item::after {
+  background: blue;
+  mask: var(--icon);
+}
+.item.toggled::after,
+.item.toggled::before {
+  color: blue;
+}
+</style>
+<div class="item"></div>
+<script>
+let t = async_test("CORS image from variable doesn't cause re-downloads");
+
+function getEntries() {
+  let url = new URL("/images/green.png?variable-cors-no-reload", location.href).href;
+  return performance.getEntriesByName(url);
+}
+
+onload = t.step_func(function() {
+  let entries = getEntries();
+  assert_equals(entries.length, 2, "should be loaded (twice, once with anon cors mode once without)");
+  document.querySelector(".item").classList.toggle("toggled");
+  // Assume that at least some of the time the load would complete under a second.
+  t.step_timeout(t.step_func_done(function() {
+    let entries_after = getEntries();
+    assert_equals(entries_after.length, entries.length, "Shouldn't have caused re-downloads");
+  }), 1000);
+});
+</script>

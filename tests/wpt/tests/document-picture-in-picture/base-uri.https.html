@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Test that a document picture-in-picture window has the base URI of the initiator</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+  assert_equals(pipWindow.document.baseURI, document.baseURI, "Base URIs match");
+});
+</script>
+</body>

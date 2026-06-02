@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<title>CSS Counter Styles: Longhand East Asian Counter Styles Chinese (required)</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/#limited-chinese">
+<link rel="author" href="mailto:saku@email.sakupi01.com" title="saku">
+<link rel="match" href="counter-simp-chinese-formal-ref.html">
+<style>
+  div::after {
+    content: counter(n, simp-chinese-formal);
+  }
+</style>
+<div style="counter-reset: n 0;"></div>
+<div style="counter-reset: n 1;"></div>
+<div style="counter-reset: n 2;"></div>
+<div style="counter-reset: n 3;"></div>
+<div style="counter-reset: n 4;"></div>
+<div style="counter-reset: n 5;"></div>
+<div style="counter-reset: n 6;"></div>
+<div style="counter-reset: n 7;"></div>
+<div style="counter-reset: n 8;"></div>
+<div style="counter-reset: n 9;"></div>
+
+<div style="counter-reset: n 10;"></div>
+<div style="counter-reset: n 100;"></div>
+<div style="counter-reset: n 1000;"></div>
+
+<div style="counter-reset: n 11;"></div>
+<div style="counter-reset: n 99;"></div>
+<div style="counter-reset: n 101;"></div>
+<div style="counter-reset: n 200;"></div>
+<div style="counter-reset: n 6001;"></div>
+
+<!-- Test second group marker (万) - ten-thousands group -->
+<div style="counter-reset: n 10000;"></div>
+<div style="counter-reset: n 20000;"></div>
+<div style="counter-reset: n 50000;"></div>
+<div style="counter-reset: n 99999;"></div>
+
+<!-- Test complex patterns within ten-thousands group (algorithm step 4: digit markers) -->
+<div style="counter-reset: n 12345;"></div>
+<div style="counter-reset: n 10001;"></div>
+<div style="counter-reset: n 10010;"></div>
+<div style="counter-reset: n 10100;"></div>
+<div style="counter-reset: n 11000;"></div>
+
+<!-- Test third group marker (亿) - hundred-millions group -->
+<div style="counter-reset: n 100000000;"></div>
+<div style="counter-reset: n 200000000;"></div>
+<div style="counter-reset: n 500000000;"></div>
+<div style="counter-reset: n 999999999;"></div>
+
+<!-- Test complex patterns within hundred-millions group (algorithm step 6: zero dropping) -->
+<div style="counter-reset: n 123456789;"></div>
+<div style="counter-reset: n 100000001;"></div>
+<div style="counter-reset: n 100010000;"></div>
+<div style="counter-reset: n 100100000;"></div>
+<div style="counter-reset: n 101000000;"></div>
+<div style="counter-reset: n 110000000;"></div>
+
+<!-- Test fourth group marker (万亿) - trillions group -->
+<div style="counter-reset: n 1000000000000;"></div>
+<div style="counter-reset: n 2000000000000;"></div>
+<div style="counter-reset: n 5000000000000;"></div>
+<div style="counter-reset: n 9999999999999;"></div>
+
+<!-- Test extended ranges (algorithm step 3: group markers up to 10^16) -->
+<!-- Test 10^13 range (ten-trillions) -->
+<div style="counter-reset: n 10000000000000;"></div>
+<div style="counter-reset: n 50000000000000;"></div>
+<div style="counter-reset: n 99999999999999;"></div>
+
+<!-- Test 10^15 range (hundred-trillions) -->
+<div style="counter-reset: n 100000000000000;"></div>
+<div style="counter-reset: n 500000000000000;"></div>
+<div style="counter-reset: n 999999999999999;"></div>
+
+<!-- Test complex patterns in trillions group (step 5: drop ones, step 6: drop zeros) -->
+<div style="counter-reset: n 1234567890123;"></div>
+<div style="counter-reset: n 1000000000001;"></div>
+<div style="counter-reset: n 1000000010000;"></div>
+<div style="counter-reset: n 1000001000000;"></div>
+<div style="counter-reset: n 1000100000000;"></div>
+<div style="counter-reset: n 1010000000000;"></div>
+<div style="counter-reset: n 1100000000000;"></div>
+
+<!-- Test interaction between multiple groups -->
+<div style="counter-reset: n 1001001001001;"></div>
+<div style="counter-reset: n 1010101010101;"></div>
+<div style="counter-reset: n 1000100010001;"></div>
+<div style="counter-reset: n 5005005005005;"></div>
+
+<!-- Test zero dropping behavior across different groups -->
+<div style="counter-reset: n 1000000000000;"></div>
+<div style="counter-reset: n 1000000000;"></div>
+<div style="counter-reset: n 1000000;"></div>
+<div style="counter-reset: n 1000;"></div>
+<div style="counter-reset: n 10000000000000;"></div>
+<div style="counter-reset: n 100000000000000;"></div>
+
+<!-- Test boundary values at the edge of range (-10^16+1 to 10^16-1) -->
+<div style="counter-reset: n 9999999999999999;"></div>
+<div style="counter-reset: n 1000000000000000;"></div>
+
+<!-- Test out-of-range values (should fallback to cjk-decimal) -->
+<div style="counter-reset: n 10000000000000000;"></div>
+
+<!-- Test negative numbers (algorithm step 8: negative sign handling) -->
+<div style="counter-reset: n -10000;"></div>
+<div style="counter-reset: n -100000000;"></div>
+<div style="counter-reset: n -1000000000000;"></div>
+<div style="counter-reset: n -9999999999999999;"></div>
+
+<div style="counter-reset: n -1;"></div>

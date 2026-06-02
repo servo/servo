@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <button id=b1>This is an anchor button</button>
+  <div popover id=p1 anchor=b1>This is a popover</div>
+  <button id=b2 popovertarget=p1>This button invokes the popover but isn't an anchor</button>
+</div>
+
+<script>
+  test(function() {
+    assert_equals(p1.anchorElement,b1);
+  }, "popover anchorElement IDL property returns the anchor element");
+
+  test(function() {
+    assert_equals(p1.anchorElement,b1);
+    p1.anchorElement = b2;
+    assert_equals(p1.anchorElement,b2);
+    assert_equals(p1.getAttribute('anchor'),'','Idref is empty after setting element');
+    p1.anchorElement = b1; // Reset
+  }, "popover anchorElement is settable");
+</script>
+
+<div>
+  <button id=b3>button</button>
+  <div id=p2>Anchored div</div>
+</div>
+<style>
+  * {margin:0;padding:0;}
+  #b3 {width: 200px;}
+  #p2 {
+    position: absolute;
+    left: anchor(right);
+  }
+</style>
+
+<script>
+  test(function() {
+    assert_equals(p2.anchorElement,null);
+    const button = document.getElementById('b3');
+    assert_true(!!button);
+    p2.anchorElement = button;
+    assert_equals(p2.getAttribute('anchor'),'','Idref should be empty after setting element');
+    assert_equals(p2.anchorElement,button,'Element reference should be button');
+    assert_equals(p2.offsetLeft, 200, 'The anchor relationship should be functional');
+  }, "anchorElement affects anchor positioning");
+</script>

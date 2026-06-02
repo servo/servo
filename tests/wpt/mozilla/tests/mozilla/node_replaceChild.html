@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+            test(function() {
+                var root = document.createElement("div");
+                var elem = document.createElement("div");
+                var foo = document.createTextNode("foo");
+                var bar = document.createTextNode("bar");
+
+                elem.appendChild(bar);
+                assert_equals(elem.replaceChild(bar, bar), bar, "test1-0, 1-to-1");
+                assert_equals(elem.childNodes[0], bar, "test1-1, 1-to-1");
+
+                root.appendChild(foo);
+                assert_equals(root.replaceChild(bar, foo), foo, "test1-2, 1-to-1");
+                assert_equals(elem.childNodes.length, 0, "test1-3, 1-to-1");
+                assert_equals(root.childNodes[0], bar, "test1-4, 1-to-1");
+
+                elem.appendChild(foo);
+                assert_equals(root.replaceChild(elem, bar), bar, "test1-5, 1-to-1");
+                assert_equals(root.childNodes[0].childNodes[0], foo, "test1-6, 1-to-1");
+            }, "1-to-1");
+
+            test(function() {
+                var doc_doctype = document.doctype;
+                var new_doctype = document.implementation.createDocumentType("html", null, null);
+
+                assert_not_equals(doc_doctype, new_doctype, "test2-0, doctype");
+                assert_equals(document.replaceChild(new_doctype, doc_doctype), doc_doctype, "test2-1, doctype");
+                assert_equals(document.doctype, new_doctype, "test2-2, doctype");
+            }, "doctype");
+
+            test(function() {
+                var doc_elem = document.documentElement;
+                var new_elem = document.createElement("html");
+
+                assert_not_equals(doc_elem, new_elem, "test3-0, documentElement");
+                assert_equals(document.replaceChild(new_elem, doc_elem), doc_elem, "test3-1, documentElement");
+                assert_equals(document.documentElement, new_elem, "test3-2, documentElement");
+            }, "documentElement");
+        </script>
+    </body>
+</html>

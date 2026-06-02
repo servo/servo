@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: ::first-letter stops applying to element becoming inline.</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="first-letter-block-to-inline-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+<style>
+  #outer.block::first-letter { color: red }
+  #outer.block { display: block }
+</style>
+<span id="outer" class="block">
+  <span id="inner">This text should be green.</span>
+</span>
+<script>
+  outer.offsetTop;
+  outer.className = "";
+  inner.style.color = "green";
+</script>

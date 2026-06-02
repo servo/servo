@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<style>
+
+@keyframes bg {
+  from { background-color:  rgb(254, 0, 0); }
+  to { background-color: rgb(0 254, 0); }
+}
+.item {
+  flex-grow: 1;
+  width: 2em;
+  height: 2em;
+  background: #888;
+  animation: bg linear;
+  animation-timeline: view();
+  animation-range: contain;
+}
+
+.inline .item {
+  animation-timeline: view(inline);
+}
+
+.scroller {
+  width: 10em;
+  height: 10em;
+  outline: 1px solid;
+  margin: 1em;
+  overflow: auto;
+  display: inline-flex;
+  vertical-align: top;
+  flex-direction: column;
+  gap: 1em;
+  resize: vertical;
+}
+
+.inline {
+  resize: horizontal;
+  flex-direction: row;
+}
+
+.block .spacer {
+  height: 20em;
+  width: 1em;
+}
+
+.inline .spacer {
+  width: 20em;
+  height: 1em;
+}
+</style>
+<body>
+<div class="scroller block">
+  <div class="item" id="a"></div>
+  <div class="item" id="b"></div>
+  <div class="item" id="c"></div>
+</div>
+
+<div class="scroller inline">
+  <div class="item" id="d"></div>
+  <div class="item" id="e"></div>
+  <div class="item" id="f"></div>
+</div>
+
+<br>
+
+<div class="scroller block">
+  <div class="item" id="g"></div>
+  <div class="item" id="h"></div>
+</div>
+
+<div class="scroller inline">
+  <div class="item" id="i"></div>
+  <div class="item" id="j"></div>
+</div>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script type="text/javascript">
+  promise_test(async t => {
+    let anims = document.getAnimations();
+    await Promise.all(anims.map(anim => anim.ready));
+    await waitForNextFrame();
+
+    const expected_results = [
+      { id: "a", progress: 1.0, bg: 'rgb(0, 254, 0)' },
+      { id: "b", progress: 0.5, bg: 'rgb(127, 127, 0)' },
+      { id: "c", progress: 0.0, bg: 'rgb(254, 0, 0)' },
+      { id: "d", progress: 1.0, bg: 'rgb(0, 254, 0)' },
+      { id: "e", progress: 0.5, bg: 'rgb(127, 127, 0)' },
+      { id: "f", progress: 0.0, bg: 'rgb(254, 0, 0)' },
+      { id: "g", progress: 1.0, bg: 'rgb(0, 254, 0)' },
+      { id: "h", progress: 0.0, bg: 'rgb(254, 0, 0)' },
+      { id: "i", progress: 1.0, bg: 'rgb(0, 254, 0)' },
+      { id: "j", progress: 0.0, bg: 'rgb(254, 0, 0)' }
+    ];
+
+    expected_results.forEach(result => {
+      const element = document.getElementById(result.id);
+      const anim = element.getAnimations()[0];
+      assert_approx_equals(anim.effect.getComputedTiming().progress,
+        result.progress, 1e-3,
+        `${result.id}: Unexpected progress`);
+      assert_equals(getComputedStyle(element).backgroundColor,
+                    result.bg, `${result.id}: Mismatched background color`);
+    });
+
+  }, 'Stability of animated elements aligned to the bounds of a contain region');
+</script>
+</html>

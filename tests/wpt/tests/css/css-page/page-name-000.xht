@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page Selector Grammar - @page auto</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#syntax-page-selector"/>
+  <meta name="flags" content="paged invalid" />
+  <style type="text/css"><![CDATA[
+	@page { size: portrait; }
+	@page auto { size: landscape; }
+	div { page: auto }
+  ]]></style>
+ </head>
+ <body>
+	<div>This paragraph should be printed in portrait layout: the short sides of the page should be top and bottom.</div>
+ </body>
+</html>

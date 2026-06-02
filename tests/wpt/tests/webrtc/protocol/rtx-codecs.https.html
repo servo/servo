@@ -1,0 +1,153 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTX codec integrity checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+// Tests for conformance to rules for RTX codecs.
+// Basic rule: Offers and answers must contain RTX codecs, and the
+// RTX codecs must have an a=fmtp line that points to a non-RTX codec.
+
+// Helper function for doing one round of offer/answer exchange
+// between two local peer connections.
+// Calls setRemoteDescription(offer/answer) before
+// setLocalDescription(offer/answer) to ensure the remote description
+// is set and candidates can be added before the local peer connection
+// starts generating candidates and ICE checks.
+async function doSignalingHandshake(localPc, remotePc, options={}) {
+  let offer = await localPc.createOffer();
+  // Modify offer if callback has been provided
+  if (options.modifyOffer) {
+    offer = await options.modifyOffer(offer);
+  }
+
+  // Apply offer.
+  await remotePc.setRemoteDescription(offer);
+  await localPc.setLocalDescription(offer);
+
+  let answer = await remotePc.createAnswer();
+  // Modify answer if callback has been provided
+  if (options.modifyAnswer) {
+    answer = await options.modifyAnswer(answer);
+  }
+
+  // Apply answer.
+  await localPc.setRemoteDescription(answer);
+  await remotePc.setLocalDescription(answer);
+}
+
+function verifyRtxReferences(description) {
+  const mediaSection = SDPUtils.getMediaSections(description.sdp)[0];
+  const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+  for (const codec of rtpParameters.codecs) {
+    if (codec.name === 'rtx') {
+      assert_own_property(codec.parameters, 'apt', 'rtx codec has apt parameter');
+      const referenced_codec = rtpParameters.codecs.find(
+        c => c.payloadType === parseInt(codec.parameters.apt));
+      assert_true(referenced_codec !== undefined, `Found referenced codec`);
+    }
+  }
+}
+
+
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  const offer = await generateVideoReceiveOnlyOffer(pc);
+  verifyRtxReferences(offer);
+}, 'Initial offer should have sensible RTX mappings');
+
+async function negotiateAndReturnAnswer(t) {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  let [track, streams] = await getTrackFromUserMedia('video');
+  const sender = pc1.addTrack(track);
+  await doSignalingHandshake(pc1, pc2);
+  return pc2.localDescription;
+}
+
+promise_test(async t => {
+  const answer = await negotiateAndReturnAnswer(t);
+  verifyRtxReferences(answer);
+}, 'Self-negotiated answer should have sensible RTX parameters');
+
+promise_test(async t => {
+  const sampleOffer = `v=0
+o=- 1878890426675213188 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE video
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:RGPK
+a=ice-pwd:rAyHEAKC7ckxQgWaRZXukz+Z
+a=ice-options:trickle
+a=fingerprint:sha-256 8C:29:0A:8F:11:06:BF:1C:58:B3:CA:E6:F1:F1:DC:99:4C:6C:89:E9:FF:BC:D4:38:11:18:1F:40:19:C8:49:37
+a=setup:actpass
+a=mid:video
+a=recvonly
+a=rtcp-mux
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=98
+a=rtpmap:98 VP8/90000
+a=rtcp-fb:98 ccm fir
+a=rtcp-fb:98 nack
+a=rtcp-fb:98 nack pli
+a=rtcp-fb:98 goog-remb
+a=rtcp-fb:98 transport-cc
+`;
+  const pc = new RTCPeerConnection();
+  let [track, streams] = await getTrackFromUserMedia('video');
+  const sender = pc.addTrack(track);
+  await pc.setRemoteDescription({type: 'offer', sdp: sampleOffer});
+  const answer = await pc.createAnswer();
+  verifyRtxReferences(answer);
+}, 'A remote offer generates sensible RTX references in answer');
+
+promise_test(async t => {
+  const sampleOffer = `v=0
+o=- 1878890426675213188 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE video
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:RGPK
+a=ice-pwd:rAyHEAKC7ckxQgWaRZXukz+Z
+a=ice-options:trickle
+a=fingerprint:sha-256 8C:29:0A:8F:11:06:BF:1C:58:B3:CA:E6:F1:F1:DC:99:4C:6C:89:E9:FF:BC:D4:38:11:18:1F:40:19:C8:49:37
+a=setup:actpass
+a=mid:video
+a=recvonly
+a=rtcp-mux
+a=rtpmap:96 VP8/90000
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=98
+a=rtpmap:98 VP8/90000
+a=rtcp-fb:98 ccm fir
+a=rtcp-fb:98 nack
+a=rtcp-fb:98 nack pli
+a=rtcp-fb:98 goog-remb
+a=rtcp-fb:98 transport-cc
+a=rtpmap:99 rtx/90000
+a=fmtp:99 apt=96
+`;
+  const pc = new RTCPeerConnection();
+  let [track, streams] = await getTrackFromUserMedia('video');
+  const sender = pc.addTrack(track);
+  await pc.setRemoteDescription({type: 'offer', sdp: sampleOffer});
+  const answer = await pc.createAnswer();
+  verifyRtxReferences(answer);
+}, 'A remote offer with duplicate codecs generates sensible RTX references in answer');
+
+</script>

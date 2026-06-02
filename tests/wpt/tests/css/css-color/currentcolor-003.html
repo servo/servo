@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8">
+  <title>CSS Color 4: currentcolor</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+  <link rel="author" title="Mike Bremford" href="mailto:mike@bfo.com">
+  <link rel="help" href="https://drafts.csswg.org/css-color-4/#currentcolor-color">
+  <link rel="help" href="https://www.w3.org/TR/css-cascade-5/#fragments">
+  <link rel="match" href="currentcolor-003-ref.html">
+  <meta name="assert" content="The currentcolor value applies to the first-line fragment, as discussed in https://github.com/w3c/csswg-drafts/issues/1510">
+  <style>
+    div {
+      color: red;
+    }
+    div::first-line {
+      color: green;
+    }
+    br {
+      line-height: 0;
+    }
+    span {
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+      line-height: 50px;
+      background-image: linear-gradient(currentcolor, currentcolor);
+      background-color: currentColor;
+      background-size: 100% 75%;
+      background-repeat: no-repeat;
+      border: 5px solid currentColor;
+      outline: 5px solid currentColor;
+      box-shadow: 111px 0 5px currentColor;
+      text-shadow: 222px 0 2px currentColor;
+      filter: drop-shadow(333px 0 0 currentColor);
+    }
+  </style>
+ </head>
+ <body>
+  <p>The first and third lines should have no red. The second line should have no green</p>
+   <div><span>Lorem ipsum<br />dolor amet.</span></div>
+   <div><span>Lorem ipsum.</span></div>
+ </body>
+</html>

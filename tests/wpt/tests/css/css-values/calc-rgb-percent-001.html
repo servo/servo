@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values Test: computed value of rgb() with calc(percentage)</title>
+
+  <!--
+
+  Original code is from Yves Lafon
+
+  Re: [css3-values] percentage in calc() and attr()
+  https://lists.w3.org/Archives/Public/www-style/2016May/0028.html
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-notation">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  div#target
+    {
+      background-color: rgb(calc(5% + 15%), calc(40% / 2), calc(5% * 4));
+      height: 100px;
+    }
+  </style>
+
+  <div id="target"></div>
+
+  <script>
+  test(function()
+    {
+      assert_equals(getComputedStyle(document.getElementById("target")).backgroundColor, "rgb(51, 51, 51)");
+    }, "testing rgb(calc(5% + 15%), calc(40% / 2), calc(5% * 4))");
+  </script>

@@ -1,0 +1,26 @@
+<!doctype html>
+
+<button>Gain user activation</button>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  test_driver.set_test_context(top.opener);
+  window.onload = async function () {
+    try {
+      top.location = "navigation-changed-iframe.html";
+      return;
+    } catch (e) {
+      top.opener.postMessage("ERROR", "*");
+    }
+
+    const button = document.querySelector("button");
+    await test_driver.click(button);
+
+    try {
+      top.location = "navigation-changed-iframe.html";
+    } catch (e) {
+      top.opener.postMessage("ERROR", "*");
+    }
+  };
+</script>

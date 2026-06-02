@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>mfrac with zero children</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#mfrac">
+<meta name="assert" content="An mfrac with no children should render using an empty mrow.">
+<link rel="match" href="frac-invalid-ref.html">
+</head>
+<body>
+  <p>This test passes if mfrac renders nothing.</p>
+  <math>
+    <mfrac>
+    </mfrac>
+  </math>
+</body>
+</html>

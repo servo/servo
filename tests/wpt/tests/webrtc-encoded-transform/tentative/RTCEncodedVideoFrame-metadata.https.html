@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../../mediacapture-streams/permission-helper.js'></script>
+<script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../../service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src='./../helper.js'></script>
+<script>
+"use strict";
+
+promise_test(async t => {
+  const senderReader = await setupLoopbackWithCodecAndGetReader(t, 'VP8');
+  const result = await senderReader.read();
+  const metadata = result.value.getMetadata();
+  // TODO(https://crbug.com/webrtc/14709): When RTCEncodedVideoFrame has a
+  // constructor, create a new frame from scratch instead of cloning it to
+  // ensure that none of the metadata was carried over via structuredClone().
+  // This would allow us to be confident that setMetadata() is doing all the
+  // work.
+  //
+  // At that point, we can refactor the structuredClone() implementation to be
+  // the same as constructor() + set data + setMetadata() to ensure that
+  // structuredClone() cannot do things that are not already exposed in
+  // JavaScript (no secret steps!).
+  const clone = structuredClone(result.value);
+  clone.setMetadata(metadata);
+  const cloneMetadata = clone.getMetadata();
+  // Encoding-related metadata.
+  assert_equals(cloneMetadata.frameId, metadata.frameId, 'frameId');
+  assert_array_equals(cloneMetadata.dependencies, metadata.dependencies,
+                      'dependencies');
+  assert_equals(cloneMetadata.width, metadata.width, 'width');
+  assert_equals(cloneMetadata.height, metadata.height, 'height');
+  assert_equals(cloneMetadata.spatialIndex, metadata.spatialIndex,
+                'spatialIndex');
+  assert_equals(cloneMetadata.temporalIndex, metadata.temporalIndex,
+                'temporalIndex');
+  // RTP-related metadata.
+  // TODO(https://crbug.com/webrtc/14709): This information also needs to be
+  // settable but isn't - the assertions only pass because structuredClone()
+  // copies them for us. It would be great if different layers didn't consider
+  // different subset of the struct as "the metadata". Can we consolidate into a
+  // single webrtc struct for all metadata?
+  assert_equals(cloneMetadata.synchronizationSource,
+                metadata.synchronizationSource, 'synchronizationSource');
+  assert_array_equals(cloneMetadata.contributingSources,
+                      metadata.contributingSources, 'contributingSources');
+  assert_equals(cloneMetadata.payloadType, metadata.payloadType, 'payloadType');
+}, "[VP8] setMetadata() carries over codec-specific properties");
+
+promise_test(async t => {
+  const senderReader = await setupLoopbackWithCodecAndGetReader(t, 'VP8');
+  const result = await senderReader.read();
+  const metadata = result.value.getMetadata();
+  const newFrame = new RTCEncodedVideoFrame(result.value);
+  const newMetadata = newFrame.getMetadata();
+
+  // Encoding-related metadata.
+  assert_equals(newMetadata.frameId, metadata.frameId, 'frameId');
+  assert_array_equals(newMetadata.dependencies, metadata.dependencies,
+                      'dependencies');
+  assert_equals(newMetadata.width, metadata.width, 'width');
+  assert_equals(newMetadata.height, metadata.height, 'height');
+  assert_equals(newMetadata.spatialIndex, metadata.spatialIndex,
+                'spatialIndex');
+  assert_equals(newMetadata.temporalIndex, metadata.temporalIndex,
+                'temporalIndex');
+
+  // RTP-related metadata.
+  assert_equals(newMetadata.synchronizationSource,
+                metadata.synchronizationSource, 'synchronizationSource');
+  assert_array_equals(newMetadata.contributingSources,
+                      metadata.contributingSources, 'contributingSources');
+  assert_equals(newMetadata.payloadType, metadata.payloadType, 'payloadType');
+  assert_equals(newMetadata.rtpTimestamp, metadata.rtpTimestamp, 'rtpTimestamp');
+}, "[VP8] constructor carries over codec-specific properties");
+
+promise_test(async t => {
+  const senderReader = await setupLoopbackWithCodecAndGetReader(t, 'VP8');
+  const result = await senderReader.read();
+  const frame_metadata = result.value.getMetadata();
+  frame_metadata.rtpTimestamp = 100;
+  const newFrame = new RTCEncodedVideoFrame(result.value, {metadata: frame_metadata});
+  const newMetadata = newFrame.getMetadata();
+
+  // Encoding-related metadata.
+  assert_equals(newMetadata.frameId, frame_metadata.frameId, 'frameId');
+  assert_array_equals(newMetadata.dependencies, frame_metadata.dependencies,
+                      'dependencies');
+  assert_equals(newMetadata.width, frame_metadata.width, 'width');
+  assert_equals(newMetadata.height, frame_metadata.height, 'height');
+  assert_equals(newMetadata.spatialIndex, frame_metadata.spatialIndex,
+                'spatialIndex');
+  assert_equals(newMetadata.temporalIndex, frame_metadata.temporalIndex,
+                'temporalIndex');
+
+  // RTP-related metadata.
+  assert_equals(newMetadata.synchronizationSource,
+  frame_metadata.synchronizationSource, 'synchronizationSource');
+  assert_array_equals(newMetadata.contributingSources,
+  frame_metadata.contributingSources, 'contributingSources');
+  assert_equals(newMetadata.payloadType, frame_metadata.payloadType, 'payloadType');
+  assert_equals(newMetadata.rtpTimestamp, frame_metadata.rtpTimestamp, 'rtpTimestamp');
+  assert_not_equals(newMetadata.rtpTimestamp, result.value.getMetadata().rtpTimestamp, 'rtpTimestamp');
+}, "[VP8] constructor with metadata carries over codec-specific properties");
+
+promise_test(async t => {
+  const senderReader = await setupLoopbackWithCodecAndGetReader(t, 'VP8');
+  const result = await senderReader.read();
+  const metadata = result.value.getMetadata();
+  // Change the metadata by setting a new RTPTimestamp.
+  metadata.rtpTimestamp = 100;
+  const newFrame = new RTCEncodedVideoFrame(result.value);
+  const newMetadata = newFrame.getMetadata();
+
+  // Encoding-related metadata.
+  assert_equals(newMetadata.frameId, metadata.frameId, 'frameId');
+  assert_array_equals(newMetadata.dependencies, metadata.dependencies,
+                      'dependencies');
+  assert_equals(newMetadata.width, metadata.width, 'width');
+  assert_equals(newMetadata.height, metadata.height, 'height');
+  assert_equals(newMetadata.spatialIndex, metadata.spatialIndex,
+                'spatialIndex');
+  assert_equals(newMetadata.temporalIndex, metadata.temporalIndex,
+                'temporalIndex');
+
+  // RTP-related metadata.
+  assert_equals(newMetadata.synchronizationSource,
+                metadata.synchronizationSource, 'synchronizationSource');
+  assert_array_equals(newMetadata.contributingSources,
+                      metadata.contributingSources, 'contributingSources');
+  assert_equals(newMetadata.payloadType, metadata.payloadType, 'payloadType');
+
+  // RTPTimestamp don't match because the constructor did not use the metadata for construction.
+  assert_not_equals(newMetadata.rtpTimestamp, metadata.rtpTimestamp, 'rtpTimestamp');
+  assert_equals(newMetadata.rtpTimestamp, result.value.getMetadata().rtpTimestamp, 'rtpTimestamp');
+}, "[VP8] constructor without metadata does not carry over modified metadata ");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @font-face {
+            font-family: halt-font;
+            src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt-min.otf');
+        }
+        body { writing-mode: vertical-rl; font-family: Arial; }
+        .underline { text-decoration: underline; font-family: halt-font; font-language-override: "JAN"; }
+        .overline { text-decoration: overline; font-family: halt-font; font-language-override: "JAN"; }
+    </style>
+</head>
+<body lang="en">
+    <div>In vertical writing mode with lang=ja, default overline will be same as underline (lang=en). However, when we set text-underline-position to "under left" it should be shifted.</div>
+    <div class="underline">&#x56fd;&#x56fd;&#x56fd;&#x56fd;</div>
+    <div class="underline">&#x56fd;&#x56fd;&#x56fd;&#x56fd;</div>
+</body>
+</html>

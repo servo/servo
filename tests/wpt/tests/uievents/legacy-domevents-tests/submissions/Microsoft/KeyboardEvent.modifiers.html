@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> KeyboardEvent.getModifierState() and 'AltGraph' modifier key </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "keydown";
+            var TARGET;
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if ((evt.type == EVENT) && evt.getModifierState("AltGraph"))
+                {
+                    PassTest();
+                    TARGET.removeEventListener(EVENT, TestEvent, true);
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: Some operating systems simulate the 'AltGraph' modifier key
+            with the combination of the 'Alt' and 'Control' modifier keys. Implementations
+            are encouraged to use the 'AltGraph' modifier key.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Click in the above textbox using mouse
+            2) Press and hold down '{CTRL}' key and then press '{ALT}' key on the keyboard
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for updating the DOM tree while execCommand("undo") is running in the textarea</title>
+<script>
+"use strict";
+
+let count = 0;
+addEventListener("load", () => {
+  document.execCommand("insertText", false, "F");
+  document.execCommand("undo");
+});
+
+function onInputOfTextarea() {
+  if (count) {
+    document.querySelector("base").appendChild(
+      document.querySelector("content")
+    );
+  }
+  count++;
+}
+</script>
+</head>
+<body>
+<iframe></iframe>
+<textarea autofocus oninput="onInputOfTextarea()">a</textarea>
+<base></base>
+<content>
+<menu>
+</body>
+</html>

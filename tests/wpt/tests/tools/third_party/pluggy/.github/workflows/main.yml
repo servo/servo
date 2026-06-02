@@ -1,0 +1,145 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [
+          "windows-py38",
+          "windows-py311",
+          "windows-pypy3",
+
+          "ubuntu-py38-pytestmain",
+          "ubuntu-py38",
+          "ubuntu-py39",
+          "ubuntu-py310",
+          "ubuntu-py311",
+          "ubuntu-py312",
+          "ubuntu-pypy3",
+          "ubuntu-benchmark",
+        ]
+
+        include:
+          - name: "windows-py38"
+            python: "3.8"
+            os: windows-latest
+            tox_env: "py38"
+          - name: "windows-py311"
+            python: "3.10"
+            os: windows-latest
+            tox_env: "py311"
+          - name: "windows-pypy3"
+            python: "pypy3.9"
+            os: windows-latest
+            tox_env: "pypy3"
+          - name: "ubuntu-py38"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "py38"
+            use_coverage: true
+          - name: "ubuntu-py38-pytestmain"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "py38-pytestmain"
+            use_coverage: true
+          - name: "ubuntu-py39"
+            python: "3.9"
+            os: ubuntu-latest
+            tox_env: "py39"
+            use_coverage: true
+          - name: "ubuntu-py310"
+            python: "3.10"
+            os: ubuntu-latest
+            tox_env: "py310"
+          - name: "ubuntu-py311"
+            python: "3.11"
+            os: ubuntu-latest
+            tox_env: "py311"
+            use_coverage: true
+          - name: "ubuntu-py312"
+            python: "3.12-dev"
+            os: ubuntu-latest
+            tox_env: "py312"
+            use_coverage: true
+          - name: "ubuntu-pypy3"
+            python: "pypy3.9"
+            os: ubuntu-latest
+            tox_env: "pypy3"
+            use_coverage: true
+          - name: "ubuntu-benchmark"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "benchmark"
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install tox coverage
+
+    - name: Test without coverage
+      if: "! matrix.use_coverage"
+      run: "tox -e ${{ matrix.tox_env }}"
+
+    - name: Test with coverage
+      if: "matrix.use_coverage"
+      run: "tox -e ${{ matrix.tox_env }}-coverage"
+
+    - name: Upload coverage
+      if: matrix.use_coverage && github.repository == 'pytest-dev/pluggy'
+      uses: codecov/codecov-action@v4
+      continue-on-error: true
+      with:
+        fail_ci_if_error: true
+        files: ./coverage.xml
+        verbose: true
+
+  deploy:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && github.repository == 'pytest-dev/pluggy'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade build
+
+      - name: Build package
+        run: python -m build --sdist --wheel --outdir dist/
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@v1.8.6
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}

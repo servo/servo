@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/namespaces.js"></script>
+  <link rel="help" href="https://github.com/whatwg/dom/pull/1268">
+  <link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-types-compliant-attribute-value">
+</head>
+<body>
+<script>
+  const kAssertSinkIsElementOnclick = "assertSinkIsElementOnclick";
+  const kAssertSinkIsHTMLIframeElementSrcdoc = "assertSinkIsHTMLIframeElementSrcdoc";
+  const kAssertSinkIsHTMLScriptElementSrc = "assertSinkIsHTMLScriptElementSrc";
+  const kAssertSinkIsSVGScriptElementHref = "assertSinkIsSVGScriptElementHref";
+
+  trustedTypes.createPolicy("default", {
+    createScriptURL: (s, _, sink) => {
+      if (s == kAssertSinkIsHTMLScriptElementSrc) {
+        assert_equals(sink, "HTMLScriptElement src");
+      } else if (s == kAssertSinkIsSVGScriptElementHref) {
+        assert_equals(sink, "SVGScriptElement href");
+      }
+
+      return s;
+    },
+    createHTML: (s, _, sink) => {
+      if (kAssertSinkIsHTMLIframeElementSrcdoc) {
+        assert_equals(sink, "HTMLIFrameElement srcdoc");
+      }
+
+      return s;
+    },
+    createScript: (s, _, sink) => {
+      if (s == kAssertSinkIsElementOnclick) {
+        assert_equals(sink, "Element onclick");
+      }
+
+      return s;
+    }
+  });
+
+  const kSinkTests = [
+    { element: "div",
+      elementNamespace: NSURI_HTML,
+      attribute: "onclick",
+      attributeNamespace: null,
+      value: kAssertSinkIsElementOnclick,
+    },
+    { element: "iframe",
+      elementNamespace: NSURI_HTML,
+      attribute: "srcdoc",
+      attributeNamespace: null,
+      value: kAssertSinkIsHTMLIframeElementSrcdoc,
+    },
+    { element: "script",
+      elementNamespace: NSURI_HTML,
+      attribute: "src",
+      attributeNamespace: null,
+      value: kAssertSinkIsHTMLScriptElementSrc,
+    },
+    { element: "script",
+      elementNamespace: NSURI_SVG,
+      attribute: "href",
+      attributeNamespace: null,
+      value: kAssertSinkIsSVGScriptElementHref,
+    },
+    { element: "script",
+      elementNamespace: NSURI_SVG,
+      attribute: "href",
+      attributeNamespace: NSURI_XLINK,
+      value: kAssertSinkIsSVGScriptElementHref,
+    }
+  ];
+
+  for (const testData of kSinkTests) {
+    test(t => {
+        const element = document.createElementNS(testData.elementNamespace,
+          testData.element);
+        document.body.append(element);
+        element.setAttributeNS(testData.attributeNamespace, testData.attribute,
+          testData.value);
+
+      }, `Test sink for ${testData.element}.setAttributeNS(${testData.attributeNamespace}, ${testData.attribute})`
+    );
+  }
+</script>
+</body>
+</html>

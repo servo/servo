@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel='match' href='canvas_as_block_element_ref.html'>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<title>Canvas is displayed as a block-level element</title>
+<canvas id="c"></canvas>
+<script>
+
+var canvas = document.getElementById('c');
+canvas.width = 100;
+canvas.height = 100;
+var ctx = canvas.getContext('2d');
+ctx.fillStyle = '#ff0000';
+ctx.fillRect(0, 0, 100, 100);
+
+</script>
+</body>
+</html>
+

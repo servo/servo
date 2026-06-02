@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS reftest Reference</title>
+    <style>
+      .outer {
+        display:block;
+        width: 500px;
+        height: 500px;
+        padding: 50px;
+        background: linear-gradient(90deg, red, green);
+      }
+      .inner {
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: white;
+        background: linear-gradient(#e66465, #9198e5);
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <p>The inner gradient should be (in total) 60% covering over the outer.</p>
+  <div class="outer">
+    <div class="inner">
+    </div>
+  </div>
+</html>

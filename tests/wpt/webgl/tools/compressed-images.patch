@@ -1,0 +1,31 @@
+diff --git a/tests/wpt/webgl/tests/conformance/extensions/s3tc-and-rgtc.html b/tests/wpt/webgl/tests/conformance/extensions/s3tc-and-rgtc.html
+index 308e8577a8..ea56180224 100644
+--- a/tests/wpt/webgl/tests/conformance/extensions/s3tc-and-rgtc.html
++++ b/tests/wpt/webgl/tests/conformance/extensions/s3tc-and-rgtc.html
+@@ -695,13 +695,6 @@ function compareRect(width, height, channels, expectedData, filteringMode) {
+     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, actual);
+     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading back pixels");
+ 
+-    var div = document.createElement("div");
+-    div.className = "testimages";
+-    ctu.insertCaptionedImg(div, "expected", ctu.makeScaledImage(width, height, width, expectedData, true));
+-    ctu.insertCaptionedImg(div, "actual", ctu.makeScaledImage(width, height, width, actual, true));
+-    div.appendChild(document.createElement('br'));
+-    document.getElementById("console").appendChild(div);
+-
+     var failed = false;
+     for (var yy = 0; yy < height; ++yy) {
+         for (var xx = 0; xx < width; ++xx) {
+@@ -715,6 +708,12 @@ function compareRect(width, he     ight, channels, expectedData, filteringMode) {
+                     failed = true;
+                     testFailed(`RGB at (${xx}, ${yy}) expected: ${expected}` +
+                                ` +/- ${colorError}, was ${was}`);
++                    var div = document.createElement("div");
++                    div.className = "testimages";
++                    ctu.insertCaptionedImg(div, "expected", ctu.makeScaledImage(width, height, width, expectedData, true));
++                    ctu.insertCaptionedImg(div, "actual", ctu.makeScaledImage(width, height, width, was, true));
++                    div.appendChild(document.createElement('br'));
++                    document.getElementById("console").appendChild(div);
+                    break;
+                 }
+             }

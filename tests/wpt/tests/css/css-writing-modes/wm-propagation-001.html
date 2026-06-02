@@ -1,0 +1,29 @@
+<html>
+  <meta chartset=utf-8>
+  <title>CSS-Writing Modes Test: propagation of the writing-mode property from body to root</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <link rel=help href="https://drafts.csswg.org/css-writing-modes-3/#principal-flow">
+  <link rel="match" href="wm-propagation-001-ref.html">
+  <meta name=assert content="the writing mode of the body must be propagated to the root, but the computed value must not change.">
+<style>
+html {
+  writing-mode: horizontal-tb;
+}
+body {
+  writing-mode: vertical-rl;
+  width: 0; height: 0;
+}
+html::after {
+  content: "This text must be horizontal.";
+  display: block;
+  /* The writing mode inherited from the root must be horizontal
+  since the root's computed value should be horizontal */
+
+}
+</style>
+<script>
+  document.documentElement.append("This text must be vertical.");
+  /* This is direct content of the root,
+     and should therefore be vertical,
+     as the root's used value is vertical */
+</script>

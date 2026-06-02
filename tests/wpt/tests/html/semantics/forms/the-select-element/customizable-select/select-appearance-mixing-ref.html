@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+.custom, .custom::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select multiple>
+  <option>normal</option>
+  <div>
+    <option>
+      <div>div</div>
+      <span>span</span>
+      text
+    </option>
+  </div>
+</select>
+
+<select multiple class=custom>
+  <option>normal</option>
+  <option>base-select</option>
+</select>

@@ -1,0 +1,662 @@
+case float_input
+	values
+	{
+		input float in0		= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+		output float out0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+	}
+	values
+	{
+		input float in0		= [ -1.123 | -0.75 | 512.0 | -72.13 | -199.91 ];
+		output float out0	= [ -1.123 | -0.75 | 512.0 | -72.13 | -199.91 ];
+	}
+
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = in0;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_uniform
+	values
+	{
+		uniform float uni0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+		output float out0	= [ 1.123 | 0.75 | -512.0 | -72.13 | 199.91 ];
+	}
+
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		uniform float uni0;
+		void main()
+		{
+			out0 = uni0;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_0
+	values { output float out0 = 1.123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = +1.123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_1
+	values { output float out0 = -1.123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_2
+	values { output float out0 = 123.0; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 123.;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_3
+	values { output float out0 = 0.123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = .123;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_4
+	values { output float out0 = 123.0; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1.23e+2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_5
+	values { output float out0 = -123.0; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.23E+2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_6
+	values { output float out0 = -123.0; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -1.23e2;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_7
+	values { output float out0 = 0.123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1.23e-1;
+			${OUTPUT}
+		}
+	""
+end
+
+case float_8
+	values { output float out0 = 1000.0; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 1e3;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_0
+	values { output int out0 = 123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 123;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_1
+	values { output int out0 = -321; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = -321;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_2
+	values { output int out0 = 123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0x7B;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_3
+	values { output int out0 = 123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0X7b;
+			${OUTPUT}
+		}
+	""
+end
+
+case int_4
+	values { output int out0 = 123; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = 0173;
+			${OUTPUT}
+		}
+	""
+end
+
+case bool_0
+	values { output bool out0 = true; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = true;
+			${OUTPUT}
+		}
+	""
+end
+
+case bool_1
+	values { output bool out0 = false; }
+	both ""
+		precision highp float;
+		${DECLARATIONS}
+		void main()
+		{
+			out0 = false;
+			${OUTPUT}
+		}
+	""
+end
+
+case const_float_global
+	 values { output float out0 = 1000.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+	 	  ${DECLARATIONS}
+		  const float theConstant = 1000.0;
+		  void main()
+		  {
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_main
+	 values { output float out0 = -1000.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+	 	  ${DECLARATIONS}
+		  void main()
+		  {
+		  	    const float theConstant = -1000.0;
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_function
+	 values { output float out0 = -0.012; }
+	 
+	 both ""
+	 	  precision mediump float;
+	 	  ${DECLARATIONS}
+		  float func()
+		  {
+		  	    const float theConstant = -0.012;
+				return theConstant;				
+		  }
+		  void main()
+		  {
+				out0 = func();
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_scope
+	 values { output float out0 = 1.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+	 	  ${DECLARATIONS}
+		  void main()
+		  {
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_scope_shawdowing_1
+	 values { output float out0 = 1.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+	 	  ${DECLARATIONS}
+		  void main()
+		  {
+			    const float theConstant = 100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_scope_shawdowing_2
+	 values { output float out0 = 1.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  const float theConstant = 100.0;
+		  void main()
+		  {
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_scope_shawdowing_3
+	 values { output float out0 = 1.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  const float theConstant = 100.0;
+		  void main()
+		  {
+ 			    const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = theConstant;
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_scope_shawdowing_4
+	 values { output float out0 = 2.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  const float theConstant = 100.0;
+		  float func()
+		  {
+				const float theConstant = 2.0;
+				return theConstant;
+		  }
+		  void main()
+		  {
+ 			    const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = func();
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_operations_with_const
+	 values { output float out0 = 21.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  const float theGlobalConstant = 10.0;
+		  float func()
+		  {
+				const float theConstant = 2.0;
+				return theConstant;
+		  }
+		  void main()
+		  {
+ 			    const float theConstant = -100.0;
+				{
+					 const float theConstant = 1.0;
+					 out0 = func() * theGlobalConstant + theConstant;
+			    }
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assignment_1
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  void main()
+		  {
+ 			    const float theConstant1 = 10.0;
+				const float theConstant2 = theConstant1;
+				out0 = theConstant2;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assignment_2
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  void main()
+		  {
+ 			    const float theConstant1 = 10.0;
+				{
+					const float theConstant2 = theConstant1;
+					out0 = theConstant2;
+				}
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assignment_3
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant1 = 10.0;
+		  void main()
+		  {
+				const float theConstant2 = theConstant1;
+				out0 = theConstant2;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assignment_4
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant1 = 10.0;
+		  float func()
+		  {
+				const float theConstant2 = theConstant1;
+				return theConstant2;				
+		  }
+		  void main()
+		  {
+				out0 = func();
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assign_uniform
+	 expect compile_fail	 
+	 values { output float out0 = 10.0; }
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  uniform float theUniform;
+		  void main()
+		  {
+				const float theConstant = theUniform;
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assign_varying
+	 expect compile_fail	 
+	 values { output float out0 = 10.0; }
+	 vertex ""
+   	      ${VERTEX_DECLARATIONS}
+		  varying float theVarying;
+		  void main()
+		  {
+				theVarying = 1.0;
+				gl_Position = vec(1.0);
+		  }	 	
+	 ""
+	 fragment ""
+	 	  precision mediump float;
+   	      ${FRAGMENT_DECLARATIONS}
+		  varying float theVarying;
+		  void main()
+		  {
+				const float theConstant = theVarying;
+				out0 = theConstant;
+				${FRAGMENT_OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_function_gotcha
+	 desc "Function constant parameters are not really constants, so using them as constant expressions should fail."
+ 	 expect compile_fail	 
+	 values { output float out0 = 20.0; }
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  float func(const float gotcha)
+		  {
+				const float theConstant2 = gotcha;
+				return theConstant2*2.0;				
+		  }
+		  void main()
+		  {
+		  	    const float theConstant = 10.0;
+				out0 = func(theConstant);
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_from_int
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant = float(10);
+		  void main()
+		  {
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_from_vec2
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant = vec2(1.0, 10.0).y;
+		  void main()
+		  {
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_from_vec3
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant = vec3(1.0, 10.0, 20.0).y;
+		  void main()
+		  {
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_from_vec4
+	 values { output float out0 = 10.0; }
+	 
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+	      const float theConstant = vec4(1.0, 10.0, 20.0, -10.0).y;
+		  void main()
+		  {
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assign_variable_1
+	 expect compile_fail	 
+	 values { output float out0 = 20.0; }
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  void main()
+		  {
+				float theVariable = 20.0;
+				const float theConstant = theVariable;
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assign_variable_2
+	 expect compile_fail	 
+	 values { output float out0 = 50.0; }
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  void main()
+		  {
+				float theVariable = 20.0;
+				theVariable += 30.0;
+				const float theConstant = theVariable;
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end
+
+case const_float_assign_user_func
+	 expect compile_fail	 
+	 values { output float out0 = 50.0; }
+	 both ""
+	 	  precision mediump float;
+   	      ${DECLARATIONS}
+		  float func()
+		  {
+				return 50.0;
+  		  }
+		  void main()
+		  {
+				const float theConstant = func();
+				out0 = theConstant;
+				${OUTPUT}
+		  }
+	 ""
+end

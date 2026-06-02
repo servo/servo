@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Grid items work inside a button</title>
+<meta name="assert" content="When a button is set to display: grid, its children should flow into its grid cells">
+<link rel="author" title="Bryan Robinson" href="bryanlrobinson@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<style>
+  .grid { display: grid; grid-template-columns: 100px 200px; border: 2px solid purple; box-sizing: border-box; }
+  span { border: 1px dashed green; box-sizing: border-box; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<button class="grid" ><span class="item1" data-expected-width="100">item 1</span> <span class="item2" data-expected-width="200">item 2</span></button>
+
+<script>
+  checkLayout("[data-expected-width]")
+</script>

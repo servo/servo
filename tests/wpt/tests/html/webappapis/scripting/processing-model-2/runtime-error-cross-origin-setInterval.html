@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror - runtime error in cross-origin setInterval</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <div id=log></div>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var t = async_test();
+    var ran = false;
+    var interval;
+    window.addEventListener('error', t.step_func(e => {
+        clearInterval(interval);
+        ran = true;
+        assert_equals(e.error.constructor, ReferenceError);
+    }));
+    var script = document.createElement('script');
+    script.src = location.href.replace('://', '://www1.').replace(/\/[^\/]+$/, '/support/undefined-variable-in-setInterval.js');
+    document.body.appendChild(script);
+  </script>
+ </body>
+</html>

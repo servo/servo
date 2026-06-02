@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'connect-src' directive on shared workers in report-only mode -->
+<script>
+  fetch_tests_from_worker(new SharedWorker(
+    "./support/connect-src-self-report-only.sub.js?id={{uuid()}}"));
+</script>

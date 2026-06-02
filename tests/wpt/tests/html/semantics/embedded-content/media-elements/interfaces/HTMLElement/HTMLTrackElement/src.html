@@ -1,0 +1,43 @@
+<!doctype html>
+<title>HTMLTrackElement.src</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+  var track = document.createElement('track');
+  assert_equals(track.src, '');
+  assert_equals(track.getAttribute('src'), null);
+}, document.title + ' missing value');
+
+function resolve(url) {
+  var link = document.createElement('a');
+  link.setAttribute('href', url);
+  return link.href;
+}
+
+var tests = [
+  {input:'', expectedIDL:resolve(''), desc:'empty string'},
+  {input:'http://foo bar', expectedIDL:'http://foo bar', desc:'unresolvable value'},
+  {input:'test', expectedIDL:resolve('test'), desc:'resolvable value'},
+  // Leading and trailing C0 controls and space is stripped per url spec.
+  {input:'\u0000', expectedIDL:resolve(''), desc:'\\u0000'},
+  {input:'foo\u0000bar', expectedIDL:resolve('foo%00bar'), desc:'foo\\u0000bar'},
+];
+
+tests.forEach(function(t) {
+  test(function(){
+      var track = document.createElement('track');
+      track.setAttribute('src', t.input);
+      assert_equals(track.src, t.expectedIDL);
+      assert_equals(track.getAttribute('src'), t.input);
+  }, [document.title, t.desc, 'in content attribute'].join(' '));
+
+  test(function(){
+      var track = document.createElement('track');
+      track.src = t.input;
+      assert_equals(track.src, t.expectedIDL);
+      assert_equals(track.getAttribute('src'), t.input);
+  }, [document.title, 'assigning', t.desc, 'to IDL attribute'].join(' '));
+});
+</script>

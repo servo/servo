@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Minimum size of grid items</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#min-size-auto" title="6.6. Implied Minimum Size of Grid Items">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#algo-track-sizing" title="12.3. Track Sizing Algorithm">
+<meta name="assert" content="Checks how automatic minimum size of images affect to the calculation of the grid container size and the grid tracks. Verifies the sizing of the image in the different cases too.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .grid {
+    display: inline-grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto;
+    font: 25px/1 Ahem;
+  }
+
+  .grid2rows {
+    grid-template-rows: auto auto;
+  }
+
+  .constrainedGrid {
+    width: 10px;
+    height: 10px;
+  }
+
+  .item {
+    background: black;
+    width: 100px;
+    height: 25px;
+  }
+
+  .justifyContentStart {
+    justify-content: start;
+  }
+
+  .width200px {
+    width: 200px;
+  }
+
+  .width100percent {
+    width: 100%;
+  }
+</style>
+
+<script>
+  function checkGridSizeTracksAndImageSize(gridId, imgId, gridWidth, gridHeight, gridColumns, gridRows, imgWidth, imgHeight) {
+    const gridStyle = getComputedStyle(document.getElementById(gridId));
+    const imgStyle = getComputedStyle(document.getElementById(imgId));
+
+    test(
+      function() {
+        assert_equals(gridStyle.width, gridWidth);
+      }, gridId + ".width");
+    test(
+      function() {
+        assert_equals(gridStyle.height, gridHeight);
+      }, gridId + ".height");
+    test(
+      function() {
+        assert_equals(gridStyle.gridTemplateColumns, gridColumns);
+      }, gridId + ".gridTemplateColumns");
+    test(
+      function() {
+        assert_equals(gridStyle.gridTemplateRows, gridRows);
+      }, gridId + ".gridTemplateRows");
+    test(
+      function() {
+        assert_equals(imgStyle.width, imgWidth);
+      }, imgId + ".width");
+    test(
+      function() {
+        assert_equals(imgStyle.height, imgHeight);
+      }, imgId + ".height");
+  }
+
+  setup({ explicit_done: true });
+
+  function runTests() {
+    checkGridSizeTracksAndImageSize("grid-1", "img-1", "200px", "200px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-2", "img-2", "10px", "10px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-3", "img-3", "200px", "200px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-4", "img-4", "200px", "10px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-5", "img-5", "200px", "50px", "50px", "50px", "50px", "50px");
+    checkGridSizeTracksAndImageSize("grid-6", "img-6", "200px", "10px", "50px", "50px", "50px", "50px");
+    checkGridSizeTracksAndImageSize("grid-7", "img-7", "200px", "225px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-8", "img-8", "10px", "10px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-9", "img-9", "200px", "225px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-10", "img-10", "200px", "10px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-11", "img-11", "200px", "125px", "100px", "100px 25px", "100px", "100px");
+    checkGridSizeTracksAndImageSize("grid-12", "img-12", "200px", "10px", "100px", "100px 25px", "100px", "100px");
+    checkGridSizeTracksAndImageSize("grid-13", "img-13", "200px", "200px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-14", "img-14", "10px", "10px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-15", "img-15", "200px", "200px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-16", "img-16", "200px", "10px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-17", "img-17", "200px", "200px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-18", "img-18", "200px", "10px", "200px", "200px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-19", "img-19", "200px", "225px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-20", "img-20", "10px", "10px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-21", "img-21", "200px", "225px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-22", "img-22", "200px", "10px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-23", "img-23", "200px", "225px", "200px", "200px 25px", "200px", "200px");
+    checkGridSizeTracksAndImageSize("grid-24", "img-24", "200px", "10px", "200px", "200px 25px", "200px", "200px");
+
+    done();
+  }
+</script>
+
+<body onload="document.fonts.ready.then(() => { runTests(); })">
+<div id=log></div>
+
+<!-- Grids with only a 50x50 image as grid item. -->
+
+<div id="grid-1" class="grid">
+  <img id="img-1" class="width200px" src="support/50x50-green.png">
+</div>
+
+<div id="grid-2" class="grid constrainedGrid">
+  <img id="img-2" class="width200px" src="support/50x50-green.png">
+</div>
+
+<div id="grid-3" class="grid width200px">
+  <img id="img-3" class="width100percent" src="support/50x50-green.png">
+</div>
+
+<div id="grid-4" class="grid width200px constrainedGrid">
+  <img id="img-4" class="width100percent" src="support/50x50-green.png">
+</div>
+
+<div id="grid-5" class="grid width200px justifyContentStart">
+  <img id="img-5" class="width100percent" src="support/50x50-green.png">
+</div>
+
+<div id="grid-6" class="grid width200px constrainedGrid justifyContentStart">
+  <img id="img-6" class="width100percent" src="support/50x50-green.png">
+</div>
+
+<!-- Grids with a 50x50 image as grid item and a 100x25 text grid item. -->
+
+<div id="grid-7" class="grid grid2rows">
+  <img id="img-7" class="width200px" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-8" class="grid grid2rows constrainedGrid">
+  <img id="img-8" class="width200px" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-9" class="grid grid2rows width200px">
+  <img id="img-9" class="width100percent" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-10" class="grid grid2rows width200px constrainedGrid">
+  <img id="img-10" class="width100percent" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-11" class="grid grid2rows width200px justifyContentStart">
+  <img id="img-11" class="width100percent" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-12" class="grid grid2rows width200px constrainedGrid justifyContentStart">
+  <img id="img-12" class="width100percent" src="support/50x50-green.png">
+  <span class="item"></span>
+</div>
+
+<!-- Grids with only a 500x500 image as grid item. -->
+
+<div id="grid-13" class="grid">
+  <img id="img-13" class="width200px" src="support/500x500-green.png">
+</div>
+
+<div id="grid-14" class="grid constrainedGrid">
+  <img id="img-14" class="width200px" src="support/500x500-green.png">
+</div>
+
+<div id="grid-15" class="grid width200px">
+  <img id="img-15" class="width100percent" src="support/500x500-green.png">
+</div>
+
+<div id="grid-16" class="grid width200px constrainedGrid">
+  <img id="img-16" class="width100percent" src="support/500x500-green.png">
+</div>
+
+<div id="grid-17" class="grid width200px justifyContentStart">
+  <img id="img-17" class="width100percent" src="support/500x500-green.png">
+</div>
+
+<div id="grid-18" class="grid width200px constrainedGrid justifyContentStart">
+  <img id="img-18" class="width100percent" src="support/500x500-green.png">
+</div>
+
+<!-- Grids with a 500x500 image as grid item and a 100x25 text grid item. -->
+
+<div id="grid-19" class="grid grid2rows">
+  <img id="img-19" class="width200px" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-20" class="grid grid2rows constrainedGrid">
+  <img id="img-20" class="width200px" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-21" class="grid grid2rows width200px">
+  <img id="img-21" class="width100percent" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-22" class="grid grid2rows width200px constrainedGrid">
+  <img id="img-22" class="width100percent" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-23" class="grid grid2rows width200px justifyContentStart">
+  <img id="img-23" class="width100percent" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+
+<div id="grid-24" class="grid grid2rows width200px constrainedGrid justifyContentStart">
+  <img id="img-24" class="width100percent" src="support/500x500-green.png">
+  <span class="item"></span>
+</div>
+</body>

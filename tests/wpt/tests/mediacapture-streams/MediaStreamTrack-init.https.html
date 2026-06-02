@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia({video:true}) creates a stream with a properly initialized video track</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-MediaStreamTrack">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#life-cycle-and-media-flow">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-kind">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-enabled">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-readyState">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that the video track of MediaStream
+object returned by the success callback in getUserMedia is correctly initialized.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const videoTracks = stream.getVideoTracks();
+  assert_equals(videoTracks.length, 1, "There is exactly one video track in the media stream");
+  track = videoTracks[0];
+  assert_equals(track.readyState, "live", "The track object is in live state");
+  assert_equals(track.kind, "video", "The track object is of video kind");
+  // Not clear that this is required by the spec,
+  // see https://www.w3.org/Bugs/Public/show_bug.cgi?id=22212
+  assert_true(track.enabled, "The track object is enabed");
+});
+</script>
+</body>
+</html>

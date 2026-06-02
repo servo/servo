@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+  <head>
+    <title>spinbutton</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+      "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "valuetext:awesome"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValueDescription",
+                  "is",
+                  "awesome"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "accValue",
+                  "is",
+                  "awesome"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "valuetext:awesome"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Value.Value",
+                  "is",
+                  "awesome"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-valuetext"
+}
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines exposure for aria-valuetext on a spinbutton.</p>
+    <div role='spinbutton' id='test' aria-valuetext="awesome">10</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

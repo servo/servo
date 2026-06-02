@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS.supports() Level 5</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#at-supports-ext">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    assert_equals(CSS.supports("font-format(opentype)"), true);
+  }, "font-format() function accepts a known format");
+
+  test(function() {
+    assert_equals(CSS.supports("font-format(xyzzy)"), false);
+  }, "font-format() function doesn't accept an unknown format");
+
+  test(function() {
+    assert_equals(CSS.supports("font-format(opentype, truetype)"), false);
+  }, "font-format() function doesn't accept a format list");
+
+  test(function() {
+    assert_equals(CSS.supports("font-format('opentype')"), false);
+  }, "font-format() function doesn't accept a string.");
+
+  test(function() {
+    assert_equals(CSS.supports("font-tech(features-opentype)"), true);
+  }, "font-tech() function accepts a known technology");
+
+  test(function() {
+    assert_equals(CSS.supports("font-tech(feature-opentype)"), false);
+  }, "font-tech() function doesn't accept singular feature-* form for technology");
+
+  test(function() {
+    assert_equals(CSS.supports("font-tech(foobar)"), false);
+  }, "font-tech() function doesn't accept an unknown technology");
+
+  test(function() {
+    assert_equals(CSS.supports("font-tech(features-opentype, color-COLRv0)"), false);
+  }, "font-tech() function doesn't accept a technology list");
+
+  test(function() {
+    assert_equals(CSS.supports("font-tech('features-opentype')"), false);
+  }, "font-tech() function doesn't accept a string.");
+</script>

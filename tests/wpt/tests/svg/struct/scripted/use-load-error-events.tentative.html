@@ -1,0 +1,128 @@
+<!doctype html>
+<title>'load' and 'error' events for SVG &lt;use></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+  <defs>
+    <rect id="local" width="100" height="100" fill="blue"/>
+  </defs>
+</svg>
+<script>
+  function newUseElement() {
+    return document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  }
+  function makeWatcher(root, eventType, url) {
+    return new Promise(resolve => {
+      const watcher = newUseElement();
+      watcher.addEventListener(eventType, resolve);
+      watcher.setAttribute('href', url);
+      root.appendChild(watcher);
+    });
+  }
+  function expectEvents(t, element, event) {
+    return new EventWatcher(t, element, ['load', 'error']).wait_for(event);
+  }
+  const DATA_URL_PAYLOAD =
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect id="green" fill="lime" width="100" height="50"/></svg>';
+  const cookie = Date.now();
+  let counter = 0;
+  function makeCookie(index) {
+    return `${cookie}-${index}`;
+  }
+  function getUrl(type) {
+    const cookie = makeCookie(counter++);
+    switch (type) {
+    case 'existing':
+      return `/images/colors.svg?${cookie}#green`;
+    case 'existing-data':
+      return `data:image/svg+xml,${DATA_URL_PAYLOAD}#green`;
+    case 'non-existing':
+      return `/images/this-file-should-not-exist.svg?${cookie}#green`;
+    case 'broken':
+      return `/images/fail.gif?${cookie}#green`;
+    }
+  }
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    expectEvents(t, use, []);
+    svg.appendChild(use).setAttribute('href', '#local');
+    return waitForAtLeastOneFrame();
+  }, document.title + ', local reference, existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    expectEvents(t, use, []);
+    svg.appendChild(use).setAttribute('href', '#local_not_there');
+    return waitForAtLeastOneFrame();
+  }, document.title + ', local reference, non-existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    const watcher = expectEvents(t, use, ['load']);
+    const url = getUrl('existing');
+    svg.appendChild(use).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external reference, existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    const watcher = expectEvents(t, use, ['error']);
+    const url = getUrl('existing-data');
+    svg.appendChild(use).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external data: URL reference, existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    const watcher = expectEvents(t, use, ['error']);
+    const url = getUrl('non-existing');
+    svg.appendChild(use).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external reference, non-existing');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    const watcher = expectEvents(t, use, ['error']);
+    const url = getUrl('broken');
+    svg.appendChild(use).setAttribute('href', url);
+    return watcher;
+  }, document.title + ', external reference, existing, parse error');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    expectEvents(t, use, []);
+    const url = getUrl('existing');
+    svg.appendChild(use).setAttribute('href', url);
+    t.step_timeout(() => use.setAttribute('href', '#local'));
+    return makeWatcher(svg, 'load', url);
+  }, document.title + ', external reference, existing, changed to local reference while loading');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    expectEvents(t, use, []);
+    const url = getUrl('existing-data');
+    svg.appendChild(use).setAttribute('href', url);
+    t.step_timeout(() => use.setAttribute('href', '#local'));
+    return makeWatcher(svg, 'error', url);
+  }, document.title + ', external data: URL reference, existing, changed to local reference while loading');
+
+  promise_test(t => {
+    const svg = document.querySelector('svg');
+    const use = newUseElement();
+    expectEvents(t, use, []);
+    const url = getUrl('non-existing');
+    svg.appendChild(use).setAttribute('href', url);
+    t.step_timeout(() => use.setAttribute('href', '#local'));
+    return makeWatcher(svg, 'error', url);
+  }, document.title + ', external reference, non-existing, changed to local reference while loading');
+</script>

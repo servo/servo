@@ -1,0 +1,33 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  assert_equals(window.navigator, window.navigator);
+  assert_true(window.navigator instanceof Navigator, "Should be Navigator");
+
+  var nav = window.navigator;
+  assert_equals(nav.product, "Gecko");
+  assert_equals(nav.taintEnabled(), false);
+  assert_equals(nav.appName, "Netscape");
+  assert_equals(nav.appCodeName, "Mozilla");
+  assert_equals(nav.appVersion, "4.0");
+}, "navigator");
+
+
+test(function() {
+  assert_equals(navigator.platform, "Linux");
+}, "navigator.platform linux");
+
+test(function() {
+  assert_equals(navigator.platform, "Mac");
+}, "navigator.platform mac");
+
+
+</script>
+</body>
+</html>

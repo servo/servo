@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-height" />
+<meta name="assert" content="Tests a dynamic change in height correctly resizes a child element."/>
+<script src="/common/reftest-wait.js"></script>
+<style>
+#container {
+  background: red;
+
+  box-sizing: border-box;
+  border: solid green 10px;
+  width: 100px;
+  height: 200px;
+}
+
+#block {
+  background: green;
+  height: 80px;
+}
+
+#target {
+  height: 100%;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="target">
+    <div id="block"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+const container = document.getElementById('container');
+container.style.height = '100px';
+document.body.offsetTop;
+takeScreenshot();
+</script>

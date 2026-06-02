@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Active Mode auto selected flag tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_optional,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
+  test_options.identity.mode = "active";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+    await select_manifest(t, test_options);
+
+    let cred = await fedcm_get_and_select_first_account(t, test_options);
+    assert_equals(cred.token, "is_auto_selected=false");
+
+    test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
+    await select_manifest(t, test_options);
+
+    cred = await navigator.credentials.get(test_options);
+    assert_equals(cred.token, "is_auto_selected=true");
+    assert_equals(cred.isAutoSelected, true);
+  });
+}, "Test that the auto selected flag can be true in active mode.");
+
+</script>

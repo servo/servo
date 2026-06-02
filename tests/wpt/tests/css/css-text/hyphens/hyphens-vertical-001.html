@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text test: soft hyphens in vertical writing mode</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphenation">
+<link rel="match" href="reference/hyphens-vertical-001-ref.html">
+<meta name="assert" content="Check rendering of soft-hyphen character in vertical writing mode">
+
+<style>
+    div {
+        font: 16px monospace;
+        writing-mode: vertical-rl;
+        border: 1px solid gray;
+        margin: 10px;
+        padding: 2px;
+        hyphens: manual;
+        width: 3em;
+        height: 9ch;
+    }
+</style>
+
+<p>Test passes if the two boxes look the same:</p>
+
+<div>
+    hyphen&shy;ation
+</div>
+
+<div>
+    hyphen&#x2010;<br>ation
+</div>

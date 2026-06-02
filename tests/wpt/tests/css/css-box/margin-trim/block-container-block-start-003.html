@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Block-start margin trim on container that establishes a new block formatting context</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:flow-root; margin-trim:block-start; width:100px; height:100px; background:red;">
+  <div style="height:100px; margin-top:20px; background:green;"></div>
+</div>

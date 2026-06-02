@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  button {
+    border: 1em solid green;
+    margin: 0;
+    /* In case the testcase's 'inner' text is taller than the button, don't let
+       it influence its line-box's size.  This lets us more-easily compare
+       sizing between empty buttons vs. contained nonempty buttons. */
+    vertical-align: top;
+  }
+  .vaBaseline {
+    vertical-align: baseline;
+  }
+  .width-ref {
+    width: 50px;
+  }
+  .height-ref {
+    height: 50px;
+    background: lightblue;
+  }
+  .floatLBasic-ref {
+    float: left;
+  }
+  .floatLWidth-ref {
+    float: left;
+    width: 50px;
+  }
+  br { clear: both }
+  .iFlexBasic-ref {
+    display: inline-flex;
+  }
+  .iFlexWidth-ref {
+    display: inline-flex;
+    width: 50px;
+  }
+  .innerContents {
+    color: transparent;
+    height: 0;
+    width: 0;
+  }
+  .orthog-ref {
+    writing-mode: vertical-lr;
+  }
+  </style>
+</head>
+<body>
+  <button></button>
+  <br>
+
+  <button class="floatLBasic-ref"></button>
+  <br>
+
+  <button class="floatLWidth-ref"></button>
+  <br>
+
+  <button class="iFlexBasic-ref"></button>
+  <br>
+
+  <button class="iFlexWidth-ref"></button>
+  <br>
+
+  outside before<button class="vaBaseline"><div class="innerContents">inner</div></button>outside after
+  <br>
+
+  <button class="width-ref"></button>
+  <br>
+
+  <button class="width-ref"></button>
+  <br>
+
+  <button class="height-ref"></button>
+  <br>
+
+  <button class="height-ref"></button>
+  <br>
+
+  s<button class="orthog-ref vaBaseline"><div class="innerContents">inner</div></button>endtext
+  <br>
+
+  <button class="height-ref width-ref">inside</button>
+</body>
+</html>

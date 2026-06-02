@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Parsing text-decoration-inset with invalid values</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<meta name="assert" content="text-decoration-inset supports the full grammar '<length>{1,2} | auto'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("text-decoration-inset", "none");
+test_invalid_value("text-decoration-inset", "normal");
+test_invalid_value("text-decoration-inset", "auto auto");
+test_invalid_value("text-decoration-inset", "0 auto");
+test_invalid_value("text-decoration-inset", "auto none");
+test_invalid_value("text-decoration-inset", "1px auto");
+test_invalid_value("text-decoration-inset", "auto -1px");
+test_invalid_value("text-decoration-inset", "10%");
+test_invalid_value("text-decoration-inset", "45deg");
+</script>

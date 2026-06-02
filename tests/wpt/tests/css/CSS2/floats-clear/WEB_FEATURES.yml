@@ -1,0 +1,8 @@
+features:
+  - name: float-clear
+    files:
+      - 'clear-0*'
+      - 'clear-applies-to-*'
+      - 'clear-default-inheritance-001.xht'
+      - 'clear-initial-001.xht'
+      - 'float-applies-to-*'

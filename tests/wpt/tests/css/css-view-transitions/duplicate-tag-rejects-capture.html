@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: duplicate tags in the old DOM skip the transition</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+}
+</style>
+
+<div id=first></div>
+<div id=second></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise((resolve, reject) => {
+    first.style = "view-transition-name: target";
+    second.style = "view-transition-name: target";
+    let transition = document.startViewTransition();
+
+    // Ready rejected first since invoking the dom callback is an async task.
+    let readyRejected = false;
+    transition.ready.then(reject, () => {readyRejected = true;});
+
+    // The domUpdate promise resolves (since there is no callback).
+    let updateCallbackDoneResolved = false;
+    transition.updateCallbackDone.then(() => {
+      assert_true(readyRejected, "ready not rejected before updateCallbackDone");
+      updateCallbackDoneResolved = true;
+    }, reject);
+
+    // Finally finish resolves.
+    transition.finished.then(() => {
+      assert_true(updateCallbackDoneResolved, "updateCallbackDone not resolved before finish");
+      resolve();
+    }, reject);
+  });
+}, "Two different elements with the same name in the old DOM should skip the transition");
+</script>

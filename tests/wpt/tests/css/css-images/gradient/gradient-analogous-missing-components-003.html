@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Gradient analogous missing components carry forward logic tests</title>
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<meta name="assert" content="Tests that analogous missing components logic works.">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-40000">
+<link rel="match" href="gradient-analogous-missing-components-003-ref.html">
+<style>
+    .test {
+        margin: 10px 50px;
+        width: 200px;
+        height: 50px;
+        border: 1px solid black;
+        --stop2: rgb(0 255 0); /* lime  */
+    }
+
+    .test1 {
+        background: linear-gradient(to right in hsl shorter hue, color(srgb none 1 none), var(--stop2));
+    }
+
+    .test2 {
+        background: linear-gradient(to right in hsl increasing hue, color(srgb none 1 none), var(--stop2));
+    }
+
+    .test3 {
+        background: linear-gradient(to right in hsl decreasing hue, color(srgb none 1 none), var(--stop2));
+    }
+</style>
+<div class="test test1">This should be a lime background.</div>
+<div class="test test2">This should be a lime background.</div>
+<div class="test test3">This should be a lime background.</div>

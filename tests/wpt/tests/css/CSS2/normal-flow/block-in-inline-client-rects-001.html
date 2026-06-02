@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-htmlelement-offsetwidth" />
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-range-getboundingclientrect" />
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  width: 500px;
+}
+.inline-block {
+  display: inline-block;
+  width: 100px;
+  height: 1px;
+  background: blue;
+}
+.w200 {
+  width: 200px;
+}
+</style>
+<body>
+  <!-- The `<span>` contains an empty block child -->
+  <div>
+    <span id="t1" class="target">
+      <div class="inline-block"></div>
+      <div></div>
+      <div class="inline-block w200"></div>
+    </span>
+  </div>
+
+  <!-- The `<span>` contains non-empty block child -->
+  <div>
+    <span id="t2" class="target">
+      <div class="inline-block"></div>
+      <div>non-empty</div>
+      <div class="inline-block w200"></div>
+    </span>
+  </div>
+
+  <!-- The `<span>` contains empty but non-zero height block child -->
+  <div>
+    <span id="t3" class="target">
+      <div class="inline-block"></div>
+      <div style="height: 100px"></div>
+      <div class="inline-block w200"></div>
+    </span>
+  </div>
+<script>
+// The `getBoundingClientRect` spec[1] says to ignore rects "of which the
+// height or width is not zero."
+// [1] https://www.w3.org/TR/cssom-view-1/#dom-range-getboundingclientrect
+function testGetBoundingClientRect() {
+  test(()=> { assert_equals(t1.getBoundingClientRect().width, 200); },
+                            `t1.getBoundingClientRect().width`);
+  test(()=> { assert_equals(t2.getBoundingClientRect().width, 500); },
+                            `t2.getBoundingClientRect().width`);
+  test(()=> { assert_equals(t3.getBoundingClientRect().width, 500); },
+                            `t3.getBoundingClientRect().width`);
+}
+testGetBoundingClientRect();
+
+// Skip testing `offsetWidth` because the 3 implementations return different
+// values for these cases, and the expectations aren't clear from the spec.
+// https://github.com/w3c/csswg-drafts/issues/6588
+function testOffsetWidth() {
+  test(()=> { assert_equals(t1.offsetWidth, 200); }, `t1.offsetWidth`);
+  test(()=> { assert_equals(t2.offsetWidth, 500); }, `t2.offsetWidth`);
+  test(()=> { assert_equals(t3.offsetWidth, 500); }, `t3.offsetWidth`);
+}
+// testOffsetWidth();
+</script>
+</body>

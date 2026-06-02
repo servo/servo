@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+assert_true(document.prerendering);
+parent.postMessage(
+    {name: 'crossOriginIsolated', value: self.crossOriginIsolated}, '*');
+</script>
+</body>

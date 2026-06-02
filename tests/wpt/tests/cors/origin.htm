@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Access-Control-Allow-Origin handling</title>
+<meta name="timeout" content="long">
+<link rel=help href=https://fetch.spec.whatwg.org/>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Access-Control-Allow-Origin handling</h1>
+
+<div id=log></div>
+
+<script>
+
+/*
+ * Origin header
+ */
+function shouldPass(origin) {
+    test(function () {
+        var client = new XMLHttpRequest()
+        client.open('GET', CROSSDOMAIN
+                            + '/resources/cors-makeheader.py?origin='
+                            + encodeURIComponent(origin),
+                    false)
+        client.send()
+        r = JSON.parse(client.response)
+        var host = location.protocol + "//" + location.host
+        assert_equals(r['origin'], host, 'Request Origin: should be ' + host)
+    }, 'Allow origin: ' + origin.replace(/\t/g, "[tab]").replace(/ /g, '_'));
+}
+
+shouldPass('*');
+shouldPass(' *  ');
+shouldPass('	*');
+shouldPass(location.protocol + "//" + location.host);
+shouldPass(" "+location.protocol + "//" + location.host);
+shouldPass(" "+location.protocol + "//" + location.host + "   	 ");
+shouldPass("	"+location.protocol + "//" + location.host);
+
+
+function shouldFail(origin) {
+    test(function () {
+        var client = new XMLHttpRequest()
+        client.open('GET', CROSSDOMAIN
+                            + '/resources/cors-makeheader.py?origin='
+                            + encodeURIComponent(origin),
+                    false)
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
+    }, 'Disallow origin: ' + origin.replace(/\0/g, "\\0"));
+}
+
+shouldFail(location.protocol + "//" + SUBDOMAIN + "." + location.host)
+shouldFail("//" + location.host)
+shouldFail("://" + location.host)
+shouldFail("ftp://" + location.host)
+shouldFail("http:://" + location.host)
+shouldFail("http:/" + location.host)
+shouldFail("http:" + location.host)
+shouldFail(location.host)
+shouldFail(location.protocol + "//" + location.host + "?")
+shouldFail(location.protocol + "//" + location.host + "/")
+shouldFail(location.protocol + "//" + location.host + " /")
+shouldFail(location.protocol + "//" + location.host + "#")
+shouldFail(location.protocol + "//" + location.host + "%23")
+shouldFail(location.protocol + "//" + location.host + ":80")
+shouldFail(location.protocol + "//" + location.host + ", *")
+shouldFail(location.protocol + "//" + location.host + "\0")
+shouldFail((location.protocol + "//" + location.host).toUpperCase())
+shouldFail(location.protocol.toUpperCase() + "//" + location.host)
+shouldFail("-")
+shouldFail("**")
+shouldFail(",*");
+shouldFail("*,");
+shouldFail("\0*")
+shouldFail("\u000B*");
+shouldFail("\u000C*");
+shouldFail("*\0")
+shouldFail("*\u000B");
+shouldFail("*\u000C");
+shouldFail("'*'")
+shouldFail('"*"')
+shouldFail("* *")
+shouldFail("* null")
+shouldFail("*" + location.protocol + "//" + "*")
+shouldFail("*" + location.protocol + "//" + location.host)
+shouldFail("* " + location.protocol + "//" + location.host)
+shouldFail("*, " + location.protocol + "//" + location.host)
+shouldFail("\0" + location.protocol + "//" + location.host)
+shouldFail("null " + location.protocol + "//" + location.host)
+shouldFail('http://example.net')
+shouldFail('null')
+shouldFail('null *')
+shouldFail('')
+shouldFail(location.href)
+shouldFail(dirname(location.href))
+shouldFail(CROSSDOMAIN)
+shouldFail(location.host.replace(/^[^\.]+\./, ""))
+shouldFail("." + location.host.replace(/^[^\.]+\./, ""))
+shouldFail("*." + location.host.replace(/^[^\.]+\./, ""))
+shouldFail("http://" + location.host.replace(/^[^\.]+\./, ""))
+shouldFail("http://." + location.host.replace(/^[^\.]+\./, ""))
+shouldFail("http://*." + location.host.replace(/^[^\.]+\./, ""))
+
+function doubleOrigin(origin, origin2) {
+    test(function () {
+        var client = new XMLHttpRequest()
+        client.open('GET', CROSSDOMAIN
+                            + '/resources/cors-makeheader.py?origin='
+                            + encodeURIComponent(origin)
+                            + '&origin2=' + encodeURIComponent(origin2),
+                    false)
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
+    }, 'Disallow multiple headers (' + origin + ', ' + origin2 + ')');
+}
+
+doubleOrigin('', '*');
+doubleOrigin('*', '');
+doubleOrigin('*', '*');
+doubleOrigin('', location.protocol + "//" + location.host);
+doubleOrigin('*', location.protocol + "//" + location.host);
+doubleOrigin(location.protocol + "//" + location.host, location.protocol + "//" + location.host);
+
+</script>

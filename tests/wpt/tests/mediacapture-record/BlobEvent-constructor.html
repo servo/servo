@@ -1,0 +1,38 @@
+<!doctype html>
+<title>BlobEvent constructor</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#blob-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(BlobEvent.length, 2);
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type");
+  });
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type", null);
+  });
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type", undefined);
+  });
+}, "The BlobEventInit dictionary is required");
+
+test(function() {
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type", {});
+  });
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type", { data: null });
+  });
+  assert_throws_js(TypeError, function() {
+    new BlobEvent("type", { data: undefined });
+  });
+}, "The BlobEventInit dictionary's data member is required.");
+
+test(function() {
+  var blob = new Blob();
+  var event = new BlobEvent("type", { data: blob });
+  assert_equals(event.type, "type");
+  assert_equals(event.data, blob);
+}, "The BlobEvent instance's data attribute is set.");
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: paint' and absolutely positioned descendants</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-paint">
+  <link rel="match" href="reference/contain-paint-022-ref.html">
+
+  <meta content="This test checks that paint containment applies to atomic inline elements and then they act as containing block for absolutely positioned descendants." name="assert">
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+  div#incorrect-containing-block
+    {
+      color: transparent;
+      font-family: Ahem;
+      font-size: 100px;
+      height: 2em;
+      line-height: 1;
+      position: relative;
+      width: 2em;
+    }
+
+  div#correct-containing-block
+    {
+      background-color: red;
+      contain: paint;
+      display: inline-block;
+      height: 1em;
+      width: 1em;
+    }
+
+  div#abspos
+    {
+      background-color: green;
+      height: 1em;
+      left: 0;
+      position: absolute;
+      top: 0;
+      width: 1em;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="incorrect-containing-block">
+
+  AB C<div id="correct-containing-block">
+
+      <div id="abspos"></div>
+
+    </div>
+
+  </div>

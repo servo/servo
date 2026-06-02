@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Test for crash when inert br gains illegal child -->
+<html>
+<dialog></dialog>
+<br>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.querySelector('dialog').showModal();
+    const br = document.querySelector('br');
+    br.appendChild(document.createElement('fieldset'));
+  });
+});
+</script>
+
+</html>

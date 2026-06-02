@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <style>
+  table
+    {
+      border-spacing: 0px;
+      table-layout: fixed;
+    }
+
+  td
+    {
+      padding: 0px;
+    }
+
+  td.green-square
+    {
+      background-color: green;
+      height: 25px;
+      width: 25px;
+    }
+
+  td#blue-square
+    {
+      border: blue solid 1px;
+      height: 48px;
+      width: 48px;
+    }
+  </style>
+
+  <p>Test passes if there is an hollow blue square with smaller filled green squares at its corners and <strong>no red</strong>.
+
+  <table>
+
+    <tr><td class="green-square"><td><td class="green-square">
+
+    <tr><td><td id="blue-square"><td>
+
+    <tr><td class="green-square"><td><td class="green-square">
+
+  </table>

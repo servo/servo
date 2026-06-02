@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe elements with the same resource</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  let numEntries = 0;
+  let loadTime1;
+  let loadTime2;
+  let renderTime1;
+  let renderTime2;
+  let img;
+  let img2;
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const pathname = window.location.origin + '/element-timing/resources/square100.png';
+        // Easier to check the |element| attribute here since element ID is the same for both images.
+        checkElement(entry, pathname, entry.identifier, 'image_id', beforeRender, null);
+        checkNaturalSize(entry, 100, 100);
+        if (entry.identifier === 'my_image') {
+          ++numEntries;
+          loadTime1 = entry.loadTime;
+          renderTime1 = entry.renderTime;
+          assert_equals(entry.element, img);
+
+          img2 = document.createElement('img');
+          img2.src = 'resources/square100.png';
+          img2.setAttribute('elementtiming', 'my_image2');
+          img2.setAttribute('id', 'image_id');
+          document.body.appendChild(img2);
+          beforeRender = performance.now();
+        }
+        else if (entry.identifier === 'my_image2') {
+          ++numEntries;
+          loadTime2 = entry.loadTime;
+          renderTime2 = entry.renderTime;
+          assert_equals(entry.element, img2);
+        }
+        if (numEntries == 2) {
+          assert_greater_than(loadTime2, loadTime1, 'Second image loads after first.');
+          assert_greater_than(renderTime2, renderTime1, 'Second image renders after first');
+          t.done();
+        }
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the images during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add image of width and height equal to 100.
+      img = document.createElement('img');
+      img.src = 'resources/square100.png';
+      img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'image_id');
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    };
+  }, 'Elements with elementtiming and same src are observable.');
+</script>
+
+</body>

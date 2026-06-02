@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-dense-packing-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    background: gray;
+    flow-tolerance: 0;
+    grid-lanes-direction: row;
+    grid-template-rows: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing always prioritizes the start-most track opening. Item 6 should go into the top-most track-opening.</p>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; width: 20px;" >
+     1
+    </div>
+    <div style="background: lightcoral; width: 60px;" >
+      2
+    </div>
+    <div style="background: lightgreen; width: 20px;">
+      3
+    </div>
+    <div style="background: brown; width: 10px; grid-row: span 3;">
+      4
+    </div>
+    <div style="background:orchid; width: 10px; grid-row: span 2;">
+      5
+    </div>
+    <div style="background: yellow; width: 40px;">
+      6
+    </div>
+  </div>
+</body>
+</html>

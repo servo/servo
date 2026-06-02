@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<a href="/forward/" id="navigateLink">Click here!</button>
+<h1>Heading!</h1>
+<div id="content"></div>
+
+<script>
+  window.onload = () => {
+    if (test_driver) {
+      test_driver.click(navigateLink);
+    }
+  };
+
+  window.navigation.addEventListener('navigate', e => {
+    e.intercept({
+      async precommitHandler(controller) {
+        // Defer resolving the precommit promise to ensure the navigation is
+        // tracked from the link click through to commit, across tasks.
+        await scheduler.postTask(() => {}, {delay: 20});
+      },
+
+      async handler() {
+        const url = new URL(e.destination.url);
+        if (url.pathname == '/forward/') {
+          // Update the DOM in a separate task to ensure the soft navigation
+          // state continues to be propagated from the commit.
+          await scheduler.yield();
+          content.innerHTML = "<div>The Page Has Navigated</div>";
+        }
+      }
+    });
+  });
+
+  promise_test(async t => {
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+    const helper = new SoftNavigationTestHelper(t);
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith('/forward/'),
+      `Unexpected Soft Navigation URL. Expected URL to end with "/forward/" but got ${softNavs[0].name}`);
+  }, 'Soft Navigation Detection supports navigation API precommit handlers');
+</script>

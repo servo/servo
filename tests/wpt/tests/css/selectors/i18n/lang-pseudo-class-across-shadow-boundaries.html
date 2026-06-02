@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/selectors/#lang-pseudo">
+<link rel="match" href="lang-pseudo-class-across-shadow-boundaries-ref.html">
+</head>
+<body>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<style>
+#testCases div { width: 100px; height: 25px; }
+#host1:lang(zh) { background: green; }
+#host3 > :lang(ja) { background: green; }
+#host4 > div { background: red; }
+</style>
+<div id="testCases">
+<div id="host1" lang="zh"><div></div></div>
+<div id="host2" lang="de"><div></div></div>
+<div id="host3" lang="ja"><div></div></div>
+<div id="host4"><div></div></div>
+</div>
+<script>
+host1.attachShadow({mode: 'closed'}).innerHTML = '<slot></slot>';
+host2.attachShadow({mode: 'closed'}).innerHTML = '<style> div { width: 100px; height: 25px; background: red; } div:lang(de) { background: green; } </style><div></div>';
+host3.attachShadow({mode: 'closed'}).innerHTML = '<slot lang="en"></slot>';
+host4.attachShadow({mode: 'closed'}).innerHTML = '<style> :lang(ja)::slotted(*) { background: green !important; } </style><slot lang="ja"></slot>';
+</script>
+</body>
+</html>

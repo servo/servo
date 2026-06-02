@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>View transitions: css tags generate pseudo elements in paint order (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+div {
+  position: absolute;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+}
+#one {
+  background: green;
+  left: 50px;
+  z-index: 1;
+}
+#two {
+  background: yellow;
+  left: 125px;
+  z-index: -1;
+}
+#three {
+  background: blue;
+  left: 200px;
+  z-index: 0;
+}
+body { background: lightpink; }
+</style>
+
+<div id=one></div>
+<div id=two></div>
+<div id=three></div>

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#font"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body {font-size: 12px; color: navy;}
+   .four {font: small/200% cursive;}
+   span.dummy {color: silver;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" title="15.8 Shorthand font property: the 'font' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" title="15.3 Font family: the 'font-family' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" title="15.7 Font size: the 'font-size' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+
+ </head>
+ <body>
+  <p class="four">
+   This text should be small and cursive, with double line spacing.
+   <span class="dummy"> dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text </span>
+  </p>
+ </body>
+</html>

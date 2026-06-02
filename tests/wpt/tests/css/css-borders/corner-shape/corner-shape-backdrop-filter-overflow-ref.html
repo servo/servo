@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+<style>
+    .target {
+        width: 200px;
+        height: 200px;
+        corner-shape: superellipse(1.8) scoop superellipse(-5) bevel;
+        border-radius: 25%;
+        position: relative;
+    }
+
+    .ref {
+        background: rgb(0 64 0);
+    }
+    .overflow {
+        position: absolute;
+        left: 100px;
+        top: 100px;
+        width: 200px;
+        height: 200px;
+        background: rebeccapurple;
+    }
+</style>
+</head>
+<body>
+    <div class="target ref"><div class="overflow"></div></div>
+</body>

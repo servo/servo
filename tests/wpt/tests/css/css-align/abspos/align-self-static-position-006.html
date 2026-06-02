@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Align-self:self-start/end applies to OOF elements of block elements when statically positioned.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="match" href="align-self-static-position-006-ref.html">
+<style>
+.block {
+  display: block;
+  width: 75%;
+  height: 75%;
+  border: 5px dotted blue;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+
+.end {
+  justify-self: self-end;
+  align-self: self-end;
+}
+
+.start {
+  justify-self: self-start;
+  align-self: self-start;
+}
+</style>
+<!-- self-start aligned -->
+<div class="container"><div class="block">
+  <div class="abs start"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs start" style="direction: rtl;"></div>
+</div></div>
+<div class="container"><div class="block" style="direction: rtl;">
+  <div class="abs start" style="direction: ltr;"></div>
+</div></div>
+<br>
+<!-- self-end aligned -->
+<div class="container"><div class="block">
+  <div class="abs end"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs end" style="direction: rtl;"></div>
+</div></div>
+<div class="container"><div class="block" style="direction: rtl;">
+  <div class="abs end" style="direction: ltr;"></div>
+</div></div>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and background-color (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+
+  <meta content="interact" name="flags">
+
+  <style>
+  div
+    {
+      background-color: red;
+      color: aqua;
+      display: inline;
+      font-size: 300%;
+    }
+
+  div::selection
+    {
+      background-color: green;
+    }
+
+  /*
+  Chromium 77.0.3855.0 creates a background-color #334C00 or rgb(51, 76, 0)
+  and not a green (#008000 or rgb(0, 128, 0)) background color.
+
+  Issue 1018450: background-color of ::selection should be painted as specified
+  https://bugs.chromium.org/p/chromium/issues/detail?id=1018450
+  */
+  </style>
+
+  <p>Instructions: Select a few or all characters from the words "Text sample" using a variety of methods:
+
+  <ul>
+    <li>Select by dragging (leftwardedly or rightwardedly) the mouse across the characters.
+    <li>Select by using shift + keyboard arrows when keyboard navigation / caret browsing is enabled.
+    <li>Double click a word to select it.
+    <li>Triple click the text to select it.
+  </ul>
+
+  <p>Test passes if, in every case, the background color of selected characters become green <em>and</em> if text color of selected characters remains aqua.
+
+  <div>Text sample</div>

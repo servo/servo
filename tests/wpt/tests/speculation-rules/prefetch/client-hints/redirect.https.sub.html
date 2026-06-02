@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/accept-ch-stickiness/resources/accept-ch-test.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// Both of the origins are same-site from the initiator origin.
+// `origin1` has Accept-CH cache entries while `origin2` does not.
+const hostname1 = '{{hosts[][www]}}';
+const hostname2 = '{{hosts[][www1]}}';
+const origin1 = 'https://{{hosts[][www]}}:{{ports[https][0]}}';
+const origin2 = 'https://{{hosts[][www1]}}:{{ports[https][0]}}';
+
+// First, verify the initial state to make sure that the browser does not have
+// client hints preferences cached from a previous run of the test.
+verify_initial_state(origin1 + echo, 'origin1');
+verify_initial_state(origin2 + echo, 'origin2');
+
+// Then, attempt to set Accept-CH cache only on `origin1`, and verify that CH
+// are actually sent to `initialOrigin`.
+attempt_set('navigation', origin1 + accept, 'origin1', '');
+
+// Prefetch to `origin1` is redirected to `origin2`.
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const finalUrl = agent.getExecutorURL({ page: 2, hostname: hostname2 });
+  const initialUrl = new URL('/common/redirect.py', origin1);
+  initialUrl.searchParams.set('location', finalUrl);
+
+  await agent.forceSinglePrefetch(initialUrl);
+  await agent.navigate(initialUrl,
+                       {expectedDestinationUrl: finalUrl});
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers);
+  assert_equals(headers['sec-ch-device-memory'], undefined,
+      'sec-ch-device-memory');
+}, 'Client Hints headers should be updated on redirects (drop)');
+
+// Prefetch to `origin2` is redirected to `origin1`.
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const finalUrl = agent.getExecutorURL({ page: 2, hostname: hostname1 });
+  const initialUrl = new URL('/common/redirect.py', origin2);
+  initialUrl.searchParams.set('location', finalUrl);
+
+  await agent.forceSinglePrefetch(initialUrl);
+  await agent.navigate(initialUrl,
+                       {expectedDestinationUrl: finalUrl});
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers);
+  assert_not_equals(headers['sec-ch-device-memory'], undefined,
+      'sec-ch-device-memory');
+}, 'Client Hints headers should be updated on redirects (add)');
+</script>

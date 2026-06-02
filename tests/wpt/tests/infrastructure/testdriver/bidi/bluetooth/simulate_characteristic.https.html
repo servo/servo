@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>TestDriver bidi.bluetooth.simulate_characteristic method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/bidi-bluetooth-helper.js"></script>
+
+<script>
+    promise_setup(async () => {
+        await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+        await test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe();
+    });
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise = selectFirstDeviceOnDevicePromptUpdated();
+        const [device] = await Promise.all([requestDeviceWithTrustedClick({
+            acceptAllDevices: true,
+            optionalServices: [HEART_RATE_SERVICE_UUID]
+        }), handle_prompt_promise]);
+
+        await createGattConnection(device);
+        await test_driver.bidi.bluetooth.simulate_service({
+            address: DEVICE_ADDRESS,
+            uuid: HEART_RATE_SERVICE_UUID,
+            type: 'add',
+        });
+        await test_driver.bidi.bluetooth.simulate_characteristic({
+            address: DEVICE_ADDRESS,
+            serviceUuid: HEART_RATE_SERVICE_UUID,
+            characteristicUuid: DATE_TIME_CHARACTERISTIC_UUID,
+            characteristicProperties: {
+                'read': true
+            },
+            type: 'add',
+        });
+        service = await device.gatt.getPrimaryService(HEART_RATE_SERVICE_UUID);
+        characteristics = await service.getCharacteristics();
+        assert_equals(
+            JSON.stringify(characteristics.map(characteristic => characteristic.uuid)),
+            JSON.stringify([DATE_TIME_CHARACTERISTIC_UUID])
+        );
+    }, "simulate a GATT characteristic.");
+</script>

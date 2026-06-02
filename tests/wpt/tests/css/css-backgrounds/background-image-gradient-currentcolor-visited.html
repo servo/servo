@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: Repaint gradient on currentColor change (visited)</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="background-image-gradient-currentcolor-visited-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-images-3/#color-stop-syntax">
+<style>
+  a {
+    color: red;
+    width: 100px;
+    height: 100px;
+    display: block;
+    background: linear-gradient(white, currentColor);
+  }
+  a:visited {
+    color: blue;
+  }
+  a.green:visited {
+    color: green;
+  }
+</style>
+<p>There should be a square with a white-to-green gradient and some text below.</p>
+<a id="target" href="">
+  This text should be green
+</a>
+<script>
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      target.classList.add("green");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

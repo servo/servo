@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>caret-shape block RTL sideways-rl</title>
+<link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel=match href="caret-shape-block-001-rtl-sideways-rl-ref.html">
+<meta name="assert" content="Test checks that caret-shape block works as expected in RTL in sideways-rl writing mode">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #wrapper {
+    writing-mode: sideways-rl;
+    width: stretch;
+  }
+  #target {
+    direction: rtl;
+    font-size: 3em;
+    caret-color: lime;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<p>Test passes if, when the text below is focused for editing, the text insertion caret is a lime block.</p>
+<div id="wrapper">
+  <div id="target" contenteditable spellcheck="false">امتحان</div>
+</div>
+<script>
+  document.getElementById("target").focus();
+  takeScreenshot();
+</script>

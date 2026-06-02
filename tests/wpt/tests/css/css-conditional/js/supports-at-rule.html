@@ -1,0 +1,31 @@
+<!doctype html>
+<title>@supports at-rule</title>
+<link rel="help" href="https://www.w3.org/TR/css-conditional-4/#the-css-namespace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function test_supports(rule, expected, desc) {
+    test(() => {
+      assert_equals(CSS.supports(rule), expected, 'CSS.supports(' + rule + ')');
+    }, desc);
+  }
+
+  // Basic at-rule support.
+  test_supports("at-rule(@supports)", true);
+  test_supports("at-rule( @supports)", true);
+  test_supports("at-rule(@supports )", true);
+  test_supports("at-rule(@media)", true);
+  test_supports("at-rule(@counter-style)", true);
+  test_supports("at-rule(@doesnotexist)", false);
+
+  // At-rules with special positioning requirements.
+  test_supports("at-rule(@import)", true);
+  test_supports("at-rule(@swash)", true);
+  test_supports("at-rule(@starting-style)", true);
+
+  // @charset is not an at-rule.
+  test_supports("at-rule(@charset)", false);
+
+  // Descriptors are not accepted.
+  test_supports("at-rule(@counter-style; system: fixed)", false);
+</script>

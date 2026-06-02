@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Multi-column Layout Test: multi-column element with child block (complex)</title>
+  <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-08 -->
+  <link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-multi-column-model" title="2. The multi-column model" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2013Aug/0091.html" title="[css3-multicol] Nested multicolumn elements rendering" />
+  <link rel="match" href="multicol-height-block-child-001-ref.xht" />
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="This test checks that a nested multi-column element's inline content could be clipped horizontally." />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: blue;
+  font: 20px/1 Ahem;
+  height: 8em;
+  width: 14em;
+
+  column-count: 2;
+  column-gap: 2em;
+
+  /*
+
+  N == 2;
+
+  W == 6em;
+
+  H == 8em;
+
+  */
+  }
+
+  div#outer
+  {
+  color: black;
+  column-fill: auto;
+  }
+
+  div#inner
+  {
+  color: orange;
+  column-fill: balance;
+  }
+  ]]></style>
+ </head>
+ <body>
+
+  <div id="outer">
+  bla bla bla bla bla
+
+    <div id="inner">orn orn orn zzz zzz zzz</div>
+
+  </div>
+
+  <!--
+  Both column boxes of div#inner start in the 1st column box of
+  div#outer multi-column element.  All the 6 lines of div#inner will
+  be rendered inside the 1st column box of div#outer. The first three
+  lines in the first inner column, and the last three in the second
+  inner column, which will overflow the first outer column, and
+  actually appear as if they were part of the second outer column. No
+  clipping should occur, unless explicitly requested.
+
+  All the 6 lines of #inner fit in a column row that resides in the
+  first outer column. #inner has a fixed height, and is taller than
+  what can fit in the first outer column, so it needs to continue in
+  the second outer column, with no inner column content left to
+  fragment. #inner is a 14em wide block that is put into a 6em wide
+  outer column, so it will overflow the outer column all the way to
+  22em, relatively to the left edge of the outer multicol container.
+
+  Expected results:
+
+ 0em           7em          14em            22em
+  v             v             v               v
+0 *********************************************
+  * bla         |             |               *
+  * bla         |             |               *
+  * bla         |             |               *
+  * bla         |             |               *
+5 * bla         |             |               *
+6 * orn         | zzz         |****************
+7 * orn         | zzz         |
+8 * orn         | zzz         |
+  *****************************
+
+  -->
+
+ </body>
+</html>

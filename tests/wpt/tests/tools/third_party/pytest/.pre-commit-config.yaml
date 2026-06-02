@@ -1,0 +1,93 @@
+repos:
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: "v0.4.1"
+  hooks:
+    - id: ruff
+      args: ["--fix"]
+    - id: ruff-format
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: fix-encoding-pragma
+        args: [--remove]
+    -   id: check-yaml
+    -   id: debug-statements
+        exclude: _pytest/(debugging|hookspec).py
+        language_version: python3
+-   repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.16.0
+    hooks:
+    -   id: blacken-docs
+        additional_dependencies: [black==24.1.1]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    -   id: python-use-type-annotations
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+    -   id: mypy
+        files: ^(src/|testing/|scripts/)
+        args: []
+        additional_dependencies:
+          - iniconfig>=1.1.0
+          - attrs>=19.2.0
+          - pluggy>=1.5.0
+          - packaging
+          - tomli
+          - types-pkg_resources
+          - types-tabulate
+            # for mypy running on python>=3.11 since exceptiongroup is only a dependency
+            # on <3.11
+          - exceptiongroup>=1.0.0rc8
+- repo: https://github.com/tox-dev/pyproject-fmt
+  rev: "1.8.0"
+  hooks:
+    - id: pyproject-fmt
+      # https://pyproject-fmt.readthedocs.io/en/latest/#calculating-max-supported-python-version
+      additional_dependencies: ["tox>=4.9"]
+-   repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args: ["-rn", "-sn", "--fail-on=I"]
+      stages: [manual]
+    -   id: rst
+        name: rst
+        entry: rst-lint --encoding utf-8
+        files: ^(RELEASING.rst|README.rst|TIDELIFT.rst)$
+        language: python
+        additional_dependencies: [pygments, restructuredtext_lint]
+    -   id: changelogs-rst
+        name: changelog filenames
+        language: fail
+        entry: 'changelog files must be named ####.(breaking|bugfix|deprecation|doc|feature|improvement|trivial|vendor).rst'
+        exclude: changelog/(\d+\.(breaking|bugfix|deprecation|doc|feature|improvement|trivial|vendor).rst|README.rst|_template.rst)
+        files: ^changelog/
+    -   id: py-deprecated
+        name: py library is deprecated
+        language: pygrep
+        entry: >
+            (?x)\bpy\.(
+                _code\.|
+                builtin\.|
+                code\.|
+                io\.|
+                path\.local\.sysfind|
+                process\.|
+                std\.|
+                error\.|
+                xml\.
+            )
+        types: [python]
+    -   id: py-path-deprecated
+        name: py.path usage is deprecated
+        exclude: docs|src/_pytest/deprecated.py|testing/deprecated_test.py|src/_pytest/legacypath.py
+        language: pygrep
+        entry: \bpy\.path\.local
+        types: [python]

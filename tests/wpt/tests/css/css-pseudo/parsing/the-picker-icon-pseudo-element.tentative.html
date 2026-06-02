@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS ::picker-icon Pseudo-Element Test</title>
+<link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon-pseudo-element">
+<meta name="assert" content="This test checks the validity of the ::picker-icon pseudo element selector." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_selector("::picker-icon");
+test_valid_selector("*::picker-icon", "::picker-icon");
+test_valid_selector("foo.bar[baz]::picker-icon");
+test_invalid_selector("::picker-icon *");
+
+// Combinations
+test_invalid_selector("::picker-icon::picker-icon");
+
+test_invalid_selector("::before::picker-icon");
+test_invalid_selector("::after::picker-icon");
+test_invalid_selector("::marker::picker-icon");
+test_invalid_selector("::placeholder::picker-icon");
+
+test_invalid_selector("::picker-icon::before");
+test_invalid_selector("::picker-icon::after");
+test_invalid_selector("::picker-icon::marker");
+test_invalid_selector("::picker-icon::placeholder");
+
+test_invalid_selector("::slotted(*)::picker-icon::slotted(*)");
+test_valid_selector("::slotted(*)::picker-icon");
+
+test_valid_selector("::part(foo)::picker-icon");
+</script>

@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Content Visibility: relevancy updates</title>
+<link rel="author" title="Frédéric Wang" href="mailto:fwang@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#relevant-to-the-user">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#cv-notes">
+<meta name="assert" content="Verify relevancy is properly updated for content-visibility: auto elements.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #spacer {
+    height: 300vh;
+  }
+  #contentVisibilityAuto {
+    content-visibility: auto;
+    border: solid;
+  }
+</style>
+<div>
+  <div id="log"></div>
+  <div tabindex="1" id="spacer"></div>
+  <div tabindex="2" id="contentVisibilityAuto">
+    <span>Hello, World!</span>
+  </div>
+</div>
+
+<script>
+function tick() {
+  return new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(r));
+  });
+}
+
+function contentVisibilityAutoElementIsRelevant() {
+  // A content-visibility: auto element that is not relevant skips its contents,
+  // which do not contribute to the result of innerText.
+  return contentVisibilityAuto.innerText.length > 0;
+}
+
+function clearRelevancyReasons() {
+  window.scrollTo(0, 0);
+  spacer.focus({preventScroll: true});
+  window.getSelection().empty();
+}
+
+promise_test(async function(t) {
+  // Wait for page load.
+  await new Promise(resolve => { window.addEventListener("load", resolve); });
+
+  // Register cleanup method to reset relevancy.
+  t.add_cleanup(clearRelevancyReasons);
+
+  // Element should initially not be relevant.
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "initial relevancy");
+
+  // Make element close to the viewport.
+  contentVisibilityAuto.firstElementChild.scrollIntoView();
+  await tick();
+  assert_true(contentVisibilityAutoElementIsRelevant(), "close to viewport");
+
+  // Scroll away from the element again.
+  window.scrollTo(0, 0);
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "far from viewport");
+}, "Relevancy updated after changing proximity to the viewport.");
+
+promise_test(async function(t) {
+  // Register cleanup method to reset relevancy.
+  t.add_cleanup(clearRelevancyReasons);
+
+  // Element should initially not be relevant.
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "initial relevancy");
+
+  // Focus the element.
+  contentVisibilityAuto.focus({preventScroll: true});
+  await tick();
+  assert_true(contentVisibilityAutoElementIsRelevant(), "focused");
+
+  // Unfocus the element again.
+  spacer.focus({preventScroll: true});
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "unfocused");
+}, "Relevancy updated after being focused/unfocused.");
+
+promise_test(async function(t) {
+  // Register cleanup method to reset relevancy.
+  t.add_cleanup(clearRelevancyReasons);
+
+  // Element should initially not be relevant.
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "initial relevancy");
+
+  // Select the contents of the element.
+  window.getSelection().selectAllChildren(contentVisibilityAuto);
+  await tick();
+  assert_true(contentVisibilityAutoElementIsRelevant(), "selected");
+
+  // Unselect the contents of the element.
+  window.getSelection().empty();
+  await tick();
+  assert_false(contentVisibilityAutoElementIsRelevant(), "unselected");
+}, "Relevancy updated after being selected/unselected.");
+
+</script>

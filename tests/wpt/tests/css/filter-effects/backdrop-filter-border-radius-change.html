@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Backdrop filter updates correctly when border-radius changes</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-border-radius-change-ref.html">
+<style>
+  h1 {
+    font-size: 100px;
+  }
+  .target {
+    width: 300px;
+    height: 300px;
+    background: green;
+    transform: translate(50px, -150px);
+    backdrop-filter: blur(5px);
+    border-radius: 75px;
+  }
+  .inline-bg {
+    margin: -100px 0px;
+  }
+  .target-inline {
+    font-size: 100px;
+    background: green;
+    backdrop-filter: blur(5px);
+    border-radius: 5px;
+  }
+</style>
+<h1>Hello World</h1>
+<div class="target"></div>
+<h1 class="inline-bg">Hello World</h1>
+<span class="target-inline">Hello World</span>
+<script>
+  window.addEventListener('load', (e) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector('.target').style.borderRadius = '150px';
+        document.querySelector('.target-inline').style.borderRadius = '150px';
+      });
+    });
+  });
+</script>

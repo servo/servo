@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>background-clip:border-area on the root</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background-clip">
+<link rel="match" href="../reference/green-root-background.html">
+<style>
+html, body {
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0;
+}
+html {
+  height: 100%;
+  color: transparent;
+  border: 20px solid transparent;
+  background-color: green;
+  background-clip: border-area;
+}
+</style>
+
+The border should not be visible; the page should be entirely green.

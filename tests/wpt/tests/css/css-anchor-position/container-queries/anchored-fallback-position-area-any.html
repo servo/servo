@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored(fallback) matching 'any' &lt;position-area&gt;</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: span-bottom;
+    width: 100px;
+    /* Too tall to fit over the anchor to trigger fallback */
+    height: 100px;
+    container-type: anchored;
+  }
+  #target {
+    @container anchored(fallback: any) { --any: yes; }
+    @container anchored(fallback: any span-bottom) { --any-span-bottom: yes; }
+    @container anchored(fallback: span-end any) { --span-end-any: yes; }
+    @container anchored(fallback: any span-all) { --any-span-all: yes; }
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    const style = getComputedStyle(target);
+    assert_equals(style.getPropertyValue("--any"), "yes");
+    assert_equals(style.getPropertyValue("--any-span-bottom"), "yes");
+    assert_equals(style.getPropertyValue("--span-end-any"), "yes");
+    assert_equals(style.getPropertyValue("--any-span-all"), "yes");
+  }, "@container anchored(fallback: <position-area>) querying 'any'");
+</script>

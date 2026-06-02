@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: unsized div</title>
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="grid-lanes-contain-intrinsic-size-015-ref.html">
+<meta name="assert" content="size is contained but no inline size is provided">
+<style type="text/css">
+.panel {
+  display: grid-lanes;
+  background: red;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: visible;
+  position: relative;
+  width: min-content;
+}
+.box {
+  background: green;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+/* Size containment: the panel's used size is independent from its child's size */
+.panel.size {
+  contain: size;
+}
+.panel.size .box.large {
+  width: 600px;
+}
+</style>
+</head>
+<body>
+<div class="panel size">
+  <div class="box large">
+    The masonry container does not stretch to fit this content.
+  </div>
+</div>
+</body>

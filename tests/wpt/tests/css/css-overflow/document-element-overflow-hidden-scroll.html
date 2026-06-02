@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait" style="overflow: hidden">
+<link rel="help" href="https://crbug.com/353294051">
+<link rel="match" href="document-element-overflow-hidden-scroll-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<div style="height: 100px"></div>
+<div style="width: 100px; height: 100px; background: green"></div>
+<div style="height: 2000px; background: white"></div>
+<div style="width: 100px; height: 100px; background: red"></div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  scrollTo(0, 3000);
+  waitForAtLeastOneFrame().then(() => {
+    scrollTo(0, 300);
+    waitForAtLeastOneFrame().then(() => {
+      scrollTo(0, 100);
+      takeScreenshot();
+    });
+  });
+});
+</script>

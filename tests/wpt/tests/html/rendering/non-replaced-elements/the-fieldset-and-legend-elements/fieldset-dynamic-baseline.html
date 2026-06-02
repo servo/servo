@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1307140">
+<link rel="match" href="fieldset-dynamic-baseline-ref.html">
+baseline
+<fieldset style="display: inline-block;">
+  <div style="position: relative;">
+    line1<br>line2<div id="target" style="position: absolute;"></div>
+  </div>
+</fieldset>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.top = '10px';
+</script>

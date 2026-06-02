@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Wrapping blocks around floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/036.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-136-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+   .container { font: 30px/1 Ahem; color: green; margin: 0; padding: 0; border: 0;
+                background: url(/css/support/60x60-red.png) no-repeat;
+                text-indent: 0; }
+   .float { width: 1em; height: 1em; background: green; float: left;
+            margin: 0; padding: 0; border: 0; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a small filled green rectangle and <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="float"></div>
+   X
+  </div>
+ </body>
+</html>

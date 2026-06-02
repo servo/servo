@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-position">
+<link rel="match" href="block-axis-constraint-changes-for-out-of-flow-box-ref.html">
+<meta name="assert" content="top anchored abs pos child moves when containing block border changes.">
+<style>
+.parent_block {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  box-sizing: border-box;
+}
+.child {
+  position: absolute;
+  left: 0px;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<div class=parent_block>
+  <div id=child_top class=child style="top: 0px;"></div>
+</div>
+<div class=parent_block>
+  <div id=child_bottom class=child style="bottom: 0px;"></div>
+</div>
+<script>
+document.body.offsetTop;
+child_top.parentNode.style.borderTop = "50px solid blue";
+child_bottom.parentNode.style.borderBottom = "50px solid blue";
+</script>

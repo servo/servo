@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - cursors after dragging outside window</title>
+<style>
+  body > div {
+    height: 100px;
+    width: 100px;
+    display: inline-block;
+    background: orange;
+  }
+  body > div + div {
+    background: blue;
+    color: black;
+  }
+</style>
+
+<script type="text/javascript">
+
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'all';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+  var copydiv = document.getElementsByTagName('div')[1];
+  copydiv.ondragenter = copydiv.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  var movediv = document.getElementsByTagName('div')[2];
+  movediv.ondragenter = movediv.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  var linkdiv = document.getElementsByTagName('div')[3];
+  linkdiv.ondragenter = linkdiv.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'link';
+  };
+  var nodrop = document.getElementsByTagName('div')[4];
+  nodrop.ondragenter = nodrop.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'none';
+  };
+};
+
+</script>
+
+<div draggable='true'>&nbsp;</div>
+<div>Copy</div>
+<div>Move</div>
+<div>Link</div>
+<div>No-drop</div>
+
+<p>Use your mouse to drag the orange box out of the browser window (not over the system taskbar), then back into the browser window, and over each of the blue squares in turn.
+While dragging over the squares, the mouse cursor should be the one given by the text in the relevant square.</p>
+<p>This test only applies to platforms with a mouse cursor that can change to indicate drop status.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

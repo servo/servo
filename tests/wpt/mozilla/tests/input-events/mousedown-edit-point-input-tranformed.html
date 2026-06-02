@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>Clicking in a transformed &lt;input type=text&gt; should move the edit point</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<div style="padding: 100px">
+    <div style="transform-origin: 0; transform: scale(3); rotate: 90deg;">
+        <input id="target" style="color: rgba(0, 0, 0, 0.2); font: 10px/1 Ahem;" value="123456">
+    </div>
+</div>
+
+<script>
+// Get the bounding client rect of the given node, but give it a bit
+// of padding to account for borders and padding added by the text input.
+function getPaddedBoundingClientRect(node) {
+  const padding = 8;
+  let rectangle = node.getBoundingClientRect()
+  rectangle.x += padding;
+  rectangle.y += padding;
+  rectangle.width -= (padding * 2);
+  rectangle.height -= (padding * 2);
+  return rectangle;
+}
+
+promise_test(async test => {
+    let targetRect = getPaddedBoundingClientRect(target);
+
+    // This is the middle of the character height, but the input is rotated 90
+    // degrees so it is the x-axis.
+    let middleOfCharacterHeight = targetRect.left + (targetRect.width / 2);
+
+    await new test_driver.Actions()
+      .pointerMove(middleOfCharacterHeight, targetRect.top)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 0);
+
+    await new test_driver.Actions()
+      .pointerMove(middleOfCharacterHeight, targetRect.top + (10 * 3))
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(middleOfCharacterHeight, targetRect.top + (7 * 3))
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(middleOfCharacterHeight, targetRect.top + (10 * 5 * 3))
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 5);
+    assert_equals(target.selectionEnd, 5);
+
+    target.setSelectionRange(0, 0);
+
+    // Clicking past the end of the text should move the edit point to the end.
+    await new test_driver.Actions()
+      .pointerMove(middleOfCharacterHeight, targetRect.top + (10 * 7 * 3))
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 6);
+    assert_equals(target.selectionEnd, 6);
+}, 'Mouse events move the edit point in transformed <input type=text>');
+</script>

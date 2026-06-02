@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageLabelValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has label key (i.e., in description of Collection included using partOf key) with non-string value or an array as value containing non-string value.",
+  "title": "**Annotation Page _label_ key**, if present (i.e., in description of Collection included using partOf key), is **a value of type string** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+           { "$ref": "collections.json#/definitions/labelDefinition" }
+  }
+}

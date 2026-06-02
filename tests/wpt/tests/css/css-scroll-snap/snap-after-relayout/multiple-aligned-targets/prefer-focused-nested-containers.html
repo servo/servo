@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js" ></script>
+  </head>
+  <body>
+    <style>
+      .snap {
+        scroll-snap-align: start;
+      }
+      .placeholder {
+        height: 40%;
+        width: 40%;
+        position: absolute;
+        top: 0px;
+        border: solid 1px black;
+      }
+      .right {
+        left: 50%;
+      }
+      .container {
+        position: relative;
+        border: solid 1px blue;
+        overflow: scroll;
+        scroll-snap-type: y mandatory;
+      }
+      .bigcontainer {
+        height: 1000px;
+        width: 1000px;
+      }
+      .smallcontainer {
+        height: 400px;
+        width: 400px;
+        position: absolute;
+        border: solid 1px blue;
+        top: 500px;
+        overflow: scroll;
+        scroll-snap-type: y mandatory;
+      }
+      .large-space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .target {
+        top: 50%;
+        width: 40%;
+        height: 40%;
+        position: absolute;
+        border: solid 1px red;
+      }
+      .target:focus {
+        border:solid 2px green;
+      }
+    </style>
+    <div class="bigcontainer container" id="outercontainer">
+      <div class="large-space"></div>
+      <div id="leftplaceholder" class="snap placeholder">LPH (outer)</div>
+      <div id="rightplaceholder" class="snap placeholder right">RPH (outer)</div>
+      <div id="leftcontainer" class="snap smallcontainer">
+        <div class="large-space"></div>
+        <div class="snap placeholder"></div>
+        <div class="snap placeholder right"></div>
+        <div id="lefttarget1" tabindex="1" class="snap target"></div>
+        <div id="lefttarget2" tabindex="1" class="snap target right"></div>
+      </div>
+      <div id="rightcontainer" class="snap smallcontainer right">
+        <div class="large-space"></div>
+        <div class="snap placeholder"></div>
+        <div class="snap placeholder right"></div>
+        <div id="righttarget1" tabindex="1" class="snap target"></div>
+        <div id="righttarget2" tabindex="1" class="snap target right"></div>
+      </div>
+    </div>
+    <script>
+      // This test verifies that a snap container (outer) which contains another
+      // snap container (inner) snaps with awareness of focus on children of the
+      // inner container, i.e. outer should prefer to select the snap area whose
+      // child has focus even if there is an intermediate snap container between
+      // the child and outer.
+      window.onload = () => {
+        const lefttarget1 = document.getElementById("lefttarget1");
+        const righttarget1 = document.getElementById("righttarget1");
+        const leftcontainer = document.getElementById("leftcontainer");
+        const rightcontainer = document.getElementById("rightcontainer");
+        const outercontainer = document.getElementById("outercontainer");
+
+        promise_test(async (t) => {
+          await waitForCompositorCommit();
+
+          focusAndAssert(lefttarget1, /*preventScroll=*/true);
+          await runScrollSnapSelectionVerificationTest(t, outercontainer,
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[leftcontainer, rightcontainer],
+              /*axis=*/"y",
+              /*expected_target_x=*/null,
+              /*expected_target_x=*/leftcontainer);
+
+          focusAndAssert(righttarget1, /*preventScroll=*/true);
+          await runScrollSnapSelectionVerificationTest(t, outercontainer,
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[leftcontainer, rightcontainer],
+              /*axis=*/"y",
+              /*expected_target_x=*/null,
+              /*expected_target_x=*/rightcontainer);
+        }, "Snap container prefers focused nested snap target.");
+      }
+    </script>
+  </body>
+</html>

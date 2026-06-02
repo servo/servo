@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Inline replaced elements in normal flow - specified width, height in percentages and intrinsic ratio</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" title="10.6.2 Inline replaced elements, block-level replaced elements in normal flow, 'inline-block' replaced elements in normal flow and floating replaced elements" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta content="image interact" name="flags" />
+  <meta content="When 'height: 1%' (or any other percentage) applies to an inline replaced element and when the height of its containing block is not specified explicitly (i.e., it depends on content height), then such height computes to 'auto'. Then, if such inline replaced element has an intrinsic ratio and its used width is known or resolved, then the used value of 'height' is determined by the equation (used width) / (intrinsic ratio)." name="assert" />
+
+ </head>
+
+ <body>
+
+  <p>There should be <strong>5 filled green squares</strong> with the same width and the <strong>same height</strong>. The 5 filled green squares should be <strong>identical</strong> to each other. This should still remain true even after a window resize.</p>
+
+  <div>
+   <img src="support/60x60-green.png" width="15%" alt="FAIL: image download must be enabled" />
+
+   <img src="support/60x60-green.png" width="15%" height="1%" alt="FAIL: image download must be enabled" />
+
+   <img src="support/60x60-green.png" style="width: 15%;" alt="FAIL: image download must be enabled" />
+
+   <img src="support/60x60-green.png" style="width: 15%; height: auto;" alt="FAIL: image download must be enabled" />
+
+   <img src="support/60x60-green.png" style="width: 15%; height: 1%;" alt="FAIL: image download must be enabled" />
+  </div>
+
+ </body>
+</html>

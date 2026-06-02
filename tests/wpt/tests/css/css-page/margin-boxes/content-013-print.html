@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-based-counters">
+<meta name="assert" content="Manipulating the 'pages' counter should have no effect.">
+<link rel="match" href="content-013-print-ref.html">
+<style>
+  html {
+    counter-reset: pages 10;
+  }
+  @page {
+    margin: 4em;
+    counter-increment: pages 2;
+
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      counter-increment: pages;
+      content: counters(pages, ".");
+    }
+
+    @bottom-center {
+      text-align: left;
+      vertical-align: top;
+      counter-reset: pages 2;
+      counter-increment: pages;
+      content: counters(pages, ".");
+    }
+  }
+  body {
+    margin: 0;
+  }
+</style>
+The number 4 should be seen in the header and footer, on every page.
+<div style="page:something;">
+  Another page
+</div>
+<div>
+  Yet another page
+</div>
+<div style="break-before:page;">
+  Last page
+</div>

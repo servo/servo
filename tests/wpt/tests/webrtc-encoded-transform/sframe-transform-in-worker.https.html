@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    </head>
+    <body>
+        <video id="video1" controls autoplay></video>
+        <script src ="routines.js"></script>
+        <script>
+async function waitForMessage(worker, data)
+{
+    while (true) {
+        const received = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+        if (data === received)
+            return;
+    }
+}
+
+promise_test(async (test) => {
+    worker = new Worker('sframe-transform-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+    let sender, receiver;
+    const senderTransform = new SFrameTransform({ compatibilityMode: "H264" });
+    const receiverTransform = new RTCRtpScriptTransform(worker, "SFrameRTCRtpTransform");
+
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+    senderTransform.setEncryptionKey(key);
+
+    const startedPromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            pc1 = firstConnection;
+            sender = firstConnection.addTrack(localStream.getTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            pc2 = secondConnection;
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+        test.step_timeout(() => reject("Test timed out"), 5000);
+    });
+
+    video1.srcObject = stream;
+    await video1.play();
+}, "video exchange with SFrame transform in worker");
+        </script>
+    </body>
+</html>

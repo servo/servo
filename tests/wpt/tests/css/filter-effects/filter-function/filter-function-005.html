@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>filter function units are not scaled when applied to a scaled image included as content</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#funcdef-filter"/>
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property"/>
+<link rel="author" title="Mike Bremford" href="http://bfo.com/" />
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht"/>
+<meta name="assert" content="The dimensions in the filter functions are absolute dimensions, and if the image they are applied to is scaled (as it is here due to being part of an image included as generated content), the units in the filters should not be scaled. The filter must be applied after scaling." />
+<style>
+div {
+    width: 100px;
+    height: 100px;
+    background: red;
+    image-rendering: crisp-edges;
+    content: filter(url(resources/green-transparent-20x10.png), drop-shadow(50px 0 0 green));
+}
+</style>
+</head>
+<body>
+ <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+ <div></div>
+</body>
+</html>

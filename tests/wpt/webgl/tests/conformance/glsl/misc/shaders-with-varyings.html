@@ -1,0 +1,105 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexShaderNoVarying" type="text/something-not-javascript">
+void main()
+{
+    gl_Position = vec4(0,0,0,0);
+}
+</script>
+<script id="vertexShaderUnusedVarying" type="text/something-not-javascript">
+varying vec4 v_varying;
+
+void main()
+{
+    gl_Position = vec4(0,0,0,0);
+}
+</script>
+<script id="vertexShaderUsedVarying" type="text/something-not-javascript">
+varying vec4 v_varying;
+
+void main()
+{
+    gl_Position = v_varying;
+}
+</script>
+<script id="fragmentShaderUnusedVarying" type="text/something-not-javascript">
+precision mediump float;
+
+varying vec4 v_varying;
+
+void main()
+{
+    gl_FragColor = vec4(0,0,0,0);
+}
+</script>
+<script id="fragmentShaderUsedVarying" type="text/something-not-javascript">
+precision mediump float;
+
+varying vec4 v_varying;
+
+void main()
+{
+    gl_FragColor = v_varying;
+}
+</script>
+<script>
+// GLSL 1.0.17 4.3.5
+"use strict";
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "vertexShaderNoVarying",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderUnusedVarying",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "vertex shader with no varying and fragment shader with unused varying must succeed",
+  },
+  {
+    vShaderId: "vertexShaderNoVarying",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderUsedVarying",
+    fShaderSuccess: true,
+    linkSuccess: false,
+    passMsg: "vertex shader with no varying and fragment shader with used varying must fail",
+  },
+  {
+    vShaderId: "vertexShaderUnusedVarying",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderUnusedVarying",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "vertex shader with unused varying and fragment shader with unused varying must succeed",
+  },
+  {
+    vShaderId: "vertexShaderUnusedVarying",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderUsedVarying",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "vertex shader with unused varying and fragment shader with used varying must succeed",
+  },
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

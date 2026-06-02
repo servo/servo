@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://github.com/w3c/uievents/issues/398">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1975653">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  div { width: 100px; height: 100px; transform-origin: 0 0; }
+</style>
+<div style="height: 200vh"></div>
+<div style="transform: scale(2); padding: 10px">
+  <div id="target" style="transform: scale(2);" >
+    <div id="inner" style="background-color: lightblue"></div>
+  </div>
+</div>
+<div style="height: 200vh"></div>
+<script>
+  target.scrollIntoView({ block: "start" });
+
+  let innerClientRect = inner.getBoundingClientRect();
+
+  function promiseEventCoords(click) {
+    return new Promise(resolve => {
+      document.addEventListener("click", e => {
+        resolve({
+          pageX: e.pageX,
+          pageY: e.pageY,
+          layerX: e.layerX,
+          layerY: e.layerY,
+        });
+      }, { once: true });
+      click();
+    });
+  }
+
+  promise_test(async function inside() {
+    let { layerX, layerY } = await promiseEventCoords(() => {
+      return new test_driver.Actions()
+        .pointerMove(innerClientRect.x + 200, innerClientRect.y + 200, { origin: "viewport" })
+        .pointerDown()
+        .pointerUp()
+        .send();
+    });
+    assert_equals(layerX, 200, "layerX");
+    assert_equals(layerY, 200, "layerY");
+  });
+
+  promise_test(async function outside() {
+    let { layerX, layerY, pageX, pageY } = await promiseEventCoords(() => {
+      // 200 + 8 of body margin.
+      return new test_driver.Actions()
+        .pointerMove(innerClientRect.right + 10, 200, { origin: "viewport" })
+        .pointerDown()
+        .pointerUp()
+        .send();
+    });
+    assert_equals(layerX, pageX, "layerX");
+    assert_equals(layerY, pageY, "layerY");
+  });
+</script>

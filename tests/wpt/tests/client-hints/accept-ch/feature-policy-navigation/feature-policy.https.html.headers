@@ -1,0 +1,1 @@
+Permissions-Policy: ch-device-memory=*, ch-dpr=(), ch-viewport-width=(self), ch-ua=(self), ch-ua-mobile=()

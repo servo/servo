@@ -1,0 +1,114 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: mixed align-content/self:baseline/last baseline</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1256429">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-content">
+  <link rel="match" href="grid-item-mixed-baseline-002-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style type="text/css">
+html,body {
+    color:black; background-color:white; font:20px/1 Ahem; padding:0; margin:0;
+}
+
+.grid {
+  float: left;
+  display: grid;
+  grid: 100px / repeat(10, auto);
+  border: 2px solid;
+  margin: 1px;
+  place-content: start end;
+}
+.c {
+  grid: repeat(4, auto) / 100px;
+  place-content: end start;
+}
+.t2 { grid: 100px / repeat(3, auto);}
+
+span {
+  background: lime;
+  display: inline-block;
+  border: 1px solid black;
+}
+
+span:nth-child(1) { font-size:30px; }
+span:nth-child(2) { font-size:15px; }
+span:nth-child(3) { font-size:10px; }
+span:nth-child(4) { font-size:20px; }
+
+.pbs { padding-block-start: 15px; margin-block-start: 5px; }
+.pbe { padding-block-end: 7px; margin-block-end: 3px; }
+
+.fb { align-content:baseline; place-self:self-start; }
+.lb { align-content:last baseline; place-self:self-end; }
+.s  { place-self:stretch; }
+
+.sfb { align-self:baseline; }
+.slb { align-self:last baseline; align-content:self-end;}
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; text-orientation: sideways; }
+.vr { writing-mode: vertical-rl; text-orientation: sideways; }
+.vlr { writing-mode: vertical-lr; direction:rtl; text-orientation: sideways; }
+.vrl { writing-mode: vertical-rl; direction:ltr; text-orientation: sideways; }
+
+</style>
+</head>
+<body>
+
+<div class="grid hl"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+<div class="grid hl"><span class="sfb pbe">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+<div class="grid vl"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+<div class="grid vl"><span class="sfb pbs">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+<div class="grid vr"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+<div class="grid vr"><span class="sfb pbe">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span></div>
+
+<br clear="all">
+
+<div class="grid hl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span></div>
+<div class="grid hl"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span></div>
+<div class="grid vl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span></div>
+<div class="grid vl"><span class="slb pbs">A<br>B</span><span class="lb">M<br>N</span></div>
+<div class="grid vr"><span class="slb">A<br>B</span><span class="lb">M<br>N</span></div>
+<div class="grid vr"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span></div>
+
+<br clear="all">
+
+<div class="grid hl"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid hl"><span class="sfb pbe">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vl"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vl"><span class="sfb pbs">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vr"><span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vr"><span class="sfb pbe">A<br>B</span><span class="fb">M<br>N</span><span class="lb">X<br>Z</span><span class="slb">R<br>S</span></div>
+
+<br clear="all">
+
+<div class="grid hl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid hl"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="lb">R<br>S</span></div>
+<div class="grid vl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vl"><span class="slb pbs">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="lb">R<br>S</span></div>
+<div class="grid vr"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="slb">R<br>S</span></div>
+<div class="grid vr"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span><span class="fb">X<br>Z</span><span class="slb">R<br>S</span></div>
+
+<br clear="all">
+
+
+<div class="grid t2 hl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="vl sfb">R<br>S</span><span class="vl fb">U<br>V</span><span class="vr fb s">X<br>Z</span><span class="vr sfb">K<br>L</span></div>
+<div class="grid t2 hl"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span><span class="vl sfb">R<br>S</span><span class="vl fb">U<br>V</span><span class="vl fb s">X<br>Z</span><span class="vr sfb">K<br>L</span></div>
+<div class="grid t2 vl"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="hr sfb">R<br>S</span><span class="hl fb">U<br>V</span><span class="hr fb s">X<br>Z</span><span class="hr sfb">K<br>L</span></div>
+<br clear="all">
+<div class="grid t2 vl"><span class="slb pbs">A<br>B</span><span class="lb">M<br>N</span><span class="hr lb">R<br>S</span><span class="hl fb">U<br>V</span><span class="hl sfb s">X<br>Z</span><span class="hl slb">K<br>L</span></div>
+<div class="grid t2 vr"><span class="slb">A<br>B</span><span class="lb">M<br>N</span><span class="hl fb">R<br>S</span><span class="hl fb">U<br>V</span><span class="hl sfb s">X<br>Z</span><span class="hl sfb s">X<br>Z</span><span class="hl slb">K<br>L</span></div>
+<div class="grid t2 vr"><span class="slb pbe">A<br>B</span><span class="lb">M<br>N</span><span class="hl fb">R<br>S</span><span class="hl fb">U<br>V</span><span class="hl fb s">X<br>Z</span><span class="hl sfb s">X<br>Z</span><span class="hl slb">K<br>L</span></div>
+
+<br clear="all">
+
+
+
+</body>
+</html>

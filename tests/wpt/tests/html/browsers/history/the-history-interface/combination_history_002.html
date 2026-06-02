@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>combination_history_002(After calling of pushState method, check length.)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var first;
+      var second;
+      first = window.history.length;
+      window.history.pushState(1, document.title, '?x=1');
+      second = window.history.length;
+
+      assert_equals(second - first, 1, "second - first");
+    }, "After calling of pushState method, check length");
+    </script>
+  </body>
+</html>

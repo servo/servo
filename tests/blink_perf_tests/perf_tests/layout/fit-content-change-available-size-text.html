@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<div id="container" style="width:500px;">
+  <div id="stf" style="width:fit-content;"></div>
+</div>
+<script src="../resources/runner.js"></script>
+<script>
+  const LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+  var stf = document.getElementById("stf");
+
+  for (var i = 0; i < 1000; i++) {
+      var child = document.createElement("span");
+      stf.appendChild(child);
+      child.textContent = LOREM_IPSUM.substr(
+          Math.floor(Math.random()*100), Math.floor(Math.random()*200)+150);
+  }
+
+  var container = document.getElementById("container");
+  var style = container.style;
+
+  function test() {
+      style.width = "400px";
+      PerfTestRunner.forceLayout();
+      style.width = "500px";
+      PerfTestRunner.forceLayout();
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+      description: "Measures performance of relayout of a container with many auto fit-content children.",
+      run: test
+});
+</script>
+</html>

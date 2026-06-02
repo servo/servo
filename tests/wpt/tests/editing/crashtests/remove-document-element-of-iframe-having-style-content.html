@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Testcase for bug 643706 of Mozilla</title>
+<script>
+function boom() {
+  const iframe = document.querySelector("iframe");
+  const win = iframe.contentWindow;
+  win.document.designMode = 'on';
+  iframe.style.content = "'m'";
+  win.document.removeChild(win.document.documentElement)
+}
+</script>
+</head>
+<body onload="boom();"><iframe srcdoc=""></iframe></body>
+</html>

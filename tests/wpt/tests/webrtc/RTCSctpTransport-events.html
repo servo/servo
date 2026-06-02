@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCIceTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('');
+  assert_equals(null, pc1.sctp);
+  assert_equals(null, pc2.sctp);
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  assert_not_equals(null, pc1.sctp);
+  await pc2.setRemoteDescription(offer);
+  assert_not_equals(null, pc2.sctp);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  // Since this test does not exchange candidates, state remains "connecting".
+  assert_equals(pc1.sctp.state, "connecting");
+  assert_equals(pc2.sctp.state, "connecting");
+}, 'SctpTransport objects are created at appropriate times');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  exchangeIceCandidates(pc1, pc2);
+  pc1.createDataChannel('');
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  const pc1ConnectedWaiter = waitForState(pc1.sctp, 'connected');
+  await pc2.setRemoteDescription(offer);
+  const pc2ConnectedWaiter = waitForState(pc2.sctp, 'connected');
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  await pc1ConnectedWaiter;
+  await pc2ConnectedWaiter;
+  const pc1ClosedWaiter = waitForState(pc1.sctp, 'closed');
+  const pc2ClosedWaiter = waitForState(pc2.sctp, 'closed');
+  pc1.close();
+  await pc1ClosedWaiter;
+  await pc2ClosedWaiter;
+}, 'SctpTransport reaches connected and closed state');
+
+</script>

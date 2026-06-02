@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=823066">
+<meta name="assert" content="Checks that calc() margins are resolved against zero for content sizing.">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: min-content; height: 100px; background: green;">
+  <div style="margin-left: calc(10% + 100px);"></div>
+</div>

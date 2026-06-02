@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Node in shadow tree highlighted with a Custom Highlight can be removed without crashing</title>
+<meta name="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
+<body>
+<div id="host">
+  <template shadowrootmode=open>
+      <span>0123456789</span>
+  </template>
+</div>
+<script>
+  const shadowRoot = host.shadowRoot;
+  const spanInShadowDOM = shadowRoot.querySelector("span");
+  let range = new Range();
+  range.setStart(spanInShadowDOM.childNodes[0], 2);
+  range.setEnd(spanInShadowDOM.childNodes[0], 10);
+  CSS.highlights.set("example-highlight", new Highlight(range));
+  document.querySelector("body").removeChild(host);
+</script>

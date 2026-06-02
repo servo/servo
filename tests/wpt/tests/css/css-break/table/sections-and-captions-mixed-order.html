@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#parallel-flows">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#table-display">
+<style>
+  #table > div {
+    background: green;
+  }
+</style>
+<link rel="match" href="sections-and-captions-mixed-order-ref.html">
+<p>There should be four columns with the numbers from 1 to 20 in ascending
+  order. No red should be seen.</p>
+<div style="columns:4; column-gap:0; column-fill:auto; width:200px; line-height:20px; height:100px; orphans:1; widows:1; background:red;">
+  <div id="table" style="display:table; width:100%;">
+    <div style="display:table-caption; caption-side:bottom;">14</div>
+    <div style="display:table-caption;">1</div>
+    <div style="display:table-footer-group;">8<br>9<br>10<br>11<br>12<br>13</div>
+    <div style="display:table-row-group;">4</div>
+    <div style="display:table-row-group;">5<br>6</div>
+    <div style="display:table-footer-group;">7</div>
+    <div style="display:table-header-group;">3</div>
+    <div style="display:table-caption; caption-side:bottom;">15<br>16<br>17<br>18<br>19<br>20</div>
+    <div style="display:table-caption;">2</div>
+  </div>
+</div>

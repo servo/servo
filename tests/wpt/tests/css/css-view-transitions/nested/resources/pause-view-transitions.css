@@ -1,0 +1,7 @@
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-new(*),
+::view-transition-old(*) {
+  animation-play-state: paused;
+}
+

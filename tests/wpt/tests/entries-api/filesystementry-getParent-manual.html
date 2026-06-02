@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemEntry getParent() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystementry-getparentapi-entry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  assert_idl_attribute(entry, 'getParent', 'FileSystemEntry has getParent method');
+  assert_equals(typeof entry.getParent, 'function', 'FileSystemEntry has a getParent() method');
+
+  assert_equals(entry.getParent(), void 0, 'getParent() arguments are optional');
+
+  entry.getParent(t.step_func(parent => {
+    assert_true(parent.isDirectory, 'parent should be a directory');
+
+    assert_equals(parent.fullPath, '/', 'parent should be root');
+    assert_equals(parent.name, '', 'root name is empty string');
+
+    t.done();
+  }), t.unreached_func('getParent() should not fail'));
+}, 'FileSystemEntry - getParent()');
+
+// TODO: Manual test for getParent() where containing directory is removed before getParent() is called.
+</script>

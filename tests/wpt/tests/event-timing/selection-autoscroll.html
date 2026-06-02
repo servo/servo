@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title></title>
+<style>
+#targetDiv {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+}
+
+#innerDiv {
+    width: 4000px;
+    height: 4000px;
+}
+</style>
+<body style="margin:0">
+  <div id="targetDiv">
+    <div id="innerDiv">
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+      <p>Test test test test test test...</p>
+    </div>
+  </div>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-actions.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=resources/event-timing-test-utils.js></script>
+  <script>
+
+  function validateEntries(entries) {
+    assert_equals(entries.length, 2, "two pointerdown entries should be received");
+    let entry = entries[0];
+    assert_equals(entry.name, 'pointerdown');
+    assert_equals(entry.interactionId, 0);
+    entry = entries[1];
+    assert_equals(entry.name, 'pointerup');
+    assert_equals(entry.interactionId, 0);
+  }
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    // Skip the test on a Mac as they do not support touch screens.
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
+    if (isMac)
+      return;
+
+    // Wait for load event so we can interact on the page.
+    await new Promise(resolve => {
+      window.addEventListener('load', resolve);
+    });
+
+    let observedEntries = [];
+    const observerPromise = new Promise(resolve => {
+      let pointerdown_count = 0;
+      new PerformanceObserver(entryList => {
+        entryList.getEntries().forEach(e => {
+          if(e.name.includes('pointerdown')) {
+            pointerdown_count += 1;
+            observedEntries.push(e);
+          }
+          if(e.name.includes('pointerup')) {
+            pointerdown_count += 1;
+            observedEntries.push(e);
+          }
+          if(pointerdown_count == 2){
+            resolve(observedEntries);
+          }
+        });
+      }).observe({type: 'event',
+                  durationThreshold: 0,
+                  buffered: true});
+    })
+
+    const target = document.getElementById('targetDiv');
+    await interactAndObserve('selection-scroll', target, observerPromise);
+    validateEntries(observedEntries);
+  }, "Event Timing: test that the events received in PerformanceObserver during an active text selection autoscroll does not have interaction id.");
+</script>
+</body>
+</html>

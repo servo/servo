@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCDataChannelInit maxRetransmits [EnforceRange] unsigned short tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// Helper to create a basic RTCPeerConnection
+function createPC() {
+  return new RTCPeerConnection();
+}
+
+// Test valid values within unsigned short range (0-65535)
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 0 });
+  assert_equals(channel.maxRetransmits, 0);
+  pc.close();
+}, 'maxRetransmits with value 0 should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 1 });
+  assert_equals(channel.maxRetransmits, 1);
+  pc.close();
+}, 'maxRetransmits with value 1 should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 1000 });
+  assert_equals(channel.maxRetransmits, 1000);
+  pc.close();
+}, 'maxRetransmits with value 1000 should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 65535 });
+  assert_equals(channel.maxRetransmits, 65535);
+  pc.close();
+}, 'maxRetransmits with maximum value 65535 should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 65534 });
+  assert_equals(channel.maxRetransmits, 65534);
+  pc.close();
+}, 'maxRetransmits with value 65534 (max-1) should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 3 });
+  assert_equals(channel.maxRetransmits, 3);
+  pc.close();
+}, 'maxRetransmits with value 3 should succeed');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: 10 });
+  assert_equals(channel.maxRetransmits, 10);
+  pc.close();
+}, 'maxRetransmits with value 10 should succeed');
+
+// Test [EnforceRange] behavior - values outside range should throw TypeError
+const badValues = [
+  { value: -1, description: 'value -1' },
+  { value: -100, description: 'value -100' },
+  { value: 65536, description: 'value 65536' },
+  { value: 100000, description: 'value 100000' },
+  { value: Infinity, description: 'Infinity' },
+  { value: -Infinity, description: '-Infinity' },
+  { value: NaN, description: 'NaN' },
+  { value: "65536", description: 'string "65536"' }
+];
+
+badValues.forEach(({ value, description }) => {
+  test(() => {
+    const pc = createPC();
+    assert_throws_js(TypeError, () => {
+      pc.createDataChannel('test', { maxRetransmits: value });
+    });
+    pc.close();
+  }, `maxRetransmits with ${description} should throw TypeError`);
+});
+
+// Test numeric strings (should be converted to numbers)
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', { maxRetransmits: "100" });
+  assert_equals(channel.maxRetransmits, 100);
+  pc.close();
+}, 'maxRetransmits with numeric string "100" should be converted to 100');
+
+test(() => {
+  const pc = createPC();
+  const channel = pc.createDataChannel('test', {});
+  assert_equals(channel.maxRetransmits, null);
+  pc.close();
+}, 'maxRetransmits when omitted should be null');
+
+</script>

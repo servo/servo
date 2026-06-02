@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration underline across elements with different font sizes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="assert" content="Thickness and baseline are the same for all children of elements with 'text-decoration' set." />
+        <style type="text/css">
+            div
+            {
+                text-decoration: underline;
+            }
+            #span1
+            {
+                font-size: 50pt;
+            }
+            #span2
+            {
+                font-size: 30pt;
+            }
+            #span3
+            {
+                font-size: 20pt;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a contiguous line of the same thickness beneath all the "Filler Text" below.</p>
+        <div>
+            <span id="span1">Filler Text</span>
+            <span id="span2">Filler Text</span>
+            <span id="span3">Filler Text</span>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>An empty line after an identifier line discards the current cue and restarts the cue loop</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/interspersed-non-cue.vtt", function(track) {
+    var expected = [
+        { text: "First" },
+        { text: "Second" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+</script>

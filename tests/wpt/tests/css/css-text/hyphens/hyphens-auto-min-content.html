@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>min-content size should match hyphenation</title>
+<link rel=author href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel=author href="https://mozilla.org" title="Mozilla">
+
+<link rel=help href="https://drafts.csswg.org/css-text-3/#hyphens-property">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1674204">
+
+<!--
+  It's ok to either break or not on the explicit hyphens, but whatever it does
+  it should match the min-content size
+-->
+<link rel=match href="hyphens-auto-min-content-ref-1.html">
+<link rel=match href="hyphens-auto-min-content-ref-2.html">
+
+<style>
+  div {
+    width: min-content;
+    hyphens: auto;
+    border: 1px solid green;
+  }
+</style>
+<div>2020-12-12</div>

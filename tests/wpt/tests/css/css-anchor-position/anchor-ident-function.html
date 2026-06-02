@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: The ident() function </title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #cb {
+    border: 1px solid black;
+    width: 100px;
+    height: 100px;
+    position: relative;
+  }
+  .anchor {
+    width: 15px;
+    height: 15px;
+    background-color: skyblue;
+    position: absolute;
+    top: 30px;
+  }
+  /* sibling-index() could make this nicer, but it's not universally
+     supported at the time of writing: */
+  .anchor:nth-child(1) { anchor-name: --a1; left: calc(20px * 1); }
+  .anchor:nth-child(2) { anchor-name: --a2; left: calc(20px * 2); }
+  .anchor:nth-child(3) { anchor-name: --a3; left: calc(20px * 3); }
+  #target {
+    width: 15px;
+    height: 15px;
+    background-color: tomato;
+    position: absolute;
+    position-anchor: --a1;
+  }
+</style>
+<div id=cb>
+  <div>
+    <div class=anchor></div>
+    <div class=anchor></div>
+    <div class=anchor></div>
+  </div>
+  <div id=target></div>
+</div>
+
+<script>
+  // Test the computed values of various anchor related properties:
+
+  let actual_ident = 'ident("--myident" calc(42 * sign(1em - 1px)))';
+  let expected_ident = '--myident42';
+
+  // https://drafts.csswg.org/css-anchor-position-1/#name
+  test_computed_value('anchor-name', actual_ident, expected_ident);
+  test_computed_value('anchor-name', `--tl, ${actual_ident}`,
+    `--tl, ${expected_ident}`);
+  test_computed_value('anchor-name', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+
+  // https://drafts.csswg.org/css-anchor-position-1/#anchor-scope
+  test_computed_value('anchor-scope', actual_ident, expected_ident);
+  test_computed_value('anchor-scope', `--tl, ${actual_ident}`,
+    `--tl, ${expected_ident}`);
+  test_computed_value('anchor-scope', `${actual_ident}, ${actual_ident}`,
+    `${expected_ident}, ${expected_ident}`);
+
+  // https://drafts.csswg.org/css-anchor-position-1/#position-anchor
+  test_computed_value('position-anchor', actual_ident, expected_ident);
+
+  // Test ident() usage within anchor functions:
+  test_computed_value('left', 'anchor(--a1 left)', '20px');
+  test_computed_value('left', 'anchor(--a2 left)', '40px');
+  test_computed_value('left', 'anchor(--a3 left)', '60px');
+  test_computed_value('left', 'calc(anchor(--a1 left)*4)', '80px');
+  test_computed_value('width', 'calc(anchor-size(--a1)*2)', '30px');
+  test_computed_value('width', 'anchor-size(--a1)', '15px');
+</script>

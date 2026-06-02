@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com"/>
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+  <![CDATA[
+  body {
+    position: relative;
+    font-size: 20px;
+  }
+  .person {
+    position: absolute;
+    width: 6em;
+    height: 8.9em;
+  }
+  .face {
+    position: relative;
+    height: 4.2em;
+    background: currentcolor;
+  }
+  .face > div {
+    position: absolute;
+    background: white;
+  }
+  .face > .mouth {
+    left: 2em;
+    top: 3em;
+    width: 2em;
+    height: .2em;
+  }
+  .face > .eye {
+    top: 1em;
+    width: 1em;
+    height: 1.2em;
+  }
+  .face > .eye.left {
+    left: 1em;
+  }
+  .face > .eye.right {
+    right: 1em;
+  }
+  .torso {
+    margin-top: 0.5em;
+    height: 2.2em;
+    border: 1em solid;
+  }
+  ]]>
+  </style>
+ </head>
+ <body>
+  <div class="person" style="left: 0em; top: 0em">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+    <div class="torso"></div>
+  </div>
+  <div class="person" style="left: 7em; top: 0em">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+    <div class="torso"></div>
+  </div>
+  <div class="person" style="left: 14em; top: .5em">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+    <div class="torso"></div>
+  </div>
+  <div class="person" style="left: 21em; top: .5em">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+    <div class="torso"></div>
+  </div>
+ </body>
+</html>

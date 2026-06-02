@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Gap Decorations: repaint when grid item width changes (reference)</title>
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template-columns: auto auto;
+      column-gap: 20px;
+      width: 160px;
+      height: 50px;
+      background: red;
+      column-rule: 20px solid green;
+    }
+
+    .grid-item {
+      background: green;
+      height: 50px;
+    }
+
+    #item1 {
+      /* Final width after change */
+      width: 90px;
+    }
+
+    #item2 {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="grid-container">
+    <div id="item1" class="grid-item"></div>
+    <div id="item2" class="grid-item"></div>
+  </div>
+</body>
+</html>

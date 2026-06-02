@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <title>Restore window.name when navigating back from a cross-origin</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+<body>
+  <script>
+    function runTest() {
+      const name = token();
+      window.open(`resources/restore-window-name.sub.html?name=${name}`, "start");
+    }
+
+  </script>
+  <p>Please click the following link and follow the instructions in the page for testing</p>
+  <a target="start" href="javascript:void(0)" onclick="runTest()">run test</a>
+</body>
+</html>

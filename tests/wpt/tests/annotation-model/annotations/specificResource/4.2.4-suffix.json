@@ -1,0 +1,113 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4.2.4-suffix.json",
+    "assertionType": "should",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a TextQuoteSelector should include suffix key with a single value .",
+    "title": "Implements **Specific Resource _suffix_ key** with a **single string value** on a **Specific Resource TextQuoteSelector** - [model 4.2.4](https://www.w3.org/TR/annotation-model/#text-quote-selector)",
+    "description": "True when Annotation includes one or more TextQuoteSelectors, one or more of which include suffix key with a single value . (Section 4.2.4)",
+    "type": "object",
+    "anyOf":
+     [
+      { "properties":
+         { "body":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "#/definitions/selectorSchema" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                       { "not":
+                          { "oneOf":
+                             [
+                               { "$ref": "#/definitions/selectorSchema" },
+                               { "$ref": "#/definitions/itemSchema" }
+                             ]
+                          }
+                       }
+                    }
+                 }
+               ]
+            }
+         },
+         "required": [ "body" ]
+      },
+      { "properties":
+         { "target":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "#/definitions/selectorSchema" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                        { "not":
+                           { "oneOf":
+                              [
+                                { "$ref": "#/definitions/selectorSchema" },
+                                { "$ref": "#/definitions/itemSchema" }
+                              ]
+                           }
+                        }
+                    }
+                 }
+               ]
+            }
+         },
+     "required": [ "target" ]
+       }
+     ],
+     "definitions":
+      {
+        "selectorSchema":
+         { "type": "object",
+           "properties":
+            { "selector":
+               { "oneOf":
+                  [
+                    { "type": "object",
+                      "$ref": "specificResource.json#/definitions/suffixPropertyFound"
+                    },
+                    { "type": "array",
+                      "minItems": 1,
+                      "not":
+                       { "items":
+                          { "not": { "$ref": "specificResource.json#/definitions/suffixPropertyFound" } }
+                       }
+                    }
+                  ]
+               }
+            },
+            "required": [ "selector" ]
+         },
+
+        "itemSchema":
+         { "type": "object",
+           "properties":
+            { "items":
+               { "type": "array",
+                 "minItems": 1,
+                 "not":
+                  { "items":
+                      { "not": { "$ref": "#/definitions/selectorSchema" } }
+                  }
+               }
+            },
+            "required": [ "items" ]
+         }
+      }
+}

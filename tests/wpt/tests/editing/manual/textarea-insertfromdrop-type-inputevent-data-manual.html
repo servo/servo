@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<title>Manual drag and drop text</title>
+
+<textarea id="text" rows="16" cols="60">Please select a part of the text in this textarea,
+    and then drag-and-drop the selected text to a different section of the textarea.
+
+    It is expected that "deleteByDrag" events will have no data (data == null), but it is
+    expected that "insertFromDrop" events populate the data attribute with the text that was
+    dropped / inserted.
+
+    If you see "insertFromDrop" events having the data that was dragged and dropped, then the
+    test passes.
+
+    See https://www.w3.org/TR/input-events-1/#overview
+</textarea>
+<div id="out"></div>
+<script>
+    function getInputEventData(event) {
+        const out = document.getElementById('out');
+        const line = document.createElement('div');
+        line.textContent = 'inputType: ' + event.inputType + ' eventData: ' + event.data;
+        out.appendChild(line);
+    }
+    const text = document.getElementById('text');
+    text.addEventListener('input', getInputEventData);
+</script>
+</html>

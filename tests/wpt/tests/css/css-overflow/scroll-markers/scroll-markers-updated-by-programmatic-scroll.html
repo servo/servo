@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: scroll tracking for ::scroll-marker </title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    scroll-marker-group: before;
+    height: 100px;
+    scroll-behavior: smooth;
+    background-color: purple;
+    border: solid 1px black;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    display: flex;
+    width: 100px;
+    height: 20px;
+  }
+
+  #scroller div {
+    width: 100px;
+    height: 100px;
+  }
+
+  #scroller div::scroll-marker {
+    content: '';
+    background-color: red;
+    display: inline-flex;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background-color: green;
+  }
+</style>
+<div id='scroller'>
+  <div id="initial"></div>
+  <div class="inbetween"></div>
+  <div class="inbetween"></div>
+  <div class="inbetween"></div>
+  <div id='target'></div>
+</div>
+<script>
+  const inbetweens = scroller.querySelectorAll(".inbetween");
+  const GREEN = "rgb(0, 128, 0)";
+  const RED = "rgb(255, 0, 0)";
+
+  function assertPseudoElementProperty(originatingElement, pseudoType, backgroundColor) {
+    const pseudoStyle = getComputedStyle(originatingElement, pseudoType);
+    const pseudoBackgroundColor = pseudoStyle.getPropertyValue('background-color');
+    assert_equals(pseudoBackgroundColor, backgroundColor, pseudoType +
+      " background-color should be " + backgroundColor.toString() +
+      " but was " + pseudoBackgroundColor.toString());
+  }
+
+  let marker_change_observed = false;
+  function watchFrames() {
+    const initialPseudoStyle = getComputedStyle(initial, "::scroll-marker");
+    const initialPseudoBackgroundColor =
+      initialPseudoStyle.getPropertyValue('background-color');
+
+    if (initialPseudoBackgroundColor === RED) {
+      marker_change_observed = true;
+    } else {
+      assert_false(marker_change_observed);
+      assert_equals(initialPseudoBackgroundColor, GREEN,
+        "initial scroll-marker is initially green");
+    }
+
+    // All the markers in between should always be red.
+    for (const inbetween of inbetweens) {
+      assertPseudoElementProperty(inbetween, "::scroll-marker", RED);
+    }
+
+    // target should become and stay the selected scroll-marker.
+    assertPseudoElementProperty(target, "::scroll-marker",
+      marker_change_observed ? GREEN : RED);
+
+    requestAnimationFrame(watchFrames);
+  }
+
+  function scrollPromise() {
+    return new Promise((resolve) => {
+      // For browsers that don't support the scrollend event, just wait till
+      // at least half the expected scroll is done.
+      if (document.scrollingElement.onscrollend === undefined) {
+        function scrollListener() {
+          const max_scroll_offset =
+            scroller.scrollHeight - scroller.ClientHeight;
+          if (scroller.scrollTop >= max_scroll_offset / 2) {
+            scroller.removeEventListener(scrollListener);
+            resolve();
+          }
+        }
+        scroller.addEventListener("scroll", scrollListener);
+      } else {
+        function scrollEndListener() {
+          scroller.removeEventListener("scrollend", scrollEndListener);
+          resolve();
+        }
+        scroller.addEventListener("scrollend", scrollEndListener);
+      }
+    });
+  };
+
+  promise_test(async (t) => {
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(initial, "::scroll-marker", GREEN);
+    assertPseudoElementProperty(target, "::scroll-marker", RED);
+
+    function changeDivWidths() {
+      const WIDTH1 = "100px";
+      const WIDTH2 = "200px";
+      const divs = scroller.querySelectorAll("div");
+      const current_width = divs[0].style.width;
+      const target_width = current_width === WIDTH1 ? WIDTH2 : WIDTH1;
+      divs.forEach(div => { div.style.width = target_width; });
+    }
+
+    // Add a scroll listener which will trigger a layout change.
+    // Despite the layout change, the user agent should only select
+    // the eventual scroll position of the ongoing smooth scrollIntoView.
+    scroller.addEventListener("scroll", changeDivWidths);
+
+    const scroll_promise = scrollPromise();
+    watchFrames();
+    target.scrollIntoView({ behavior: "smooth" });
+    await scroll_promise;
+
+    assertPseudoElementProperty(initial, "::scroll-marker", RED);
+    assertPseudoElementProperty(target, "::scroll-marker", GREEN);
+  }, "The selected ::scroll-marker is updated using the eventual scroll " +
+  "position for a programmatic scroll");
+</script>

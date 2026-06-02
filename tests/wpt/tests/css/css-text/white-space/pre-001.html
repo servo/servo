@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS-white-space test: restore collapsed whitespace</title>
+<link rel="author" title="JoeDow" href="ibluegalaxy_taoj@163.com">
+<link rel="match" href="reference/pre-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html {
+  font: 20px/1 Ahem;
+}
+.span {
+    background-color: blueviolet;
+}
+#target {
+    background-color: blue;
+}
+</style>
+<body>
+  <div>
+    <span class="span">aa bb </span><span id="target">     target </span><span class="span">bb aa</span>
+  </div>
+
+  <script>
+    window.onload = function() {
+        const target = document.getElementById("target");
+        // force layout
+        target.offsetLeft;
+        target.style.whiteSpace = "pre";
+    }
+  </script>
+</body>

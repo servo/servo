@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Positioned grid items sizing reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<meta name="flags" content="ahem">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+
+.grid {
+  grid: 25px 50px / 100px 60px;
+  margin: 1px 2px 3px 4px;
+  padding: 6px 3px 9px 12px;
+  border: solid;
+  border-width: 8px 2px 4px 6px;
+  font: 10px/1 Ahem;
+  float: left;
+  inline-size: 200px;
+  block-size: 100px;
+  justify-items: start;
+  align-items: start;
+}
+
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div class="grid">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>
+
+<div class="grid verticalLR">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>
+
+<div class="grid verticalLR directionRTL">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>
+
+<div class="grid verticalRL">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>
+
+<div class="grid verticalRL directionRTL">
+  <div class="onlyFirstRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlyFirstRowOnlySecondColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlyFirstColumn">XXX XX X XX XXX</div>
+  <div class="onlySecondRowOnlySecondColumn">XXX XX X XX XXX</div>
+</div>

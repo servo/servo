@@ -1,0 +1,11 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "/annotations/anno2.jsonld",
+  "type": "Annotation",
+  "created": "2015-02-31T12:03:45Z",
+  "body": {
+    "type": "TextualBody",
+    "value": "Great resource!"
+  },
+  "target": "http://www.w3c.org/"
+}

@@ -1,0 +1,90 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+// https://html.spec.whatwg.org/multipage/#navigator
+[Exposed=Window]
+interface Navigator {
+  // objects implementing this interface also implement the interfaces given below
+};
+Navigator includes NavigatorID;
+Navigator includes NavigatorLanguage;
+Navigator includes NavigatorOnLine;
+Navigator includes NavigatorContentUtils;
+//Navigator includes NavigatorStorageUtils;
+Navigator includes NavigatorPlugins;
+Navigator includes NavigatorCookies;
+Navigator includes NavigatorConcurrentHardware;
+
+// https://html.spec.whatwg.org/multipage/#navigatorid
+[Exposed=(Window,Worker)]
+interface mixin NavigatorID {
+  readonly attribute DOMString appCodeName; // constant "Mozilla"
+  readonly attribute DOMString appName;
+  readonly attribute DOMString appVersion;
+  readonly attribute DOMString platform;
+  readonly attribute DOMString product; // constant "Gecko"
+  [Exposed=Window] readonly attribute DOMString productSub;
+  boolean taintEnabled(); // constant false
+  readonly attribute DOMString userAgent;
+  [Exposed=Window] readonly attribute DOMString vendor;
+  [Exposed=Window] readonly attribute DOMString vendorSub; // constant ""
+};
+
+// https://w3c.github.io/ServiceWorker/#navigator-service-worker
+partial interface Navigator {
+  [SameObject, Pref="dom_serviceworker_enabled"] readonly attribute ServiceWorkerContainer serviceWorker;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorlanguage
+[Exposed=(Window,Worker)]
+interface mixin NavigatorLanguage {
+  readonly attribute DOMString language;
+  readonly attribute any languages;
+};
+
+// https://html.spec.whatwg.org/multipage/#dom-navigator-online
+[Exposed=(Window,Worker)]
+interface mixin NavigatorOnLine {
+  readonly attribute boolean onLine;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorplugins
+interface mixin NavigatorPlugins {
+  [SameObject] readonly attribute PluginArray plugins;
+  [SameObject] readonly attribute MimeTypeArray mimeTypes;
+  boolean javaEnabled();
+  readonly attribute boolean pdfViewerEnabled;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorcookies
+interface mixin NavigatorCookies {
+  readonly attribute boolean cookieEnabled;
+};
+
+// https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
+[Exposed=(Window)]
+partial interface Navigator {
+  [Pref="dom_permissions_enabled"] readonly attribute Permissions permissions;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorconcurrenthardware
+interface mixin NavigatorConcurrentHardware {
+  readonly attribute unsigned long long hardwareConcurrency;
+};
+
+// https://w3c.github.io/clipboard-apis/#navigator-interface
+partial interface Navigator {
+  [SecureContext, SameObject, Pref="dom_async_clipboard_enabled"] readonly attribute Clipboard clipboard;
+};
+
+// https://w3c.github.io/beacon/#sendbeacon-method
+partial interface Navigator {
+  [Throws] boolean sendBeacon(USVString url, optional BodyInit? data = null);
+};
+
+// https://html.spec.whatwg.org/multipage/#custom-handlers
+interface mixin NavigatorContentUtils {
+  [Throws, SecureContext, Pref="dom_navigator_protocol_handlers_enabled"] undefined registerProtocolHandler(DOMString scheme, USVString url);
+  [Throws, SecureContext, Pref="dom_navigator_protocol_handlers_enabled"] undefined unregisterProtocolHandler(DOMString scheme, USVString url);
+};

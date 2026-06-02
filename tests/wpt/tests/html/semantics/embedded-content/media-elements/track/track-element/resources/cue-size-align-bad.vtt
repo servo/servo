@@ -1,0 +1,18 @@
+WEBVTT
+Either size or alignment are invalid.
+
+1
+00:00:00.000 --> 00:00:30.500 size:100% align:@start
+Bear is Coming!!!!!
+Box for the cue is 100% of the video viewport width, alignment is ignored.
+
+2
+00:00:31.000 --> 00:01:00.500 size:-10% align:end
+I said Bear is coming!!!!
+Box for the cue is as big as the text, no line wrapping,
+(except if viewport is too small) and end aligned.
+
+3
+00:01:01.000 --> 00:02:00.500 size:110% align:@end
+I said Bear is coming now!!!!
+Both cue size and alignment are ignored.

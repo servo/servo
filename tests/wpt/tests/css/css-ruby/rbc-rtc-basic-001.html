@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+ <html lang="ja">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Ruby Test: rbc and rtc elements (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="match" href="reference/rbc-rtc-basic-001-ref.html">
+  <link rel="help" href="https://www.w3.org/TR/css-ruby-1/#box-fixup">
+
+
+  <style>
+  body
+    {
+      font-size: 60px;
+    }
+
+  ruby
+    {
+      background: lightblue;
+    }
+
+  span#rbc
+    {
+      display: ruby-base-container;
+    }
+
+  rtc
+    {
+      display: ruby-text-container;
+    }
+  </style>
+
+  <ruby><span id="rbc"><rb>あい</rb></span><rt>べ<rt>る</ruby>
+
+  <ruby>でい<rtc>する</ruby>
+
+  <ruby><rb>私<rb>に<rtc>誰</ruby>
+
+ </html>

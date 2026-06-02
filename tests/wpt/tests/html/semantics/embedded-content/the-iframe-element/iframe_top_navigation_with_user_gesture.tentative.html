@@ -1,0 +1,39 @@
+<!doctype html>
+
+Check that a cross-site iframe can navigate its top window if the user has
+interacted with it.
+
+<button>Gain user activation</button>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  async_test(function (t) {
+    // Gain user activation to be able to open a popup. This is needed, as we have
+    // enabled popup blocking for this test.
+    test_driver.click(document.querySelector("button")).then(() => {
+      let beforeunloadFired = false;
+
+      window.addEventListener(
+        "message",
+        t.step_func_done(function (e) {
+          assert_equals(e.data, "NAVIGATED", "The parent should be navigated");
+          assert_equals(
+            beforeunloadFired,
+            true,
+            "An beforeunload event should have been fired in the parent"
+          );
+        })
+      );
+
+      let parent = open(
+        "support/iframe-that-performs-top-navigation-parent-with-user-gesture.sub.html"
+      );
+      parent.addEventListener("beforeunload", () => {
+        beforeunloadFired = true;
+      });
+    });
+  });
+</script>

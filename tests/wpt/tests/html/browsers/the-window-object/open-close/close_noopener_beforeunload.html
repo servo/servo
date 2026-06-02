@@ -1,0 +1,34 @@
+<!doctype html>
+<title>Running beforeunload handler in window.close() for noopener window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function waitForMessage(channel, name) {
+  return new Promise(resolve => {
+    function listener({ data }) {
+      if (data.name === name) {
+        channel.removeEventListener("message", listener);
+        resolve(data);
+      }
+    };
+    channel.addEventListener("message", listener);
+  });
+}
+
+async_test(t => {
+  let chan = new BroadcastChannel("close_noopener_beforeunload2");
+  waitForMessage(chan, "beforeunload").then(t.step_func_done(data => {
+    assert_equals(data.history, 2, "session history has multiple entries");
+  }));
+  window.open("self-close.html?navs=1&channel=close_noopener_beforeunload2", "", "noopener");
+}, "closing noopener window with 2 entries");
+
+async_test(t => {
+  let chan = new BroadcastChannel("close_noopener_beforeunload1");
+  waitForMessage(chan, "beforeunload").then(t.step_func_done(data => {
+    assert_equals(data.history, 1, "session history has a single entry");
+  }));
+  window.open("self-close.html?navs=0&channel=close_noopener_beforeunload1", "", "noopener");
+}, "closing noopener window with 1 entry");
+</script>

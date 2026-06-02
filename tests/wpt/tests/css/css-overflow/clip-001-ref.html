@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: red;
+    /* For this simple case, hidden and clip are equivalent */
+    overflow: hidden;
+  }
+
+  #container {
+    overflow: auto;
+    height: 300px;
+  }
+
+  #fill {
+    background: blue;
+    height: 5000px;
+  }
+</style>
+<div id="container">
+  <div id="target">
+    <div id="fill"></div>
+  </div>
+</div>

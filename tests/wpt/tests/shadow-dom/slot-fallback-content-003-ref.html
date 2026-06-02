@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8" >
+<meta name="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Modify slot fallback contents, when dynamically created.">
+<title>Shadow DOM: Slots and fallback contents</title>
+
+<p>Test passes if there are two lines of text "SLOT1", "A" below.</p>
+
+<div>
+  <div>SLOT1</div>
+  <div>A</div>
+</div>
+
+<p>Test passes if there is one line of text "C" below.</p>
+
+<div>
+  <div>C</div>
+</div>
+
+<p>Test passes if empty.</p>

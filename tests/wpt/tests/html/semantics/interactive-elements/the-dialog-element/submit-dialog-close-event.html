@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=304827">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog>
+  <form method="dialog">
+    <input id="goodbye" type="submit" value="Goodbye">
+    <input id="hello" type="submit" value="Hello">
+  </form>
+</dialog>
+
+<script>
+async_test(t => {
+  const dialog = document.querySelector('dialog');
+  dialog.show();
+  dialog.addEventListener('close', t.step_func(() => {
+    assert_false(dialog.open);
+    assert_equals(dialog.returnValue, 'Goodbye');
+
+    dialog.show();
+    dialog.addEventListener('close', t.step_func_done(() => {
+      assert_false(dialog.open);
+      assert_equals(dialog.returnValue, 'Hello');
+    }));
+    document.querySelector('#hello').click();
+  }), {once: true});
+
+  document.querySelector('#goodbye').click();
+}, 'Tests submitting a dialog on a close event triggered by a previous submission.');
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#intrinsic-sizes">
+<link rel="match" href="child-replaced-percentage-ref.html">
+<meta name="assert" content="This test checks that intrinsicSizes is calculated correctly for a replaced child element with a percentage height." />
+<style>
+.test {
+  background: red;
+  height: 50px;
+  width: min-content;
+}
+
+@supports (display: layout(parent)) {
+  .test {
+    display: layout(parent);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div style="height: 50%">
+    <canvas width=100 height=100 style="height: 100%;"></canvas>
+  </div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('parent', class {
+  async intrinsicSizes(children, edges, styleMap) {
+    const childrenSizes = await Promise.all(children.map((child) => {
+        return child.intrinsicSizes();
+    }));
+
+    if (childrenSizes[0].minContentSize == 25 &&
+        childrenSizes[0].maxContentSize == 25) {
+      return { maxContentSize: 100, minContentSize: 50 };
+    }
+    return { maxContentSize: 0, minContentSize: 0 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

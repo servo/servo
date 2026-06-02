@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Filter Effects Module Level 1: parsing lighting-color with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#LightingColorProperty">
+<meta name="assert" content="lighting-color supports the full grammar '<color>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("lighting-color", "rgb(1,2,3)", "rgb(1, 2, 3)");
+test_valid_value("lighting-color", "#102030", "rgb(16, 32, 48)");
+test_valid_value("lighting-color", "rgba(1, 2, 3, 0.5)");
+
+test_valid_value("lighting-color", "currentColor", "currentcolor");
+test_valid_value("lighting-color", "currentcolor", "currentcolor");
+</script>
+</body>
+</html>

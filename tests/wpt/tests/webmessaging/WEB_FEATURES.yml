@@ -1,0 +1,18 @@
+features:
+- name: messageerror
+  files:
+  - messageerror.html
+  - postMessage_CryptoKey_insecure.sub.html
+- name: channel-messaging
+  files:
+  - Channel_*
+  - MessagePort_*
+  - event.ports.sub.htm
+- name: postmessage
+  files:
+  - MessageEvent*
+  - Transferred_objects_unusable.sub.htm
+  - event.*
+  - postMessage_*
+  - "!postMessage_CryptoKey_insecure.sub.html"
+  - worker_postMessage_*

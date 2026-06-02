@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: counter-style empty string symbol</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#typedef-symbol">
+<link rel="mismatch" href="empty-string-symbol-notref.html">
+<style type="text/css">
+  @counter-style a {
+    system: cyclic;
+    symbols: "";
+    prefix: "";
+    suffix: "";
+  }
+</style>
+<ol><li>Decimal marker. Should have "1." as marker.</ol>
+<ol style="list-style-type: a"><li>Empty string marker, should have "" as marker.</ol>

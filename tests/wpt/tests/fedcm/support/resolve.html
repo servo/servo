@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+async function doResolve() {
+  let params = new URLSearchParams(document.location.search);
+  let options = {};
+  if (params.get("accountId")) {
+    options.accountId = params.get("accountId");
+  }
+  let token = "resolved token";
+  if (params.get("selected")) {
+    token = "account=" + params.get("selected");
+  }
+  IdentityProvider.resolve(token, options);
+}
+window.onload = doResolve;
+</script>
+

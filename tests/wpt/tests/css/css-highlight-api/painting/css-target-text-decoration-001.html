@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Highlight API Test: ::target-text text-decoration</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="css-target-text-decoration-001-ref.html">
+<meta name="assert" content="This test checks that text-decorations of target text are fully rendered.">
+<meta name="fuzzy" content="0-60;0-38">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  ::target-text {
+    text-decoration: wavy underline overline green 5px;
+    text-underline-offset: 20px;
+    background-color: transparent;
+  }
+  div {
+    border: solid 1px black;
+    padding: 50px;
+  }
+</style>
+<div id="upper">The word remain has under/over lines.</div>
+<script>
+  window.location.href = `css-target-text-decoration-001.html#:~:text=remain`;
+  requestAnimationFrame(() => takeScreenshot());
+</script>
+</html>

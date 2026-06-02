@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Scrolling Backgrounds in Scrolling Backgrounds</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/block/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <meta name="flags" content="image interact scroll"/>
+  <style type="text/css">
+   .outer {
+     background: red url(support/bordered-rectangle.png) -5px -5px scroll;
+     border: 10px dotted;
+     overflow: auto; height: 190px; width: 390px;
+     white-space: pre; font-size: 16px;
+     text-align: center;
+   }
+   .inner {
+     background: orange url(support/cat.png) scroll no-repeat;
+     border: 10px dotted yellow; margin: 0 auto;
+     overflow: auto; height: 99px; width: 98px;
+     color: orange;
+   }
+   ul { color: navy; }
+  </style>
+ </head>
+ <body>
+
+  <ul>
+   <li>You should see teal underneath the dotted black border below.</li>
+   <li>There should be exactly four aqua rectangles visible inside the dotted border at all times.</li>
+   <li>As you scroll the element below the teal and aqua should not move.</li>
+   <li>However, as you scroll the aqua-and-teal element, a cat surrounded by an orange border with yellow dots should come into view, with its own associated nested scrolling mechanism.</li>
+   <li>As you scroll the aqua-and-teal element, the cat should move up and down with its border.</li>
+   <li>As you scroll the numbers inside the orange border, the cat should not move.</li>
+  </ul>
+
+  <div class="outer">   1
+   2
+   3
+   4
+   5
+   6
+   7
+   8
+   9
+  <div class="inner">   1
+   2
+   3
+   4
+   5
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20</div>
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20</div>
+ </body>
+</html>

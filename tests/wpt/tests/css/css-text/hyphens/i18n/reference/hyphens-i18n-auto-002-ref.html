@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: language specific hyphenation—Hungarian</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-size: 3em;
+  color: orange;
+}
+.test {
+  color: blue;
+}
+</style>
+
+<p>Test passes if the blue text is identical to one of the orange texts (which may be identical to eachother, or may have a different hyphen).
+<div lang=hu class=test>Ösz&#x2010;<br>szeg</div>
+<hr>
+<div lang=hu>Ösz&#x2010;<br>szeg</div>
+<hr>
+<div lang=hu>Ösz-<br>szeg</div>

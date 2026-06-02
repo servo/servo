@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Setting scrollTop to 0 immediately after toggling display from "none" on an element that had nonzero scrollTop before should work.</title>
+<link rel=match href="scrollTop-display-change-ref.html">
+<div id="scroller" style="height: 100px; overflow: scroll">
+  <div style="height: 1000px">
+    I should be visible.
+  </div>
+  I should not be visible.
+</div>
+<script>
+  scroller.scrollTop = 1000;
+  scroller.style.display = "none";
+  var win = scroller.scrollTop; // Force layout flush
+  scroller.style.display = "";
+  scroller.scrollTop = 0;
+</script>

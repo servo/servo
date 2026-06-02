@@ -1,0 +1,52 @@
+{#
+
+    Copied from:
+
+     https://raw.githubusercontent.com/pallets/pallets-sphinx-themes/b0c6c41849b4e15cbf62cc1d95c05ef2b3e155c8/src/pallets_sphinx_themes/themes/pocoo/layout.html
+
+    And removed the warning version (see #7331).
+
+#}
+
+{% extends "basic/layout.html" %}
+
+{% set metatags %}
+  {{- metatags }}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+{%- endset %}
+
+{% block extrahead %}
+  {%- if page_canonical_url %}
+    <link rel="canonical" href="{{ page_canonical_url }}">
+  {%- endif %}
+  <script>DOCUMENTATION_OPTIONS.URL_ROOT = '{{ url_root }}';</script>
+  {{ super() }}
+{%- endblock %}
+
+{% block sidebarlogo %}
+  {% if pagename != "index" or theme_index_sidebar_logo %}
+    {{ super() }}
+  {% endif %}
+{% endblock %}
+
+{% block relbar2 %}{% endblock %}
+
+{% block sidebar2 %}
+  <span id="sidebar-top"></span>
+  {{- super() }}
+{%- endblock %}
+
+{% block footer %}
+  {{ super() }}
+  {%- if READTHEDOCS and not readthedocs_docsearch %}
+    <script>
+      if (typeof READTHEDOCS_DATA !== 'undefined') {
+        if (!READTHEDOCS_DATA.features) {
+          READTHEDOCS_DATA.features = {};
+        }
+        READTHEDOCS_DATA.features.docsearch_disabled = true;
+      }
+    </script>
+  {%- endif %}
+  {{ js_tag("_static/version_warning_offset.js") }}
+{% endblock %}

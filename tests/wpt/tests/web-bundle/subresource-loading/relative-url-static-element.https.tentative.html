@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>WebBundle subresource loading with relative URLs for static elements</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script type="webbundle">
+    {
+      "source": "../resources/wbn/static-element.wbn",
+      "resources": [
+        "static-element/resources/script.js"
+      ],
+      "scopes": [
+        "static-element/scopes"
+      ]
+    }
+  </script>
+  <script src="../resources/wbn/static-element/resources/script.js"></script>
+  <script src="../resources/wbn/static-element/scopes/script.js"></script>
+  <script src="../resources/wbn/static-element/out-of-scope/script.js"></script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports('webbundle'));
+    });
+    promise_test(async () => {
+      assert_equals(resources_script_result, 'loaded from webbundle');
+      assert_equals(scopes_script_result, 'loaded from webbundle');
+      assert_equals(out_of_scope_script_result, 'loaded from network');
+    }, 'Subresources from static elements should be loaded from web bundle.');
+  </script>
+</body>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: Apply white-space property of display:contents element to inline children</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-text-inherit-ref.html">
+<p>The words "Two" and "lines" should not be on the same line.</p>
+<div id="div" style="background-color:red">
+  <span style="display:contents;white-space:pre-line">Two
+    lines
+  </span>
+</div>
+<script>
+  document.body.offsetTop;
+  div.style.backgroundColor = "transparent";
+</script>

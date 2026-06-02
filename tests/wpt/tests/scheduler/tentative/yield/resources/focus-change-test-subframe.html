@@ -1,0 +1,16 @@
+<!doctype html>
+
+<script>
+  function handleFocus() {
+    window.parent.postMessage({status: "focus"}, '*');
+  }
+
+  async function handleBlur() {
+    let didRun = false;
+    scheduler.postTask(() => { didRun = true; });
+    await scheduler.yield();
+    window.parent.postMessage({status: "done", didRun}, '*');
+  }
+</script>
+
+<input placeholder='focus me' id=input onfocus="handleFocus()" onblur="handleBlur()">

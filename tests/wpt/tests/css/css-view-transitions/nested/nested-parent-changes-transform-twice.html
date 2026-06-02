@@ -1,0 +1,76 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Nested View Transitions: child only has old and parent changes transform (twice)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="green-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+:root { view-transition-name: none; }
+
+.container {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  background: red;
+
+  view-transition-name: container;
+  view-transition-group: contain;
+}
+
+.container.shifted {
+  top: 150px;
+}
+.container.shifted_again {
+  left: 150px;
+}
+
+.contained {
+  width: 100px;
+  height: 100px;
+  background: green;
+
+  view-transition-name: contained;
+}
+
+.hidden {
+  display: none;
+}
+
+::view-transition-group(*) {
+  animation-play-state: paused;
+}
+
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+}
+
+</style>
+
+<div id=container class=container>
+  <div id=contained class=contained></div>
+</div>
+
+<script>
+function runTest() {
+  const transition = document.startViewTransition(() => {
+    container.classList.add("shifted");
+    contained.classList.add("hidden");
+  });
+
+  transition.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+    container.classList.add("shifted_again");
+    requestAnimationFrame(takeScreenshot);
+  })));
+}
+
+onload = () => waitForCompositorReady().then(runTest);
+</script>

@@ -1,0 +1,66 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Attribution Level 1 (https://w3c.github.io/attribution/)
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute Attribution attribution;
+};
+
+enum AttributionAggregationProtocol { "dap-15-histogram" };
+
+dictionary AttributionAggregationService {
+  required AttributionAggregationProtocol protocol;
+};
+
+[SecureContext, Exposed=Window]
+interface AttributionAggregationServices {
+  readonly maplike<USVString, AttributionAggregationService>;
+};
+
+[SecureContext, Exposed=Window]
+interface Attribution {
+  readonly attribute AttributionAggregationServices aggregationServices;
+};
+
+dictionary AttributionImpressionOptions {
+  required unsigned long histogramIndex;
+  unsigned long matchValue = 0;
+  sequence<USVString> conversionSites = [];
+  sequence<USVString> conversionCallers = [];
+  unsigned long lifetimeDays = 30;
+  long priority = 0;
+};
+
+dictionary AttributionImpressionResult {
+};
+
+[SecureContext, Exposed=Window]
+partial interface Attribution {
+  Promise<AttributionImpressionResult> saveImpression(AttributionImpressionOptions options);
+};
+
+dictionary AttributionConversionOptions {
+  required USVString aggregationService;
+  double epsilon = 1.0;
+
+  required unsigned long histogramSize;
+
+  unsigned long lookbackDays;
+  sequence<unsigned long> matchValues = [];
+  sequence<USVString> impressionSites = [];
+  sequence<USVString> impressionCallers = [];
+
+  sequence<double> credit;
+  unsigned long value = 1;
+  unsigned long maxValue = 1;
+};
+
+dictionary AttributionConversionResult {
+  required Uint8Array report;
+};
+
+[SecureContext, Exposed=Window]
+partial interface Attribution {
+  Promise<AttributionConversionResult> measureConversion(AttributionConversionOptions options);
+};

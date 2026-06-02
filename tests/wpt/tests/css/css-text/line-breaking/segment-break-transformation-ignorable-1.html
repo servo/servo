@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Test: Segment Break Transformation Rules</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1927458">
+<meta name="assert" content="default-ignorable characters should not interfere with segment break transformation">
+<link rel="match" href="segment-break-transformation-ignorable-1-ref.html">
+<div>Pass if the two lines match, with no spaces between the characters:</div>
+<div lang="zh" style="font: 24px serif">
+<p>
+  &#x793E;&#xFE00;
+  &#x798F;&#xFE00;
+  &#x845B;&#xE0100;
+  &#x79B0;&#xE0100;
+  葛&shy;
+  葛&#x200E;
+  葛
+  &#x200E;葛
+</p>
+<p>
+  &#x793E;&#xFE00;&#x798F;&#xFE00;&#x845B;&#xE0100;&#x79B0;&#xE0100;葛葛葛葛
+</p>
+</div>

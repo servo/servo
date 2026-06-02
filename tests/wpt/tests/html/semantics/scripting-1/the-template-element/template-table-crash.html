@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/1212619">
+<meta name="assert" content="The renderer should not crash.">
+
+<template id=tmpl></template>
+<table id=tbl>
+  <script>
+    tmpl.appendChild(tbl);
+  </script>
+  Crash
+</table>

@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ReportingObserver disconnect should not crash</title>
+
+<script>
+    const ro = new ReportingObserver(() => { }, { types: ["deprecation"], buffered: true });
+    ro.observe();
+    ro.disconnect();
+</script>

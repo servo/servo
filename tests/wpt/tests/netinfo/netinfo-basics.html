@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>NetInfo basic functionality</title>
+<link rel="help" href="https://wicg.github.io/netinfo/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(function() {
+      assert_in_array(navigator.connection.type,  ["bluetooth", "cellular",
+        "ethernet", "mixed", "none", "other", "unknown", "wifi", "wimax"], 'type is unexpected');
+}, "type attribute");
+
+test(function() {
+      assert_in_array(navigator.connection.saveData,  [false, true], 'saveData is unexpected');
+}, "saveData attribute");
+
+test(function() {
+      assert_greater_than_equal(navigator.connection.downlinkMax, 0);
+}, "downlinkMax attribute");
+
+test(function() {
+      assert_in_array(navigator.connection.effectiveType, ["slow-2g", "2g",
+          "3g", "4g"], 'effectiveType is unexpected');
+}, "effectiveType attribute");
+
+test(function() {
+      var rtt  = navigator.connection.rtt;
+      assert_greater_than_equal(rtt, 0);
+      assert_less_than_equal(rtt, 3000);
+      assert_equals(rtt % 50, 0, 'rtt must be a multiple of 50 msec');
+}, "rtt attribute");
+
+test(function() {
+  var downlinkKbps  = navigator.connection.downlink * 1000;
+  assert_greater_than_equal(downlinkKbps, 0);
+  assert_less_than_equal(downlinkKbps, 10000);
+
+  // Verify that downlinkKbps is a multiple of 50.
+  var quotient = parseInt(downlinkKbps  / 50, 10);
+  // mod is the remainder left after dividing downlinkKbps by 50 while
+  // restricting the quotient to an integer. For example, if downlinkKbps is
+  // 1050, then mod will be 0. If downlinkKpbps is 1030, mod will be 30.
+  var mod = downlinkKbps - 50 * quotient;
+  assert_less_than_equal(0.0, mod, 'mod outside the range');
+  assert_greater_than(50.0, mod, 'mod outside the range');
+  // It is possible that mod is not exactly 0 because of floating point
+  // computations. e.g., downlinkKbps may be 99.999999, in which case mod
+  // will be 49.999999.
+  assert_true(mod < 1e-5 || (50-mod) < 1e-5, 'downlink must be a multiple of 50 kbps');
+}, "downlink attribute");
+</script>

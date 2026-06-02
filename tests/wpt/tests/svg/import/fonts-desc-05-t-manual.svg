@@ -1,0 +1,136 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="reviewed"
+    version="$Revision: 1.7 $" testname="$RCSfile: fonts-desc-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#SVGFontsOverview">
+        <p>
+          This tests a combination of font attribute matching.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The correct result for the first line is diamond, diamond, upward-triangle,
+        downard-triangle. The correct result for the second line is
+        upward-triangle, downard triangle, and a right-triangle.
+      </p>
+      <p>
+        Reasoning for glyphs on the first line:
+        The first character is a diamond because it is matched purely
+        on the font-style attribute. The second character is a diamond
+        because font-style (italic) is of highest precedence, followed
+        by font-variant (normal), then font-weight (bold). The third
+        character matches upward-triangle because again font-variant
+        (small-caps) is a higher precedence than font-weight. The
+        fourth character undisputedly matches the downward-triangle.
+      </p>
+      <p>
+        Reasoning for the glyphs on the second line:
+        The first character is a upward-triangle because the font
+        matching must fall back to SVGFont1 to get a match
+        for small-caps. The second character is a downward-triangle
+        because there is no match for small-caps in SVGFont2.
+        The third character is a right facing triangle because
+        italic should match oblique in SVGFont2.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: fonts-desc-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" font-style="italic" font-variant="small-caps" font-weight="bold" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" font-variant="small-caps" font-weight="bold" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="downward-triangle" d="M250 0L0 900L500 900Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" font-style="italic" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="diamond" d="M0 500L250 250L500 500L250 750Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont1" font-style="oblique" font-weight="bold" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="circle" d="M250 500A 250,250 0 1,0 250 499 Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont2" font-style="oblique" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="right-triangle" d="M0 100L0 600L900 350Z"/>
+      </font>
+
+      <font horiz-adv-x="500">
+        <font-face font-family="SVGFont2" font-weight="bold" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
+        <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
+        <glyph unicode=" " glyph-name="space"/>
+        <glyph unicode="a" glyph-name="left-triangle" d="M900 100L900 600L0 350Z"/>
+      </font>
+
+    </defs>
+    <g transform="scale(1.5) translate(0, -50)">
+      <!-- This should produce a diamond, diamond, upward-triangle, downard-triangle. -->
+      <text x="50" y="100" font-size="20" font-family="SVGFont1" font-style="italic">a</text>
+      <text x="100" y="100" font-size="20" font-family="SVGFont1" font-style="italic" font-weight="bold">a</text>
+      <text x="150" y="100" font-size="20" font-family="SVGFont1" font-style="italic" font-variant="small-caps">a</text>
+      <text x="200" y="100" font-size="20" font-family="SVGFont1" font-variant="small-caps" font-weight="bold">a</text>
+
+      <!-- This should produce a upward-triangle, downard triangle, and a right-triangle. -->
+      <text x="50" y="200" font-size="20" font-family="SVGFont2, SVGFont1" font-style="italic" font-variant="small-caps" font-weight="bold">a</text>
+      <text x="100" y="200" font-size="20" font-family="SVGFont2, SVGFont1" font-variant="small-caps" font-weight="bold">a</text>
+      <text x="150" y="200" font-size="20" font-family="SVGFont2, SVGFont1" font-style="italic">a</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

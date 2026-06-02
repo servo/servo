@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>&lt;svg&gt;'s HTML integration points</title>
+  </head>
+  <body>
+    <!-- self-closed elements -->
+    <svg>
+      <title/>
+      <desc/>
+      <foreignObject height=0 width=0 />
+    </svg>
+
+    <!-- null-content elements -->
+    <svg>
+      <title></title>
+      <desc></desc>
+      <foreignObject height=0 width=0></foreignObject>
+    </svg>
+
+    <!-- just white space -->
+    <svg>
+      <title>
+
+      </title>
+      <desc>
+
+      </desc>
+      <foreignObject height=0 width=0>
+
+
+      </foreignObject>
+    </svg>
+
+    <!-- plain text -->
+    <svg>
+      <title>foo</title>
+      <desc>foo</desc>
+      <foreignObject height=0 width=0>foo</foreignObject>
+    </svg>
+
+    <!-- phrasing content -->
+    <svg>
+      <title>
+        fee
+        <a href="//example.com/">fi</a>
+        <em>fo</em>
+        <svg>
+          <title>fum</title>
+        </svg>
+        <svg>
+          <title>
+            <svg>
+              <title>
+                <svg>
+                  <title>Yes, this is somehow totally valid.</title>
+                </svg>
+              </title>
+            </svg>
+          </title>
+        </svg>
+      </title>
+
+      <desc>
+        fee
+        <a href="//example.com/">fi</a>
+        <em>fo</em>
+        <svg>
+          <title>fum</title>
+        </svg>
+        <svg>
+          <title>
+            <svg>
+              <title>
+                <svg>
+                  <title>Yes, this is somehow totally valid.</title>
+                </svg>
+              </title>
+            </svg>
+          </title>
+        </svg>
+      </desc>
+
+      <foreignObject height=0 width=0>
+        fee
+        <a href="//example.com/">fi</a>
+        <em>fo</em>
+        <svg>
+          <title>fum</title>
+        </svg>
+        <svg>
+          <title>
+            <svg>
+              <title>
+                <svg>
+                  <title>Yes, this is somehow totally valid.</title>
+                </svg>
+              </title>
+            </svg>
+          </title>
+        </svg>
+      </foreignObject>
+    </svg>
+
+    <!-- flow content (<title> cannot have it, it only allows phrasing) -->
+    <svg>
+      <desc>
+        <section>
+          <h1>Heading</h1>
+        </section>
+      </desc>
+
+      <foreignObject height=0 width=0>
+        <section>
+          <h1>Heading</h1>
+        </section>
+      </foreignObject>
+    </svg>
+
+    <!-- metadata content not allowable in flow content (<title> and <foreignObject> cannot have this, only <desc>) -->
+    <svg>
+      <desc>
+        <style> /* */ </style>
+        <link href="/whatever" rel="stylesheet">
+        <title>I'm an HTML &lt;title&gt;!</title>
+      </desc>
+    </svg>
+  </body>
+</html>

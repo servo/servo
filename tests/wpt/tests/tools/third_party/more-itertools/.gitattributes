@@ -1,0 +1,2 @@
+more_itertools/more.py merge=union
+more_itertools/tests/test_more.py merge=union

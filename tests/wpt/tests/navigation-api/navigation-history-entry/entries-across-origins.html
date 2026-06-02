@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let start_key = i.contentWindow.navigation.currentEntry.key;
+    let start_id = i.contentWindow.navigation.currentEntry.id;
+
+    let cross_origin_url = new URL("resources/post-entries-length-to-top.html", location.href);
+    cross_origin_url.hostname = get_host_info().REMOTE_HOST;
+    i.contentWindow.location.assign(cross_origin_url.href);
+
+    window.onmessage = t.step_func(e => {
+      assert_equals(e.data, 1);
+
+      i.src = "/common/blank.html?2";
+      i.onload = t.step_func_done(() => {
+        let entries = i.contentWindow.navigation.entries();
+        assert_equals(entries.length, 1);
+        assert_equals(new URL(entries[0].url).search, "?2");
+        assert_not_equals(entries[0].key, start_key);
+        assert_not_equals(entries[0].id, start_id);
+        assert_true(isUUID(entries[0].key));
+        assert_true(isUUID(entries[0].id));
+      });
+    });
+  });
+}, "navigation.entries() should only contain entries that are both same-origin and contiguous");
+</script>

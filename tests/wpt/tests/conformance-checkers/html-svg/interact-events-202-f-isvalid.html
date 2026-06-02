@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>interact-events-202-f-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: interact-events-202-f-manual.svg</h1>
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: interact-events-202-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+  	<defs>
+  		<rect id="r1" x="10" y="20" width="90" height="65" visibility="inherit" fill="inherit"/>
+  	</defs>
+  	
+		<g id="g1" transform="translate( 0,  0)" visibility="visible">
+      <use xlink:href="#r1" visibility="inherit" fill="blue" 
+           onmouseover="g3.setAttribute('visibility', 'visible')"
+           onmouseout="g3.setAttribute('visibility', 'hidden')"/>
+    </g>
+    <g id="g2" transform="translate(90,  0)" visibility="visible" 
+    	 onmouseover="g4.setAttribute('visibility', 'visible')"
+    	 onmouseout="g4.setAttribute('visibility', 'hidden')">
+      <use xlink:href="#r1" visibility="inherit" fill="green"/>
+    </g>
+    <g id="g3" transform="translate( 0, 65)" visibility="hidden">
+      <use xlink:href="#r1" visibility="inherit" fill="yellow"/>
+    </g>
+    <g id="g4" transform="translate(90, 65)" visibility="hidden">
+      <use xlink:href="#r1" visibility="inherit" fill="purple"/>
+    </g>
+
+    <script type="text/ecmascript">
+      var g1 = document.getElementById("g1");
+      var g2 = document.getElementById("g2");
+      var g3 = document.getElementById("g3");
+      var g4 = document.getElementById("g4");
+    </script>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg></body>
+</html>

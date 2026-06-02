@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+  Gap Decorations are shown in a grid that's fragmented. Suppressed row gaps do not
+  have decorations. Test scenario where both grid and subgrid are sparse.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="subgrid-gap-decorations-fragmentation-008-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multicol {
+    position: relative;
+    columns: 2;
+    column-fill: auto;
+    width: 280px;
+    height: 72px;
+    background: yellow;
+    column-gap: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    background: lightgray;
+    gap: 10px;
+    height: 140px;
+    column-rule: skyblue solid 10px;
+    row-rule: cornflowerblue solid 10px;
+    column-rule-break: none;
+    row-rule-break: none;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    background: orange;
+    grid-column: 2 / -2;
+    grid-row: 2 / -2;
+    column-rule: white solid 10px;
+    row-rule: blue solid 10px;
+  }
+  .item {
+    background: purple;
+  }
+</style>
+<div class="multicol">
+  <div class="grid-container">
+    <div class="subgrid">
+      <div class="item"></div>
+      <div class="item" style="grid-row: -2; grid-column: -2;"></div>
+    </div>
+  </div>
+</div>

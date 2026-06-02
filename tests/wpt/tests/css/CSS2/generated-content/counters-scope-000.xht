@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Counter scope</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#scope"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  .scope { counter-reset: c 1; }
+  .scope:before, .scope:after { content: counter(c); }
+  .c:before { content: counter(c); }
+
+  .one:before { counter-reset: c 2; }
+  .two { counter-reset: c 3; }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The next 2 lines should be identical:</p>
+
+ <div>
+   <span class="scope"><span class="one c"><span class="c"></span></span><span class="c"></span></span><span class="c"></span>
+   <span class="scope"><span class="two c"><span class="c"></span></span><span class="c"></span></span><span class="c"></span>
+ </div>
+
+ <div>
+   122111
+   133331
+ </div>
+
+ </body>
+</html>

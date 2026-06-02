@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="http://www.w3.org/TR/SVG2/shapes.html#RectElement"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="rect-05-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="width or height 0 disables rendering."/>
+  </metadata>
+  <rect x="30" y="50" width="0" height="10" fill="red" stroke="red" stroke-width="4"/>
+  <rect x="50" y="50" width="10" height="0" fill="red" stroke="red" stroke-width="4"/>
+  <rect x="70" y="50" width="0" height="0" fill="red" stroke="red" stroke-width="4"/>
+</svg>

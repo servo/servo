@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="test-wait">
+<title>Printing an image with src="revoked-blob"</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1665343">
+<link rel="match" href="revoked-blob-print-ref.html">
+<img width=100 height=50>
+<script>
+  let canvas = document.createElement("canvas");
+  canvas.width = 100;
+  canvas.height = 50;
+  let ctx = canvas.getContext("2d");
+  ctx.fillRect(0, 0, 100, 50);
+  canvas.toBlob(function(blob) {
+    let img = document.querySelector("img");
+    let url = URL.createObjectURL(blob);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      document.documentElement.className = "";
+    };
+    img.src = url;
+  });
+</script>
+</html>

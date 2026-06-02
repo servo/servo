@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Testcase for SVG viewBox synthesis when SVG is used as an image</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/SVG/coords.html#ViewBoxAttribute">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1916030">
+<link rel="match" href="viewBox-synthesized-in-img-001-ref.html">
+<style>
+  img {
+    border: 1px solid black;
+    margin: 2px;
+    vertical-align: top;
+  }
+</style>
+<body>
+<script>
+  function makeDataURI(width, height) {
+    let uri = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'";
+    if (width != "") {
+      uri += ` width='${width}'`;
+    }
+    if (height != "") {
+      uri += ` height='${height}'`;
+    }
+    uri += "><rect fill='blue' x='2' y='2' height='6' width='6'/></svg>";
+    return uri;
+  }
+
+  // Note: negative numbers here are equivalent to 0, for the purposes of
+  // what we're testing here. We test both for robustness.
+  const SVG_SIZE_VALS_TO_TEST = [ "", "0", "0%", "-5", "-5%", "10" ];
+  const IMG_SIZE_VALS_TO_TEST = [ "20", "30" ];
+  function go() {
+    // We group our elements into rows with a particular number of items,
+    // to make sure things fit nicely/predictably into the WPT viewport:
+    const NUM_ELEMS_PER_ROW = 12;
+    let elemIdx = 0;
+    let container;
+
+    for (iw of IMG_SIZE_VALS_TO_TEST) {
+      for (ih of IMG_SIZE_VALS_TO_TEST) {
+        for (sw of SVG_SIZE_VALS_TO_TEST) {
+          for (sh of SVG_SIZE_VALS_TO_TEST) {
+            // Generate a new container element at the start and every N elems:
+            if (elemIdx % NUM_ELEMS_PER_ROW == 0) {
+              container = document.createElement("div");
+              document.body.appendChild(container);
+            }
+            elemIdx++;
+
+            const img = document.createElement("img");
+            img.setAttribute("width", iw);
+            img.setAttribute("height", ih);
+
+            const dataURI = makeDataURI(sw, sh);
+            img.setAttribute("src", dataURI);
+
+            container.appendChild(img);
+          }
+        }
+      }
+    }
+  }
+  go();
+</script>
+</body>

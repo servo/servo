@@ -1,0 +1,13 @@
+<!doctype html>
+<title>The icon of the element should change if the fill color is changed</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="mismatch" href="icon-css-property-fill-reftest-ref.html">
+<style>
+  usermedia {
+    color: blue;
+  }
+  ::permission-icon {
+    fill: red;
+  }
+</style>
+<usermedia id="camera" type="camera"></usermedia>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Test cookies accessed from a Fenced Frame Tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script>
+const cookie_value_key = token();
+const kAssertion = "Cookie accessed from unique fenced frame tree partition ";
+const kAssertion_outer = "Cookie values changed in the fenced frame tree should not impact the outer frame";
+
+async function runTest(test_type) {
+  document.cookie = 'A=outer; SameSite=Lax';
+  document.cookie = 'B=outer; SameSite=None; Secure';
+  const fenced_frame =
+    attachFencedFrame(generateURL(
+    `resources/unique-cookie-partition-inner.https.html`,
+    [cookie_value_key, test_type]));
+
+  result = await nextValueFromServer(cookie_value_key);
+  switch (test_type) {
+    case "top-level fenced frame":
+      assert_equals(result, "F=fenced; C=fenced; D=fenced; E=fenced", kAssertion + test_type);
+      break;
+    case "nested iframe":
+      assert_equals(result, "F=fenced; C=fenced; D=fenced; G=nested_in_fenced_frame; E=fenced", kAssertion + test_type);
+      break;
+    case "nested fenced frame":
+      assert_equals(result, "G=nested_in_fenced_frame", kAssertion + test_type);
+      break;
+  }
+
+  // The cookie values changed in the fenced frame tree should not impact the outer frame.
+  const result_outer_frame = document.cookie;
+  assert_equals(result_outer_frame, "A=outer; B=outer", kAssertion_outer);
+
+  // Clean up the fenced frame
+  document.body.removeChild(fenced_frame);
+}
+
+promise_test(async () => {
+  return runTest("top-level fenced frame");
+}, "Cookie access from top-level fenced frame");
+
+promise_test(async () => {
+  return runTest("nested iframe");
+}, "Cookie access from iframe nested in a fenced frame");
+
+promise_test(async () => {
+  return runTest("nested fenced frame");
+}, "Cookie access from nested fenced frame");
+</script>
+</body>

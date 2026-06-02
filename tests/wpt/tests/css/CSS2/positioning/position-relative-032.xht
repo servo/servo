@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relatively positioned box has no impact on boxes which follow</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-relpos" />
+		<link rel="match" href="position-relative-032-ref.xht" />
+
+        <meta name="assert" content="Offsetting a box with relative positioning has no effect on the boxes which follow." />
+        <style type="text/css">
+			div {line-height: 1.25;}
+
+            #span1
+            {
+                position: relative;
+                top: 25px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if "Filler Text1" and "Filler Text3" are on the first line and "Filler Text2" is on the second line and the space has been reserved where "Filler Text2" would have been if it were on the first line.</p>
+        <div>
+            <span>Filler Text1<span id="span1">Filler Text2</span>Filler Text3</span>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>A smooth scroll operation in load event handler isn't omitted</title>
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#concept-smooth-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  html {
+    overflow: auto;
+  }
+</style>
+<div id="pageContent" style="position: absolute; left: 0; top: 0;"></div>
+<script>
+  window.addEventListener("load", () => {
+    // Expand the page content to make the root scroll container overflowed.
+    pageContent.style.width = (window.innerWidth) * 5 + "px";
+    pageContent.style.height = (window.innerHeight) * 6 + "px";
+
+    promise_test(async () => {
+      document.scrollingElement.scrollTo({
+        left: window.innerWidth,
+        top: window.innerHeight,
+        behavior: "smooth"
+      });
+
+      assert_equals(document.scrollingElement.scrollLeft, 0, "Should not set scrollLeft immediately");
+      assert_equals(document.scrollingElement.scrollTop, 0, "Should not set scrollTop immediately");
+
+      // In the next frame, change something to trigger a paint which might
+      // clobber the smooth scroll operation.
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      pageContent.style.color = "green";
+
+      await waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
+
+      assert_equals(document.scrollingElement.scrollLeft, window.innerWidth, "Final value of scrollLeft");
+      assert_equals(document.scrollingElement.scrollTop, window.innerHeight, "Final value of scrollTop");
+    }, `Smooth scroll in load event handler`);
+  });
+</script>

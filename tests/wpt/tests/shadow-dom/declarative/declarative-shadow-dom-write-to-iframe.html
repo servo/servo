@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>`document.write` on inner iframe handles declarative shadow DOM</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+promise_test(async () => {
+  await new Promise(res => window.addEventListener("load", res));
+  let elem = document.querySelector("iframe");
+  elem.contentDocument.write(`
+    <div>
+      <template shadowrootmode="open"><slot></slot></template>
+      <p>Test</p>
+    </div>
+  `);
+  let container = elem.contentDocument.querySelector("div");
+  assert_true(!!container, "write should occur");
+  assert_true(!!container.shadowRoot, "write should create shadowroot");
+  assert_equals(container.innerText, "Test", "div should still contain text");
+}, "`document.write` on inner iframe handles declarative shadow DOM");
+</script>

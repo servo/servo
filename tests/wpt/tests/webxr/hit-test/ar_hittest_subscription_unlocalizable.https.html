@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_math_utils.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+// 0.25m above world origin.
+const FLOOR_ORIGIN_TRANSFORM = {
+  position: [0, 0.25, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  floorOrigin: FLOOR_ORIGIN_TRANSFORM,    // aka mojo_from_floor
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,  // aka mojo_from_viewer
+  supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // webxr_test_constants_fake_world.js has detailed description of the fake world
+};
+
+// Generates a test function given the parameters for the hit test. It will subscribe
+// to a hit test using |refSpaceName| and |ray|, and attempt to obtain poses from returned hit
+// test results using a space that is known to be unlocalizable, with the expectation of
+// obtaining a null pose for each hit test result.
+// |ray| - ray that will be used to subscribe to hit test.
+// |refSpaceName| - XRReferenceSpaceType - either 'local', 'local-floor' or 'viewer'.
+let testFunctionGenerator = function(ray, refSpaceName) {
+  const testFunction = function(session, fakeDeviceController, t) {
+
+    const input_source_controller = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: IDENTITY_TRANSFORM,
+      profiles: []
+    });
+
+    return Promise.all([
+      session.requestReferenceSpace('local'),
+      session.requestReferenceSpace('viewer'),
+      session.requestReferenceSpace('local-floor'),
+    ]).then(([localRefSpace, viewerRefSpace, localFloorRefSpace]) => {
+
+      const refSpaceNameToSpace = {
+        'local' : localRefSpace,
+        'viewer' : viewerRefSpace,
+        'local-floor' : localFloorRefSpace
+      };
+
+      const hitTestOptionsInit = {
+        space: refSpaceNameToSpace[refSpaceName],
+        offsetRay: ray,
+      };
+
+      return session.requestHitTestSource(hitTestOptionsInit).then(
+        (hitTestSource) => new Promise((resolve, reject) => {
+
+        const requestAnimationFrameCallback = function(time, frame) {
+
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+          t.step(() => {
+            assert_true(session.inputSources.length > 0, "session.inputSources should not be empty!");
+            assert_true(hitTestResults.length > 0, "Results should not be empty!");
+
+            const input_source = session.inputSources[0];
+
+            for(const [index, hitTestResult] of hitTestResults.entries()) {
+              const pose = hitTestResult.getPose(input_source.targetRaySpace);
+              assert_true(pose == null, "Pose should be null since input source is not localizable");
+            }
+          });
+
+          resolve();
+        };
+
+        t.step(() => {
+          assert_true(hitTestSource != null, "Hit test source should not be null");
+        });
+
+        session.requestAnimationFrame(requestAnimationFrameCallback);
+      }));
+    });
+  };
+
+  return testFunction;
+};
+
+// All test cases require local-floor and hit-test.
+const sessionInit = { 'requiredFeatures': ['local-floor', 'hit-test'] };
+
+xr_session_promise_test(
+  "Ensures hit test result returns null pose w/unlocalizable space - viewer space",
+  testFunctionGenerator(new XRRay(), 'viewer'),
+  fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+</script>

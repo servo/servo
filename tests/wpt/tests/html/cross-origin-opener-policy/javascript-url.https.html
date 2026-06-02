@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<title>Cross-Origin-Opener-Policy and a "javascript:" URL popup</title>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?1-2">
+<meta name="variant" content="?3-4">
+<meta name="variant" content="?5-6">
+<meta name="variant" content="?7-8">
+<meta name="variant" content="?9-10">
+<meta name="variant" content="?11-12">
+<meta name="variant" content="?13-14">
+<meta name="variant" content="?15-16">
+<meta name="variant" content="?17-last">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+
+<p>According to HTML's navigate algorithm, requests to <code>javascript:</code>
+URLs should inherit the cross-origin opener policy of the active document. To
+observe this, each subtest uses the following procedure.</p>
+
+<ol>
+  <li>create popup with a given COOP (the <code>parentCOOP</code>)</li>
+  <li>navigate the popup to a <code>javascript:</code> URL (the new document is
+  expected to inherit the <code>parentCOOP</code>)</li>
+  <li>from the popup, create a second popup window with a given COOP (the
+  <code>childCOOP</code>)</li>
+</ol>
+
+<p>Both popup windows inspect state and report back to the test.</p>
+
+<pre>
+    .---- test ----.
+    | open(https:) |
+    |  parentCOOP  |   .----- subject -------.
+    |      '---------> | --------.           |
+    |              |   |         v           |
+    |              |   | assign(javascript:) |
+    |              |   |  (COOP under test)  |
+    |              |   |         |           |
+    |              |   |    open(https:)     |
+    |              |   |     childCOOP       |    .- child -.
+    |              |   |         '--------------> |         |
+    |              |   '---------------------'    '---------'
+    |              |             |                     |
+    |  validate    | <--status---+---------------------'
+    '--------------'
+</pre>
+
+<script>
+'use strict';
+
+function getExecutorPath(uuid, origin, coopHeader) {
+  const executorPath = '/common/dispatcher/executor.html?';
+  const coopHeaderPipe =
+    `|header(Cross-Origin-Opener-Policy,${encodeURIComponent(coopHeader)})`;
+  return origin + executorPath + `uuid=${uuid}` + '&pipe=' + coopHeaderPipe;
+}
+
+function assert_isolated(results) {
+  assert_equals(results.childName, '', 'child name');
+  assert_false(results.childOpener, 'child opener');
+  // The test subject's reference to the  "child" window must report "closed"
+  // when COOP enforces isolation because the document initially created during
+  // the window open steps must be discarded when a new document object is
+  // created at the end of the navigation.
+  assert_true(results.childClosed, 'child closed');
+}
+
+function assert_not_isolated(results, expectedName) {
+  assert_equals(results.childName, expectedName, 'child name');
+  assert_true(results.childOpener, 'child opener');
+  assert_false(results.childClosed, 'child closed');
+}
+
+async function javascript_url_test(parentCOOP, childCOOP, origin, resultsVerification) {
+  promise_test(async t => {
+    const parentToken = token();
+    const childToken = token();
+    const responseToken = token();
+
+    const parentURL = getExecutorPath(
+      parentToken,
+      SAME_ORIGIN.origin,
+      parentCOOP);
+    const childURL = getExecutorPath(
+      childToken,
+      origin.origin,
+      childCOOP);
+
+    // Open a first popup, referred to as the parent popup, and wait for it to
+    // load.
+    window.open(parentURL);
+    send(parentToken, `send('${responseToken}', 'Done loading');`);
+    assert_equals(await receive(responseToken), 'Done loading');
+
+    // Make sure the parent popup is removed once the test has run, keeping a
+    // clean state.
+    add_completion_callback(() => {
+      send(parentToken, 'close');
+    });
+
+    // Navigate the popup to the javascript URL. It should inherit the current
+    // document's COOP. Because we're navigating to a page that is not an
+    // executor, we lose access to easy messaging, making things a bit more
+    // complicated. We use a predetermined scenario of communication that
+    // enables us to retrieve whether the child popup appears closed from the
+    // parent popup.
+    //
+    // Notes:
+    // - Splitting the script tag prevents HTML parsing to kick in.
+    // - The innermost double quotes need a triple backslash, because it goes
+    //   through two rounds of consuming escape characters (\\\" -> \" -> ").
+    // - The javascript URL does not accept \n characters so we need to use
+    //   a new template literal for each line.
+    send(parentToken,
+      `location.assign("javascript:'` +
+      // Include dispatcher.js to have access to send() and receive().
+      `<script src=\\\"/common/dispatcher/dispatcher.js\\\"></scr` + `ipt>` +
+      `<script> (async () => {` +
+
+        // Open the child popup and keep a handle to it.
+        `const w = open(\\\"${childURL}\\\", \\\"${childToken}\\\");` +
+
+        // We wait for the main frame to query the w.closed property.
+        `await receive(\\\"${parentToken}\\\");` +
+        `send(\\\"${responseToken}\\\", w.closed);` +
+
+        // Finally we wait for the cleanup indicating that this popup can be
+        // closed.
+        `await receive(\\\"${parentToken}\\\");` +
+        `close();` +
+        `})()</scr` + `ipt>'");`
+    );
+
+    // Make sure the javascript navigation ran, and the child popup was created.
+    send(childToken, `send('${responseToken}', 'Done loading');`);
+    assert_equals(await receive(responseToken), 'Done loading');
+
+    // Make sure the child popup is removed once the test has run, keeping a
+    // clean state.
+    add_completion_callback(() => {
+      send(childToken, `close()`);
+    });
+
+    // Give some time for things to settle across processes etc. before
+    // proceeding with verifications.
+    await new Promise(resolve => { t.step_timeout(resolve, 500); });
+
+    // Gather information about the child popup and verify that they match what
+    // we expect.
+    const results = {};
+    send(parentToken, 'query');
+    results.childClosed = await receive(responseToken) === 'true';
+
+    send(childToken, `send('${responseToken}', opener != null);`);
+    results.childOpener = await receive(responseToken) === 'true';
+
+    send(childToken, `send('${responseToken}', name);`);
+    results.childName = await receive(responseToken);
+
+    resultsVerification(results, childToken);
+  }, `navigation: ${origin.name}; ` + `parentCOOP: ${parentCOOP}; ` +
+     `childCOOP: ${childCOOP}`);
+}
+
+const tests = [
+  ['unsafe-none', 'unsafe-none', SAME_ORIGIN, assert_not_isolated],
+  ['unsafe-none', 'unsafe-none', SAME_SITE, assert_not_isolated],
+  ['unsafe-none', 'same-origin-allow-popups', SAME_ORIGIN, assert_isolated],
+  ['unsafe-none', 'same-origin-allow-popups', SAME_SITE, assert_isolated],
+  ['unsafe-none', 'same-origin', SAME_ORIGIN, assert_isolated],
+  ['unsafe-none', 'same-origin', SAME_SITE, assert_isolated],
+  ['same-origin-allow-popups', 'unsafe-none', SAME_ORIGIN, assert_not_isolated],
+  ['same-origin-allow-popups', 'unsafe-none', SAME_SITE, assert_not_isolated],
+  ['same-origin-allow-popups', 'same-origin-allow-popups', SAME_ORIGIN, assert_not_isolated],
+  ['same-origin-allow-popups', 'same-origin-allow-popups', SAME_SITE, assert_isolated],
+  ['same-origin-allow-popups', 'same-origin', SAME_ORIGIN, assert_isolated],
+  ['same-origin-allow-popups', 'same-origin', SAME_SITE, assert_isolated],
+  ['same-origin', 'unsafe-none', SAME_ORIGIN, assert_isolated],
+  ['same-origin', 'unsafe-none', SAME_SITE, assert_isolated],
+  ['same-origin', 'same-origin-allow-popups', SAME_ORIGIN, assert_isolated],
+  ['same-origin', 'same-origin-allow-popups', SAME_SITE, assert_isolated],
+  ['same-origin', 'same-origin', SAME_ORIGIN, assert_not_isolated],
+  ['same-origin', 'same-origin', SAME_SITE, assert_isolated],
+].forEach(([parentCOOP, childCOOP, origin, expectation]) => {
+  subsetTest(
+    javascript_url_test,
+    parentCOOP,
+    childCOOP,
+    origin,
+    expectation);
+});
+
+</script>

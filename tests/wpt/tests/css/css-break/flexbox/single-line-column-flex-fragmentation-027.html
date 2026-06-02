@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>
+  OOF static position in a fragmented flexbox.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#abspos-items">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .abs {
+    background: green;
+    position: absolute;
+    width: 25px;
+    height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:4; column-gap:0px; column-fill:auto; width:100px; height:100px;">
+  <div style="display:flex; flex-direction:column; height:400px; position:relative;">
+    <div style="height: 100px; width: 25px; background-color: red;"></div>
+    <div style="width: 25px;">
+      <div style="height: 100px; width: 25px; background-color: green;"></div>
+      <div class="abs"></div>
+      <div style="height: 100px; width: 25px; background-color: red;"></div>
+    </div>
+    <div style="height: 100px; width: 25px; background-color: green;"></div>
+    <div class="abs"></div>
+  </div>
+</div>

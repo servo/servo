@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import {
+    expireCookie,
+    documentHasCookie,
+    waitForCookie,
+    addCookieAndSessionCleanup,
+    setupShardedServerState,
+    configureServer,
+    crossSiteFetch
+  } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState({crossSite: true});
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=Lax`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+    addCookieAndSessionCleanup(t);
+
+    configureServer({
+      // Set cookie details in order to specify that we should only bind a SameSite=Lax cookie for this test.
+      cookieDetails: [
+        {
+          nameAndValue: expectedCookieAndValue,
+          attributes: expectedCookieAttributes,
+        }
+      ],
+      // Since registration happens from a third-party context, we need
+      // a SameSite=None cookie to tell us that registration completed.
+      registrationExtraCookies: [
+        {
+          nameAndValue: "get_session_instructions=done",
+          attributes: "SameSite=None;Secure",
+        }
+      ]
+    });
+
+    // Prompt starting a session in a third-party context, and wait until registration completes.
+    const loginStatus = await crossSiteFetch(get_host_info().HTTPS_NOTSAMESITE_ORIGIN, `${location.protocol}//${location.host}/device-bound-session-credentials/login.py`, {credentials: "include"});
+    assert_equals(loginStatus, 200);
+    await waitForCookie("get_session_instructions=done", /*expectCookie=*/true);
+
+    // Since all cookies in the session are first-party, registration
+    // from a third-party context should fail.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 403);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+  }, "Registration of first-party session not allowed in third-party context");
+
+  promise_test(async t => {
+    await setupShardedServerState({crossSite: true});
+    const expectedCookieAndValueSameSiteLax = "auth_cookie_lax=abcdef0123";
+    const expectedCookieAttributesSameSiteLax = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=Lax`;
+    const expectedCookieAndAttributesSameSiteLax = `${expectedCookieAndValueSameSiteLax};${expectedCookieAttributesSameSiteLax}`;
+
+    const expectedCookieAndValueSameSiteNone = "auth_cookie=abcdef0123";
+    const expectedCookieAttributesSameSiteNone = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=None;Secure`;
+    const expectedCookieAndAttributesSameSiteNone = `${expectedCookieAndValueSameSiteNone};${expectedCookieAttributesSameSiteNone}`;
+    addCookieAndSessionCleanup(t);
+
+    configureServer({
+      // Configure the server to bind both a SameSite=Lax and SameSite=None cookie
+      cookieDetails: [
+        {
+          nameAndValue: expectedCookieAndValueSameSiteLax,
+          attributes: expectedCookieAttributesSameSiteLax,
+        },
+        {
+          nameAndValue: expectedCookieAndValueSameSiteNone,
+          attributes: expectedCookieAttributesSameSiteNone,
+        }
+      ],
+      // Since registration happens from a third-party context, we need
+      // a SameSite=None cookie to tell us that registration completed.
+      registrationExtraCookies: [
+        {
+          nameAndValue: "get_session_instructions=done",
+          attributes: "SameSite=None;Secure",
+        }
+      ]
+    });
+
+    // Prompt starting a session in a third-party context, and wait until registration completes.
+    const loginStatus = await crossSiteFetch(get_host_info().HTTPS_NOTSAMESITE_ORIGIN, `${location.protocol}//${location.host}/device-bound-session-credentials/login.py`, {credentials: "include"});
+    assert_equals(loginStatus, 200);
+    await waitForCookie("get_session_instructions=done", /*expectCookie=*/true);
+    // Because registration is happenin from a third-party context, only the
+    // SameSite=None cookie will be set.
+    assert_false(documentHasCookie(expectedCookieAndValueSameSiteLax));
+    assert_true(documentHasCookie(expectedCookieAndValueSameSiteNone));
+
+    // Since one cookies in the session is third-party, registration
+    // from a third-party context should succeed.
+    expireCookie(expectedCookieAndAttributesSameSiteLax);
+    expireCookie(expectedCookieAndAttributesSameSiteNone);
+    assert_false(documentHasCookie(expectedCookieAndValueSameSiteLax));
+    assert_false(documentHasCookie(expectedCookieAndValueSameSiteNone));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 200);
+    // While the registration was from a third-party context, the
+    // refresh triggered by fetching verify_authenticated.py is
+    // happening in a first-party context. So we get both cookies from
+    // the refresh.
+    assert_true(documentHasCookie(expectedCookieAndValueSameSiteLax));
+    assert_true(documentHasCookie(expectedCookieAndValueSameSiteNone));
+  }, "Registration of session with third-party cookies allowed in third-party context");
+
+  promise_test(async t => {
+    await setupShardedServerState({crossSite: true});
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=Lax`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+    addCookieAndSessionCleanup(t);
+
+    configureServer({
+      // Set cookie details in order to specify that we should only bind a SameSite=Lax cookie for this test.
+      cookieDetails: [
+        {
+          nameAndValue: expectedCookieAndValue,
+          attributes: expectedCookieAttributes,
+        },
+      ],
+      earlyChallengeForNextRegisteredSession: "early_challenge",
+    });
+
+    // Prompt starting a session in a first-party context, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Try to set the challenge from a third-party context
+    const challengeStatus = await crossSiteFetch(get_host_info().HTTPS_NOTSAMESITE_ORIGIN, `${location.protocol}//${location.host}/device-bound-session-credentials/request_early_challenge.py`, {method: 'POST', body: JSON.stringify({ useSingleHeader: true}), credentials: "include"});
+    assert_equals(challengeStatus, 200);
+
+    // Since all cookies in the session are first-party, our attempt to
+    // set a challenge from a third-party context should fail. This
+    // causes a challenge mismatch at registration time.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 403);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+  }, "Set challenge of first-party not allowed in third-party context");
+
+  promise_test(async t => {
+    await setupShardedServerState({crossSite: true});
+    const expectedCookieAndValueSameSiteLax = "auth_cookie_lax=abcdef0123";
+    const expectedCookieAttributesSameSiteLax = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=Lax`;
+    const expectedCookieAndAttributesSameSiteLax = `${expectedCookieAndValueSameSiteLax};${expectedCookieAttributesSameSiteLax}`;
+
+    const expectedCookieAndValueSameSiteNone = "auth_cookie=abcdef0123";
+    const expectedCookieAttributesSameSiteNone = `Domain=${location.hostname};Path=/device-bound-session-credentials;SameSite=None;Secure`;
+    const expectedCookieAndAttributesSameSiteNone = `${expectedCookieAndValueSameSiteNone};${expectedCookieAttributesSameSiteNone}`;
+    addCookieAndSessionCleanup(t);
+
+    configureServer({
+      // Configure the server to bind both a SameSite=Lax and SameSite=None cookie
+      cookieDetails: [
+        {
+          nameAndValue: expectedCookieAndValueSameSiteLax,
+          attributes: expectedCookieAttributesSameSiteLax,
+        },
+        {
+          nameAndValue: expectedCookieAndValueSameSiteNone,
+          attributes: expectedCookieAttributesSameSiteNone,
+        }
+      ],
+      earlyChallengeForNextRegisteredSession: "early_challenge",
+    });
+
+    // Prompt starting a session in a first-party context, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValueSameSiteNone, /*expectCookie=*/true);
+
+    // Try to set the challenge from a third-party context
+    const challengeStatus = await crossSiteFetch(get_host_info().HTTPS_NOTSAMESITE_ORIGIN, `${location.protocol}//${location.host}/device-bound-session-credentials/request_early_challenge.py`, {method: 'POST', body: JSON.stringify({ useSingleHeader: true}), credentials: "include"});
+    assert_equals(challengeStatus, 200);
+
+    // Since one cookie in the session is third-party, our attempt to
+    // set a challenge from a third-party context should succeed.
+    expireCookie(expectedCookieAndAttributesSameSiteLax);
+    expireCookie(expectedCookieAndAttributesSameSiteNone);
+    assert_false(documentHasCookie(expectedCookieAndValueSameSiteLax));
+    assert_false(documentHasCookie(expectedCookieAndValueSameSiteNone));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 200);
+    // While the challenge was set in a third-party context, the refresh
+    // triggered by fetching verify_authenticated.py is happening in a
+    // first-party context. So we get both cookies from the refresh.
+    assert_true(documentHasCookie(expectedCookieAndValueSameSiteLax));
+    assert_true(documentHasCookie(expectedCookieAndValueSameSiteNone));
+  }, "Set challenge of session with third-party cookies allowed in third-party context");
+</script>

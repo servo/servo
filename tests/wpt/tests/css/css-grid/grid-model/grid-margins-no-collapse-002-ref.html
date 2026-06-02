@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/css/support/grid.css">
+
+<div>This test checks that grid item's margins do not collapse with its content's margins (single margin in the first row and double between subsequent).</div>
+
+<div style="float: left">
+  <div><p>XXXXX</p></div>
+  <div style="float:left; margin:20px 0px;">XXXXX</div>
+  <div><p style="float:left; clear:both;">XXXXX</p></div>
+</div>

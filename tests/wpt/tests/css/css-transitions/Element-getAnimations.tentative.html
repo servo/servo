@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Element.getAnimations() for CSS transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#animation-composite-order">
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#csstransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  div.style.top = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.left = '100px';
+  div.style.top = '100px';
+
+  assert_equals(div.getAnimations().length, 2);
+}, 'getAnimations returns one Animation per transitioning property');
+
+test(t => {
+  const div = addDiv(t, { style: 'left: 0px; transition: all 100s' });
+
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  assert_class_string(div.getAnimations()[0], 'CSSTransition',
+                      'Interface of returned animation is CSSTransition');
+}, 'getAnimations returns CSSTransition objects for CSS Transitions');
+
+promise_test(async t => {
+  const div = addDiv(t);
+
+  div.style.left = '0px';
+  getComputedStyle(div).left;
+  div.style.transition = 'all 0.01s';
+  div.style.left = '100px';
+  const animation = div.getAnimations()[0];
+
+  await animation.finished;
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'getAnimations does not return finished CSS Transitions');
+
+test(t => {
+  const div = addDiv(t);
+
+  // animation-duration is not animatable
+  div.style.animationDuration = '10s';
+  getComputedStyle(div).animationDuration;
+
+  div.style.transition = 'all 100s';
+  div.style.animationDuration = '100s';
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'getAnimations does not return a transition for a non-animatable property');
+
+test(t => {
+  const div = addDiv(t);
+
+  div.style.setProperty('-vendor-unsupported', '0px', '');
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'all 100s';
+  div.style.setProperty('-vendor-unsupported', '100px', '');
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'getAnimations does not return a transition for an unsupposed property');
+
+test(t => {
+  const div = addDiv(t, { style: 'transform: translate(0px); ' +
+                                 'opacity: 0; ' +
+                                 'border-width: 0px; ' + // Shorthand
+                                 'border-style: solid' });
+  getComputedStyle(div).transform;
+
+  div.style.transition = 'all 100s';
+  div.style.transform = 'translate(100px)';
+  div.style.opacity = '1';
+  div.style.borderWidth = '1px';
+
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 6,
+                'Generated expected number of transitions');
+  assert_equals(animations[0].transitionProperty, 'border-bottom-width');
+  assert_equals(animations[1].transitionProperty, 'border-left-width');
+  assert_equals(animations[2].transitionProperty, 'border-right-width');
+  assert_equals(animations[3].transitionProperty, 'border-top-width');
+  assert_equals(animations[4].transitionProperty, 'opacity');
+  assert_equals(animations[5].transitionProperty, 'transform');
+}, 'getAnimations sorts simultaneous transitions by name');
+
+test(t => {
+  const div = addDiv(t, { style: 'transform: translate(0px); ' +
+                                 'opacity: 0' });
+  getComputedStyle(div).transform;
+
+  div.style.transition = 'all 100s';
+  div.style.transform = 'translate(100px)';
+  assert_equals(div.getAnimations().length, 1,
+                'Initially there is only one (transform) transition');
+  div.style.opacity = '1';
+  assert_equals(div.getAnimations().length, 2,
+                'Then a second (opacity) transition is added');
+
+  const animations = div.getAnimations();
+  assert_equals(animations[0].transitionProperty, 'transform');
+  assert_equals(animations[1].transitionProperty, 'opacity');
+}, 'getAnimations sorts transitions by when they were generated');
+
+</script>

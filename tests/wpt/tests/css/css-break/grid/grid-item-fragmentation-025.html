@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that grid-items within an expaning row (due to fragmentation) stretch to the new row-size.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; background: red;">
+  <div style="display: grid; grid-template-areas: 'a b' 'c c';">
+    <div style="background: green; grid-area: b; line-height: 0;"> <!-- row size before fragmentation is 130px, after 100px + 60px -->
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+      <div style="display: inline-block; width: 25px; height: 50px;"></div>
+    </div>
+    <div style="background: green; grid-area: c; height: 40px;"></div>
+    <div style="background: green; grid-area: a; line-height: 0;"> <!-- row size before fragmentation is 120px, after 100px + 60px -->
+      <div style="display: inline-block; width: 25px; height: 60px;"></div>
+      <div style="display: inline-block; width: 25px; height: 60px;"></div>
+    </div>
+  </div>
+</div>

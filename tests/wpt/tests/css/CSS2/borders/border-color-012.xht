@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS inheritance: border-color</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/border/color/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+  <link rel="match" href="border-color-012-ref.xht" />
+  <meta name="assert" content="The initial value of border-color is 'currentColor', which (as of css-color-3) is inherited as a keyword." />
+  <style type="text/css">
+   .test { display: block; color: red; border: none; }
+   .test > .inner { border-color: inherit; border-style: solid; color: green; }
+  </style>
+ </head>
+ <body>
+  <div class="test">
+   <span class="inner">
+    <span class="text">
+     This should have a green border, because the computed value of
+     'border-color' set to its initial value is 'currentColor'.
+    </span>
+   </span>
+  </div>
+ </body>
+</html>

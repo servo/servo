@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      @keyframes myAnim {}
+
+      .target {
+        animation: myAnim linear 0.5s forwards
+      }
+
+      #scroll_target {
+        animation-trigger: --scrolltrigger play-once;
+        timeline-trigger: --scrolltrigger scroll() 150px 200px
+      }
+
+      .subject,
+      .target::selection {
+        height: 50px;
+      }
+      </style>
+  <div id=scroll_target class="subject target" 0></div>
+  </body>
+</html>

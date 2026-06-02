@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'border-image-repeat' property with 'round' as a value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-repeat" />
+        <link rel="match" href="reference/border-image-repeat-002-ref.html" />
+        <meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-2160">
+        <meta name="flags" content="image" />
+        <meta name="assert" content="This test checks that the 'round' value for 'border-image-repeat' property specifies that the image is tiled (repeated) to fill the sides of the border image area. If it does not fill the area with a whole number of tiles, the image is rescaled so that it does." />
+        <style type="text/css">
+            div
+            {
+                border: 40px double red;
+                border-image-repeat: round;
+                border-image-slice: 27;
+                border-image-source: url("support/blue-and-red-diamonds-81x81.png");
+                height: 102px;
+                margin: 70px;
+                width: 102px;
+            }
+
+  /*
+    102px divided by 40px == 2.55
+    Rounding of 2.55 == 3
+    So, there must be at least 3 blue squares
+    on each horizontal side and on each vertical side.
+    102px divided by 3 == 34px
+    The 6 blue squares at top and bottom edges
+    will each be 34px wide by 40px tall.
+    The remaining 6 blue squares at left and right edges
+    will each be 40px wide by 34px tall.
+  */
+
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are three whole blue diamonds without clipping on four sides of the border.</p>
+        <div></div>
+    </body>
+</html>

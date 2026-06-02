@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width minimum-scale=0.5">
+<link rel="help" href="https://drafts.csswg.org/css-device-adapt/">
+<style>
+html {
+  overflow: hidden;
+}
+body {
+  margin: 0;
+}
+div {
+  height: 200%;
+  position: absolute;
+}
+</style>
+<title></title>
+<div style="width: 200%;"></div>
+<div id="reference" style="width: 100%;"></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+test(() => {
+  assert_equals(document.documentElement.clientWidth, reference.clientWidth,
+    'documentElement clientWidth should be 100%');
+}, 'documentElement clientWidth should be equal to device-width even if ' +
+   'overflow:hidden region is visible');
+</script>

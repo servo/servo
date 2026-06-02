@@ -1,0 +1,43 @@
+<!doctype html>
+<title>XRWebGLBinding::createQuadLayer</title>
+<link rel="help" href="https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="./xr_layer_promise_test.js"></script>
+
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+    function testCreateQuadLayer(xrSession, deviceController, t, { gl, xrBinding, xrSpace }) {
+        return new Promise((resolve, reject) => {
+            const valid_init = {
+                space: xrSpace,
+                viewPixelWidth: 1024,
+                viewPixelHeight: 1024
+            };
+            // Width and height must be greater than 0.
+            t.step(() => {
+                let invalid_width = Object.assign({}, valid_init, { width: 0 });
+                assert_throws_js(TypeError, () => xrBinding.createQuadLayer(invalid_width), "width is 0");
+            });
+
+            t.step(() => {
+                let invalid_height = Object.assign({}, valid_init, { height: 0 });
+                assert_throws_js(TypeError, () => xrBinding.createQuadLayer(invalid_height), "height is 0");
+            });
+
+            // Test that a valid init works.
+            t.step(() => {
+                const layer = xrBinding.createQuadLayer(valid_init);
+                assert_true(layer instanceof XRQuadLayer, "Valid init parameters must create an XRQuadLayer");
+                resolve();
+            });
+        });
+    }
+
+    xr_layer_promise_test("Ensure XrWebGLBinding::createQuadLayer throws the appropriate errors.",
+        testCreateQuadLayer, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

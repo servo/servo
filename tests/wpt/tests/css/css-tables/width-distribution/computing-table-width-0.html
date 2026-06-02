@@ -1,0 +1,39 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='../support/base.css' />
+
+<link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width" />
+<main>
+    <h1>Width Distribution</h1>
+    <h4>"Computing the table width"</h4>
+    <p>This is testing that the table root's minimum is max(table-root width, capmin, gridmin) <a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec Text</a></p>
+
+    <hr/>
+    <x-table id="one" style="width: 50px; height: 100px; border: 2px solid black;">
+        <x-caption><span style="display: inline-block; height: 100px; width: 100px; background: blue;"></x-caption>
+        <x-tr>
+            <x-td></x-td>
+        </x-tr>
+    </x-table>
+</main>
+
+<script>
+    while(true) {
+        var xtd = document.querySelector('x-td[rowspan], x-td[colspan]'); if(!xtd) break;
+        var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
+        xtd.parentNode.replaceChild(td,xtd);
+    }
+
+    var i = 1;
+    generate_tests(assert_equals, [
+        [
+             // TEST ONE
+            "Width is 100px due to 100px content size of caption",
+            document.getElementById('one').offsetWidth,
+            100
+        ]
+    ]);
+</script>
+</html>

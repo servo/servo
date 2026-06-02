@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Position absolute getComputedStyle left (for display: grid)</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=867616">
+<link rel="author" href="mailto:francois.remy.dev@outlook.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+span { display: grid; grid-template-columns: 100px 100px; }
+span { position: absolute; grid-column: 2; }
+
+</style>
+
+<span>abc<span>def</span></span>
+
+<script>
+var test_description = document.title;
+promise_test(t => {
+  return new Promise(test => addEventListener('load', e=>test()))
+      .then(test => assert_equals(
+          getComputedStyle(document.querySelector("body > span > span"))['left'], "0px",
+          "Invalid gCS($(\"body > span > span\"))['left'];"));
+}, test_description);
+</script>

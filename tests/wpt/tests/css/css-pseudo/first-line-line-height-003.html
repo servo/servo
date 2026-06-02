@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-Pseudo testcase: first-line</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-line-styling">
+<link rel="match" href="first-line-line-height-003-ref.html">
+<meta name="assert" content="The ::first-line pseudo-element’s generated box behaves similar to that of an inline-level element">
+<style>
+  div:first-of-type::first-line, span { line-height: 0px; color: purple }
+  div { line-height: 40px; border: 1px solid black; margin-top: 20px; }
+</style>
+Test passes if the two blocks look identical.
+<div>
+  This is a first line.<br>
+  This is a second line.
+</div>
+<div>
+  <span>This is a first line.</span><br>
+  This is a second line.
+</div>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test history.length and reloading a subframe</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/session-history-test-util.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const uid = token();
+
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testSubframeReloadInPrerender", uid),
+    "Passed"
+  );
+}, "Subframe reload works in prerendered page");
+</script>

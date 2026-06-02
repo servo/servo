@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scrollable overflow of Document element with 'position: fixed' which has ICB as containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="author" title="Jo Steven Novaryo" href="mailto:jo.steven.novaryo@huawei.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+</body>
+<script>
+promise_test(async (t) => {
+  let initialScrollHeight = document.scrollingElement.scrollHeight;
+  let initialScrollWidth = document.scrollingElement.scrollWidth;
+
+  let fixedDiv = document.createElement("div");
+  fixedDiv.style.position = "fixed";
+  fixedDiv.style.height = (initialScrollHeight * 2) + "px";
+  fixedDiv.style.width = (initialScrollWidth * 2) + "px";
+  document.body.appendChild(fixedDiv);
+
+  assert_equals(document.scrollingElement.scrollHeight, initialScrollHeight);
+  assert_equals(document.scrollingElement.scrollWidth, initialScrollWidth);
+
+}, "position: fixed fixed with ICB as CB should not affect scrollable overflow of Document element.");
+</script>
+</html>

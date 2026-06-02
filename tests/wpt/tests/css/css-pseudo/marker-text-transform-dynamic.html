@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker with dynamic 'text-transform'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-transform-property">
+<link rel="match" href="marker-text-transform-dynamic-ref.html">
+<meta name="assert" content="Checks that ::marker is updated when 'text-transform' is set dynamically.">
+<style>
+.uppercase ::marker {
+  text-transform: uppercase;
+}
+.inside {
+  list-style-position: inside;
+}
+.latin {
+  list-style-type: lower-latin;
+}
+.string {
+  list-style-type: "b. ";
+}
+.content::marker {
+  content: "c. ";
+}
+</style>
+<ol class="outside">
+  <li class="latin"></li>
+  <li class="string"></li>
+  <li class="content"></li>
+</ol>
+<ol class="inside">
+  <li class="latin"></li>
+  <li class="string"></li>
+  <li class="content"></li>
+</ol>
+<script>
+// Force layout
+document.body.offsetLeft;
+
+// Set 'text-transform'
+document.body.className = "uppercase";
+</script>

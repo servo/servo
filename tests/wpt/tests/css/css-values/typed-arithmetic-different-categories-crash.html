@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>CSS Values Test: typed arithmetic with different categories crash</title>
+<link rel="help" href="https://issues.chromium.org/issues/445824614">
+<style>
+  body {
+    stroke-dasharray: calc(0.5px * 2 / -4500000000kHz);
+  }
+</style>

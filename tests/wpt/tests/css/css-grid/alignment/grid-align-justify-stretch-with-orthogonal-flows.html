@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout test:align stretch with orthogonal flows</title>
+<link rel="author" title="Rossana Monteriso" href="mailto:rmonteriso@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#distribution-values">
+<meta name="assert" content="This test checks that stretching alignment works as expected with orthogonal flows, in horizontal and vertical writing mode.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+
+.container {
+    position: relative;
+}
+.grid {
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 150px 150px;
+    font: 10px/1 ahem;
+    margin-bottom: 20px;
+}
+.widthAndHeightSet {
+    width: 20px;
+    height: 40px;
+}
+.onlyWidthSet { width: 20px; }
+.onlyHeightSet { height: 40px; }
+.maxHeight { max-height: 160px; }
+.maxWidth { max-width: 90px; }
+.minWidth { min-width: 120px; }
+.minHeight { min-height: 220px; }
+.topAutoMargin { margin-top: auto; }
+.bottomAutoMargin { margin-bottom: auto; }
+.leftAutoMargin { margin-left: auto; }
+.rightAutoMargin { margin-right: auto; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that stretching alignment works as expected with orthogonal flows.</p>
+
+<p>HORIZONTAL vs VERTICAL-RL</p>
+<div class="container">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="300">
+        <div class="verticalRL firstRowFirstColumn selfStretch widthAndHeightSet" data-expected-width="20"  data-expected-height="40">XXX</div>
+        <div class="verticalRL firstRowSecondColumn selfStretch onlyWidthSet" data-expected-width="20"  data-expected-height="150">XXX</div>
+        <div class="verticalRL secondRowFirstColumn selfStretch onlyHeightSet" data-expected-width="100" data-expected-height="40">XXX</div>
+        <div class="verticalRL secondRowSecondColumn selfSelfStart" data-expected-width="10"  data-expected-height="30">XXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="300">
+        <div class="verticalRL firstRowFirstColumn selfStretch bottomAutoMargin" data-expected-width="100" data-expected-height="30">XXX</div>
+        <div class="verticalRL firstRowSecondColumn selfStretch leftAutoMargin" data-expected-width="10"  data-expected-height="150">XXX</div>
+        <div class="verticalRL secondRowFirstColumn selfStretch topAutoMargin" data-expected-width="100" data-expected-height="30">XXX</div>
+        <div class="verticalRL secondRowSecondColumn selfStretch rightAutoMargin" data-expected-width="10"  data-expected-height="150">XXX</div>
+    </div>
+</div>
+
+<p>HORIZONTAL vs VERTICAL-LR</p>
+<div class="container">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="300">
+        <div class="verticalLR firstRowFirstColumn selfStretch widthAndHeightSet" data-expected-width="20"  data-expected-height="40">XXX</div>
+        <div class="verticalLR firstRowSecondColumn selfStretch onlyWidthSet" data-expected-width="20"  data-expected-height="150">XXX</div>
+        <div class="verticalLR secondRowFirstColumn selfStretch onlyHeightSet" data-expected-width="100" data-expected-height="40">XXX</div>
+        <div class="verticalLR secondRowSecondColumn selfSelfStart" data-expected-width="10"  data-expected-height="30">XXX</div>
+    </div>
+</div>
+<div class="container">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="300">
+        <div class="verticalLR firstRowFirstColumn selfStretch bottomAutoMargin" data-expected-width="100" data-expected-height="30">XXX</div>
+        <div class="verticalLR firstRowSecondColumn selfStretch leftAutoMargin" data-expected-width="10"  data-expected-height="150">XXX</div>
+        <div class="verticalLR secondRowFirstColumn selfStretch topAutoMargin" data-expected-width="100" data-expected-height="30">XXX</div>
+        <div class="verticalLR secondRowSecondColumn selfStretch rightAutoMargin" data-expected-width="10"  data-expected-height="150">XXX</div>
+    </div>
+</div>
+
+<p>VERTICAL-RL vs HORIZONTAL</p>
+<div class="container">
+    <div class="grid fit-content verticalRL" data-expected-width="300" data-expected-height="200">
+        <div class="horizontalTB firstRowFirstColumn selfStretch widthAndHeightSet" data-expected-width="20"  data-expected-height="40">XXX</div>
+        <div class="horizontalTB firstRowSecondColumn selfStretch onlyWidthSet" data-expected-width="20"  data-expected-height="100">XXX</div>
+        <div class="horizontalTB secondRowFirstColumn selfStretch onlyHeightSet" data-expected-width="150" data-expected-height="40">XXX</div>
+        <div class="horizontalTB secondRowSecondColumn selfSelfStart" data-expected-width="30"  data-expected-height="10">XXX</div>
+    </div>
+</div>
+<div class="container">
+    <div class="grid fit-content verticalRL" data-expected-width="300" data-expected-height="200">
+        <div class="horizontalTB firstRowFirstColumn selfStretch bottomAutoMargin" data-expected-width="150" data-expected-height="10">XXX</div>
+        <div class="horizontalTB firstRowSecondColumn selfStretch leftAutoMargin" data-expected-width="30"  data-expected-height="100">XXX</div>
+        <div class="horizontalTB secondRowFirstColumn selfStretch topAutoMargin" data-expected-width="150" data-expected-height="10">XXX</div>
+        <div class="horizontalTB secondRowSecondColumn selfStretch rightAutoMargin" data-expected-width="30"  data-expected-height="100">XXX</div>
+    </div>
+</div>
+
+<p>VERTICAL-LR vs HORIZONTAL</p>
+<div class="container">
+    <div class="grid fit-content verticalLR" data-expected-width="300" data-expected-height="200">
+        <div class="horizontalTB firstRowFirstColumn selfStretch widthAndHeightSet" data-expected-width="20"  data-expected-height="40">XXX</div>
+        <div class="horizontalTB firstRowSecondColumn selfStretch onlyWidthSet" data-expected-width="20"  data-expected-height="100">XXX</div>
+        <div class="horizontalTB secondRowFirstColumn selfStretch onlyHeightSet" data-expected-width="150" data-expected-height="40">XXX</div>
+        <div class="horizontalTB secondRowSecondColumn selfSelfStart" data-expected-width="30"  data-expected-height="10">XXX</div>
+    </div>
+</div>
+<div class="container">
+    <div class="grid fit-content verticalLR" data-expected-width="300" data-expected-height="200">
+        <div class="horizontalTB firstRowFirstColumn selfStretch bottomAutoMargin" data-expected-width="150" data-expected-height="10">XXX</div>
+        <div class="horizontalTB firstRowSecondColumn selfStretch leftAutoMargin" data-expected-width="30"  data-expected-height="100">XXX</div>
+        <div class="horizontalTB secondRowFirstColumn selfStretch topAutoMargin" data-expected-width="150" data-expected-height="10">XXX</div>
+        <div class="horizontalTB secondRowSecondColumn selfStretch rightAutoMargin" data-expected-width="30"  data-expected-height="100">XXX</div>
+    </div>
+</div>
+
+<div id="log"></div>
+
+</body>

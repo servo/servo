@@ -1,0 +1,33 @@
+<!doctype html>
+<title>Alert during dragenter for file drag with release over dialog</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    display: inline-block;
+  }
+</style>
+<script type="text/javascript">
+window.onload = function () {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragenter = function (e) {
+    e.preventDefault();
+    alert('JS alert');
+  };
+  orange.ondragover = orange.ondrop = function (e) {
+    e.preventDefault();
+  };
+};
+</script>
+<div draggable="true"></div>
+
+<ol>
+  <li>Drag a file (one that your browser cannot open natively, such as an executable file) from your system file manager over the orange square.</li>
+  <li>An alert may appear - release the mouse over the dialog. Dismiss it (you may need to use keyboard or mouse gestures such as gesture-down,gesture-right). If it does not appear, release the drag and accept any prompt to upload the file.</li>
+  <li>If a file download dialog appears, cancel it and return to this page.</li>
+  <li>Fail if the alert reappears.</li>
+  <li>The mouse cursor may continue to show that a drag is in operation. If so, attempt to select some of this text with the mouse before continuing to the text step.</li>
+  <li>Fail if the mouse continues to show that a drag is in operation.</li>
+  <li>Try to select some text in this sentence. Fail if it is not possible.</li>
+</ol>

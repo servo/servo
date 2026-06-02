@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'self' http://{{domains[www1]}}:{{ports[http][0]}}">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+        var t = async_test("Imported style that violates policy should not load");
+        document.addEventListener("securitypolicyviolation", t.unreached_func("Should not trigger a security policy violation"));
+    </script>
+
+    <link href="/content-security-policy/style-src/resources/style-src-import.sub.css" rel=stylesheet type=text/css>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+    <script>
+      t.step(function() {
+        var contentEl = document.getElementById("content");
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_not_equals(marginLeftVal, "2px")
+        t.done();
+      });
+    </script>
+
+</body>
+</html>

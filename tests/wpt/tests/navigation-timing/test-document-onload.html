@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>window.performance.navigation attributes</title>
+        <link rel="author" title="Mozilla" href="https://www.mozilla.org/" />
+        <link rel="help" href="https://www.w3.org/TR/navigation-timing-2/#processing-model"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test checks that the transferSize, encodedBodySize and decodedBodySize attributes have correct values when checked in the onload handler</p>
+
+        <div id="log"></div>
+
+        <script>
+            async_test(function (t) {
+                document.addEventListener("DOMContentLoaded", t.step_func_done(() => {
+                    let entry = window.performance.getEntriesByType("navigation")[0];
+                    assert_greater_than(entry.transferSize, 1000, "descr");
+                    assert_greater_than(entry.encodedBodySize, 1000, "descr");
+                    assert_greater_than(entry.decodedBodySize, 1000, "descr");
+                }));
+            }, "Test that the attributes have a proper value during DOMContentLoaded");
+
+            async_test(function (t) {
+                window.addEventListener("load", t.step_func_done(() => {
+                    let entry = window.performance.getEntriesByType("navigation")[0];
+                    assert_greater_than(entry.transferSize, 1000, "descr");
+                    assert_greater_than(entry.encodedBodySize, 1000, "descr");
+                    assert_greater_than(entry.decodedBodySize, 1000, "descr");
+                    async_test(function (t) {
+                        setTimeout(t.step_func_done(() => {
+                          let entry = window.performance.getEntriesByType("navigation")[0];
+                          assert_greater_than(entry.transferSize, 1000, "descr");
+                          assert_greater_than(entry.encodedBodySize, 1000, "descr");
+                          assert_greater_than(entry.decodedBodySize, 1000, "descr");
+                        }), 0);
+                    }, "Test that the attributes have a proper value during a task after onload");
+                }));
+            }, "Test that the attributes have a proper value during onload");
+
+        </script>
+    </body>
+</html>

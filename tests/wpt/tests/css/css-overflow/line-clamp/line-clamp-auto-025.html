@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: abspos exactly at the clamp point is hidden</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-025-ref.html">
+<meta name="assert" content="The chosen clamp point with line-clamp: auto is after the last line or box where the box size doesn't overflow. If the clamp point follows a box, then no line has an ellipsis. However, only in-flow boxes count, so an abspos doesn't prevent a previous line from having the ellipsis.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.inner {
+  white-space: pre-wrap;
+}
+.abspos {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background-color: skyblue;
+}
+</style>
+<div class="clamp">
+<div class="inner">Line 1
+Line 2
+Line 3
+Line 4
+</div>
+<div class="abspos"></div>
+<div class="inner">Line 5
+Line 6</div>
+</div>

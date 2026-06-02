@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<title>Verify that the correct registration is selected for mutated stylesheets</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#determining-registration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=div></div>
+<script>
+
+test(() => {
+  with_at_property({
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '1px'
+  }, (name) => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, '@property detected when stylesheet appears');
+
+test(() => {
+  let name = generate_name();
+  with_at_property({
+    name: name,
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '1px'
+  }, (name) => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+  assert_equals(getComputedStyle(div).getPropertyValue(name), '');
+}, '@property removal detected when last @property rule disappears');
+
+test(() => {
+  with_at_property({
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '1px'
+  }, (name1) => {
+    with_at_property({
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '2px'
+    }, (name2) => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name2), '2px');
+    });
+  });
+}, '@property detected in second stylesheet');
+
+test(() => {
+  let name2 = generate_name();
+  with_at_property({
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '1px'
+  }, (name1) => {
+    with_at_property({
+      name2: name2,
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '2px'
+    }, (name2) => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name2), '2px');
+    });
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '');
+  });
+}, '@property removal detected with removal of second stylesheet');
+
+test(() => {
+  let name1 = generate_name();
+  let name2 = generate_name();
+
+  let sheet1 = `
+    @property ${name1} {
+      inherits: false;
+      syntax: "<length>";
+      initial-value: 1px;
+    }
+  `;
+  let sheet2 = `
+    @property ${name2} {
+      inherits: false;
+      syntax: "<length>";
+      initial-value: 2px;
+    }
+  `;
+
+  let node1 = document.createElement('style');
+  let node2 = document.createElement('style');
+
+  node1.textContent = sheet1;
+  node2.textContent = sheet2;
+
+  try {
+    document.body.append(node1, node2);
+    assert_equals(getComputedStyle(div).getPropertyValue(name1), '1px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '2px');
+    node1.remove();
+    assert_equals(getComputedStyle(div).getPropertyValue(name1), '');
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '2px');
+  } finally {
+    node1.remove();
+    node2.remove();
+  }
+}, '@property removal detected with removal of first stylesheet');
+
+</script>

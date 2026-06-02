@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>Invalidation after CSS.registerProperty</title>
+    <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#registered-custom-property">
+    <link rel="match" href="registered-property-change-style-002-ref.html">
+    <meta name="assert" content="Rendering should properly be updated after call to CSS.registerProperty.">
+    <style>
+      .failure {
+          background: pink;
+      }
+      #visibility {
+          visibility: var(--my-visibility, visible);
+      }
+      #display {
+          display: var(--my-display, inline-block);
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test PASS if you see no red in the list below.</p>
+    <ul>
+      <li>visibility <span id="visibility" class="failure">FAIL</span></li>
+      <li>display <span id="display" class="failure">FAIL</span></li>
+    </ul>
+    <script>
+      document.documentElement.addEventListener("TestRendered", () => {
+          CSS.registerProperty({
+              name: "--my-visibility",
+              syntax: "*",
+              initialValue: "hidden",
+              inherits: false,
+          });
+          CSS.registerProperty({
+              name: "--my-display",
+              syntax: "*",
+              initialValue: "none",
+              inherits: false,
+          });
+          document.documentElement.removeAttribute("class");
+      });
+    </script>
+  </body>
+</html>

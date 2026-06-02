@@ -1,0 +1,17 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH Persistence test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+// Make sure a cross origin subresource that gets redirected with Feature Policy delegation keeps the initial request's Client Hints.
+const test_name = "cross-origin subresource redirect with Feature Policy delegation";
+verify_subresource_state("resources/accept-ch-and-redir.py?url=" + get_host_info()["HTTPS_REMOTE_ORIGIN"] + "/client-hints/accept-ch-stickiness/resources/expect-received.py", test_name);
+</script>
+</body>
+</html>
+

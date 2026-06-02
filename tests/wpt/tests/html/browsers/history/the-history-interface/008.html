@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+
+<!-- configure this test below to point to the script -->
+
+  <head>
+    <title>history.pushState/replaceState resolving</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+    <p></p>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+    <script type="text/javascript">
+
+/*
+Location of the script (which must be hosted on a separate domain from this test) containing the test code:
+var beforehref = location.href;
+test(function () {
+  history.pushState('','','/testing_ignore_me_404');
+  assert_equals(location.href,beforehref.replace(/^(\w*:\/\/[^\/]*\/)[\w\W]*$/,'$1testing_ignore_me_404'));
+}, 'history.pushState URL resolving should be done relative to the document, not the script');
+test(function () {
+  history.replaceState('','','/testing_ignore_me_404_2');
+  assert_equals(location.href,beforehref.replace(/^(\w*:\/\/[^\/]*\/)[\w\W]*$/,'$1testing_ignore_me_404_2'));
+}, 'history.replaceState URL resolving should be done relative to the document, not the script');
+*/
+var scriptlocation = 'http://www.' + location.host + location.pathname.split("/").slice(0,-1).join("/") + "/008.js";
+
+if( location.protocol == 'file:' ) {
+  document.getElementsByTagName('p')[0].innerHTML = 'ERROR: This test cannot be run from file: (URL resolving will not work). It must be loaded over HTTP.';
+} else {
+  document.write('<script type="text\/javascript" src="'+scriptlocation+'"><\/script>');
+}
+    </script>
+
+  </body>
+</html>

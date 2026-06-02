@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element having 3D transitions and its child</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="dom"/>
+        <meta name="assert" content="Test checks that an element having mix-blend-mode blends with its parent element having 3D transform and transition">
+        <style type="text/css">
+            .parent {
+                background: yellow;
+                width: 140px;
+                height: 140px;
+                position:relative;
+                z-index: 1;
+                margin: 10px;
+                float: left;
+                transition: transform 2s;
+
+            }
+            .rotated {
+                transform: rotateX(60deg) rotateZ(10deg) rotateY(180deg);
+            }
+            .blended {
+                background: red;
+                width: 140px;
+                height: 140px;
+                mix-blend-mode: difference;
+            }
+            .ref {
+                background: none;
+            }
+            .ref .blended {
+                background: lime;
+                mix-blend-mode: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see two rotating lime rectangles, both identical.</p>
+        <div>
+            <div class="parent" id="parent">
+                <div class="blended"></div>
+            </div>
+            <div class="parent ref" id="parentref">
+                <div class="blended"></div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var parent = document.getElementById('parent');
+            var parentref = document.getElementById('parentref');
+             function rotate (el, cl) {
+                if (el.className === cl + ' rotated')
+                    el.className = cl;
+                else
+                    el.className = cl + ' rotated';
+            }
+            setTimeout(function () { rotate(parent, 'parent'); rotate(parentref, 'parent ref'); }, 0);
+            setInterval(function () { rotate(parent, 'parent'); rotate(parentref, 'parent ref'); }, 2000);
+        </script>
+    </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+
+<title>iframe added post activation: initiator and prerendered page</title>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<body>
+<script>
+
+// When loaded without the "?prerendering" param, this document is called the
+// "intiator page". It starts a prerender to the same URL, but with the
+// "?prerendering" param.
+//
+// When loaded with the "?prerendering" param, this document is the "prerendered
+// page". It tells the initiator page when it is ready to activate, and messages
+// the main test page when it is finished.
+
+// main() runs the logic of the prerendered page.
+//
+// On activation, adds an iframe and tests its document.prerendering state.
+async function main() {
+  const activated = new Promise((resolve, reject) => {
+    document.addEventListener('prerenderingchange', (e) => {
+      const iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+      resolve(iframe.contentDocument.prerendering)
+    });
+  });
+
+  // Ask to activate.
+  const prerenderChannel = new PrerenderChannel('prerender-channel');
+  prerenderChannel.postMessage('readyToActivate');
+
+  // Check that document.prerendering is false in the iframe.
+  const iframePrerendering = await activated;
+  assert_true(iframePrerendering === false,
+              'document.prerendering in iframe should be false');
+}
+
+// See comment at the top of this file.
+const params = new URLSearchParams(location.search);
+const isPrerendering = params.has('prerendering');
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  // For the prerendering page, run main() then message the test page with the
+  // result.
+  const testChannel = new PrerenderChannel('test-channel');
+  main().then(() => {
+    testChannel.postMessage('PASS');
+  }).catch((e) => {
+    testChannel.postMessage('FAIL: ' + e);
+  });
+}
+</script>
+</body>

@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - template for can create a new executable script</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body marker="s">
+<?start name="s">
+<script>
+    window.state = "init";
+</script>
+<?end name="s">
+</script>
+<template for="s"><script>window.state = 'patched';</script></template>
+<script>
+test(() => {
+    assert_equals(window.state, "patched");
+});
+
+</script>

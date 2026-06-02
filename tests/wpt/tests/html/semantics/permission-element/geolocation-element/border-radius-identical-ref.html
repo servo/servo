@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Geolocation Element Border Radius Clamping Reference</title>
+<p>This test verifies that a large border-radius on a geolocation element is clamped to half of the element's smallest dimension, resulting in a pill shape.</p>
+<style>
+  geolocation {
+    width: 100px;
+    height: 40px;
+    border-radius: 25px;
+    background-color: blue;
+    display: inline-block;
+  }
+</style>
+<geolocation></geolocation>

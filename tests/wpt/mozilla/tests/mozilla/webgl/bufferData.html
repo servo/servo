@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>bufferData input array type check (issue #6791, #6601)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+    var texture_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texture_buffer);
+
+    var coordI8 = new Int8Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordI8, gl.STATIC_DRAW);
+
+    var coordU8 = new Uint8Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordU8, gl.STATIC_DRAW);
+
+    var coordI16 = new Int16Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordI16, gl.STATIC_DRAW);
+
+    var coordU16 = new Uint16Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordU16, gl.STATIC_DRAW);
+
+    var coordI32 = new Int32Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordI32, gl.STATIC_DRAW);
+
+    var coordU32 = new Uint32Array([ 1, 0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordU32, gl.STATIC_DRAW);
+
+    var coordF32 = new Float32Array([ 1.0, 0.0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordF32, gl.STATIC_DRAW);
+
+    var coordF64 = new Float64Array([ 1.0, 0.0 ]);
+    gl.bufferData(gl.ARRAY_BUFFER, coordF64, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 1, coordF64);
+
+    // Test case for issue #6601
+    var buffer = new ArrayBuffer(8);
+    var dv = new DataView(buffer);
+    gl.bufferData(0, dv, 0);
+});
+</script>

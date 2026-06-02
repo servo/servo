@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#mixed-percentages">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="container" style="font-size: 20px; width: 400px">
+  <div id="target"></div>
+</div>
+<script>
+
+// Identity tests
+test_math_used('min(1px + 1%)', 'calc(1px + 1%)', {prop:'margin-left'});
+test_math_used('min(1cm + 1%)', 'calc(1cm + 1%)');
+test_math_used('min(1mm + 1%)', 'calc(1mm + 1%)');
+test_math_used('min(1Q + 1%)', 'calc(1Q + 1%)');
+test_math_used('min(1in + 1%)', 'calc(1in + 1%)');
+test_math_used('min(1pc + 1%)', 'calc(1pc + 1%)');
+test_math_used('min(1pt + 1%)', 'calc(1pt + 1%)');
+test_math_used('min(1em + 1%)', 'calc(1em + 1%)');
+test_math_used('min(1ex + 1%)', 'calc(1ex + 1%)');
+test_math_used('min(1ch + 1%)', 'calc(1ch + 1%)');
+test_math_used('min(1rem + 1%)', 'calc(1rem + 1%)');
+test_math_used('min(1vh + 1%)', 'calc(1vh + 1%)');
+test_math_used('min(1vw + 1%)', 'calc(1vw + 1%)');
+test_math_used('min(1vmin + 1%)', 'calc(1vmin + 1%)');
+test_math_used('min(1vmax + 1%)', 'calc(1vmax + 1%)');
+test_math_used('max(1px + 1%)', 'calc(1px + 1%)');
+test_math_used('max(1cm + 1%)', 'calc(1cm + 1%)');
+test_math_used('max(1mm + 1%)', 'calc(1mm + 1%)');
+test_math_used('max(1Q + 1%)', 'calc(1Q + 1%)');
+test_math_used('max(1in + 1%)', 'calc(1in + 1%)');
+test_math_used('max(1pc + 1%)', 'calc(1pc + 1%)');
+test_math_used('max(1pt + 1%)', 'calc(1pt + 1%)');
+test_math_used('max(1em + 1%)', 'calc(1em + 1%)');
+test_math_used('max(1ex + 1%)', 'calc(1ex + 1%)');
+test_math_used('max(1ch + 1%)', 'calc(1ch + 1%)');
+test_math_used('max(1rem + 1%)', 'calc(1rem + 1%)');
+test_math_used('max(1vh + 1%)', 'calc(1vh + 1%)');
+test_math_used('max(1vw + 1%)', 'calc(1vw + 1%)');
+test_math_used('max(1vmin + 1%)', 'calc(1vmin + 1%)');
+test_math_used('max(1vmax + 1%)', 'calc(1vmax + 1%)');
+
+// Comparisons between lengths and percentages
+test_math_used('min(20px, 10%)', '20px');
+test_math_used('min(1em, 10%)', '20px');
+test_math_used('max(20px, 10%)', '40px');
+test_math_used('max(1em, 10%)', '40px');
+
+document.getElementById('container').style.width = '100px';
+test_math_used('min(20px, 10%)', '10px', {msgExtra:'width=100px'});
+test_math_used('min(1em, 10%)', '10px', {msgExtra:'width=100px'});
+test_math_used('max(20px, 10%)', '20px', {msgExtra:'width=100px'});
+test_math_used('max(1em, 10%)', '20px', {msgExtra:'width=100px'});
+document.getElementById('container').style.width = '400px';
+
+// Comparisons between different mixings
+test_math_used('min(30px + 10%, 60px + 5%)', '70px');
+test_math_used('max(2em + 10%, 1em + 20%)', '100px');
+
+// General calculations
+test_math_used('calc(min(1.5em, 10%) + 10px)', '40px');
+test_math_used('calc(min(1.5em, 10%) - 10px)', '20px');
+test_math_used('calc(min(1.5em, 10%) * 2)', '60px');
+test_math_used('calc(min(1.5em, 10%) / 2)', '15px');
+test_math_used('calc(max(1em, 15%) + 10px)', '70px');
+test_math_used('calc(max(1em, 15%) - 10px)', '50px');
+test_math_used('calc(max(1em, 15%) * 2)', '120px');
+test_math_used('calc(max(1em, 15%) / 2)', '30px');
+test_math_used('calc(min(1.5em, 10%) + max(1em, 15%))', '90px');
+test_math_used('calc(min(1.5em, 10%) - max(1em, 15%))', '-30px');
+</script>

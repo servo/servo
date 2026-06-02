@@ -1,0 +1,48 @@
+<!doctype html>
+<head>
+<title>Test effect of selectAudioOutput() on audiooutput devices from enumerateDevices()</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-output/#dom-mediadevices-selectaudiooutput">
+</head>
+<body>
+  <p class="instructions">If prompted, <strong>please allow</strong> access to
+    an audio output device.</p>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const outputDevices = devices.filter(info => info.kind == "audiooutput");
+  assert_equals(outputDevices.length, 0, "number of audiooutput devices.");
+}, "enumerateDevices() returns no audiooutput devices before permission grant");
+
+let selected;
+
+promise_test(async t => {
+  await test_driver.bless('transient activation for selectAudioOutput()');
+  selected = await navigator.mediaDevices.selectAudioOutput();
+  assert_true(selected instanceof MediaDeviceInfo,
+              "resolves with a MediaDeviceInfo.");
+  assert_equals(selected.kind, "audiooutput", "selected.kind");
+  assert_greater_than(selected.deviceId.length, 0, "selected.deviceId.length");
+  assert_greater_than(selected.groupId.length, 0, "selected.groupId.length");
+  assert_not_equals(selected.label, undefined, "selected.label");
+}, "selectAudioOutput()");
+
+promise_test(async () => {
+  // "Once a device is exposed after a call to selectAudioOutput, it MUST be
+  // listed by enumerateDevices() for the current browsing context."
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const outputDevices = devices.filter(info => info.kind == "audiooutput");
+  assert_equals(outputDevices.length, 1, "number of audiooutput devices.");
+  assert_not_equals(selected, undefined);
+  const [info] = outputDevices;
+  assert_equals(info.deviceId, selected.deviceId, "deviceId exposed");
+  assert_equals(info.groupId, selected.groupId, "groupId exposed");
+  assert_equals(info.label, selected.label, "label exposed");
+}, "enumerateDevices() after selectAudioOutput()");
+</script>

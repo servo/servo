@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name="assert" content="Checks that an absolute positioned element is positioned correctly, when the available size of its parent changes due to document resize." />
+<link rel="help" href="https://crbug.com/928672">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<script src="/common/reftest-wait.js"></script>
+<p>Test passes if there is a filled green square.</p>
+<iframe id="target" height="100" width="200" src="support/dynamic-available-size-iframe.html" style="border: none;"></iframe>
+<script>
+onload = () => {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    target.width = '100';
+    takeScreenshot();
+  }));
+};
+</script>

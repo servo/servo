@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<link rel="match" href="content-visibility-on-ruby-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<meta name="assert" content="content-visibility does not apply when the principal box is an internal ruby box since size containment does not apply to it">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+    ruby {
+        font: 25px/1 Ahem;
+    }
+</style>
+<body>
+<p>Test passes if both base and annotation are visible</p>
+<ruby style="content-visibility: hidden;">base<rt>annotation</rt></ruby>
+</body>
+</html>
+

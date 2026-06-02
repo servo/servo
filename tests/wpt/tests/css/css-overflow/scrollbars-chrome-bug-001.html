@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Overflow: css-overflow-3</title>
+<link rel="author" href="mailto:atotic@google.com">
+<link rel="help" href="https://crbug.com/926167">
+<link rel="match" href="scrollbars-chrome-bug-001-ref.html">
+<meta name="assert" content="scrollbars keep up to date with a changing transform">
+<style>
+
+#container {
+  width: 200px;
+  height: 150px;
+  border: 1px solid black;
+  overflow: scroll;
+}
+#target {
+  width: 100px;
+  height: 50px;
+  background: green;
+  transform: scale(1);
+}
+</style>
+<!--  -->
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  // 1st transform triggers layer creation, and full layout.
+  // 2nd transform just updates overflow, which does not update scrollbars.
+  // This triggers the bug.
+  document.body.offsetTop;
+  document.querySelector("#target").style.transform = "scale(1.5)";
+  document.body.offsetTop;
+  document.querySelector("#target").style.transform = "scale(4.0)";
+</script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-marker with ::scroll-marker-group on root element</title>
+<link rel="match" href="root-scroll-marker-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<style>
+  body {
+    margin: 0;
+  }
+
+  :root {
+    scroll-marker-group: before;
+  }
+
+  :root::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+    position: fixed;
+    top: 0;
+  }
+
+  div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  div:first-of-type {
+    margin-top: 40px;
+  }
+
+  div::scroll-marker {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  div:last-of-type::scroll-marker {
+    margin-right: 0px;
+  }
+</style>
+<div></div>
+<div></div>
+<div></div>

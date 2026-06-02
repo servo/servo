@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Referrer Policy: iframes with javascript url reuse referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="unsafe-url">
+<div id="log"></div>
+<script>
+
+[
+  {
+    fetchReferrer: "",
+    // Because the URL of the Document of <iframe src="javascript:..."> is
+    // "about:blank", the stripped URL is no referrer:
+    // https://w3c.github.io/webappsec-referrer-policy/#strip-url.
+    expected: undefined
+  },
+  {
+    fetchReferrer: location.origin+"/custom",
+    // <iframe src="javascript:..."> inherits its parent's referrer policy.
+    // Note: Setting an explicit URL as referrer succeeds
+    // because the same-origin check at
+    // https://fetch.spec.whatwg.org/#dom-request
+    // is done against <iframe>'s origin, which inherits the parent
+    // Document's origin == location.orgin. Furthermore, since the iframe
+    // inherits its parent's referrer policy, the URL should be restricted to
+    // its origin.
+    expected: self.origin + "/custom"
+  }
+].forEach(({ fetchReferrer, expected }) => {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener("message", t.step_func(msg => {
+        assert_equals(msg.data.referrer, expected);
+        resolve();
+      }), { once: true });
+      const iframe = document.createElement("iframe");
+      iframe.src = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN, fetchReferrer)}'`;
+      document.body.appendChild(iframe);
+    });
+  });
+});
+
+</script>

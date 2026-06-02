@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: layout' should make elements behave as if they have no baseline</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-layout">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-baseline">
+  <link rel="match" href="contain-layout-suppress-baseline-001-ref.html">
+  <style>
+  .flexBaselineCheck {
+    display: flex;
+    border: 1px solid black;
+    height: 100px;
+  }
+  .flexBaselineCheck > * {
+    contain: layout;
+    border: 2px solid teal;
+    align-self: baseline;
+  }
+  canvas {
+    background: purple;
+    width: 20px;
+    height: 80px;
+    box-sizing: border-box;
+  }
+  .flex {
+    display: flex;
+  }
+  .grid {
+    display: grid;
+  }
+  .multicol {
+    column-count: 2;
+  }
+  </style>
+</head>
+<body>
+  <div class="flexBaselineCheck">
+    <!-- This canvas just exists to establish a precise, far-down baseline
+         alignment position: -->
+    <canvas></canvas>
+    <!-- "contain:layout" should force all the elements below to behave as if
+         they have no baseline. That means they all should *synthesize* a
+         baseline from their border-box edge, in order to participate in flex
+         item baseline alignment (to honor the outer flex container's
+         "align-items:baseline"). So, the expectation here is that all of these
+         elements' border-bottom edges should be aligned. -->
+    <div>block</div>
+    <fieldset><legend>leg</legend>fieldset</fieldset>
+    <div class="flex">flex</div>
+    <div class="grid">grid</div>
+    <div class="multicol">multi<br>col</div>
+    <details open><summary>summary</summary>details</details>
+  </div>
+</body>
+</html>

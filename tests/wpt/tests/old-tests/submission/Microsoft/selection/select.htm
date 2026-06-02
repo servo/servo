@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call select() on a text field</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var input1 = document.getElementById("input1");
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, 0);
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                input1.select();
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, input1.value.length);
+                checkSelectionAttributes(document.body, 1, document.body, 1, true, 1);
+                assert_equals(selection.toString(), input1.value);
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <input style="WIDTH: 500px" id="input1" value="Some text in an input control" type="text" />
+        <p>Select the text in the input element by calling select()</p>
+    </body>
+</html>

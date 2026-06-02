@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Adding upload event listeners after send()</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Adding upload event listeners after send()</h1>
+
+<div id=log></div>
+
+<script>
+function doTest(desc, headers) {
+    async_test("Late listeners: " + desc).step(function() {
+        var client = new XMLHttpRequest();
+        var eventCounter = 0;
+        client.open("POST", CROSSDOMAIN + "resources/status.py?headers=custom-header");
+
+        for (var name in headers) {
+            client.setRequestHeader(name, headers[name]);
+        }
+
+        client.onreadystatechange = this.step_func(function(e) {
+            // Irrelevant if request is not finished
+            if (client.readyState < 4) return;
+            assert_equals(client.status, 200);
+            assert_equals(eventCounter, 0, 'Events fired, but should not have');
+            this.done();
+        });
+        client.send((new Array(3000)).join('xo'));
+        client.upload.onprogress = client.upload.onloadend = client.upload.onloadstart = client.upload.onload = this.step_func(function(e) {
+            eventCounter++;
+            assert_unreached("Upload events should not fire, but did: " + e.type);
+        });
+    });
+}
+
+doTest("No preflight", {});
+doTest("Preflight", {"custom-header":"test"});
+</script>

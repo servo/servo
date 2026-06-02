@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .container {
+        width: 40px;
+        height: 14px;
+        border: 2px solid green;
+        margin-bottom: 2px;
+      }
+      .a {
+          width: 16px;
+          height: 10px;
+          background: blue;
+          min-width: 0;
+          border: 2px solid lightblue;
+      }
+      .b {
+          width: 16px;
+          height: 10px;
+          background: purple;
+          min-width: 0;
+          border: 2px solid slateblue;
+      }
+      .aKid {
+          margin-left: 10px;
+          margin-top: 2px;
+          width: 16px;
+          height: 6px;
+          background: yellow;
+          border: 1px solid black;
+      }
+      .a, .b { float: left; }
+    </style>
+  </head>
+  <body>
+    <!-- Just 6 copies of the same container, since they all should look the
+         same (except for the final "position: fixed" one, which needs to be
+         explicitly marked as "position: fixed" or else it paints differently
+         on Android.) -->
+    <div class="container">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <div class="container">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <div class="container">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <div class="container">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <div class="container">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <div class="container" style="position: fixed">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+  </body>
+</html>

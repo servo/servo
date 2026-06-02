@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Table Baseline Alignment in Vertical Writing Mode</title>
+<link rel="author" title="David Shin" href="dshin@mozilla.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-cell-baseline" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1786353" />
+<link rel="match" href="baseline-vertical-ref.html" />
+<meta name="assert" content="Table with baseline alignment, vertical writing mode and tall elements should not generate excess space.">
+<style>
+table, tr, td {
+  border: 1px solid;
+  border-width: 1px 2px 3px 4px;
+  padding: 5px 6px 7px 8px;
+  border-spacing: 0;
+}
+td {
+  vertical-align: baseline;
+  background: red;
+  background-clip: content-box;
+}
+div {
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+</style>
+<table style="writing-mode: vertical-lr;"><tr>
+<td><div></div></td><td><div></div></td>
+</tr></table>
+<table style="writing-mode: vertical-rl;"><tr>
+<td><div></div></td><td><div></div>

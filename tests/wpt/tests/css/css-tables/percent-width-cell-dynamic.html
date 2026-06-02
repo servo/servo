@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/984642" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+html { overflow: hidden; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target">
+  <div style="width: 10%;">
+    <div style="display: inline-table;">
+      <div style="display: table-cell; width: 100%;">
+        <span style="display: inline-block; width: 100%; height: 100px; background: green;"></span>
+      </div>
+      <div style="display: table-cell;">
+        <span style="display: inline-block; width: 10px; height: 100px; background: green;"></span>
+      </div>
+     </div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.width = '1000px';
+</script>

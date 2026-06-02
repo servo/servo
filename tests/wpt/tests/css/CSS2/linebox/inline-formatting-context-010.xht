@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line boxes are tall enough for all boxes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A line box is always tall enough to contain all the boxes in the line." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                height: 25px;
+                white-space: pre;
+            }
+            span
+            {
+                background: blue;
+                font: 50px Ahem;
+            }
+            #span1
+            {
+                line-height: 50px;
+            }
+            #span2
+            {
+                line-height: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black squares and blue rectangles have the same height.</p>
+        <div>
+            <span id="span1"> X </span><span id="span2"> X </span>
+        </div>
+    </body>
+</html>

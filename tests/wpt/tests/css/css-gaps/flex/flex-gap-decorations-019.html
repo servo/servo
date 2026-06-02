@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Painting flex gaps with bi-directional `rule-color` shorthand.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  .flex-container {
+    display: flex;
+    gap: 10px;
+    height: 100px;
+    width: 100px;
+    background: red;
+    rule-color: green;
+    rule-width: 10px;
+    rule-style: solid;
+
+    flex-wrap: wrap;
+  }
+
+  .flex-item {
+    background: green;
+    width: 45px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flex-container">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

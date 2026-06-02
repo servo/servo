@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters Animation: Hue-rotate</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filters-hue-rotate-ref.html">
+<style>
+    .square {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: 100px;
+        left: 100px;
+        background: blue;
+    }
+    .filt {
+        backdrop-filter: hue-rotate(45deg);
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        top: 50px;
+        left: 50px;
+    }
+    .greenbox {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        top: 75px;
+        left: 75px;
+        background: green;
+    }
+</style>
+<p>You should see a violet rectangle with a green box. Neither red nor blue.</p>
+<div class="square"></div>
+<div class="filt">
+    <div class="greenbox"></div>
+</div>

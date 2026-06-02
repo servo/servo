@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+    <title>servo:preferences</title>
+    <style>
+      ul {
+          list-style: none;
+      }
+      li {
+          padding-bottom: 1em;
+      }
+      select {
+          font-size: 10pt;
+      }
+      .hidden {
+          display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Preferences</h2>
+    <div id="content" class="hidden">
+      <ul>
+        <li>
+          <input type="checkbox" class="bool-preference" id="experimental">
+          <label for="experimental">Experimental web platform features</label>
+        </li>
+        <li>
+          <input type="checkbox" class="bool-preference" id="more-experimental">
+          <label for="more-experimental">Even more experimental web platform features</label>
+        </li>
+        <li>
+          <input type="checkbox" class="bool-preference" id="http-cache">
+          <label for="http-cache">Disable HTTP cache</label>
+        </li>
+        <li>
+          <div>
+            <label style="vertical-align: baseline" for="user-agent">User agent:</label>
+          </div>
+          <div>
+            <input class="string-preference" id="user-agent" size=110>
+            <select onchange="updateUserAgent(event)">
+              <option value="servo" selected>Servo</option>
+              <option value="firefox">Firefox</option>
+              <option value="chrome">Chrome</option>
+            </select>
+          </div>
+      </ul>
+    </div>
+    <div id="loading">Loading...</div>
+    <script>
+      const prefs = {
+          "experimental": [],
+          "http-cache": ["network_http_cache_disabled"],
+          "more-experimental": ["dom_abort_controller_enabled", "dom_indexeddb_enabled"],
+          "user-agent": ["user_agent"],
+      };
+
+      const userAgents = {
+          "firefox": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0",
+          "chrome": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+          "servo": "",
+      };
+
+      function initialize() {
+          document.getElementById("loading").classList.toggle("hidden");
+          document.getElementById("content").classList.toggle("hidden");
+
+          const boolPrefInputs = document.getElementsByClassName("bool-preference");
+          for (const pref of boolPrefInputs) {
+              const relatedPrefs = prefs[pref.id];
+              let prefValue = true;
+              for (const boolPref of relatedPrefs) {
+                  prefValue &= navigator.servo.getBoolPreference(boolPref);
+              }
+              pref.checked = prefValue;
+              pref.onchange = (ev) => {
+                  const relatedPrefs = prefs[ev.target.id];
+                  for (const boolPref of relatedPrefs) {
+                      navigator.servo.setBoolPreference(boolPref, ev.target.checked);
+                  }
+              };
+          }
+
+          const stringPrefInputs = document.getElementsByClassName("string-preference");
+          for (const pref of stringPrefInputs) {
+              const prefValue = navigator.servo.getStringPreference(prefs[pref.id][0]);
+              pref.value = prefValue;
+              pref.oninput = (ev) => updateStringPreference(ev.target);
+          }
+      }
+
+      function updateStringPreference(input) {
+          const relatedPref = prefs[input.id][0];
+          navigator.servo.setStringPreference(relatedPref, input.value);
+      }
+
+      function updateUserAgent(event) {
+          const input = document.getElementById("user-agent");
+          const selection = event.target.value
+          input.value = userAgents[selection];
+          updateStringPreference(input);
+      }
+
+      function initExperimentalPrefs() {
+          return fetch("servo:experimental-preferences")
+              .then(response => response.json())
+              .then(prefList => prefs["experimental"] = prefList)
+      }
+
+      function initDefaultUserAgent() {
+          return fetch("servo:default-user-agent")
+              .then(response => response.json())
+              .then(userAgent => userAgents["servo"] = userAgent);
+      }
+
+      Promise.all([
+          initExperimentalPrefs(),
+          initDefaultUserAgent(),
+      ]).then(initialize);
+    </script>
+  </body>
+</html>

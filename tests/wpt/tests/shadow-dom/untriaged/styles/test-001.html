@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_06_00_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles: CSS rules declared in an enclosing tree must not apply in a shadow tree if apply-author-styles flag is set to false for this tree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+//test apply-author-styles flag of ShadowRoot object (default value)
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    d.head.innerHTML = '<style>' +
+        '.invis {' +
+        'display:none;' +
+        '}' +
+        '</style>';
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    var div1 = d.createElement('div');
+    div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
+    s.appendChild(div1);
+
+    //apply-author-styles flag is false by default. Invisible style shouldn't be applied
+    assert_true(s.querySelector('#shd').offsetTop > 0,
+        'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
+        'if the apply-author-styles flag is set to false');
+
+
+}), 'A_06_00_01_T01');
+
+
+//test apply-author-styles flag of ShadowRoot object (set it)
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    d.head.innerHTML = '<style>' +
+        '.invis {' +
+        'display:none;' +
+        '}' +
+        '</style>';
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    var div1 = d.createElement('div');
+    div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
+    s.appendChild(div1);
+
+    //apply-author-styles flag is set to false. Invisible style shouldn't be applied
+    assert_true(s.querySelector('#shd').offsetTop > 0,
+        'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
+        'if the apply-author-styles flag is set to false');
+
+
+}), 'A_06_00_01_T02');
+</script>
+</body>
+</html>

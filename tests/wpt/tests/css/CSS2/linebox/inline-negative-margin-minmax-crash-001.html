@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Test: Check inline negative margin with fit-content should not cause hang</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/1028817">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#inline-width">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+div {
+  width: fit-content;
+}
+span {
+  margin-left: -15px;
+}
+</style>
+<body>
+  <div>| <span>Operation</span></div>
+<script>test(() => {});</script>
+</body>

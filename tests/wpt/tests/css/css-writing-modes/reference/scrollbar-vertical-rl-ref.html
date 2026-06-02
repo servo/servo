@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Writing Modes Test: vertical-rl painting with vertical scrollbar reference</title>
+  <link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+  <style>
+    #container {
+      width: 300px;
+      height: 200px;
+      border: 1px solid black;
+      writing-mode: vertical-rl;
+      overflow: scroll;
+      background: blue;
+    }
+    #target {
+      width:500px;
+    }
+  </style>
+<div id="container">
+  <div id="target"><br></div>
+</div>

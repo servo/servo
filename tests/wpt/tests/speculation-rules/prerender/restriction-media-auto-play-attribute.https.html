@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+The test aligns with the spec on which behavior is deferred. The test asserts
+that media resources are not loaded during prerendering, but it's possible the
+spec will allow loading and only disallow playback.
+-->
+<title>Access to the Autoplay of the Media is deferred</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function RunTest(type, description) {
+  promise_test(async t => {
+    const uid = token();
+    const bc = new PrerenderChannel('test-channel', uid);
+    t.add_cleanup(_ => bc.close());
+
+    const gotMessage = new Promise(resolve => {
+      bc.addEventListener('message', e => {
+        resolve(e.data);
+      }, {
+        once: true
+      });
+    });
+    const url = `resources/media-autoplay-attribute.html?type=${type}&uid=${uid}&target_hint=${getTargetHint()}`;
+    window.open(url, '_blank', 'noopener');
+
+    const result = await gotMessage;
+    const expected = [
+      {
+        event: 'started waiting Autoplay',
+        prerendering: true
+      },
+      {
+        event: 'prerendering change',
+        prerendering: false
+      },
+      {
+        event: 'fired loadedmetadata event after prerendering is activated',
+        prerendering: false
+      },
+      {
+        event: 'finished waiting Autoplay',
+        prerendering: false
+      },
+    ];
+    assert_equals(result.length, expected.length, `${type}`);
+    for (let i = 0; i < result.length; i++) {
+      assert_equals(result[i].event, expected[i].event, `event${i}`);
+      assert_equals(result[i].prerendering, expected[i].prerendering,
+          `prerendering${i}`);
+    }
+
+    // Send a close signal to PrerenderEventCollector on the prerendered page.
+    new PrerenderChannel('close', uid).postMessage('');
+  }, description);
+}
+
+RunTest('audio', `autoplay of the audio media should be deferred until the prerendered page is activated`);
+
+RunTest('video', `autoplay of the video media should be deferred until the prerendered page is activated`);
+</script>

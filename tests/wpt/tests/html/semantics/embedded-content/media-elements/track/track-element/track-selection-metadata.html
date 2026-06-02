@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Multiple 'metadata' tracks with 'default'</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track kind="metadata" src="resources/default-styles.vtt" id="t1">
+    <track kind="metadata" src="resources/class.vtt" default id="t2hidden">
+    <track kind="metadata" src="resources/metadata-area.vtt" id="t3">
+    <track kind="metadata" src="resources/webvtt-file.vtt" default id="t4hidden">
+</video>
+<script>
+async_test(function() {
+    var video = document.querySelector('video');
+    video.onloadstart = this.step_func_done(function() {
+        assert_equals(video.textTracks.length, 4);
+        for (var track of video.textTracks) {
+            assert_equals(track.kind, 'metadata');
+
+            var trackElement = document.getElementById(track.id);
+            if (track.id.indexOf('hidden') != -1) {
+                assert_true(trackElement.default);
+                assert_equals(track.mode, 'hidden');
+            } else {
+                assert_false(trackElement.default);
+                assert_equals(track.mode, 'disabled');
+            }
+        }
+    });
+
+    video.src = getVideoURI("/media/test");
+});
+</script>

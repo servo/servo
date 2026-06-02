@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Resize multicol with paint-contained child, without affecting layout, apart from column offsets</title>
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://issues.chromium.org/issues/40596162">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container" style="columns:2; gap:0; width:500px; column-fill:auto; height:100px; background:red;">
+    <div style="contain:paint; width:50px; height:200px;">
+      <div style="position:relative;">
+        <div style="height:150px; background:green;"></div>
+      </div>
+      <div style="position:relative;">
+        <div style="height:50px; background:green;"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        container.style.width = "100px";
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</html>

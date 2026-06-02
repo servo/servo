@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="800" height="600" viewBox="0 0 800 600">
+  <metadata>
+    <h:link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org"/>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG11/single-page.html#render-RenderingOrder"/>
+    <h:link rel="match" href="clip-path-filter-order-ref.svg"/>
+    <h:meta name="assert" content="Clip path should apply after filtering."/>
+  </metadata>
+
+  <defs>
+    <filter id="redDropShadowFilter">
+      <feOffset result="offsetOut" in="SourceGraphic" dx="10" dy="10" />
+      <feColorMatrix result="colorMatrixOut" in="offsetOut" type="matrix"
+          values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" />
+      <feGaussianBlur result="blurOut" in="colorMatrixOut" stdDeviation="15" />
+      <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+    </filter>
+    <clipPath id="clipPath">
+      <rect x="100" y="100" width="200" height="200" />
+    </clipPath>
+  </defs>
+  <rect x="100" y="100" width="400" height="400" fill="green"
+      filter="url(#redDropShadowFilter)" clip-path="url(#clipPath)" />
+</svg>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy"
+          content="object-src 'none'; script-src 'self' 'unsafe-inline';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script>
+      const t = async_test("Should block the object and fire a spv");
+      const expected = 3;
+      let count = 0;
+      window.addEventListener('securitypolicyviolation', t.step_func(e => {
+        count++;
+        assert_equals(e.violatedDirective, "object-src");
+        if (count == expected) {
+          t.done();
+        }
+      }));
+
+      function unexpectedObjectLoaded() {
+        t.step(() => {
+          assert_unreached('CSP should block this object from loading');
+        })
+      }
+
+    </script>
+
+    <object data="/content-security-policy/support/fail.png"
+            onload="unexpectedObjectLoaded()"
+            type="image/png">
+    </object>
+
+    <object data="/content-security-policy/support/fail.png"
+            onload="unexpectedObjectLoaded()">
+    </object>
+
+    <object data="application/x-webkit-test-netscape"
+            onload="unexpectedObjectLoaded()">
+    </object>
+</body>
+
+</html>

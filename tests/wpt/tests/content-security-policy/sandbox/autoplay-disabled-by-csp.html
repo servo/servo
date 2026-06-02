@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#eligible-for-autoplay" />
+  <title>Test that autoplay is blocked by a document's active sandboxing flags</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src='../support/logTest.sub.js?logs=["Loaded iframe"]'></script>
+  <script src="/common/media.js"></script>
+  </head>
+  <body>
+    <iframe id="iframe" src="support/autoplay.html"></iframe>
+    <script>
+      async_test((t) => {
+        iframe.addEventListener('load', () => {
+          log('Loaded iframe');
+          var v = iframe.contentWindow.document.getElementById('v');
+
+          v.addEventListener('playing', t.unreached_func(
+            'video should not autoplay due to sandboxing flags'
+          ));
+
+          v.src = getVideoURI('/media/movie_5') + '?' + new Date() + Math.random()
+          t.step_timeout(() => t.done(), 500);
+        });
+      }, 'csp-derived sandboxing flags prevent autoplay.')
+    </script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: min-height - 100% of the initial containing block's height</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Bruno Fassino" href="http://www.brunildo.org/" />
+  <link rel="author" title="Alan Gresley" href="mailto:alan@css-class.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+  <link rel="match" href="min-height-percentage-003-ref.xht" />
+
+  <meta content="The initial containing block has the dimensions of the viewport. A percentage height on the root element is relative to the initial containing block. A 'min-height: 100%;' of the document root element should use all of the document root element's height. A percentage for 'min-height' is calculated with respect to the height of the generated box's containing block." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html, body
+  {
+  background-color: red;
+  height: 100%;
+  }
+
+  body, p {margin: 0px;}
+
+  p
+  {
+  background-color: green;
+  color: white;
+  min-height: 100%;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the background of this page is green and if there is <strong>no red and no vertical scrollbar</strong>.</p>
+
+ </body>
+</html>

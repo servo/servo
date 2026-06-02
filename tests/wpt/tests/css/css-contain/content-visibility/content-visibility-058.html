@@ -1,0 +1,65 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: auto, scrollIntoView()</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-058-ref.html">
+<meta name="assert" content="scrollIntoView() uses contain:size information to find target offset">
+<meta name="assert" content="viewport intersection removes contain:size thus moving target">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+.container {
+  width: 150px;
+  background: lightblue;
+  contain-intrinsic-size: 50px 250px;
+}
+.child {
+  width: 50px;
+  height: 300px;
+  background: lightgreen;
+}
+#target {
+  position: absolute;
+  bottom: 0;
+
+  width: 10px;
+  height: 10px;
+  background: blue;
+}
+.auto { content-visibility: auto; }
+
+</style>
+
+<p>Test FAILS if this sentence is at the top of the screen.
+<div class=spacer></div>
+<div class="container auto">
+  <div class=child></div>
+  <div id=target></div>
+</div>
+<p>Test PASSES if this sentence is near the top of the screen, after a thin band of three colors.
+<div class=spacer></div>
+
+<script>
+
+function runTest() {
+  document.getElementById("target").scrollIntoView(true /* alignToTop */);
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      runTest();
+    });
+  });
+});
+
+</script>
+</html>
+
+

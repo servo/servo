@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel=match href=lineto_ref.html>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+</style>
+<canvas id="c" width="150" height="150" >
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("c");
+var ctx = c.getContext("2d");
+
+ctx.beginPath();
+ctx.moveTo(20, 20);
+ctx.lineTo(20, 130);
+ctx.lineTo(130, 130);
+ctx.lineTo(130, 20);
+ctx.closePath();
+
+ctx.fillStyle = '#90EE90';
+ctx.fill();
+</script>

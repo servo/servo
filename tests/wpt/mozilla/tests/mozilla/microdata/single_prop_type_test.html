@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Single ItemProperty and ItemType test</title>
+</head>
+
+<body id="body" itemprop="Hello" itemtype="Hello">
+
+  <h1 id="h1" itemprop="Hello" itemtype="Hello">Header H1</h1>
+  <h2 id="h2" itemprop="Hello" itemtype="Hello">Header H2</h2>
+
+  <p id="p" itemprop="Hello" itemtype="Hello">Paragraph</p>
+
+  <form id="form" itemprop="Hello" itemtype="Hello">
+    <input id="input" itemprop="Hello" itemtype="Hello">Input Field in form</input>
+  </form>
+
+  <ul id="ul" itemprop="Hello" itemtype="Hello">
+    <li id="li" itemprop="Hello" itemtype="Hello">Unordered List Item</li>
+  </ul>
+
+  <meta id="meta" itemprop="Hello" itemtype="Hello">Meta Tag</meta>
+
+  <table id="table" itemprop="Hello" itemtype="Hello">Table</table>
+
+  <div id="div" itemprop="Hello" itemtype="Hello">Hi</div>
+
+  <a id="anchor" itemprop="Hello" itemtype="Hello"></a>
+
+</body>
+
+<script>
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_array_equals(elem.propertyNames(), ["Hello"], "The method should return 'Hello' ");
+      assert_array_equals(elem.itemtypes(), ["Hello"], "The method should return 'Hello' ");
+    }
+  });
+</script>
+
+</html>

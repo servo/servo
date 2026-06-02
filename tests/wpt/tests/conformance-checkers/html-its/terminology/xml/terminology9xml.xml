@@ -1,0 +1,6 @@
+<book its:version="2.0" xmlns:its="http://www.w3.org/2005/11/its">
+  <head>Sample file</head>
+  <body its:annotatorsRef="text-analysis|file:///tools.xml#T1">
+    <p>And he said: you need a new <quote its:annotatorsRef="terminology|http://example.com/term-tool#T2" its:term="yes" its:termInfoRef="http://www.directron.com/motherboards1.html" its:termConfidence="0.5">motherboard</quote></p>
+ </body> 
+</book>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+    <div>
+        <span id="span"></span>
+    </div>
+<script src="../resources/runner.js"></script>
+<script>
+        var span = document.getElementById("span");
+
+        function test() {
+            PerfTestRunner.forceLayout();
+            for (var i = 0; i < 10; ++i)
+                span.appendChild(document.createElement("span")).textContent = "span";
+            PerfTestRunner.forceLayout();
+            span.innerHTML = '';
+        }
+
+        PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of attaching a large number of inlines to an attached inline.",
+        run: test
+        });
+</script>
+</html>

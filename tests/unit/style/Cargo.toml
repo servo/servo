@@ -1,0 +1,27 @@
+[package]
+name = "style_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "style_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+app_units = { workspace = true }
+cssparser = { workspace = true }
+euclid = { workspace = true }
+html5ever = { workspace = true }
+rayon = { workspace = true }
+serde_json = { workspace = true }
+selectors = { workspace = true }
+servo_arc = { workspace = true }
+stylo_atoms = { workspace = true }
+stylo = { workspace = true }
+stylo_traits = { workspace = true }
+url = { workspace = true }

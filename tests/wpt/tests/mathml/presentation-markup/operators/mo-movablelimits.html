@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>&lt;mo&gt; movablelimits</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies effect of movablelimits on mo in both displaystyle modes.">
+    <link rel="match" href="mo-movablelimits-ref.html">
+  </head>
+  <body>
+    <math>
+      <munder>
+        <mo lspace="0px" rspace="0px" movablelimits="true">A</mo>
+        <mi>B</mi>
+      </munder>
+      <munder>
+        <mo lspace="0px" rspace="0px" movablelimits="false">A</mo>
+        <mi>B</mi>
+      </munder>
+    </math>
+    <math displaystyle="true">
+      <munder>
+        <mo lspace="0px" rspace="0px" movablelimits="true">A</mo>
+        <mi>B</mi>
+      </munder>
+      <munder>
+        <mo lspace="0px" rspace="0px" movablelimits="false">A</mo>
+        <mi>B</mi>
+      </munder>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_munderover");</script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>Scheme-bound Cookies Window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+
+<body>
+<script>
+  async function getCookie(origin, name) {
+    const url = `${origin}/cookies/resources/list.py`;
+    const response = await credFetch(url);
+    const cookies = await response.json();
+    return cookies[name] || null;
+  }
+
+  const cookieName = "scheme-bound-cookie";
+  const cookieValue1 = "1";
+  const cookieValue2 = "2";
+  const httpsOrigin = get_host_info().HTTPS_ORIGIN;
+
+  promise_test(async () => {
+    assert_equals(await getCookie(self.origin, cookieName), null, "Cookie should not be sent to an insecure origin");
+    // Set a cookie on the insecure origin.
+    await credFetch(
+      `${self.origin}/cookies/resources/set.py?${cookieName}=${cookieValue2};Path=/`);
+    // Verify the cookie was set.
+    assert_equals(await getCookie(self.origin, cookieName), cookieValue2, "Cookie should be set on the insecure origin");
+    // Ensure the original secure cookie is still intact, this is due to scheme bounding being enabled, we will not overwrite.
+    assert_equals(await getCookie(httpsOrigin, cookieName), cookieValue1, "Cookie should be set on the secure origin");
+  }, "Check scheme bounding behavior is working.");
+</script>
+</body>

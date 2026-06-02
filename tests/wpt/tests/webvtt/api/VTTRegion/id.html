@@ -1,0 +1,21 @@
+<!doctype html>
+<title>VTTRegion.id</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-id">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true('id' in region, 'id is not supported');
+
+    assert_equals(region.id, '', 'initial value');
+
+    region.id = '1';
+    assert_equals(region.id, '1', 'value after setting to "1"');
+
+    region.id = '';
+    assert_equals(region.id, '', 'value after setting to the empty string');
+
+}, document.title + ' script-created region');
+</script>

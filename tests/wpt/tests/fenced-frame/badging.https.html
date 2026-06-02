@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>Test Badging API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+const createRemoteFunctionForServiceWorkerTest = () => {
+  return async (method, service_worker_url) => {
+    const getController = () => {
+      if (navigator.serviceWorker.controller) {
+        return navigator.serviceWorker.controller;
+      }
+      return new Promise(resolve => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          resolve(navigator.serviceWorker.controller);
+        });
+      });
+    };
+
+    await navigator.serviceWorker.register(
+      service_worker_url, { scope: location.href });
+    const ctrl = await getController();
+
+    return new Promise(resolve => {
+      ctrl.postMessage(method);
+      navigator.serviceWorker.onmessage = e => {
+        resolve(e.data.name);
+      }
+    });
+  }
+}
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const error_name = await frame.execute(() => {
+    return navigator.setAppBadge(1).catch(e => e.name);
+  });
+  assert_equals(error_name,
+                "NotAllowedError",
+                "The Badge API should cause exception in a fencedfarme");
+}, 'setAppBadge should fail inside a fenced frame');
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const error_name = await frame.execute(() => {
+    return navigator.clearAppBadge().catch(e => e.name);
+  });
+  assert_equals(error_name,
+                "NotAllowedError",
+                "The Badge API should cause exception in a fencedfarme");
+}, 'clearAppBadge should fail inside a fenced frame');
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const error_name = await frame.execute(
+    createRemoteFunctionForServiceWorkerTest(),
+    ['setAppBadge', 'badging-sw.js']);
+  assert_equals(error_name, "NotAllowedError",
+                "The Badge API should cause exception from a service worker " +
+                "in a fencedfarme");
+}, 'setAppBadge should fail from a service worker inside a fenced frame');
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const error_name = await frame.execute(
+    createRemoteFunctionForServiceWorkerTest(),
+    ['clearAppBadge', 'badging-sw.js']);
+  assert_equals(error_name, "NotAllowedError",
+                "The Badge API should cause exception from a service worker " +
+                "in a fencedfarme");
+}, 'clearAppBadge should fail from a service worker inside a fenced frame');
+</script>
+</body>

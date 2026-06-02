@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Set/Release capture + relatedTarget</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events Capture Test - capture and relatedTarget</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Put your mouse over the purple rectangle. pointerover should be received for the purple rectangle
+                <li> Press and hold left mouse button over "Set Capture" button
+                <li> Move your mouse. pointerover should be received for the black rectangle
+                <li> Release left mouse button to complete the test.
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+
+        <div id="target0" style="background:black; color:white"></div>
+        <br>
+        <div id="target1" style="background:purple; color:white"></div>
+        <br>
+        <input type="button" id="btnCapture" value="Set Capture">
+        <script type='text/javascript'>
+            var isPointerCapture = false;
+            var isPointeroverGot = false;
+            var count=0;
+            var event_log = [];
+
+            var detected_pointertypes = {};
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            var target0 = document.getElementById('target0');
+            var target1 = document.getElementById('target1');
+            var captureButton = document.getElementById('btnCapture');
+
+            setup({ explicit_done: true });
+
+            window.onload = function() {
+                on_event(captureButton, 'pointerdown', function(e) {
+                    if(isPointerCapture == false) {
+                        isPointerCapture = true;
+                        sPointerCapture(e);
+                    }
+                    else {
+                        isPointerCapture = false;
+                        rPointerCapture(e);
+                    }
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    event_log.push('gotpointercapture@target0');
+                });
+
+                on_event(target0, 'lostpointercapture', function(e) {
+                    event_log.push('lostpointercapture@target0');
+                    isPointerCapture = false;
+                });
+
+                run();
+            }
+
+            function run() {
+                var actions_promise;
+
+                // After invoking the setPointerCapture method on an element, subsequent pointer events for the specified pointer must be targeted at that element
+                // and boundary events should be sent accordingly and relatedTarget should behave normally.
+                on_event(target0, "pointerover", function (event) {
+                    event_log.push('pointerover@target0');
+                    if(isPointerCapture && isPointeroverGot) {
+                        test(function() {
+                            assert_not_equals(event.relatedTarget, null, "relatedTarget should not be null even when the capture is set")
+                        }, "relatedTarget should not be null even when the capture is set.");
+
+                        actions_promise.then( () => {
+                            done();
+                        });
+                    }
+                });
+
+                on_event(target1, "pointerover", function (event) {
+                    detected_pointertypes[ event.pointerType ] = true;
+                    if(!isPointeroverGot) {
+                        test(function() {
+                            assert_equals(isPointerCapture, false, "pointerover shouldn't trigger for this target when capture is enabled");
+                        }, "pointerover shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                        isPointeroverGot = true;
+                        event_log.push('pointerover@target1');
+                    }
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                                      .pointerMove(0, 0, {origin: target1})
+                                      .pointerMove(0, 0, {origin: captureButton})
+                                      .pointerDown()
+                                      .pointerMove(0, 0, {origin: target1})
+                                      .pointerMove(0, 0, {origin: target0})
+                                      .pointerUp()
+                                      .send();
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

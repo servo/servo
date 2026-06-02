@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Container Queries Test: Absolute positioned canvas container crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/1289850">
+<p>Pass if there is no crash.</p>
+<canvas id="canv" style="display:block;position:absolute;container-type:inline-size"></canvas>
+<script>
+  canv.offsetTop;
+  canv.appendChild(document.createElement("span"));
+</script>

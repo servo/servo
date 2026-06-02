@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>PerformanceNavigationTiming timing remains after iframe removed</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+</head>
+
+<body>
+  <script>
+    const start_page = "/navigation-timing/resources/blank_page_green.html";
+    const end_page = "/navigation-timing/resources/blank_page_yellow.html";
+    const host_info = get_host_info();
+
+    const same_origin_redirect_chain = () => {
+      let url = host_info["ORIGIN"];
+      url += "/common/redirect.py";
+      url += "?location=";
+      url += host_info["ORIGIN"];
+      url += end_page;
+      return url;
+    };
+
+    const timingAttributes = [
+      'domComplete',
+      'domContentLoadedEventEnd',
+      'domContentLoadedEventStart',
+      'domInteractive',
+      //'criticalCHRestart' is not supported in iframe.
+      'unloadEventStart',
+      'unloadEventEnd',
+      'loadEventStart',
+      'loadEventEnd',
+      'redirectCount',
+      'redirectStart',
+      'redirectEnd',
+      'fetchStart',
+      'responseEnd',
+    ];
+
+    function verify_timing(pnt, description) {
+      for (const att of timingAttributes) {
+        assert_greater_than(pnt[att], 0, `${description} ${att}`);
+      }
+    }
+
+    promise_test(async function (t) {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+
+      // Navigate from one location to another, then redirect. As a result, the tested fields contain non-zero values.
+      await new Promise(resolve => {
+        iframe.onload = function () {
+          step_timeout(() => { iframe.contentWindow.location.href = same_origin_redirect_chain(); }, 10);
+          iframe.onload = resolve;
+        }
+        iframe.src = start_page;
+      });
+
+      await new Promise(resolve => {
+        const entries = iframe.contentWindow.performance.getEntriesByType("navigation");
+        assert_equals(entries.length, 1, "Only one navigation time entry");
+        const pnt = entries[0];
+        assert_equals(pnt.name, iframe.contentWindow.location.toString(), "navigation name matches the window.location");
+        assert_true(pnt.name.endsWith("blank_page_yellow.html"), "navigation name is blank_page_yellow.html");
+        verify_timing(pnt, "timing values should be positive numbers:")
+        iframe.remove();
+        verify_timing(pnt, "timing values should remain positive numbers after iframe is removed:")
+        resolve();
+      })
+    }, "iframe navigation times are persistent after the iframe is removed. Part 1.");
+
+    function getOutOfLoadEventHandler(t) {
+      return new Promise(resolve => t.step_timeout(resolve, 0));
+    }
+
+    function waitForLoad(obj) {
+      return new Promise(resolve => {
+        obj.addEventListener("load", resolve, { once: true });
+      });
+    }
+
+    // 'type' entry should be persistent.
+    promise_test(async function (t) {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+
+      iframe.src = start_page;
+      await waitForLoad(iframe);
+      await getOutOfLoadEventHandler(t);
+      iframe.contentWindow.location.href = end_page;
+      await waitForLoad(iframe);
+
+      iframe.contentWindow.history.back();
+      await waitForLoad(iframe);
+
+      await new Promise(resolve => {
+        const entries = iframe.contentWindow.performance.getEntriesByType("navigation");
+        assert_equals(entries.length, 1, "Only one navigation time entry");
+        const pnt = entries[0];
+        assert_equals(pnt.name, iframe.contentWindow.location.toString(), "navigation name matches the window.location");
+        assert_true(pnt.name.endsWith("blank_page_green.html"), "navigation name is blank_page_green.html");
+        assert_equals(pnt.type, "back_forward", "type should be back_forward after going back to history");
+        iframe.remove();
+        assert_equals(pnt.type, "back_forward", "type should remain back_forward after iframe is removed");
+        resolve();
+      })
+    }, "iframe navigation times are persistent after the iframe is removed Part 2.");
+
+  </script>
+</body>
+
+</html>

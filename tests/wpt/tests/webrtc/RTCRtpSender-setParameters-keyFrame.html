@@ -1,0 +1,97 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpSender.prototype.setParameters for generating keyFrames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="third_party/sdp/sdp.js"></script>
+<script src="simulcast/simulcast.js"></script>
+<script>
+'use strict';
+
+// https://w3c.github.io/webrtc-extensions/#rtcrtpsender-setparameters-keyframe
+
+async function waitForKeyFrameCount(t, pc, spatialLayer, minimumKeyFrames) {
+  // return after 5 seconds.
+  const startTime = performance.now();
+  while (true) {
+    const report = await pc.getStats();
+    const stats = [...report.values()].find(({type, rid}) => type === 'outbound-rtp' && rid === spatialLayer);
+    if (stats && stats.keyFramesEncoded >= minimumKeyFrames) {
+      return stats;
+    }
+    await new Promise(r => t.step_timeout(r, 100));
+    if (performance.now() > startTime + 5000) {
+      break;
+    }
+  }
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  // Video must be small enough to reach a key frame of the right size immediately.
+  const stream = await getNoiseStream({video: {width: 320, height: 160}});
+  t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+  const sender = pc1.addTrack(stream.getTracks()[0], stream);
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  const rid = undefined;
+  const first_stats = await waitForKeyFrameCount(t, pc1, rid, 1);
+  assert_true(!!first_stats);
+  sender.setParameters(sender.getParameters(), {
+    encodingOptions: [{keyFrame: true}],
+  });
+  const second_stats = await waitForKeyFrameCount(t, pc1, rid, first_stats.keyFramesEncoded + 1);
+  assert_true(!!second_stats);
+  assert_greater_than(second_stats.keyFramesEncoded, first_stats.keyFramesEncoded);
+}, `setParameters() second argument can be used to trigger keyFrame generation`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  // Video must be small enough to reach a key frame of the right size immediately.
+  const stream = await getNoiseStream({video: {width: 640, height: 360}});
+  t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+  const rids = ['0', '1'];
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {
+    streams: [stream],
+    sendEncodings: [{rid: 0}, {rid: 1}],
+  });
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription({type: 'offer', sdp: ridToMid(pc1.localDescription, rids)});
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription({type: 'answer', sdp: midToRid(
+    pc2.localDescription,
+    pc1.localDescription,
+    rids
+  )});
+
+  const first_stats_l0 = await waitForKeyFrameCount(t, pc1, '0', 1);
+  assert_true(!!first_stats_l0);
+  const first_stats_l1 = await waitForKeyFrameCount(t, pc1, '1', 1);
+  assert_true(!!first_stats_l1);
+
+  // Generate a keyframe on the second layer. This may, depending on the encoder, force
+  // a key frame on the first layer as well.
+  sender.setParameters(sender.getParameters(), {
+    encodingOptions: [{keyFrame: false}, {keyFrame: true}],
+  });
+  const second_stats_l1 = await waitForKeyFrameCount(t, pc1, '1', first_stats_l1.keyFramesEncoded + 1);
+  assert_true(!!second_stats_l1);
+  assert_greater_than(second_stats_l1.keyFramesEncoded, first_stats_l1.keyFramesEncoded);
+
+  const second_stats_l0 = await waitForKeyFrameCount(t, pc1, '0', first_stats_l0.keyFramesEncoded);
+  assert_true(!!second_stats_l0);
+  assert_greater_than_equal(second_stats_l0.keyFramesEncoded, first_stats_l0.keyFramesEncoded);
+}, `setParameters() second argument can be used to trigger keyFrame generation (simulcast)`);
+</script>

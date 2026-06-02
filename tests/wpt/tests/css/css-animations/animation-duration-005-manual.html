@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-duration - 0s, animation-fill-mode - forwards</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-05-05 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-fill-mode">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-duration is set to 0s (zero seconds),
+                             and 'animation-fill-mode' is set to 'forwards',
+                             the last frame of the animation will be displayed.">
+<style>
+  div {
+    height: 100px;
+    width: 100px;
+    position: absolute;
+  }
+
+  #test {
+    animation-name: sample;
+    animation-duration: 0s;
+    animation-fill-mode: forwards;
+
+    background-color: blue;
+  }
+
+  #ref {
+    background-color: red;
+    left: 150px;
+  }
+
+  @keyframes sample {
+    from {
+      left: 0px;
+    }
+    to {
+      left: 150px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled blue with 'Filler Text',
+    and without animation, and if there is no red.
+  </p>
+  <div id="ref"></div>
+  <div id="test">Filler Text</div>
+</body>
+

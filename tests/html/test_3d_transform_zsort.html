@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+            * {
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                perspective: 100px;
+                background-color: rgba(0, 0, 0, 0.5);
+                width: 600px;
+                height: 600px;
+                transform-style: preserve-3d;
+            }
+            .f1 {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                width: 200px;
+                height: 200px;
+                background-color: red;
+                transform: translate3d(0, 0, -5px);
+            }
+            .f2 {
+                position: absolute;
+                top: 100px;
+                left: 100px;
+                width: 200px;
+                height: 200px;
+                background-color: green;
+                transform: translate3d(0, 0, 0);
+            }
+            .f3 {
+                position: absolute;
+                top: 200px;
+                left: 200px;
+                width: 200px;
+                height: 200px;
+                background-color: blue;
+                transform: translate3d(0, 0, 0);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">AAA
+           <div class="f1"></div>
+           <div class="f2"></div>
+           <div class="f3"></div>
+        </div>
+    </body>
+</html>

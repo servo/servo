@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const audio = document.createElement("audio");
+  audio.loading = "lazy";
+  audio.src = "/media/sine440.mp3?pipe=trickle(d2)";
+  audio.controls = true;
+
+  async_test(t => {
+    window.addEventListener("load", t.step_func_done(() => {
+      assert_less_than(
+        audio.readyState,
+        audio.HAVE_CURRENT_DATA,
+        "Audio should not have finished loading before window.onload fired"
+      );
+    }));
+  }, "Audio with loading=lazy does not delay window onload event");
+  document.body.appendChild(audio);
+
+</script>
+</body>

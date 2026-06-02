@@ -1,0 +1,5 @@
+[build]
+rustc = "rustc"
+
+[env]
+RUSTC_BOOTSTRAP = "1"

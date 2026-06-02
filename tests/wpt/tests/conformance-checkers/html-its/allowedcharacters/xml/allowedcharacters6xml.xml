@@ -1,0 +1,3 @@
+<messages xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <msg num="123">Click the <its:span allowedCharacters="[&#x0020;-&#x00FE;]">CONTINUE</its:span> Button on the printer panel</msg>
+</messages>

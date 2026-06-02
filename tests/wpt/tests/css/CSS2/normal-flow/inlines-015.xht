@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inline box model: space taken by images in cells</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-26 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/015.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <meta name="flags" content="image"/>
+  <style type="text/css">
+   div { background: red; height: 64px; width: 128px; }
+   table { background: green; width: 100%; padding: 0; border: 0; border-spacing: 0; margin: 0; }
+   td { padding: 0; border: 0; font-size: 64px; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div>
+   <table>
+    <tr> <!-- same as 014 but without spaces around the image -->
+     <td><img src="support/1x1-white.png" alt="(image test failed)"/></td>
+    </tr>
+   </table>
+  </div>
+ </body>
+</html>

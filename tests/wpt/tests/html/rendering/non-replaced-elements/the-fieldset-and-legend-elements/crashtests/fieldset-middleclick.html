@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html class="test-wait">
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#f {
+  overflow-y: scroll;
+  width: 100px;
+  height: 100px;
+}
+</style>
+</head>
+<body>
+<fieldset id="f">
+  <p>test</p>
+  <p>test</p>
+  <p>test</p>
+  <p>test</p>
+  <p>test</p>
+  <p>test</p>
+</fieldset>
+<script>
+onload = async () => {
+  const actions = new test_driver.Actions();
+  const button = {button: actions.ButtonType.MIDDLE};
+  await actions.
+      pointerMove(50, 50).
+      pointerDown(button).
+      pointerUp(button).
+      send();
+  document.documentElement.className = "";
+};
+</script>
+</body>
+</html>

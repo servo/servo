@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting a script and some code in an empty script</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script id="s1"></script>
+<script>
+const happened = [];
+test(() => {
+  const s1 = document.getElementById("s1");
+  const s2 = document.createElement("script");
+
+  // This script, which is ultimately a *child* of the
+  // already-connected-but-empty `s1` script, runs second, after `s1` runs. See
+  // the example in
+  // http://html.spec.whatwg.org/C/#script-processing-model:children-changed-steps
+  // for more information.
+  //
+  // HISTORICAL CONTEXT: There used to be a condition in the HTML standard that
+  // said an "outer" script must be "prepared" when a node gets inserted into
+  // the script. BUT it also stipulated that if the insertion consists of any
+  // "inner" (nested, essentially) script elements, then this "outer" script
+  // must prepare/execute after any of those "inner" newly-inserted scripts
+  // themselves get prepared.
+  //
+  // This changed in https://github.com/whatwg/html/pull/10188.
+  s2.textContent = `
+    happened.push("s2");
+
+    // This text never executes in the outer script, because by the time this
+    // gets appended, the outer script has "already started" [1], so it does not
+    // get re-prepared/executed a second time.
+    //
+    // [1]: https://html.spec.whatwg.org/C#already-started
+    s1.appendChild(new Text("happened.push('s1ran');"));
+
+    happened.push("s2ran");
+`;
+
+  const df = document.createDocumentFragment();
+  df.appendChild(new Text(`happened.push("s1");`));
+  df.appendChild(s2);
+
+  assert_array_equals(happened, []);
+  s1.appendChild(df);
+  assert_array_equals(happened, ["s1", "s2", "s2ran"]);
+}, "An outer script whose preparation/execution gets triggered by the " +
+   "insertion of a 'nested'/'inner' script, executes *before* the inner " +
+   "script executes");
+</script>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/helpers.js"></script>
+  <meta charset="windows-1250"/>
+  <title>javascript: URL navigation to a string must create a HTML document using the correct properties</title>
+</head>
+<body>
+  <!--
+    This document is XHTML and windows-1250 so that we can test the resulting javascript: URL document is not.
+    The same for the window we open.
+  -->
+  <script><![CDATA[
+  promise_test(async (t) => {
+    const w = await openWindow("resources/xhtml-and-non-utf-8.xhtml", t);
+
+    w.location.href = `javascript:'a string<script>
+      opener.postMessage({
+        compatMode: document.compatMode,
+        contentType: document.contentType,
+        characterSet: document.characterSet,
+        doctypeIsNull: document.doctype === null
+      }, "*");
+    <` + `/script>'`;
+
+    const results = await waitForMessage(w);
+
+    assert_equals(results.compatMode, "BackCompat");
+    assert_equals(results.contentType, "text/html");
+    assert_equals(results.characterSet, "UTF-8");
+    assert_equals(results.doctypeIsNull, true);
+  });
+  ]]></script>
+</body>
+</html>

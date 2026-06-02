@@ -1,0 +1,17 @@
+<!doctype html>
+<title>WebSockets: defineProperty getter for url</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+test(function() {
+    Object.defineProperty(WebSocket.prototype, 'url', {
+        get: function() { return 'foo'; }
+    });
+    var ws = new WebSocket('ws://example.invalid/');
+    assert_equals(ws.url, 'foo');
+});
+</script>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+'use strict';
+const controls = ['input','textarea'];
+
+function setupControl(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text" id="test">'
+                                                : '<textarea id="test"></textarea>';
+  const element = document.getElementById('test');
+  element.value = value;
+  element.focus();
+  element.setSelectionRange(0, 0);
+
+  // Stabilize layout for cross-platform consistency.
+  element.style.fontFamily = 'monospace';
+  element.style.fontSize = '16px';
+  element.style.lineHeight = '20px';
+  element.style.padding = '0';
+  element.style.border = '0';
+  element.style.margin = '8px';
+  element.style.boxSizing = 'content-box';
+  // Zero scroll offsets so client rects are relative to a known origin.
+  if ('scrollLeft' in element) element.scrollLeft = 0;
+  return element;
+}
+function setupFormControlRange(element, startOffset, endOffset){
+  const range = new FormControlRange();
+  range.setFormControlRange(element, startOffset, endOffset);
+  return range;
+}
+
+function assert_rect_inside(inner, outer, msg = '') {
+  const left_overflow = outer.left > inner.left ? outer.left - inner.left : 0;
+  const right_overflow = inner.right > outer.right ? inner.right - outer.right : 0;
+  assert_approx_equals(left_overflow, 0, 0.5, msg + 'left inside');
+  assert_approx_equals(right_overflow, 0, 0.5, msg + 'right inside');
+}
+
+function rect(range, element, label='') {
+  const r = range.getBoundingClientRect();
+  assert_rect_inside(r, element.getBoundingClientRect(), label);
+  return r;
+}
+
+test(() => {
+  // Partial selection spanning a hard newline produces non-zero geometry and at least one client rect.
+  const textareaElement = setupControl('textarea', 'first line\nSECOND LINE\nthird');
+  const firstLine = 'first line';
+  const range = setupFormControlRange(textareaElement, firstLine.length - 4, firstLine.length + 5);
+  const boundingRect = rect(range, textareaElement, 'Bounding box inside: ');
+  assert_greater_than(boundingRect.width, 0);
+  assert_greater_than(boundingRect.height, 0);
+  assert_greater_than_equal(range.getClientRects().length, 1);
+}, 'Partial hard-newline selection (textarea)');
+
+test(() => {
+  // Selection that spans a blank line should still produce non-zero geometry.
+  const textareaElement = setupControl('textarea', 'line1\n\nline3');
+  const range = setupFormControlRange(textareaElement, 0, textareaElement.value.length);
+  const boundingRect = rect(range, textareaElement, 'Bounding box inside: ');
+  assert_greater_than(boundingRect.height, 0);
+  assert_greater_than(boundingRect.width, 0);
+}, 'Selection spanning blank line (textarea)');
+
+test(() => {
+  // Soft-wrapped long logical line yields multiple client rects due to wrapping.
+  const textareaElement = setupControl('textarea', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 abcdefghijklmnopqrstuvwxyz');
+  textareaElement.style.whiteSpace = 'pre-wrap';
+  textareaElement.style.width = '160px';
+  const range = setupFormControlRange(textareaElement, 0, textareaElement.value.length);
+  const boundingRect = rect(range, textareaElement, 'Bounding box inside: ');
+  assert_greater_than_equal(range.getClientRects().length, 2, 'soft wrap multiple rects');
+}, 'Soft-wrapped long single line (textarea)');
+
+test(() => {
+  // Caret before newline and start of next line have non-decreasing y and expected x ordering.
+  const value = '123456\n789012';
+  const textareaElement = setupControl('textarea', value);
+  const caretBeforeNewlineRect = rect(setupFormControlRange(textareaElement, 6, 6), textareaElement, 'caret before newline inside: ');
+  const caretNextLineRect = rect(setupFormControlRange(textareaElement, 7, 7), textareaElement, 'caret next line inside: ');
+  // Allow caret before newline to be aligned or slightly (sub-pixel) to the right.
+  assert_greater_than_equal(caretBeforeNewlineRect.x + 0.5, caretNextLineRect.x, 'caret before newline at or to the right (epsilon) of next line start');
+  assert_less_than_equal(caretBeforeNewlineRect.y, caretNextLineRect.y, 'next line lower or equal y');
+}, 'Collapsed caret across newline parity (textarea)');
+
+test(() => {
+  // Live insert/delete operations adjust selection left/width as expected (grow/shift/shrink).
+  const inputElement = setupControl('input', 'ABCDE');
+  const range = setupFormControlRange(inputElement, 1, 3);
+
+  const leftBeforeInsertion = rect(range, inputElement).left;
+  inputElement.setRangeText('ZZ', 0, 0);
+  assert_greater_than(rect(range, inputElement).left, leftBeforeInsertion, 'insert before shifts right');
+
+  const widthBeforeInteriorInsertion = rect(range, inputElement).width;
+  inputElement.setRangeText('QQ', range.startOffset, range.startOffset);
+  assert_greater_than(rect(range, inputElement).width, widthBeforeInteriorInsertion, 'insert inside expands width');
+
+  const leftBeforeAppend = rect(range, inputElement).left;
+  inputElement.setRangeText('TT', inputElement.value.length, inputElement.value.length);
+  assert_approx_equals(rect(range, inputElement).left, leftBeforeAppend, 0.5, 'append does not shift left edge');
+
+  const leftBeforeDeletion = rect(range, inputElement).left;
+  inputElement.setRangeText('', 0, 2);
+  assert_less_than(rect(range, inputElement).left, leftBeforeDeletion, 'delete before shifts left');
+
+  const widthBeforeOverlapDeletion = rect(range, inputElement).width;
+  inputElement.setRangeText('', range.startOffset - 1, range.startOffset + 1);
+  assert_less_than(rect(range, inputElement).width, widthBeforeOverlapDeletion, 'overlap delete shrinks width');
+}, 'Input live insertion/deletion adjustments');
+
+test(() => {
+  // Interior deletion shrinks width; insertion before selection shifts selection right in textarea.
+  const textareaElement = setupControl('textarea', 'ABCDE');
+  const range = setupFormControlRange(textareaElement, 1, 4);
+  const widthBeforeDeletion = rect(range, textareaElement).width;
+  textareaElement.setRangeText('', 2, 3);
+  assert_less_than(rect(range, textareaElement).width, widthBeforeDeletion, 'textarea interior deletion shrinks width');
+  const leftBeforeInsertion = rect(range, textareaElement).left;
+  textareaElement.setRangeText('ZZ', 0, 0);
+  assert_greater_than(rect(range, textareaElement).left, leftBeforeInsertion, 'textarea insertion before shifts right');
+}, 'Textarea interior deletion & insertion adjustments');
+
+controls.forEach(controlType => {
+  test(() => {
+    // Inserting text inside selection increases its width.
+    const element = setupControl(controlType, 'ABCDE');
+    const range = setupFormControlRange(element, 1, 4);
+    const widthBeforeInsertion = rect(range, element).width;
+    element.setRangeText('ZZ', 2, 2);
+    assert_greater_than(rect(range, element).width, widthBeforeInsertion, 'insertion inside expands width');
+  }, `Insertion inside expands width (${controlType})`);
+
+  test(() => {
+    // Deleting full selection collapses to a caret.
+    const element = setupControl(controlType, 'ABCDE');
+    const range = setupFormControlRange(element, 1, 4);
+    assert_greater_than(rect(range, element).width, 0, 'pre width greater than 0');
+    element.setRangeText('', 1, 4);
+    assert_true(range.collapsed, 'collapsed after deletion');
+    assert_equals(range.getClientRects().length, 0, 'no client rects');
+    assert_approx_equals(rect(range, element).width, 0, 0.05, 'caret width should be 0');
+  }, `Deletion collapses geometry (${controlType})`);
+
+  test(() => {
+    // Shrink near end clamps range end; subsequent insertion at end does not auto-extend.
+    const element = setupControl(controlType, 'HelloWorld');
+    const range = setupFormControlRange(element, 0, element.value.length);
+    element.setRangeText('', 7, 10);
+    const endAfterShrink = range.endOffset;
+    assert_equals(endAfterShrink, element.value.length, 'end clamped after shrink');
+    element.setRangeText('XYZ', 7, 7);
+    assert_equals(range.endOffset, endAfterShrink, 'end remains stable after grow at end (does not auto-extend)');
+  }, `Shrink/grow end offset clamping (${controlType})`);
+
+  test(() => {
+    // Tail deletion clamps end offset while remaining selection geometry stays non-zero.
+    const element = setupControl(controlType, 'HelloWorld');
+    const range = setupFormControlRange(element, 0, element.value.length);
+    element.setRangeText('', 5, 10);
+    assert_equals(element.value, 'Hello', 'value shrunk to Hello');
+    assert_equals(range.endOffset, element.value.length, 'end offset clamped to new value length');
+    const rectBox = rect(range, element);
+    assert_greater_than(rectBox.width, 0, 'geometry still non-zero after tail deletion');
+  }, `Tail deletion clamps end offset (${controlType})`);
+});
+
+test(() => {
+  // Deleting selected text collapses to a caret with zero width.
+  const inputElement = setupControl('input', 'ABCDE');
+  const range = setupFormControlRange(inputElement, 1, 4);
+  inputElement.setRangeText('', 1, 4);
+  assert_true(range.collapsed, 'collapsed after deletion');
+  assert_approx_equals(rect(range, inputElement).width, 0, 0.05, 'width should be 0');
+}, 'Deletion collapses selection (input explicit)');
+</script>

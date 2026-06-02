@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .container {
+    writing-mode: vertical-rl;
+    inline-size: 472px;
+  }
+  .mc {
+    display: flow-root;
+    block-size: 120px;
+    border: 1px solid;
+    margin-block-end: 20px;
+    background: yellow;
+  }
+  .column {
+    float: left;
+    inline-size: 150px;
+    block-size: 100%;
+    margin-inline-start: 10px;
+  }
+  .column:first-child {
+    margin-inline-start: 0;
+  }
+</style>
+<div class="container">
+  <div class="mc">
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) -230px top;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) -110px top;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:110px; background:url(../support/cat.png) left top;"></div>
+    </div>
+  </div>
+  <div class="mc">
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) right top;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) 240px top;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:110px; background:url(../support/cat.png) 350px top;"></div>
+    </div>
+  </div>
+  <div class="mc">
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) -230px bottom;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) -110px bottom;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:110px; background:url(../support/cat.png) left bottom;"></div>
+    </div>
+  </div>
+  <div class="mc">
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) right bottom;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:100%; background:url(../support/cat.png) 240px bottom;"></div>
+    </div>
+    <div class="column">
+      <div style="block-size:110px; background:url(../support/cat.png) 350px bottom;"></div>
+    </div>
+  </div>
+</div>

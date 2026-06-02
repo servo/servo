@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: test list with firstchild changing display</title>
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/2787">
+<link rel=match href="list-with-image-display-changed-001-ref.html">
+<!-- https://bugs.chromium.org/p/chromium/issues/detail?id=715288 -->
+<meta name="assert" content="
+    After the display of img being changed from block to inline, then back to block,
+    the final position of marker should be the same as the beginning." />
+
+<style>
+li { border: 3px solid black; margin: 3px; }
+img { display: block; }
+</style>
+
+<ul>
+  <li>
+    <a href="#"><img src="./resources/white.gif" width=32 height=32 /></a>
+    Some other text
+  </li>
+</ul>
+<script>
+  document.body.offsetTop;
+  var img = document.querySelector('a img');
+  img.style.display = 'inline';
+  img.offsetWidth;
+  img.style.display = 'block';
+</script>
+

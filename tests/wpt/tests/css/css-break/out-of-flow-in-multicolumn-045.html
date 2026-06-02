@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+  Ancestor inline offsets apply to abspos in a multicol.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    margin-left: -110px;
+    margin-top: -100px;
+  }
+  .rel {
+    position: relative;
+    height: 200px;
+  }
+  .abs {
+    position: absolute;
+    width: 50px;
+    height: 200px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="margin-left: 10px;">
+    <div class="rel" style="top: 100px; left: 100px; background: red;">
+      <div class="abs"></div>
+    </div>
+  </div>
+</div>

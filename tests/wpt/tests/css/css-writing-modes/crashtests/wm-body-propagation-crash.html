@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Chrome DCHECK failure for non-root &lt;html&gt;</title>
+<link rel="help" href="https://crbug.com/1217946">
+<body></body>
+<script>
+  let non_root = document.createElement("html");
+  document.documentElement.appendChild(non_root);
+  document.body.offsetTop;
+  document.body.style.display = "inline";
+  non_root.style.color = "red";
+</script>

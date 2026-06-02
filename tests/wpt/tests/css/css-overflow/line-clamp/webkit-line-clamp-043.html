@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:3; column-fill:auto; gap:0; width:300px; height:250px;">
+  <div style="display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:clip; line-height:50px; color:transparent; background:green;">
+    <br>
+    <br>
+    <span style="color:red;">
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+      FAIL<br>
+    </span>
+  </div>
+</div>

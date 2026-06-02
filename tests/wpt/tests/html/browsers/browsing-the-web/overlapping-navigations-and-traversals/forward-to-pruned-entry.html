@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  location.hash = "#1";
+  location.hash = "#2";
+  history.go(-2);
+  await new Promise(r => window.onpopstate = r);
+
+  // Traverse forward then immediately do a same-document push. This will
+  // truncate the back forward list.
+  history.forward();
+  location.hash = "#clobber";
+
+  // history.forward() should be aborted.
+  window.onpopstate = t.unreached_func("history.forward() should have been cancelled");
+  await new Promise(r => t.step_timeout(r, 20));
+  assert_equals(location.hash, "#clobber");
+}, "If forward pruning clobbers the target of a traverse, abort");
+</script>

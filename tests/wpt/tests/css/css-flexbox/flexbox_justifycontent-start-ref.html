@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>flexbox | justify-content: start (ref)</title>
+<link rel="author" title="Adam Argyle" href="mailto:argyle@google.com">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#justify-content-property">
+<style>
+div {
+  background: blue;
+  margin: 1em 0;
+  border: 1px solid black;
+  height: 6em;
+  width: 40em;
+
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+span {
+  background: white;
+  margin: 0 1em;
+  width: 8em;
+  height: 2em;
+  display: inline-grid;
+  place-items: center;
+
+  flex: none;
+}
+span:nth-child(1) {background: yellow;}
+span:nth-child(2) {background: pink;}
+span:nth-child(3) {background: lightblue;}
+</style>
+
+<div>
+  <span>one</span>
+  <span>two</span>
+  <span>three</span>
+</div>
+
+<p>Test passes if order is 3, 2, 1 and alignment is to the top left</p>

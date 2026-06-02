@@ -1,0 +1,16 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test using variables in overlapping shorthands.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#variables-in-shorthands">
+<link rel="match" href="variable-reference-38-ref.html">
+<style>
+p { padding-left: 1em; }
+#a { --style: solid; --left: black dotted; border-style: var(--style); border-left: var(--left); border-top: none; border-right: none; border-bottom: none; }
+#b { --style: solid; --left: black dotted; border-left: var(--left); border-style: var(--style); border-top: none; border-right: none; border-bottom: none; }
+</style>
+<p id=a>The left border must be dotted.</p>
+<p id=b>The left border must be solid.</p>

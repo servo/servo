@@ -1,0 +1,9 @@
+features:
+- name: hidden-until-found
+  files:
+  - beforematch-*
+  - hidden-until-found-*
+- name: scroll-to-text-fragment
+  files:
+  - beforematch-scroll-to-text-fragment.html
+  - hidden-until-found-text-fragment.html

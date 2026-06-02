@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<!-- This document is used for the test `move-node-local-root-events-still-fire.html`.
+     This document is a grandchild of that document, and is directly hosted by the
+     intermediate `cross-origin-middle-frame-2.html` -->
+
+<button id=button>Grandchild button</button>
+<script>
+  window.events = [];
+  button.addEventListener('pointerdown', e => {
+    window.events.push('pointerdown');
+  });
+</script>

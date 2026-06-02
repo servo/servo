@@ -1,0 +1,90 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Scrollbars: paint test when updating scrollbar-width twice, with scrolling content</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev">
+<link rel="match" href="scrollbar-width-paint-006-ref.html">
+<link rel="mismatch" href="scrollbar-width-paint-006-mis-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/" />
+<script src="/common/reftest-wait.js"></script>
+<style>
+  body {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .container {
+    scrollbar-gutter: stable;
+    overflow: auto;
+    flex: 0 0;
+    height: 200px;
+    min-width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 300px;
+    width: 300px;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+
+  .content.plain {
+    background: red;
+  }
+
+  .content.gradient {
+    background: linear-gradient(135deg, red, blue);
+  }
+</style>
+<div id="one" class="container auto">
+  <div class="content plain"></div>
+</div>
+<div id="two" class="container thin">
+  <div class="content plain"></div>
+</div>
+<div id="three" class="container none">
+  <div class="content plain"></div>
+</div>
+<div id="four" class="container auto">
+  <div class="content gradient"></div>
+</div>
+<div id="five" class="container thin">
+  <div class="content gradient"></div>
+</div>
+<div id="six" class="container none">
+  <div class="content gradient"></div>
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById('one').style.scrollbarWidth = 'thin';
+  document.getElementById('two').style.scrollbarWidth = 'auto';
+  document.getElementById('three').style.scrollbarWidth = 'auto';
+  document.getElementById('four').style.scrollbarWidth = 'none';
+  document.getElementById('five').style.scrollbarWidth = 'none';
+  document.getElementById('six').style.scrollbarWidth = 'thin';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('one').style.scrollbarWidth = 'none';
+    document.getElementById('two').style.scrollbarWidth = 'none';
+    document.getElementById('three').style.scrollbarWidth = 'thin';
+    document.getElementById('four').style.scrollbarWidth = 'thin';
+    document.getElementById('five').style.scrollbarWidth = 'auto';
+    document.getElementById('six').style.scrollbarWidth = 'auto';
+
+    takeScreenshot();
+  }));
+}));
+</script>

@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: scroll tracking for ::scroll-marker </title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  * {
+    padding: 0;
+    margin: 0;
+  }
+
+  #scroller {
+    overflow: scroll;
+    scroll-marker-group: before;
+    height: 100px;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    display: flex;
+    width: 100px;
+    height: 20px;
+  }
+
+  #scroller div {
+    width: 100px;
+    height: 100px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    background-color: red;
+    display: inline-flex;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background-color: green;
+  }
+
+  #scroller div::scroll-marker:focus {
+    opacity: 0.5;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div id="target"></div>
+</div>
+<script>
+  function assertPseudoElementProperty(originatingElement, pseudoType, opacity) {
+    const pseudoStyle = getComputedStyle(originatingElement, pseudoType);
+    const pseudoOpacity = pseudoStyle.getPropertyValue("opacity");
+    assert_equals(pseudoOpacity, opacity, pseudoType +
+                  " opacity should be " + opacity.toString() +
+                  " but was " + pseudoOpacity.toString());
+  }
+  promise_test(async () => {
+    scroller.scrollTop = 150;
+    assertPseudoElementProperty(target, "::scroll-marker", "1");
+  }, "active ::scroll-marker doesn't have focus on scroll if previous ::scroll-marker didn't have it");
+  promise_test(async () => {
+    /* Click the first ::scroll-marker to give it focus. */
+    let actions_promise = new test_driver.Actions()
+      .pointerMove(7, 7)
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    await waitForAnimationFrames(2);
+    scroller.scrollTop = 150;
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(target, "::scroll-marker", "0.5");
+  }, "active ::scroll-marker saves focus on scroll if previous ::scroll-marker had it");
+</script>

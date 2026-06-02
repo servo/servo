@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: flex-column-block-multiline</title>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="block-start should be trimmed for items at the start of the flex line and block-end should be trimmed for items at the end of the flex line">
+<style>
+flexbox {
+    display: flex;
+    width: min-content;
+    height: 100px;
+    flex-wrap: wrap;
+    flex-direction: column;
+    margin-trim: block;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+}
+item:nth-child(odd) {
+    margin-block-start: 25px;
+}
+item:nth-child(even) {
+    margin-block-end: 25px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<flexbox>
+<item></item>
+<item></item>
+<item></item>
+<item></item>
+</flexbox>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests the Private Token API's hasPrivateToken behavior in documents with no top frame</title>
+<link rel="help" href="https://github.com/WICG/trust-token-api" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    'use strict';
+
+    const frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    const cachedDocument = window[0].document;
+    const IFrameDOMException = frame.contentWindow.DOMException;
+    frame.remove();
+
+    promise_test(async t => {
+      await promise_rejects_dom(
+          t, 'InvalidStateError', IFrameDOMException,
+          cachedDocument.hasPrivateToken("https://issuer.example"));
+    }, 'hasPrivateToken in a destroyed document.');
+  </script>
+</body>

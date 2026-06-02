@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS transforms: 'perspective' on a non-transformable element doesn't create a stacking context</title>
+<link rel="author" title="Matt Woodrow" href="mailto:mwoodrow@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="match" href="perspective-untransformable-no-stacking-context-ref.html">
+<meta name="assert" content="Perspective on a non-transformable element shouldn't create a stacking context.">
+<style>
+* { margin: 0; padding: 0; }
+div, span { width: 100px; height: 100px }
+#perspective { background: green; padding-top: 100px; perspective: 100px; }
+#child { display:inline-block; z-index: -1; position:absolute; background: red; }
+#spacer { display:inline-block; }
+#wrapper { overflow:hidden }
+</style>
+<body>
+  <div id="wrapper">
+    <span id="perspective">
+      <div id="child">
+      </div>
+      <span id="spacer"></span>
+    </span>
+  </div>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Serialization of non-simplified calc() expressions</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-simplification">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<style>
+  #target { font-size: 20px; }
+</style>
+<div>
+  <div id="target"></div>
+</div>
+<script>
+  function test_serialization(value, specified, computed) {
+    test_specified_serialization("orphans", value, specified);
+    test_computed_serialization("orphans", value, computed);
+  }
+
+  test_serialization("calc(pow(2, sign(1em - 18px)))", "calc(pow(2, sign(1em - 18px)))", "2");
+  test_serialization("calc(pow(sign(1em - 18px), 2))", "calc(pow(sign(1em - 18px), 2))", "1");
+  test_serialization("calc(pow(sign(1em - 18px), sign(1em - 18px)))", "calc(pow(sign(1em - 18px), sign(1em - 18px)))", "1");
+
+  test_serialization("calc(pow(2, sibling-index())", "calc(pow(2, sibling-index()))", "2");
+  test_serialization("calc(pow(sibling-index(), 2)", "calc(pow(sibling-index(), 2))", "1");
+  test_serialization("calc(pow(sibling-index(), sibling-index())", "calc(pow(sibling-index(), sibling-index()))", "1");
+</script>

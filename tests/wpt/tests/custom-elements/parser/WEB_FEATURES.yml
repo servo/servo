@@ -1,0 +1,17 @@
+features:
+- name: autonomous-custom-elements
+  files:
+  - parser-constructs-custom-element-in-document-write.html
+  - parser-constructs-custom-element-synchronously.html
+  - parser-constructs-custom-elements-with-is.html
+  - parser-constructs-custom-elements.html
+  - parser-custom-element-in-foreign-content.html
+  - parser-fallsback-to-unknown-element.html
+  - parser-sets-attributes-and-children.html
+  - parser-uses-constructed-element.html
+  - parser-uses-registry-of-owner-document.html
+- name: customized-built-in-elements
+  files:
+  - serializing-html-fragments-customized-builtins.html
+# Note that parser-uses-create-an-element-for-a-token-svg.svg isn't listed
+# as it has one subtest for autonomous and one for customized built-ins.

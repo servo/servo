@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+This test uses data only, and thus does not require fake media devices.
+-->
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>RTCPeerConnection Data-Only Connection Test with Promises</title>
+</head>
+<body>
+  <div id="log"></div>
+  <h2>iceConnectionState info</h2>
+  <div id="stateinfo">
+  </div>
+
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script type="text/javascript">
+  var test = async_test('Can set up a basic WebRTC call with only data using promises.');
+
+  var gFirstConnection = null;
+  var gSecondConnection = null;
+
+  var onIceCandidateToFirst = test.step_func(function(event) {
+    gSecondConnection.addIceCandidate(event.candidate);
+  });
+
+  var onIceCandidateToSecond = test.step_func(function(event) {
+    gFirstConnection.addIceCandidate(event.candidate);
+  });
+
+  var onIceConnectionStateChange = test.step_func(function(event) {
+    assert_equals(event.type, 'iceconnectionstatechange');
+    var stateinfo = document.getElementById('stateinfo');
+    stateinfo.innerHTML = 'First: ' + gFirstConnection.iceConnectionState
+                        + '<br>Second: ' + gSecondConnection.iceConnectionState;
+    // Note: All these combinations are legal states indicating that the
+    // call has connected. All browsers should end up in completed/completed,
+    // but as of this moment, we've chosen to terminate the test early.
+    // TODO: Revise test to ensure completed/completed is reached.
+    if (gFirstConnection.iceConnectionState == 'connected' &&
+        gSecondConnection.iceConnectionState == 'connected') {
+      test.done()
+    }
+    if (gFirstConnection.iceConnectionState == 'connected' &&
+        gSecondConnection.iceConnectionState == 'completed') {
+      test.done()
+    }
+    if (gFirstConnection.iceConnectionState == 'completed' &&
+        gSecondConnection.iceConnectionState == 'connected') {
+      test.done()
+    }
+    if (gFirstConnection.iceConnectionState == 'completed' &&
+        gSecondConnection.iceConnectionState == 'completed') {
+      test.done()
+    }
+  });
+
+  // This function starts the test.
+  test.step(function() {
+    gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
+    gFirstConnection.onicecandidate = onIceCandidateToFirst;
+    gFirstConnection.oniceconnectionstatechange = onIceConnectionStateChange;
+
+    gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
+    gSecondConnection.onicecandidate = onIceCandidateToSecond;
+    gSecondConnection.oniceconnectionstatechange = onIceConnectionStateChange;
+
+    // The createDataChannel is necessary and sufficient to make
+    // sure the ICE connection be attempted.
+    gFirstConnection.createDataChannel('channel');
+
+    var atStep = 'Create offer';
+
+    gFirstConnection.createOffer()
+    .then(function(offer) {
+      atStep = 'Set local description at first';
+      return gFirstConnection.setLocalDescription(offer);
+    })
+    .then(function() {
+      atStep = 'Set remote description at second';
+      return gSecondConnection.setRemoteDescription(
+          gFirstConnection.localDescription);
+    })
+    .then(function() {
+      atStep = 'Create answer';
+      return gSecondConnection.createAnswer();
+    })
+    .then(function(answer) {
+      atStep = 'Set local description at second';
+      return gSecondConnection.setLocalDescription(answer);
+    })
+    .then(function() {
+      atStep = 'Set remote description at first';
+      return gFirstConnection.setRemoteDescription(
+          gSecondConnection.localDescription);
+    })
+    .then(function() {
+      atStep = 'Negotiation completed';
+    })
+    .catch(test.step_func(function(e) {
+      assert_unreached('Error ' + e.name + ': ' + e.message +
+                       ' happened at step ' + atStep);
+    }));
+  });
+</script>
+
+</body>
+</html>

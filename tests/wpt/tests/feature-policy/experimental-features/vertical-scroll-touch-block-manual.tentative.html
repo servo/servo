@@ -1,0 +1,237 @@
+<!doctype html>
+<title>vertical-scroll test for touch-action</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 90%;
+  height: 90%;
+  margin: 0;
+  padding: 0;
+}
+
+.spacer {
+  width: 100%;
+  height: 100%;
+  margin: 100%;
+}
+</style>
+<iframe></iframe>
+<br/>
+<p>Spacers below to make page scrollable</p>
+<br/>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p> EOF </p>
+
+<script>
+  "use strict";
+
+  let url = url_base + "vertical-scroll-touch-block.html";
+  let iframeElement = document.querySelector("iframe");
+
+  // Wait for the helper scripts to load.
+  promise_test(async() => {
+    if (window.input_api_ready)
+      return Promise.resolve();
+    await new Promise( (r) => {
+      window.resolve_on_input_api_ready = r;
+    });
+
+  }, "Make sure input injection API is ready.");
+
+  // Sanity-check: Verify we can scroll using the test-API. The <iframe> with no
+  // query arguments would not preventDefault() any events.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    await loadUrlInIframe(iframeElement, url);
+
+    await inject_scroll("down");
+    assert_greater_than(window.scrollY, 0, "Page must have scrolled down.");
+
+    await inject_scroll("right");
+    assert_greater_than(window.scrollX, 0, "Page must have scrolled right.");
+  }, "Verify that the page normally scrolls.");
+
+  // Enable 'vertical-scroll': Blocking "touchstart" can block scrolling.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    setFeatureState(iframeElement, "vertical-scroll", "*");
+    await loadUrlInIframe(iframeElement, url);
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+
+    await inject_scroll("down");
+    assert_equals(window.scrollY,
+                  0,
+                  "Main frame must not scroll vertically.");
+  }, "Calling 'preventDefault' on 'touchstart' blocks vertical scroll when " +
+     " the feature is enabled.");
+
+  // Disable 'vertical-scroll': Blocking "touchstart" cannot block vertical
+  // scroll.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement, url);
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+
+    await inject_scroll("down");
+    assert_greater_than(window.scrollY,
+                        0,
+                        "Main frame must scroll vertically.");
+
+    // Horizontal scrolling must still be blocked.
+    window.scrollTo(0, 0);
+    await inject_scroll("right");
+    assert_equals(window.scrollX,
+                  0,
+                  "Main frame must not scroll horizontally.");
+  }, "When feature is disabled, calling 'preventDefault' on 'touchstart' does" +
+     " not block vertical scroll, but still bocks horizontal scroll.");
+
+  // Enable 'vertical-scroll': Blocking "touchmove" can block scrolling.
+  promise_test(async() => {
+    // Make sure <window> can scroll both towards right and bottom.
+    window.scrollTo(0, 0);
+    setFeatureState(iframeElement, "vertical-scroll", "*");
+    await loadUrlInIframe(iframeElement, url);
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchmove",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+
+    await inject_scroll("down");
+    assert_equals(window.scrollY,
+                  0,
+                  "Main frame must not scroll vertically");
+  }, "Calling 'preventDefault' on 'touchmove' blocks vertical scroll when " +
+     "the feature is enabled.");
+
+  // Disable 'vertical-scroll': Blocking "touchmove" cannot block vertical
+  // scroll.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement, url);
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchmove",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+    await new Promise((r) => {
+      window.setTimeout(r, 100);
+    });
+
+    await inject_scroll("down");
+    assert_greater_than(window.scrollY,
+                        0,
+                        "Main frame must scroll vertically.");
+  }, "When feature is disabled, calling 'preventDefault' on 'touchmove' does" +
+     " not block vertical scroll.");
+
+  // Disable 'vertical-scroll': Add a non-preventing handler, and then a
+  // preventing handler and verify vertical scroll is possible and horizontal
+  // is blocked.
+  promise_test(async() => {
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement, url);
+
+    // Add a non-blocking handler.
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: false
+                                    });
+
+    window.scrollTo(0, 0);
+    await inject_scroll("down");
+    assert_greater_than(window.scrollY, 0, "Page must have scrolled down.");
+
+    window.scrollTo(0, 0);
+    await inject_scroll("right");
+    assert_greater_than(window.scrollX, 0, "Page must have scrolled right.");
+
+    // Add a blocking handler.
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+    window.scrollTo(0, 0);
+    await inject_scroll("down");
+    assert_greater_than(window.scrollY,
+                        0,
+                        "Page must have scrolled down (preventing handler).");
+
+    window.scrollTo(0, 0);
+    await inject_scroll("right");
+    assert_equals(window.scrollX,
+                  0,
+                  "Page must not have scrolled horizontally.");
+  }, "Verify that starting with a non-preventing listener and then switching" +
+     " to a preventing one works as intended.");
+
+  // Disable 'vertical-scroll': A preventing 'touchstart' handler does not allow
+  // other multi-touch actions such as 'pinch-zoom'.
+  promise_test(async() => {
+    assert_true(!!window.visualViewport,
+                "'visualViewport' is needed for this test.");
+
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement, url);
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: false
+                                    });
+
+    // Sanity check: Pinch zoom in should work since 'touchstart' is not
+    // preventing.
+    let current_scale_factor = window.visualViewport.scale;
+    await inject_zoom("in");
+    let new_scale_factor = window.visualViewport.scale;
+    assert_greater_than(
+        new_scale_factor,
+        current_scale_factor,
+        "Pinch zoom should work since 'touchstart' is not prevented.");
+
+    // Add a preventing handler and verify pinch zoom is now blocked.
+    await sendMessageAndGetResponse(iframeElement.contentWindow,
+                                    {
+                                      event_type: "touchstart",
+                                      query: "#blocker",
+                                      prevent: true
+                                    });
+    current_scale_factor = new_scale_factor;
+    await inject_zoom("out");
+    new_scale_factor = window.visualViewport.scale;
+    assert_equals(
+        new_scale_factor,
+        current_scale_factor,
+        "Pinch zoom must be blocked.");
+  }, "Verify that pinch zoom is blocked in frames with 'vertical-scroll' none'" +
+     " where 'touchstart' is prevent defaulted.");
+</script>

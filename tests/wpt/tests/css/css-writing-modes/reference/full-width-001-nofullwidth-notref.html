@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<link rel="author" title="Masataka Yakura" href="http://google.com/+MasatakaYakura">
+<link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+<meta content="asis" name="flags">
+<style>
+  div
+    {
+      font-size: 64px;
+      writing-mode: vertical-rl;
+    }
+
+  div > p
+    {
+      border: black solid 1px;
+    }
+</style>
+</head>
+<body>
+
+<p>Test passes if the glyphs in the 3 rectangles have the <strong>same order</strong>, the <strong>same orientation</strong> and the <strong>same layout</strong>; a different inter-character spacing is considered as PASS.</p>
+
+<div>
+
+  <p>&#x34;月</p>
+
+  <!-- &#x34; is the ISO-Latin1 digit 4 -->
+
+  <p>&#xFF14;月</p>
+
+  <!-- &#xFF14; is the FULLWIDTH DIGIT 4 (≈ <wide> 0034 4)-->
+
+  <p>&#xFF14;月</p>
+
+</div>
+
+</body>
+</html>

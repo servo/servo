@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<title>Use for navigation the requested prefetched response annotated with No-Vary-Search hint, if
+No-Vary-Search headers also match during navigation</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="hint-test-inputs.js"></script>
+
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-4">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-8">
+<meta name="variant" content="?9-9">
+<meta name="variant" content="?10-10">
+<meta name="variant" content="?11-11">
+<meta name="variant" content="?12-12">
+<meta name="variant" content="?13-13">
+<meta name="variant" content="?14-14">
+<meta name="variant" content="?15-15">
+<meta name="variant" content="?16-16">
+<meta name="variant" content="?17-17">
+<meta name="variant" content="?18-18">
+<meta name="variant" content="?19-19">
+<meta name="variant" content="?20-20">
+<meta name="variant" content="?21-21">
+<meta name="variant" content="?22-22">
+<meta name="variant" content="?23-23">
+<meta name="variant" content="?24-24">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-last">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  /*
+    remoteAgent: the RemoteContext instance used to communicate between the
+      test and the window where prefetch/navigation is happening
+    noVarySearchHeaderValue: the value of No-Vary-Search header to be populated
+      for the prefetched response
+    noVarySearchHintValue: the value of No-Vary-Search hint passed in
+      as expects_no_vary_search hint in prefetch speculation rules.
+    prefetchQuery: query params to be added to prefetchExecutor url and prefetched
+    navigateQuery: query params to be added to prefetchExecutor url and navigated to
+  */
+  async function prefetchAndNavigate(remoteAgent, noVarySearchHeaderValue, noVarySearchHintValue, prefetchQuery, navigateQuery){
+    /*
+    Flow:
+      * prefetch prefetch_nvs_hint.py?uuid=...&nvs_header=...&otherqueryparams
+      * the prefetch request above includes no_vary_search_hint in the speculation
+        rules
+      * the server blocks progress on this prefetch request on the server side so
+        from the browser perspective the server is "thinking"
+      * the test starts navigation to
+        prefetch_nvs_hint.py?uuid=...&nvs_header=...&otherdifferentqueryparams.
+        This navigation matches by No-Vary-Search hint the above in
+        progress prefetch.
+      * the test fetches prefetch_nvs_hint.py?uuid=...&unblock="unblock"
+        which unblocks the in progress prefetch so that the in-progress
+        navigation can continue
+    */
+    const prefetch_nvs_hint_server_page = "prefetch_nvs_hint.py";
+    const prefetchUrl = remoteAgent.getExecutorURL({executor:prefetch_nvs_hint_server_page});
+    const navigateToUrl = new URL(prefetchUrl);
+    // Add query params to the url to be prefetched.
+    const additionalPrefetchedUrlSearchParams = new URLSearchParams(prefetchQuery);
+    addNoVarySearchHeaderUsingQueryParam(prefetchUrl, noVarySearchHeaderValue);
+    additionalPrefetchedUrlSearchParams.forEach((value, key) => {
+      prefetchUrl.searchParams.append(key, value);
+    });
+
+    await remoteAgent.forceSinglePrefetch(prefetchUrl,
+        {expects_no_vary_search:noVarySearchHintValue});
+
+    // Add new query params to navigateToUrl to match No-Vary-Search test case.
+    const additionalNavigateToUrlSearchParams = new URLSearchParams(navigateQuery);
+    addNoVarySearchHeaderUsingQueryParam(navigateToUrl, noVarySearchHeaderValue);
+    additionalNavigateToUrlSearchParams.forEach((value, key) => {
+      navigateToUrl.searchParams.append(key, value);
+    });
+    // Url used by fetch in order to unblock the prefetched url
+    const nvshint_unblock_url = remoteAgent.getExecutorURL(
+      {executor:prefetch_nvs_hint_server_page, unblock:"unblock"});
+    await remoteAgent.execute_script((unblock_url) => {
+      onbeforeunload = (event) => {
+          fetch(unblock_url);
+      };
+    }, [nvshint_unblock_url]);
+
+    // Try navigating to a non-exact prefetched URL that matches by
+    // No-Vary-Search hint
+    // Wait for the navigation to finish
+    await remoteAgent.navigate(navigateToUrl);
+  }
+
+  function prefetch_no_vary_search_test(description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery, shouldUse){
+    promise_test(async t => {
+      const agent = await spawnWindow(t, {});
+      await prefetchAndNavigate(agent,
+        noVarySearch,
+        noVarySearchHint,
+        prefetchQuery,
+        navigateQuery);
+
+      if (shouldUse) {
+        assert_prefetched(await agent.getRequestHeaders(),
+          "Navigation didn't use the prefetched response!");
+      }
+      else{
+        assert_not_prefetched(await agent.getRequestHeaders(),
+          "Navigation used the prefetched response!");
+      }
+     }, description);
+  }
+
+  hint_test_inputs.forEach(({description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery, shouldUse}) => {
+    subsetTest(prefetch_no_vary_search_test,
+      description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery,
+      shouldUse);
+  });
+
+</script>

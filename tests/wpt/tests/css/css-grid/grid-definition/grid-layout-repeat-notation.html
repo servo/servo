@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Grid Layout Test: repeat notation</title>
+    <link rel="author" title="Leo Deng" href="mailto:myst.dg@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-grid-1/#repeat-notation">
+    <link rel="match" href="../reference/grid-layout-repeat-notation-ref.html">
+    <meta name="assert" content="the subgrid layout should behave the same as reference.">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #caseTitle {
+        margin: 10px;
+        height: 40px;
+      }
+      #grid {
+        width: 450px;
+        background: #eee;
+        display: grid;
+        grid-template-columns: repeat(4, 100px) 50px;
+      }
+      .a {
+        background: blue;
+        grid-column: 1;
+      }
+      .b {
+        background: yellow;
+        grid-column: 2;
+      }
+      .c {
+        background: orange;
+        grid-column: 3;
+      }
+      .d {
+        background: cyan;
+        grid-column: 4;
+      }
+      .e {
+        background: pink;
+        grid-column: 5;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="caseTitle">The test passes if it has the same visual effect as reference.</p>
+    <div id="grid">
+      <div class="a">&nbsp;</div>
+      <div class="b">&nbsp;</div>
+      <div class="c">&nbsp;</div>
+      <div class="d">&nbsp;</div>
+      <div class="e">&nbsp;</div>
+    </div>
+  </body>
+</html>

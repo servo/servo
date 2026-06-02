@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<title>img should only look at a parent picture element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<picture>
+  <source id=s1 media=all srcset="data:,s1">
+  <source id=s2 media=all srcset="data:,s2">
+  <source id=s3 media=all srcset="data:,s3">
+  <img id=img1 src="data:,img1">
+  <img id=img2 src="data:,img2">
+  <source id=s4 media=all srcset="data:,s4">
+  <source id=s5 media=all srcset="data:,s5">
+  <source       media=all srcset="data:,s6">
+</picture>
+<script>
+
+const picture = document.querySelector("picture");
+const img1 = document.getElementById("img1");
+const img2 = document.getElementById("img2");
+const source1 = document.getElementById("s1");
+const source2 = document.getElementById("s2");
+const source3 = document.getElementById("s3");
+const source4 = document.getElementById("s4");
+const source5 = document.getElementById("s5");
+
+promise_test(async () => {
+  // Wait for the relevant mutation microtask to run.
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,s1", "[img1] First source is correctly chosen");
+  assert_equals(img2.currentSrc, "data:,s1", "[img2] First source is correctly chosen");
+
+  // Triggers a relevant mutation for *all* image children under the parent
+  // `<picture>` element to update their source.
+  source1.remove();
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,s2",
+      "[img1] Second source is chosen after first is removed");
+  assert_equals(img2.currentSrc, "data:,s2",
+      "[img2] Second source is chosen after first is removed");
+
+
+  source2.remove();
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,s3",
+      "[img1] Third is chosen after first is removed");
+  assert_equals(img2.currentSrc, "data:,s3",
+      "[img2] Third is chosen after first is removed");
+
+
+  document.body.moveBefore(source3, null);
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,img1",
+      "[img1] Img src attribute is chosen after third source is moved");
+  assert_equals(img2.currentSrc, "data:,img2",
+      "[img2] Img src attribute is chosen after third source is moved");
+
+
+  source4.remove();
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,img1",
+      "[img1] Img src attribute is unchanged after source is removed from after the img");
+  assert_equals(img2.currentSrc, "data:,img2",
+      "[img2] Img src attribute is unchanged after source is removed from after the img");
+
+  document.body.moveBefore(source5, null);
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,img1",
+      "[img1] Img src attribute is unchanged after source is moved from after the img");
+  assert_equals(img2.currentSrc, "data:,img2",
+      "[img2] Img src attribute is unchanged after source is moved from after the img");
+
+  picture.prepend(source2);
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,s2",
+      "[img1] Second source is chosen after inserted before the img element");
+  assert_equals(img2.currentSrc, "data:,s2",
+      "[img2] Second source is chosen after inserted before the img element");
+
+  picture.prepend(source1);
+  await Promise.resolve();
+  assert_equals(img1.currentSrc, "data:,s1",
+      "[img1] First source is chosen after inserted before the img element");
+  assert_equals(img2.currentSrc, "data:,s1",
+      "[img2] First source is chosen after inserted before the img element");
+}, "Neither the removing, moving, nor insertion steps for the source element " +
+   "track the previous 'next sibling' pointer when triggering relevant " +
+   "mutations for remaining child image elements of its old parent");
+</script>

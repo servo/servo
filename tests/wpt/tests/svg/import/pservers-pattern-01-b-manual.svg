@@ -1,0 +1,108 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: pservers-pattern-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Patterns">
+        <p>
+          Test that the viewer has basic capability to handle patterns
+          on fills and stroke of objects and text.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        From top-down the appearance of objects is as follows.
+      </p>
+      <p>
+        The top rectangle should be filled with a pattern composed of a green
+        rectangle on top of yellow rectangle. A default stroke has been applied to the original
+        rectangle to see the boundary of the rectangle.
+      </p>
+      <p>
+        The next rectangle has no fill, but has a thick stroke on which the pattern is
+        applied. The pattern consists of 4 colored rectangles.
+      </p>
+      <p>
+        The next item is a text with a pattern on the fill. The pattern appears as
+        alternating rows of orange and green.
+      </p>
+      <p>
+        The last item is a text with a 2 user unit stroke on which a pattern is applied.
+        The pattern appears as alternating columns of maroon and blue.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-pattern-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Rectangle with a pattern fill                                 ======== -->
+    <!-- ====================================================================== -->
+    <pattern patternUnits="userSpaceOnUse" id="pat1" x="10" y="10" width="20" height="20">
+      <rect x="5" y="5" width="10" height="10" fill="yellow"/>
+      <rect x="10" y="10" width="10" height="10" fill="green"/>
+    </pattern>
+    <rect x="25" y="10" width="430" height="60" stroke="black" fill="url(#pat1)"/>
+    <text font-family="Arial" font-size="12" x="25" y="85">Pattern created using yellow and green rectangles applied to fill of rectangle</text>
+    <!-- ====================================================================== -->
+    <!-- Rectangle with a pattern on the stroke                        ======== -->
+    <!-- ====================================================================== -->
+    <pattern patternUnits="userSpaceOnUse" id="pat2" x="0" y="0" width="20" height="20">
+      <rect x="0" y="0" width="10" height="10" fill="maroon"/>
+      <rect x="10" y="0" width="10" height="10" fill="green"/>
+      <rect x="0" y="10" width="10" height="10" fill="blue"/>
+      <rect x="10" y="10" width="10" height="10" fill="yellow"/>
+    </pattern>
+    <rect x="35" y="110" width="410" height="40" fill="none" stroke="url(#pat2)" stroke-width="20"/>
+    <text font-family="Arial" font-size="12" x="25" y="175">Pattern of 4 rectangles applied to a stroke of a rectangle.</text>
+    <!-- ====================================================================== -->
+    <!-- Pattern filled text                                           ======== -->
+    <!-- ====================================================================== -->
+    <pattern patternUnits="userSpaceOnUse" id="pat3" x="0" y="0" width="10" height="20">
+      <rect x="0" y="0" width="10" height="10" fill="orange"/>
+      <rect x="0" y="10" width="10" height="10" fill="green"/>
+    </pattern>
+    <text font-family="Arial" font-size="50" fill="url(#pat3)" x="25" y="220">Pattern on fill</text>
+    <text font-family="Arial" font-size="12" x="25" y="235">Pattern consists of orange and green rows</text>
+    <!-- ====================================================================== -->
+    <!-- Pattern on stroke of text                                     ======== -->
+    <!-- ====================================================================== -->
+    <pattern patternUnits="userSpaceOnUse" id="pat4" x="0" y="0" width="20" height="10">
+      <rect x="0" y="0" width="10" height="10" fill="maroon"/>
+      <rect x="10" y="0" width="10" height="10" fill="blue"/>
+    </pattern>
+    <text font-family="Arial" font-size="40" fill="none" stroke="url(#pat4)" stroke-width="2" x="25" y="275">Pattern on stroke</text>
+    <text font-family="Arial" font-size="12" x="25" y="290">Pattern consists of maroon and blue columns</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>prerendered page calls to registerProtocolHandler should validate input synchronously</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<script>
+// Create a prerender page that attempts to use either registerProtocolHandler
+// or unregisterProtocolHandler with either an invalid scheme or an invalid
+// URL template. Validation of invalid parameters for both should happen
+// synchronously in prerendered pages.
+async function registerProtocolHandlerTestHelper(
+    t, fn_name, scheme, url_template, expected_result) {
+  const {exec} = await create_prerendered_page(t);
+
+  const result = await exec((fn_name, scheme, url_template) => {
+    try {
+      navigator[fn_name](scheme, url_template);
+    } catch (registerProtocolHandlerException) {
+      return `failed with '${registerProtocolHandlerException.name}'`;
+    }
+    return 'success';
+  }, [fn_name, scheme, url_template]);
+
+  assert_equals(result, expected_result);
+}
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  await registerProtocolHandlerTestHelper(
+      t, 'registerProtocolHandler', 'notallowed', 'https://example.com/?%s',
+      'failed with \'SecurityError\'');
+}, 'prerendering page registerProtocolHandler calls with invalid URI scheme should fail synchronously.');
+
+promise_test(async t => {
+  await registerProtocolHandlerTestHelper(
+      t, 'registerProtocolHandler', 'news', 'https://example.com/?',
+      'failed with \'SyntaxError\'');
+}, 'prerendering page registerProtocolHandler calls with invalid URI template should fail synchronously.');
+
+promise_test(async t => {
+  await registerProtocolHandlerTestHelper(
+      t, 'unregisterProtocolHandler', 'notallowed', 'https://example.com/?%s',
+      'failed with \'SecurityError\'');
+}, 'prerendering page unregisterProtocolHandler calls with invalid URI scheme should fail synchronously.');
+
+promise_test(async t => {
+  await registerProtocolHandlerTestHelper(
+      t, 'unregisterProtocolHandler', 'news', 'https://example.com/?',
+      'failed with \'SyntaxError\'');
+}, 'prerendering page unregisterProtocolHandler calls with invalid URI template should fail synchronously.');
+</script>

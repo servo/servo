@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `image-rendering: pixelated` causes nearest-neighbor interpolation to be used. -->
+<style>
+section {
+    position: absolute;
+    width: 50px;
+    height: 25px;
+}
+#a, #d {
+    background: red;
+}
+#b, #c {
+    background: blue;
+}
+#a, #b {
+    top: 0;
+}
+#c, #d {
+    top: 25px;
+}
+#a, #c {
+    left: 0;
+}
+#b, #d {
+    left: 50px;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+<section id=d></section>
+</body>
+</html>
+
+
+

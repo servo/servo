@@ -1,0 +1,26 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let url = i.contentWindow.navigation.currentEntry.url;
+  let key = i.contentWindow.navigation.currentEntry.key;
+
+  // Do a redirected cross-document replace navigation in the iframe.
+  i.contentWindow.navigation.navigate(
+    "/common/redirect.py?location=/common/blank.html?redirected",
+    {history: "replace"});
+  await new Promise(resolve => i.onload = resolve);
+
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+  assert_equals(i.contentWindow.navigation.currentEntry.url, url + "?redirected");
+  assert_equals(i.contentWindow.navigation.currentEntry.key, key);
+}, "A navigation to a redirected page ends up on the page redirected to");
+</script>
+</body>

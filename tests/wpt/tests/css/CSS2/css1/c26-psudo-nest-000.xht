@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Multiple Pseudo-Elements</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#multiple-pseudo-elements"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   p:first-line { color: teal; }
+   p:first-letter { color: aqua; }
+   .one:first-line { font-size: 300%; }
+   .one:first-letter { font-size: 300%; }
+   p.two:first-letter { font-size: 200%; }
+   p.two:first-line { font-variant: small-caps; }
+   /* three uses the default styles */
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" title="5.12.2 The :first-letter pseudo-element"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" title="5.12.1 The :first-line pseudo-element"/>
+ </head>
+ <body>
+  <p class="one">
+   The <strong>first letter</strong> of this paragraph, and only that
+   one, should be <strong>600% bigger</strong> than the normal text and
+   <strong>aqua</strong>, while the entire <strong>first line</strong>
+   should be <strong>300% bigger</strong> than normal text and
+   <strong>teal</strong>. If this precise combination does not occur,
+   then the user agent has failed this test. Remember that in order to
+   ensure a complete test, the paragraph must be displayed on more
+   than one line. (TEST1)
+  </p>
+  <p class="two">
+   "Test": The first <strong>two characters</strong> in this paragraph
+   (a double-quote mark and a capital 'T') should be <strong>200%
+   bigger</strong> than the rest of the paragraph, and
+   <strong>aqua</strong>. In addition, the entire <strong>first
+   line</strong> should be in a <strong>small-caps font and
+   teal</strong>. Remember that in order to ensure a complete test,
+   the paragraph must be displayed on more than one line. (TEST2)
+  </p>
+  <p>
+   The <strong>first letter</strong> of this paragraph, and only that
+   one, should be <strong>aqua</strong>, while the entire
+   <strong>first line</strong> should be <strong>teal</strong>. If
+   this precise combination does not occur, then the user agent has
+   failed this test. Remember that in order to ensure a complete test,
+   the paragraph must be displayed on more than one line. (TEST3)
+  </p>
+  <div>You should see the words <strong>"TEST1"</strong>,
+  <strong>"TEST2"</strong>, and <strong>"TEST3"</strong> at the end of
+  three paragraphs above.</div>
+ </body>
+</html>

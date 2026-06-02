@@ -1,0 +1,6 @@
+md5: {{file_hash(md5, sub_file_hash_subject.txt)}}
+sha1: {{file_hash(sha1, sub_file_hash_subject.txt)}}
+sha224: {{file_hash(sha224, sub_file_hash_subject.txt)}}
+sha256: {{file_hash(sha256, sub_file_hash_subject.txt)}}
+sha384: {{file_hash(sha384, sub_file_hash_subject.txt)}}
+sha512: {{file_hash(sha512, sub_file_hash_subject.txt)}}

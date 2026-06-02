@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#the-onrelease-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+  return new Promise(resolve => {
+    lock.onrelease = resolve;
+    lock.release();
+  }).then(ev => {
+    assert_class_string(ev, "Event", "release() must fire an Event object");
+    assert_equals(ev.target, lock, "The event's target must be the lock that was acquired");
+    assert_true(ev.isTrusted);
+    assert_false(ev.bubbles);
+    assert_false(ev.cancelable);
+  });
+}, "Test onreleased event's basic properties");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+
+  let releaseFired = false;
+  lock.onrelease = t.step_func(() => {
+    releaseFired = true;
+  });
+
+  const releasePromise = lock.release();
+  assert_true(releaseFired, "The 'release' event fires immediately after release() is called");
+
+  return releasePromise;
+}, "Ensure onrelease is called before WakeLockSentinel.release() resolves");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+
+  let eventCount = 0;
+  lock.onrelease = t.step_func(() => {
+    eventCount++;
+  });
+
+  await lock.release();
+  await lock.release();
+  assert_equals(eventCount, 1, "The 'release' event was fired once");
+}, "Ensure onrelease is fired exactly once");
+</script>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: computed 'direction' of root element when 'writing-mode' for &lt;body&gt; propagates to viewport</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow">
+  <!--
+  Issue 3066: [css-writing-modes] Does vertical writing mode of an HTML body
+  element cause an orthogonal flow?
+  https://github.com/w3c/csswg-drafts/issues/3066
+  -->
+
+  <meta name="assert" content="When the root element has a &lt;body&gt; child element, then the principal writing mode is instead taken from the values of 'writing-mode' and 'direction' on such first child element instead of taken from the root element. In this test, a small script verifies that the computed value of 'direction' of the root element itself is not affected by such propagation.">
+
+  <!--
+  This test *only* verifies the computed value of 'direction' of the
+  root element.
+
+  This test does *not* verify if the 'writing-mode' value of
+  the body element propagates to the root element.
+  -->
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  html
+    {
+      direction: rtl;
+      writing-mode: vertical-lr;
+    }
+
+  body
+    {
+      direction: ltr;
+      writing-mode: vertical-rl;
+    }
+  </style>
+
+  <script>
+  function startTesting()
+  {
+
+    test(function()
+      {
+
+      assert_equals(getComputedStyle(document.documentElement).direction, "rtl" );
+
+      }, "First test on computed value of 'direction' of root element.");
+
+  }
+
+  startTesting();
+
+  </script>

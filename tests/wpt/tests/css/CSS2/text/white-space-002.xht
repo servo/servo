@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space set to 'pre'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-white-space" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-1" />
+        <link rel="match" href="white-space-002-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'white-space' property set to 'pre' does not remove extra spacing when more than one space is next to another." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 1em Ahem;
+                line-height: 1em;
+            }
+            #test
+            {
+                white-space: pre;
+            }
+            #reference
+            {
+                height: 1em;
+                width: 7em;
+            }
+            #div1, #div3
+            {
+                background: black;
+            }
+            #div1, #div2, #div3
+            {
+                display: inline-block;
+                height: 1em;
+                width: 2em;
+            }
+            #div2
+            {
+                height: 1em;
+                width: 3em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two black squares on the page.</p>
+        <div id="test">XX   XX</div>
+        <div id="reference"><div id="div1"></div><div id="div2"></div><div id="div3"></div></div>
+    </body>
+</html>

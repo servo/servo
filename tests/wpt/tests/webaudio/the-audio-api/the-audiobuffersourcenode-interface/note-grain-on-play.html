@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      note-grain-on-play.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/note-grain-on-testing.js"></script>
+  </head>
+  <body>
+    <div id="description"></div>
+    <div id="console"></div>
+    <script>
+      // To test noteGrainOn, a single ramp signal is created.
+      // Various sections of the ramp are rendered by noteGrainOn() at
+      // different times, and we verify that the actual output
+      // consists of the correct section of the ramp at the correct
+      // time.
+
+      let linearRampBuffer;
+
+      // Array of the grain offset used for each ramp played.
+      let grainOffsetTime = [];
+
+      // Verify the received signal is a ramp from the correct section
+      // of our ramp signal.
+      function verifyGrain(renderedData, startFrame, endFrame, grainIndex) {
+        const grainOffsetFrame =
+            timeToSampleFrame(grainOffsetTime[grainIndex], sampleRate);
+        const grainFrameLength = endFrame - startFrame;
+        const ramp = linearRampBuffer.getChannelData(0);
+        let isCorrect = true;
+
+        let expected;
+        let actual;
+        let frame;
+
+        for (let k = 0; k < grainFrameLength; ++k) {
+          if (renderedData[startFrame + k] != ramp[grainOffsetFrame + k]) {
+            expected = ramp[grainOffsetFrame + k];
+            actual = renderedData[startFrame + k];
+            frame = startFrame + k;
+            isCorrect = false;
+            break;
+          }
+        }
+        return {
+          verified: isCorrect,
+          expected: expected,
+          actual: actual,
+          frame: frame,
+        };
+      }
+
+      function checkResult(buffer) {
+        renderedData = buffer.getChannelData(0);
+        const startEndFrames = findStartAndEndSamples(renderedData);
+
+        verifyStartAndEndFrames_W3CTH(startEndFrames);
+
+        for (let k = 0; k < startEndFrames.start.length; ++k) {
+          const result =
+              verifyGrain(
+                  renderedData, startEndFrames.start[k],
+                  startEndFrames.end[k], k);
+          assert_true(
+              result.verified,
+              `Pulse ${k} contained the expected data. Frame: ${result.frame}` +
+                  ` Expected: ${result.expected} Actual: ${result.actual}`);
+        }
+      }
+
+      promise_test(async (t) => {
+        context =
+            new OfflineAudioContext(2, sampleRate * renderTime, sampleRate);
+
+        // Use a linear ramp for testing noteGrainOn(). The ramp to start
+        // with 1, not 0.
+        linearRampBuffer = createSignalBuffer(context, (k) => k + 1);
+
+        const grainInfo =
+            playAllGrains(context, linearRampBuffer, numberOfTests);
+
+        grainOffsetTime = grainInfo.grainOffsetTimes;
+
+        const renderedBuffer = await context.startRendering();
+        checkResult(renderedBuffer);
+      }, 'Test noteGrainOn offset rendering');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<title>Reference for container-queries.html</title>
+<link rel="author" title="Chris Harelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<style>
+  .container {
+    container-type: inline-size;
+    width: 100px;
+    height: 100px;
+  }
+  .child {
+    background-color: green;
+    height: 50px;
+    width: 50px;
+}
+</style>
+<p>All boxes below should be green.</p>
+<div class="container">
+  <div class="child"></div>
+</div>
+<div class="container" style="zoom: 2">
+  <div class="child"></div>
+</div>
+<div class="container" style="zoom: 2">
+  <div class="nested" style="zoom: 2">
+    <div class="child"></div>
+  </div>
+</div>
+<div class="outer" style="zoom: 2">
+  <div class="container">
+    <div class="child"></div>
+  </div>
+</div>

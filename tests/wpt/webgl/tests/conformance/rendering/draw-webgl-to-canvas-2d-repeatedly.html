@@ -1,0 +1,93 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Draw WebGL to Canvas2D Repeatedly</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas-webgl" width="256" height="256"></canvas>
+<canvas id="canvas-2d" width="256" height="256"></canvas>
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+
+const sz = 256;
+
+function drawTo2DCanvas(c2, webGLCanvas) {
+  // Always clear 2D canvas to solid green first.
+  c2.clearRect(0, 0, sz, sz);
+  c2.fillStyle = 'rgb(0,255,0)';
+  c2.fillRect(0, 0, sz, sz);
+  // Draw WebGL canvas to this canvas.
+  c2.drawImage(webGLCanvas, 0, 0);
+}
+
+function runTest() {
+  description();
+  debug('Repeatedly drawing a WebGL canvas to a 2D canvas should only draw the most recently rendered WebGL content.');
+  debug('Regression test for <a href="http://crbug.com/894021">http://crbug.com/894021</a>');
+
+  let c2 = document.getElementById('canvas-2d').getContext('2d');
+  let webGLCanvas = document.getElementById('canvas-webgl');
+  let gl = wtu.create3DContext(webGLCanvas, { alpha: true, antialias: false, premultipliedAlpha: true });
+  let tolerance = 2;
+
+  // Clear left half of WebGL canvas to red and right half to
+  // transparent black.
+  gl.disable(gl.SCISSOR_TEST);
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.scissor(0, 0, sz / 2, sz);
+  gl.enable(gl.SCISSOR_TEST);
+  gl.clearColor(1.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Draw to 2D canvas.
+  drawTo2DCanvas(c2, webGLCanvas);
+
+  // Clear right half of WebGL canvas to red and left half to
+  // transparent black.
+  gl.disable(gl.SCISSOR_TEST);
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.scissor(sz / 2, 0, sz / 2, sz);
+  gl.enable(gl.SCISSOR_TEST);
+  gl.clearColor(1.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Draw to 2D canvas.
+  drawTo2DCanvas(c2, webGLCanvas);
+
+  // Clear WebGL canvas to transparent black.
+  gl.disable(gl.SCISSOR_TEST);
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Draw to 2D canvas.
+  drawTo2DCanvas(c2, webGLCanvas);
+
+  // 2D canvas should be green.
+  // In the error case, the rendering results from earlier draws were
+  // being accumulated, so the 2D canvas was ultimately red.
+  wtu.checkCanvasRect(c2, 0, 0, sz, sz,
+                      [ 0, 255, 0, 255 ],
+                      "should be green",
+                      tolerance);
+
+  finishTest();
+}
+
+requestAnimationFrame(runTest);
+</script>
+</body>
+</html>

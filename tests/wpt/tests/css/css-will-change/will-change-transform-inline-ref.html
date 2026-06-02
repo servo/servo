@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<style>
+  #child {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background-color: blue;
+  }
+</style>
+<div style="height: 200px"></div>
+<span id="container">
+  Child should be positioned relative to the viewport, not relative to me.
+
+  <div id="child"></div>
+</span>

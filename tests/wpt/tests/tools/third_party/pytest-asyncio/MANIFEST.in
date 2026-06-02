@@ -1,0 +1,5 @@
+include CHANGELOG.rst
+
+recursive-exclude .github *
+exclude .gitignore
+exclude .pre-commit-config.yaml

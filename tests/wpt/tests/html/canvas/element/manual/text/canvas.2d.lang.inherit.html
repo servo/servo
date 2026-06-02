@@ -1,0 +1,57 @@
+<!doctype HTML>
+<html lang="en" class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute inherits from the canvas rather than the document</title>
+  <link rel="match" href="canvas.2d.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="When the canvas element has a lang attribute, override the document." />
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    #canvas-tr {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-en {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script>
+    function runTest() {
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        // The 'canvas-tr' element has a lang attribute, use it.
+        var canvasTR = document.getElementById('canvas-tr');
+        var ctxTR = canvasTR.getContext('2d');
+
+        ctxTR.font = '25px Lato-Medium';
+        ctxTR.fillText('fi', 5, 50);
+
+        // The 'canvas-en' element has no lang attribute, use the document lang.
+        var canvasEN = document.getElementById('canvas-en');
+        var ctxEN = canvasEN.getContext('2d');
+
+        ctxEN.font = '25px Lato-Medium';
+        ctxEN.fillText('fi', 5, 50);
+        takeScreenshot();
+      });
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas lang="tr" id="canvas-tr" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas-en" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

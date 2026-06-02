@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Inline classic scripts with nomodule content attribute must not run</title>
+<link rel="author" title="Yusuke Suzuki" href="mailto:utatane.tea@gmail.com">
+<link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+window.executed = true;
+</script>
+<script>
+
+test(() => {
+    assert_true(executed);
+}, 'An inline classic script without nomodule content attribute must run');
+
+
+window.executed = false;
+</script>
+<script nomodule>
+window.executed = true;
+</script>
+<script>
+
+test(() => {
+    assert_false(executed);
+}, 'An inline classic script with nomodule content attribute must not run');
+
+</script>
+<script>
+
+test(() => {
+    window.executed = false;
+    const element = document.createElement("script");
+    element.noModule = false;
+    element.textContent = `window.executed = true`;
+    document.body.appendChild(element);
+    assert_true(window.executed);
+}, 'An inline classic script element dynamically inserted after noModule was set to false must run.');
+
+test(() => {
+    window.executed = false;
+    const element = document.createElement("script");
+    element.noModule = true;
+    element.textContent = `window.executed = true`;
+    document.body.appendChild(element);
+    assert_false(window.executed);
+}, 'An inline classic script element dynamically inserted after noModule was set to true must not run.');
+
+window.executed = false;
+</script>
+</body>
+</html>

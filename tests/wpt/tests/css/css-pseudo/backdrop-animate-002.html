@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: A Web Animations on ::backdrop</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#::backdrop-pseudo-element">
+<link rel="match" href="backdrop-animate-002-ref.html">
+<dialog id="target">Dialog contents</dialog>
+<!-- This test fails on WPT.fyi with off-by-one on the green background (Chrome-only): -->
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-472500">
+<script>
+const target = document.getElementById("target");
+target.showModal();
+target.animate({
+  opacity: [0.1, 0.1],
+  backgroundColor: ["green", "green"]
+}, {
+  pseudoElement: "::backdrop",
+  duration: Infinity
+});
+</script>

@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Shouldn't crash / assert when inserting a stylesheet after there are disabled constructable sheets</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://wicg.github.io/construct-stylesheets/">
+<script src = '/resources/testharness.js'></script>
+<script src = '/resources/testharnessreport.js'></script>
+<div id="host"></div>
+<script>
+test(function() {
+  let sheet = new CSSStyleSheet({ disabled: true });
+  sheet.replaceSync("div { color: red }");
+
+  let root = document.getElementById("host").attachShadow({ mode: "open" });
+  root.adoptedStyleSheets = [sheet];
+  let style = document.createElement("style");
+  root.innerHTML = `
+    <style>div { color: green }</style>
+    <div>Should be green</div>
+  `;
+  assert_equals(getComputedStyle(root.querySelector("div")).color, "rgb(0, 128, 0)", "Should insert the sheet at the right position and not crash");
+});
+</script>

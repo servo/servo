@@ -1,0 +1,25 @@
+<!doctype html>
+<title>source element in picture handles dynamic media change correctly.</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1523627">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<picture id="pic">
+  <source srcset="data:,a">
+</picture>
+<script>
+let t = async_test("Dynamic media change is handled correctly");
+
+let pic = document.getElementById("pic");
+// Something that will never match.
+pic.querySelector("source").setAttribute("media", "not all");
+
+let img = document.createElement("img");
+img.src = "data:,b";
+pic.appendChild(img);
+
+onload = t.step_func_done(function() {
+  assert_equals(img.currentSrc, "data:,b");
+});
+</script>

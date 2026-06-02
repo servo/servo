@@ -1,0 +1,61 @@
+name: test-jobs
+on:
+  pull_request:
+
+jobs:
+  decision:
+    name: ./wpt test-jobs
+    runs-on: ubuntu-24.04
+    outputs:
+      test_jobs: ${{ steps.test_jobs.outputs.test_jobs }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: 2
+      - name: ./wpt test-jobs
+        id: test_jobs
+        run: |
+          set -eux
+          echo "test_jobs=$( ./wpt test-jobs --json HEAD^1..HEAD )" >> $GITHUB_OUTPUT
+
+  affected_safari_preview:
+    name: "affected tests: Safari Technology Preview"
+    needs: decision
+    if: contains(fromJSON(needs.decision.outputs.test_jobs), 'affected_tests')
+    uses: ./.github/workflows/safari-wptrunner.yml
+    with:
+      artifact-name: safari-preview-affected-tests-with-changes
+      merged-artifact-name: safari-preview-affected-tests
+      safari-technology-preview: true
+      safaridriver-diagnose: false
+      fetch-depth: 2
+      extra-options: --affected ${{ github.sha }}^1 --no-fail-on-unexpected
+
+  affected_without_changes_safari_preview:
+    name: "affected tests without changes: Safari Technology Preview"
+    needs: decision
+    if: contains(fromJSON(needs.decision.outputs.test_jobs), 'affected_tests')
+    uses: ./.github/workflows/safari-wptrunner.yml
+    with:
+      artifact-name: safari-preview-affected-tests-without-changes
+      merged-artifact-name: safari-preview-affected-tests-without-changes
+      safari-technology-preview: true
+      safaridriver-diagnose: false
+      fetch-depth: 2
+      test-rev: HEAD^1
+      extra-options: --affected ${{ github.sha }} --no-fail-on-unexpected
+
+  infrastructure_mac:
+    name: "infrastructure/ tests: macOS"
+    needs: decision
+    if: contains(fromJSON(needs.decision.outputs.test_jobs), 'wptrunner_infrastructure')
+    uses: ./.github/workflows/safari-wptrunner.yml
+    with:
+      artifact-name: safari-infrastructure-results
+      safari-technology-preview: true
+      safaridriver-diagnose: false
+      extra-options: >-
+        --manifest MANIFEST.json
+        --metadata infrastructure/metadata/
+        --include infrastructure/

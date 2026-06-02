@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom-width using millimeters with a minimum plus one value, 1mm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-13 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <meta name="assert" content="The 'border-bottom-width' property supports a minimum plus one length value in millimeters that sets the width of the bottom border." />
+        <style type="text/css">
+            div
+            {
+                width: 50px;
+            }
+            .ref1, .ref2
+            {
+                position: absolute;
+            }
+            .ref1
+            {
+                background: red;
+                height: 3px;
+                z-index: -1;
+            }
+            .ref2
+            {
+                background: green;
+                height: 4px;
+            }
+            .test1, .test2
+            {
+                border-bottom-style: solid;
+                border-bottom-width: 1mm;
+                height: 0;
+            }
+            .test1
+            {
+                border-bottom-color: green;
+            }
+            .test2
+            {
+                border-bottom-color: red;
+            }
+            #parent
+            {
+                background: red;
+                height: 7px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a short green line and <strong>no red</strong>.</p>
+        <div id="parent">
+            <div class="ref1"></div>
+            <div class="test1"></div>
+            <div class="ref2"></div>
+            <div class="test2"></div>
+        </div>
+    </body>
+</html>

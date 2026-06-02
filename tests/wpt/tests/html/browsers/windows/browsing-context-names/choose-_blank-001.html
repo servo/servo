@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Browsing context - `_blank` name keyword</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(t => {
+  var window1 = window.open('about:blank', '_blank');
+  var window2 = window.open('about:blank', '_blank');
+  var window3 = window.open('about:blank', '_blank');
+  t.add_cleanup(() => {
+    window1.close();
+    window2.close();
+    window3.close();
+  });
+  assert_not_equals(window1, window2);
+  assert_not_equals(window2, window3);
+  assert_not_equals(window1, window3);
+}, 'window.open into `_blank` should create a new browsing context each time');
+
+test(t => {
+  var window1 = window.open('about:blank', '_bLAnk');
+  var window2 = window.open('about:blank', '_bLAnk');
+  var window3 = window.open('about:blank', '_bLAnk');
+  t.add_cleanup(() => {
+    window1.close();
+    window2.close();
+    window3.close();
+  });
+  assert_not_equals(window1, window2);
+  assert_not_equals(window2, window3);
+  assert_not_equals(window1, window3);
+}, '`_blank` should be ASCII case-insensitive');
+</script>

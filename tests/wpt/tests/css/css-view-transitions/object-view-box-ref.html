@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>View transitions: object-view-box (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.target {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  transform: scale(2.0, 3.0);
+  position: relative;
+  top: 200px;
+  left: 200px;
+}
+.content {
+  width: 100px;
+  height: 50px;
+  background: blue;
+}
+
+</style>
+<div class="target">
+  <div class="content">SharedElement</div>
+</div>
+

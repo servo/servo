@@ -1,0 +1,4 @@
+features:
+- name: alt-text-generated-content
+  files:
+  - comp_name_*content*

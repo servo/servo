@@ -1,0 +1,154 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width with horizontal text, and vertical and horizontal scrollbars</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com" />
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  /* Use scrollbar-gutter to reserve space for the scrollbar. */
+  .container {
+    scrollbar-gutter: stable;
+    writing-mode: horizontal-tb;
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 300px;
+    width: 300px;
+    background: lightsalmon;
+  }
+
+  /* writing directions */
+  .ltr {
+    direction: ltr;
+  }
+
+  .rtl {
+    direction: rtl;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+</style>
+<script type="text/javascript">
+
+  function performTest() {
+    setup({ explicit_done: true });
+
+    // ltr
+
+    test(function () {
+      let container = document.getElementById('container_ltr_auto');
+      let content = document.getElementById('content_ltr_auto');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "ltr auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "ltr auto scrollHeight");
+      assert_less_than(container.clientWidth, container.offsetWidth, "ltr auto clientWidth");
+      assert_less_than(container.clientHeight, container.offsetHeight, "ltr auto clientHeight");
+      assert_equals(content.offsetLeft, container.offsetLeft, "ltr auto offsetLeft");
+    }, "horizontal-tb, ltr, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_ltr_thin');
+      let content = document.getElementById('content_ltr_thin');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "ltr auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "ltr auto scrollHeight");
+      assert_less_than(container.clientWidth, container.offsetWidth, "ltr auto clientWidth");
+      assert_less_than(container.clientHeight, container.offsetHeight, "ltr auto clientHeight");
+      assert_equals(content.offsetLeft, container.offsetLeft, "ltr auto offsetLeft");
+    }, "horizontal-tb, ltr, scrollbar-width thin");
+
+    test(function () {
+      let container = document.getElementById('container_ltr_none');
+      let content = document.getElementById('content_ltr_none');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "ltr auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "ltr auto scrollHeight");
+      assert_equals(container.clientWidth, container.offsetWidth, "ltr auto clientWidth");
+      assert_equals(container.clientHeight, container.offsetHeight, "ltr auto clientHeight");
+      assert_equals(content.offsetLeft, container.offsetLeft, "ltr auto offsetLeft");
+    }, "horizontal-tb, ltr, scrollbar-width none");
+
+    // rtl
+
+    test(function () {
+      let container = document.getElementById('container_rtl_auto');
+      let content = document.getElementById('content_rtl_auto');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "rtl auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "rtl auto scrollHeight");
+      assert_less_than(container.clientWidth, container.offsetWidth, "rtl auto clientWidth");
+      assert_less_than(container.clientHeight, container.offsetHeight, "rtl auto clientHeight");
+      assert_less_than(content.offsetLeft, container.offsetLeft, "rtl auto offsetLeft");
+    }, "horizontal-tb, rtl, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_rtl_thin');
+      let content = document.getElementById('content_rtl_thin');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "rtl auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "rtl auto scrollHeight");
+      assert_less_than(container.clientWidth, container.offsetWidth, "rtl auto clientWidth");
+      assert_less_than(container.clientHeight, container.offsetHeight, "rtl auto clientHeight");
+      assert_less_than(content.offsetLeft, container.offsetLeft, "rtl auto offsetLeft");
+    }, "horizontal-tb, rtl, scrollbar-width thin");
+
+    test(function () {
+      let container = document.getElementById('container_rtl_none');
+      let content = document.getElementById('content_rtl_none');
+      assert_less_than(container.offsetWidth, container.scrollWidth, "rtl auto scrollWidth");
+      assert_less_than(container.offsetHeight, container.scrollHeight, "rtl auto scrollHeight");
+      assert_equals(container.clientWidth, container.offsetWidth, "rtl auto clientWidth");
+      assert_equals(container.clientHeight, container.offsetHeight, "rtl auto clientHeight");
+      assert_less_than(content.offsetLeft, container.offsetLeft, "rtl auto offsetLeft");
+    }, "horizontal-tb, rtl, scrollbar-width none");
+
+    done();
+  }
+
+</script>
+
+<body onload="performTest()">
+
+  Test scrollbar-width: both scrollbars, horizontal ltr
+
+  <div class="container ltr auto" id="container_ltr_auto">
+    <div class="content" id="content_ltr_auto">auto</div>
+  </div>
+
+  <div class="container ltr thin" id="container_ltr_thin">
+    <div class="content" id="content_ltr_thin">thin</div>
+  </div>
+
+  <div class="container ltr none" id="container_ltr_none">
+    <div class="content" id="content_ltr_none">none</div>
+  </div>
+
+  Test scrollbar-width: both scrollbars, horizontal rtl
+
+  <div class="container rtl auto" id="container_rtl_auto">
+    <div class="content" id="content_rtl_auto">auto</div>
+  </div>
+
+  <div class="container rtl thin" id="container_rtl_thin">
+    <div class="content" id="content_rtl_thin">thin</div>
+  </div>
+
+  <div class="container rtl none" id="container_rtl_none">
+    <div class="content" id="content_rtl_none">none</div>
+  </div>
+
+</body>

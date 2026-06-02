@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: Simple line breaking test</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="https://crbug.com/1002442">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+p {
+  width: 460px;
+}
+</style>
+<body>
+<p>
+abschließend geklärt. Allerdings scheint eine gewisse <b>genetische Veranlagung</b> eine
+Zahl der Typ-1-Diabetiker gerade unter Kleinkindern stetig wächst. Daher rücken auch <b>Virusinfektionen</b> in den Fokus
+</p>
+<script>
+test(() => {
+  for (let e of document.getElementsByTagName('b')) {
+    let bounds = e.getBoundingClientRect();
+    assert_less_than_equal(bounds.x + bounds.width, 460);
+  }
+});
+</script>
+</body>

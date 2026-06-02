@@ -1,0 +1,18 @@
+<!doctype html>
+<head marker="title">
+  <meta charset="utf-8" />
+  <?start name=title>
+  <title>HTML partial updates - update title</title>
+  <?end name=title>
+  <link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <template for="title"><title>New title</title></template>
+  <script>
+    test(() => {
+      assert_equals(document.title, "New title");
+    });
+  </script>
+</body>

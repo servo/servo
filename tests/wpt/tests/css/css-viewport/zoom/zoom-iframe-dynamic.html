@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<title>Dynamic CSS zoom change on iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe srcdoc="Child frame"></iframe>
+<script>
+const iframe = document.querySelector("iframe");
+
+function promiseDpiChange(win, expected) {
+  // There might be multiple resize events, wait for the one that changes the device pixel ratio to the expected value.
+  return new Promise(resolve => {
+    win.addEventListener("resize", function listener() {
+      if (win.devicePixelRatio == expected) {
+        win.removeEventListener("resize", listener);
+        resolve();
+      }
+    });
+  });
+}
+
+promise_test(async function(t) {
+  if (document.readyState != "complete") {
+    await new Promise(r => addEventListener("load", r, { once: true }));
+  }
+
+  let parentDpi = window.devicePixelRatio;
+  let origSize = iframe.getBoundingClientRect();
+  assert_equals(parentDpi, iframe.contentWindow.devicePixelRatio, "DPI should match between frame and parent");
+  const dpiChangePromise = promiseDpiChange(iframe.contentWindow, 2 * parentDpi);
+  iframe.style.zoom = 2;
+  await dpiChangePromise;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpi, "DPI should have doubled on the frame");
+  assert_equals(iframe.getBoundingClientRect().width, origSize.width * 2, "Width should have doubled as well");
+  assert_equals(iframe.getBoundingClientRect().height, origSize.height * 2, "Height should have doubled as well");
+});
+</script>

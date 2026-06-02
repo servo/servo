@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Chrome crash for replaced in orthogonal flow query container</title>
+<link rel="help" href="https://crbug.com/1325673">
+<p>Pass if no crash.</p>
+<iframe></iframe>
+<style>
+  body {
+    container-type: size;
+    writing-mode: vertical-rl;
+  }
+</style>

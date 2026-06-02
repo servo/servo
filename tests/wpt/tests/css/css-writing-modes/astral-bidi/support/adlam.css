@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "Noto Sans Adlam";
+    font-weight: normal;
+    font-style: normal;
+    src: url("/fonts/noto/NotoSansAdlam-hinted/NotoSansAdlam-Regular.ttf") format("truetype");
+}
+p {
+    font-family: "Noto Sans Adlam";
+}

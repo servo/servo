@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Popstate event listener registration</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript">
+
+//this test checks that onpopstate works on the body element
+
+var readyForPop = false, bodypop = false, inlinepop = false;
+setup({explicit_done:true});
+
+//use a timeout to avoid "popstate fires onload" from setting the variables too early
+setTimeout(step1,1000);
+function step1() {
+  readyForPop = true;
+  test(function () {
+    history.pushState('','');
+    history.pushState('','');
+  }, 'history.pushState support is needed for this testcase');
+  history.go(-1);
+  setTimeout(step2,50); //.go is queued to end of thread
+}
+function step2() {
+  test(function () {
+    assert_true( bodypop );
+  }, '<body onpopstate="..."> should register a listener for the popstate event');
+  window.onpopstate = function () { inlinepop = true; };
+  history.go(-1);
+  setTimeout(step3,50); //.go is queued to end of thread
+}
+function step3() {
+  test(function () {
+    assert_true( inlinepop );
+  }, 'window.onpopstate should register a listener for the popstate event');
+  done();
+}
+    </script>
+  </head>
+  <body onpopstate="if( readyForPop ) { bodypop = true; }">
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+
+  </body>
+</html>

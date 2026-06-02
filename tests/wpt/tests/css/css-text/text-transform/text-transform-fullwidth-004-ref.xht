@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+
+  <meta name="DC.date.created" content="2017-01-26T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-01-26T09:54:03+11:00" scheme="W3CDTF" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if both "６" glyphs have <strong>identical</strong> layout and orientation.</p>
+
+  <div>
+
+    <h1>&#65302;月</h1>
+
+    <h1>&#65302;月</h1>
+
+    <!--
+    ６ == &#65302; or &xFF16; or U+FF16 is the FULLWIDTH DIGIT 6 (≈ <wide> 0036 6)
+    In the Halfwidth and Fullwidth Forms range:
+    http://unicode.org/charts/PDF/UFF00.pdf
+    -->
+
+  </div>
+
+ </body>
+</html>

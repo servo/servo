@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<style>
+  @font-face {
+    font-family: "wght";
+    src: url(variations/resources/Inter.var.subset.ttf);
+  }
+  .wghtHalf {
+    font-family: wght;
+    font-variation-settings: 'wght' 50;
+  }
+</style>
+<body>
+ <p>Test passes if the line below has lighter text.</p>
+ <div class="wghtHalf">
+  <span>filler text</span>
+ </div>
+</body>
+</html>

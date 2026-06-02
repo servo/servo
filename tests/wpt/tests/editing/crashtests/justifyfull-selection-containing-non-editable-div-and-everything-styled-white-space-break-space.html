@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * {
+            white-space: break-spaces ! important;
+        }
+    </style>
+    <script>
+      window.addEventListener('load', () => {
+        document.documentElement.contentEditable = true
+        document.execCommand('selectAll', false, null)
+        document.execCommand('justifyFull', false, null)
+      })
+    </script>
+</head>
+<div contenteditable='false'></div>
+</html>

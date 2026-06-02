@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Worker Test</title>
+</head>
+<body>
+<script>
+var workerPath = (function () {
+  var workerType;
+  switch (window.location.search.match(/worker=(\w+)/)[1]) {
+    case 'block':
+      workerType = 'block';
+      break;
+    default:
+      workerType = 'interval';
+      break;
+  }
+
+  return './worker_post_' + workerType + '.js';
+})();
+
+function startWorker() {
+  window.w = new Worker(workerPath);
+  w.onmessage = function(m) {
+    var p = document.createElement('p');
+    p.innerHTML = JSON.stringify(m.data);
+    document.body.appendChild(p);
+  };
+
+  var ps = document.getElementsByTagName('p');
+  while (ps.length) {
+    document.body.removeChild(ps[0]);
+  }
+}
+
+function stopWorker() {
+  if (w) {
+    w.terminate();
+  }
+
+  window.w = null;
+}
+</script>
+  <button onclick="startWorker()">Start Worker</button>
+  <button onclick="stopWorker()">Stop Worker</button>
+</body>
+</html>

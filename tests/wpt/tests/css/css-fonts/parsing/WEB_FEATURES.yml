@@ -1,0 +1,81 @@
+features:
+- name: font-family
+  files:
+  - font-family-*
+- name: font-optical-sizing
+  files:
+  - font-optical-sizing-*
+- name: font-palette
+  files:
+  - font-palette-*
+  - font-palette-values-*
+- name: font-size
+  files:
+  - font-size-computed.html
+  - font-size-invalid.html
+  - font-size-valid.html
+- name: font-size-adjust
+  files:
+  - font-size-adjust-*
+- name: font-shorthand
+  files:
+  - font-valid.html
+  - font-invalid.html
+- name: font-synthesis
+  files:
+  - font-synthesis-computed.html
+  - font-synthesis-invalid.html
+  - font-synthesis-valid.html
+- name: font-synthesis-position
+  files:
+  - font-synthesis-position*
+- name: font-synthesis-small-caps
+  files:
+  - font-synthesis-small-caps*
+- name: font-synthesis-style
+  files:
+  - font-synthesis-style*
+- name: font-synthesis-weight
+  files:
+  - font-synthesis-weight*
+- name: font-variant
+  files:
+  - font-variant-valid.html
+  - font-variant-invalid.html
+  - font-variant-serialization.html
+- name: font-variant-alternates
+  files:
+  - font-variant-alternates-*
+- name: font-variant-caps
+  files:
+  - font-variant-caps-*
+- name: font-variant-east-asian
+  files:
+  - font-variant-east-asian-*
+- name: font-variant-emoji
+  files:
+  - font-variant-emoji-*
+- name: font-variant-ligatures
+  files:
+  - font-variant-ligatures-*
+- name: font-variant-numeric
+  files:
+  - font-variant-numeric-*
+- name: font-variant-position
+  files:
+  - font-variant-position-*
+- name: font-feature-settings
+  files:
+  - font-feature-settings-*
+- name: font-kerning
+  files:
+  - font-kerning-*
+- name: font-style
+  files:
+  - font-style-*
+- name: font-variation-settings
+  files:
+  - font-variation-settings-*
+- name: font-width
+  files:
+  - font-width-*

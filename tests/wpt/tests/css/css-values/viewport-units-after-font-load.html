@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values: Viewport units are computed correctly after font load.</title>
+<link rel="author"  title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author"  title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://www.w3.org/TR/css-values-3/#viewport-relative-lengths">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1620359">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe width=300 height=300 scrolling=no srcdoc=""></iframe>
+<script>
+let t = async_test("Viewport units are correctly updated after resize even if a font load has happened before");
+let iframe = document.querySelector("iframe");
+onload = t.step_func(function() {
+  let doc = iframe.contentDocument;
+  let win = iframe.contentWindow;
+  doc.body.innerHTML = `
+    <div style="width: 100vw; height: 100vh; background: green"></div>
+  `;
+  let div = doc.querySelector("div");
+  let oldWidth = win.getComputedStyle(div).width;
+  let oldHeight = win.getComputedStyle(div).height;
+  assert_equals(oldWidth, win.innerWidth + "px", "Should fill the viewport");
+  assert_equals(oldHeight, win.innerHeight + "px", "Should fill the viewport");
+  let link = doc.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "/fonts/ahem.css";
+  link.onload = t.step_func(function() {
+    iframe.width = 400;
+    win.requestAnimationFrame(t.step_func(function() {
+      win.requestAnimationFrame(t.step_func_done(function() {
+        let newWidth = win.getComputedStyle(div).width;
+        let newHeight = win.getComputedStyle(div).height;
+        assert_equals(newWidth, win.innerWidth + "px", "Should fill the viewport");
+        assert_equals(newHeight, win.innerHeight + "px", "Should fill the viewport");
+        assert_equals(newHeight, oldHeight, "Height shouldn't have changed");
+        assert_not_equals(newWidth, oldWidth, "Width should have changed");
+      }));
+    }));
+  });
+  doc.body.appendChild(link);
+});
+</script>

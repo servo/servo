@@ -1,0 +1,133 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior">
+
+<style>
+body {
+  margin: 0;
+  width: 150vw;
+  height: 150vh;
+}
+#container {
+  width: 500px;
+  height: 300px;
+  border: 2px solid orange;
+  border-radius: 5px;
+  overflow: scroll;
+}
+#content {
+  background: repeating-linear-gradient(to bottom right, blue 15%, white 30%);
+  width: 400px;
+  height: 200px;
+}
+</style>
+
+<body>
+  <div id="container">
+    <div id="content"></div>
+  </div>
+</body>
+
+<script>
+const container = document.getElementById('container');
+const content = document.getElementById('content');
+const scrollAmount = 120;
+const scrollRight = { dx: scrollAmount, dy: 0 };
+const scrollDown = { dx: 0, dy: scrollAmount };
+const startPosition = { x: 200, y: 100 };
+
+async function performGestureScroll(posX, posY, deltaX, deltaY) {
+  await new test_driver.Actions()
+      .scroll(posX, posY, deltaX, deltaY)
+      .send();
+  await waitForCompositorCommit();
+}
+
+promise_test(async (t) => {
+  window.scrollTo(0, 0);
+  container.style.overflow = 'hidden';
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'auto';
+  await waitForCompositorCommit();
+
+  assert_equals(window.scrollX, 0);
+  assert_equals(window.scrollY, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollRight.dx, scrollRight.dy);
+  assert_equals(window.scrollX, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollDown.dx, scrollDown.dy);
+  assert_greater_than(window.scrollY, 100);
+}, 'overflow: hidden and overscroll-behavior-x: none should only prevent ' +
+   'scroll propagation on x axis.');
+
+promise_test(async (t) => {
+  window.scrollTo(0, 0);
+  container.style.overflow = 'hidden';
+  container.style.overscrollBehaviorX = 'auto';
+  container.style.overscrollBehaviorY = 'none';
+  await waitForCompositorCommit();
+
+  assert_equals(window.scrollX, 0);
+  assert_equals(window.scrollY, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollRight.dx, scrollRight.dy);
+  assert_greater_than(window.scrollX, 100);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollDown.dx, scrollDown.dy);
+  assert_equals(window.scrollY, 0);
+}, 'overflow: hidden and overscroll-behavior-y: none should only prevent ' +
+   'scroll propagation on y axis.');
+
+promise_test(async (t) => {
+  window.scrollTo(0, 0);
+  container.style.overflow = 'auto';
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'auto';
+  await waitForCompositorCommit();
+
+  assert_equals(window.scrollX, 0);
+  assert_equals(window.scrollY, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollRight.dx, scrollRight.dy);
+  assert_equals(window.scrollX, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y, scrollDown.dx, scrollDown.dy);
+  assert_greater_than(window.scrollY, 100);
+}, 'overflow: auto and overscroll-behavior-x: none should only prevent ' +
+   'scroll propagation on x axis.');
+
+promise_test(async (t) => {
+  window.scrollTo(0, 0);
+  container.style.overflow = 'auto';
+  container.style.overscrollBehaviorX = 'auto';
+  container.style.overscrollBehaviorY = 'none';
+  await waitForCompositorCommit();
+
+  assert_equals(window.scrollX, 0);
+  assert_equals(window.scrollY, 0);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y,
+      scrollRight.dx, scrollRight.dy);
+  assert_greater_than(window.scrollX, 100);
+
+  await performGestureScroll(
+      startPosition.x, startPosition.y,
+      scrollDown.dx, scrollDown.dy);
+  assert_equals(window.scrollY, 0);
+}, 'overflow: auto and overscroll-behavior-y: none should only prevent ' +
+   'scroll propagation on y axis.');
+</script>

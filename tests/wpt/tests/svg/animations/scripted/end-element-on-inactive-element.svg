@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <rect width="100" height="100" fill="red">
+    <set id="anim" attributeName="fill" to="green" begin="indefinite"/>
+  </rect>
+  <script>
+    async_test(t => {
+      let anim = document.getElementById("anim");
+      onload = t.step_func(() => {
+        anim.endElement();
+        anim.beginElement();
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(getComputedStyle(anim.parentNode).fill, "rgb(0, 128, 0)");
+        }));
+      });
+    }, "endElement() on an inactive element");
+  </script>
+</svg>

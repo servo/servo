@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>Incremental absolute position test</title>
+    <link rel="match" href="incremental_position_ref.html">
+    <style>
+      #rect {
+        position: absolute;
+        border: 1px solid red;
+        width: 40px;
+        height: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="rect"></div>
+    <script>
+      window.onload = function() {
+        document.body.offsetWidth; // force layout
+        var e = document.getElementById("rect");
+        e.style.left = "100px";
+        document.documentElement.classList.remove('reftest-wait');
+      };
+    </script>
+  </body>
+</html>

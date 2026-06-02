@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<link rel="match" href="reference/text-decoration-inset-008-ref.html">
+
+<style>
+body {
+  background: white;
+  color: black;
+  font-family: times new roman, serif;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+span {
+  display: inline-block;
+  position: relative;
+}
+u {
+  text-decoration-skip-ink: none;
+  text-decoration-color: black;
+  text-decoration-inset: 10px;
+}
+</style>
+
+<p>The underline for "quick براؤن" should be trimmed by 10px at each end, and not interrupted at the direction boundary:</p>
+
+<div>
+  <h1>
+    the <u>quick براؤن</u> fox
+  </h1>
+</div>

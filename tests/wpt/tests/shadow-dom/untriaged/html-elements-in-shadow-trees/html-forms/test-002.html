@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_08_02_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#html-forms">
+<meta name="assert" content="HTML Elements in shadow trees: Form elements and form-associated elements in shadow tree must be accessible using shadow tree accessors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+//test form-associated elements
+test(function () {
+    var d = newHTMLDocument();
+
+    var form = d.createElement('form');
+    form.setAttribute('id', 'form_id');
+    d.body.appendChild(form);
+
+    var div = d.createElement('div');
+    d.body.appendChild(div);
+    var s = div.attachShadow({mode: 'open'});
+
+
+    HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
+
+        var el = d.createElement(tagName);
+        el.setAttribute('form', 'form_id');
+        el.setAttribute('id', tagName + '_id');
+        s.appendChild(el);
+
+        assert_true(s.querySelector('#' + tagName + '_id') != null, 'Form-associated element ' + tagName +
+                ' in shadow tree must be accessible shadow tree accessors');
+        assert_equals(s.querySelector('#' + tagName + '_id').getAttribute('id'), tagName + '_id',
+            'Form-associated element ' + tagName + ' in shadow tree must be accessible shadow tree accessors');
+    });
+}, 'A_08_02_02_T01');
+
+
+//test form elements
+test(function () {
+    var d = newHTMLDocument();
+
+    var form = d.createElement('form');
+    d.body.appendChild(form);
+
+    var div = d.createElement('div');
+    form.appendChild(div);
+    var s = div.attachShadow({mode: 'open'});
+
+    HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
+
+        var el = d.createElement(tagName);
+        el.setAttribute('id', tagName + '_id');
+        s.appendChild(el);
+
+        assert_true(s.querySelector('#' + tagName + '_id') != null, 'Form-associated element ' + tagName +
+        ' in shadow tree must be accessible shadow tree accessors');
+        assert_equals(s.querySelector('#' + tagName + '_id').getAttribute('id'), tagName + '_id',
+            'Form element ' + tagName + ' in shadow tree must be accessible shadow tree accessors');
+    });
+}, 'A_08_02_02_T02');
+
+
+//test distributed form elements
+test(function () {
+    var d = newHTMLDocument();
+
+    HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
+
+        var form = d.createElement('form');
+        d.body.appendChild(form);
+
+        var div = d.createElement('div');
+        form.appendChild(div);
+
+        var el = d.createElement(tagName);
+        el.setAttribute('id', tagName + '_id');
+        el.setAttribute('slot', tagName + '_slot');
+        div.appendChild(el);
+
+        var s = div.attachShadow({mode: 'open'});
+        s.innerHTML = '<slot name="' + tagName + '_slot"></slot>';
+
+        assert_true(s.querySelector('#' + tagName + '_id') == null, 'Distributed form-associated element ' + tagName +
+        ' in shadow tree must not be accessible shadow tree accessors');
+    });
+}, 'A_08_02_02_T03');
+</script>
+</body>
+</html>

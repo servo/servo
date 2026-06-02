@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1378294">
+<link rel="match" href="variable-fragmentainer-size-002-ref.html">
+<p>There should be one blue square and one hotpink one.</p>
+<!-- The first inner fragmentainer isn't tall enough to allow a 20px tall table
+  header / footer, but the two other fragmentainers are. -->
+<div style="columns:3; width:300px; gap:0; column-fill:auto; height:100px;">
+  <div style="height:50px;"></div>
+  <div style="columns:1; column-fill:auto; height:250px;">
+    <div style="display:table;">
+      <div style="display:table-header-group; break-inside:avoid;">
+        <div style="width:20px; height:20px; background:blue;"></div>
+      </div>
+      <div style="display:table-footer-group; break-inside:avoid;">
+        <div style="width:20px; height:20px; background:hotpink;"></div>
+      </div>
+      <div style="height:130px;"></div>
+    </div>
+  </div>
+</div>

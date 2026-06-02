@@ -1,0 +1,26 @@
+<script>
+let log_object = () => {
+  let object = {};
+  Object.defineProperty(object, "foo", {
+      enumerable: true,
+      writable: true,
+      configurable: true
+  });
+
+  // "object.bar" should be shown in the console despite being non-enumerable
+  Object.defineProperty(object, "bar", {
+      enumerable: false,
+      writable: true,
+      configurable: true
+  });
+  Object.defineProperty(object, "baz", {
+      enumerable: true,
+      writable: true,
+      configurable: false
+  });
+  object.foo = 1;
+  object.bar = "servo";
+  object.baz = true
+  console.log(object);
+};
+</script>

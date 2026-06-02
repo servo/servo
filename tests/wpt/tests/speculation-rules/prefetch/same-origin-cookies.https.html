@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<!--Split test cases due to the use of timeouts in speculation rules test utilities.-->
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-last">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  subsetTest(promise_test, async t => {
+    await test_driver.delete_all_cookies();
+
+    let executor = 'cookies.py';
+    let agent = await spawnWindow(t, { executor });
+    let response_cookies = await agent.getResponseCookies();
+    let request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], undefined);
+    assert_equals(request_cookies["type"], undefined);
+    assert_equals(response_cookies["count"], "1");
+    assert_equals(response_cookies["type"], "navigate");
+
+    let nextUrl = agent.getExecutorURL({ executor, page: 2 });
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl);
+
+    response_cookies = await agent.getResponseCookies();
+    request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], "1");
+    assert_equals(request_cookies["type"], "navigate");
+    assert_equals(response_cookies["count"], "2");
+    assert_equals(response_cookies["type"], "prefetch");
+
+    assert_prefetched(await agent.getRequestHeaders());
+  }, "speculation rules based prefetch should use cookies for same origin urls.");
+
+  // Regression test for https://crbug.com/1524338
+  subsetTest(promise_test, async t => {
+    await test_driver.delete_all_cookies();
+
+    let executor = 'cookies.py';
+    let agent = await spawnWindow(t, { executor });
+    let response_cookies = await agent.getResponseCookies();
+    let request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], undefined);
+    assert_equals(request_cookies["type"], undefined);
+    assert_equals(response_cookies["count"], "1");
+    assert_equals(response_cookies["type"], "navigate");
+
+    await agent.setReferrerPolicy("no-referrer");
+
+    let nextUrl = agent.getExecutorURL({ executor, page: 2 });
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl);
+
+    response_cookies = await agent.getResponseCookies();
+    request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], "1");
+    assert_equals(request_cookies["type"], "navigate");
+    assert_equals(response_cookies["count"], "2");
+    assert_equals(response_cookies["type"], "prefetch");
+
+    assert_prefetched(await agent.getRequestHeaders());
+  }, "same origin prefetch with no referrer works when cookies are present.");
+</script>

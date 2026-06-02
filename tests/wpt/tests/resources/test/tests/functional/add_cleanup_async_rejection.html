@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test#add_cleanup with Promise-returning functions (rejection handling)</title>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+"use strict";
+var resolve, reject;
+var completeCount = 0;
+add_result_callback(function(result_t) {
+  completeCount += 1;
+});
+promise_test(function(t) {
+  t.add_cleanup(function() {
+    return new Promise(function(_, _reject) { reject = _reject; });
+  });
+  t.add_cleanup(function() {
+    return new Promise(function(_resolve) { resolve = _resolve; });
+  });
+
+  // The following cleanup function defines empty tests so that the reported
+  // data demonstrates the intended run-time behavior without relying on the
+  // test harness's handling of errors during test cleanup (which is tested
+  // elsewhere).
+  t.add_cleanup(function() {
+    if (completeCount === 0) {
+      promise_test(
+        function() {},
+        "test is not asynchronously considered 'complete' ('NOT RUN')"
+      );
+    }
+
+    reject();
+
+    setTimeout(function() {
+      if (completeCount === 0) {
+        promise_test(
+          function() {},
+          "test is not considered 'complete' following rejection of first " +
+          "promise ('NOT RUN')"
+        );
+      }
+
+      resolve();
+    }, 0);
+  });
+
+  return Promise.resolve();
+}, "promise_test with asynchronous cleanup including rejection");
+
+promise_test(function() {}, "synchronously-defined test ('NOT RUN')");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Test named 'promise_test with asynchronous cleanup including rejection' specified 3 'cleanup' functions, and 1 failed."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "promise_test with asynchronous cleanup including rejection",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "synchronously-defined test ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "test is not asynchronously considered 'complete' ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "test is not considered 'complete' following rejection of first promise ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

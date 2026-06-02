@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>async on script</title>
+  <metadata>
+      <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement"/>
+  </metadata>
+  <h:meta name="timeout" content="long"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script>
+    let t = async_test("An async script does not block the parser while downloading");
+    let results = [];
+
+    t.step_timeout(function() {
+      assert_equals(JSON.stringify(results), '["2","1"]')
+      t.done();
+    }, 4000);
+
+    function log(text) {
+      results.push(text);
+    }
+  </script>
+
+  <script href="log.py?sec=3&amp;id=1" async="true"></script>
+  <script>
+      log('2');
+  </script>
+</svg>

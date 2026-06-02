@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<canvas id="canvas"></canvas>
+<script>
+  promise_test(async (t) => {
+    const presenter = await navigator.ink.requestPresenter({presentationArea: canvas});
+    const style = { color: "bad-color", diameter: 6 };
+
+    canvas.addEventListener("pointermove", evt => {
+      assert_throws_js(TypeError, function() {
+        presenter.updateInkTrailStartPoint(evt, style);
+      }, "Expected a TypeError to be thrown due to bad color.");
+    });
+
+    const actions_promise = new test_driver.Actions().pointerMove(10,10).send();
+    t.add_cleanup(() => actions_promise);
+  });
+</script>

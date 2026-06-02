@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>SpeechRecognition onerror event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  // Promise that resolves when the 'error' event is fired.
+  const errorPromise = new Promise(resolve => {
+    recognition.onerror = (event) => {
+      resolve();
+    };
+  });
+
+  // Start speech recognition.
+  recognition.start();
+
+  // Wait for the 'error' event.
+  await errorPromise;
+
+  // Stop speech recognition.
+  recognition.stop();
+}, 'Speech recognition onerror event is called.');
+</script>

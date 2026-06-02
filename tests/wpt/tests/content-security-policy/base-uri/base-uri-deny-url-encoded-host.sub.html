@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="base-uri {{location[scheme]}}://www1%2E{{domains[]}}:{{ports[http][0]}}/">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+
+    <script>
+      var t = async_test("Check that baseURI fires a securitypolicyviolation event when it does not match the csp directive due to a url encoded host character.");
+      window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/")
+        assert_equals(e.violatedDirective, "base-uri");
+      }));
+    </script>
+
+    <base href="{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/">
+    <script>
+    test(function() {
+      assert_equals(document.baseURI, window.location.href);
+      t.done();
+    }, "Check that the baseURI is not set when it does not match the csp directive");
+    </script>
+</head>
+<body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    Test CPU performance of the WebGL typed array uniform uploads binding
+  </title>
+  <script src="../resources/runner.js"></script>
+</head>
+
+<body>
+  <canvas id="canvas" width=400 height=400></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl');
+
+    function compileOrReportError(shader) {
+      gl.compileShader(shader);
+      const message = gl.getShaderInfoLog(shader);
+      if (message.length > 0) {
+        throw new Error(message);
+      }
+    }
+
+    const vertShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertShader, `
+      uniform mat4 transform_matrix;
+      uniform vec3 position_offset;
+      attribute vec2 a_coord;
+      void main() {
+        gl_Position = transform_matrix * vec4(a_coord, 0.0, 1.0) + vec4(position_offset, 0.0);
+      }`);
+    compileOrReportError(vertShader);
+
+    const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragShader, `
+      precision mediump float;
+      uniform vec3 u_color;
+      void main() {
+        gl_FragColor = vec4(u_color, 1.0);
+      }`);
+    compileOrReportError(fragShader);
+
+    const shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertShader);
+    gl.attachShader(shaderProgram, fragShader);
+    gl.linkProgram(shaderProgram);
+
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+      const info = gl.getProgramInfoLog(shaderProgram);
+      throw new Error('Could not compile WebGL program. \n\n' + info);
+    }
+    gl.useProgram(shaderProgram);
+
+    // Initialize uniforms
+    const aCoord = gl.getAttribLocation(shaderProgram, 'a_coord');
+    const uColor = gl.getUniformLocation(shaderProgram, 'u_color');
+    const transformLoc = gl.getUniformLocation(shaderProgram, 'transform_matrix');
+    const offsetLoc = gl.getUniformLocation(shaderProgram, 'position_offset');
+
+    // Initialize vertices
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.enableVertexAttribArray(aCoord);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1.0, 1.0,
+      1.0, -1.0,
+      1.0, 1.0,
+      -1.0, 1.0,
+      -1.0, -1.0,
+      1.0, -1.0]), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(aCoord, 2, gl.FLOAT, false, 0, 0);
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    const tilesPerSide = 50;
+    const iterations = tilesPerSide;
+    let transformMatrix = new Float32Array(16);
+    let offset = new Float32Array(3);
+    let ripeness = 0;
+
+    {
+      transformMatrix[15] = 1.0;
+      const scaleFactor = 1.0 / tilesPerSide;
+      transformMatrix[0] = scaleFactor;
+      transformMatrix[5] = scaleFactor;
+      transformMatrix[10] = scaleFactor;
+    }
+
+    PerfTestRunner.measureInnerRAFTime({
+      description: `CPU time for ${iterations} calls to WebGLRenderingContext.uniformMatrix4fv`,
+      warmUpCount: 10,
+      iterationCount: iterations,
+      run() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        for (var yy = 0; yy < tilesPerSide; ++yy) {
+          for (var xx = 0; xx < tilesPerSide; ++xx) {
+            gl.uniform3fv(uColor, [ripeness, 1 - ripeness, 0]);
+    
+            gl.uniformMatrix4fv(transformLoc, false, transformMatrix);
+            offset[0] = 2.0 * ((0.5 + xx) / tilesPerSide) - 1.0;
+            offset[1] = 2.0 * ((0.5 + yy) / tilesPerSide) - 1.0;
+            gl.uniform3fv(offsetLoc, offset);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+        }
+        ripeness = ripeness < 1 ? ripeness += 0.02 : 0;
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Test SVGLength animation with invalid value: No spaces between number and unit in by attribute.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ByAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <rect id="rect" x="0" width="100" height="100" fill="green">
+        <animate attributeName="width" begin="0s" dur="4s" by="200   px" />
+    </rect>
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const rect = document.getElementById("rect");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(rect.width.baseVal.value, 100);
+          assert_equals(rect.width.animVal.value, rect.width.baseVal.value);
+        }));
+    }));
+  });
+
+</script>

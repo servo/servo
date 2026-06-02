@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder Stop</title>
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+    promise_test(async t => {
+        const {stream: video} = createVideoStream(t);
+        let videoKeyFrameIntervalDurationUsed = false;
+        var options = {
+            get videoKeyFrameIntervalDuration() {
+                videoKeyFrameIntervalDurationUsed = true;
+                return 1000;
+            }
+        }
+        const recorder = new MediaRecorder(video, options);
+        assert_true(videoKeyFrameIntervalDurationUsed);
+    }, "MediaRecorder interprets videoKeyFrameIntervalDuration");
+
+    promise_test(async t => {
+        const {stream: video} = createVideoStream(t);
+        let videoKeyFrameIntervalCountUsed = false;
+        var options = {
+            get videoKeyFrameIntervalCount() {
+                videoKeyFrameIntervalCountUsed = true;
+                return 5;
+            }
+        }
+        const recorder = new MediaRecorder(video, options);
+        assert_true(videoKeyFrameIntervalCountUsed);
+    }, "MediaRecorder interprets videoKeyFrameIntervalCount");
+</script>
+</body>
+</html>

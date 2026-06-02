@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Solving width for block-level non-replaced elements in normal flow with multiple properties with 'auto' values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth" />
+		<link rel="match" href="block-non-replaced-width-005-ref.xht" />
+
+        <meta name="assert" content="If 'width' is set to 'auto', any other 'auto' values become '0' and the 'width' is computed based on remaining space which includes any negative width." />
+        <style type="text/css">
+            body
+            {
+                margin: 0;
+            }
+            #div1
+            {
+                background: red;
+                width: 100%;
+            }
+            div div
+            {
+                background-color: green;
+                border: 10px solid green;
+                margin: 0 auto;
+                padding: 0;
+                height: 20px;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a filled green rectangle spans the entire width of the page and if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

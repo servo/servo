@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../resources/focus-utils.js'></script>
+
+<button id="button">Button</button>
+<div id="scroller" style="overflow:scroll; width:50px; height:50px;">
+  <div style="height:100px"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const button = document.getElementById('button');
+  const scroller = document.getElementById('scroller');
+
+  scroller.focus();
+  assert_equals(document.activeElement, scroller);
+
+  button.focus();
+  assert_equals(document.activeElement, button);
+
+  scroller.style.height = '200px';
+  scroller.focus();
+  assert_equals(document.activeElement, button, 'Should not focus on scroller since it is no longer scrollable');
+}, 'When checking that element is a scroller, layout information should be up to date.');
+</script>

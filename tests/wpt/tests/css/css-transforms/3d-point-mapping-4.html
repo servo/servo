@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<title>Point mapping through 3D transform hierarchies</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css" media="screen">
+  .scene {
+    position: absolute;
+    border: 1px solid black;
+    height: 400px;
+    width: 400px;
+    perspective: 600px;
+    transform-style: preserve-3d;
+  }
+
+  .two {
+    left: 450px;
+  }
+
+  .container {
+    position: absolute;
+    height: 300px;
+    width: 300px;
+    margin: 50px;
+    border: 1px solid blue;
+    transform-style: preserve-3d;
+  }
+
+  .card {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    height: 200px;
+    width: 200px;
+    background-color: #81AA8A;
+    transform-origin: right top;
+    transform: rotateY(45deg);
+  }
+
+  .card:hover {
+    background-color: orange;
+  }
+</style>
+
+<body>
+  <div class="scene">
+    <div id="spacer">
+      <div class="container">
+        <div id="card" class="card"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene two">
+    <div class="container">
+      <div id="spacer2">
+        <div id="card2" class="card"></div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  class Point {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  };
+
+  const tests = [
+    {
+      expectedElemId: 'card',
+      // Points that should hit the first card (scene 1)
+      insidePoints: [
+        new Point(170, 112),  // Top-left corner
+        new Point(309, 112),  // Top-right corner
+        new Point(170, 308),  // Bottom-left corner
+        new Point(309, 308),  // Bottom-right corner
+      ],
+      outsidePoints: []
+    },
+    {
+      expectedElemId: 'card2',
+      // Points that should hit the second card (scene 2)
+      insidePoints: [
+        new Point(612, 112),  // Top-left corner
+        new Point(751, 112),  // Top-right corner
+        new Point(612, 308),  // Bottom-left corner
+        new Point(751, 308),  // Bottom-right corner
+      ],
+      outsidePoints: []
+    }
+  ];
+
+  tests.forEach(testcase => {
+    test(t => {
+      const expectedElem = document.getElementById(testcase.expectedElemId);
+      // Test points that should hit the element
+      for (const point of testcase.insidePoints) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_equals(hitElem, expectedElem,
+          `point (${point.x}, ${point.y}) should be inside element ${testcase.expectedElemId}`);
+      }
+      // Test points that should NOT hit the element
+      for (const point of testcase.outsidePoints) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_not_equals(hitElem, expectedElem,
+          `point (${point.x}, ${point.y}) should be outside element ${testcase.expectedElemId}`);
+      }
+    }, `${document.title}, hittesting ${testcase.expectedElemId}`);
+  });
+</script>
+</html>

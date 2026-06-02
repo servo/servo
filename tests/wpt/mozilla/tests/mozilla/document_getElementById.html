@@ -1,0 +1,27 @@
+<html>
+<head id="foo">
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="bar"></div>
+  <script>
+  test(function() {
+    var gBody = document.getElementsByTagName("body")[0];
+
+    // Test the assertion with inserting node with child having id into the document (mozilla#2630)
+    // This need not to port to WPF-test because this tests servo's internally flags.
+    {
+      var TEST_ID = "test-9";
+      var a = document.createElement("a");
+      var b = document.createElement("b");
+      a.appendChild(b).id = TEST_ID;
+      gBody.appendChild(a);
+      var result = document.getElementById(TEST_ID);
+      assert_equals(result, b, "test 9-0");
+    }
+  });
+  </script>
+</body>
+</html>

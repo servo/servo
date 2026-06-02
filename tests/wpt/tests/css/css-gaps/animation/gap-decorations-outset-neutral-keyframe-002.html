@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>gap decorations column-rule-inset properties support neutral keyframe</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+    <meta name="assert" content="gap decorations column-rule-inset value list supports neutral keyframe.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      test(() => {
+        target.style.columnRuleStyle = 'solid';
+        target.style.columnRuleEdgeInsetStart = '1px';
+        target.style.columnRuleEdgeInsetEnd = '1px';
+        target.style.columnRuleInteriorInsetStart = '1px';
+        target.style.columnRuleInteriorInsetEnd = '1px';
+
+        var animation = target.animate([{}, {columnRuleEdgeInsetStart: '11px'}], 1000);
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleEdgeInsetStart, '6px');
+
+        var animation2 = target.animate([{}, {columnRuleEdgeInsetEnd: '11px'}], 1000);
+        animation2.pause();
+        animation2.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleEdgeInsetEnd, '6px');
+
+        var animation3 = target.animate([{}, {columnRuleInteriorInsetStart: '11px'}], 1000);
+        animation3.pause();
+        animation3.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleInteriorInsetStart, '6px');
+
+        var animation4 = target.animate([{}, {columnRuleInteriorInsetEnd: '11px'}], 1000);
+        animation4.pause();
+        animation4.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleInteriorInsetEnd, '6px');
+      }, 'gap decorations column-rule-inset properties support neutral keyframe.');
+    </script>
+  </body>
+</html>

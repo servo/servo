@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Atomic inlines after line-clamp</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Atomic inlines after the clamp point should be hidden">
+<style>
+.clamp {
+  line-clamp: 4;
+  width: 150px;
+  line-height: 25px;
+  /* The ellipsis would be outside of the 100x100 green square,
+   * and it shouldn't show up. */
+  color: transparent;
+}
+.green {
+  background-color: green;
+}
+.red {
+  background-color: red;
+}
+.inline-block {
+  display: inline-block;
+  height: 25px;
+  width: 100px;
+}
+.inline-flex {
+  display: inline-flex;
+}
+.inline-grid {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+}
+.inline-table {
+  display: inline-table;
+}
+.inline-table span {
+  display: table-cell;
+}
+:is(.inline-flex, .inline-grid, .inline-table) span {
+  height: 25px;
+  width: 50px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="clamp">
+  <span class="green inline-block">foo</span>
+  <span class="green inline-flex">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+  <span class="green inline-grid">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+  <span class="green inline-table">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+  <!-- Clamp point here -->
+  <span class="red inline-block">foo</span>
+  <span class="red inline-flex">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+  <span class="red inline-grid">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+  <span class="red inline-table">
+    <span>bar</span>
+    <span>baz</span>
+  </span>
+</div>

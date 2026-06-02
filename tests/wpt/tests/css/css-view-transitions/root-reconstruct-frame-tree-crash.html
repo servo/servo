@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1966682">
+<script>
+  window.addEventListener("load", async () => {
+    const viewTransition = document.startViewTransition(async () => {})
+    await viewTransition.ready
+    const header = document.createElement("th")
+    document.documentElement.appendChild(header)
+    document.documentElement.getBoundingClientRect();
+    document.documentElement.className = "";
+  })
+</script>
+</html>

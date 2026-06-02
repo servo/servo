@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<title>Tests that anchors in anchor-positioned elements are discoverable</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    position: relative;
+    width: 200px;
+    height: 150px;
+  }
+
+  .box {
+    width: 50px;
+    height: 50px;
+  }
+
+  #anchor-1 {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+
+    anchor-name: --anchor-1;
+
+    background: green;
+  }
+
+  #anchor-positioned-1 {
+    position: absolute;
+    position-anchor: --anchor-1;
+    position-area: top right;
+  }
+
+  #anchor-2 {
+    anchor-name: --anchor-2;
+    background: blue;
+  }
+
+  #anchor-positioned-2 {
+    position: absolute;
+    position-anchor: --anchor-2;
+    position-area: bottom right;
+
+    background: cyan;
+  }
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="containing-block">
+    <div class="box" id="anchor-1"></div>
+
+    <div class="box target" id="anchor-positioned-1" data-offset-x="100" data-offset-y="0">
+      <div class="box" id="anchor-2"></div>
+    </div>
+
+    <div class="box target" id="anchor-positioned-2" data-offset-x="150" data-offset-y="50"></div>
+  </div>
+</body>

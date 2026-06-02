@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9957">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+class MyElement extends HTMLElement {
+  constructor() {
+    super();
+    this.numConnectedCallback = 0;
+    this.numDisconnectedCallback = 0;
+    this.attributeChangedCalls = [];
+  }
+
+  connectedCallback() {
+    this.numConnectedCallback++;
+  }
+
+  disconnectedCallback() {
+    this.numDisconnectedCallback++;
+  }
+
+  static observedAttributes = ['foo'];
+  attributeChangedCallback(name, oldValue, newValue) {
+    this.attributeChangedCalls.push({name, oldValue, newValue});
+  }
+}
+customElements.define('my-element', MyElement);
+
+['Element', 'ShadowRoot'].forEach(containerType => {
+  test(() => {
+    let container = null;
+    if (containerType === 'Element') {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+    } else if (containerType === 'ShadowRoot') {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      container = host.attachShadow({mode: 'closed'});
+    }
+
+    container.setHTMLUnsafe('<my-element>');
+    const myElement1 = container.querySelector('my-element');
+    assert_equals(myElement1.numConnectedCallback, 1,
+      'myElement1.numConnectedCallback after first setHTMLUnsafe.');
+    assert_equals(myElement1.numDisconnectedCallback, 0,
+      'myElement1.numDisconnectedCallback after first setHTMLUnsafe.');
+    assert_equals(JSON.stringify(myElement1.attributeChangedCalls),
+      JSON.stringify([]),
+      'myElement1.attributeChangedCalls after first setHTMLUnsafe.');
+
+    container.setHTMLUnsafe('<my-element foo=bar>');
+    const myElement2 = container.querySelector('my-element');
+    assert_equals(myElement1.numConnectedCallback, 1,
+      'myElement1.numConnectedCallback after second setHTMLUnsafe.');
+    assert_equals(myElement1.numDisconnectedCallback, 1,
+      'myElement1.numDisconnectedCallback after second setHTMLUnsafe.');
+    assert_array_equals(myElement1.attributeChangedCalls, [],
+      'myElement1.attributeChangedCalls after second setHTMLUnsafe.');
+    assert_equals(myElement2.numConnectedCallback, 1,
+      'myElement2.numConnectedCallback after second setHTMLUnsafe.');
+    assert_equals(myElement2.numDisconnectedCallback, 0,
+      'myElement2.numDisconnectedCallback after second setHTMLUnsafe.');
+    assert_equals(JSON.stringify(myElement2.attributeChangedCalls),
+      JSON.stringify([{name: 'foo', oldValue: null, newValue: 'bar'}]),
+      'myElement2.attributeChangedCalls after second setHTMLUnsafe.');
+  }, `${containerType}.setHTMLUnsafe should trigger custom element reactions.`);
+});
+</script>

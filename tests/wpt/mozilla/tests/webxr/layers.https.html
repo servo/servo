@@ -1,0 +1,75 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="./resources/webxr-util.js"></script>
+    </head>
+    <body>
+          <canvas id="canvas" width="640" height="480"></canvas>
+
+        <script>
+          let canvas = document.getElementById("canvas");
+          let gl = canvas.getContext('webgl');
+          promise_test(async function() {
+            let mock = await navigator.xr.test.simulateDeviceConnection({
+              supportedModes: ["immersive-vr"],
+              views: TEST_VIEWS,
+              viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
+            });
+            let sessionPromise;
+            navigator.xr.test.simulateUserActivation(() => {
+              sessionPromise = navigator.xr.requestSession("immersive-vr");
+            });
+            let session = await sessionPromise;
+            let glLayerFactory = new XRWebGLBinding(session, gl);
+            let layer = new XRWebGLLayer(session, gl);
+            assert_class_string(glLayerFactory, "XRWebGLBinding", "glLayerFactory is an XRWebGLBinding object");
+
+            session.updateRenderState({ layers: [layer] });
+            await new Promise(resolve => {
+              session.requestAnimationFrame((time, frame) => resolve(frame));
+            });
+            assert_equals(session.renderState.baseLayer, null, "Setting layers shouldn't set baseLayer");
+
+            session.updateRenderState({ baseLayer: layer });
+            await new Promise(resolve => {
+              session.requestAnimationFrame((time, frame) => resolve(frame));
+            });
+            assert_equals(session.renderState.baseLayer, layer, "Setting baseLayer should set baseLayer");
+
+            session.updateRenderState({ layers: [layer] });
+            await new Promise(resolve => {
+              session.requestAnimationFrame((time, frame) => resolve(frame));
+            });
+            assert_equals(session.renderState.baseLayer, null, "Setting layers should unset baseLayer");
+
+            assert_throws_js(
+              TypeError,
+              () => { session.updateRenderState({ layers: [layer], baseLayer: layer }); },
+              "Setting both baseLayer and layers should fail"
+            );
+
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createQuadLayer("texture"); },
+              "Creating a quad layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createCylinderLayer("texture"); },
+              "Creating a cylinder layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createEquirectLayer("texture"); },
+              "Creating a equirect layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createCubeLayer(); },
+              "Creating a cube layer without the layers feature should fail"
+            );
+          });
+        </script>
+    </body>
+</html>

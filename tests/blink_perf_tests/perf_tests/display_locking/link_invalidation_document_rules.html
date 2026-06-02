@@ -1,0 +1,56 @@
+<!--
+This tests the overhead added by document rules to style recalc with display
+locked elements. It adds 1,000 display-locked divs (with 4 links each), applies
+and removes the lock, and forces a style update after. This test can be run with
+and without "SpeculationRulesDocumentRulesSelectorMatches" enabled, and the
+performance should be comparable.
+-->
+<!DOCTYPE html>
+<head>
+  <script src="../resources/runner.js"></script>
+  <style>
+    #root > * { content-visibility: visible; }
+  </style>
+  <script type="speculationrules">
+    {"prefetch": [{"source": "document"}]}
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+<script>
+  const NUM_BLOCKS = 1000;
+
+  function setup() {
+    let id = 0;
+    root.innerHTML = "";
+    document.styleSheets[0].rules[0].style.contentVisibility = 'visible';
+
+    for (let i = 0; i < NUM_BLOCKS; i++) {
+      const block = document.createElement("div");
+      block.id = ++id;
+      block.innerHTML = `
+          <a href="/foo.com" id="${++id}">${id}</a>
+          <a href="/foo.com" id="${++id}">${id}</a>
+          <a href="/foo.com" id="${++id}">${id}</a>
+          <a href="/foo.com" id="${++id}">${id}</a>
+      `
+      root.appendChild(block);
+    }
+    root.offsetLeft;
+  }
+
+  function runTest() {
+    document.styleSheets[0].rules[0].style.contentVisibility = 'hidden';
+    root.offsetTop;
+
+    document.styleSheets[0].rules[0].style.contentVisibility = 'visible';
+    root.offsetTop;
+  }
+
+  PerfTestRunner.measureTime({
+    setup: setup,
+    run: runTest,
+    iterationCount: 10,
+  });
+</script>

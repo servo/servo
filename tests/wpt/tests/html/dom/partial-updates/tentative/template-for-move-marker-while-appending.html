@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - move <?marker> while appending</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div
+ id="target" marker="results">0 <?marker name="results"> 1</div>
+<div id="new-container"></div>
+</div>
+<script>
+  const contents = [];
+  const target = document.querySelector("#target");
+  window.marker = Array.from(document.querySelector("#target").childNodes).find((node) => node.nodeType === Node.PROCESSING_INSTRUCTION_NODE);
+  function step() {
+    for (const script of target.querySelectorAll("script")) {
+      script.remove();
+    }
+    contents.push(target.textContent);
+  }
+
+  step();
+</script>
+
+<template for="results"
+  >A<script>
+    step();
+  </script><span id="b">b</span><script>
+    step();
+  </script><span id="c">c</span><script>
+    step();
+    document.querySelector("#b").before(marker);
+    step();
+  </script><span id="d">d</span><script>
+    step();
+    marker.remove();
+    step();
+  </script><span id="e">E</span><script>
+    step();
+    document.querySelector("#target").insertBefore(marker, document.querySelector("#e"));
+    step();
+  </script></script><span id="f">F</span><script>
+    step();
+    document.body.prepend(marker);
+    step();
+  </script></script><span id="g">G</span><script>
+    step();
+  </script></template>
+<script>
+  test(() => {
+    assert_array_equals(contents,
+      ["0  1", "0 A 1", "0 Ab 1", "0 Abc 1", "0 Abc 1", "0 Adbc 1", "0 Adbc 1", "0 Adbc 1E", "0 Adbc 1E", "0 Adbc 1FE", "0 Adbc 1FE", "0 Adbc 1FEG"]
+    );
+  }, "Multiple <template for>");
+</script>

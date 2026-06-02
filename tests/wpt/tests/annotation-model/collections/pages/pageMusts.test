@@ -1,0 +1,24 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "A single Annotation Page has all required keys and all page keys present meet required value constraints",
+  "description": "Pages of Web Annotations: <ul> <li>MUST include certain properties (keys)</li> <li>MUST satisfy model constraints on values of required and any optional Annotation keys used</li> </ul> Note: Implementation of optional Annotation Collection keys (features), optional constraints on key values, and optional keys and constraints on Agents involved in an Annotation Collection checked by other tests.<br/><b>Please fill textarea with json-ld serialization of a single Annotation Page or an Annotation Collection with an embedded Page</b>",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/",
+  "assertions": [
+    "collections/pages/5.2-pageContextValidated.json",
+    "collections/pages/5.2-pageIdValidated.json",
+    "collections/pages/5.2-pageTypeValidated.json",
+    "collections/pages/5.2-pageItemsValidated.json",
+    "collections/pages/5.2-pageStartIndexValidated.json",
+    "collections/pages/5.2-pagePartOfValidated.json",
+    "collections/pages/5.2-pageNextValidated.json",
+    "collections/pages/5.2-pagePrevValidated.json",
+    "collections/pages/5.2-pageTotalValidated.json",
+    "collections/pages/5.2-pageLabelValidated.json",
+    "collections/pages/5.2-pageFirstValidated.json",
+    "collections/pages/5.2-pageLastValidated.json",
+    "collections/pages/3.3.1-pageCreatedValidated.json",
+    "collections/pages/3.3.1-pageModifiedValidated.json",
+    "collections/pages/3.3.6-pageRightsValidated.json"
+  ]
+}

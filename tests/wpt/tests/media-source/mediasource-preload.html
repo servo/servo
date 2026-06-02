@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Various MediaSource HTMLMediaElement preload tests.</title>
+        <link rel="author" title="Matthew Wolenetz" href="mailto:wolenetz@chromium.org"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+            function attachWithPreloadTest(preload)
+            {
+                async_test(function(test)
+                {
+                    var video = document.createElement("video");
+                    var mediaSource = new MediaSource();
+                    var mediaSourceURL = URL.createObjectURL(mediaSource);
+
+                    video.preload = preload;
+                    document.body.appendChild(video);
+                    test.add_cleanup(function() {
+                        document.body.removeChild(video);
+                        URL.revokeObjectURL(mediaSourceURL);
+                    });
+
+                    mediaSource.addEventListener("sourceopen", test.step_func_done());
+                    video.src = mediaSourceURL;
+                }, "sourceopen occurs with element preload=" + preload);
+            }
+
+            attachWithPreloadTest("auto");
+            attachWithPreloadTest("metadata");
+            attachWithPreloadTest("none");
+
+            function errorWithPreloadTest(preload, bogusURLStyle)
+            {
+                async_test(function(test)
+                {
+                    var mediaSource = new MediaSource();
+                    var bogusURL = URL.createObjectURL(mediaSource);
+
+                    if (bogusURLStyle == "corrupted") {
+                        var goodURL = bogusURL;
+                        test.add_cleanup(function() { URL.revokeObjectURL(goodURL); });
+                        bogusURL += "0";
+                    } else if (bogusURLStyle == "revoked") {
+                        URL.revokeObjectURL(bogusURL);
+                    } else {
+                        assert_unreached("invalid case");
+                    }
+
+                    var video = document.createElement("video");
+                    video.preload = preload;
+                    document.body.appendChild(video);
+                    test.add_cleanup(function() { document.body.removeChild(video); });
+
+                    mediaSource.addEventListener("sourceopen", test.unreached_func("'sourceopen' should not be fired"));
+
+                    video.onerror = test.step_func_done();
+                    video.src = bogusURL;
+                }, "error occurs with bogus blob URL (" + bogusURLStyle + " MediaSource object URL) and element preload=" + preload);
+            }
+
+            errorWithPreloadTest("auto", "revoked");
+            errorWithPreloadTest("metadata", "revoked");
+
+            errorWithPreloadTest("auto", "corrupted");
+            errorWithPreloadTest("metadata", "corrupted");
+        </script>
+    </body>
+</html>

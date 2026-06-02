@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+"use strict";
+
+const same_origin_src =
+  '/permissions-policy/resources/permissions-policy-compute-pressure.html';
+const cross_origin_src = get_host_info().HTTPS_REMOTE_ORIGIN + same_origin_src;
+const header = 'permissions policy header "compute-pressure=()"';
+const attribute = 'allow="compute-pressure" attribute';
+
+promise_test(async t => {
+  const observer = new PressureObserver(
+    t.unreached_func('oops should not end up here')
+  );
+  await promise_rejects_dom(t, 'NotAllowedError', observer.observe("cpu"));
+}, `${header} disallows the top-level document.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    same_origin_src,
+    expect_feature_unavailable_default
+  );
+}, `${header} disallows same-origin iframes.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    cross_origin_src,
+    expect_feature_unavailable_default
+  );
+}, `${header} disallows cross-origin iframes.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    same_origin_src,
+    expect_feature_unavailable_default,
+    'compute-pressure'
+  );
+}, `${header} disallows same-origin iframes despite the ${attribute}.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    cross_origin_src,
+    expect_feature_unavailable_default,
+    'compute-pressure'
+  );
+}, `${header} disallows cross-origin iframes despite the ${attribute}.`);
+
+fetch_tests_from_worker(new Worker(
+    '/compute-pressure/resources/compute-pressure-disabled-by-permissions-policy-worker.js'));
+</script>
+</body>

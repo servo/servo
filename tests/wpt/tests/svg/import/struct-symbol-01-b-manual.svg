@@ -1,0 +1,89 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Tim Thompson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: struct-symbol-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#SymbolElement">
+      <p>
+        The purpose of the symbol test case is to create some symbols and then
+        have them rendered when instantiated by the use element.
+      </p>
+      <p>
+        This file contains 3 symbol definitions.  Only two are ever rendered.
+        There is a viewport defined to be 0,0,1000,1000 on the svg element.
+        Each symbol has is own viewport of the same dimensions.  The symbols are
+        scaled when they are instantiated by the use element,  The first set
+        of symbols is 4 squares, blue and yellow in color they should appear
+        in the lower right of the view arranged in a checkerboard fashion.
+        The second symbol to be used is an image which should appear in the
+        upper left of the view area.  The symbol that is not used and should
+        not be rendered is a large black rectangle.  If the symbols don't
+        appear, there is something askew with the use statement, if they
+        appear but either overlap each other or in some way aren't in the
+        correct positions they have not honored either their viewport or
+        were not scaled when placed by the use element in the area defined by
+        it.  If everything is black then perhaps a symbol was rendered that
+        should not have been.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if:</p>
+      <ul>
+        <li>An image is shown in the top left corner of the document.</li>
+        <li>A blue and yellow checkerboard pattern is shown in the bottom right corner of the document.</li>
+        <li>The background of the document is not filled with red.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-symbol-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <symbol id="imageRef1" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+      <image id="image1" x="0" y="0" width="1000" height="1000" xlink:href="../images/struct-symbol-01.png"/>
+    </symbol>
+    <symbol id="largeRect">
+      <rect x="0" y="0" width="1000" height="1000" fill="red"/>
+    </symbol>
+    <symbol id="drawRects" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+      <rect x="0" y="0" width="500" height="500" fill="yellow"/>
+      <rect x="500" y="0" width="500" height="500" fill="blue"/>
+      <rect x="0" y="500" width="500" height="500" fill="blue"/>
+      <rect x="500" y="500" width="500" height="500" fill="yellow"/>
+    </symbol>
+    <g id="useNdraw">
+      <use id="upperLeft" x="0" y="0" width="240" height="150" xlink:href="#imageRef1"/>
+      <use id="lowerRight" x="240" y="150" width="240" height="150" xlink:href="#drawRects"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

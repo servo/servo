@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Cascade: 'revert' in implicit keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<link rel="help" href="https://crbug.com/1065387">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1 id=h1></h1>
+<h1 id=ref></h1>
+<script>
+  test(function() {
+    let expected_lower = parseInt(getComputedStyle(ref).marginTop);
+    let expected_upper = expected_lower * 2;
+    h1.style = `margin-top: ${expected_lower * 1000}px; margin-top: revert;`;
+
+    h1.animate([
+      { marginTop: `${expected_upper}px` },
+    ], {
+      duration: 1000,
+      delay: -500,
+    }).pause();
+
+    let actual = parseInt(getComputedStyle(h1).marginTop);
+
+    // This test assumes that the UA style sheet sets a non-0px value on
+    // <h1> elements:
+    assert_not_equals(expected_lower, 0);
+    assert_not_equals(expected_upper, 0);
+    assert_between_exclusive(actual, expected_lower, expected_upper);
+  }, 'The revert keyword works in implicit keyframes');
+</script>

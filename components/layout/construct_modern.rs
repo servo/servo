@@ -1,0 +1,299 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
+
+use std::borrow::Cow;
+use std::sync::OnceLock;
+
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use style::selector_parser::PseudoElement;
+
+use crate::PropagatedBoxTreeData;
+use crate::context::LayoutContext;
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
+use crate::flow::inline::SharedInlineStyles;
+use crate::flow::inline::construct::InlineFormattingContextBuilder;
+use crate::flow::{BlockContainer, BlockFormattingContext};
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
+use crate::layout_box_base::LayoutBoxBase;
+use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox};
+
+/// A builder used for both flex and grid containers.
+pub(crate) struct ModernContainerBuilder<'a, 'dom> {
+    context: &'a LayoutContext<'a>,
+    info: &'a NodeAndStyleInfo<'dom>,
+    /// A [`NodeAndStyleInfo`] to use for anonymous box children. Only initialized if
+    /// there is such a child.
+    anonymous_info: OnceLock<NodeAndStyleInfo<'dom>>,
+    propagated_data: PropagatedBoxTreeData,
+    contiguous_text_runs: Vec<ModernContainerTextRun<'dom>>,
+    /// To be run in parallel with rayon in `finish`
+    jobs: Vec<ModernContainerJob<'dom>>,
+    has_text_runs: bool,
+    /// A stack of `display: contents` styles currently in scope. This matters because
+    /// `display: contents` elements do not generate boxes but still provide styling
+    /// for their children, and text runs which get different styles due to that can be
+    /// wrapped into the same anonymous flex/grid item.
+    display_contents_shared_styles: Vec<SharedInlineStyles>,
+}
+
+enum ModernContainerJob<'dom> {
+    ElementOrPseudoElement {
+        info: NodeAndStyleInfo<'dom>,
+        display: DisplayGeneratingBox,
+        contents: Contents,
+        box_slot: BoxSlot<'dom>,
+    },
+    TextRuns(Vec<ModernContainerTextRun<'dom>>, BoxSlot<'dom>),
+}
+
+impl<'dom> ModernContainerJob<'dom> {
+    fn finish(self, builder: &ModernContainerBuilder) -> Option<ModernItem<'dom>> {
+        match self {
+            ModernContainerJob::TextRuns(runs, box_slot) => {
+                let mut inline_formatting_context_builder =
+                    InlineFormattingContextBuilder::new(builder.info);
+                let mut last_style_from_display_contents: Option<SharedInlineStyles> = None;
+                for flex_text_run in runs.into_iter() {
+                    match (
+                        last_style_from_display_contents.as_ref(),
+                        flex_text_run.style_from_display_contents.as_ref(),
+                    ) {
+                        (None, None) => {},
+                        (Some(old_style), Some(new_style)) if old_style.ptr_eq(new_style) => {},
+                        _ => {
+                            // If we have nested `display: contents`, then this logic will leave the
+                            // outer one before entering the new one. This is fine, because the inline
+                            // formatting context builder only uses the last style on the stack.
+                            if last_style_from_display_contents.is_some() {
+                                inline_formatting_context_builder.leave_display_contents();
+                            }
+                            if let Some(ref new_style) = flex_text_run.style_from_display_contents {
+                                inline_formatting_context_builder
+                                    .enter_display_contents(new_style.clone());
+                            }
+                        },
+                    }
+                    last_style_from_display_contents = flex_text_run.style_from_display_contents;
+                    inline_formatting_context_builder
+                        .push_text(flex_text_run.text, &flex_text_run.info);
+                }
+
+                let inline_formatting_context = inline_formatting_context_builder.finish(
+                    builder.context,
+                    true,  /* has_first_formatted_line */
+                    false, /* is_single_line_text_box */
+                    builder.info.style.to_bidi_level(),
+                )?;
+
+                let block_formatting_context = BlockFormattingContext::from_block_container(
+                    BlockContainer::InlineFormattingContext(inline_formatting_context),
+                );
+
+                let info = builder.anonymous_info();
+                let formatting_context = IndependentFormattingContext::new(
+                    LayoutBoxBase::new(info.into(), info.style.clone()),
+                    IndependentFormattingContextContents::Flow(block_formatting_context),
+                );
+
+                Some(ModernItem {
+                    kind: ModernItemKind::InFlow(formatting_context),
+                    order: 0,
+                    box_slot,
+                })
+            },
+            ModernContainerJob::ElementOrPseudoElement {
+                info,
+                display,
+                contents,
+                box_slot,
+            } => {
+                let is_abspos = info.style.get_box().position.is_absolutely_positioned();
+                let order = if is_abspos {
+                    0
+                } else {
+                    info.style.clone_order()
+                };
+
+                if let Some(layout_box) =
+                    box_slot
+                        .take_layout_box()
+                        .and_then(|layout_box| match &layout_box {
+                            LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => {
+                                Some(layout_box)
+                            },
+                            _ => None,
+                        })
+                {
+                    return Some(ModernItem {
+                        kind: ModernItemKind::ReusedBox(layout_box),
+                        order,
+                        box_slot,
+                    });
+                }
+
+                // Text decorations are not propagated to any out-of-flow descendants. In addition,
+                // absolutes don't affect the size of ancestors so it is fine to allow descendent
+                // tables to resolve percentage columns.
+                let propagated_data = match is_abspos {
+                    false => builder.propagated_data,
+                    true => PropagatedBoxTreeData::default(),
+                };
+
+                let formatting_context = IndependentFormattingContext::construct(
+                    builder.context,
+                    &info,
+                    display.display_inside(),
+                    contents,
+                    propagated_data,
+                );
+
+                let kind = if is_abspos {
+                    ModernItemKind::OutOfFlow(formatting_context)
+                } else {
+                    ModernItemKind::InFlow(formatting_context)
+                };
+                Some(ModernItem {
+                    kind,
+                    order,
+                    box_slot,
+                })
+            },
+        }
+    }
+}
+
+struct ModernContainerTextRun<'dom> {
+    info: NodeAndStyleInfo<'dom>,
+    text: Cow<'dom, str>,
+    style_from_display_contents: Option<SharedInlineStyles>,
+}
+
+impl ModernContainerTextRun<'_> {
+    /// <https://drafts.csswg.org/css-text/#white-space>
+    fn is_only_document_white_space(&self) -> bool {
+        // FIXME: is this the right definition? See
+        // https://github.com/w3c/csswg-drafts/issues/5146
+        // https://github.com/w3c/csswg-drafts/issues/5147
+        self.text
+            .bytes()
+            .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
+    }
+}
+
+pub(crate) enum ModernItemKind {
+    InFlow(IndependentFormattingContext),
+    OutOfFlow(IndependentFormattingContext),
+    ReusedBox(LayoutBox),
+}
+
+pub(crate) struct ModernItem<'dom> {
+    pub kind: ModernItemKind,
+    pub order: i32,
+    pub box_slot: BoxSlot<'dom>,
+}
+
+impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+        self.contiguous_text_runs.push(ModernContainerTextRun {
+            info: info.clone(),
+            text,
+            style_from_display_contents: self.display_contents_shared_styles.last().cloned(),
+        })
+    }
+
+    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        self.display_contents_shared_styles.push(styles);
+    }
+
+    fn leave_display_contents(&mut self) {
+        self.display_contents_shared_styles.pop();
+    }
+
+    /// Or pseudo-element
+    fn handle_element(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        display: DisplayGeneratingBox,
+        contents: Contents,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        self.wrap_any_text_in_anonymous_block_container();
+
+        self.jobs.push(ModernContainerJob::ElementOrPseudoElement {
+            info: info.clone(),
+            display,
+            contents,
+            box_slot,
+        })
+    }
+}
+
+impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
+    pub fn new(
+        context: &'a LayoutContext<'a>,
+        info: &'a NodeAndStyleInfo<'dom>,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> Self {
+        ModernContainerBuilder {
+            context,
+            info,
+            anonymous_info: Default::default(),
+            propagated_data: propagated_data.disallowing_percentage_table_columns(),
+            contiguous_text_runs: Vec::new(),
+            jobs: Vec::new(),
+            has_text_runs: false,
+            display_contents_shared_styles: Vec::new(),
+        }
+    }
+
+    fn anonymous_info(&self) -> &NodeAndStyleInfo<'dom> {
+        self.anonymous_info.get_or_init(|| {
+            self.info
+                .with_pseudo_element(self.context, PseudoElement::ServoAnonymousBox)
+                .expect("Should always be able to construct info for anonymous boxes.")
+        })
+    }
+
+    fn wrap_any_text_in_anonymous_block_container(&mut self) {
+        let runs = std::mem::take(&mut self.contiguous_text_runs);
+
+        // If there is no text run or they all only contain document white space
+        // characters, do nothing.
+        if runs
+            .iter()
+            .all(ModernContainerTextRun::is_only_document_white_space)
+        {
+            return;
+        }
+
+        let box_slot = self.anonymous_info().node.box_slot();
+        self.jobs.push(ModernContainerJob::TextRuns(runs, box_slot));
+        self.has_text_runs = true;
+    }
+
+    pub(crate) fn finish(mut self) -> Vec<ModernItem<'dom>> {
+        self.wrap_any_text_in_anonymous_block_container();
+
+        let jobs = std::mem::take(&mut self.jobs);
+        let mut children: Vec<_> = if self.context.use_rayon {
+            jobs.into_par_iter()
+                .filter_map(|job| job.finish(&self))
+                .collect()
+        } else {
+            jobs.into_iter()
+                .filter_map(|job| job.finish(&self))
+                .collect()
+        };
+
+        // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
+        children.sort_by_key(|child| child.order);
+
+        children
+    }
+}

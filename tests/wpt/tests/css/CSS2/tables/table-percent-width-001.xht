@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Testing percent widths of kids of anonymous table cells</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#auto-table-layout"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details"/>
+  <meta name="assert" content="Percentage width kids of anonymous cells should use anonymous cell as containing block"/>
+  <style type="text/css"><![CDATA[
+    #parent { position: relative; }
+    .table { display: table; position: absolute; top: 0; left: 0; width: 300px }
+    .row { display: table-row }
+    .cell { display: table-cell; }
+    .spacer { width: 100px; }
+    .background { background: red; width: 100px; height: 100px; }
+    .foreground { background: green; width: 50%; height: 100px; }
+  ]]></style>
+ </head>
+ <body>
+   <p>There should be no red below.  A 100px by 100px green square should be visible.</p>
+   <div id="parent">
+     <div class="table">
+       <div class="row">
+         <div class="cell spacer"></div>
+         <div class="background"></div>
+       </div>
+     </div>
+     <div class="table">
+       <div class="row">
+         <div class="cell spacer"></div>
+         <div class="foreground"></div>
+       </div>
+     </div>
+   </div>
+ </body>
+</html>

@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Do not propagate direction from body when html root is contained</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#principal-flow">
+<link rel="match" href="direction-propagation-body-contain-root-ref.html">
+<style>
+  html { contain: paint; }
+  body { direction: rtl; display: inline; }
+</style>
+<body></body>
+<script>
+  document.documentElement.insertBefore(document.createTextNode("This text should be left aligned."), document.body);
+</script>

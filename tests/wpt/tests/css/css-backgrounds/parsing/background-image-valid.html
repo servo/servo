@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing background-image with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-image">
+<meta name="assert" content="background-image supports the full grammar '<bg-image>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("background-image", "none");
+
+// Safari removes quotes.
+test_valid_value("background-image", 'url("http://www.example.com/")', ['url("http://www.example.com/")', 'url(http://www.example.com/)']);
+test_valid_value("background-image", 'none, url("http://www.example.com/")', ['none, url("http://www.example.com/")', 'none, url(http://www.example.com/)']);
+
+test_valid_value(
+    "background-image",
+    "cross-fade(50% url(http://www.example.com), 50% url(http://www.example.com))", [
+        "cross-fade(url(http://www.example.com) 50%, url(http://www.example.com) 50%)",
+        'cross-fade(url("http://www.example.com") 50%, url("http://www.example.com") 50%)'
+    ]);
+test_valid_value(
+    "background-image",
+    "cross-fade(red 33%, white 33%, blue)");
+test_valid_value(
+    "background-image",
+    "cross-fade(blue, linear-gradient(90deg, rgb(2, 0, 36) 0%, rgb(0, 212, 255) 100%))");
+test_valid_value("background-image", "cross-fade( 1% red, green)", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(1% red , green)", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(1% red, green )", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(red 1%, cross-fade(red 2%, green))");
+</script>
+</body>
+</html>

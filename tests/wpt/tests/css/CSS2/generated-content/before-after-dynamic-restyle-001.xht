@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+    <link rel="match" href="before-after-dynamic-restyle-001-ref.xht"/>
+    <meta name="flags" content="dom" />
+<style type="text/css">
+body:before {
+  content:"Before";
+  border:inherit;
+}
+.cl:after {
+  display:block;
+  content:"After";
+}
+</style>
+<script type="text/javascript">
+function fixupDOM() {
+  document.body.setAttribute("style", "border:2px solid green;");
+  document.body.className = "cl";
+  document.documentElement.className = "";
+}
+</script>
+</head>
+<body onload="fixupDOM()">
+
+
+</body></html>

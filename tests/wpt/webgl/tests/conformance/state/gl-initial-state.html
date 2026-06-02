@@ -1,0 +1,60 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL gl.getParameter initial values Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test checks the initial value of the OpenGL state");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  checkParameterInitialValue("ONE", "BLEND_SRC_RGB");
+  checkParameterInitialValue("ONE", "BLEND_SRC_ALPHA");
+  checkParameterInitialValue("ZERO", "BLEND_DST_RGB");
+  checkParameterInitialValue("ZERO", "BLEND_DST_ALPHA");
+  shouldBe("gl.getError()", "gl.NO_ERROR");
+}
+
+function checkParameterInitialValue(expected, enum_val) {
+  var s = gl.getParameter(gl[enum_val]);
+  if (s === gl[expected]) {
+    testPassed("getParameter(gl." + enum_val + ") returned " + expected + " which is " + gl[expected]);
+  } else {
+    testFailed("getParameter(gl." + enum_val + ") returned " + s + " expected: " + expected + " which is " + gl[expected]);
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

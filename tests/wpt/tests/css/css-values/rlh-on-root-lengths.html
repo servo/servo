@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Using rlh units in lengths on the root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#rlh">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    line-height: 73px;
+    padding-left: 2rlh;
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement).paddingLeft, "146px");
+  }, "Non font or line-height properties on :root should resolve rlh against :root line-height");
+</script>

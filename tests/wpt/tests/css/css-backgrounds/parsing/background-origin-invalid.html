@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing background-origin with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-origin">
+<meta name="assert" content="background-origin supports only the grammar '<box>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("background-origin", "fill-box");
+test_invalid_value("background-origin", "margin-box");
+test_invalid_value("background-origin", "stroke-box");
+test_invalid_value("background-origin", "view-box");
+</script>
+</body>
+</html>

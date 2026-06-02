@@ -1,0 +1,12 @@
+<script src="iframe_harness.js"></script>
+<body>
+  <iframe src="same_origin_grandchild.html"></iframe>
+</body>
+<script>
+    send_test_results({
+        "id": '08782f28-e313-47ae-8cd7-419f3e194b0a',
+        "parent": window.parent !== window,
+        "grandparent": window.parent.parent === window.parent,
+        "top": window.top === window.parent,
+    });
+</script>

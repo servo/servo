@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.ready</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-ready">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  const originalReadyPromise = animation.ready;
+  let pauseReadyPromise;
+
+  return animation.ready.then(() => {
+    assert_equals(animation.ready, originalReadyPromise,
+                  'Ready promise is the same object when playing completes');
+    animation.pause();
+    assert_not_equals(animation.ready, originalReadyPromise,
+                      'A new ready promise is created when pausing');
+    pauseReadyPromise = animation.ready;
+    // Wait for the promise to fulfill since if we abort the pause the ready
+    // promise object is reused.
+    return animation.ready;
+  }).then(() => {
+    animation.play();
+    assert_not_equals(animation.ready, pauseReadyPromise,
+                      'A new ready promise is created when playing');
+  });
+}, 'A new ready promise is created when play()/pause() is called');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+
+  return animation.ready.then(() => {
+    const promiseBeforeCallingPlay = animation.ready;
+    animation.play();
+    assert_equals(animation.ready, promiseBeforeCallingPlay,
+                  'Ready promise has same object identity after redundant call'
+                  + ' to play()');
+  });
+}, 'Redundant calls to play() do not generate new ready promise objects');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+
+  return animation.ready.then(resolvedAnimation => {
+    assert_equals(resolvedAnimation, animation,
+                  'Object identity of Animation passed to Promise callback'
+                  + ' matches the Animation object owning the Promise');
+  });
+}, 'The ready promise is fulfilled with its Animation');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  // Ensure the ready promise is created
+  const ready = animation.ready;
+
+  window.addEventListener(
+    'unhandledrejection',
+    t.unreached_func('Should not get an unhandled rejection')
+  );
+
+  animation.cancel();
+
+  // Wait a moment to allow a chance for the event to be dispatched.
+  await waitForAnimationFrames(2);
+}, 'The ready promise does not report an unhandledrejection when rejected');
+
+</script>
+</body>

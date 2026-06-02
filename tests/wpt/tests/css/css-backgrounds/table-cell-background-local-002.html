@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: table cell background-image with local attachment</title>
+
+  <!--
+
+  Created: December 8th 2023
+
+  Last modified: December 8th 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-attachment">
+  <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-control">
+  <link rel="match" href="reference/table-cell-background-local-002-ref.html">
+
+  <style>
+  td
+    {
+      height: 100px;
+      padding: 0px;
+      vertical-align: top;
+      width: 100px;
+    }
+
+  td#middle-cell
+    {
+      background: url("support/500x500-red-with-green-center.png") local;
+      overflow: hidden;
+    }
+
+  div#outer
+    {
+      height: 0px;
+      width: 0px;
+    }
+
+  div#inner
+    {
+      height: 300px;
+      width: 300px;
+    }
+  </style>
+
+ <body onload="document.getElementById('middle-cell').scrollTop = 200; document.getElementById('middle-cell').scrollLeft = 200;">
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <table>
+
+    <tr><td><td><td>
+
+    <tr>
+      <td>
+      <td id="middle-cell">
+        <div id="outer">
+          <div id="inner"></div>
+        </div>
+      <td>
+
+    <tr><td><td><td>
+
+  </table>

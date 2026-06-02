@@ -1,0 +1,15 @@
+<script>
+  window.addEventListener('message', e => {
+    if (e.data == 'redirect') {
+      location.assign(
+        "https://{{domains[]}}:{{location[port]}}/permissions-policy/resources/opaque-origin-history2.https.html");
+    }
+  });
+
+  parent.postMessage(
+    document.fullscreenEnabled ?
+    'fullscreen enabled in opaque-origin-history1.html' :
+    'fullscreen disabled in opaque-origin-history1.html',
+    '*'
+  );
+</script>

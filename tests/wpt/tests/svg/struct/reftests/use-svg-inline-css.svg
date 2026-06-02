@@ -1,0 +1,14 @@
+<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Width and Height as inline CSS properties on use and referencing svg element</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement"/>
+    <html:link rel="match" href="reference/green-100x100.svg"/>
+  </metadata>
+  <defs>
+    <svg id="svg" width="200" height="200">
+      <rect width="400" height="400" fill="green"/>
+    </svg>
+  </defs>
+  <use href="#svg" style="width:100px; height:100px"/>
+</svg>

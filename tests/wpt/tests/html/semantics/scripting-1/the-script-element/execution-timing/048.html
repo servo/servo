@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: adding inline script which sets its own .src </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <script>log('inline script #1');
+    var script=testlib.addScript('log(\'HEAD script start\');document.getElementsByTagName(\'script\')[0].src=\'scripts/include-1.js\';log(\'HEAD script end\')', {}, document.getElementsByTagName('head')[0], true );
+    log('end script #1');
+  </script>
+
+  <script type="text/javascript">
+  log( 'inline script #2' );
+  var t = async_test()
+
+  function test() {
+    assert_array_equals(eventOrder, ['inline script #1', 'HEAD script start', 'HEAD script end', 'end script #1', 'inline script #2']);
+    t.done();
+  }
+  onload = t.step_func(test)
+  </script>
+
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that a dynamically added preloaded resource is downloaded');
+</script>
+<body>
+<script>
+    t.step(function() {
+        verifyPreloadAndRTSupport();
+        var link = document.createElement("link");
+        link.as = "script";
+        link.rel = "preload";
+        link.href = "resources/dummy.js?dynamic-adding-preload";
+        link.onload = t.step_func(function() {
+            t.step_timeout(function() {
+                verifyNumberOfResourceTimingEntries("resources/dummy.js?dynamic-adding-preload", 1);
+                t.done();
+            }, 0);
+        });
+        document.body.appendChild(link);
+    });
+</script>
+</body>

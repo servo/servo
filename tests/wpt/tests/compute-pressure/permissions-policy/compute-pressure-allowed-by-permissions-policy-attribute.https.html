@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+"use strict";
+
+const same_origin_src =
+  '/permissions-policy/resources/permissions-policy-compute-pressure.html';
+const cross_origin_src = get_host_info().HTTPS_REMOTE_ORIGIN + same_origin_src;
+const feature_name = 'permissions policy "compute-pressure"';
+const attribute = 'allow="compute-pressure" attribute';
+
+async_test(t => {
+  test_feature_availability(
+    'PressureObserver.observe()',
+    t,
+    same_origin_src,
+    expect_feature_available_default,
+    'compute-pressure'
+  );
+}, `${feature_name} can be enabled in same-origin iframe using ${attribute}`);
+
+async_test(t => {
+  test_feature_availability(
+    'PressureObserver.observe()',
+    t,
+    cross_origin_src,
+    expect_feature_available_default,
+    'compute-pressure'
+  );
+}, `${feature_name} can be enabled in cross-origin iframe using ${attribute}`);
+
+</script>
+</body>

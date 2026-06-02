@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+
+</head>
+<body>
+  <h1>Description</h1>
+  <p> This test verifies that, for resources including an
+      iframe, that are loaded by an inline script, the
+      initiatorUrl is properly reported.
+  </p>
+</body>
+<script>
+
+  const label = "no_cache_inline_script";
+
+  var ifr = document.createElement("iframe");
+  document.body.appendChild(ifr);
+  ifr.src = "resources/blank_page_green.html?" + label;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "../../resources/empty_style.css?" + label;
+  document.head.appendChild(link);
+
+  const img = document.createElement("img");
+  img.src = "/images/blue.png?" + label;
+  document.body.appendChild(img);
+
+  const resources = [
+    "blank_page_green.html?" + label,
+    "empty_style.css?" + label,
+    "blue.png?" + label,
+  ];
+
+  const hostInfo = get_host_info();
+  const expectedInitiatorUrl = hostInfo["ORIGIN"] +
+    "/resource-timing/tentative/initiator-url/inline-script.html";
+
+  for (const resource of resources) {
+    initiator_url_test(resource, expectedInitiatorUrl, resource+
+      " initiatorUrl from inline-script", resource+" timeout");
+  }
+
+</script>

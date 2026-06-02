@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta id="meta_csp" http-equiv="Content-Security-Policy" content="img-src 'none'">
+    <title>meta-img-src</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS","TEST COMPLETE"]'></script>
+</head>
+
+<body>
+<p>Test passes if the image is blocked.</p>
+
+    <script>
+    function testImgSrc() {
+        var img = document.createElement('img');
+        img.src = '../support/fail.png';
+        img.onerror = function() {
+            log("PASS");
+        };
+        img.onload = function() {
+            log("FAIL");
+        };
+        document.body.appendChild(img);
+    }
+    testImgSrc();
+    log("TEST COMPLETE");
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

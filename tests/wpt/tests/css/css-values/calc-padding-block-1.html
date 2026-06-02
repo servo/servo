@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test of padding-*: calc()</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-padding-block-1-ref.html">
+<style type="text/css">
+
+body { width: 500px }
+div { border: medium solid green }
+p { background: yellow; margin: 0 }
+
+</style>
+</head>
+<body>
+
+<div style="padding: calc(10px + 1%) 0 0 0"><p>paragraph with padding</p></div>
+<div style="padding: 0 calc(10px + 1%) 0 0"><p>paragraph with padding</p></div>
+<div style="padding: 0 0 calc(10px + 1%) 0"><p>paragraph with padding</p></div>
+<div style="padding: 0 0 0 calc(10px + 1%)"><p>paragraph with padding</p></div>
+<div style="padding: calc(30px - 1%)"><p>paragraph with padding</p></div>
+</body>
+</html>

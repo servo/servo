@@ -1,0 +1,98 @@
+WEBVTT
+
+NOTE valid
+
+REGION
+id:1
+lines:0
+
+REGION
+id:2
+lines:1
+
+REGION
+id:3
+lines:100
+
+REGION
+id:4
+lines:101
+
+REGION
+id:5
+lines:65536
+
+REGION
+id:6
+lines:4294967296
+
+REGION
+id:7
+lines:18446744073709552000
+
+REGION
+id:8
+lines:10000000000000000000000000000000000
+
+REGION
+id:9
+lines:1 lines:3
+lines:2
+
+NOTE invalid
+
+REGION
+id:10
+lines:-0
+
+REGION
+id:11
+lines:1.5
+
+REGION
+id:12
+lines:-1
+
+REGION
+id:13
+lines: 1
+lines :1
+
+00:00:00.000 --> 00:00:01.000 region:1
+text
+
+00:00:00.000 --> 00:00:01.000 region:2
+text
+
+00:00:00.000 --> 00:00:01.000 region:3
+text
+
+00:00:00.000 --> 00:00:01.000 region:4
+text
+
+00:00:00.000 --> 00:00:01.000 region:5
+text
+
+00:00:00.000 --> 00:00:01.000 region:6
+text
+
+00:00:00.000 --> 00:00:01.000 region:7
+text
+
+00:00:00.000 --> 00:00:01.000 region:8
+text
+
+00:00:00.000 --> 00:00:01.000 region:9
+text
+
+00:00:00.000 --> 00:00:01.000 region:10
+text
+
+00:00:00.000 --> 00:00:01.000 region:11
+text
+
+00:00:00.000 --> 00:00:01.000 region:12
+text
+
+00:00:00.000 --> 00:00:01.000 region:13
+text

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>Cue fragment is mutable</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+p, div { display: none; }
+</style>
+<video>
+    <track src="resources/captions-html.vtt" kind="captions" default>
+    <script>
+        async_test(function(t) {
+            var video = document.querySelector("video");
+            var testTrack = document.querySelector("track");
+
+            video.oncanplaythrough = t.step_func(testMutability);
+            testTrack.onload = t.step_func(testMutability);
+
+            var fragment;
+            var eventCount = 0;
+            function testMutability() {
+                eventCount++;
+                if (eventCount != 2)
+                    return;
+
+                var testCue = testTrack.track.cues[0];
+
+                // Test initial cue contents.
+                assert_equals(testCue.text, "Lorem <b>ipsum</b> <u>dolor</u> <i.sit>sit</i> amet,");
+
+                // Cue getCueAsHTML() should return a correct fragment.
+                createExpectedFragment(document.createDocumentFragment());
+                assert_true(fragment.isEqualNode(testCue.getCueAsHTML()));
+
+                // Appending getCuesAsHTML() twice to the DOM should be succesful.
+                document.getElementsByTagName("div")[0].appendChild(testCue.getCueAsHTML());
+                document.getElementsByTagName("div")[1].appendChild(testCue.getCueAsHTML());
+
+                createExpectedFragment(document.createElement("div"));
+                assert_true(fragment.isEqualNode(document.getElementsByTagName("div")[0]));
+                assert_true(fragment.isEqualNode(document.getElementsByTagName("div")[1]));
+
+                // The fragment returned by getCuesAsHTML() should be independently mutable.
+                document.getElementsByTagName("div")[0].firstChild.textContent = "Different text ";
+                assert_false(fragment.isEqualNode(document.getElementsByTagName("div")[0]));
+                assert_true(fragment.isEqualNode(document.getElementsByTagName("div")[1]));
+
+                // Calling twice getCueAsHTML() should not return the same fragment.
+                assert_not_equals(testCue.getCueAsHTML(), testCue.getCueAsHTML());
+
+                t.done();
+            }
+
+            function createExpectedFragment(rootNode) {
+                fragment = rootNode;
+                fragment.appendChild(document.createTextNode("Lorem "));
+
+                var bold = document.createElement("b");
+                bold.appendChild(document.createTextNode("ipsum"));
+                fragment.appendChild(bold);
+
+                fragment.appendChild(document.createTextNode(" "));
+
+                var underline = document.createElement("u");
+                underline.appendChild(document.createTextNode("dolor"));
+                fragment.appendChild(underline);
+
+                fragment.appendChild(document.createTextNode(" "));
+
+                var italics = document.createElement("i");
+                italics.className = "sit";
+                italics.appendChild(document.createTextNode("sit"));
+                fragment.appendChild(italics);
+
+                fragment.appendChild(document.createTextNode(" amet,"));
+            }
+
+            video.src = getVideoURI("/media/counting");
+        });
+    </script>
+</video>
+<p>Fragment 1</p>
+<div></div>
+<p>Fragment 2</p>
+<div></div>

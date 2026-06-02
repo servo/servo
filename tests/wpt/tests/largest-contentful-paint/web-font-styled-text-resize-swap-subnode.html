@@ -1,0 +1,74 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @font-face {
+    font-family: "ADTestFaceSwapSubnode";
+    src: url("/fonts/AD.woff?pipe=trickle(d0.5)");
+    font-display: swap;
+  }
+
+  .test {
+    font-family: "ADTestFaceSwapSubnode";
+  }
+</style>
+<!--
+  Web-font styled subnode text that gets resized during swap period should make
+  a LCP emission if the new size is larger than the existing LCP element size.
+-->
+<div class="test">
+  <span>LCP: Web Font Styled Text Resize</span>
+</div>
+<script>
+  promise_test(async (t) => {
+    await document.fonts.ready;
+
+    // Verify web font is downloaded.
+    assert_own_property(window, "PerformanceResourceTiming", "ResourceTiming not supported");
+    let url = "/fonts/AD.woff?pipe=trickle(d0.5)";
+    var absoluteURL = new URL(url, location.href).href;
+    assert_equals(
+      performance.getEntriesByName(absoluteURL).length,
+      1,
+      "Web font should be downloaded",
+    );
+
+    // Verify web font is available.
+    assert_true(
+      document.fonts.check("16px ADTestFaceSwapSubnode"),
+      "Font should be the web font added",
+    );
+
+    let lcpEntries = [];
+    await Promise.race([
+      new Promise((resolve, reject) => {
+        t.step_timeout(() => {
+          resolve(lcpEntries);
+        }, 3000);
+      }),
+      new Promise((resolve, reject) => {
+        new PerformanceObserver((list, observer) => {
+          lcpEntries.push(...list.getEntries());
+          if (lcpEntries.length >= 2) {
+            resolve();
+            observer.disconnect();
+          }
+        }).observe({ type: "largest-contentful-paint", buffered: true });
+      }),
+    ]);
+
+    // Verify there are 2 LCP entries emitted.
+    assert_equals(
+      lcpEntries.length,
+      2,
+      "There should be 2 LCP entries. The 1st one corresponds to the system font and the 2nd the web font.",
+    );
+
+    // Verify the size of 2nd LCP entry is larger than that of the 1st one.
+    assert_greater_than(
+      lcpEntries[1].size,
+      lcpEntries[0].size,
+      "The size of 2nd LCP entry should be larger than that of the 1st one.",
+    );
+  }, "LCP should be updated if the web font styled text resizes to be larger during the swap period");
+</script>

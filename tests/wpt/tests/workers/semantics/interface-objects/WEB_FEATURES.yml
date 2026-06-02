@@ -1,0 +1,11 @@
+features:
+- name: shared-workers
+  files:
+  # These "any.js" tests are limited to the SharedWorker context via the "META"
+  # configuration.
+  - 003.any.js
+  - 004.any.js
+- name: dedicated-workers
+  files:
+  - 001.worker.js
+  - 002.worker.js

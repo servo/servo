@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - caret-color with system color.</title>
+<style>
+  div {
+    caret-color: GrayText;
+    forced-color-adjust: none;
+  }
+  [contenteditable] {
+    outline: none;
+  }
+</style>
+<div id="caret" contenteditable>The caret color should remain GrayText</a>
+<script>
+  window.onload = function() {
+    document.getElementById("caret").focus();
+  }
+</script>
+

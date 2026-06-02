@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+  <title>Style recalculation picks up “initial” variable declaration</title>
+  <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+  <link rel="help" href="https://crbug.com/1508841">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .a {
+      --color: red;
+    }
+    .b {
+      --color: initial;
+    }
+    .c {
+      color: var(--color, green);
+    }
+  </style>
+</head>
+<body>
+  <div class="a">
+    <div class="b">
+      <div class="c" id="target">Test passes if this text is green.</div>
+    </div>
+  </div>
+  <script>
+    test(() => {
+      let target = document.getElementById('target');
+      target.offsetTop;
+      document.body.style.pointerEvents = 'none';
+      assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+    });
+  </script>
+</body>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Event base 'begin' after removal from the document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect height="100" width="100">
+    <animate begin="click" dur="1s" attributeName="width" from="50" to="100"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    const svg = document.querySelector('svg');
+    document.body.removeChild(svg);
+    document.body.appendChild(svg);
+
+    document.querySelector('animate').onbegin = t.step_func_done();
+
+    // Defensively, wait for 'load' and a paint before attempting to trigger a
+    // 'click'.
+    window.onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func(() => {
+        requestAnimationFrame(t.step_func(() => {
+          const rect = svg.firstElementChild;
+          rect.dispatchEvent(new MouseEvent('click'));
+        }));
+      }));
+    });
+  });
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Testing behavior of AudioContext after execution context is detached
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      const audit = Audit.createTaskRunner();
+
+      audit.define('decoding-on-detached-iframe', (task, should) => {
+        const iframe =
+            document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+        document.body.appendChild(iframe);
+        let context = new iframe.contentWindow.AudioContext();
+        document.body.removeChild(iframe);
+
+        should(context.decodeAudioData(new ArrayBuffer(1)),
+               'decodeAudioData() upon a detached iframe')
+            .beRejectedWith('InvalidStateError')
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

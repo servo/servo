@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-auto-columns: min-content;
+  grid-template-rows: repeat(4, 50px);
+  width: 170px;
+}
+</style>
+<body>
+<p>Ensure that dense-packing correctly iterates through all possible track openings to find an opening span. Item that should be placed into opening is yellow.</p>
+<div class="grid">
+  <div style="background: aquamarine; width: 60px; grid-row: 4;" >
+    1
+  </div>
+    <div style="background: blue; width: 40px; grid-row: 3;" >
+    2
+  </div>
+  <div style="background: blueviolet; width: 20px; grid-row: 2;">
+    3
+  </div>
+  <div style="background: lightsteelblue; width: 60px; grid-row: 1;">
+    6
+  </div>
+  <div style="background: lightblue; width: 10px; grid-row: 3 / span 2;">
+    4
+  </div>
+  <div style="background: lightskyblue; grid-row: 1; width: 30px; grid-row: 4;">
+    5
+  </div>
+  <div style="background: aqua; width: 20px; grid-row: 1 / span 4;">
+    7
+  </div>
+  <div style="background: yellow; width: 10px; grid-row: span 3;">
+    8
+  </div>
+</div>
+</body>
+</html>

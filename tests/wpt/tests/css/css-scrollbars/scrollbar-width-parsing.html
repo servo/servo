@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scrollbar-width declarations</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars/"/>
+<meta name="assert" content="Parsing scrollbar-width declarations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+
+    test_valid_value("scrollbar-width", "auto");
+    test_valid_value("scrollbar-width", "thin");
+    test_valid_value("scrollbar-width", "none");
+
+    test_invalid_value("scrollbar-width", "");
+    test_invalid_value("scrollbar-width", "auto none");
+    test_invalid_value("scrollbar-width", "thin auto");
+    test_invalid_value("scrollbar-width", "none thin");
+    test_invalid_value("scrollbar-width", "auto thin none");
+    test_invalid_value("scrollbar-width", "tiny");
+    test_invalid_value("scrollbar-width", "enormous");
+    test_invalid_value("scrollbar-width", "12px");
+    test_invalid_value("scrollbar-width", "3em");
+    test_invalid_value("scrollbar-width", "20%");
+    test_invalid_value("scrollbar-width", "#FF0000");
+    test_invalid_value("scrollbar-width", "red green");
+
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  document.execCommand("selectAll");
+  document.getSelection().extend(document.getElementById("li"));
+  document.designMode = "on";
+  document.execCommand("insertHorizontalRule");
+});
+</script>
+</head><body><progress>
+<q>
+<ol contenteditable="true">
+<li id="li">
+</li>
+</ol>
+</q></progress>
+<select></select>
+<!-- COMMENT -->
+</body></html>

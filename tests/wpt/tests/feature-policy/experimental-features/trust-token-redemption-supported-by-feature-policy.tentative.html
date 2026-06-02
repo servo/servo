@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Test that trust token redemption is advertised in the feature list</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_true(
+        document.featurePolicy.features().includes('trust-token-redemption'),
+        'trust token redemption should be in document.featurePolicy.features()');
+  }, 'document.featurePolicy.features should advertise trust token redemption.');
+</script>

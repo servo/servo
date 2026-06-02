@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function waitForBool(boolName) {
+  return new Promise((resolve) => {
+    const checkVariable = setInterval(() => {
+      if (window[boolName]) {
+        clearInterval(checkVariable);
+        resolve();
+      }
+    }, 0);
+  });
+}
+
+step_timeout(() => {
+  const importMapScript = document.createElement('script');
+  importMapScript.type = 'importmap';
+  importMapScript.textContent = JSON.stringify({
+    imports: {
+      "../resources/log.sub.js?name=A": "../resources/log.sub.js?name=B"
+    }
+  });
+  document.head.appendChild(importMapScript);
+}, 100);
+const log = [];
+</script>
+<script type="module">
+import "../resources/importer.sub.js?pipe=trickle(d0.5)&name=..%2Fresources%2Flog.sub.js%3Fname%3DA";
+</script>
+<script type="module">
+test(() => {
+  assert_array_equals(log, ["log:B"], "Import should use the new import map");
+}, "Module tree that started to download before a new import map should still take it into account");
+</script>
+</body>
+</html>
+
+
+
+

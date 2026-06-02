@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Borders. border&ndash;radius set to zero</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <link rel="author" title="Nokia" href="http://www.nokia.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius" />
+        <link rel="match" href="border-radius-001-ref.xht" />
+        <meta name="assert" content="To verify when border-radius property, when set to zero, works as expected." />
+        <style>
+            div {
+                border: 2px solid #a1a1a1;
+                background: #dddddd;
+                width: 200px;
+                height: 100px;
+            }
+            #test {
+                border-radius: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>There should be two boxes with no rounded corners.</p>
+        <ul>
+            <li>PASS if the two boxes below are the same.</li>
+            <li>FAIL if the output is not as expected.</li>
+        </ul>
+
+        <!-- PLACE TEST CONTENT FROM HERE -->
+        <div id="test"></div>
+        <p><br/></p>
+        <div id="reference"></div>
+    </body>
+</html>
+

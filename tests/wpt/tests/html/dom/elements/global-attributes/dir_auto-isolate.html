@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HTML Test: dir=auto, isolated in LTR text</title>
+    <link rel="match" href="dir_auto-isolate-ref.html" />
+    <link rel="author" title="Matitiahu Allouche" href="mailto:matitiahu.allouche@google.com" />
+    <link rel="author" title="Oren Roth" href="mailto:oren.roth@gmail.com" />
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute" />
+    <meta name="assert" content="
+      When dir='auto', the direction is set according to the first strong character
+      of the text, but the element behaves externally as a neutral character.
+      In this test, it allows a preceding R to form a single directional run
+      with a succeeding number." />
+    <style>
+      input, textarea {
+        font-size:1em;
+      }
+      body {
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="comments">
+      Key to entities used below:
+      &#x05D0; - The Hebrew letter Alef (strongly RTL).
+      &#x202D; - The LRO (left-to-right override) formatting character.
+      &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
+    </div>
+    <div class="test">
+      <div dir="ltr">
+        &#x05D0; <span dir="auto">a!</span> 1
+      </div>
+      <div dir="rtl">
+        a <span dir="auto">&#x05D0;!</span> 1
+      </div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">
+        &#x202D;1 a! &#x05D0;&#x202C;
+      </div>
+      <div dir="rtl">
+        &#x202D;a !&#x05D0; 1&#x202C;
+      </div>
+    </div>
+  </body>
+</html>

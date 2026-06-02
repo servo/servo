@@ -1,0 +1,6 @@
+Cross-Origin-Opener-Policy: same-origin-allow-popups; report-to="coop-report-endpoint"
+Cross-Origin-Opener-Policy-Report-Only: same-origin; report-to="coop-report-only-endpoint"
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Embedder-Policy-Report-Only: require-corp
+Referrer-Policy: origin
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=2aee31d2-cd11-43bd-b34d-5f081ca3b2b4", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=d18f1779-e2ab-4a7a-8b1c-44e3a6f440f5"

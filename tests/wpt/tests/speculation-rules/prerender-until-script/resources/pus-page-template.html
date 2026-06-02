@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>prerender-until-script</title>
+</head>
+<body>
+<h1>This is the prerendering request.</h1>
+<div>
+<script async src="{{signal_path}}"></script>
+</div>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+  const testChannel = new PrerenderChannel('test-channel');
+  testChannel.postMessage(
+      `prerendering state when executing JS: ${document.prerendering}`);
+  testChannel.close();
+  window.close();
+</script>
+</body>
+</html>

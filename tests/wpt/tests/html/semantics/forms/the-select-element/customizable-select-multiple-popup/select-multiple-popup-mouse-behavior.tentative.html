@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1102">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select multiple size=1>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const optionOne = select.querySelector('.one');
+const optionTwo = select.querySelector('.two');
+
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+promise_test(async () => {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported to run this test.');
+  assert_false(select.matches(':open'),
+    'Select should be closed at the start of the test.');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected at the start of the test.');
+  assert_false(optionOne.matches(':checked'),
+    'Option one should not be checked at the start of the test.');
+  assert_false(optionTwo.matches(':checked'),
+    'Option two should not be checked at the start of the test.');
+  await click(select);
+  assert_true(select.matches(':open'),
+    'Select should be open after clicking it.');
+
+  await click(optionOne);
+  assert_true(select.matches(':open'),
+    'The picker should stay open after clicking an option.');
+  assert_true(optionOne.matches(':checked'),
+    'Option one should match :checked after clicking on it.');
+  assert_false(optionTwo.matches(':checked'),
+    'Option two should not match :checked after clicking on option one.');
+  assert_equals(select.selectedOptions.length, 1,
+    'There should be one selected option after clicking the first option.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'Option one should be the selected option after clicking it.');
+
+  await click(optionTwo);
+  assert_true(select.matches(':open'),
+    'The picker should stay open after clicking the second option.');
+  assert_true(optionOne.matches(':checked'),
+    'Option one should still match :checked after clicking option two.');
+  assert_true(optionTwo.matches(':checked'),
+    'Option two should match :checked after clicking on it.');
+  assert_equals(select.selectedOptions.length, 2,
+    'There should be two selected options after clicking the second option.');
+  assert_equals(select.selectedOptions[1], optionTwo,
+    'Option two should be the second selected option after clicking it.');
+
+  await click(optionTwo);
+  assert_true(select.matches(':open'),
+    'The picker should stay open after clicking the second option twice.');
+  assert_true(optionOne.matches(':checked'),
+    'Option one should still match :checked after clicking the second option twice.');
+  assert_false(optionTwo.matches(':checked'),
+    'Option two should not match :checked after being clicked twice.');
+  assert_equals(select.selectedOptions.length, 1,
+    'There should be one selected option after clicking second option twice.');
+
+  await click(select);
+  assert_false(select.matches(':open'),
+    'Select should close after clicking the button.');
+}, 'Mouse behavior for base appearance <select multiple size=1>');
+</script>

@@ -1,0 +1,32 @@
+<!-- DO NOT EDIT. This file has been generated. Source:
+    ../tools/build-compute-kind-widget-fallback-props.py
+-->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: Compute kind of widget: border-block-start-color maybe disables native appearance for input-text</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+<link rel="help" href="https://html.spec.whatwg.org/#widgets">
+<meta name="assert" content="appropriate widget is used when props includes border-block-start-color.">
+<link rel="match" href="../compute-kind-widget-fallback-input-text-ref.html">
+<style>
+    #container { width: 500px; }
+    /* NOTE: This rule is only used in the search-text-input tests: */
+    #container > #search-text-input { appearance: textfield; }
+    /* NOTE: This rule is only used in the select-menulist-button tests: */
+    #container > #select-menulist-button { appearance: none; appearance: menulist-button; }
+</style>
+
+<div id="container">
+    <input id="text-input" type="text" value="input-text">
+</div>
+
+<script>
+// Set author-level CSS that matches UA style, but don't use the 'revert' value.
+const elements = document.querySelectorAll('#container > *');
+const props = "border-block-start-color".split(",");
+for (const el of elements) {
+  for (const prop of props) {
+    el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  }
+}
+</script>

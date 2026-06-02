@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+test(test => {
+  event = document.createEvent('DeviceOrientationEvent');
+  assert_equals(event.type, "");
+  assert_equals(event.alpha, null);
+  assert_equals(event.beta, null);
+  assert_equals(event.gamma, null);
+  assert_false(event.absolute);
+}, 'Tests creating a DeviceOrientationEvent.');
+
+test(test => {
+  event = new DeviceOrientationEvent('foo', {alpha: 0, beta: 1, gamma: 2, absolute: false});
+  assert_equals(event.type, "foo");
+  assert_equals(event.alpha, 0);
+  assert_equals(event.beta, 1);
+  assert_equals(event.gamma, 2);
+  assert_false(event.absolute);
+}, 'Tests no missing value (absolute field is false).');
+
+test(test => {
+  event = new DeviceOrientationEvent('', {alpha: 0, beta: 1, gamma: 2, absolute: true});
+  assert_equals(event.alpha, 0);
+  assert_equals(event.beta, 1);
+  assert_equals(event.gamma, 2);
+  assert_true(event.absolute);
+}, 'Tests no missing value (absolute field is true).');
+
+test(test => {
+  event = new DeviceOrientationEvent('');
+  assert_equals(event.alpha, null);
+  assert_equals(event.beta, null);
+  assert_equals(event.gamma, null);
+  assert_false(event.absolute);
+}, 'Tests DeviceOrientationEvent default constructor.');
+
+test(test => {
+  event = new DeviceOrientationEvent('', {alpha: [], beta: [], gamma: [], absolute: []});
+  assert_equals(event.alpha, 0);
+  assert_equals(event.beta, 0);
+  assert_equals(event.gamma, 0);
+  assert_true(event.absolute);
+}, 'Tests all values are empty array.');
+
+test(test => {
+  event = new DeviceOrientationEvent('', {alpha: undefined, beta: undefined, gamma: undefined, absolute: undefined});
+  assert_equals(event.alpha, null);
+  assert_equals(event.beta, null);
+  assert_equals(event.gamma, null);
+  assert_false(event.absolute);
+}, 'Tests all values are undefined.');
+
+test(test => {
+  event = new DeviceOrientationEvent('', {alpha: '', beta: '', gamma: '', absolute: ''});
+  assert_equals(event.alpha, 0);
+  assert_equals(event.beta, 0);
+  assert_equals(event.gamma, 0);
+  assert_false(event.absolute);
+}, 'Tests all values are empty string.');
+
+
+test(test => {
+  event = new DeviceOrientationEvent('', {alpha: null, beta: null, gamma: null, absolute: null});
+  assert_equals(event.alpha, null);
+  assert_equals(event.beta, null);
+  assert_equals(event.gamma, null);
+  assert_false(event.absolute);
+}, 'Tests all values are null.');
+</script>

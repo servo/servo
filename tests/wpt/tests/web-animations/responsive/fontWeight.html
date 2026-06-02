@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {fontWeight: 'bolder'},
+        {fontWeight: 'bolder'}
+    ];
+
+    container.style.fontWeight = '100';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontWeight = getComputedStyle(element).fontWeight;
+    container.style.fontWeight = '800';
+    assert_not_equals(getComputedStyle(element).fontWeight, fontWeight);
+}, 'Relative font weight bolder responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {fontWeight: 'lighter'},
+        {fontWeight: 'lighter'}
+    ];
+
+    container.style.fontWeight = '900';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontWeight = getComputedStyle(element).fontWeight;
+    container.style.fontWeight = '200';
+    assert_not_equals(getComputedStyle(element).fontWeight, fontWeight);
+}, 'Relative font weight lighter responsive to style changes');
+
+</script>

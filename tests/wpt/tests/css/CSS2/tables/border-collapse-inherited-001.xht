@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse is inherited by default</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="assert" content="Border-collapse is inherited by default." />
+        <style type="text/css">
+            #container
+            {
+                border-collapse: collapse;
+            }
+            #table
+            {
+                background: red;
+                border-spacing: 10px;
+                border-style: none;
+                display: table;
+            }
+            .row
+            {
+                display: table-row;
+            }
+            .cell
+            {
+                background: black;
+                border: 3px solid black;
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single box below and there is no red visible on the page.</p>
+        <div id="container">
+            <div id="table">
+                <div class="row">
+                    <div class="cell">XXXXX</div>
+                    <div class="cell">XXXXX</div>
+                </div>
+                <div class="row">
+                    <div class="cell">XXXXX</div>
+                    <div class="cell">XXXXX</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

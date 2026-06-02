@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+
+let testName = "XRInputSources can be properly added and removed from the "
+  + "session";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = (session, fakeDeviceController, t) => new Promise((resolve) => {
+    let input_sources = session.inputSources;
+
+    t.step( () => {
+      assert_equals(input_sources.length, 0);
+    });
+
+    let input_source_1 = fakeDeviceController.simulateInputSourceConnection(RIGHT_CONTROLLER);
+
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+      let input_sources = session.inputSources;
+
+      t.step( () => {
+        assert_equals(input_sources.length, 1);
+        assert_equals(input_sources[0].targetRayMode, "tracked-pointer");
+        assert_equals(input_sources[0].handedness, "right");
+      });
+
+      let input_source_2 = fakeDeviceController.simulateInputSourceConnection({
+        handedness: "none",
+        targetRayMode: "gaze",
+        pointerOrigin: VALID_POINTER_TRANSFORM,
+        profiles: []
+      });
+
+      session.requestAnimationFrame((time, xrFrame) => {
+        let input_sources = session.inputSources;
+
+        t.step( () => {
+          assert_equals(input_sources.length, 2);
+          assert_equals(input_sources[1].targetRayMode, "gaze");
+          assert_equals(input_sources[1].handedness, "none");
+        });
+
+        input_source_1.disconnect();
+
+        session.requestAnimationFrame((time, xrFrame) => {
+          let input_sources = session.inputSources;
+
+          t.step( () => {
+            assert_equals(input_sources.length, 1);
+            assert_equals(input_sources[0].targetRayMode, "gaze");
+            assert_equals(input_sources[0].handedness, "none");
+          });
+
+          resolve();
+        });
+      });
+    });
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

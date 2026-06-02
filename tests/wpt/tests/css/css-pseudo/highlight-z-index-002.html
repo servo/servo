@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: highlight pseudo-element drawn below positioned element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="highlight-z-index-002-ref.html">
+
+  <meta name="assert" content="This test checks that the ::selection pseudo-element must be drawn below an absolutely positioned element. In this test, such absolutely positioned element is a preceding sibling element.">
+
+  <style>
+  div
+    {
+      font-size: 48px;
+      line-height: 1.25; /* computes to 60px */
+    }
+
+  div#abs-positioned-sibling
+    {
+      background-color: yellow;
+      color: green;
+      position: absolute;
+    }
+
+  div#test::selection
+    {
+      background-color: red;
+      color: yellow;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if "Text sample" is green and if its background color is yellow.
+
+  <div id="abs-positioned-sibling">Test sample</div>
+
+  <div id="test">Test sample</div>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Testing import of WebAssembly source phase with js-string builtins</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type=module>
+setup({ single_test: true });
+
+import source module from "./resources/js-string-module.wasm";
+
+const instance = await WebAssembly.instantiate(module, {
+  "wasm:js-string": {
+    // Example builtin polyfill for function returning the number of uppercase letters
+    newbuiltin: (str) => {
+      if (typeof str !== "string") return 0;
+      return (str.match(/[A-Z]/g) || []).length;
+    }
+  }
+});
+
+assert_equals(instance.exports.useBuiltins("hello"), 5);
+assert_equals(instance.exports.useBuiltins(123), -1);
+
+assert_equals(instance.exports.concatStrings("Hello", " World"));
+
+assert_equals(instance.exports.useNewBuiltin("Hello World"), 2);
+
+done();
+</script>

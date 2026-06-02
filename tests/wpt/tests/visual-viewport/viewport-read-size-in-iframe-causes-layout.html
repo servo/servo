@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    width: 200px;
+    height: 300px;
+  }
+</style>
+
+<h4>This test checks that requesting the viewport size in an iframe causes any pending layout to occur.</h4>
+<iframe srcdoc="<!DOCTYPE html><style>html{height:100%}</style>"></iframe>
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      assert_equals(frames[0].window.visualViewport.width, 200,
+          "Reading width of iframe viewport should match iframe width.");
+      assert_equals(frames[0].window.visualViewport.height, 300,
+          "Reading height of iframe viewport should match iframe height.");
+
+      // Add overflow so scrollbars appear.
+      window.frames[0].window.document.body.style.width = "2000px";
+      window.frames[0].window.document.body.style.height = "2000px";
+
+      var viewportWidth = frames[0].window.visualViewport.width;
+      var viewportHeight = frames[0].window.visualViewport.height;
+
+      assert_equals(viewportWidth, frames[0].window.document.documentElement.clientWidth,
+          "Reading width of iframe viewport should cause a layout and exclude the new scrollbar.");
+      assert_equals(viewportHeight, frames[0].window.document.documentElement.clientHeight,
+          "Reading height of iframe viewport should cause a layout and exclude the new scrollbar.");
+      t.done();
+    });
+  });
+</script>

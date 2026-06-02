@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<link rel="author" title="Karl Dubost" href="https://otsukare.info/">
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#border-conflict-resolution">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=5515">
+<link rel="match" href="rowspan-cell-border-after-color-ref.html">
+<meta name="assert" content="A cell with rowspan should use the last row's border for its after (bottom) border, not the first row's border">
+<style>
+  table {
+    border-collapse: collapse;
+  }
+
+  td {
+    width: 100px;
+    height: 50px;
+    border: 1px solid black;
+  }
+
+  /* Different border colors for each row */
+  #test tr:nth-child(1) {
+    border-bottom: 5px solid blue;
+  }
+
+  #test tr:nth-child(2) {
+    border-bottom: 5px solid green;
+  }
+
+  #test tr:nth-child(3) {
+    border-bottom: 5px solid red;
+  }
+</style>
+<p>The cell with rowspan=3 should have a red bottom border (from row 3), not blue (from row 1).</p>
+<table id="test">
+  <tr>
+    <td rowspan="3">Rowspan 3</td>
+    <td>Cell B</td>
+  </tr>
+  <tr>
+    <td>Cell C</td>
+  </tr>
+  <tr>
+    <td>Cell D</td>
+  </tr>
+</table>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFEColorMatrixElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFEColorMatrixElement.
+
+  var feColorMatrixElement = document.createElementNS("http://www.w3.org/2000/svg", "feColorMatrix");
+  feColorMatrixElement.setAttribute("type", "matrix");
+
+  // Check initial 'type' value.
+  assert_true(feColorMatrixElement.type instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feColorMatrixElement.type.baseVal), "number");
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_MATRIX);
+
+  // Switch to 'saturate'.
+  feColorMatrixElement.type.baseVal = SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_SATURATE;
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_SATURATE);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "saturate");
+
+  // Switch to 'hueRotate'.
+  feColorMatrixElement.type.baseVal = SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_HUEROTATE;
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_HUEROTATE);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "hueRotate");
+
+  // Switch to 'luminanceToAlpha'.
+  feColorMatrixElement.type.baseVal = SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA;
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = 5; });
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
+
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = -1; });
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
+
+  assert_throws_js(TypeError, function() { feColorMatrixElement.type.baseVal = 0; });
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_LUMINANCETOALPHA);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "luminanceToAlpha");
+
+  // Switch to 'matrix'.
+  feColorMatrixElement.type.baseVal = SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_MATRIX;
+  assert_equals(feColorMatrixElement.type.baseVal, SVGFEColorMatrixElement.SVG_FECOLORMATRIX_TYPE_MATRIX);
+  assert_equals(feColorMatrixElement.getAttribute('type'), "matrix");
+});
+</script>

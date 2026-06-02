@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<style>
+  .clipped {
+    background-color: green;
+    stroke: black;
+    stroke-width: 3;
+    fill: red;
+    clip-path: circle(35% at 50% 50%);
+  }
+
+  .svg {
+    width: 100px;
+    height: 100px;
+  }
+
+</style>
+
+<body>
+  <svg class="svg">
+    <circle class="clipped" cx="50" cy="50" r="40" />
+  </svg>
+
+</body>
+
+</html>

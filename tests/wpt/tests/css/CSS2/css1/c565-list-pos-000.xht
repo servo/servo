@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: list-style-position</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#list-style-position"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <meta name="assert" content="The marker box is outside the principal block box."/>
+  <style type="text/css"><![CDATA[
+   li {
+     width: 10em;
+     margin: 0.5em 5em;
+     padding: 0;
+     list-style-position: outside;
+     background: navy;
+     color: blue; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" title="12.5 Lists"/>
+ </head>
+ <body>
+  <p>There must be a navy rectangle below, preceded by a blue bullet.</p>
+  <ul>
+   <li>&nbsp;</li>
+  </ul>
+ </body>
+</html>

@@ -1,0 +1,11 @@
+@font-face {
+    font-family: 'ahem';
+    src: local('Ahem'),
+         url('/fonts/Ahem.ttf');
+}
+
+body {
+    font-family: 'ahem';
+    font-size: 100px;
+    line-height: 1;
+}

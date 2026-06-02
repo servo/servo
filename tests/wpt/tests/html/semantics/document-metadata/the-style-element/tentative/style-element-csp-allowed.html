@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="style-src 'self' 'unsafe-inline' data: blob:;">
+
+<script>
+  const t1 = async_test("Test securitypolicyviolation event doesn't fire on Declarative CSS Module when allowed via CSP");
+  document.documentElement.addEventListener("securitypolicyviolation", t1.unreached_func("securitypolicyviolation error fired."));
+
+  const t2 = async_test("Test error event doesn't fire on Declarative CSS Module when allowed via CSP");
+</script>
+
+<style type="module" specifier="foo" onerror="t2.unreached_func('onerror fired');">
+    #test {color:blue}
+</style>
+
+</head>
+<body>
+
+<div id="test">Test content</div>
+
+<script type="module">
+  import sheet from "foo" with { type: "css"};
+
+  test(function (t) {
+    assert_equals(
+      sheet.cssRules.length,
+      1,
+      "Declaratively defined rules were imported with `unsafe-inline` CSP.",
+    );
+
+    document.adoptedStyleSheets = [sheet];
+    const test_element = document.getElementById("test");
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 255)",
+              "Declarative styles were applied.");
+
+  }, "CSS Modules can be defined declaratively with `style-src` CSP set to `unsafe-inline` with the data protocol permitted.");
+  t1.done();
+  t2.done();
+</script>
+</body>
+</html>

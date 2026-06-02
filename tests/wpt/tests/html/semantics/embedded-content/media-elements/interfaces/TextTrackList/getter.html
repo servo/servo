@@ -1,0 +1,32 @@
+<!doctype html>
+<title>TextTrackList getter</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    video.addTextTrack('subtitles', 'b');
+    window.track = document.createElement('track');
+    track.label = 'a';
+    video.appendChild(track);
+    video.addTextTrack('subtitles', 'c');
+});
+test(function(){
+    assert_equals(video.textTracks[0].label, 'a');
+    assert_equals(video.textTracks[1].label, 'b');
+    assert_equals(video.textTracks[2].label, 'c');
+});
+test(function(){
+    var track_before = video.textTracks[0];
+    video.textTracks[0] = 'foo';
+    assert_equals(video.textTracks[0], track_before);
+}, document.title+', no indexed set/create');
+test(function(){
+    'use strict';
+    var track_before = video.textTracks[0];
+    assert_throws_js(TypeError, function(){ video.textTracks[0] = 'foo'; });
+    assert_equals(video.textTracks[0], track_before);
+}, document.title+', no indexed set/create (strict)');
+
+</script>

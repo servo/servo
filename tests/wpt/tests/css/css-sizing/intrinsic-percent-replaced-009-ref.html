@@ -1,0 +1,32 @@
+<!doctype html>
+<title>CSS test reference</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  padding: 20px;
+  position: relative;
+}
+
+.parent {
+  border: 3px solid green;
+  position: absolute;
+  height: 60vh;
+}
+
+.parent img {
+  height: calc(60vh - 6px);
+}
+</style>
+<div class="parent">
+  <img src="/images/blue96x96.png">
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/1210480">
+<meta name="assert" content="The renderer should not crash.">
+
+<iframe id=iframe></iframe>
+<select>Text Node
+  <option id=option></option>
+</select>
+
+<script>
+  window.onload=function() {
+    iframe.addEventListener('DOMNodeInsertedIntoDocument',function() {});
+    option.remove();
+    iframe.contentDocument.body.appendChild(document.body);
+  }
+</script>

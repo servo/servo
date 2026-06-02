@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test trimming applied dynamically</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<style>
+@import "support/TestMetricsFont.css";
+
+#container {
+  font: 100px/1 MetricsTestFont;
+  text-box: trim-both ex alphabetic;
+}
+</style>
+<div id="container">
+  <div class="inner">ApÉx</div>
+  <div class="inner">ApÉx</div>
+  <div class="inner">ApÉx</div>
+</div>

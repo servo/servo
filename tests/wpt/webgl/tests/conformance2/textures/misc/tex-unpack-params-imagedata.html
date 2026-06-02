@@ -1,0 +1,128 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 TexImage3D from ImageData with unpack params tests.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+let actual;
+
+description("TexImage3D from ImageData with unpack params");
+
+debug("TexImage3D from ImageData with UNPACK_IMAGE_HEIGHT set (crbug.com/804123)");
+
+// framebuffer for readback
+const fbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+function makeTestData(size, start) {
+  const data = new Uint8ClampedArray(size);
+  for (let i = 0; i < size; ++i) {
+    data[i] = (start + i) % 256;
+  }
+  return data;
+}
+
+// source data
+//
+//   dstWidth = 4
+// <-->
+// xxxx ^ ^ ^ ^
+// xxxx |   | |
+// xxxx |   | |
+// xxxx |   | v dstHeight = 4
+// ---- |   |
+// ---- |   |
+// ---- |   v unpackImageHeight = 7
+// xxxx | |
+// xxxx |
+// xxxx |
+// xxxx |
+// ---- |
+// ---- |
+// ---- |
+// xxxx | |
+// xxxx |
+// xxxx |
+// xxxx |
+// ---- |
+// ---- |
+// ---- |
+// xxxx | v dstDepth = 4
+// xxxx |
+// xxxx |
+// xxxx v srcHeight = 25
+// <-->
+//   srcWidth = 4
+const unpackImageHeight = 7;
+const dstWidth = 4;
+const dstHeight = 4;
+const dstDepth = 4;
+const srcWidth = dstWidth;
+const srcHeight = (dstDepth - 1) * unpackImageHeight + dstHeight;
+const srcSize = srcWidth * srcHeight;
+const sizeofR8 = 1;
+const sizeofRGBA8 = 4;
+const imageData = new ImageData(makeTestData(srcSize * sizeofRGBA8, 1), srcWidth, srcHeight);
+const texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_3D, texture);
+
+debug("");
+// upload
+gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, 2);
+gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, imageData);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "small upload");
+// check
+actual = new Uint8Array(sizeofRGBA8);
+gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, texture, 0, 0);
+if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, actual);
+  shouldBeTrue(`areArraysEqual(actual, [1, 0, 0, 255])`);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+} else {
+  debug("framebuffer incomplete: skipped");
+}
+
+debug("");
+// upload
+gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, unpackImageHeight);
+gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, dstWidth, dstHeight, dstDepth, 0,
+              gl.RGBA, gl.UNSIGNED_BYTE, imageData);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "larger upload");
+// check
+actual = new Uint8Array(dstWidth * dstHeight * sizeofRGBA8);
+let expected;
+for (let z = 0; z < dstDepth; ++z) {
+  gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, texture, 0, z);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+  gl.readPixels(0, 0, dstWidth, dstHeight, gl.RGBA, gl.UNSIGNED_BYTE, actual);
+  debug(`for z = ${z}:`);
+  expected = makeTestData(dstWidth * dstHeight * sizeofRGBA8,
+                          1 + z * dstWidth * unpackImageHeight * sizeofRGBA8);
+  shouldBeTrue('areArraysEqual(actual, expected)');
+}
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+gl.deleteTexture(texture);
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

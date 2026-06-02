@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <title>CSS Selectors Invalidation: :nth-child(... of class) in SVG</title>
+  <h:link rel="match" href="nth-child-of-class-ref.svg"/>
+  <h:link rel="help" href="https://drafts.csswg.org/selectors-4/#nth-child-pseudo"/>
+  <h:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1821258"/>
+  <h:link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net"/>
+  <script href="/common/rendering-utils.js"/>
+  <script href="/common/reftest-wait.js"/>
+  <style>
+    :nth-child(odd of .c) {
+      fill: green;
+    }
+  </style>
+  <g id="circles">
+    <circle class="c" cx="10" cy="10" r="10"/>
+    <circle class="c" cx="30" cy="10" r="10"/>
+    <circle class="c" cx="50" cy="10" r="10" id="toggler"/>
+    <circle cx="70" cy="10" r="10"/>
+    <circle class="c" cx="90" cy="10" r="10"/>
+  </g>
+  <use href="#circles" y="20" fill="red"/>
+  <script><![CDATA[
+    const toggler = document.querySelector("#toggler");
+    requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+            toggler.classList.toggle("c");
+            takeScreenshot();
+        }));
+  ]]></script>
+  <!--
+  This reftest will only pass if the :nth-child(.. of <selector>) invalidation
+  considers DOM elements of any type (including SVG elements), not only HTML
+  elements.
+  -->
+</svg>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+    <title>Slottables should match slots when the shadow host is removed from the document</title>
+    <meta name="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
+    <meta name="assert" content="Slottables should be assigned to slots even after the shadow host has been removed from the document">
+    <link rel="help" href="https://github.com/servo/servo/issues/40242">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script defer>
+      test((t) => {
+        // Attach a shadow root with a slot named "foo" inside it
+        let host = document.createElement("div");
+        document.body.appendChild(host);
+        let root = host.attachShadow({mode: "closed"});
+        let slot = document.createElement("slot");
+        slot.name = "foo";
+        root.appendChild(slot);
+
+        // Remove the host from the document tree
+        host.remove();
+        assert_array_equals(slot.assignedNodes(), []);
+
+        // Create a slottable that should be slotted into "foo"
+        let slottable = document.createElement("div");
+        slottable.slot = "foo"
+        host.appendChild(slottable);
+        assert_array_equals(slot.assignedNodes(), [slottable]);
+      }, "Slottables should be assigned to slots even after the shadow host has been removed from the document");
+    </script>
+</body>

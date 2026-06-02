@@ -1,0 +1,72 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestorKey = token();
+
+  // Note that we have set the site page bit limit to 3 and the overall page
+  // bit limit to 6. A single saved query with 8 URLs (i.e. log2(8) = 3 bits)
+  // will be permitted by the site's page budget, plus re-uses of the saved
+  // query.
+  const numUrls = 8;
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [ancestorKey]);
+
+  await sharedStorage.worklet.addModule(
+      "/shared-storage/resources/simple-module.js");
+
+  function processSavedQuery() {
+    return sharedStorage.selectURL(
+        "test-slow-url-selection-operation", urls,
+        {data: {'mockResult': 1}, keepAlive: true, resolveToConfig: true,
+         savedQuery: "query"});
+  }
+
+  // Start initial query.
+  const savedQueryPromise = processSavedQuery();
+
+  // This query will be received before the initial query finishes processing.
+  let config0 = await processSavedQuery();
+  assert_true(config0 instanceof FencedFrameConfig);
+  attachFencedFrame(config0, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestorKey);
+  assert_equals(result0, "frame1_loaded", 'when budget should remain;');
+
+  // Wait for the initial query to finish processing.
+  let config1 = await savedQueryPromise;
+  assert_true(config1 instanceof FencedFrameConfig);
+  attachFencedFrame(config1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestorKey);
+  assert_equals(result1, "frame1_loaded", 'when budget should not be charged;');
+
+  // The per-site per-pageload bit limit for `selectURL()` has been
+  // reached. The next call that doesn't reuse a query should return the
+  // default URL.
+  let config2 = await sharedStorage.selectURL(
+      "test-url-selection-operation", urls,
+      {data: {'mockResult': 1}, keepAlive: true, resolveToConfig: true});
+  assert_true(config2 instanceof FencedFrameConfig);
+  attachFencedFrame(config2, 'opaque-ads');
+  const result2 = await nextValueFromServer(ancestorKey);
+    assert_equals(result2, "frame0_loaded", 'when budget should be exhausted;');
+
+  // Reuse the saved query after processing is finished.
+  let config3 = await processSavedQuery();;
+  assert_true(config3 instanceof FencedFrameConfig);
+  attachFencedFrame(config3, 'opaque-ads');
+  const result3 = await nextValueFromServer(ancestorKey);
+  assert_equals(result3, "frame1_loaded",
+                'when budget still should not be charged;');
+}, 'selectURL() saved query does not deduct budget on re-use, even if the '
+    + 'initial query has not yet resolved.');
+</script>
+</body>

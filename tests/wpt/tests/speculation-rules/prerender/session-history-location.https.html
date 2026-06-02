@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test history.length</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/session-history-test-util.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const uid = token();
+
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testLocationAssignInPrerender", uid),
+    "Passed"
+  );
+}, "location.assign navigates independently with replacement in a prerender");
+
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testLocationReplaceInPrerender", uid),
+    "Passed"
+  );
+}, "location.replace navigates independently in a prerender");
+
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testSetLocationHrefInPrerender", uid),
+    "Passed"
+  );
+}, "Setting location.href navigates independently with replacement in a prerender");
+</script>

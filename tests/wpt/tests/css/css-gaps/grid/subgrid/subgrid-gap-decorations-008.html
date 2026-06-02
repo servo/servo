@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: An outset of 5px extends decorations slightly beyond the edges of adjacent items in subgrid.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../grid-gap-decorations-012-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 10px;
+  }
+  .subgrid {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+
+    column-rule: blue solid 5px;
+    row-rule: red solid 5px;
+
+    column-rule-inset: -5px;
+    column-rule-break: intersection;
+  }
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+<body>
+  <div class="grid-container">
+    <div class="subgrid">
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+    </div>
+  </div>
+</body>

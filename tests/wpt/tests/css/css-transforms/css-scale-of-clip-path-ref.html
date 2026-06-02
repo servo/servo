@@ -1,0 +1,20 @@
+<!doctype HTML>
+<style>
+.tile {
+  width: 620px;
+  height: 671px;
+  position: absolute;
+  clip-path: circle(50%);
+  background-color: lightblue;
+}
+#container {
+  transform: scale(0.25);
+  position: relative;
+  left: -200px;
+  will-change: transform;
+}
+</style>
+<div id=container>
+  <div class="tile" style="top: 520px;"></div>
+  <div class="tile" style="top: 688px; left: 390px;"></div>
+</div>

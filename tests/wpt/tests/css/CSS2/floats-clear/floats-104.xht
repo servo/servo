@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Unexpected Presences, Part 1</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/004.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <style type="text/css">
+   body * { margin: 4px; padding: 4px; border: 1px solid; display: block; }
+   .test { border-color: blue; width: 40em; }
+   .float { border-color: fuchsia; float: left; width: 5em; height: 5em; }
+   .first { border-color: purple; margin-left: 10em; }
+   .second { border-color: teal; }
+  </style>
+ </head>
+ <body>
+  <div class="test">
+   <div class="first"> This is the first block, with a big left margin. At the end
+   of this block is a left float which should be square. Text that
+   follows this box should flow to the right of the float; the float
+   should always be on the left. <div class="float"> This is the square left
+   float. </div> </div>
+   <div class="second"> This is the second block. It should fit in the same
+   container as the first box. This text should wrap on the right side
+   of the float. </div>
+  </div>
+ </body>
+</html>

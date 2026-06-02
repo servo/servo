@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageLastValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has last key (i.e., in description of Collection included using partOf key) with non-uri value or array as value containing more than one item.",
+  "title": "**Annotation Page _last_ key** (i.e., in description of Collection included using partOf key), if present, is **a single value of format uri** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+           { "$ref": "collections.json#/definitions/lastValidIfPresent" }
+  }
+}

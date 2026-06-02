@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="output" width="100" height="100" style="background: blue;"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+ctx.fillStyle = 'green';
+ctx.roundRect(10, 10, 80, 80, [20, 40, 10]);
+ctx.fill();
+</script>
+</body>
+</html>

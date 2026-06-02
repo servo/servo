@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1278439">
+<div id="container">
+  <div id="mc" style="columns:2; column-fill:auto; width:200px; height:30px; line-height:20px; orphans:1; widows:1;">
+    x<br>
+    x<br>
+  </div>
+</div>
+<script>
+  requestAnimationFrame(()=> {
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        mc.style.width = "201px";
+        container.setAttribute("role", "treegrid");
+        document.body.offsetTop;
+        document.documentElement.className = "";
+      });
+    });
+  });
+</script>

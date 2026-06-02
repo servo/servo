@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Vibration API: test a pattern array parameter to vibrate()</title>
+    <link rel='author' title='Robin Berjon' href='mailto:robin@berjon.com'/>
+    <link rel='help' href='http://www.w3.org/TR/vibration/#methods'/>
+    <meta name='flags' content='dom, interact'/>
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>
+      After hitting the button below, your device must vibrate three times for one second, separated
+      by one second intervals.
+    </p>
+    <button id='vib'>Vibrate!</button>
+    <script>
+      if (undefined !== navigator.vibrate) {
+          document.getElementById("vib").onclick = function () {
+              navigator.vibrate([1000, 1000, 1000, 1000, 1000]);
+          };
+      }
+    </script>
+  </body>
+</html>

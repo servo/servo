@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>import-style-allowed</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="style-src 'unsafe-inline' 'self'; script-src http://{{host}}:{{ports[http][0]}}/resources/testharness.js http://{{host}}:{{ports[http][0]}}/resources/testharnessreport.js 'unsafe-inline' 'unsafe-inline'; connect-src 'self';"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      promise_test(t => new Promise((resolve, reject) => {
+        window.addEventListener("securitypolicyviolation", (err) => {
+          if (err.blockedURI.endsWith("/resources/allowed.css")) {
+            reject("Should not raise securitypolicyviolation.");
+          }
+        });
+        import("./resources/allowed.css", { with: { type: "css" } }).then(resolve, reject)
+      }), "import should be allowed");
+    </script>
+  </body>
+</html>

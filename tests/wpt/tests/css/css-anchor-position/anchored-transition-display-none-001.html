@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html id=html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
+<link rel="match" href="anchored-transition-display-none-001-ref.html">
+This is visible.
+<div id="target">FAIL if this is visible</div>
+
+<style>
+div {
+  position-area: end;
+  position: absolute;
+  border: 1px solid;
+  transition-behavior: allow-discrete;
+  transition-duration: 0.01s;
+}
+</style>
+<script>
+  // Make sure that everything is loaded before changing styles, to ensure
+  // that we actually get a transition.
+  window.onload = ()=> {
+    html.addEventListener('transitionend', () => {
+      html.classList.toggle('reftest-wait')
+    });
+    target.style.display = "none";
+  }
+</script>
+

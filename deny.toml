@@ -1,0 +1,225 @@
+[graph]
+all-features = false
+no-default-features = false
+#features = []
+
+# The output table provides options for how/if diagnostics are outputted
+[output]
+feature-depth = 1
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+ignore = [
+    # The crate `paste` is no longer maintained.
+    "RUSTSEC-2024-0436",
+    # The crate `unic-char-range` is unmaintained.
+    "RUSTSEC-2025-0075",
+    # The crate `unic-common` is unmaintained.
+    "RUSTSEC-2025-0080",
+    # The crate `unic-char-property` is unmaintained.
+    "RUSTSEC-2025-0081",
+    # The crate `unic-ucd-version` is unmaintained.
+    "RUSTSEC-2025-0098",
+    # The crate `unic-ucd-ident` is unmaintained.
+    "RUSTSEC-2025-0100",
+    # The crate `rsa` is vulnerable to Marvin Attack that leaks
+    # cryptographic secret via side channel. Wait for a patch in stable
+    # release version from upstream.
+    "RUSTSEC-2023-0071",
+    # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
+    # See the comment above `bincode` entry in Cargo.toml.
+    "RUSTSEC-2025-0141",
+    # The crate `ml-dsa 0.0.4` is the latest stable release.
+    # The attack complexity of this vulnerability is high,
+    # and no exploit is known yet.
+    "RUSTSEC-2025-0144",
+    # The crate `time` has vulnerability.
+    # Need to upgrade to 0.3.47 above.
+    # Cannot right now due to MSRV.
+    "RUSTSEC-2026-0009",
+]
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "OFL-1.1",
+    "Ubuntu-font-1.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = [
+    # rav1e depends on libfuzzer-sys when cfg(fuzzing) is true, which it isn't for servo builds.
+    # cargo-deny is being run with --all-features, so we need to explicitly make an exception here.
+    { allow = ["NCSA"], crate = "libfuzzer-sys" },
+]
+
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+external-default-features = "allow"
+highlight = "all"
+multiple-versions = "deny"
+wildcards = "allow"
+workspace-default-features = "allow"
+
+# List of crates that are allowed. Use with care!
+allow = []
+
+# List of crates to deny:
+deny = [
+    "num",
+]
+
+# List of crates to skip for the duplicate check:
+skip = [
+    "bitflags",
+    "cookie",
+    "redox_syscall",
+    # Duplicated by getrandom 0.1 and getrandom 0.2
+    "wasi",
+
+    # New versions of these dependencies is pulled in by GStreamer / GLib.
+    "itertools",
+
+    # Duplicated by egui
+    "windows-strings",
+
+    # Duplicated by egui-file-dialog
+    "windows",
+    "windows-implement",
+    "windows-interface",
+    "windows-link",
+    "windows-result",
+
+    # Duplicated by winit.
+    "windows-sys",
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
+
+    # Duplicated by zbus.
+    "windows_i686_gnullvm",
+
+    # wgpu has the latest and greatest.
+    "windows-core",
+
+    # rust-content-security-policy uses newest base64.
+    "base64",
+
+    # Duplicated by gilrs.
+    "core-foundation",
+
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
+
+    # wgpu depends on thiserror 2, while rest is still on 1
+    "thiserror",
+    "thiserror-impl",
+
+    # duplicated by webdriver
+    "h2",
+    "headers",
+    "headers-core",
+    "http",
+    "http-body",
+    "hyper",
+    "socket2",
+
+    # duplicated by winit
+    "block2",
+    "objc2-app-kit",
+    "objc2-foundation",
+    "objc2",
+
+    # duplicated by tungstenite
+    "getrandom",
+    "rand",
+    "rand_chacha",
+    "rand_core",
+
+    # duplicated by blurz/blurmock
+    "hex",
+
+    # duplciated by rustix
+    "linux-raw-sys",
+
+    # duplicated by async-io
+    "rustix",
+
+    # duplicated by sea-query
+    "heck",
+
+    # duplicated by bindgen as build dependency
+    # Remove when cexpr updates its nom version
+    # and bindgen updates the cexpr version
+    "nom",
+
+    # duplicated by core-graphics
+    "core-graphics-types",
+
+    # duplicated by winresource and proc-macro-crate. Once everything
+    # switches to the latest version of toml we can remove this. It's
+    # really just a build dep, so not a large problem.
+    "toml_datetime",
+    "toml_edit",
+
+    # usvg depends on svgtypes, which depends on old version of kurbo
+    "kurbo",
+
+    # Dependency by quick_cache and other
+    "hashbrown",
+
+    # Duplicated by ml-kem 0.2.1 and ml-dsa 0.0.4. They use different
+    # version of hybrid-array. Once ml-kem releases the next version
+    # 0.3.0 and ml-dsa releases the next version 0.1.0, we can remove
+    # this.
+    "hybrid-array",
+
+
+    # The following 5 duplicates were introduced when Servo's CI was failing to
+    # detect duplicates introduced in automatic dependabot PRs (#38945). They
+    # are added here to allow the fix for this issue to land as a priority.
+    # These need to be investigated separately to see if the duplication can be
+    # avoided.
+    "libloading",
+    "futures",
+    "cfg-expr",
+    "system-deps",
+    "target-lexicon",
+]
+
+# github.com organizations to allow git sources for
+[sources.allow-org]
+github = ["servo"]

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>HTMLScriptElement.supports speculationrules</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  assert_true(HTMLScriptElement.supports('speculationrules'));
+}, 'HTMLScriptElement.supports returns true for \'speculationrules\'');
+
+test(() => {
+  assert_false(HTMLScriptElement.supports(' speculationrules'));
+  assert_false(HTMLScriptElement.supports('speculationrules '));
+  assert_false(HTMLScriptElement.supports('Speculationrules'));
+  assert_false(HTMLScriptElement.supports('SpeculationRules'));
+  assert_false(HTMLScriptElement.supports('speculationRules'));
+  assert_false(HTMLScriptElement.supports('speculation-rules'));
+}, 'HTMLScriptElement.supports returns false for unsupported types');
+</script>

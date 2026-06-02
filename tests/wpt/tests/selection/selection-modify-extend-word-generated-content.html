@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Generated content should not connect the first/last word with adjacent line's last/first word</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+p {
+  white-space: nowrap;
+}
+p#middleLine::before, p#middleLine::after {
+  content: "GeneratedText";
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const middleLine = document.getElementById("middleLine");
+  test(() => {
+    getSelection().collapse(middleLine.firstChild, "mid".length);
+    getSelection().modify("extend", "backward", "word");
+    assert_in_array(
+      getSelection().getRangeAt(0).startContainer,
+      [middleLine, middleLine.firstChild],
+      "The start container should be in the middle line"
+    );
+    assert_equals(
+      getSelection().getRangeAt(0).startOffset,
+      0,
+      "The start offset should be 0"
+    );
+  }, "extending selection from middle of first word of the middle line shouldn't extend the range to the previous line");
+  test(() => {
+    getSelection().collapse(middleLine.firstChild, "middle li".length);
+    getSelection().modify("extend", "forward", "word");
+    assert_in_array(
+      getSelection().getRangeAt(0).endContainer,
+      [middleLine, middleLine.firstChild],
+      "The end container should be in the middle line"
+    );
+    assert_equals(
+      getSelection().getRangeAt(0).endOffset,
+      getSelection().getRangeAt(0).endContainer.length,
+      "The end offset should be the length of the container"
+    );
+  }, "extending selection from middle of last word of the middle line shouldn't extend the range to the next line");
+}, {once: true});
+</script>
+<body>
+<p id="previousLine">previous line</p>
+<p id="middleLine">middle line</p>
+<p id="nextLine">last line</p>
+</body>
+</html>

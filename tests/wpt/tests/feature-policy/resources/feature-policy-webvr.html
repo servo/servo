@@ -1,0 +1,9 @@
+<script>
+'use strict';
+
+Promise.resolve().then(() => navigator.getVRDisplays()).then(displays => {
+  window.parent.postMessage({ enabled: true }, '*');
+}, error => {
+  window.parent.postMessage({ enabled: false }, '*');
+});
+</script>

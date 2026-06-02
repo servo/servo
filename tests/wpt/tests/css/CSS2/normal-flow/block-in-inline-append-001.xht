@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+	<title>CSS Test: blocks inside inlines &#8211; append-to-empty-trailing-inline-1</title>
+	<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+	<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+	<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+	<link rel="match" href="block-in-inline-append-001-ref.xht"/>
+	<meta name="flags" content="dom" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="Content-Style-Type" content="text/css" />
+	<style type="text/css">
+
+	body &gt; span { outline: 1px dotted black; }
+	body &gt; span &gt; span { display: block; width: 10em; }
+
+	</style>
+
+<script type="text/javascript">
+function boom()
+{
+  var n = document.getElementById("a");
+  n.parentNode.appendChild(n.cloneNode(true));
+}
+</script>
+
+</head>
+<body onload="boom();">
+
+<span><span id="a">A</span></span>
+
+
+
+</body></html>

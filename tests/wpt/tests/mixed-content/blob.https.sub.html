@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mixed-Content: blob tests</title>
+    <meta charset="utf-8">
+    <meta name="description" content="Test a request to a blob: URL is mixed content if the blob's origin is not potentially trustworthy.">
+    <meta name="help" href="https://w3c.github.io/webappsec-mixed-content/#should-block-fetch">
+    <meta name="help" href="https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      async function try_fetch_request(url) {
+          try {
+              const response = await fetch(url);
+              return response.ok;
+          } catch(e) {
+              return false;
+          }
+      }
+
+      function try_script_load(url) {
+          return new Promise(resolve => {
+              let script = document.createElement("script");
+              script.onload = () => resolve(true);
+              script.onerror = () => resolve(false);
+              script.src = url;
+              document.body.appendChild(script);
+          });
+      }
+
+      const popup_http = "http://{{domains[]}}:{{ports[http][0]}}/mixed-content/resources/blob-popup.html";
+      const popup_https = "https://{{domains[]}}:{{ports[https][0]}}/mixed-content/resources/blob-popup.html";
+      [popup_https, popup_http].forEach(popup_url => {
+          promise_test(t => {
+              return new Promise(resolve => {
+                  window.addEventListener("message", resolve, {once: true});
+                  window.open(popup_url);
+              }).then(async function(event) {
+                  let data = event.data;
+                  assert_equals(await try_fetch_request(data.js_blob_url),
+                                data.potentially_trustworthy,
+                                "Fetch request");
+                  assert_equals(await try_script_load(data.js_blob_url),
+                                data.potentially_trustworthy,
+                               "Script load");
+                  event.source.close();
+              });
+          });
+      });
+    </script>
+  </body>
+</html>

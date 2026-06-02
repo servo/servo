@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+// Step 2 (client-hints/accept-ch.wildcard.https.sub.html)
+const xhr = new XMLHttpRequest();
+xhr.open('POST', "https://{{domains[www2]}}:{{ports[https][0]}}/client-hints/resources/echo-ua-client-hints-received.py");
+xhr.onload = function() {
+    // Step 3 (client-hints/accept-ch.wildcard.https.sub.html)
+    if (xhr.getResponseHeader("sec-ch-ua-platform-received") != null) {
+        window.top.postMessage("HadPlatformVersion", "*");
+    } else {
+        window.top.postMessage("MissingPlatformVersion", "*");
+    }
+};
+xhr.send();
+</script>

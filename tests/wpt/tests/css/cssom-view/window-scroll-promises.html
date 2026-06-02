@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Window.scroll* methods returning promises</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="author" title="Mustaq Ahmed" href="mailto:mustaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-window-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  .filler { height: 10000px }
+
+</style>
+<div class="filler"></div>
+<script>
+  "use strict";
+
+  const scroll_methods = ["scroll", "scrollTo", "scrollBy"];
+
+  function reset() {
+    window.scrollTo({ top: 0 });
+    assert_equals(window.scrollY, 0, "Sanity check starting position");
+  }
+
+  promise_setup(async () => {
+    await waitForCompositorReady();
+  });
+
+  for (const scroll_method of scroll_methods) {
+    for (const behavior of ["auto", "instant", "smooth"]) {
+      const test_label = `Window.${scroll_method}(${behavior})`;
+
+      promise_test(async () => {
+        let result = window[scroll_method]({ behavior: behavior });
+        assert_true(result instanceof Promise);
+      }, `${test_label}: return type`);
+
+      promise_test(async () => {
+        reset();
+        const offset = 5000;
+
+        let promise = window[scroll_method]({ top: offset, behavior: behavior });
+
+        if (behavior != "smooth") {
+          assert_equals(window.scrollY, offset, "Position before await");
+        } else {
+          assert_true(0 <= window.scrollY && window.scrollY < offset,
+                "Position before await");
+        }
+
+        await promise;
+        assert_equals(window.scrollY, offset, "Position after await");
+      }, `${test_label}: promise behavior`);
+    }
+  }
+</script>

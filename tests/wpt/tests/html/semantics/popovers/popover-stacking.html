@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Enumerate all the ways of creating an ancestor popover relationship -->
+
+<div class="example">
+  <p>Direct DOM children</p>
+  <div popover class=ancestor><p>Ancestor popover</p>
+    <div popover class=child><p>Child popover</p></div>
+  </div>
+</div>
+
+<div class="example">
+  <p>Grandchildren</p>
+  <div popover class=ancestor><p>Ancestor popover</p>
+    <div>
+      <div>
+        <div popover class=child><p>Child popover</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="example">
+  <p>popovertarget attribute relationship</p>
+  <div popover class=ancestor><p>Ancestor popover</p>
+    <button popovertarget=trigger1 class=clickme>Button</button>
+  </div>
+  <div id=trigger1 popover class=child><p>Child popover</p></div>
+</div>
+
+<div class="example">
+  <p>nested popovertarget attribute relationship</p>
+  <div popover class=ancestor><p>Ancestor popover</p>
+    <div>
+      <div>
+        <button popovertarget=trigger2 class=clickme>Button</button>
+      </div>
+    </div>
+  </div>
+  <div id=trigger2 popover class=child><p>Child popover</p></div>
+</div>
+
+<!-- Other examples -->
+
+<button id=b1 onclick='p1.showPopover()'>Popover 1</button>
+<div popover id=p1><p>This is popover #1</p>
+  <button id=b2 onclick='p2.showPopover()'>Popover 2</button>
+  <div popover id=p2><p>This is popover #2</p>
+    <button id=b3 onclick='p3.showPopover()'>Popover 3</button>
+    <div popover id=p3><p>This is popover #3</p></div>
+  </div>
+</div>
+
+<dialog id=d1>This is a dialog<button onclick='this.parentElement.close()'>Close</button></dialog>
+<button id=b5 onclick='d1.showPopover()'>Dialog</button>
+
+<script>
+  // Test basic ancestor relationships
+  for(let example of document.querySelectorAll('.example')) {
+    const descr = example.querySelector('p').textContent;
+    const ancestor = example.querySelector('[popover].ancestor');
+    const child = example.querySelector('[popover].child');
+    const clickToActivate = example.querySelector('.clickme');
+    test(function() {
+      assert_true(!!descr && !!ancestor && !!child);
+      assert_false(ancestor.matches(':popover-open'));
+      assert_false(child.matches(':popover-open'));
+      ancestor.showPopover();
+      if (clickToActivate)
+        clickToActivate.click();
+      else
+        child.showPopover();
+      assert_true(child.matches(':popover-open'));
+      assert_true(ancestor.matches(':popover-open'));
+      ancestor.hidePopover();
+      assert_false(ancestor.matches(':popover-open'));
+      assert_false(child.matches(':popover-open'));
+    },descr);
+  }
+
+  const popovers = [p1, p2, p3];
+
+  function assertState(...states) {
+    assert_equals(popovers.length,states.length);
+    for(let i=0;i<popovers.length;++i) {
+      assert_equals(popovers[i].matches(':popover-open'),states[i],`Popover #${i+1} incorrect state`);
+    }
+  }
+
+  test(function() {
+    function openManyPopovers() {
+      p1.showPopover();
+      p2.showPopover();
+      p3.showPopover();
+      assertState(true,true,true);
+    }
+    openManyPopovers();
+    d1.show(); // Dialog.show() should hide all popovers.
+    assertState(false,false,false);
+    d1.close();
+    openManyPopovers();
+    d1.showModal(); // Dialog.showModal() should also hide all popovers.
+    assertState(false,false,false);
+    d1.close();
+  }, "popovers should be closed by dialogs")
+
+  test(function() {
+    // Note: d1 is a <dialog> element, not a popover.
+    assert_false(d1.open);
+    d1.show();
+    assert_true(d1.open);
+    p1.showPopover();
+    assertState(true,false,false);
+    assert_true(d1.open);
+    p1.hidePopover();
+    assert_true(d1.open);
+    d1.close();
+    assert_false(d1.open);
+  }, "dialogs should not be closed by popovers")
+</script>
+
+<style>
+  #p1 { top:350px; }
+  #p2 { top:350px; left:200px; }
+  #p3 { top:500px; }
+</style>

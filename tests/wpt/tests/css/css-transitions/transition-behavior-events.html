@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS transition event dispatch depending on transition-behavior</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#event-transitionevent">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<meta name="assert" content="
+  Even for a property like `width` which has a non-discrete animation type,
+  transitions among non-interpolable values should only start (as observed
+  by the `transitionrun` and `transitionstart` events) if discrete transitions
+  are allowed by `transition-behavior`.
+">
+<style>
+#width1, #width2 {
+  width: auto;
+  transition: width 3s -1s linear;
+}
+</style>
+<div id="width1" style="transition-behavior: normal"></div>
+<div id="width2" style="transition-behavior: allow-discrete"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_setup(() => new Promise((resolve, reject) => {
+  for (let event of ["transitionrun", "transitionstart"]) {
+    let event_log = [];
+    addEventListener(event, event => {
+      event_log.push(event.target.id);
+    });
+    promise_test(async function() {
+      assert_array_equals(event_log, ["width2"], "Should only get " + event + " event on #width2");
+    }, event + " events");
+  }
+  document.body.offsetLeft;
+  addEventListener("error", event => reject(event.message));
+  requestAnimationFrame(() => {
+      document.getElementById("width1").style.width = document.getElementById("width2").style.width = "100px";
+      requestAnimationFrame(resolve);
+
+  });
+}));
+</script>

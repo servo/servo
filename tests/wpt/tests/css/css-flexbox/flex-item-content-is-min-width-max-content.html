@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="flex-item-content-is-min-width-max-content-ref.html">
+<meta name="assert" content="This checks that flex item is sized correctly when its content has min-width: max-content">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.flex {
+  width: 0px;
+  display: flex;
+  font-family: Ahem;
+  font-size: 20px;
+}
+
+.flex_item {
+  background-color: green;
+}
+
+.content {
+  min-width: max-content;
+  color: transparent;
+}
+</style>
+<div class=flex>
+  <div class=flex_item>
+    <div class=content>X X X</div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#char-handling-issues">
+<style>
+.target {
+    font-family: Times;
+    font-size: 60px;
+}
+</style>
+</head>
+<body>
+"If a given character is a Private-Use Area Unicode codepoint, user agents must only match font families named in the font-family list that are not generic families. If none of the families named in the font-family list contain a glyph for that codepoint, user agents must display some form of missing glyph symbol for that character rather than attempting installed font fallback for that codepoint." - <a href="https://drafts.csswg.org/css-fonts-4/#char-handling-issues">css-fonts-4</a>
+<p class="target">&#xE0AD;&#xE0AE;&#xE0AD;&#xE0AF;&#xE0B0;&#xE0B1;&#xE0C0;&#xE0C1;&#xE0D3;&#xE0D4;</p>
+</body>
+</html>

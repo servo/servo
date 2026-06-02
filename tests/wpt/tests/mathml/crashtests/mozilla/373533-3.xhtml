@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:math="http://www.w3.org/1998/Math/MathML">
+<head>
+</head><body><xul:box collapsed="true"><math:mrow><div id="div">
+<p id="para">Foo bar</p>
+
+</div></math:mrow></xul:box>
+
+<script type="application/javascript">
+try
+{
+  document.body.offsetWidth;
+
+  var para = document.getElementById("para");
+  var div = document.getElementById("div");
+  var hbox = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
+                                      'hbox');
+
+  div.appendChild(hbox);
+
+  document.body.offsetWidth;
+
+  div.removeChild(para);
+}
+catch (e)
+{
+  document.body.appendChild(document.createTextNode(e));
+}
+</script>
+</body></html>

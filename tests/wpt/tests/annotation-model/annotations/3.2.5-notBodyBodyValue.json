@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.2.5-notBodyBodyValue.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: body and bodyValue are exclusive keys; a single annotation cannot have both.",
+  "title": "Annotation has a **_body_ key**, or a **_bodyValue_ key**, or **neither**, but **NEVER both** - [model 3.2.5](https://www.w3.org/TR/annotation-model/#string-body)",
+  "description": "True when the Annotation does not have both body key and bodyValue key (Section 3.2.5)",
+  "type": "object",
+  "not":
+  { "required": [ "body", "bodyValue"] }
+}

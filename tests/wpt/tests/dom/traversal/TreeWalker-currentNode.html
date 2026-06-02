@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<!--
+Test adapted from chromium/source/src/third_party/WebKit/LayoutTests/fast/dom/TreeWalker/resources/TreeWalker-currentNode.js
+-->
+<head>
+<title>TreeWalker: currentNode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/assert-node.js"></script>
+<div id=log></div>
+</head>
+<body>
+<div id='parent'>
+<div id='subTree'><p>Lorem ipsum <span>dolor <b>sit</b> amet</span>, consectetur <i>adipisicing</i> elit, sed do eiusmod <tt>tempor <b><i>incididunt ut</i> labore</b> et dolore magna</tt> aliqua.</p></div>
+</div>
+<p>Test TreeWalker currentNode functionality</p>
+<script>
+// var subTree = document.createElement('div');
+// subTree.innerHTML = "<p>Lorem ipsum <span>dolor <b>sit</b> amet</span>, consectetur <i>adipisicing</i> elit, sed do eiusmod <tt>tempor <b><i>incididunt ut</i> labore</b> et dolore magna</tt> aliqua.</p>"
+// document.body.appendChild(subTree);
+var subTree = document.getElementById("subTree");
+
+var all = function(node) { return true; }
+
+test(function()
+{
+    var w = document.createTreeWalker(subTree, NodeFilter.SHOW_ELEMENT, all);
+    assert_node(w.currentNode, { type: Element, id: 'subTree' });
+    assert_equals(w.parentNode(), null);
+    assert_node(w.currentNode, { type: Element, id: 'subTree' });
+}, "Test that TreeWalker.parent() doesn't set the currentNode to a node not under the root.");
+
+test(function()
+{
+    var w = document.createTreeWalker(subTree,
+                                      NodeFilter.SHOW_ELEMENT
+                                      | NodeFilter.SHOW_COMMENT,
+                                      all);
+    w.currentNode = document.documentElement;
+    assert_equals(w.parentNode(), null);
+    assert_equals(w.currentNode, document.documentElement);
+    w.currentNode = document.documentElement;
+    assert_equals(w.nextNode(), document.documentElement.firstChild);
+    assert_equals(w.currentNode, document.documentElement.firstChild);
+    w.currentNode = document.documentElement;
+    assert_equals(w.previousNode(), null);
+    assert_equals(w.currentNode, document.documentElement);
+    w.currentNode = document.documentElement;
+    assert_equals(w.firstChild(), document.documentElement.firstChild);
+    assert_equals(w.currentNode, document.documentElement.firstChild);
+    w.currentNode = document.documentElement;
+    assert_equals(w.lastChild(), document.documentElement.lastChild);
+    assert_equals(w.currentNode, document.documentElement.lastChild);
+    w.currentNode = document.documentElement;
+    assert_equals(w.nextSibling(), null);
+    assert_equals(w.currentNode, document.documentElement);
+    w.currentNode = document.documentElement;
+    assert_equals(w.previousSibling(), null);
+    assert_equals(w.currentNode, document.documentElement);
+}, "Test that we handle setting the currentNode to arbitrary nodes not under the root element.");
+
+test(function()
+{
+    var w = document.createTreeWalker(subTree, NodeFilter.SHOW_ELEMENT, all);
+    w.currentNode = subTree.previousSibling;
+    assert_equals(w.nextNode(), subTree);
+    w.currentNode = document.getElementById("parent");
+    assert_equals(w.firstChild(), subTree);
+}, "Test how we handle the case when the traversed to node is within the root, but the currentElement is not.");
+</script>
+</body>
+</html>

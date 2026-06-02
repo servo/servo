@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html class=reftest-wait style="background: lightblue;">
+<title>When the root element has scrollbars, these should be excluded in old snapshot</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="root-scrollbar-with-fixed-background-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-4500">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#hide {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 10px;
+  height: 10px;
+  background: red;
+  contain: paint;
+  view-transition-name: hide;
+}
+#first {
+  width: 10px;
+  background: linear-gradient(green, blue);
+  height: 1000px;
+}
+body {
+  margin: 0px;
+  padding: 0px;
+}
+
+/* Set a no-op animation to screenshot the pseudo transition DOM. */
+html::view-transition-group(hide) {
+  animation-duration: 300s;
+  opacity: 0;
+}
+html::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+  height: 100%;
+}
+html::view-transition-old(*) {
+  animation: unset;
+  filter: invert(1);
+  height: 100%;
+}
+</style>
+
+<div id=hide></div>
+<div id=first></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  await new Promise((resolve) => {
+    addEventListener("scroll", () => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    }, { once: true, capture: true });
+
+    document.documentElement.scrollTop = 500;
+  });
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+
+onload = () => requestAnimationFrame(runTest);
+</script>
+
+</html>

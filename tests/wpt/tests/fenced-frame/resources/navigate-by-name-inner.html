@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame hosting named frames</title>
+
+<body>
+<script>
+async function init() {
+  // This file is meant to run in a <fencedframe>. It sets up multiple frames
+  // all with the name `target_frame` in the following arrangements:
+  //   1.) A top-level fenced frame
+  //   2.) An iframe within a fenced frame
+  //   3.) A nested fenced frame
+  // Navigations to all of the above should fail, and thus should open a new
+  // top-level popup window instead of navigating these frames.
+
+  const [ready_for_navigation_key, test_type] = parseKeylist();
+
+  switch (test_type) {
+    case "top-level fenced frame":
+      // Set up the named frame and report to the outer document that we're ready
+      // for it to try and navigate the named frame.
+      window.name = "target_frame";
+      writeValueToServer(ready_for_navigation_key, "READY");
+      break;
+    case "nested iframe":
+      const iframe = document.createElement('iframe');
+      iframe.name = "target_frame";
+      document.body.append(iframe);
+      writeValueToServer(ready_for_navigation_key, "READY");
+      break;
+    case "nested fenced frame":
+      // This fenced frame will report to the outermost document when it is ready.
+      const ff =
+          attachFencedFrame(generateURL(
+              "fenced-frame-set-name-and-report-ready-for-" +
+              "outermost-document-to-navigate.html",
+              [ready_for_navigation_key]));
+      break;
+  }
+}
+
+init();
+</script>
+</body>

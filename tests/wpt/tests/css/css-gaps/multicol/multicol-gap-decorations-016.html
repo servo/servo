@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations painted with different num of columns per row.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-016-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        columns: 4;
+        column-rule: solid 1px black;
+        orphans: 1;
+        widows: 1;
+        border: dotted 2px black;
+        width: 500px;
+    }
+
+    .col-box {
+        background: cyan;
+        height: 20px;
+        /* keep each box whole */
+        break-inside: avoid;
+    }
+
+    .spanner {
+        column-span: all;
+        background: grey;
+        opacity: 0.5;
+        height: 20px;
+    }
+
+    .pink-box {
+        column-span: all;
+        background: hotpink;
+        height: 20px;
+        width: 100px;
+    }
+</style>
+<div class="outer">
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+
+    <div class="spanner"></div>
+    <div class="pink-box"></div>
+    <div class="spanner"></div>
+
+    <div class="col-box"></div>
+    <div class="col-box"></div>
+</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Padding/border/margin</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-mrow">
+<link rel="match" href="padding-border-margin-001-ref.html"/>
+<meta name="assert" content="Verify visual rendering of padding/border/margin on the mrow element.">
+<body>
+  <p>This test passes if you see a purple square of side 100px, surrounded by a
+    10px blue padding, surrounded by a 10px blue/yellow dashed border, itself
+    surrounded by a 10px pink margin.</p>
+  <div style="background: pink; position: absolute; left: 10px; top: 3em;">
+    <math>
+      <mrow style="background: blue; border: 10px dashed yellow; padding: 10px; margin: 10px;">
+        <mspace width="100px" height="100px" style="background: purple;"></mspace>
+      </mrow>
+    </math>
+  </div>
+</body>
+</html>

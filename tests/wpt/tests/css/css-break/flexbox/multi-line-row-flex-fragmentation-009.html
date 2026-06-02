@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>
+  Tests that a flexbox expands its intrinsic block-size, due to a
+  flex item fragmenting.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex; flex-wrap: wrap; background: green;">
+    <div style="display: flex; flex-wrap: wrap;">
+      <div style="line-height: 0;">
+        <div style="display: inline-block; width: 50px; height: 50px;"></div>
+        <div style="display: inline-block; width: 50px; height: 100px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

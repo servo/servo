@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration set to 'underline' on white space</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="assert" content="The 'text-decoration' property set to 'underline' is applied to white space in elements." />
+        <style type="text/css">
+            div
+            {
+               text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below has a line below it, spaces as well as characters.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

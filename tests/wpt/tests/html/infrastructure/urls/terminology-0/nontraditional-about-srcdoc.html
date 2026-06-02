@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Non-traditional about:srcdoc documents</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/9514">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+
+  const srcdocOpenPromise = new Promise(resolve => {
+    window.srcdocOpenResolve = resolve;
+  });
+
+  iframe.srcdoc = `
+    <body onload="document.open();window.parent.srcdocOpenResolve();"></body>`;
+  document.body.append(iframe);
+
+  await srcdocOpenPromise;
+  assert_equals(iframe.contentDocument.URL, 'about:srcdoc');
+
+  // Calling the `about:srcdoc` Window's `fetch()` like this uses that Window's
+  // environment settings object as the request's client, which is where the
+  // request's referrer comes from, per
+  // https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer.
+  //
+  // If this `document.open()`d srcdoc document is considered a proper
+  // `about:srcdoc` document, the referrer will not be `about:srcdoc`, but will
+  // instead come from the parent document.
+  let referrer = await iframe.contentWindow.fetch('resources/echo-referrer-text.py');
+  referrer = await referrer.text();
+  assert_equals(referrer, location.href,
+      'The request referrer is retrieved from the parent document for ' +
+      'about:srcdoc documents');
+
+  // Observe that the "about base URL" is retrieved [1] for `document.baseURI`
+  // as well, indicating that the document is treated like a normal srcdoc
+  // document.
+  // [1]: https://html.spec.whatwg.org/#fallback-base-url
+  assert_equals(iframe.contentDocument.baseURI, location.href,
+      'The about base URL is retrieved as the base URL for srcdoc documents');
+}, 'about:srcdoc with document.open() is treated like a normal about:srcdoc document');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+
+  const javascriptURLPromise = new Promise(resolve => {
+    window.javascriptURLResolve = resolve;
+  });
+
+  iframe.srcdoc = `
+  <script>
+    location.href = "javascript:'<body onload=window.parent.javascriptURLResolve();>Document contents here</body>'";
+  </scr`+`ipt>`;
+  document.body.append(iframe);
+
+  // This promise will resolve as a result of script running in the *new*
+  // document that gets created by the `javascript:` URL.
+  await javascriptURLPromise;
+  assert_equals(iframe.contentDocument.URL, 'about:srcdoc');
+
+  // See the first assertion in the first test in this file.
+  let referrer = await iframe.contentWindow.fetch('resources/echo-referrer-text.py');
+  referrer = await referrer.text();
+  assert_equals(referrer, location.href,
+      'The request referrer is retrieved from the parent document for ' +
+      'about:srcdoc documents');
+
+  // See the second assertion in the first test in this file.
+  assert_equals(iframe.contentDocument.baseURI, location.href,
+      'The about base URL is retrieved as the base URL for srcdoc documents');
+}, 'about:srcdoc navigated via a `javascript:` URL is treated like a normal about:srcdoc document');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+
+  const srcdocLoadPromise = new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+  iframe.srcdoc = `Document contents here`;
+  document.body.append(iframe);
+
+  await srcdocLoadPromise;
+  assert_equals(iframe.contentDocument.URL, 'about:srcdoc');
+
+  // Change the document's URL to `about:srcdoc#foo` and ensure that the
+  // observable behavior in that document is consistent with treating it as a
+  // normal `about:srcdoc` document.
+  iframe.contentWindow.history.replaceState(null, '', 'about:srcdoc#foo');
+  assert_equals(iframe.contentDocument.URL, 'about:srcdoc#foo');
+
+  // See the first assertion in the first test in this file.
+  let referrer = await iframe.contentWindow.fetch('resources/echo-referrer-text.py');
+  referrer = await referrer.text();
+  assert_equals(referrer, location.href,
+      'The request referrer is retrieved from the parent document for ' +
+      'about:srcdoc documents');
+
+  // See the second assertion in the first test in this file.
+  assert_equals(iframe.contentDocument.baseURI, location.href,
+      'The about base URL is retrieved as the base URL for srcdoc documents');
+}, 'about:srcdoc with URL changed by history.replaceState() is treated like ' +
+   'a normal about:srcdoc document');
+</script>
+</body>

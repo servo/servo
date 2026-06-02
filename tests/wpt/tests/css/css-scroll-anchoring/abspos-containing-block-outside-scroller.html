@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { margin: 0; }
+#scroller { overflow: scroll; width: 500px; height: 400px; }
+#space { height: 1000px; }
+#abs {
+  position: absolute; background-color: red;
+  width: 100px; height: 100px;
+  left: 25px; top: 25px;
+}
+#rel {
+  position: relative; background-color: green;
+  left: 50px; top: 100px; width: 100px; height: 75px;
+}
+
+</style>
+<div id="scroller">
+  <div id="space">
+    <div id="abs"></div>
+    <div id="before"></div>
+    <div id="rel"></div>
+  </div>
+</div>
+<script>
+
+// Tests that anchor node selection skips an absolute-positioned descendant of
+// the scroller if and only if its containing block is outside the scroller.
+
+test(() => {
+  var scroller = document.querySelector("#scroller");
+  var abs = document.querySelector("#abs");
+  var before = document.querySelector("#before");
+  var rel = document.querySelector("#rel");
+
+  // We should not anchor to #abs, because it does not move with the scroller.
+  scroller.scrollTop = 25;
+  before.style.height = "25px";
+  assert_equals(scroller.scrollTop, 50);
+
+  // Reset, make #scroller a containing block.
+  before.style.height = "0";
+  scroller.scrollTop = 0;
+  scroller.style.position = "relative";
+
+  // This time we should anchor to #abs.
+  scroller.scrollTop = 25;
+  before.style.height = "25px";
+  assert_equals(scroller.scrollTop, 25);
+
+}, "Abs-pos descendant with containing block outside the scroller.");
+
+</script>

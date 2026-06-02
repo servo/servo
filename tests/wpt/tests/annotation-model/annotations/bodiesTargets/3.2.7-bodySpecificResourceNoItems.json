@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.7-bodySpecificResourceNoItems.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "An Specific Resource body cannot include an items key. items key is only valid with Choice or Set.",
+    "title": "If a **Specific Resource** is a body, it does NOT have an **_items_ key** - [model 3.2.7](https://www.w3.org/TR/annotation-model/#choice-of-bodies-and-targets)",
+    "description": "True when no Specific Resource bodies or when none of the Specific Resource bodies include the items key. (Section 4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithItems" } },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithItems" } } },
+                      { "not": { "$ref": "specificResource.json#/definitions/itemSRWithItems" }  },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/itemSRWithItems" } } }
+                     ]
+         }
+     }
+}

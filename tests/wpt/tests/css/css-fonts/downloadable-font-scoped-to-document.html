@@ -1,0 +1,28 @@
+ <!DOCTYPE html>
+
+<html class="reftest-wait">
+    <head>
+        <title>CSS fonts: Web fonts loaded in a document are not available in other documents</title>
+        <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com">
+        <link rel="author" title="Mukilan Thiyagarajan" href="mukilan@igalia.com">
+        <link rel="match" href="downloadable-font-scoped-to-document-ref.html">
+        <link rel="help" href="https://drafts.csswg.org/css-fonts/#font-face-rule">
+    </head>
+
+    <body>
+        <p>Test passes if Ahem is only used in the first iframe.</p>
+        <iframe id="iframe1" src="support/iframe-using-ahem-as-web-font.html"></iframe>
+        <iframe id="iframe2" src=""></iframe>
+
+        <script>
+            // Delay the loading of the second iframe to make it more likely that the font
+            // has loaded properly into the first iframe.
+            iframe1.onload = () => {
+                iframe2.src ="support/iframe-missing-font-face-rule.html";
+                document.documentElement.classList.remove('reftest-wait');
+            };
+        </script>
+    </body>
+
+</html>
+

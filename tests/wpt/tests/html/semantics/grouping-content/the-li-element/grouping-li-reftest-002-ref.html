@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>li element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-li-element">
+    <meta name="assert" content="li elements with ol parents have ordinal values." />
+    <style type="text/css">
+        span p {display:list-item; margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;}
+        span span p {margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 5em; padding-top: 0; padding-bottom: 0; font-family: monospace;}
+    </style>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This test continues to validate the li element.</p>
+
+    <p>This reftest verifies that the value attribute has an effect when applied to a list item with an ol parent.</p>
+    <p>A reftest is necessary because the values of li elements as calculated by the user agent are NOT available programatically.  Only explicitly-set values are then available programatically.</p>
+    <p>This reftest passes if you see the numbers 1. 2. 3. below the words "Ordered List"</p>
+
+    <span>
+        <p>Ordered List</p>
+        <span>
+            <p>1.</p>
+            <p>2.</p>
+            <p>3.</p>
+        </span>
+    </span>
+
+</body>
+</html>

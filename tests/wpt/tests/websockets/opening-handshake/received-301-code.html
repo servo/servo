@@ -1,0 +1,23 @@
+<!doctype html>
+<title>WebSockets: 301 Code Failed</title>
+<meta name=author title="Domenico Rizzo" href="mailto:domenico.rizzo@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../constants.sub.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t) {
+    t.step(function() {
+        const ws = new WebSocket(new URL("resources/redirect_response.py", location.href));
+
+        ws.onopen = t.step_func(function() {
+            assert_unreached("onopen");
+        });
+
+        ws.onerror = t.step_func(function() {
+            assert_true(true)
+            t.done()
+        });
+      });
+}, 'Websockets - Received 301 code');
+</script>

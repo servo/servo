@@ -1,0 +1,80 @@
+features:
+- name: rgb
+  files:
+  - colors-001*
+  - colors-002*
+  - colors-003*
+  - colors-004*
+- name: charset
+  # The tests in this directory employ various (and sometimes conflicting)
+  # techniques to specify the CSS document's character set. Those listed below
+  # specifically use the `@charset` rule.
+  files:
+  - at-charset-002.xht
+  - at-charset-007.xht
+  - at-charset-008.xht
+  - at-charset-009.xht
+  - at-charset-014.xht
+  - at-charset-015.xht
+  - at-charset-016.xht
+  - at-charset-019.xht
+  - at-charset-020.xht
+  - at-charset-021.xht
+  - at-charset-024.xht
+  - at-charset-025.xht
+  - at-charset-026.xht
+  - at-charset-027.xht
+  - at-charset-028.xht
+  - at-charset-029.xht
+  - at-charset-030.xht
+  - at-charset-037.xht
+  - at-charset-038.xht
+  - at-charset-039.xht
+  - at-charset-040.xht
+  - at-charset-041.xht
+  - at-charset-042.xht
+  - at-charset-043.xht
+  - at-charset-044.xht
+  - at-charset-045.xht
+  - at-charset-046.xht
+  - at-charset-047.xht
+  - at-charset-048.xht
+  - at-charset-049.xht
+  - at-charset-050.xht
+  - at-charset-051.xht
+  - at-charset-052.xht
+  - at-charset-053.xht
+  - at-charset-054.xht
+  - at-charset-055.xht
+  - at-charset-056.xht
+  - at-charset-057.xht
+  - at-charset-058.xht
+  - at-charset-059.xht
+  - at-charset-060.xht
+  - at-charset-061.xht
+  - at-charset-quotes-*
+  - at-charset-space-*
+  - at-charset-utf16-*
+  - charset-attr-*
+- name: counters
+  files:
+  - case-sensitive-005.xht
+  - characters-0080-009F-001.xht
+  - counters-*
+- name: lang
+  files:
+  - case-sensitive-004.xht
+- name: import
+  files:
+  - at-keywords-000.xht
+  - at-rule-004.xht
+  - at-rule-005.xht
+  - at-rule-006.xht
+  - at-rule-007.xht
+  - at-rule-008.xht
+  - at-rule-009.xht
+  - at-rule-010.xht
+  - at-rule-013.xht
+  - eof-005.xht
+  - eof-006.xht
+  - import-*

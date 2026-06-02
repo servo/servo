@@ -1,0 +1,47 @@
+@font-face {
+    font-family: 'ahem';
+    src: url('/fonts/Ahem.ttf');
+}
+
+.test-diff {
+    container-type: inline-size;
+    width: 200px;
+    height: 200px;
+    display: inline-block;
+    isolation: isolate;
+    position: relative;
+    border: 1px solid black;
+}
+
+video-reference, cue { display: inline-block; }
+cue-background { display: inline; }
+
+video, video-reference {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: difference;
+}
+
+::cue, cue {
+    font: 5cqmin/1 Ahem;
+}
+
+::cue, cue-background {
+    color: rgb(128, 0, 0);
+    background-color: rgb(255, 0, 0);
+}
+
+cue {
+    position: absolute;
+    display: inline-block;
+    text-align: center;
+    white-space: pre-line;
+}
+
+video-reference[expected] > cue > cue-background {
+    color: rgb(128, 128, 0);
+    background-color: rgb(255, 255, 0);
+}

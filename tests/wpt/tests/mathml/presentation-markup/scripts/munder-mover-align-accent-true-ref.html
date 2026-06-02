@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Horizontal alignment of base with munder/mover scripts (accent="true")</title>
+  </head>
+  <body>
+    <table border="1">
+      <tr>
+        <th colspan="2">mover</th>
+        <th colspan="2">munder</th>
+      </tr>
+      <tr>
+        <td align="center">Over &lt; Base</td>
+        <td align="center">Over &gt; Base</td>
+        <td align="center">Under &lt; Base</td>
+        <td align="center">Under &gt; Base</td>
+      </tr>
+      <tr>
+        <td align="center">
+          <math>
+            <mover accent="true">
+              <mspace height="15px" width="75px" mathbackground="blue"/>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+            </mover>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <mover accent="true">
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="blue"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+            </mover>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <munder accentunder="true">
+              <mspace height="15px" width="75px" mathbackground="blue"/>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+            </munder>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <munder accentunder="true">
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="blue"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+            </munder>
+          </math>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

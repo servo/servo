@@ -1,0 +1,36 @@
+newlines
+<link rel="help" href="https://w3c.github.io/webvtt/#webvtt-parser-algorithm">
+
+assert_equals(cues.length, 4);
+
+assert_equals(cues[0].id, "cr");
+assert_equals(cues[0].text, "text0");
+
+assert_equals(cues[1].id, "lf");
+assert_equals(cues[1].text, "text1");
+
+assert_equals(cues[2].id, "crlf");
+assert_equals(cues[2].text, "text2");
+
+assert_equals(cues[3].id, "lfcr");
+assert_equals(cues[3].text, "text3");
+
+===
+WEBVTT\r\
+\r\
+cr\r\
+00:00:00.000 --> 00:00:01.000\r\
+text0\n\
+\n\
+lf\n\
+00:00:00.000 --> 00:00:01.000\n\
+text1\r\n\
+\r\n\
+crlf\r\n\
+00:00:00.000 --> 00:00:01.000\r\n\
+text2\n\
+\r\
+lfcr\r\
+00:00:00.000 --> 00:00:01.000\n\
+text3\n\
+\r

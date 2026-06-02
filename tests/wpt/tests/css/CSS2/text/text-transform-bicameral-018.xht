@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Circled Latin, lowercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property"/>
+<link rel="match" href="text-transform-bicameral-018-ref.xht"/>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=18' />
+<meta name="assert" content="The UA will lowercase Unicode Circled Latin when text-transform is set to lowercase." />
+<style type='text/css'>
+.test span { text-transform: lowercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the left-hand character in each pair matches the right-hand one.</p>
+
+
+<div class="test">
+<div><span>Ⓐ</span> ⓐ</div>
+<div><span>Ⓑ</span> ⓑ</div>
+<div><span>Ⓒ</span> ⓒ</div>
+<div><span>Ⓓ</span> ⓓ</div>
+<div><span>Ⓔ</span> ⓔ</div>
+<div><span>Ⓕ</span> ⓕ</div>
+<div><span>Ⓖ</span> ⓖ</div>
+<div><span>Ⓗ</span> ⓗ</div>
+<div><span>Ⓘ</span> ⓘ</div>
+<div><span>Ⓙ</span> ⓙ</div>
+<div><span>Ⓚ</span> ⓚ</div>
+<div><span>Ⓛ</span> ⓛ</div>
+<div><span>Ⓜ</span> ⓜ</div>
+<div><span>Ⓝ</span> ⓝ</div>
+<div><span>Ⓞ</span> ⓞ</div>
+<div><span>Ⓟ</span> ⓟ</div>
+<div><span>Ⓠ</span> ⓠ</div>
+<div><span>Ⓡ</span> ⓡ</div>
+<div><span>Ⓢ</span> ⓢ</div>
+<div><span>Ⓣ</span> ⓣ</div>
+<div><span>Ⓤ</span> ⓤ</div>
+<div><span>Ⓥ</span> ⓥ</div>
+<div><span>Ⓦ</span> ⓦ</div>
+<div><span>Ⓧ</span> ⓧ</div>
+<div><span>Ⓨ</span> ⓨ</div>
+<div><span>Ⓩ</span> ⓩ</div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

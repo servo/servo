@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>CSS Reference: CSS 2.1 replaced element sizing</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <meta name="flags" content="should"> <!-- undefinedness in 10.3.2 -->
+  <style type="text/css">
+
+  div { width: 200px }
+
+  span {
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+  }
+
+  </style>
+</head>
+<body>
+
+<div>
+  <span style="background: black;"></span>, <!-- height-25-width-50 -->
+  <span style="background: fuchsia;"></span>, <!-- height-25-ratio-2 -->
+  <span style="background: silver;"></span>, <!-- width-50-ratio-2 -->
+  <span style="background: blue; width: 300px"></span>, <!-- height-25-no-ratio -->
+  <span style="background: orange; width: 50px"></span>, <!-- width-50-no-ratio -->
+  <span style="background: gray"></span>, <!-- ratio-2 -->
+  <span style="background: aqua; width: 300px"></span>. <!-- no-ratio -->
+
+</div>
+
+</body>
+</html>

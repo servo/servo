@@ -1,0 +1,9 @@
+timings, eof
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-timestamp">
+
+assert_equals(cues.length, 0);
+
+===
+WEBVTT
+
+00:00:00.000 -->

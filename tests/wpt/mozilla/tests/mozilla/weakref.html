@@ -1,0 +1,28 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+test(function() {
+  // We don't use assert_equals() etc here because it somehow
+  // keeps hold of its passed arguments, and thus the weak
+  // reference is never freed before the end of the test.
+
+  var t = new TestBinding;
+  assert_true(t.interfaceAttributeWeak === null);
+
+  var url = new URL("http://blog.servo.org/");
+  t.interfaceAttributeWeak = url;
+  assert_true(t.interfaceAttributeWeak !== null);
+
+  gc();
+  assert_true(t.interfaceAttributeWeak !== null);
+
+  url = null;
+  gc();
+
+  assert_true(t.interfaceAttributeWeak === null);
+}, "Weak references work");
+</script>
+</html>

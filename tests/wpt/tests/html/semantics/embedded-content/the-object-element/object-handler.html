@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: object - handler</title>
+<link rel="author" title="Intel" href="http://www.intel.com" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<object id="test" name="obj" data="test0.html" type="text/html"></object>
+<script>
+
+var t1 = async_test("The nested browsing context must be navigated to the resource specified by the data attribute.");
+var t2 = async_test("The object.data must not be updated if the browsing context gets further navigated.");
+
+function callback(data) {
+  if (data == "test0") {
+    t1.step(function() {
+      var testEle = document.getElementById("test");
+      assert_true(testEle.contentDocument.location.href.indexOf("test0.html") != -1, "The nested browsing context should be navigated to test0.html.");
+      window["obj"].history.replaceState({state:"ok"}, "mytitle ", "object-fallback.html");
+      assert_not_equals(testEle.contentDocument.location.href.indexOf("object-fallback.html"), -1, "The nested browsing context should be replacement enabled.");
+    });
+    t1.done();
+  } else if (data == "test1") {
+    t2.step(function() {
+      var testEle = document.getElementById("test");
+      assert_true(testEle.contentDocument.location.href.indexOf("test1.html") != -1, "The browsing context should be navigated to test1.html.");
+      assert_true(testEle.data.indexOf("test0.html") != -1, "The value of attribute data should not be updated.");
+    });
+    t2.done();
+  }
+}
+
+</script>

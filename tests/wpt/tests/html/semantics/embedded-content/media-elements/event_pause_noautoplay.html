@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+ <head>
+  <title>{audio,video} events - pause</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+ </head>
+ <body>
+  <p><a href="https://html.spec.whatwg.org/multipage/#mediaevents">spec reference</a></p>
+  <audio id="a" controls>
+  </audio>
+  <video id="v" controls>
+  </video>
+  <div id="log"></div>
+  <script>
+promise_test(function(t) {
+  var async_t = async_test("calling play() then pause() on non-autoplay audio should trigger pause event");
+  var a = document.getElementById("a");
+  a.addEventListener("pause", function() {
+    async_t.done();
+  }, false);
+  a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
+  var play_promise = a.play();
+  a.pause();
+  return promise_rejects_dom(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
+}, "audio events - pause");
+
+promise_test(function(t) {
+  var async_t = async_test("calling play() then pause() on non-autoplay video should trigger pause event");
+  var v = document.getElementById("v");
+  v.addEventListener("pause", function() {
+    async_t.done();
+  }, false);
+  v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+  var play_promise = v.play()
+  v.pause();
+  return promise_rejects_dom(t, "AbortError", play_promise, "pause() should reject all pending play Promises");
+}, "video events - pause");
+  </script>
+ </body>
+</html>

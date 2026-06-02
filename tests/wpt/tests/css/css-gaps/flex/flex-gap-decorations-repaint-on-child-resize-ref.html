@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Gap Decorations: repaint when flex item width changes (reference)</title>
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <style>
+    .flex-container {
+      display: flex;
+      column-gap: 20px;
+      width: 160px;
+      height: 50px;
+      background: red;
+      column-rule: 20px solid green;
+    }
+
+    .flex-item {
+      background: green;
+      height: 50px;
+    }
+
+    #item1 {
+      /* Final width after change */
+      width: 90px;
+    }
+
+    #item2 {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="flex-container">
+    <div id="item1" class="flex-item"></div>
+    <div id="item2" class="flex-item"></div>
+  </div>
+</body>
+</html>

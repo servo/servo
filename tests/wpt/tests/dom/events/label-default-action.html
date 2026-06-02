@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Label default action with interactive content</title>
+<link rel=help href="https://issues.chromium.org/issues/452084024">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(t => {
+  const label = document.createElement("label");
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  const button = document.createElement("button");
+  label.append(checkbox, button);
+
+  button.click();
+  assert_false(checkbox.checked);
+
+  button.onclick = () => button.remove();
+  button.click();
+  assert_false(checkbox.checked);
+}, "Label default action should not trigger when clicked button removes itself");
+</script>

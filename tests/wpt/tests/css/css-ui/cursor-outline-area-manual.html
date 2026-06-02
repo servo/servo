@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor on outline</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor" title="6.1.1. cursor property">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The cursor property is not applied over outline.">
+<style>
+div {
+	margin-top: 66px;
+	margin-left: 50px;
+	outline: blue solid 50px;
+	cursor: url("support/cursors/fail.png"), url("support/cursors/fail.cur"), help;
+	width: 0px;
+}
+</style>
+<body>
+	<p>The test passes if, when moved inside the blue square, the cursor is the platform-dependent default cursor. Often rendered as an arrow.</p>
+	<div></div>
+</body>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="match" href="grid-template-propagation-ref.html">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1222988">
+<link rel="help" href="https://html.spec.whatwg.org/C/#anonymous-fieldset-content-box">
+<style>
+fieldset {
+  display: grid;
+  grid-template: auto / 1fr;
+  grid-template-areas: "a";
+  width: 100px;
+  height: 100px;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+</style>
+<p>There should be a green box below.</p>
+<fieldset>
+  <div style="background: green; grid-area: a"></div>
+</fieldset>

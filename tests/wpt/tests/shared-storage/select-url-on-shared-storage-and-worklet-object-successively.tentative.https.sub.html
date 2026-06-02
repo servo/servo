@@ -1,0 +1,44 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key]);
+
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
+
+  let select_url_result0 = await sharedStorage.selectURL(
+      "increment-global-variable-and-return-original-value-operation",
+      [{url: url0}, {url: url1}], {resolveToConfig: true, keepAlive: true});
+  assert_true(validateSelectURLResult(select_url_result0, true));
+  attachFencedFrame(select_url_result0, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestor_key);
+  assert_equals(result0, "frame0_loaded");
+
+  let select_url_result1 = await sharedStorage.worklet.selectURL(
+      "increment-global-variable-and-return-original-value-operation",
+      [{url: url0}, {url: url1}], {resolveToConfig: true, keepAlive: true});
+  assert_true(validateSelectURLResult(select_url_result1, true));
+  attachFencedFrame(select_url_result1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestor_key);
+
+  // This indicates that the prior sharedStorage.selectURL() and
+  // sharedStorage.worklet.selectURL() ran in the same worklet environment.
+  assert_equals(result1, "frame1_loaded");
+
+}, 'selectURL() on window.sharedStorage and window.sharedStorage.worklet ' +
+   'successively. The two calls should run in the same worklet environment.');
+
+</script>
+</body>

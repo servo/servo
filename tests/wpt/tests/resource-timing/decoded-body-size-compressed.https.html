@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long"/>
+  <title>PerformanceResourceTiming.decodedBodySize for compressed resources</title>
+  <link rel="help" href="https://www.w3.org/TR/resource-timing-2/#dom-performanceresourcetiming-decodedbodysize" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/compression-dictionary/resources/compression-dictionary-util.sub.js"></script>
+  <script>
+    const waitForResourceTiming = (url) => {
+      return new Promise(resolve => {
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          for (const entry of entries) {
+            if (entry.name.includes(url)) {
+              observer.disconnect();
+              resolve(entry);
+            }
+          }
+        });
+        observer.observe({ entryTypes: ["resource"] });
+      });
+    };
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/gzip_xml.py";
+      const expectedDecodedSize = 125;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed XML file size");
+      assert_greater_than(entry.encodedBodySize, 0,
+        "encodedBodySize should be non-zero");
+    }, "decodedBodySize for gzip-compressed XML resource");
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/foo.text.br";
+      const expectedDecodedSize = 10500;
+      const expectedEncodedSize = 15;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed brotli file size");
+      assert_equals(entry.encodedBodySize, expectedEncodedSize,
+        "encodedBodySize should match the compressed brotli file size");
+    }, "decodedBodySize for brotli-compressed text resource");
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/foo.text.gz";
+      const expectedDecodedSize = 10500;
+      const expectedEncodedSize = 57;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed gzip file size");
+      assert_equals(entry.encodedBodySize, expectedEncodedSize,
+        "encodedBodySize should match the compressed gzip file size");
+    }, "decodedBodySize for gzip-compressed text resource");
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/compressed-js.py?content_encoding=gzip";
+      const expectedDecodedSize = 53;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed JS file size");
+      assert_not_equals(entry.encodedBodySize, entry.decodedBodySize,
+        "encodedBodySize should differ from decodedBodySize for gzip-compressed JS");
+      assert_greater_than(entry.encodedBodySize, 0,
+        "encodedBodySize should be non-zero");
+    }, "decodedBodySize for dynamically gzip-compressed JS resource");
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/compressed-js.py?content_encoding=deflate";
+      const expectedDecodedSize = 53;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed JS file size");
+      assert_not_equals(entry.encodedBodySize, entry.decodedBodySize,
+        "encodedBodySize should differ from decodedBodySize for deflate-compressed JS");
+      assert_greater_than(entry.encodedBodySize, 0,
+        "encodedBodySize should be non-zero");
+    }, "decodedBodySize for deflate-compressed JS resource");
+
+    promise_test(async (t) => {
+      const url = "/resource-timing/resources/compressed-js.py?content_encoding=identity";
+      const expectedSize = 53;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      await response.text();
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedSize,
+        "decodedBodySize should match file size for uncompressed resource");
+      assert_equals(entry.encodedBodySize, expectedSize,
+        "encodedBodySize should equal decodedBodySize for uncompressed resource");
+    }, "decodedBodySize equals encodedBodySize for uncompressed resource");
+
+    compression_dictionary_promise_test(async (t) => {
+      const registerDictionaryUrl = '/fetch/compression-dictionary/resources/register-dictionary.py';
+      const compressedDataUrl = '/fetch/compression-dictionary/resources/compressed-data.py';
+
+      const dict = await (await fetch(registerDictionaryUrl)).text();
+      assert_equals(dict, kDefaultDictionaryContent);
+
+      await new Promise(resolve => t.step_timeout(resolve, 500));
+
+      const url = `${compressedDataUrl}?content_encoding=dcb`;
+      const expectedDecodedSize = 52;
+      const expectedEncodedSize = 75;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      const text = await response.text();
+      assert_equals(text, kExpectedCompressedData,
+        "The resource should decompress correctly");
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed data size (52 bytes)");
+      assert_equals(entry.encodedBodySize, expectedEncodedSize,
+        "encodedBodySize should match the dictionary-compressed brotli size (75 bytes including dictionary hash)");
+    }, "decodedBodySize for dictionary-compressed brotli (dcb) resource");
+
+    compression_dictionary_promise_test(async (t) => {
+      const registerDictionaryUrl = '/fetch/compression-dictionary/resources/register-dictionary.py';
+      const compressedDataUrl = '/fetch/compression-dictionary/resources/compressed-data.py';
+
+      const dict = await (await fetch(registerDictionaryUrl)).text();
+      assert_equals(dict, kDefaultDictionaryContent);
+
+      await new Promise(resolve => t.step_timeout(resolve, 500));
+
+      const url = `${compressedDataUrl}?content_encoding=dcz`;
+      const expectedDecodedSize = 52;
+      const expectedEncodedSize = 83;
+
+      const timingPromise = waitForResourceTiming(url);
+      const response = await fetch(url);
+      const text = await response.text();
+      assert_equals(text, kExpectedCompressedData,
+        "The resource should decompress correctly");
+      const entry = await timingPromise;
+
+      assert_equals(entry.decodedBodySize, expectedDecodedSize,
+        "decodedBodySize should match the uncompressed data size (52 bytes)");
+      assert_equals(entry.encodedBodySize, expectedEncodedSize,
+        "encodedBodySize should match the dictionary-compressed zstd size (83 bytes including dictionary hash)");
+    }, "decodedBodySize for dictionary-compressed zstd (dcz) resource");
+
+  </script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p>
+    This test validates that PerformanceResourceTiming.decodedBodySize correctly reports
+    the size of resources after removing content encoding (gzip, brotli, deflate, and
+    compression dictionaries with dcb and dcz), and that it differs from encodedBodySize
+    for compressed resources.
+  </p>
+</body>
+</html>

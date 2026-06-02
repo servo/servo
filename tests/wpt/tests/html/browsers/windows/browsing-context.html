@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <title>HTML Test: Browsing context is first created</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var doc, iframe;
+
+    setup(function () {
+      // Create new browsing context via iframe
+      iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      doc = iframe.contentDocument;
+    });
+
+    test(function () {
+      assert_equals(doc.compatMode, "BackCompat", "The compatMode of a document without a document type declaration should be 'BackCompat'."); // Quirksmode
+      assert_equals(doc.contentType, "text/html", "The document should be an HTML document.");
+      assert_equals(doc.readyState, "complete", "The readyState attribute should be 'complete'.");
+      // Document metadata...
+      assert_equals(doc.documentURI, "about:blank", "The document's address should be 'about:blank'.");
+      assert_equals(doc.URL, "about:blank", "The document's address should be 'about:blank'.");
+      assert_equals(doc.doctype, null, "The docType of a document without a document type declaration should be null.");
+      assert_equals(doc.characterSet, "UTF-8", "The document's encoding should be 'UTF-8'.");
+    }, "Check that browsing context has new, ready HTML document");
+
+    test(function () {
+      assert_equals(doc.childNodes.length, 1, "The document must have only one child.");
+      assert_equals(doc.documentElement.tagName, "HTML");
+      assert_equals(doc.documentElement.childNodes.length, 2, "The HTML element should have 2 children.");
+      assert_equals(doc.documentElement.childNodes[0].tagName, "HEAD", "The first child of HTML element should be a HEAD element.");
+      assert_false(doc.documentElement.childNodes[0].hasChildNodes(), "The HEAD element should not have children.");
+      assert_equals(doc.documentElement.childNodes[1].tagName, "BODY", "The second child of HTML element should be a BODY element.");
+      assert_false(doc.documentElement.childNodes[1].hasChildNodes(), "The BODY element should not have children.");
+    }, "Check that new document nodes extant, empty");
+
+    test(function () {
+      assert_equals(doc.referrer, document.URL, "The document's referrer should be its creator document's URL.");
+      assert_equals(iframe.contentWindow.parent.document, document);
+    }, "Check the document properties corresponding to the creator browsing context");
+    </script>
+  </body>
+</html>

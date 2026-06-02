@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      const test_data = [
+        {
+          url : './link-upgrade/basic-link-no-upgrade.sub.html',
+          done_message : 'basic-link-no-upgrade',
+        },
+        {
+          url : './link-upgrade/basic-link-upgrade.sub.html',
+          done_message : 'basic-link-upgrade',
+        },
+        {
+          url : './link-upgrade/iframe-link-upgrade.sub.html',
+          done_message : 'iframe-link-upgrade',
+        },
+        {
+          url : './link-upgrade/iframe-top-navigation-no-upgrade-1.sub.html',
+          done_message : 'iframe-top-navigation-no-upgrade-1',
+        },
+        {
+          url : './link-upgrade/iframe-top-navigation-no-upgrade-2.sub.html',
+          done_message : 'iframe-top-navigation-no-upgrade-2',
+        },
+        {
+          url : './link-upgrade/iframe-top-navigation-upgrade-1.sub.html',
+          done_message : 'iframe-top-navigation-upgrade-1',
+        },
+        {
+          url : './link-upgrade/iframe-top-navigation-upgrade-2.sub.html',
+          done_message : 'iframe-top-navigation-upgrade-2',
+        },
+        {
+          url : './link-upgrade/iframe-top-navigation-upgrade-meta.sub.html',
+          done_message : 'iframe-top-navigation-upgrade-meta',
+        },
+      ];
+      for(let i = 0; i<test_data.length; i+=1) {
+        let data = test_data[i];
+        let test = async_test(data.url);
+        test.step(function() {
+          let w = window.open(data.url, data.url);
+          this.add_cleanup(() => w.close());
+          assert_true(w != undefined, "Popup must not be blocked");
+
+          window.addEventListener("message", event => {
+            if (event.data == data.done_message)
+              test.done();
+          });
+        });
+
+        test.step_timeout(function(){test.force_timeout()}, 10000);
+      }
+    </script>
+  </body>
+
+</html>

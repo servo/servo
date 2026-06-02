@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Test `Sec-Fetch-Dest` header</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const sec_fetch_dest_value_key = token();
+  const https_origin_url =
+      getRemoteOriginURL(
+          generateURL(
+              'resources/check-header-sec-fetch-dest.py',
+              [sec_fetch_dest_value_key]));
+  attachFencedFrame(https_origin_url);
+
+  // Get the result for the top-level fenced frame.
+  const actual_result = await nextValueFromServer(sec_fetch_dest_value_key);
+  assert_equals(actual_result, "b'fencedframe'", "The fenced frame " +
+                                     "has the right value for " +
+                                     "`Sec-Fetch-Dest` header");
+
+  const inner_url = generateURL("resources/header-secFetchDest-inner.html",
+      [sec_fetch_dest_value_key]);
+  attachFencedFrame(inner_url);
+
+  const iframe_actual_result = await nextValueFromServer(sec_fetch_dest_value_key);
+  assert_equals(iframe_actual_result, "b'fencedframe'",
+                "The iframe inside the fenced frame has the right value for " +
+                "`Sec-Fetch-Dest` header");
+}, "header.secFetchDest");
+</script>
+
+</body>

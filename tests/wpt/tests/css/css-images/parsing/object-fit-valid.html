@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing object-fit with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#propdef-object-fit">
+<meta name="assert" content="object-fit supports the full grammar 'fill | none | [contain | cover] || scale-down'.">
+<meta name="assert" content="'scale-down' is equivalent to 'contain scale-down'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("object-fit", "contain");
+test_valid_value("object-fit", "contain scale-down", "scale-down");
+test_valid_value("object-fit", "cover");
+test_valid_value("object-fit", "cover scale-down");
+test_valid_value("object-fit", "fill");
+test_valid_value("object-fit", "none");
+test_valid_value("object-fit", "scale-down");
+test_valid_value("object-fit", "scale-down contain", "scale-down");
+test_valid_value("object-fit", "scale-down cover", "cover scale-down");
+</script>
+</body>
+</html>

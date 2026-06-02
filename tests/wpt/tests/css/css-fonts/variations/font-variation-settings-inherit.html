@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing the inheritance of the font-variation-settings property</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-variation-settings" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="inheritanceTestParent" style="font-variation-settings: 'xxxx' 1, 'xxxx' 2;">
+        <span id="inheritanceTestChildInherited">Abc</span>
+        <span id="inheritanceTestChildOverride" style="font-variation-settings: 'cccc' 1, 'bbbb' 2, 'aaaa' 3, 'aaaa' calc(2 + 2);">Abc</span>
+    </div>
+    <script>
+
+        // Verify computed inheritance of nested elements.
+        var elementParent = document.getElementById("inheritanceTestParent");
+        var elementChildInherited = document.getElementById("inheritanceTestChildInherited");
+        var elementChildOverride = document.getElementById("inheritanceTestChildOverride");
+
+        var parentValue = "'yyyy' 1, 'yyyy' 2";
+        elementParent.style.fontVariationSettings = parentValue;
+
+        test(() => {
+            var actualValue = window.getComputedStyle(elementParent).fontVariationSettings;
+            // The following strict test is subject to debate; softening for now:
+            // assert_equals(actualValue, "\"yyyy\" 2", "Duplicate axis tags should be removed, favoring the latter axis tag's value.");
+            assert_equals((/.*(?:"|')yyyy(?:"|') (\d)/.exec(actualValue)||[])[1], '2', "Child should override parent value.");
+        }, "Test font-variation-settings for duplicates using " + parentValue);
+
+        test(() => {
+            var actualValue = window.getComputedStyle(elementChildInherited).fontVariationSettings;
+            // The following strict test is subject to debate; softening for now:
+            // assert_equals(actualValue, "\"yyyy\" 2", "Child should inherit the parent value directly.");
+            assert_equals((/.*(?:"|')yyyy(?:"|') (\d)/.exec(actualValue)||[])[1], '2', "Child should override parent value.");
+        }, "Test font-variation-settings for child inheritance");
+
+        test(() => {
+            var actualValue = window.getComputedStyle(elementChildOverride).fontVariationSettings;
+            // The following strict test is subject to debate; softening for now:
+            // assert_equals(actualValue, "\"aaaa\" 4, \"bbbb\" 2, \"cccc\" 1", "Child should override parent value.");
+            assert_equals((/.*(?:"|')aaaa(?:"|') (\d)/.exec(actualValue)||[])[1], '4', "Child should override parent value.");
+            assert_equals((/.*(?:"|')yyyy(?:"|') (\d)/.exec(actualValue)||[])[1], undefined, "Child should override parent value.");
+        }, "Test font-variation-settings for child override");
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.createElement("div");
+var childDiv = document.createElement("div");
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers 'appendChild' and 'removeChild' in Dromaeo/dom-modify.html.",
+    setup: function() {
+        div.innerHTML = "";
+    },
+    run: function() {
+        var localDiv = div;
+        var localChildDiv = childDiv;
+        for (var i = 0; i < 50000; i++)
+            localDiv.appendChild(localChildDiv);
+}});
+</script>
+</body>
+</html>

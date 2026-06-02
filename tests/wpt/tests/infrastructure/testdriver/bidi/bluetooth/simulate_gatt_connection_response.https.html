@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>TestDriver bidi.bluetooth.simulate_gatt_connection_response method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/bidi-bluetooth-helper.js"></script>
+
+<script>
+    promise_setup(async () => {
+        await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+        await test_driver.bidi.bluetooth.gatt_connection_attempted.subscribe();
+    });
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise = selectFirstDeviceOnDevicePromptUpdated();
+        const [device] = await Promise.all([requestDeviceWithTrustedClick({
+            acceptAllDevices: true
+        }), handle_prompt_promise]);
+
+        const simulationProcessedPromise =
+            test_driver.bidi.bluetooth.gatt_connection_attempted.once().then(
+                (event) => {
+                    return test_driver.bidi.bluetooth.simulate_gatt_connection_response({
+                        address: event.address,
+                        code: 0x0,
+                    });
+                });
+        const connectPromise = device.gatt.connect();
+        await Promise.all([connectPromise, simulationProcessedPromise]);
+        assert_true(device.gatt.connected);
+    }, "simulate a GATT connection response.");
+</script>

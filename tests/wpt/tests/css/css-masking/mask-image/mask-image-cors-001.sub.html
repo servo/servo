@@ -1,0 +1,93 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Cross-origin CSS mask-images can be referenced via cross-origin
+  stylesheets, iff the image allows the origin of the document.</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+<link rel="help" href="https://fetch.spec.whatwg.org/#http-access-control-allow-origin">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="match" href="mask-image-cors-001-ref.html">
+
+<!-- This test is set up with several different resources, each referenced via
+     a different origin, to test a particular cross-origin scenario. The origins
+     are referenced symbolically, using the WPT web-server's
+     variable-substitution mechanism described at
+     https://web-platform-tests.org/writing-tests/server-features.html#tests-involving-multiple-origins
+     https://web-platform-tests.org/writing-tests/server-pipes.html#sub
+
+     The various resources/origins involved here are:
+
+     (0) The outer document - this is a shim whose origin we don't need to know
+         or care about. This outer document's purpose is just to load the
+         iframe's inner document, from a particular *known* origin.
+
+     (1) The iframe's inner document (mask-image-cors-001-frame.sub.html),
+         loaded from "origin A", https://{{domains[www]}}:{{ports[https][0]}}
+
+     (2) The stylesheet (mask-image-cors-001-styles.sub.css), loaded from
+         "origin B", https://{{domains[www1]}}:{{ports[https][0]}}
+
+     (3) The mask-image (mask-image-cors-001-image.png), loaded from
+         "origin C", https://{{domains[www2]}}:{{ports[https][0]}}
+         Importantly, we reference this image URL with an added query-param:
+         `pipe=header(Access-Control-Allow-Origin,...)`, where "..." is
+         origin A for #mask-allowed. This prompts the WPT web-server to serve
+         that resource with the Access-Control-Allow-Origin header set to
+         origin A, which should allow that resource to be used in the iframe's
+         inner document.  (We use a different header-value for #mask-disallowed
+         which should prevent that one from being usable.)
+
+     The test's expectation is that:
+     * The iframe's inner document should successfully load the stylesheet.
+     * Then the iframe should make a cross-origin request to load the
+       mask-image for the #mask-allowed element, and the UA should allow the
+       document to use that mask-image, because the response's
+       Access-Control-Allow-Origin header matches the document.
+     * The iframe should *also* make a cross-origin request to load the
+       mask-image for the #mask-disallowed element, and the UA should *not*
+       allow the document to use that mask-image, because the header value
+       does not match the document (even though it matches the stylesheet).
+     * Therefore: the iframe should render with two blue squares, with corners
+       touching like a checkerboard (from the square solid-blue #mask-allowed
+       element, masked via the checkerboard-like mask-image). And no red should
+       be visible because #mask-disallowed should be fully masked away, with
+       its mask-image request having failed.
+-->
+<style>
+  /* Zero out the margin in the outer document, so that the iframe's inner
+     document is rendered directly at the top-left corner. (This makes the
+     reference case slightly simpler.) */
+  body { margin: 0; }
+  iframe {
+    border: none;
+    height: 400px;
+    width: 400px;
+  }
+</style>
+<body>
+<script>
+  // Construct the iframe URL:
+  //
+  // The iframe's origin is "origin A" described in the main explanatory
+  // comment above:
+  const frameOrigin = "https://{{domains[www]}}:{{ports[https][0]}}";
+
+  // The iframe's path/filename is the same as this outer document, but with
+  // "-frame.sub" inserted before the .html file-extension:
+  const framePath = window.location.pathname.replace(".sub.html",
+                                                     "-frame.sub.html");
+
+  // The iframe's URL is those^ concatenated together:
+  const frameURL = `${frameOrigin}${framePath}`;
+
+  // Create/load the iframe:
+  let myIframe = document.createElement("iframe");
+  myIframe.src = frameURL;
+
+  // We can take the reftest snapshot once the iframe has finished loading.
+  // (Its mask-image resource will block its load event.)
+  myIframe.addEventListener("load", ()=>{
+      document.documentElement.removeAttribute("class");
+  });
+  document.body.appendChild(myIframe);
+</script>

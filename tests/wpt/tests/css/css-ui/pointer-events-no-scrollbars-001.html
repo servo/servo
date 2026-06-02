@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<title>CSS Test: differences in pointer-events shouldn't cause overlay scrollbars to appear</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#pointer-events-control">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414142">
+<meta name="assert" content="Differences in pointer-events shouldn't cause overlay scrollbars to appear.  (I concede this could perhaps be allowed by the wording in the spec that makes basically everything related to scrollbar rendering UA-defined.  However, there is no allowance for pointer-events affecting scrollbar rendering, so I think it's defensible.)">
+<link rel="match" href="pointer-events-no-scrollbars-001-ref.html">
+
+<style>
+
+#scroll {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+  pointer-events: none;
+}
+
+#big {
+  width: 500px;
+  height: 500px;
+}
+
+</style>
+
+
+<div id="scroll">
+  <div id="big">
+  </div>
+</div>

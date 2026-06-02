@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Ensure that padding inflation does not cause block-direction scroll in input elements.</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1932840">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+input.test {
+  width: 100px;
+  height: 100px;
+  font: 105px/1 Ahem;
+  padding: 10px;
+}
+
+textarea.test {
+  width: 100px;
+  height: 100px;
+  font: 105px/1 Ahem;
+  padding: 10px;
+}
+
+input[type="search"].test {
+  box-sizing: content-box;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.test')">
+<input type="text" value="X" class="test" data-expected-scroll-height="120"><br>
+<input type="number" value="1" class="test" data-expected-scroll-height="120"><br>
+<input type="password" value="X" class="test" data-expected-scroll-height="120"><br>
+<input type="search" class="test" value="X" data-expected-scroll-height="120"><br>
+<!-- textarea is meant to scroll, so it gets padding inflation. -->
+<textarea class="test" data-expected-scroll-height="125">X</textarea><br>
+</body>

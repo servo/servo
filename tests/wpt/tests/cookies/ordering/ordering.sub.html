@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie ordering</title>
+    <meta name=help href="https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-07#section-5.5">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  </head>
+  <body>
+    <script>
+      const port    = "{{ports[http][0]}}";
+      const wwwHost = "{{domains[www]}}";
+
+      test(t => {
+        const win = window.open(`http://${wwwHost}:${port}/cookies/ordering/resources/ordering-child.sub.html`);
+        fetch_tests_from_window(win);
+      });
+    </script>
+  </body>
+</html>

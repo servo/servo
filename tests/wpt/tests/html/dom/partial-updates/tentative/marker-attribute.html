@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <title>The marker attribute</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <span id="s_no_marker"></span>
+    <span id="s_marker" marker="marker1"></span>
+    <span id="s_2_markers" marker="marker1 marker2"></span>
+    <script>
+      "use strict";
+      test(function () {
+        const markers = s_no_marker.marker;
+        assert_equals(markers.length, 0);
+        assert_equals(markers.value, "");
+      }, "Access to .marker returns an empty DOMTokenList.");
+      test(function () {
+        const markers = s_2_markers.marker;
+        assert_equals(markers.length, 2);
+        assert_equals(markers[0], "marker1");
+        assert_equals(markers[1], "marker2");
+        assert_equals(markers.value, "marker1 marker2");
+      }, "Multiple names give a DOMTokenList with multiple entries.");
+      test(function () {
+        const markers = s_no_marker.marker;
+        assert_equals(markers.length, 0);
+        assert_equals(markers.value, "");
+        markers.add("marker1");
+        assert_equals(markers.length, 1);
+        assert_equals(markers.value, "marker1");
+      }, "DOMTokenList created by access is persisted.");
+      test(function () {
+        const markers = s_marker.marker;
+        assert_equals(markers.length, 1);
+        assert_equals(markers.value, "marker1");
+        markers.add("marker2");
+        assert_equals(markers.length, 2);
+        assert_equals(markers.value, "marker1 marker2");
+        assert_equals(s_marker.getAttribute("marker"), markers.value);
+        markers.remove("marker1");
+        assert_equals(markers.length, 1);
+        assert_equals(markers.value, "marker2");
+        assert_equals(s_marker.getAttribute("marker"), markers.value);
+      }, "Changes in DOMTokenList are refected in attribute.");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and matrix and flipping left and up and scaling down vertically: -1 0 0 -0.5 100 100</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix">
+    <link rel="match" href="reference/svg-matrix-four-color-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The rect in the test should be flipped left and up scaled down vertically.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a four color square where the top left is green, the top right is fuchsia, the bottom left is yellow, and the bottom right is blue. You should see no red.</p>
+    <svg>
+        <defs>
+            <pattern id="coloredBoxes" patternUnits="userSpaceOnUse" x="0" y="0" width="100" height="200">
+                <rect x="50" y="0" width="50" height="100" fill="yellow"/>
+                <rect x="0" y="0" width="50" height="100" fill="blue"/>
+                <rect x="50" y="100" width="50" height="100" fill="green"/>
+                <rect x="0" y="100" width="50" height="100" fill="fuchsia"/>
+            </pattern>
+        </defs>
+        <rect x="1" y="1" width="98" height="98" fill="red"/>
+        <rect width="100" height="200" fill="url(#coloredBoxes)" transform="matrix(-1 0 0 -0.5 100 100)"/>
+    </svg>
+</body>
+</html>

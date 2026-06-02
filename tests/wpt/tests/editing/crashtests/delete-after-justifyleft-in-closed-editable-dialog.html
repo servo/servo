@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const dialog = document.querySelector("dialog");
+  dialog.showModal();
+  dialog.close();
+  document.execCommand("justifyLeft");
+  document.execCommand("delete");
+});
+</script>
+</head>
+<body><dialog contenteditable>
+</dialog></body>
+</html>

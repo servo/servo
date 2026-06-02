@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>String value of list-style-type with outside position</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-lists-3/#valdef-list-style-type-string">
+  <link rel="match" href="list-style-type-string-002-ref.html">
+  <meta name="assert" content="This test checks that list-style-type can set the marker string when the marker is positioned outside.">
+  <style>
+    .list { list-style-type: "" }
+    .list > :nth-child(2) { list-style-type: "foo" }
+    .list > :nth-child(3) { list-style-type: "foobar"; }
+    .list > :nth-child(4) { list-style-type: "some very long text that is not going to fit and will overflow"; }
+  </style>
+</head>
+<body>
+  <ol class="list">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+  </ol>
+  <ul class="list">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+  </ul>
+</body>
+</html>

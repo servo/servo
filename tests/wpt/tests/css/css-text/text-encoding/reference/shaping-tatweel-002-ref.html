@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'tatweel';
+    src: url('/fonts/Scheherazade-Regular.woff') format('woff');
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  span {
+    font-family: 'tatweel';
+    line-height: 0;
+  }
+  table {
+    font-family: 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl lang=ar>
+<tr><!-- alef, final form as it doesn't have a medial form -->
+  <td><span>&#x640;</span>&#xFE8E;<span>&#x640;</span>
+  <td><span>&#x640;</span>&#xFE8E;<span>&#x640;</span>
+<tr><!-- alef, final form -->
+  <td><span>&#x640;</span>&#xFE8E;
+  <td><span>&#x640;</span>&#xFE8E;
+<tr><!-- beh, initial form -->
+  <td>&#xFE91;<span>&#x640;</span>
+  <td>&#xFE91;<span>&#x640;</span>
+<tr><!-- beh, medial form -->
+  <td><span>&#x640;</span>&#xFE92;<span>&#x640;</span>
+  <td><span>&#x640;</span>&#xFE92;<span>&#x640;</span>
+<tr><!-- beh, final form -->
+  <td><span>&#x640;</span>&#xFE90;
+  <td><span>&#x640;</span>&#xFE90;
+</table>

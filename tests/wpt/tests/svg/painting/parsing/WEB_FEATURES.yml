@@ -1,0 +1,8 @@
+features:
+- name: paint-order
+  files:
+  - paint-order-*
+- name: opacity-svg
+  files:
+  - fill-opacity-*.svg
+  - stroke-opacity-*.svg

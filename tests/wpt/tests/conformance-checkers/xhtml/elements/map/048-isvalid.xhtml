@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;map&gt;</title>
+</head>
+<body>
+  <!-- is block, contains blocks and <area> -->
+  <map class="class" id="id" name="id" xml:lang="en">
+    <h2>header</h2>
+    <p><area alt="text" coords="1,2,3,4" href='foo'></area>p</p>
+    <p>text</p>
+    <p><area alt="text" coords="3,2,5,4" href='foo'></area>p</p>
+    <p>text2</p>
+  </map>
+
+  <!-- can contain interactive -->
+  <map id='foo' name='foo'>
+    <p><a>text</a></p>
+    <p><area alt="text" coords="3,2,5,4" href='foo'></area>p</p>
+  </map>
+</body>
+</html>

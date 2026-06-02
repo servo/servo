@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Largest Contentful Paint: observe image.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/largest-contentful-paint-helpers.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.LargestContentfulPaint,
+                        "LargestContentfulPaint is not implemented");
+      const beforeLoad = performance.now();
+      // 142 is the size of the animated WebP up until the first frame.
+      // The trickle pipe delays the response after the first frame by 1 second.
+      const url = window.location.origin +
+        `/images/webp-animated.webp?pipe=trickle(142:d${delay_pipe_value})`;
+      const entry = await load_and_observe(url);
+      // webp-animated.webp is 11 by 29.
+      const size = 11 * 29;
+      checkImage(entry, url, 'image_id', size, beforeLoad, ["animated"]);
+    }, "Same origin animated image is observable and has a first frame.");
+  </script>
+</body>
+</html>

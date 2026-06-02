@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>REM value with :root set to low percentage</title>
+<link rel="author" title="Jon Ege Ronnenberg" href="mailto:jon.ronnenberg+wpt@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-values/#rem">
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#length-percentage-size-value">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="When :root font-size is 25%, a 25rem length must be 100px, if the browser default for :root font-size is 16px.">
+<style>
+  :root {
+     /* default is 16px in all desktop browsers */
+     /* the math for 100px is: 16px * 0.25 = 4px/rem -> 100px / 4px/rem = 25rem = 100px */
+    font-size: 25%;
+  }
+  .rem {
+    width: 25rem;
+    height: 25rem;
+    background-color: green;
+  }
+</style>
+<p style="font-size:initial;">Test passes if there is a filled green square.</p>
+<div class="rem"></div>

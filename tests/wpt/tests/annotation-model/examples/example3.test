@@ -1,0 +1,8 @@
+{
+  "@context":    "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name":        "Automated example test",
+  "description": "A test that runs with no user intervention",
+  "testType":    "automated",
+  "assertions":  [ "common/requiredProperties.json" ],
+  "content":     "common/sampleContent2.jsonld"
+}

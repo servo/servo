@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: Cascading @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  .color-transition {
+    transition: color 100s steps(2, start);
+  }
+
+  @starting-style {
+    #t1 { color: red; }
+  }
+  #t1 { color: green; }
+
+  @starting-style {
+    div#t2 { color: lime; }
+  }
+  #t2 { color: green; }
+
+  #t3 { color: green; }
+  @starting-style {
+    #t3 { color: red; }
+  }
+  #t3 > div { color: green; }
+
+  #t4 { color: green; }
+  #t4[hidden] { color: red; }
+  #t4 > div { color: lime; }
+  @starting-style {
+    #t4 > div { color: inherit; }
+  }
+
+  #t5 { color: green; }
+  @starting-style {
+    #t5 { color: black; }
+  }
+  #t5 > div { color: lime; }
+  @starting-style {
+    #t5 > div { color: inherit; }
+  }
+
+  #t6 { color: green; }
+  @starting-style {
+    #t6 { color: black; }
+  }
+  #t6 .color-transition { color: lime; }
+  @starting-style {
+    #t6 .color-transition { color: inherit; }
+  }
+
+</style>
+<div id="t1" hidden class="color-transition"></div>
+<div id="t2" hidden class="color-transition"></div>
+<div id="t3" hidden>
+  <div class="color-transition"></div>
+</div>
+<div id="t4" hidden>
+  <div class="color-transition"></div>
+</div>
+<div id="t5" hidden class="color-transition">
+  <div class="color-transition"></div>
+</div>
+<div id="t6" hidden class="color-transition">
+  <div>
+    <div class="color-transition"></div>
+  </div>
+</div>
+<script>
+  setup(() => {
+    assert_true(supportsStartingStyle(), "Prerequisite: @starting-style parses");
+  });
+
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    t1.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t1).color, "rgb(0, 128, 0)",
+                  "No transition of color");
+  }, "Overridden @starting-style - order of appearance");
+
+  promise_test(async t => {
+    t2.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t2).color, "rgb(0, 192, 0)",
+                  "Transition of color");
+  }, "@starting-style with higher specificity");
+
+  promise_test(async t => {
+    t3.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t3.firstElementChild).color, "rgb(0, 128, 0)",
+                  "No transition of color");
+  }, "Starting style does not inherit from parent starting style");
+
+  promise_test(async t => {
+    assert_equals(getComputedStyle(t4).color, "rgb(255, 0, 0)",
+                  "Parent transition started");
+    t4.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t4).color, "rgb(0, 128, 0)",
+                  "Parent changed to green");
+    assert_equals(getComputedStyle(t4.firstElementChild).color, "rgb(0, 192, 0)",
+                  "Transition started from parent's after-change style color");
+  }, "Starting style inheriting from parent's after-change style");
+
+  promise_test(async t => {
+    t5.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t5).color, "rgb(0, 64, 0)",
+                  "Parent transition started");
+    assert_equals(getComputedStyle(t5.firstElementChild).color, "rgb(0, 192, 0)",
+                  "Transition started from parent's after-change style color");
+  }, "Starting style inheriting from parent's after-change style while parent transitioning");
+
+  promise_test(async t => {
+    t6.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t6).color, "rgb(0, 64, 0)",
+                  "Parent transition started");
+    assert_equals(getComputedStyle(t6.firstElementChild).color, "rgb(0, 64, 0)",
+                  "Inherited effect from parent transition");
+    assert_equals(getComputedStyle(t6.firstElementChild.firstElementChild).color, "rgb(0, 192, 0)",
+                  "Transition started from parent's after-change style color, inherited from ancestors after-change color");
+  }, "Starting style inheriting from parent's after-change style while ancestor is transitioning");
+
+</script>

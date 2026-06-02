@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html>
+<body>
+
+<style>
+    p {
+        font-family: "Times New Roman";
+        background: lightgrey;
+        padding: 5px;
+        margin: 5px;
+    }
+</style>
+
+<p style="text-decoration: none blue;">text-decoration: </p>
+<p style="text-decoration: underline blue;">text-decoration: </p>
+<p style="text-decoration: overline blue;">text-decoration: </p>
+<p style="text-decoration: line-through blue;">text-decoration: </p>
+
+<p style="text-decoration: underline double blue;">text-decoration: </p>
+<p style="text-decoration: overline double blue;">text-decoration: </p>
+<p style="text-decoration: line-through double blue;">text-decoration: </p>
+
+<p style="text-decoration: underline wavy blue;">text-decoration: </p>
+<p style="text-decoration: overline wavy blue;">text-decoration: </p>
+<p style="text-decoration: line-through wavy blue;">text-decoration: </p>
+
+<p style="text-decoration: underline dashed blue;">text-decoration: </p>
+<p style="text-decoration: overline dashed blue;">text-decoration: </p>
+<p style="text-decoration: line-through dashed blue;">text-decoration: </p>
+
+<p style="text-decoration: underline dotted blue;">text-decoration: </p>
+<p style="text-decoration: overline dotted blue;">text-decoration: </p>
+<p style="text-decoration: line-through dotted blue;">text-decoration: </p>
+
+<script>
+    for (paragraph of document.querySelectorAll("p")) {
+        paragraph.innerText += " " +
+            getComputedStyle(paragraph).textDecorationLine + " " +
+            getComputedStyle(paragraph).textDecorationStyle;
+
+    }
+</script>
+
+</body>
+</html>

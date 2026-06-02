@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script>
+  try {
+    var w = new SharedWorker("shared-worker-script.js");
+    w.port.onmessage = function(e) {
+      parent.postMessage({ type: "shared", error: false, exception: false,
+                           isSecureContext: e.data }, "*");
+    };
+    w.onerror = function(e) {
+      parent.postMessage({ type: "shared", error: true, exception: false },
+                         "*");
+    }
+    w.port.start();
+  } catch (e) {
+    parent.postMessage({ type: "shared", exception: true }, "*");
+  }
+
+  try {
+    var w = new SharedWorker("parent-shared-worker-script.js");
+    w.port.onmessage = function(e) {
+      parent.postMessage({ type: "nested", error: false, exception: false,
+                           isSecureContext: e.data }, "*");
+    };
+    w.onerror = function(e) {
+      parent.postMessage({ type: "nested", error: true, exception: false },
+                         "*");
+    }
+    w.port.start();
+  } catch (e) {
+    parent.postMessage({ type: "nested", exception: true }, "*");
+  }
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Test keyboard scroll bubbling from a fenced frame.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+  body {
+    /* Make main frame scrollable */
+    width: 200vw;
+    height: 200vh;
+  }
+</style>
+
+<body>
+<script>
+
+// Ensure keyboard scrolling from inside a fenced frame is bubbled out to the
+// embedding frame.
+promise_test(async t => {
+  const frame = attachFencedFrameContext({html: `
+    <!DOCTYPE html>
+    <style>
+      body {
+        /* Make fenced frame scrollable */
+        width: 200vw;
+        height: 200vh;
+      }
+    </style>
+    <script src="/resources/testdriver.js"><\/script>
+    <script src="/resources/testdriver-actions.js"><\/script>
+    <script src="/resources/testdriver-vendor.js"><\/script>
+    `});
+
+  // Scroll the fenced frame to its full extent so that left/down arrow key
+  // scrolling will bubble to the embedder.
+  await frame.execute(async () => {
+    window.scrollTo(10000, 10000);
+  });
+
+  assert_equals(window.scrollX, 0, '[PRECONDITION] main frame has no x scroll.');
+  assert_equals(window.scrollY, 0, '[PRECONDITION] main frame has no y scroll.');
+
+  // Simulate a right arrow and down arrow key in the fenced frame.
+  await frame.execute(async () => {
+      const arrow_right = "\uE014";
+      const arrow_down = "\uE015";
+
+      test_driver.send_keys(document.body, arrow_right);
+      test_driver.send_keys(document.body, arrow_down);
+  });
+
+  // Use step_wait to poll since the scroll may be executed asynchronously
+  // (e.g. IPC to embedder, scroll animation).
+  await t.step_wait(() => window.scrollX > 0, "Wait for horizontal scroll.");
+  assert_greater_than(window.scrollX, 0, 'Horizontal scroll should bubble to main frame.');
+
+  await t.step_wait(() => window.scrollY > 0, "Wait for vertical scroll.");
+  assert_greater_than(window.scrollY, 0, 'Vertical scroll should bubble to main frame.');
+}, 'Keyboard scrolling bubbles out of fenced frame');
+
+</script>
+</body>

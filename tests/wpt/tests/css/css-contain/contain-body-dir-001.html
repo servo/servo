@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: layout containment on body prevents direction propagation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="layout containment on body prevents direction propagation">
+  <link rel="match" href="reference/contain-body-w-m-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#contain-property">
+
+<style>
+html::before {
+    content: "";
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: block;
+}
+p {
+    margin: 0;
+    direction: ltr;
+}
+body {
+    margin: 0 auto 0 0;
+    width: 200px;
+    height: 200px;
+    direction: rtl;
+    contain: layout;
+}
+</style>
+
+<p>Test passes if the orange square is in the upper-left corner.

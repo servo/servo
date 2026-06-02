@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Color Adjustment Test: color-scheme does not affect :root background</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root { color-scheme: dark }
+</style>
+<body></body>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Root element background should be transparent for dark color-scheme.");
+</script>

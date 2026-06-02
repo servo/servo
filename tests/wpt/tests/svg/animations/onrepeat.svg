@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>'onrepeat' event handler content attribute</title>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharness.js"/>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharnessreport.js"/>
+  <rect width="0" height="100" fill="green">
+    <animate id="anim" attributeName="visibility" to="visible" begin="0s" dur="1s" fill="freeze" repeatCount="2"
+             onrepeat="document.getElementById('anim2').beginElement()"/>
+    <set id="anim2" attributeName="width" to="100" begin="indefinite" />
+  </rect>
+  <script>
+    async_test(t => {
+        document.documentElement.setCurrentTime(0.99);
+
+        let set = document.getElementById('anim2');
+        set.addEventListener('beginEvent', t.step_func_done(function() {
+            assert_equals(set.parentNode.getBBox().width, 100);
+        }));
+    });
+  </script>
+</svg>

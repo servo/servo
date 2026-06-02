@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>test filter function variable substitution</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        .testArea {
+            width: 250px;
+            height: 167px;
+            display: inline-block;
+            background-image: url("../../../../images/a.jpg");
+            background-size: contain;
+        }
+    </style>
+</head>
+<body>
+    <div id="log"></div>
+    <div class="testArea" id="blur" style="--blur: 15px; filter: blur(var(--blur));"></div>
+    <div class="testArea" id="brightness" style="--foo: 0.5; filter: brightness(var(--foo));"></div>
+    <div class="testArea" id="contrast" style="--foo: 2; filter: contrast(var(--foo));"></div>
+    <div class="testArea" id="grayscale" style="--foo: 1; filter: grayscale(var(--foo));"></div>
+    <div class="testArea" id="invert" style="--foo: 1; filter: invert(var(--foo));"></div>
+    <div class="testArea" id="sepia" style="--foo: 1; filter: sepia(var(--foo));"></div>
+    <div class="testArea" id="saturate" style="--foo: 8; filter: saturate(var(--foo));"></div>
+    <script type="text/javascript">
+        "use strict";
+
+        let templates = [
+            {
+                testName:"blur",
+                expectedValue:"blur(15px)",
+            },
+            {
+                testName:"brightness",
+                expectedValue:"brightness(0.5)",
+            },
+            {
+                testName:"contrast",
+                expectedValue:"contrast(2)",
+            },
+            {
+                testName:"grayscale",
+                expectedValue:"grayscale(1)",
+            },
+            {
+                testName:"invert",
+                expectedValue:"invert(1)",
+            },
+            {
+                testName:"sepia",
+                expectedValue:"sepia(1)",
+            },
+            {
+                testName:"saturate",
+                expectedValue:"saturate(8)",
+            },
+        ];
+
+        templates.forEach(function (template) {
+            test( function () {
+                let target = document.getElementById(template.testName);
+                let computedStyle = window.getComputedStyle(target);
+                let value = computedStyle.getPropertyValue("filter");
+                assert_equals(value, template.expectedValue, "Expected Value should match actual value");
+            }, template.testName);
+        });
+    </script>
+</body>
+</html>

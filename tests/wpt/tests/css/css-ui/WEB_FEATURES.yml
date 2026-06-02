@@ -1,0 +1,57 @@
+features:
+- name: accent-color
+  files:
+  - accent-color-*
+  - transparent-accent-color-*
+- name: appearance
+  files:
+  - appearance-*
+- name: outlines
+  files:
+  - outline-width-*
+  - outline-style-*
+  - outline-color-*
+  - outline-offset-*
+  - outline-auto-width-*
+- name: box-sizing
+  files:
+  - box-sizing-*
+- name: interactivity
+  files:
+  - interactivity-*
+  - inert-attribute-overriding.html
+- name: outline
+  files:
+  - outline-*
+  - "!outline-width-*"
+  - "!outline-style-*"
+  - "!outline-color-*"
+  - "!outline-offset-*"
+  - "!outline-auto-width-*"
+- name: resize
+  files:
+  - resize-*
+- name: user-select
+  files:
+  - user-select-*
+- name: caret-color
+  files:
+  - caret-color-*
+  - caret-eol-*
+- name: cross-fade
+  files:
+  - cursor-image-016-manual.html
+- name: custom-ellipses
+  files:
+  - text-overflow-string-*
+- name: unset-value
+  files:
+  - native-appearance-disabled-for-value-unset.html
+- name: text-overflow
+  files:
+  - text-overflow-*
+- name: cursor
+  files:
+  - canvas-cursor-*
+  - cursor-*
+  - select-cursor-*

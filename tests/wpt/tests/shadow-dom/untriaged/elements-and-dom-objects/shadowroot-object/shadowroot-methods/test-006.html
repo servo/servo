@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_02_06_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-methods">
+<meta name="assert" content="ShadowRoot Object: Element? elementFromPoint(float x, float y) method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+    d.body.appendChild(el);
+
+    try {
+        el.elementFromPoint(1, 1);
+        assert_true(false, 'TypeMismatchError should be thrown');
+    } catch(e) {
+        assert_true(e instanceof TypeError, 'Wrong error type');
+    }
+
+}, 'A_10_01_02_06_01_T01');
+
+// Added test for checking if elementFromPoint() method is existing on Shadowroot.
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+
+    var s = el.attachShadow({mode: 'open'});
+    d.body.appendChild(el);
+
+    if (typeof(s) == 'undefined' || typeof (s.elementFromPoint(1, 1)) != 'object') {
+        assert_true(false, 'Shadowroot doesn\'t have elementFromPoint() method.' );
+    }
+
+}, 'A_10_01_02_06_01_T02');
+</script>
+</body>
+</html>

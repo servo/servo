@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+
+<body></body>
+<script>
+  test_driver.set_test_context(parent);
+
+  window.onmessage = async message => {
+    const { id, type } = message.data;
+    try {
+      switch (type) {
+        case 'WriterCreate':
+          await test_driver.bless('Writer.create', Writer.create, window);
+          parent.postMessage({ id, success: 'Success' }, '*');
+          break;
+        case 'WriterAvailability':
+          const availability = await Writer.availability();
+          parent.postMessage({ id, success: availability }, '*');
+          break;
+      }
+    } catch (err) {
+      parent.postMessage({ id, err: err }, '*');
+    }
+  };
+</script>

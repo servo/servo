@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hit testing works for following stacking contexts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .stacking-context {
+    z-index: 100;
+    opacity: 0.99;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<div class="stacking-context"></div>
+<div class="stacking-context" id="second-sc"></div>
+<script>
+async_test(function(t) {
+  window.onload = t.step_func(function() {
+    var points = document.elementsFromPoint(50, 150);
+    assert_true(points.length > 0, "Should report at least one element");
+    assert_true(points[0].id === "second-sc",
+                "Should be the second stacking context");
+    t.done();
+  })
+});
+</script>

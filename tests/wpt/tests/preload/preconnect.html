@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Makes sure that preloaded resources reduce connection time to zero</title>
+<meta name="timeout" content="long">
+<meta name="pac" content="/common/proxy-all.sub.pac">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+    const FAKE_PORT = 30303;
+    promise_test(async t => {
+        const fake_remote_origin = `http://${token()}.wpt:${FAKE_PORT}`;
+        const link = document.createElement('link');
+        link.rel = "preconnect";
+        link.href = fake_remote_origin;
+        document.head.appendChild(link);
+        await new Promise(r => t.step_timeout(r, 1000));
+        const url = `${fake_remote_origin}/images/smiley.png`;
+        const entryPromise = new Promise(resolve => {
+            new PerformanceObserver(list => {
+                const entries = list.getEntriesByName(url);
+                if (entries.length)
+                    resolve(entries[0]);
+            }).observe({type: "resource"});
+        });
+
+        const img = document.createElement('img');
+        img.src = url;
+        document.body.appendChild(img);
+        const entry = await entryPromise;
+        assert_equals(entry.domainLookupStart, entry.domainLookupEnd);
+        assert_equals(entry.domainLookupStart, entry.connectStart);
+        assert_equals(entry.domainLookupStart, entry.connectEnd);
+    }, "Test that preconnect reduces connection time to zero");
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Incumbent page used as a test helper</title>
+
+<iframe src="relevant.html" id="r"></iframe>
+
+<script>
+"use strict";
+
+const relevant = document.querySelector("#r").contentWindow;
+
+window.setupWebSocket = (binaryType, fn) => {
+    const wsocket = new relevant.WebSocket("ws://{{host}}:{{ports[ws][0]}}/echo");
+
+    wsocket.addEventListener("open", () => {
+        wsocket.binaryType = binaryType;
+        wsocket.send(new ArrayBuffer(15));
+    });
+
+    wsocket.addEventListener("message", ev => {
+        fn(relevant, ev);
+    });
+};
+
+</script>

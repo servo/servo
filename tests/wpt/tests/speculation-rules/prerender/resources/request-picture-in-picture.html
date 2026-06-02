@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<video id="target"
+       onloadstart="loadstart()" src="/media/test.webm"></video>
+<script>
+
+assert_true(document.prerendering);
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+async function requestPictureInPicture() {
+  const bc = new PrerenderChannel('prerender-channel', uid);
+
+  try {
+    await target.requestPictureInPicture();
+    bc.postMessage('unexpected success');
+  } catch (err) {
+    if (err.name == 'InvalidStateError')
+      bc.postMessage('Metadata for the video element are not loaded yet');
+    else
+      bc.postMessage(err.message);
+  } finally {
+    bc.close();
+  }
+}
+
+function loadstart() {
+  // Wait some time to give the test a chance to load the data and fail the test.
+  setTimeout(() => { requestPictureInPicture(); }, 100);
+}
+</script>

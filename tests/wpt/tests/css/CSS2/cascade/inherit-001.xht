@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inherit keyword</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit" />
+        <meta name="assert" content="Children elements inherit the parents color given the 'inherit' keyword." />
+        <style type="text/css">
+            body
+            {
+                color: green;
+            }
+            div
+            {
+                color: red;
+            }
+            body div
+            {
+                color: inherit;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

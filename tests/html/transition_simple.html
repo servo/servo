@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+section {
+    position: absolute;
+    display: block;
+    left: 0;
+    width: 64px;
+    height: 64px;
+    background: firebrick;
+    transition-property: left;
+    transition-duration: 3s;
+    -moz-transition-property: left;
+    -moz-transition-duration: 3s;
+    -webkit-transition-property: left;
+    -webkit-transition-duration: 3s;
+}
+#a {
+    top: 0;
+    transition-timing-function: ease;
+    -moz-transition-timing-function: ease;
+    -webkit-transition-timing-function: ease;
+}
+#b {
+    top: 64px;
+    transition-timing-function: linear;
+    -moz-transition-timing-function: linear;
+    -webkit-transition-timing-function: linear;
+}
+#c {
+    top: 128px;
+    transition-timing-function: ease-in;
+    -moz-transition-timing-function: ease-in;
+    -webkit-transition-timing-function: ease-in;
+}
+#d {
+    top: 192px;
+    transition-timing-function: ease-out;
+    -moz-transition-timing-function: ease-out;
+    -webkit-transition-timing-function: ease-out;
+}
+#e {
+    top: 256px;
+    transition-timing-function: ease-in-out;
+    -moz-transition-timing-function: ease-in-out;
+    -webkit-transition-timing-function: ease-in-out;
+}
+#f {
+    top: 320px;
+    transition-timing-function: step-start;
+    -moz-transition-timing-function: step-start;
+    -webkit-transition-timing-function: step-start;
+}
+#g {
+    top: 356px;
+    transition-timing-function: step-end;
+    -moz-transition-timing-function: step-end;
+    -webkit-transition-timing-function: step-end;
+}
+#h {
+    top: 420px;
+    transition-timing-function: steps(3, start);
+    -moz-transition-timing-function: steps(3, start);
+    -webkit-transition-timing-function: steps(3, start);
+}
+#i {
+    top: 484px;
+    transition-timing-function: steps(3, end);
+    -moz-transition-timing-function: steps(3, end);
+    -webkit-transition-timing-function: steps(3, end);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+<section id=d></section>
+<section id=e></section>
+<section id=f></section>
+<section id=g></section>
+<section id=h></section>
+<section id=i></section>
+<script>
+var sections = document.getElementsByTagName('section');
+for (var i = 0; i < sections.length; i++)
+    sections[i].setAttribute('style', "left: 0");
+setTimeout(function() {
+    for (var i = 0; i < sections.length; i++)
+        sections[i].setAttribute('style', "left: 512px");
+}, 0);
+</script>
+</body>
+</html>
+

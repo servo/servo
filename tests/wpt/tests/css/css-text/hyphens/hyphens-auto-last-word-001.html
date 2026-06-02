@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Text: `hyphens: auto` for last word</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+<link rel="match" href="reference/hyphens-auto-last-word-001-ref.html">
+<link rel="match" href="reference/hyphens-auto-last-word-001-ref2.html">
+<style>
+div {
+  hyphens: auto;
+  width: 5ch;
+  border: 1px solid blue;
+}
+</style>
+<body lang="en-us">
+  <div style="width: 10ch">Test example</div>
+  <div>example</div>
+  <div>1 example</div>
+  <div>1234 example</div>
+  <div>example 5678</div>
+  <div>1234 example 5678</div>
+</body>

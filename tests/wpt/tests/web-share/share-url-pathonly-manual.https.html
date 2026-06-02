@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share with absolute path-only URL</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        const url = '/some/path?some_query#some_fragment';
+        setupManualShareTest({title: '', text: '', url: getAbsoluteUrl(url)});
+        callWhenButtonClicked(() => navigator.share({url}));
+    </script>
+  </body>
+</html>

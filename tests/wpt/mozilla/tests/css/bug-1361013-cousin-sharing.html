@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Bug 1361013: selectors for revalidation account for cousins sharing style</title>
+<link rel="author" name="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="match" href="bug-1361013-cousin-sharing-ref.html">
+<style>
+div { color: green; }
+p:first-child > span { color: red; }
+</style>
+<div>
+  <p><span></span></p>
+  <p><span>This should be green.</span></p>
+</div>

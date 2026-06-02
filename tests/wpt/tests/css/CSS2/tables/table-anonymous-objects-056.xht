@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 407115-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+
+<style type="text/css">
+.outer { border: 1px solid black; }
+.cell { display: table-cell; border: 1px solid green; }
+.marg { margin: 1em 0; }
+</style>
+</head>
+<body onload="var c1 = document.getElementById('c1'); c1.parentNode.removeChild(c1);">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+
+<div class="outer">
+<div class="marg"><span id="c1" class="cell"><b>Hello Kitty</b></span></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+</div>
+
+</div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+
+<div class="outer">
+<div class="marg"></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+<div class="marg"><span class="cell"><b>Hello Kitty</b></span></div>
+</div>
+
+</div>
+</div>
+</body>
+</html>

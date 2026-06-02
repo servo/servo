@@ -1,0 +1,3 @@
+features:
+- name: writing-mode
+  files: "**"

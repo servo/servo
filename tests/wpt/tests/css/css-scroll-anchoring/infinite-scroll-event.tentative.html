@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1561450">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<style>
+  body { margin: 0 }
+  .content {
+    height: 45vh;
+    background: lightblue;
+  }
+</style>
+<div class="content"></div>
+<div id="hidden" style="display: none; height: 200px"></div>
+<div class="content"></div>
+<div class="content"></div>
+<div class="content"></div>
+<script>
+let count = 0;
+const t = async_test("Scroll adjustments don't keep happening with 0-length adjustments triggered by a single scroll operation");
+onscroll = t.step_func(function() {
+  ++count;
+  hidden.style.display = "block";
+  hidden.offsetTop;
+  hidden.style.display = "none";
+  let currentCount = count;
+  requestAnimationFrame(t.step_func(function() {
+    requestAnimationFrame(t.step_func(function() {
+      if (currentCount == count) {
+        t.done();
+      }
+    }));
+  }));
+});
+
+window.onload = t.step_func(function() {
+  window.scrollTo(0, document.documentElement.scrollHeight);
+  window.scrollBy(0, -200);
+});
+</script>

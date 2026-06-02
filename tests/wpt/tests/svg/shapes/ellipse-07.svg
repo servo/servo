@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240px" height="160px" viewBox="0 0 60 40">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/SVG2/shapes.html#EllipseElement"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="ellipse-07-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="ry auto means rx absolute length is used"/>
+  </metadata>
+  <style>
+    ellipse {
+      rx: 25%;
+      ry: auto;
+    }
+  </style>
+  <ellipse cx="20" cy="20" fill="none" stroke="blue" stroke-width="5"/>
+</svg>

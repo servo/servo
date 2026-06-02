@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation: column balancing with forced break.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    background: green;
+    height: 100px;
+  }
+  #flex > div {
+    width: 10px;
+    background: green;
+    flex: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="width: 100px; columns: 5; column-gap: 0;">
+    <div id="flex">
+      <!-- flex column 1 -->
+      <div style="height: 5px;"></div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+      <div style="height: 5px;"></div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+      <div style="height: 5px;break-before: column;">
+        <div style="height: 100px; width: 20px; background: green;"></div>
+      </div>
+       <!-- flex column 2 -->
+      <div style="height: 50px;"></div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+      <div style="height: 5px;"></div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+      <div style="height: 10px; break-before: column;"></div>
+      <div style="height: 5px;">
+        <div style="height: 90px; width: 10px; background: green;"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Instability: toJSON</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; background: blue; }
+</style>
+<div id='myDiv'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+promise_test(async t => {
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  return new Promise(resolve => {
+    const observer = new PerformanceObserver(
+      t.step_func(entryList => {
+        const entry = entryList.getEntries()[0];
+        assert_equals(typeof(entry.toJSON), 'function');
+        const json = entry.toJSON();
+        assert_equals(typeof(json), 'object');
+        const keys = [
+          // PerformanceEntry
+          'name',
+          'entryType',
+          'startTime',
+          'duration',
+          // LayoutShift
+          'value',
+          'hadRecentInput',
+          'lastInputTime',
+        ];
+        for (const key of keys) {
+          assert_equals(json[key], entry[key],
+            `LayoutShift ${key} entry does not match its toJSON value`);
+        }
+        resolve();
+      })
+    );
+    observer.observe({type: 'layout-shift'});
+    document.getElementById('myDiv').style = "top: 60px";
+  });
+}, 'Test toJSON() in LayoutShift.');
+</script>
+</body>

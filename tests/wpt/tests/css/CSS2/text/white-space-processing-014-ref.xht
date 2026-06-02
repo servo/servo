@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>test reference</title>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+                height: 1em;
+                margin-bottom: 3px;
+            }
+            #div1
+            {
+                background-color: blue;
+                width: 5em;
+            }
+            #div2
+            {
+                background-color: orange;
+                width: 4em;
+            }
+            span
+            {
+                background-color: black;
+                white-space: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is the same width as either the blue box or the orange box.</p>
+        <div id="div1"></div>
+        <div>
+            <span>XX XX</span>
+        </div>
+        <div id="div2"></div>
+    </body>
+</html>

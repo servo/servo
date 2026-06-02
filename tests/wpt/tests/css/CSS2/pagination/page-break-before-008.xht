@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before paged media</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="assert" content="The 'page-break-before' property applies to paged media only"/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	div {
+		page-break-before: always;
+		border: 2pt solid black;
+	}
+</style>
+</head>
+<body>
+	<div>On screen, the next sentence must appear directly below this one.</div>
+	<div>When printed, however, this sentence must appear at the top of the next page.</div>
+</body>
+</html>

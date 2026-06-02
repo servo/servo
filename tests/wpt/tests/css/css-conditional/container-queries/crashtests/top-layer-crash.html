@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<iframe width="800" srcdoc='<!DOCTYPE html>
+                            <style>
+                              .wrapper {
+                                container: example / inline-size;
+                                position: fixed;
+                                width: 100%;
+                              }
+                              .inner {
+                                display: none;
+                              }
+                              @container (min-width: 600px) {
+                                .inner {
+                                  display: block;
+                                }
+                              }
+                            </style>
+                            <div class="wrapper">
+                              <div class="inner">
+                                <dialog></dialog>
+                              </div>
+                            </div>
+                            <script>
+                              document.querySelector("dialog").showModal()
+                            </script>'>
+</iframe>
+<script>
+  window.onload = () => document.querySelector("iframe").width = 400;
+</script>

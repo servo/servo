@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Layout Instability: no layout shift for transform change</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+body { margin: 0; }
+#transformed { position: relative; transform: translateX(20px); width: 100px; height: 100px; background: blue; }
+#child { width: 400px; height: 400px; }
+</style>
+<div id="transformed">
+  <div id="child"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the transform, for which no shift should be reported.
+  document.querySelector("#transformed").style = "transform: translateY(100px)";
+  // Change size of child, for which no shift should be reported, either.
+  document.querySelector("#child").style = "width: 300px";
+
+  await waitForAnimationFrames(2);
+  // No shift should be reported.
+  assert_equals(watcher.score, 0);
+}, 'no layout shift for transform change');
+
+</script>

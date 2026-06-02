@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Invalidation when the anchor*() fallback matches old style</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://issues.chromium.org/issues/333858786">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border: 1px solid black;
+  }
+
+  #anchor {
+    anchor-name: --a;
+    position: absolute;
+    width: 40px;
+    height: 30px;
+    left: 75px;
+    top: 75px;
+    background: coral;
+  }
+
+  #anchored {
+    position: absolute;
+    background: seagreen;
+    width: 50px;
+    height: 50px;
+  }
+
+  #anchored.change {
+    /* The fallbacks match what the unchanged style says, but we shouldn't
+       take the fallbacks here. */
+    width: anchor-size(--a width, 50px);
+    height: anchor-size(--a height, 50px);
+  }
+</style>
+<div id=cb>
+  <div id=anchor></div>
+  <div id=anchored>X</div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetWidth, 50);
+    assert_equals(anchored.offsetHeight, 50);
+
+    anchored.classList.toggle('change');
+
+    assert_equals(anchored.offsetWidth, 40);
+    assert_equals(anchored.offsetHeight, 30);
+  }, 'Correct invalidation when fallbacks match the old style');
+</script>

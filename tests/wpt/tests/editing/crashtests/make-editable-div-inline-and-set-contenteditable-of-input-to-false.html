@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<title>Testcase for bug 650572 of Mozilla</title>
+<script>
+function boom()
+{
+  document.documentElement.offsetHeight;
+  document.body.focus();
+  document.querySelector("div").style.display = "inline";
+  document.querySelector("input").contentEditable = "false";
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+<body contenteditable="true" onload="setTimeout(boom, 200);"><div><input></div></body>
+</html>
+

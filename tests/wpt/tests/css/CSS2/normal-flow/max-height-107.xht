@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: max-height - space for scrollbar</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Hilbrand Edskes" href="http://edskes.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+  <link rel="match" href="max-height-107-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="Any space taken up by the scrollbars should be taken out of (subtracted from the dimensions of) the containing block formed by the element with the scrollbars." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div#test-red-overlapped
+  {
+  color: red;
+  font: 200px/1 Ahem;
+  max-height: 200px;
+  overflow: scroll;
+  width: 200px;
+  }
+
+  div#control-green-overlapping
+  {
+  background-color: green;
+  height: 200px;
+  position: relative;
+  top: -200px;
+  width: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: User agent needs to support scrollbars as the scrolling mechanism. If it does not, then this test case does not apply to this user agent.</p>
+
+  <p>Test passes if there is a green square and <strong>no red</strong>.</p>
+
+  <div id="test-red-overlapped">X</div>
+
+  <div id="control-green-overlapping"></div>
+
+ </body>
+</html>

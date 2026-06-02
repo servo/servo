@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html id="test" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overflow set to visible is interpreted as auto on viewport</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="dom" />
+        <meta name="assert" content="When 'overflow: visible' is set on the viewport it is interpreted as 'auto' but is still returns a computed value of 'visible'." />
+        <style type="text/css">
+            body
+            {
+                width: 500in;
+                height: 500in;
+            }
+            html
+            {
+                overflow: visible;
+            }
+            #result
+            {
+                border: 1px solid blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the page has an active scrolling mechanism available to scroll the page and the word 'visible' is inside the box below.</p>
+        <div id="result"></div>
+        <script type="text/javascript">
+            <![CDATA[
+            var testEl = document.getElementById('test');
+            var propertyValue = window.getComputedStyle(testEl, null).overflow;
+            var newTextNode = document.createTextNode(propertyValue);
+            document.getElementById("result").appendChild(newTextNode);
+            ]]>
+        </script>
+    </body>
+</html>

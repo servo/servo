@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Tests that finding a default anchor triggers the new scrollable containing-block.</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#scrollable-containing-block">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12552">
+<style>
+.scroller {
+  /* Use overflow hidden instead of scroll to mitigate scrollbar differences. */
+  overflow: hidden;
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 10px;
+  border: solid 3px;
+  padding: 10px;
+}
+
+.filler {
+  min-width: 180px;
+  min-height: 180px;
+}
+
+.anchor {
+  anchor-name: --a;
+}
+
+.target {
+  position: absolute;
+  inset: 0;
+  place-self: stretch;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.target')">
+
+<!-- No default anchor should use the regular containing-block. -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" data-expected-width="100" data-expected-height="100"></div>
+</div>
+
+<!-- A default anchor - should use the scrollable containing-block. -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-anchor: --a;" data-expected-width="200" data-expected-height="200"></div>
+</div>
+
+<!-- A non-valid default anchor - should use the regular containing-block. -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-anchor: --b;" data-expected-width="100" data-expected-height="100"></div>
+</div>
+
+<!-- Only specifying position-area - should use the regular containing-block. -->
+<div class="scroller">
+  <div class="filler"><div class="anchor"></div></div>
+  <div class="target" style="position-area: top;" data-expected-width="100" data-expected-height="100"></div>
+</div>

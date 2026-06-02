@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-bluetooth.https.html) loads the initiator
+// page, then the initiator page will prerender itself with the `prerendering`
+// parameter.
+if (!params.has('prerendering')) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  // The spec, https://wicg.github.io/nav-speculation/prerendering.html#web-bluetooth-patch,
+  // mentions getDevices() and requestDevice() but this test uses
+  // getAvailability() instead of them.
+  prerenderEventCollector.start(navigator.bluetooth.getAvailability(),
+                                'navigator.bluetooth.getAvailability');
+}
+
+</script>

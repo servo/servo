@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Soft Navigation Detection: LCP.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+    <script>
+      // The click handler is triggered by user interaction; it modifies
+      // the DOM by adding an image to the page; this triggers both
+      // a soft navigation and a soft navigation LCP entry.
+      function clickHandler() {
+        const img = new Image();
+        img.src = "/images/lcp-256x256.png";
+        img.id = "lcp-img";
+        document.body.appendChild(img);
+        history.pushState({}, "", "/show-image");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="click-target" onclick="clickHandler()">Click here!</div>
+
+    <script>
+      promise_test(async (t) => {
+        const helper = new SoftNavigationTestHelper(t);
+
+        // Wait for the initial LCP entry, prior to clicking, so that
+        // we may later observe the soft navigation LCP entry in addition.
+        const initial_lcp =
+            await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
+        assert_equals(initial_lcp.length, 1, "There's one initial LCP entry.");
+        assert_equals(
+          initial_lcp[0].id,
+          "click-target",
+          "The initial LCP entry is the div for the click target.",
+        );
+
+        if (test_driver) {
+          test_driver.click(document.getElementById("click-target"));
+        }
+
+        // Now that we've clicked, we expect to see a soft navigation,
+        // and a soft navigation LCP entry;
+        const results = await Promise.allSettled([
+          helper.getBufferedPerformanceEntriesWithTimeout("soft-navigation"),
+          helper.getBufferedPerformanceEntriesWithTimeout("interaction-contentful-paint"),
+        ]);
+
+        // If either or both of soft nav entry or soft nav LCP are missing,
+        // fail the test.
+        const errors = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
+        if (errors.length > 0) {
+          throw new AssertionError("PerformanceObservers failed: " + format_value(errors));
+        }
+
+        // Examine the soft navigation entries.
+        const soft_navs = results[0].value;
+        assert_equals(soft_navs.length, 1, "Expecting one soft navigation entry.");
+        assert_equals(
+          soft_navs[0].name.replace(/.*\//, ""),
+          "show-image",
+          "Expecting soft navigation to 'greeting'",
+        );
+
+        // Examine the soft navigation LCP entries.
+        const icps = results[1].value;
+        assert_equals(
+          icps.length,
+          1,
+          "Expecting 1 entry.",
+        );
+
+        // Now observe the hard navs again. There should only be one entry.
+        // See also crbug.com/40073849: We really don't want to emit hard nav
+        // LCP entries for soft navigations unintentionally.
+        const observer = new PerformanceObserver(assert_unreached);
+        observer.observe({
+          type: "largest-contentful-paint",
+          buffered: true,
+        });
+        const hard_nav_lcp = observer.takeRecords();
+        observer.disconnect();
+
+        assert_equals(hard_nav_lcp.length, 1, "Expecting one entry for the hard nav LCP.");
+
+        // Compare the first soft nav LCP entry with the hard nav LCP entry.
+        assert_equals(
+          hard_nav_lcp[0].id,
+          "click-target",
+          "Hard nav LCP entry is (still) for the click target.",
+        );
+
+        assert_equals(
+          icps[0].id,
+          "lcp-img",
+          "Soft nav LCP entry is for the image.",
+        );
+
+        assert_equals(
+          icps[0].navigationId,
+          soft_navs[0].navigationId,
+          "Soft nav LCP entry has the same navigation ID as the soft nav entry.",
+        );
+      }, "Detect soft navigation and LCP after a click.");
+    </script>
+  </body>
+</html>

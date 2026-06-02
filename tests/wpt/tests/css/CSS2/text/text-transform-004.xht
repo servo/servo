@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-transform set to 'none'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-transform" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#caps-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property"/>
+        <link rel="match" href="text-transform-004-ref.xht"/>
+        <meta name="assert" content="The 'text-transform' property set to 'none' on an element makes no changes to the text." />
+        <style type="text/css">
+            #test
+            {
+                text-transform: uppercase;
+                text-transform: none;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of "Filler Text" below have the same (upper/lower) case for each letter.</p>
+        <div>filler text Filler Text FILLER TEXT fILLER tEXT FiLlEr tExT</div>
+        <div id="test">filler text Filler Text FILLER TEXT fILLER tEXT FiLlEr tExT</div>
+    </body>
+</html>

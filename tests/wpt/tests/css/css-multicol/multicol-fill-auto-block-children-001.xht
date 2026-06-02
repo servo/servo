@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicol | column-span: all | column-fill: auto</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#filling-columns"/>
+<link rel="match" href="multicol-fill-auto-block-children-ref.xht"/>
+<style type="text/css"><![CDATA[
+html {
+	background: white;
+}
+body {
+	background: blue;
+	width: 1200px;
+	height: 492px;
+	column-count: 3;
+	column-gap: 2em;
+	column-fill: auto;
+}
+h1 {
+	column-span: all;
+	font-size: 2em;
+	height: 70px;
+}
+dl {
+	font-size: 70%;
+	color: blue;
+	padding: 5px 10px 3px;
+	margin: 0 0 15px;
+	border: 2px solid blue;
+	height: 72px;
+}
+dt {
+	font-weight: bold;
+	font-style: normal;
+	width: 47%;
+	height: 100%;
+	float: left;
+}
+dd {
+	line-height: 120%;
+	padding: 0;
+	margin: 0 0 5px 47%;
+	width: 50%;
+}
+]]></style>
+</head>
+
+<body>
+<h1>you should not see the word fail</h1>
+
+<dl>
+	<dt>block1</dt>
+	<dd>block1 block1</dd>
+	<dd>block1 block1</dd>
+	<dd>block1 block1 block1</dd>
+	<dd>filler block1 block1</dd>
+</dl>
+
+<dl>
+	<dt>block2</dt>
+	<dd>block2 block2</dd>
+	<dd>block2 block2</dd>
+	<dd>block2 block2 block2</dd>
+	<dd>filler block2 block2</dd>
+</dl>
+
+<dl>
+	<dt>block3</dt>
+	<dd>block3 block3</dd>
+	<dd>block3 block3</dd>
+	<dd>block3 block3 block3</dd>
+	<dd>filler block3 block3</dd>
+</dl>
+
+<dl>
+	<dt>block4</dt>
+	<dd>block4 block4</dd>
+	<dd>block4 block4</dd>
+	<dd>block4 block4 block4</dd>
+	<dd>filler block4 block4</dd>
+</dl>
+
+<dl>
+	<dt>fail</dt>
+	<dd>fail fail</dd>
+	<dd>fail fail</dd>
+	<dd>fail fail fail</dd>
+	<dd>fail fail fail</dd>
+</dl>
+</body>
+</html>

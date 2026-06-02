@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS mask-mode reference</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div {
+        background-color: white;
+        position: absolute;
+        margin: 0px;
+        padding: 0px;
+        width: 100px;
+        height: 100px;
+        top: 10px;
+      }
+
+      div.auto {
+        left: 10px;
+        background-image: url(support/blue-100x100.svg);
+      }
+
+      div.alpha {
+        left: 120px;
+        background-image: url(support/blue-100x100.svg);
+      }
+
+      div.luminance1 {
+        left: 230px;
+        background-image: url(support/blue-luminance-100x100.svg);
+      }
+
+      div.luminance2 {
+        left: 340px;
+        background-image: url(support/red-luminance-100x100.svg);
+      }
+
+      div.luminance3 {
+        left: 450px;
+        background-image: url(support/green-luminance-100x100.svg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auto"></div>
+    <div class="alpha"></div>
+    <div class="luminance1"></div>
+    <div class="luminance2"></div>
+    <div class="luminance3"></div>
+  </body>
+</html>

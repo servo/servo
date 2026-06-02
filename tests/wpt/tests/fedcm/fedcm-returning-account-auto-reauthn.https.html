@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_optional,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_optional("manifest_with_single_account.json");
+  await select_manifest(t, test_options);
+
+  // Signs in john_doe so that they will be a returning user
+  let cred = await fedcm_get_and_select_first_account(t, test_options);
+  assert_equals(cred.token, "account_id=john_doe");
+
+  test_options = request_options_with_mediation_optional("manifest_with_two_accounts.json");
+  await select_manifest(t, test_options);
+
+  // There are two accounts "Jane" and "John" returned in that order. Without
+  // auto re-authn, the first account "Jane" would be selected and an token
+  // would be issued to that account. However, since "John" is returning and
+  // "Jane" is a new user, the second account "John" will be selected.
+  cred = await navigator.credentials.get(test_options);
+  assert_equals(cred.token, "account_id=john_doe");
+  assert_equals(cred.isAutoSelected, true);
+}, "Test that the returning account from the two accounts will be auto re-authenticated.");
+</script>

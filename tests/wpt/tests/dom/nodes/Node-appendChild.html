@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node.appendChild</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-appendchild">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src=about:blank></iframe>
+<script>
+// TODO: Exhaustive tests
+function testLeaf(node, desc) {
+  // WebIDL.
+  test(function() {
+    assert_throws_js(TypeError, function() { node.appendChild(null) })
+  }, "Appending null to a " + desc)
+
+  // Pre-insert step 1.
+  test(function() {
+    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.appendChild(document.createTextNode("fail")) })
+  }, "Appending to a " + desc)
+}
+
+// WebIDL.
+test(function() {
+  assert_throws_js(TypeError, function() { document.body.appendChild(null) })
+  assert_throws_js(TypeError, function() { document.body.appendChild({'a':'b'}) })
+}, "WebIDL tests")
+
+// WebIDL and pre-insert step 1.
+test(function() {
+  testLeaf(document.createTextNode("Foo"), "text node")
+  testLeaf(document.createComment("Foo"), "comment")
+  testLeaf(document.doctype, "doctype")
+}, "Appending to a leaf node.")
+
+// Pre-insert step 5.
+test(function() {
+  var frameDoc = frames[0].document
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { document.body.appendChild(frameDoc) })
+}, "Appending a document")
+
+// Pre-insert step 8.
+test(function() {
+  var frameDoc = frames[0].document
+  var s = frameDoc.createElement("a")
+  assert_equals(s.ownerDocument, frameDoc)
+  document.body.appendChild(s)
+  assert_equals(s.ownerDocument, document)
+}, "Adopting an orphan")
+test(function() {
+  var frameDoc = frames[0].document
+  var s = frameDoc.createElement("b")
+  assert_equals(s.ownerDocument, frameDoc)
+  frameDoc.body.appendChild(s)
+  assert_equals(s.ownerDocument, frameDoc)
+  document.body.appendChild(s)
+  assert_equals(s.ownerDocument, document)
+}, "Adopting a non-orphan")
+</script>

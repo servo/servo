@@ -1,0 +1,51 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL unary minus operator with float bug Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+void main () {
+    float f = -1.0;
+    // atan(tan(0.5), -f) is in range [1.5707, 1.5708) on Mac OSX 10.11 with Intel GPU.
+    // But it should be 0.5.
+    gl_FragColor = vec4(atan(tan(0.5), -f), 0.0, 0.0, 1.0);
+}
+</script>
+<script>
+"use strict";
+description("Test for unary minus operator with float bug on MacOSX 10.11 with Intel GPU");
+debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=308366'>Chromium Issue 308366</a>");
+debug("");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Evaluate unary minus operator and atan(x, y)",
+  renderTolerance: 3,
+  renderColor: [127, 0, 0, 255]
+}
+]);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="ED" author="CM" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: types-dom-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/#__svg__SVGLocatable__getBBox">
+      <p>
+        Test that bounding box geometry can be obtained
+        before the SVGLoad event is dispatched.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Load the test.  A rectangle will be shown indicating
+        the result of the test.  It will be black if test
+        did not run, red if the test failed and green if
+        the test passed.
+      </p>
+      <p>
+        The test is passed if the rectangle is green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-dom-03-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30'>Test that getBBox() works before SVGLoad</text>
+
+    <rect id='r' x='10' y='40' width='50' height='50'/>
+    <text id='t' visibility='hidden' x='1000' y='1000'>Abc</text>
+
+    <script><![CDATA[
+      function $(x) { return document.getElementById(x); }
+
+      var t = $('t'),
+          r = $('r'),
+          b1, b2, pass = false;
+
+      try {
+        b1 = t.getBBox();
+        b2 = r.getBBox();
+        if (b1.x > 0 && b1.y > 0 && b1.width > 0 && b1.height > 0
+              && b2.x == 10 && b2.y == 40 && b2.width == 50 && b2.height == 50) {
+          pass = true;
+        }
+      } catch (e) {
+      }
+      r.setAttribute('fill', pass ? 'green' : 'red');
+    ]]></script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

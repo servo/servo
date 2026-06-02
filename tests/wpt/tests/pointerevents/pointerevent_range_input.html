@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!-- TODO(crbug.com/40275057) Fix test for pointer-event-range-input.html?pen.
+-->
+<title>Pointer dragging behavior on input type='range' </title>
+<meta name="variant" content="?touch">
+<meta name="variant" content="?mouse">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src='/resources/testdriver-actions.js'></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<style type='text/css'>
+  body {
+    margin: 0;
+  }
+</style>
+
+<div><input type='range' id='slider1' min='0' max='100' step='10'></div>
+<div><input type='range' id='slider2' min='0' max='100' step='10' style='touch-action:none;'></div>
+<div><input type='range' id='slider3' min='0' max='100' step='10' style='writing-mode:vertical-lr; direction:rtl;'></div>
+
+<script>
+"use strict";
+const pointerType = location.search.substring(1);
+
+function isMouse() {
+  return pointerType === 'mouse';
+}
+function isTouch() {
+  return pointerType === 'touch';
+}
+
+// Verify that a point is on screen.
+// (x,y) is relative to the center of the origin element.
+function assert_point_within_viewport(x, y, origin) {
+  const rect = origin.getBoundingClientRect();
+  const center_point = {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2
+  };
+  const viewport_point = {
+    x: (center_point.x - visualViewport.offsetLeft) * visualViewport.scale,
+    y: (center_point.y - visualViewport.offsetTop) * visualViewport.scale
+  };
+  x += viewport_point.x;
+  y += viewport_point.y;
+  assert_true(x >= 0 && x <= window.innerWidth,
+              'x coordinate outside viewport');
+  assert_true(y >= 0 && y <= window.innerHeight,
+              'y coordinate outside viewport');
+}
+
+// The deltas are relative to the center of the target.
+function smoothDrag(delta_x, delta_y, target) {
+  const eventTarget = document;
+  const prevent_fling_pause_ms = isTouch() ? 100 : 0;
+
+  const x = 0;
+  const y = 0;
+  const end_x = Math.round(delta_x);
+  const end_y = Math.round(delta_y);
+  assert_point_within_viewport(end_x, end_y, target);
+
+  // Expect a pointerup or pointercancel event depending on whether scrolling
+  // actually took place.
+  return new Promise(resolve => {
+    const pointerPromise = new Promise(resolve => {
+      const pointerListener = (event) => {
+        eventTarget.removeEventListener('pointerup', pointerListener);
+        eventTarget.removeEventListener('pointercancel', pointerListener);
+        resolve(event.type);
+      };
+      eventTarget.addEventListener('pointerup', pointerListener);
+      eventTarget.addEventListener('pointercancel', pointerListener);
+    });
+    const actionPromise = new test_driver.Actions()
+      .addPointer("pointer1", pointerType)
+      .pointerMove(x, y, { origin: target })
+      .pointerDown({button: 0/*Left*/})
+      .pointerMove(end_x, end_y, { origin: target })
+      .pause(prevent_fling_pause_ms)
+      .pointerUp({button: 0 /*Left*/})
+      .send();
+    Promise.all([actionPromise, pointerPromise]).then(responses => {
+      resolve(responses[1]);
+    });
+  });
+}
+
+function forceLayoutUpdate() {
+   document.body.offsetTop;
+}
+
+const slider1 = document.getElementById('slider1');
+const slider2 = document.getElementById('slider2');
+const slider3 = document.getElementById('slider3');
+
+function resetPage() {
+  slider1.value = 50;
+  slider2.value = 50;
+  slider3.value = 50;
+}
+
+const isMac = navigator.platform.indexOf('Mac') == 0;
+if (isMac && isTouch()) {
+  // Mac devices do not support touch.
+  testNothing();
+} else {
+  forceLayoutUpdate();
+
+  promise_test(async t => {
+    resetPage();
+    assert_equals(parseInt(slider1.value), 50, "Slider1's initial value");
+    // Perform a left drag from the center of the slider.
+    const gestureCompletionEventType =
+                  await smoothDrag(-slider1.clientWidth / 2, 0, slider1);
+    assert_equals(gestureCompletionEventType, 'pointerup',
+                                  "The gesture is completed with 'pointerup'");
+    assert_equals(parseInt(slider1.value), 0,
+                                  "Should set slider1's value to 0");
+  }, 'Horizontal drag on a horizontal slider.');
+
+  promise_test(async t => {
+    resetPage();
+    assert_equals(parseInt(slider1.value), 50, "Slider1's initial value");
+    // Perform a down drag from the center of the slider.
+    const gestureCompletionEventType =
+                  await smoothDrag(0, slider1.clientWidth, slider1);
+    assert_equals(parseInt(slider1.value), 50,
+                                    "Should not change slider1's value.");
+    // Don't assert gestureCompletionEventType value. Depending on the UA, the
+    // gesture may result in scroll. In this case gestureCompletionEventType
+    // is 'pointercancel'.
+  }, 'Vertical drag on a horizontal slider.');
+
+  promise_test(async t => {
+    resetPage();
+    assert_equals(parseInt(slider2.value), 50, "Slider2's initial value");
+    // Perform a down drag from the center of the slider.
+    const gestureCompletionEventType =
+                       await smoothDrag(0, slider2.clientWidth, slider2);
+    assert_equals(gestureCompletionEventType, 'pointerup',
+                                  "The gesture is completed with 'pointerup'");
+    assert_equals(parseInt(slider2.value), 50,
+                                   "Should not change slider2's value.");
+
+  }, 'Vertical drag on a horizontal slider with touch-action:none.');
+
+  promise_test(async t => {
+    resetPage();
+    assert_equals(parseInt(slider3.value), 50, "Slider3's initial value.");
+    // Perform an up drag from the center of the slider.
+    const gestureCompletionEventType =
+                await smoothDrag(0, -slider3.clientHeight / 2, slider3);
+    assert_equals(gestureCompletionEventType, 'pointerup',
+                                  "The gesture is completed with 'pointerup'");
+    assert_equals(parseInt(slider3.value), 100,
+                                    "Should set slider3' value to 100.");
+  }, 'Vertical drag on a vertical slider.');
+
+  promise_test(async t => {
+    resetPage();
+    assert_equals(parseInt(slider3.value), 50, "Slider3's initial value.");
+    // Perform a right drag from the center of the slider.
+    const gestureCompletionEventType =
+                     await smoothDrag(slider3.clientHeight, 0, slider3);
+    assert_equals(parseInt(slider3.value), 50,
+                     "Should not change slider3' value.");
+    // Don't assert gestureCompletionEventType value. Depending on the UA, the
+    // gesture may result in scroll. In this case gestureCompletionEventType
+    // is 'pointercancel'.
+  }, 'Horizontal drag on a vertical slider.');
+}
+
+function testNothing() {
+    test(() => {}, 'Empty test for MacOS.');
+}
+</script>

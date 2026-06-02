@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() - resolving URLs (javascript: &lt;iframe>; 1)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[2]/ol[1]/li[2] following::ol[1]/li[7] following::ol[1]/li[14]/ul/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      function request() {
+        test.step(function() {
+          var x = new XMLHttpRequest()
+          x.open("GET", "folder.txt", false)
+          x.send(null)
+          assert_equals(x.responseText, "top\n")
+          test.done()
+        })
+      }
+      test.step(function() {
+        var iframe = document.body.appendChild(document.createElement("iframe"))
+        iframe.src = "javascript:parent.request()"
+      })
+    </script>
+  </body>
+</html>

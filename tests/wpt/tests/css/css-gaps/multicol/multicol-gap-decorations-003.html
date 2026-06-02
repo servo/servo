@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations painted basic case.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-003-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        column-count: 3;
+        column-width: 60px;
+        column-gap: 10px;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-color: blue;
+    }
+
+    p {
+        background: rgb(96 139 168 / 0.2);
+        height: 200px;
+        margin: 0px;
+    }
+</style>
+
+<div id="container">
+    <p></p>
+    <p></p>
+    <p></p>
+</div>

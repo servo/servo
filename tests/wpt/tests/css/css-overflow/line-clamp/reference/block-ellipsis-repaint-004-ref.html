@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+#clamp {
+  border: 1px solid black;
+  padding: 4px;
+  background-color: yellow;
+
+  font: 16px/16px serif;
+}
+.ellipsis {
+  font: bold 32px/0 serif;
+}
+</style>
+
+<p>The ellipsis should be bold and twice as large as the rest of the text.</p>
+
+<div id="clamp">
+  Line 1 <br>
+  Line 2 <br>
+  Line 3<span class="ellipsis">…</span>
+</div>

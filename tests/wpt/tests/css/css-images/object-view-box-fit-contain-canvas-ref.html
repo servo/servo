@@ -1,0 +1,69 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<title>CSS object-view-box with object-fit:contain (ref)</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+div {
+  margin: 5px;
+}
+
+video {
+  object-fit: fill;
+}
+
+.container_view_box_subset {
+  width: 50px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+.view_box_subset {
+  position: relative;
+  top: -25px;
+}
+
+.container_view_box_subset_with_position {
+  width: 50px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+.view_box_subset_with_position {
+  position: relative;
+  top: -50px;
+}
+
+.container_view_box_subset_with_scaling {
+  width: 100px;
+  height: 200px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+.view_box_subset_with_scaling {
+  position: relative;
+  top: 25px;
+  left: 25px;
+  width: 100px;
+  height: 200px;
+}
+</style>
+<div class="container_view_box_subset">
+  <canvas class="view_box_subset"></canvas>
+</div>
+<div class="container_view_box_subset_with_position">
+  <canvas class="view_box_subset_with_position"></canvas>
+</div>
+<div class="container_view_box_subset_with_scaling">
+  <canvas class="view_box_subset_with_scaling"></canvas>
+</div>
+</body>
+<script>
+  populateElements("");
+</script>

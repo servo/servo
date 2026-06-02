@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Grid Layout Reference: Grid aligned descendants with static position</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid: 40px / 40px;
+  border: 2px solid;
+  border-top-width: 5px;
+  border-left-width: 3px;
+  width: 100px;
+  justify-content: end;
+  padding: 2px 4px 6px 1px;
+}
+.absolute {
+  position: absolute;
+  grid-column: 1 / 2;
+}
+.content {
+  float: left;
+  width: 20px;
+  height: 40px;
+  background: green;
+}
+.content:nth-child(2) {
+  background: grey;
+}
+
+</style></head>
+<body>
+There should be no red:
+
+<div class="grid">
+    <div class="absolute" style="margin-top:2px">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 43px">
+    <div class="absolute" style="margin-top:2px; margin-left:3px">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 43px">
+    <div class="absolute" style="margin-top:2px; border-left:2px solid black; padding-left:1px">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+</div>
+
+<div class="grid" style="padding-bottom: 14px">
+    <div class="absolute" style="margin-top:10px">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 43px; padding-left:8px">
+    <div class="absolute" style="margin-top:2px; margin-left:3px">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+</div>
+
+</body>
+</html>

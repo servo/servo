@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area-alignment">
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk">
+<link rel="match" href="reference/position-area-inset-one-side-auto.html">
+<meta name="assert" content="A positioned element with one inset on one axis and auto on author should position unsafely">
+<style>
+.abs {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  border: 1px solid;
+}
+
+.anchor {
+  width: 100px;
+  height: 100px;
+  background: tomato;
+  anchor-name: --a;
+  margin: 100px 0 0 100px;
+}
+
+.ref {
+  position: absolute;
+  inset: 100px auto auto 100px;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+
+.positioned {
+  inset: 100% auto auto 100px;
+  width: 50px;
+  height: 50px;
+  position-area: top left;
+  background: skyblue;
+  position-anchor: --a;
+  position: absolute;
+  position-visibility: always;
+}
+
+</style>
+<div class=abs>
+  <div class=anchor></div>
+  <div class=ref></div>
+  <div class=positioned></div>
+</div>

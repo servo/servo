@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1247417">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div class="hidden" id="container1"></div>
+<div class="hidden" id="container2"></div>
+<div class="hidden" id="container3"></div>
+<div class="hidden" id="container4"></div>
+
+<script>
+promise_test(async () => {
+  const img1 = document.createElement('img');
+  container1.appendChild(img1);
+  const img1Load = new Promise(resolve => img1.onload = resolve);
+  img1.src = 'resources/dice.png';
+  await img1Load;
+  assert_not_equals(img1.height, 0, 'height');
+
+  const img2 = document.createElement('img');
+  container2.appendChild(img2);
+  const img2Load = new Promise(resolve => img2.onload = resolve);
+  img2.src = 'resources/dice.png';
+  await img2Load;
+  assert_not_equals(img2.width, 0, 'width');
+
+  const img3 = document.createElement('img');
+  container3.appendChild(img3);
+  const img3Load = new Promise(resolve => img3.onload = resolve);
+  img3.src = 'resources/dice.png';
+  await img3Load;
+  assert_not_equals(img3.x, 0, 'x');
+
+  const img4 = document.createElement('img');
+  container4.appendChild(img4);
+  const img4Load = new Promise(resolve => img4.onload = resolve);
+  img4.src = 'resources/dice.png';
+  await img4Load;
+  assert_not_equals(img4.y, 0, 'y');
+
+}, `c-v:hidden <img> layout APIs shouldn't return zero when accessed from script.`);
+</script>

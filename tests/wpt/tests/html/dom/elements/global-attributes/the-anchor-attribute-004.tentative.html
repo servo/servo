@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/9144">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=anchor1>Anchor 1</div>
+<div id=anchor2>Anchor 2</div>
+<svg id=foo anchor=anchor1></svg>
+
+<script>
+test(() => {
+  assert_equals(foo.anchorElement,anchor1,'Non-HTML elements can use the anchor attribute');
+  foo.anchorElement = anchor2;
+  assert_equals(foo.anchorElement,anchor2,'The anchorElement IDL also works for non-HTML elements');
+});
+</script>

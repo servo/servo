@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: allowed page break margin handling</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="When a page break occurs in the vertical margin between sibling block boxes (or rows in a table), the used values of the adjoining 'margin-bottom' and 'margin-top' properties are set to '0'."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	p {
+		page-break-after: always;
+		margin-bottom: 100in;
+	}
+	div {margin-top: 100in;}
+</style>
+</head>
+<body>
+	<p>When printed, this test requires two pages.</p>
+	<div>This sentence must appear at the top of the second page.</div>
+</body>
+</html>

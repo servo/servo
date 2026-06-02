@@ -1,0 +1,25 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Dynamic content change on ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1697998">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="marker-dynamic-content-change-ref.html">
+<style>
+::marker {
+  content: "FAIL";
+}
+.tweak ::marker {
+  content: "PASS";
+}
+</style>
+<script>
+  document.addEventListener("TestRendered", function() {
+    document.documentElement.classList = "tweak";
+  });
+</script>
+<ol>
+  <li>Item
+</ol>

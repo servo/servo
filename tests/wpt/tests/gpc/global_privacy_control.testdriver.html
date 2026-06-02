@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>GPC Testdriver Validation</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script>
+
+promise_test(async t => {
+    // We do not test the initial value deliberately
+    const getInitial = await test_driver.get_global_privacy_control();
+    assert_true(getInitial.gpc === true || getInitial.gpc === false, "Initial value of GPC must be a boolean true or false.")
+    const setTrue = await test_driver.set_global_privacy_control(true);
+    assert_true(setTrue.gpc, "Setting a true global privacy control value results in a true value returned after awaiting.");
+    const getTrue = await test_driver.get_global_privacy_control();
+    assert_true(getTrue.gpc, "Reading the global privacy control value after set to true results in a true value after awaiting.");
+    const setFalse = await test_driver.set_global_privacy_control(false);
+    assert_false(setFalse.gpc, "Setting a false global privacy control value results in a false value returned after awaiting.");
+    const getFalse = await test_driver.get_global_privacy_control();
+    assert_false(getFalse.gpc, "Reading the global privacy control value after set to false results in a false value after awaiting.");
+});
+
+</script>

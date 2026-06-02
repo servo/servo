@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Layout Instability: visibility:hidden</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div id="target" style="position: absolute; top: 0; width: 400px; height: 400px; background: blue;"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Shift target and make hidden at the same time. Should not be reported!
+  document.querySelector("#target").style.top = '200px';
+  document.querySelector("#target").style.visibility = 'hidden';
+
+  await waitForAnimationFrames(2);
+  // No shift should be reported.
+  assert_equals(watcher.score, 0);
+}, 'visible to hidden');
+
+</script>

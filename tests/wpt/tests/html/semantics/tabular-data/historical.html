@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Historical table features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function t(property, tagNames) {
+  if (typeof tagNames === "string") {
+    tagNames = [tagNames];
+  }
+  tagNames.forEach(function(tagName) {
+    test(function() {
+      assert_false(property in document.createElement(tagName));
+    }, tagName + '.' + property + ' should not be supported');
+  });
+}
+
+// added in https://github.com/whatwg/html/commit/6db0d8d4e3456140de958c963afe9bb9ec7b6a25
+// removed in https://github.com/whatwg/html/commit/59b7e2466c2b7c5c408a4963b05b13fd808aa07a
+t('onsort', 'table');
+t('sortable', 'table');
+t('stopSorting', 'table');
+t('sorted', 'th');
+t('sort', 'th');
+</script>

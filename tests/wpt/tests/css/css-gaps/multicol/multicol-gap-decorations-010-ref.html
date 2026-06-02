@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        position: relative;
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 200px;
+    }
+
+    .container {
+        position: absolute;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .item {
+        background: rgb(96 139 168 / 0.2);
+        height: 100%;
+        width: 60px;
+    }
+
+    .row-gap {
+        display: flex;
+        position: absolute;
+        column-gap: 10px;
+        height: 10px;
+        left: 2px;
+        width: 196px;
+        gap: 14px;
+    }
+    .row-gap > div {
+        width: 56px;
+        height: 100%;
+        background: gold;
+    }
+    .column-gap {
+        position: absolute;
+        width: 10px;
+        background: blue;
+    }
+
+    .spanner {
+        position: absolute;
+        background: cyan;
+        width: 200px;
+        height: 18px;
+        top: 40px;
+        left: 0;
+        opacity: 0.5;
+    }
+</style>
+
+<div class="outer">
+    <div class="container" style="top:0; height:40px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+    </div>
+    <div class="container" style="top:58px; height:2px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+    </div>
+    <div class="container" style="top:70px; height:60px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <div class="item"></div>
+    </div>
+    <div class="container" style="top:140px; height:60px;">
+        <div class="item"></div>
+        <div class="item"></div>
+        <!-- Remove the 6px consumed after the spanner in the first row: -->
+        <div class="item" style="height:54px;"></div>
+    </div>
+    <div class="column-gap" style="top:2px; left:60px; height:36px;"></div>
+    <div class="column-gap" style="top:2px; left:130px; height:36px;"></div>
+    <div class="column-gap" style="top:72px; left:60px; height:56px;"></div>
+    <div class="column-gap" style="top:72px; left:130px; height:56px;"></div>
+    <div class="column-gap" style="top:142px; left:60px; height:56px;"></div>
+    <div class="column-gap" style="top:142px; left:130px; height:56px;"></div>
+    <div class="row-gap" style="top:60px;">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <div class="row-gap" style="top:130px;">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <div class="spanner"></div>
+</div>

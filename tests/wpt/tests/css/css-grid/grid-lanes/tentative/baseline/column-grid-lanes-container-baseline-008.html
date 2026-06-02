@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-items: baseline/last baseline with negative margin</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-baseline-alignment">
+  <link rel="match" href="column-grid-lanes-container-baseline-008-ref.html">
+  <style>
+    .container {
+      display: flex;
+      gap: 20px;
+      border: 2px solid blue;
+      width: 400px;
+      padding: 10px;
+      font-size: 16px;
+      text-decoration: underline;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(2, 100px);
+      gap: 10px;
+      border: 1px solid red;
+      background: #f0f0f0;
+      width: max-content;
+    }
+
+    .grid-lanes-item {
+      background: transparent;
+      padding: 8px;
+      border: 4px solid navy;
+      text-decoration: underline;
+    }
+
+    .grid-lanes-item:nth-child(1) { height: 40px; font-size: 20px;color: lightcoral; display: flex; align-items: end; border-color: lightcoral;}
+    .grid-lanes-item:nth-child(2) { height: 80px; }
+    .grid-lanes-item:nth-child(3) { height: 60px; font-size: 22px;color: greenyellow; border-color: greenyellow;}
+  </style>
+</head>
+<body>
+<div class="container" style="align-items: baseline;">
+  <div>Ref</div>
+  <div class="grid-lanes">
+    <div class="grid-lanes-item">Item 1</div>
+    <div class="grid-lanes-item"></div>
+    <div class="grid-lanes-item" style="margin-top: -80px;">Item 3</div>
+  </div>
+</div>
+<div class="container" style="align-items: last baseline;">
+  <div>Ref</div>
+  <div class="grid-lanes">
+    <div class="grid-lanes-item" style="margin-bottom: -80px;">Item 1</div>
+    <div class="grid-lanes-item"></div>
+    <div class="grid-lanes-item">Item 3</div>
+  </div>
+</div>
+</body>
+</html>

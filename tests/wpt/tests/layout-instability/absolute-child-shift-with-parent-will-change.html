@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Layout Instability: parent and overflowing absolute child moved together</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<div id="parent" style="position: relative; width: 100px; height: 100px; background: yellow; will-change: transform">
+  <div id="child" style="position: absolute; top: 300px; left: 400px; width: 100px; height: 100px; background: blue"></div>
+</div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  const parent = document.querySelector("#parent");
+  parent.style.top = '100px';
+
+  // We should track parent and child separately.
+  const expectedScore = computeExpectedScore(100 * (100 + 100), 100) * 2;
+
+  // Observer fires after the frame is painted.
+  assert_equals(watcher.score, 0);
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Parent and overflowing absolute child movement.');
+
+</script>

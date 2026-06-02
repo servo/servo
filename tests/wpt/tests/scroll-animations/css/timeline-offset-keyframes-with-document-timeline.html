@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    cover 100% {
+      margin-right: 0px;
+    }
+    cover 0% {
+      margin-left:  0px;
+    }
+    50% {
+      opacity:  0.5;
+    }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-top:  800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto both linear;
+    /* using document timeline by default */
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anim = document.getAnimations()[0];
+      await anim.ready;
+      await waitForNextFrame();
+
+      // Using a document timeline, so only the 50% keyframe is used.
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: 0, computedOffset: 0, opacity: "1", easing: "linear",
+          composite: "replace" },
+        { offset: 0.5, computedOffset: 0.5, opacity: "0.5", easing: "linear",
+          composite: "auto" },
+        { offset: 1, computedOffset: 1, opacity: "1", easing: "linear",
+          composite: "replace" },
+        { offset: { rangeName: "cover", offset: CSS.percent(100) },
+          computedOffset: null, marginRight:  "0px", composite: "auto",
+          easing: "linear" },
+        { offset: { rangeName: "cover", offset: CSS.percent(0) },
+          computedOffset: null, marginLeft:  "0px", composite: "auto",
+          easing: "linear" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Keyframes with timeline-offsets reported but not reachable when ' +
+       'using a document timeline');
+  }
+
+  window.onload = runTest;
+</script>

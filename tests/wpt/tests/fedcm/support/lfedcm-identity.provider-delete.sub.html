@@ -1,0 +1,27 @@
+<!doctype html>
+<head>
+<title>Helper to delete 'identity' credentials for discovery</title>
+</head>
+<script>
+'use strict';
+
+// we delete a credential by storing a credential with the same ID but
+// that is effective for no use. There isn't a native delete in the
+// credential manager, so this is how it must be done
+async function deleteCredentials() {
+  const queryString = window.location.search;
+  const params = new URLSearchParams(queryString);
+  let identityData = {
+    id: params.get("id"),
+  }
+  await navigator.credentials.store(await navigator.credentials.create({
+    identity: identityData
+  }));
+}
+
+deleteCredentials().then(() => {
+  window.opener.postMessage("deleted", "*");
+})
+
+
+</script>

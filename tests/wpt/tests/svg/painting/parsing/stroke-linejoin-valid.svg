@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: parsing stroke-linejoin with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeLinejoinProperty"/>
+    <h:meta name="assert" content="stroke-linejoin supports the full grammar 'miter | miter-clip | round | bevel | arcs'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("stroke-linejoin", "miter");
+test_valid_value("stroke-linejoin", "miter-clip");
+test_valid_value("stroke-linejoin", "round");
+test_valid_value("stroke-linejoin", "bevel");
+test_valid_value("stroke-linejoin", "arcs");
+
+  ]]></script>
+</svg>

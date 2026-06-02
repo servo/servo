@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: text-decoration setting several lines and thickness reference</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  .wrapper {
+    position: relative;
+    width: 10px;
+    height: 100px;
+    margin: 110px 2px;
+    float: left;
+  }
+  .decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font: 10px/1 Ahem;
+    color: transparent;
+    text-decoration-color: green;
+    text-decoration-style: solid;
+    text-decoration-skip-ink: none;
+  }
+</style>
+<p>The test passes if it matches the reference.</p>
+<script>
+  let lines = ["underline", "overline", "line-through",
+               "underline overline", "underline line-through", "overline line-through",
+               "underline overline line-through"];
+
+  let thicknesses = ["1px", "10px", "50px", "100px"];
+
+  for (let line of lines) {
+    for (let thickness of thicknesses) {
+      let wrapper = document.createElement("div");
+      wrapper.className = "wrapper";
+
+      for (let individualLine of line.split(" ")) {
+        let decoration = document.createElement("div");
+        decoration.className = "decoration";
+        decoration.innerHTML = "X";
+        decoration.style.textDecorationLine = individualLine;
+        decoration.style.textDecorationThickness = thickness;
+        wrapper.appendChild(decoration);
+      }
+
+      document.body.appendChild(wrapper);
+    }
+  }
+</script>

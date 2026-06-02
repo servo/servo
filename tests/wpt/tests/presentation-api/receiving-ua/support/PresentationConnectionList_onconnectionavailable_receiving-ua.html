@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Monitoring incoming presentation connections</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#monitoring-incoming-presentation-connections">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+  const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+  add_completion_callback((tests, status) => {
+    const log = document.getElementById('log');
+    stash.send(JSON.stringify({ type: 'result', tests: tests, status: status, log: log.innerHTML }));
+  });
+
+  promise_test(t => {
+    const receiver = navigator.presentation.receiver;
+    return receiver.connectionList.then(list => {
+      let connections = list.connections;
+      let number = connections.length;
+
+      const checkConnectionList = (connection, action) => {
+        assert_equals(connections.length, number, 'PresentationConnectionList.connections is a frozen array.');
+
+        // Note: When a presentation is terminated, a receiving user agent unloads a document
+        // without firing a "terminate" event.
+        return receiver.connectionList.then(list => {
+          connections = list.connections;
+          if (action === 'close') {
+            assert_true(connections.length === number - 1 && !connections.includes(connection),
+              'A closed presentation connection is removed from the set of presentation controllers.');
+          } else if (action === 'connect') {
+            assert_true(connections.length === number + 1 && connections.includes(connection),
+              'A new presentation connection is added to the set of presentation controllers.');
+          }
+          number = connections.length;
+        });
+      };
+
+      const checkEvent = evt => {
+        assert_true(evt instanceof PresentationConnectionAvailableEvent, 'An event using PresentationConnectionAvailableEvent is fired.');
+        assert_true(evt.isTrusted, 'The event is a trusted event.');
+        assert_false(evt.bubbles, 'The event does not bubbles.');
+        assert_false(evt.cancelable, 'The event is not cancelable.');
+        assert_equals(evt.type, 'connectionavailable', 'The event name is "connectionavailable".');
+        assert_equals(evt.target, list, 'event.target is the presentation connection list.');
+        assert_true(evt.connection instanceof PresentationConnection, 'event.connection is a presentation connection.');
+
+        return checkConnectionList(evt.connection, 'connect');
+      };
+
+      const watchEvent = (obj, watcher, type) => {
+        const watchHandler = new Promise(resolve => {
+          obj['on' + type] = evt => { resolve(evt); };
+        });
+        return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+          assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+          return results[0];
+        });
+      };
+
+      // Step 1: check the first connection in "connected" state
+      let connection = list.connections[0];
+      assert_equals(number, 1, 'A presentation connection list is populated with a first presentation connection.');
+      assert_true(list instanceof PresentationConnectionList, 'navigator.presentation.receiver.connectionList is resolved with a presentation connection list.');
+      assert_true(list.connections instanceof Array, 'A presentation connection list is an array.');
+      assert_true(connection instanceof PresentationConnection, 'A presentation connection is added to a presentation connection list.');
+
+      // Step 2: check the connection in "closed" state
+      stash.send(JSON.stringify({ type: 'ok' }));
+      let eventWatcher = new EventWatcher(t, connection, 'close');
+      return eventWatcher.wait_for('close').then(() => {
+        return checkConnectionList(connection, 'close');
+      })
+      // Step 3: check the first connection when reconnected
+      .then(() => {
+        stash.send(JSON.stringify({ type: 'ok' }));
+        eventWatcher = new EventWatcher(t, list, 'connectionavailable');
+        return watchEvent(list, eventWatcher, 'connectionavailable')
+      }).then(checkEvent)
+      // Step 4: check the second connection (with <iframe>) in "connected" state
+      .then(() => {
+        stash.send(JSON.stringify({ type: 'ok' }));
+        return watchEvent(list, eventWatcher, 'connectionavailable')
+      }).then(checkEvent);
+    });
+  });
+</script>

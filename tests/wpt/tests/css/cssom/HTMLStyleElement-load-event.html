@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>style elements fire load events properly</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://html.spec.whatwg.org/#update-a-style-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let NUM_LOADS = 0;
+</script>
+<style onload="++NUM_LOADS"></style>
+<style onload="++NUM_LOADS">:root { background-color: lime }</style>
+<style onload="++NUM_LOADS">:root { background-color: lime }</style> <!-- Intentionally the same -->
+<script>
+async_test(function(t) {
+  assert_equals(document.styleSheets.length, 3, "Should expose the three stylesheets to the OM sync");
+  assert_equals(NUM_LOADS, 0, "Should not fire load event sync");
+  window.addEventListener("load", t.step_func_done(() => {
+    assert_equals(NUM_LOADS, 3, "Load event should've fired for all nodes");
+  }));
+});
+</script>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Event handlers processing algorithm</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+ <body>
+ <div id="foo" style="width: 100px; height: 100px; background-color: black"></div>
+ <script>
+
+ // Historically mouseover was special in the spec, but now it is not. See https://github.com/whatwg/html/pull/2398.
+ test(function(t) {
+     var ev = new Event('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return false });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true)
+ }, "mouseover listener returning false cancels event (using Event)");
+
+ test(function(t) {
+     var ev = new MouseEvent('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return false });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true)
+ }, "mouseover listener returning false cancels event (using MouseEvent)");
+
+ test(function(t) {
+     var ev = new Event('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return true });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, false)
+ }, "mouseover listener returning true doesn't cancel event (using Event)");
+
+ test(function(t) {
+     var ev = new MouseEvent('mouseover', {cancelable: true});
+     document.getElementById("foo").onmouseover = t.step_func(function() { return true });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, false)
+ }, "mouseover listener returning true doesn't cancel event (using MouseEvent)");
+
+ // beforeunload is tested in html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling.html
+
+ test(function(t) {
+     var ev = new Event("click", {cancelable: true});
+     document.getElementById("foo").onclick = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+ }, "click listener returning false cancels event");
+
+ test(function(t) {
+     var ev = new Event("blur", {cancelable: true});
+     document.getElementById("foo").onblur = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+ }, "blur listener returning false cancels event");
+
+ test(function(t) {
+     var ev = new Event("dblclick", {cancelable: true});
+     document.getElementById("foo").ondblclick = t.step_func(function() { return false; });
+     document.getElementById("foo").dispatchEvent(ev);
+     assert_equals(ev.defaultPrevented, true);
+ }, "dblclick listener returning false cancels event");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel='match' href='inline_absolute_out_of_flow_ref.html'>
+<style>
+#a {
+    display: inline;
+    position: relative;
+}
+#b {
+    position: absolute;
+    display: block;
+}
+</style>
+<div>A<span id=a><div id=b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div></span>B</div>
+

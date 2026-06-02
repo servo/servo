@@ -1,0 +1,166 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior">
+
+<style>
+.outer {
+  height: 400px;
+  width: 1000px;
+  background: white
+}
+.content {
+  height: 600px;
+  width: 1200px;
+}
+#root {
+  overflow: scroll;
+  height: 600px;
+  width: 800px;
+  background: white;
+}
+#container {
+  overflow: scroll;
+}
+#non_scrollable {
+  overflow: clip;
+}
+#green {
+  background: repeating-linear-gradient(to bottom right, green 15%, white 30%);
+}
+#blue {
+  background: repeating-linear-gradient(to bottom right, blue 15%, white 30%);
+}
+</style>
+
+<div id='root'>
+  <div id='non_scrollable' class='outer'>
+    <div id='green' class='content'></div>
+  </div>
+  <div id='container' class='outer'>
+    <div id='blue' class='content'></div>
+  </div>
+</div>
+<!--
+Tests that overscroll-behavior prevents scroll-propagation in the area and
+direction as specified.
+  Manual Steps:
+    1. Make two scrolls on blue, in this order: scroll UP (or drag down), then
+       scroll LEFT (or drag right). Scroll (or drag) until nothing is
+       scrolling.
+    2. Call verify_y_prevented_and_set_boundary_prevents_x() from console
+    3. Repeat the same scrolls as in step 1
+    4. Call verify_x_prevented_and_set_boundary_allows_inner() from console
+    5. Repeat the same scrolls as in step 1
+    6. Call verify_inner_allowed_and_set_nonscrollable_allows_propagation()
+       from console
+    7. Make two separate scrolls on green, in this order: scroll UP
+       (or drag down), then scroll LEFT (or drag right). Scroll (or drag) until
+       nothing is scrolling.
+    8. Call verify_non_scrollable_allows_propagation() from console
+</ol> -->
+<script>
+const container = document.getElementById('container');
+const non_scrollable = document.getElementById('non_scrollable');
+const root = document.getElementById('root');
+
+function setScrollPosition(scroller, offset) {
+  scroller.scrollTop = offset;
+  scroller.scrollLeft = offset;
+}
+
+async function scrollWithWheelWait(scroll_element, overflow_scroller) {
+  const scrollerRect = scroll_element.getBoundingClientRect();
+  const x = scrollerRect.left + 200;
+  const y = scrollerRect.top + 100;
+  const dx = -200;
+  const dy = -200;
+
+  const wheelPromiseY = waitForWheelEvent(window);
+  await new test_driver.Actions().scroll(x, y, 0, dy).send();
+  await wheelPromiseY;
+  await waitForAnimationEnd(() => overflow_scroller.scrollTop);
+
+  const wheelPromiseX = waitForWheelEvent(window);
+  await new test_driver.Actions().scroll(x, y, dx, 0).send();
+  await wheelPromiseX;
+  await waitForAnimationEnd(() => overflow_scroller.scrollLeft);
+}
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  container.style.overscrollBehaviorX = 'auto';
+  container.style.overscrollBehaviorY = 'none';
+  setScrollPosition(root, 100);
+  setScrollPosition(container, 0);
+  window.scrollTo(0, 0);
+
+  await scrollWithWheelWait(container, root);
+
+  assert_approx_equals(root.scrollTop, 100, 0.5,
+                      "root got unexpected scroll on Y axis");
+  assert_approx_equals(root.scrollLeft, 0, 0.5,
+                      "root expected to scroll on X axis");
+}, "overscroll-behavior-y: none prevents scroll propagation on y axis");
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'auto';
+  setScrollPosition(root, 100);
+  setScrollPosition(container, 0);
+  window.scrollTo(0, 0);
+
+  await scrollWithWheelWait(container, root);
+
+  assert_approx_equals(root.scrollTop, 0, 0.5,
+                      "root expected to scroll on Y axis");
+  assert_approx_equals(root.scrollLeft, 100, 0.5,
+                      "root got unexpected scroll on X axis");
+}, "overscroll-behavior-x: none prevents scroll propagation on x axis");
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'none';
+  setScrollPosition(root, 100);
+  setScrollPosition(container, 100);
+  window.scrollTo(0, 0);
+
+  await scrollWithWheelWait(container, container);
+
+  assert_approx_equals(container.scrollTop, 0, 0.5,
+                      "inner container expected to scroll on Y axis");
+  assert_approx_equals(container.scrollLeft, 0, 0.5,
+                      "inner container expected to scroll on X axis");
+  assert_approx_equals(root.scrollTop, 100, 0.5,
+                      "root got unexpected scroll on Y axis");
+  assert_approx_equals(root.scrollLeft, 100, 0.5,
+                      "root got unexpected scroll on X axis");
+}, "overscroll-behavior allows inner scrolling when both axes are none");
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  non_scrollable.style.overscrollBehaviorX = 'none';
+  non_scrollable.style.overscrollBehaviorY = 'none';
+  setScrollPosition(root, 100);
+  window.scrollTo(0, 0);
+
+  await scrollWithWheelWait(non_scrollable, root);
+
+  assert_approx_equals(root.scrollLeft, 0, 0.5,
+                      "root expected to scroll on X axis");
+  assert_approx_equals(root.scrollTop, 0, 0.5,
+                      "root expected to scroll on Y axis");
+}, "overscroll-behavior on non-scrollable area allows scroll propagation");
+
+</script>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+
+#container {
+  height: 300px;
+  width: 300px;
+  overflow-y: scroll;
+  scroll-behavior: auto;
+}
+
+p {
+  margin: 0px;
+  line-height: 20px;
+  font-size: 20px;
+}
+
+</style>
+
+<div id="container">
+  <div contenteditable>
+    <p>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ante
+    nulla, dictum rhoncus libero vel, dictum iaculis sem. Morbi sit amet
+    euismod ligula. Proin et est ex. Pellentesque sollicitudin lobortis diam
+     eu posuere. Donec a diam risus. Fusce quis semper sapien, sed tincidunt
+     mi. Nullam tortor diam, sagittis sed scelerisque ut, scelerisque a
+    turpis. Integer a dignissim turpis. Etiam eu pharetra nisl, ac ultricies
+     sem. Ut at tristique turpis. Aliquam vitae arcu quis turpis gravida
+    luctus at at turpis. Nullam aliquet turpis sed lectus interdum
+    ultricies.
+    </p>
+  </div>
+</div>
+<script>
+
+setup(() => {
+  const editable = document.querySelector("div[contenteditable]");
+  const child = editable.children[0];
+
+  for (let i = 0; i < 10; i++) {
+    const clone = child.cloneNode(true);
+    editable.appendChild(clone);
+  }
+  document.documentElement.getBoundingClientRect();
+});
+
+promise_test(async t => {
+  const editable = document.querySelector("div[contenteditable]");
+  editable.focus();
+
+  // Scroll down to the bottom.
+  let scrollPromise = new Promise(resolve => {
+    container.addEventListener("scroll", () => resolve(), { once: true });
+  });
+  // Hopefully 10000 is greater than the maximum possible scroll position.
+  container.scrollTo(0, 10000);
+  await scrollPromise;
+
+  assert_greater_than(container.scrollTop, 0);
+
+  const selection = window.getSelection();
+  selection.collapse(editable.lastElementChild, 1);
+
+  // Pres Ctrl+Home or Meta+ArrorUp to move back to the top.
+  scrollPromise = new Promise(resolve => {
+    container.addEventListener("scroll", () => resolve(), { once: true });
+  });
+  const kHomeOrArrowUp =
+    navigator.platform.includes("Mac") ? "\uE013" : "\uE011";
+  const kControlOrMeta =
+    navigator.platform.includes("Mac") ? "\uE03d" : "\uE009";
+  await new test_driver.Actions()
+    .keyDown(kControlOrMeta)
+    .keyDown(kHomeOrArrowUp)
+    .keyUp(kHomeOrArrowUp)
+    .keyUp(kControlOrMeta)
+    .send();
+  await scrollPromise;
+
+  assert_equals(container.scrollTop, 0,
+    "The scroll position should be restored to the top");
+
+  container.addEventListener("scroll", () => {
+    assert_false("Any scroll event should not happen");
+  });
+  // Press "Enter" to insert a new line at the top.
+  const kEnter = "\uE007";
+  await new test_driver.Actions()
+    .keyDown(kEnter)
+    .keyUp(kEnter)
+    .send();
+
+  // Wait 3 frames to give a chance to scroll.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(container.scrollTop, 0,
+    "The scroll position should be unchanged");
+}, "The scroll position is unchanged when inserting a new line at the top of contenteditable");
+
+</script>

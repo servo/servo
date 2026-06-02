@@ -1,0 +1,60 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestorKey = token();
+  const perOriginBitLimit = 3;
+  const bitsKey = "bits";
+
+  let url0 = generateURL(
+      "/shared-storage-selecturl-limit/" +
+        "resources/run-url-selection-operation-limit-inner.https.html",
+      [ancestorKey]);
+
+  // We have set the per site per pageload limit to 3 bits.
+  url0.searchParams.append(bitsKey, perOriginBitLimit.toString());
+  attachIFrame(url0);
+  const result0 = await nextValueFromServer(ancestorKey);
+  assert_equals(result0, "run_url_selection_limit_inner_succeeded");
+
+  let url1 = generateURL(
+      "/shared-storage-selecturl-limit/" +
+        "resources/run-url-selection-operation-limit-inner.https.html",
+      [ancestorKey]);
+
+  // The overall pageload budget should have 3 bits remaining, as we have set
+  // it to start at 6.
+  url1.searchParams.append(bitsKey, "3");
+  const crossOrigin1 = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+  url1 = updateUrlToUseNewOrigin(url1, crossOrigin1);
+  attachIFrame(url1);
+  const result1 = await nextValueFromServer(ancestorKey);
+  assert_equals(result1, "run_url_selection_limit_inner_succeeded");
+
+  let url2 = generateURL(
+      "/shared-storage-selecturl-limit/" +
+        "resources/run-url-selection-operation-limit-inner.https.html",
+      [ancestorKey]);
+
+  // Since the overall per pageload limit is 6 bits here, it should have
+  // already been reached, even though `url2`'s site should have 3 bits
+  // remaining in the per-site budget.
+  url2.searchParams.append(bitsKey, "0");
+  const crossOrigin2 = get_host_info().OTHER_ORIGIN;
+  url2 = updateUrlToUseNewOrigin(url2, crossOrigin2);
+  attachIFrame(url2);
+  const result2 = await nextValueFromServer(ancestorKey);
+  assert_equals(result2, "run_url_selection_limit_inner_succeeded");
+}, 'selectURL() with overall per-pageload limit');
+</script>
+</body>

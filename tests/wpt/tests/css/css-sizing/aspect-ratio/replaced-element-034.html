@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+img {
+  background: green;
+  box-sizing: border-box;
+  aspect-ratio: 1/1;
+  padding-left: 50px;
+  height: min-content;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<!--
+  This test is super subtle. The SVG has a natural (content) size of 50x??.
+  To determine the natural (content) height we use the aspect-ratio to
+  multiply through, but we should be using "box-sizing: border-box".
+  This leaves "height: min-content" to be 100px (as opposed to 50px).
+-->
+<img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='50px'></svg>">

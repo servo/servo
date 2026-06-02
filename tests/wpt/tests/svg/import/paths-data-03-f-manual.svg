@@ -1,0 +1,113 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: paths-data-03-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
+        <p>
+          Test that the viewer has the basic capability to handle the 'path'
+          element and its data (d) attribute in combination with the elliptical
+          arc curveto commands, A, a (plus Mm and Zz).
+        </p>
+        <p>
+          There are 6 subtests, each composed from the elliptical arc path commands per
+          the label by the subtest.  The curve positions
+          are marked by small colored squares.  Subtests are filled, or stroked, or
+          both, using simple style properties and colors.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-03-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="12" x="120" y="14">Elliptical arc curves drawn with commands:</text>
+    <!-- ====================================================================== -->
+    <!-- Simple circle using MAZ  ============================ -->
+    <!-- ====================================================================== -->
+    <path id="Arc_MAZ" fill="none" stroke="#03DD20" stroke-width="10" d="   M  25   70      A  40   40      0         1      0     25   69   Z    "/>
+    <text font-size="12" x="48" y="70">M, A, Z</text>
+    <rect x="23" y="68" width="4" height="4" fill="#00C000" stroke="none"/>
+    <rect x="23" y="67" width="4" height="4" fill="#00C000" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- filled arc using m, a, & z =================== -->
+    <!-- ====================================================================== -->
+    <path id="Arc_fill_maz" fill="#00FF00" stroke="#0000FF" d="   m  150   100      a  50    40       0          1       0      25   -70   z  "/>
+    <text font-size="12" x="124" y="45">m, a, z</text>
+    <rect x="148" y="98" width="4" height="4" fill="#CF0000" stroke="none"/>
+    <rect x="173" y="28" width="4" height="4" fill="#CF0000" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Unterminated arc using M & a ======================================== -->
+    <!-- ====================================================================== -->
+    <path id="Arc_Ma" fill="none" stroke="#000000" d="   M  350    245      a   40    40       0          1       0      80    60       "/>
+    <text font-size="12" x="390" y="300">M, a</text>
+    <rect x="348" y="243" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="428" y="303" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Triple Arc using M, A, a, a, & z ===================================== -->
+    <!-- ====================================================================== -->
+    <path id="Tri_MAaaz" fill="#0067C0" stroke="none" fill-rule="evenodd" d="   M   270   30      A   50    50       0          1       0     345   30         a   50    50       0          1       0      50    0         a   50    50       0          1       0      25    0    z  "/>
+    <text font-size="12" x="280" y="135">M, A, a, a, z</text>
+    <rect x="268" y="28" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="343" y="28" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="393" y="28" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="418" y="28" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Tripple arc using M, a, Z, m, A, Z, m, a & z ===================================== -->
+    <!-- ====================================================================== -->
+    <path id="Arc_MaZmAzmaz" fill="#609040" stroke="#000000" stroke-width="3" d="   M  30   150      a   40    40       0          0       1      65    50          Z                    m   30       30                         A   20       20              0              0              0             125   230        Z             m   40       24                         a   20       20              0              0              1              65    50        z "/>
+    <text font-size="12" x="25" y="270">M, a, Z, m, A, Z, m, a, z</text>
+    <rect x="28" y="148" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="93" y="198" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="58" y="178" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="123" y="228" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="98" y="202" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="163" y="252" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <!-- ====================================================================== -->
+    <!-- Sin Wave using M, q, t, t, t, t, & z ================================ -->
+    <!-- ====================================================================== -->
+    <path id="Sin_MAAAAA" fill="none" stroke="#40DD20" d="   M   215    190      A   40    200      10          0       0      265    190    A   40    200      20          0       1     315    190        A   40    200      30          0       0     365    190    A   40    200      40          0       1     415    190        A   40    200      50          0       0     465    190                     "/>
+    <text font-size="12" x="215" y="246">M, A, A, A, A</text>
+    <rect x="213" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="263" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="313" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="363" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="413" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+    <rect x="463" y="188" width="4" height="4" fill="#0000FF" stroke="none"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

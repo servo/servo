@@ -1,0 +1,49 @@
+<!doctype html>
+<head>
+<title>Test HTMLMediaElement.setSinkId() with MediaElementAudioSourceNode</title>
+<link rel="help" href="https://webaudio.github.io/web-audio-api/#MediaElementAudioSourceNode">
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+"use strict";
+/*
+MediaElementAudioSourceNode silences HTMLMediaElement output to underlying
+devices but setSinkId() should still function as if there were no
+MediaElementAudioSourceNode according to
+"The HTMLMediaElement MUST behave in an identical fashion after the
+MediaElementAudioSourceNode has been created, except that the rendered audio
+will no longer be heard directly, but instead will be heard as a consequence
+of the MediaElementAudioSourceNode being connected through the routing graph."
+ */
+
+let audio;
+promise_setup(async () => {
+  audio = new Audio();
+  audio.src = "/media/sound_5.oga";
+  audio.autoplay = true;
+  audio.loop = true;
+  new AudioContext().createMediaElementSource(audio);
+  await new Promise(r => audio.onplay = r);
+});
+
+promise_test(t => audio.setSinkId(""), "setSinkId on default audio output should always work");
+
+promise_test(t => promise_rejects_dom(t, "NotFoundError", audio.setSinkId("nonexistent_device_id")),
+  "setSinkId fails with NotFoundError on made up deviceid");
+
+promise_test(async t => {
+  await test_driver.bless('transient activation for selectAudioOutput()');
+  const {deviceId} = await navigator.mediaDevices.selectAudioOutput();
+  assert_greater_than(deviceId.length, 0, "deviceId.length");
+  const p1 = audio.setSinkId(deviceId);
+  assert_equals(audio.sinkId, "", "before it resolves, setSinkId is unchanged");
+  await p1;
+  assert_equals(audio.sinkId, deviceId, "setSinkId updates sinkId to the requested deviceId");
+  await audio.setSinkId("");
+  assert_equals(audio.sinkId, "", "resetting sink ID to default audio output should always work");
+}, "setSinkId() with output device ID exposed by selectAudioOutput() should resolve");
+
+</script>

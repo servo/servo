@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Intersection observer with cross-origin iframe and tall viewport</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1984635">
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 160px;
+  height: 5100px;
+  border: 0;
+  outline: 1px solid;
+}
+.spacer {
+  height: calc(200vh + 100px);
+}
+</style>
+
+<div class="spacer"></div>
+<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/intersection-observer/resources/cross-origin-tall-subframe.sub.html?nest=4" sandbox="allow-scripts"></iframe>
+<div class="spacer"></div>
+
+<script>
+let iframe = document.querySelector("iframe");
+
+async function queryIframeState() {
+  let response = new Promise(resolve => {
+    window.addEventListener("message", function(e) {
+      resolve(e.data);
+    }, { once: true });
+  });
+  iframe.contentWindow.postMessage({ request: true }, "*");
+  let data = await response;
+  assert_true(Array.isArray(data.entries), "Expected an array of entries");
+  assert_equals(data.entries.length, 1, "Only one entry expected");
+  return data.entries[0];
+}
+
+async function assertFrameTargetIntersects(expected, msg) {
+  let framesToTry = 10;
+  let state;
+  for (let i = 0; i < framesToTry; ++i) {
+    state = await queryIframeState();
+    if (state.isIntersecting == expected) {
+      break;
+    }
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  assert_equals(state.isIntersecting, expected, `Target should be ${expected ? "intersecting" : "not intersecting"} ${msg}`);
+  return state;
+}
+
+onload = () => {
+  promise_test(async function() {
+    await assertFrameTargetIntersects(false, "at start");
+    iframe.scrollIntoView({ block: "start" });
+    await assertFrameTargetIntersects(false, "when frame top visible");
+    iframe.scrollIntoView({ block: "end" });
+    await assertFrameTargetIntersects(true, "when frame bottom visible");
+    iframe.scrollIntoView({ block: "start" });
+    await assertFrameTargetIntersects(false, "when frame top visible again");
+  });
+}
+</script>

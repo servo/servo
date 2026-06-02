@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Test cases when fenced frame size shouldn't be restricted..</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const allowed_width = 320;
+  const allowed_height = 50;
+
+  // Create an opaque-ads fenced frame with an invalid size.
+  const frame = await attachFencedFrameContext({
+    generator_api: "fledge",
+    resolve_to_config: true,
+    attributes: [["width", allowed_width+1], ["height", allowed_height+1]],
+    num_components: 1
+  });
+
+  await frame.execute(async (allowed_width, allowed_height) => {
+    // Observe that the size gets coerced to the nearest allowed size.
+    assert_equals(window.innerWidth, allowed_width,
+        "The outer opaque-ads fenced frame has its width coerced.");
+    assert_equals(window.innerHeight, allowed_height,
+        "The outer opaque-ads fenced frame has its height coerced.");
+
+    const component_ad_frame = await attachComponentFencedFrameContext(0, {
+        attributes:
+        [["width", allowed_width+1], ["height", allowed_height+1]]});
+
+    await component_ad_frame.execute((allowed_width, allowed_height) => {
+      // Observe that the nested frame's size doesn't get coerced.
+      assert_equals(window.innerWidth, allowed_width+1,
+          "The nested opaque-ads fenced frame has its requested size.");
+      assert_equals(window.innerHeight, allowed_height+1,
+          "The nested opaque-ads fenced frame has its requested size.");
+    }, [allowed_width, allowed_height]);
+  }, [allowed_width, allowed_height]);
+}, "nested fenced frames don't use the size list");
+</script>
+</body>

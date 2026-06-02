@@ -1,0 +1,50 @@
+<html>
+<head>
+  <title>Test that selectionchange fires when Range methods cause changes</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<span id="abcd">abcd</span><span id="efgh">efgh</span><span id="ijkl">ijkl</span>
+<script>
+var t = async_test("Range methods on a Selection's range fire selectionchange");
+var r = new Range();
+var abcd = document.getElementById("abcd");
+var efgh = document.getElementById("efgh");
+var ijkl = document.getElementById("ijkl");
+r.setStart(abcd, 0);
+r.setEnd(ijkl, 1);
+var s = document.getSelection();
+s.addRange(r);
+// A task is now queued that will fire a selectionchange event,
+// so the following listener will be called soon, even though it wasn't
+// listening at the time we added the range.
+var step = 0;
+document.onselectionchange = () => {
+  t.step(() => {
+    switch(step++) {
+      case 0: r.setStart(ijkl, 1); break;
+      case 1: r.setStartAfter(efgh); break;
+      case 2: r.setStartBefore(abcd); break;
+      case 3: r.setEnd(abcd, 1); break;
+      case 4: r.setEndAfter(efgh); break;
+      case 5: r.setEndBefore(efgh); break;
+      case 6: r.collapse(); break;
+      case 7: r.selectNode(efgh); break;
+      case 8: r.selectNodeContents(abcd); break;
+      case 9: r.insertNode(efgh);
+      case 10: r.surroundContents(ijkl); break;
+      case 11: queueFinish(); break;
+      case 12: assert_unreached("Too many selectionchange events");
+    }
+  },"Step number "+step);
+}
+function queueFinish() {
+  // Finish slightly later than the last selectionchange task,
+  // so if there are any extra ones queued we have time to
+  // hit the assert_unreached.
+  setTimeout(() => { t.done(); }, 1);
+}
+</script>
+</body>
+</html>

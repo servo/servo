@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Descendant combinator</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#descendant-combinators">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('h1 em');
+  test_valid_selector('div * p');
+  test_valid_selector('div p *[href]',
+      ['div p *[href]', 'div p [href]']);
+</script>

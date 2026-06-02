@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: aspect-ratio interaction</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5241">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="contain-intrinsic-size doesn't establish an aspect-ratio">
+
+<p>Test passes if there is a filled green square.</p>
+
+<!-- Use flex because a bug in blink's layout_replaced size computation makes
+  this test pass even when blink makes c-i-s establish an aspect ratio. Flex
+  doesn't use layout_replaced sizing, so it bypasses the bug. -->
+<!-- min-width: 0 is just so we don't have to think about it. -->
+<div style="display: flex;">
+  <img src="/css/support/60x60-green.png" style="min-width: 0px; contain: size; contain-intrinsic-size: 50px 100px; width: 100px;">
+</div>

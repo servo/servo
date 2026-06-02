@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Parser-inserted style elements are implicitly render-blocking</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-render-blocking.js"></script>
+<script>
+// Test case must be set up before the stylesheet, because the stylesheet is
+// script-blocking, which means we can't set it up while the stylesheet is
+// loading.
+test_render_blocking(() => {
+  let color = getComputedStyle(document.querySelector('.target')).color;
+  assert_equals(color, 'rgb(255, 0, 0)');
+}, 'Render-blocking stylesheet is applied');
+</script>
+<style>
+@import url('support/target-red.css?pipe=trickle(d1)');
+</style>
+<div class="target">
+  This should be red
+</div>

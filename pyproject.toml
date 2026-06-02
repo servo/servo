@@ -1,0 +1,79 @@
+[project]
+# `uv` logs warnings if this file doesn't contain a `project` table.
+name = "servo"
+version = "0.0.1"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["python/requirements.txt", "tests/wpt/tests/tools/requirements_tests.txt", "tests/wpt/tests/tools/wptrunner/requirements.txt"] }
+
+[tool.setuptools.packages.find]
+exclude = ["config*"]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = [
+    # temporary local files
+    "target/**",
+    "__pycache__/**",
+    "python/_venv*/**",
+    # upstream
+    "third_party/**",
+    "python/mach/**",
+    "components/net/**",
+    "components/shared/**",
+    "tests/**",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    # Type Annotation
+    "ANN",
+]
+ignore = [
+    # Trailing whitespace; the standard tidy process will enforce no trailing whitespace
+    "W291",
+    # 80 character line length; the standard tidy process will enforce line length
+    "E501",
+    # allow Any type
+    "ANN401",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"etc/**" = ["ANN"]
+"**/test.py" = ["ANN"]
+"**/*_tests.py" = ["ANN"]
+"**/tests/**/*.py" = ["ANN"]
+
+[tool.pyrefly]
+search-path = [
+    "python",
+    "tests/wpt/tests",
+    "tests/wpt/tests/tools",
+    "tests/wpt/tests/tools/wptrunner",
+    "tests/wpt/tests/tools/wptserve",
+    "python/mach",
+    "python/wpt",
+    "third_party/WebIDL",
+    "components/script_bindings/codegen",
+]
+project-includes = [
+    "python/**/*.py",
+    "components/script_bindings",
+]
+project-excludes = [
+    "**/venv/**",
+    "**/.venv/**",
+    "tests/wpt/tests/**",
+    "**/test.py",
+    "**/*_tests.py",
+    "**/tests/**",
+    "python/mach/**/*.py",
+]
+
+[tool.uv]
+native-tls = true

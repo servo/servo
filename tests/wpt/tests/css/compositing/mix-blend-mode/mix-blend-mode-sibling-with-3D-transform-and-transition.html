@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element and its sibling having 3D transform and transition</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="dom"/>
+        <meta name="assert" content="Test checks that an element having mix-blend-mode blends with an overlapping sibling element having 3D transform and transition">
+        <style type="text/css">
+            .parent {
+                position: relative;
+                z-index: 1;
+                float: left;
+                margin-left: 10px;
+            }
+            .blended {
+                background: blue;
+                margin-top: -120px;
+                width: 140px;
+                position: relative;
+                z-index: 1;
+                height: 140px;
+                mix-blend-mode: difference;
+            }
+            .siblingOfBlended {
+                background: aqua;
+                width: 100px;
+                height: 100px;
+                margin-top: 20px;
+                margin-left: 20px;
+                transition: transform 2s;
+            }
+            .rotated {
+                transform: rotateX(60deg) rotateY(10deg) rotateZ(90deg);
+            }
+
+            .ref .blended {
+                mix-blend-mode: normal;
+            }
+            .ref .siblingOfBlended {
+                z-index: 2;
+                position: relative;
+                background: lime;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see two blue rectangles having inside a lime rotating rectangle each.<br>
+        Lime rectangles should look identical when while rotating.</p>
+        <div>
+            <div class="parent">
+                <div class="siblingOfBlended" id="sibling"></div>
+                <div class="blended"></div>
+            </div>
+            <div class="parent ref">
+                <div class="siblingOfBlended ref" id="siblingref"></div>
+                <div class="blended"></div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var sibling = document.getElementById('sibling');
+            var siblingref = document.getElementById('siblingref');
+            function rotate (el, cl) {
+                if (el.className === cl + ' rotated')
+                    el.className = cl;
+                else
+                    el.className = cl + ' rotated';
+            }
+            setTimeout(function () { rotate(sibling, 'siblingOfBlended'); rotate(siblingref, 'siblingOfBlended ref'); }, 0);
+            setInterval(function () { rotate(sibling, 'siblingOfBlended'); rotate(siblingref, 'siblingOfBlended ref'); }, 2000);
+        </script>
+    </body>
+</html>

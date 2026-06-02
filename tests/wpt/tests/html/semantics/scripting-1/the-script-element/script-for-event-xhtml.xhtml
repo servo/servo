@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Scripts with for and event attributes</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    var run = false;
+  </script>
+  <script for="window" event="bar">
+    // This script should not run, but should not cause a parse error either.
+    run = true;
+  </script>
+  <script>
+    test(function() {
+      assert_false(run, "Script was unexpectedly run.")
+    }, "Scripts with for and event attributes should not run.")
+  </script>
+</body>
+</html>

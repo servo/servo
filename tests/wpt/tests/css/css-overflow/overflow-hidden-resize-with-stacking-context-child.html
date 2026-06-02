@@ -1,0 +1,42 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>overflow:hidden changes size with stacking context child</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#valdef-overflow-hidden">
+<link rel="help" href="https://www.w3.org/TR/CSS22/zindex.html">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+#container {
+  overflow: hidden;
+  width: 100px;
+  height: 20px;
+}
+#stacking-context {
+  position: relative;
+  background: red;
+  z-index: 100;
+}
+.content {
+  width: 100px;
+  height: 20px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="stacking-context">
+    <div class="content"></div>
+    <div class="content"></div>
+    <div class="content"></div>
+    <div class="content"></div>
+    <div class="content"></div>
+  </div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  container.style.height = '100px';
+  takeScreenshot();
+});
+</script>
+</html>

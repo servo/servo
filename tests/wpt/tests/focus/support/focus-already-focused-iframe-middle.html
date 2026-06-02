@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Middle</title>
+<script>
+window.onmessage = function(e) {
+    parent.postMessage(e.data, "*");
+}
+</script>
+</head>
+<body>
+<iframe src="focus-already-focused-iframe-inner.html"></iframe>
+</body>
+</html>

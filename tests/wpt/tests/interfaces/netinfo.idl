@@ -1,0 +1,43 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Network Information API (https://wicg.github.io/netinfo/)
+
+enum ConnectionType {
+  "bluetooth",
+  "cellular",
+  "ethernet",
+  "mixed",
+  "none",
+  "other",
+  "unknown",
+  "wifi",
+  "wimax"
+};
+
+enum EffectiveConnectionType {
+  "2g",
+  "3g",
+  "4g",
+  "slow-2g"
+};
+
+interface mixin NavigatorNetworkInformation {
+  [SameObject] readonly attribute NetworkInformation connection;
+};
+
+Navigator includes NavigatorNetworkInformation;
+WorkerNavigator includes NavigatorNetworkInformation;
+
+[Exposed=(Window,Worker)]
+interface NetworkInformation : EventTarget {
+  readonly attribute ConnectionType type;
+  readonly attribute EffectiveConnectionType effectiveType;
+  readonly attribute Megabit downlinkMax;
+  readonly attribute Megabit downlink;
+  readonly attribute Millisecond rtt;
+  attribute EventHandler onchange;
+};
+
+typedef unrestricted double Megabit;
+typedef unsigned long long Millisecond;

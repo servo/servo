@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>scrollIntoView uses the element's bounding rect rather than line box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scroll-an-element-into-view">
+<style>
+img {
+  height: 100vh;
+  width: 100px;
+}
+body {
+  margin-bottom: 100vh;
+}
+</style>
+<body>
+<a id="scrollto">To be scrolled into view</a><img src="/images/blue.png">
+</body>
+<script>
+
+test(t => {
+  window.scrollTo(0, 0);
+  const target = document.getElementById("scrollto");
+  target.scrollIntoView();
+  assert_approx_equals(window.scrollY, target.offsetTop, 1);
+}, "Scrolling an inline element with a large line height uses the bounding rect");
+</script>

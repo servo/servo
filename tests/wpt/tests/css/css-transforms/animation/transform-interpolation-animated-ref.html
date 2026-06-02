@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+
+<script src="../../../common/reftest-wait.js"></script>
+<script src="support/transform-interpolation-reftests.js"></script>
+
+<body>
+<script>
+const testName = window.location.search.substr(1);
+createRefsWithAnimation(transformTests[testName]);
+</script>

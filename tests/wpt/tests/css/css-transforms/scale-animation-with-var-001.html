@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<!-- this is functionally a crashtest, but I'm including a reference too -->
+<link rel="help" href="https://issues.chromium.org/issues/375798131">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+
+<style>
+
+@keyframes k {
+  to {
+    scale: var(--scale-to);
+  }
+}
+
+#target {
+  --percentage: 3;
+  --scale-to: calc(var(--percentage));
+
+  animation: k linear 2s -1s paused;
+  width: 50px;
+  height: 50px;
+  background: green;
+  transform-origin: top left;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+
+<div id="target"></div>

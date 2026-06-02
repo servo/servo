@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+</body>
+    <script>
+        createRegularDOMTree();
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i=0; i < allElements.length; i+=2) {
+            allElements[i].className = "wrap";
+        }
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of partial attribute matching.",
+            run: function() {
+                var rule = applyCSSRule("[class^='wrap'] { cursor: crosshair; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</html>

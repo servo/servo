@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script>
+// Tests what happens when doing history navigation to an entry that's created
+// via pushState, with and without BFCache:
+// 1. Navigate to `urlA`.
+// 2. `pushState(urlPushState)`.
+// 3. Navigate to `urlB`.
+// 4. Do a back navigation.
+//    With BFCache, the page loaded at Step 1 is restored from BFCache,
+//    and is not reloaded from `urlPushState` nor `urlA`.
+//    Without BFCache, a page is loaded from `urlPushState`, not from `urlA`.
+//    In both cases, `location` and `history.state` are set to those set by
+//    `pushState()` in Step 2.
+// See https://github.com/whatwg/html/issues/6207 for more discussion on the
+// specified, implemented and desired behaviors. While this test contradicts
+// the current spec but matches the desired behavior, and the spec will be
+// fixed as part of https://github.com/whatwg/html/pull/6315.
+for (const bfcacheDisabled of [false, true]) {
+  const pushStateExecutorPath =
+    '/html/browsers/browsing-the-web/back-forward-cache/resources/executor-pushstate.html';
+
+  runBfcacheTest({
+    funcBeforeNavigation: async (bfcacheDisabled, pushStateExecutorPath) => {
+      const urlPushState = new URL(location.href);
+      urlPushState.pathname = pushStateExecutorPath;
+      if (bfcacheDisabled) {
+        await disableBFCache();
+      }
+
+      // `pushState(..., urlPushState)` on `urlA`,
+      history.pushState('blue', '', urlPushState.href);
+    },
+    argsBeforeNavigation: [bfcacheDisabled, pushStateExecutorPath],
+    shouldBeCached: !bfcacheDisabled,
+    funcAfterAssertion: async (pageA) => {
+      // We've navigated to `urlB` and back again
+      // (already done within `runBfcacheTest()`).
+      // After the back navigation, `location` etc. should point to
+      // `urlPushState` and the state that's pushed.
+      const urlPushState = location.origin + pushStateExecutorPath +
+                           '?uuid=' + pageA.context_id;
+      assert_equals(await pageA.execute_script(() => location.href),
+                    urlPushState, 'url');
+      assert_equals(await pageA.execute_script(() => history.state),
+                    'blue', 'history.state');
+
+      if (bfcacheDisabled) {
+        // When the page is not restored from BFCache, the HTML page is loaded
+        // from `urlPushState` (not from `urlA`).
+        assert_true(await pageA.execute_script(() => isLoadedFromPushState),
+            'document should be loaded from urlPushState');
+      }
+    }
+  }, 'back navigation to pushState()d page (' +
+     (bfcacheDisabled ? 'not ' : '') + 'in BFCache)');
+}
+</script>

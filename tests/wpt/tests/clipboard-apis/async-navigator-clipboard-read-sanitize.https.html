@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard.read() should sanitize text/html</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#dom-clipboard-read">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1315563">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+
+<body>Body needed for test_driver.click()
+<p><button id="button">Put payload in the clipboard</button></p>
+<div id="output"></div>
+
+<script>
+let testFailed = false;
+function fail() {
+  testFailed = true;
+}
+
+button.onclick = () => document.execCommand('copy');
+document.oncopy = ev => {
+  ev.preventDefault();
+  ev.clipboardData.setData(
+      'text/html',
+      `<form><math><mtext></form><form><mglyph><xmp></math><img src=invalid onerror=fail()></xmp>`);
+};
+
+promise_test(async test => {
+  await tryGrantReadPermission();
+  await test_driver.click(button);
+
+  await waitForUserActivation();
+  const items = await navigator.clipboard.read();
+  const htmlBlob = await items[0].getType("text/html");
+  const html = await htmlBlob.text();
+
+  // This inserts an image with `onerror` handler if `html` is not properly sanitized
+  output.innerHTML = html;
+
+  // Allow the 'error' event to be dispatched asynchronously
+  await new Promise(resolve => test.step_timeout(resolve, 100));
+
+  assert_false(testFailed);
+});
+</script>
+</body>

@@ -1,0 +1,39 @@
+<svg viewBox="-10 -10 280 220" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:link rel="match" href="paint-order-003-ref.svg"/>
+  <defs>
+    <marker id="m" refX="5" refY="5" viewBox="0 0 10 10" overflow="visible">
+      <circle cx="5" cy="5" r="3" fill="black" stroke="black" fill-opacity="0.5"/>
+    </marker>
+    <svg id="poly" viewBox="-10 -10 420 420">
+      <text y="300" font-family="sans-serif" font-size="200" fill="blue" stroke="lime" stroke-width="10" stroke-opacity="0.5" style="marker: url(#m)">test</text>
+    </svg>
+  </defs>
+
+  <use xlink:href="#poly" width="50" height="50"/>
+  <use xlink:href="#poly" style="paint-order: normal" width="50" height="50" x="50"/>
+
+  <g transform="translate(0,50)">
+    <use xlink:href="#poly" style="paint-order: fill" width="50" height="50" x="0"/>
+    <use xlink:href="#poly" style="paint-order: fill stroke" width="50" height="50" x="50"/>
+    <use xlink:href="#poly" style="paint-order: fill stroke markers" width="50" height="50" x="100"/>
+    <use xlink:href="#poly" style="paint-order: fill markers" width="50" height="50" x="150"/>
+    <use xlink:href="#poly" style="paint-order: fill markers stroke" width="50" height="50" x="200" />
+  </g>
+
+  <g transform="translate(0,100)">
+    <use xlink:href="#poly" style="paint-order: stroke" width="50" height="50" x="0"/>
+    <use xlink:href="#poly" style="paint-order: stroke fill" width="50" height="50" x="50"/>
+    <use xlink:href="#poly" style="paint-order: stroke fill markers" width="50" height="50" x="100"/>
+    <use xlink:href="#poly" style="paint-order: stroke markers" width="50" height="50" x="150"/>
+    <use xlink:href="#poly" style="paint-order: stroke markers fill" width="50" height="50" x="200"/>
+  </g>
+
+  <g transform="translate(0,150)">
+    <use xlink:href="#poly" style="paint-order: markers" width="50" height="50" x="0"/>
+    <use xlink:href="#poly" style="paint-order: markers stroke" width="50" height="50" x="50"/>
+    <use xlink:href="#poly" style="paint-order: markers stroke fill" width="50" height="50" x="100"/>
+    <use xlink:href="#poly" style="paint-order: markers fill" width="50" height="50" x="150"/>
+    <use xlink:href="#poly" style="paint-order: markers fill stroke" width="50" height="50" x="200"/>
+  </g>
+</svg>

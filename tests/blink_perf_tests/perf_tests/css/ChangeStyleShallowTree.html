@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+    <style type="text/css">
+        /*
+        We are attempting to manipulate 'expensive' properties here.
+        */
+        #item {
+            background-color: red;
+            border-radius: 5px;
+            padding: 3px;
+            box-shadow: 0 5px 5px #000;
+            transform: rotate(10deg);
+            display: block;
+        }
+    </style>
+</head>
+<body>
+</body>
+    <script>
+        createShallowDOMTree();
+        var allElements = document.body.getElementsByTagName("div");
+        var length = allElements.length
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of changing the style of an element in a shallow and broad tree",
+            run: function() {
+                for (var i=0; i < length; i++) {
+                    allElements[i].id = "item";
+                    forceStyleRecalc(allElements[i]);
+                    allElements[i].id = "";
+                    forceStyleRecalc(allElements[i]);
+                }
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</html>

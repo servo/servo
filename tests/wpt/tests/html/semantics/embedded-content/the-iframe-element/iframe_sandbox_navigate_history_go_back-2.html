@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check that sandboxed iframe can navigate their self</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var t = async_test();
+  onmessage = t.step_func((e) => {
+    if (e.data == 'pushstatebackdone') t.done();
+  });
+
+  function doNavigation() {
+    frames[0].postMessage('pushstateback', '*');
+  }
+</script>
+<iframe id="child_frame" sandbox="allow-scripts" src="support/iframe-tried-to-be-navigated-by-history.html" onload="doNavigation();"></iframe>

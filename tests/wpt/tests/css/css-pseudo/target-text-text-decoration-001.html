@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text text-decoration</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-text-decoration-001-ref.html">
+<meta name="assert" content="This test checks that ::target-text pseudo-element paints text-decorations defined by the pseudo-element.">
+<style>
+  ::target-text {
+    text-decoration: solid underline magenta;
+    color: initial;
+    background: transparent;
+  }
+</style>
+<p>The test passes if the following line has a magenta underline.</p>
+<div>Example</div>
+<script>
+  location.href = "#:~:text=Example";
+</script>

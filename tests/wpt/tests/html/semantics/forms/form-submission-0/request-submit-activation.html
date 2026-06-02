@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/targetted-form.js"></script>
+<body>
+<script>
+promise_test(async () => {
+  let form = populateForm('<input type=submit name=n1 value=v1><button type=submit name=n2 value=v2></button>');
+  let submitter = form.querySelector('button');
+  let iframe = form.previousSibling;
+  let event;
+  form.requestSubmit(submitter);
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1, "n1=v1");
+  assert_true(iframe.contentWindow.location.search.indexOf('n2=v2') > 0), "n2=v2";
+}, 'Test activation of submitter for requestSubmit');
+
+promise_test(async () => {
+  let form = populateForm('<input type=submit name=n1 value=v1><button type=submit name=n2 value=v2></button>');
+  let submitter = form.querySelector('input');
+  let iframe = form.previousSibling;
+  let event;
+  form.requestSubmit(submitter);
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') > 0, "n1=v1");
+  assert_true(iframe.contentWindow.location.search.indexOf('n2=v2') == -1), "n2=v2";
+}, 'Test activation of submitter for requestSubmit 2');
+</script>
+</body>

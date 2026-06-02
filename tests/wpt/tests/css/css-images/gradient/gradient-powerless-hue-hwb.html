@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Gradient powerless hue component converting tests - hwb</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that powerless hue component logic works.">
+    <link rel="match" href="gradient-powerless-hue-hwb-ref.html">
+    <style>
+       .test {
+            display: flex;
+            align-items: center;
+            width: 200px;
+            height: 50px;
+            position: relative;
+            border: 1px solid black;
+            margin: 10px;
+        }
+
+        .info {
+            position: absolute;
+            right: -10px;
+            transform: translateX(100%);
+        }
+        .hwb {
+            /* Expected */
+            background-image: linear-gradient(to right in hwb, red, hwb(120deg 0% 0% / 0%) );
+
+        }
+        .rgba {
+            background-image: linear-gradient(to right in hwb, red, rgba(0, 255, 0, 0) );
+        }
+        .hsl {
+            background-image: linear-gradient(to right in hwb, red, hsl(120deg 100% 50% / 0%) );
+        }
+        .color {
+            background-image: linear-gradient(90deg in hwb, red, color(srgb 0 1 0 / 0) );
+        }
+    </style>
+</head>
+<p>They should be the same as the first box.</p>
+<ol>
+  <li class="test hwb"><div class="info">hwb() Expected</div></li>
+  <li class="test rgba"><div class="info">rgba()</div></li>
+  <li class="test hsl"><div class="info">hsl()</div></li>
+  <li class="test color"><div class="info">color()</div></li>
+</ol>
+</html>

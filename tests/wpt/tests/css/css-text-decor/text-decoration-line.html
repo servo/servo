@@ -1,0 +1,35 @@
+<html>
+<head>
+    <link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-line-property">
+    <link rel="match" href="reference/text-decoration-line-ref.html">
+    <style>
+            .none { text-decoration: none; }
+            .underline { text-decoration: underline; }
+            .overline { text-decoration: overline; }
+            .line-through { text-decoration: line-through; }
+            .all-decorations { text-decoration: underline overline line-through; }
+    </style>
+</head>
+<body>
+    <div>Each line of this test should match its style description (<i>text-decoration-line</i> resets <i>text-decoration</i>, except when the latter is set as <i>important</i>):</div><br/>
+    <div style="text-decoration-line: underline;">This text is underlined <span class="none">(also inside span).</span></div><br/>
+    <div style="text-decoration-line: overline;">This text is overlined <span class="none">(also inside span).</span></div><br/>
+    <div style="text-decoration-line: line-through;">This text has a line-through <span class="none">(also inside span).</span></div><br/>
+    <div class="underline" style="text-decoration-line: none;">This text contains no decorations.</div><br/>
+    <div class="underline" style="text-decoration-line: underline;">This text is underlined.</div><br/>
+    <div class="overline" style="text-decoration-line: none;">This text contains no decorations.</div><br/>
+    <div class="overline" style="text-decoration-line: overline;">This text is overlined.</div><br/>
+    <div class="line-through" style="text-decoration-line: none;">This text contains no decorations.</div><br/>
+    <div class="line-through" style="text-decoration-line: line-through;">This text has a line-through.</div><br/>
+    <div class="all-decorations" style="text-decoration-line: none;">This text contains no decorations.</div><br/>
+    <div class="all-decorations" style="text-decoration-line: underline overline line-through;">This text is underlined, overlined and has a line-through.</div><br/>
+    <div style="text-decoration-line: underline; text-decoration: none !important;">This text contains no decorations.</div><br/>
+    <div style="text-decoration-line: underline; text-decoration: overline !important;">This text is overlined.</div><br/>
+    <div style="text-decoration-line: underline !important; text-decoration: overline !important;">This text is overlined.</div><br/>
+    <div style="text-decoration: overline !important; text-decoration-line: underline !important;">This text is underlined.</div>
+    <div style="text-decoration-line: blink blink;">This text contains no decorations.</div><br/>
+    <div style="text-decoration-line: blink underline blink;">This text contains no decorations.</div><br/>
+    <div style="text-decoration-line: blink underline overline blink;">This text contains no decorations.</div><br/>
+    <div style="text-decoration-line: blink underline overline line-through blink;">This text contains no decorations.</div><br/>
+</body>
+</html>

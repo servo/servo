@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Shadows on highlights horizontal text - reference</title>
+<link rel="author" name="Stephen Chenney" href="mailto:schenney@igalia.com">
+<style>
+    :root {
+        line-height: 1;
+        white-space: break-spaces;
+    }
+    #originating_shadow {
+        font-size: 2em;
+        color: transparent;
+        text-shadow: 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 0;
+        top: 10px;
+        left: 10px;
+    }
+    #originating_text {
+        font-size: 2em;
+        color: black;
+        position: absolute;
+        z-index: 7;
+        top: 10px;
+        left: 10px;
+    }
+    #selection_only {
+        font-size: 2em;
+        color: green;
+        text-shadow: -0.25em -0.25em rgba(0,128,0,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 5;
+        top: 10px;
+    }
+    #target {
+        font-size: 2em;
+        color: blue;
+        text-shadow: 0.25em 0.25em rgba(0,0,128,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 3;
+        top: 10px;
+    }
+    #both_text {
+        font-size: 2em;
+        color: green;
+        position: absolute;
+        z-index: 4;
+        top: 10px;
+    }
+    #both_shadow {
+        font-size: 2em;
+        color: transparent;
+        text-shadow: 0.25em 0.25em rgba(0,0,128,0.5), -0.25em -0.25em rgba(0,128,0,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 2;
+        top: 10px;
+    }
+</style>
+<p id="originating_shadow">part</p>
+<p id="originating_text">part</p>
+<p id="selection_only">ially selected </p>
+<p id="both_text">ta</p>
+<p id="both_shadow">ta</p>
+<p id="target">rget</p>
+<script>
+    originatingCS = getComputedStyle(originating_text);
+    selection_only.style.left = (parseFloat(originatingCS.width) + parseFloat(originatingCS.left)).toString() + "px";
+    selectionCS = getComputedStyle(selection_only);
+    both_text.style.left = (parseFloat(selectionCS.width) + parseFloat(selectionCS.left)).toString() + "px";
+    both_shadow.style.left = both_text.style.left;
+    bothCS = getComputedStyle(both_text);
+    target.style.left = (parseFloat(bothCS.width) + parseFloat(bothCS.left)).toString() + "px";
+</script>

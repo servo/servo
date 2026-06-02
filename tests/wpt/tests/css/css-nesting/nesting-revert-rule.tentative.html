@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with nesting</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10443">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  :root {
+    #test1 {
+      color: green;
+    }
+    #test1 {
+      color: red;
+      color: revert-rule;
+    }
+  }
+</style>
+<div id=test1></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule keyword can revert to a nested rule');
+</script>
+
+
+<style>
+  :root {
+    #test2 {
+      /* CSSNestedDeclarationsRule { */
+        color: green;
+      /* } */
+      & {
+        color: red;
+        color: revert-rule;
+      }
+    }
+  }
+</style>
+<div id=test2></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test2).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule keyword can revert to a CSSNestedDeclarationsRule');
+</script>
+
+
+<style>
+  :root {
+    #test3 {
+      /* CSSNestedDeclarationsRule { */
+        color: green;
+      /* } */
+      .something {}
+      /* CSSNestedDeclarationsRule { */
+        color: red;
+        color: revert-rule;
+      /* } */
+    }
+  }
+</style>
+<div id=test3></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test3).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule keyword can revert from a CSSNestedDeclarationsRule');
+</script>
+
+
+<style>
+  @scope (#test4) {
+    /* CSSNestedDeclarationsRule { */
+      color: green;
+    /* } */
+  }
+
+  #test4 {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<div id=test4></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test4).color, 'rgb(0, 128, 0)')
+  }, 'The revert-rule keyword can revert to scoped declarations');
+</script>

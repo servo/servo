@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>@scope crash with invalid selectors</title>
+<style>
+  @scope (div) {
+    z-index: 1;
+  }
+  @scope (div) {
+    .a;
+  }
+</style>
+<p>
+  PASS if no crash.
+</p>

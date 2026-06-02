@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentMethodChangeEvent.methodDetails attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#dom-paymentmethodchangeevent-methoddetails">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+test(() => {
+  const methodDetails = {
+    test: "pass"
+  }
+  const event = new PaymentMethodChangeEvent("test", {
+    methodName: "wpt-test",
+    methodDetails
+  });
+  assert_idl_attribute(event, "methodDetails");
+  const { test } = event.methodDetails;
+  assert_equals(test, "pass");
+}, "Must have a methodDetails IDL attribute, which is initialized with to the methodName dictionary value");
+
+test(() => {
+  const event = new PaymentMethodChangeEvent("test");
+  assert_equals(event.methodDetails, null, "methodDetails attribute must initialize to null");
+
+  const event2 = new PaymentMethodChangeEvent("test", { methodName: "basic-card" });
+  assert_equals(event2.methodDetails, null, "methodDetails attribute must initialize to null");
+
+  const event3 = new PaymentMethodChangeEvent("test", {});
+  assert_equals(event2.methodDetails, null, "methodDetails attribute must initialize to null");
+}, "The methodDetails member defaults to null");
+</script>

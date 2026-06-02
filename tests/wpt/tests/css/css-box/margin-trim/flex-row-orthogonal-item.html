@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: flex-row-orthogonal-item</title>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="orthogonal items have correct margins trimmed according to the flexbox's writing mode">
+<style>
+flexbox {
+    display: flex;
+    width: min-content;
+    margin-trim: inline
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 100px;
+}
+.orthogonal {
+    writing-mode: vertical-rl;
+}
+item:first-child {
+    margin-block-end: 10px;
+}
+item:last-child {
+    margin-inline-end: 10px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<flexbox>
+<item class="orthogonal"></item>
+<item></item>
+</flexbox>
+</body>
+</html>

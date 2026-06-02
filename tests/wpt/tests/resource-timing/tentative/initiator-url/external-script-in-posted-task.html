@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+
+</head>
+<body>
+  <script src="../../resources/loading-resources-in-posted-task.js"></script>
+
+  <h1>Description</h1>
+  <p> This test loads a number of resources in the loading-resources.js via scheduler.postTask()
+      and verifies that `iniatitor_url`s in ResourceTiming are expected.
+  </p>
+</body>
+<script>
+
+  const hostInfo = get_host_info();
+  const expectedInitiatorUrl = hostInfo["ORIGIN"] + "/resource-timing/resources/loading-resources-in-posted-task.js";
+  const resources = [
+     "empty_style.css?no_cache",
+     "blue.png?no_cache",
+     "empty.js?no_cache",
+     "green.html?no_cache",
+  ];
+  for (const resource of resources) {
+      initiator_url_test(resource, expectedInitiatorUrl, resource +
+        " initiatorUrl by scheduler.postTask() from external scripts", resource + " timeout");
+  }
+</script>

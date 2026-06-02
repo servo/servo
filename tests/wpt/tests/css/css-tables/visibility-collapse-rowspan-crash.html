@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<h1>Visibility collapse</h1>
+<a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec</a>
+<p>
+When a row is collapsed, a cell spanning the row may get clipped. When the row is then uncollapsed,
+the browser should not crash because the cell's children should be correctly updated and laid out.
+</p>
+<table>
+  <tr>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td rowspan="2">
+      <div style="outline: 1px solid cyan">
+        Overflow Overflow Overflow</div>
+    </td>
+  </tr>
+  <tr id="rowToCollapse">
+    <td><div style="width: 10px; height: 10px"></div></td>
+  </tr>
+</table>
+
+<script>
+    test(() => {
+    row = document.getElementById("rowToCollapse");
+    row.style.visibility = "collapse";
+    step_timeout(function(){ row.style.visibility = "visible"; }, 500);
+    }, "No crash or assertion failure. crbug.com/753515");
+</script>

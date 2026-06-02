@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<canvas id="canvas"></canvas>
+<script>
+  function RunTest(d, move) {
+    promise_test(async (t) => {
+      const presenter = await navigator.ink.requestPresenter({presentationArea: canvas});
+      const style = { color: "green", diameter: d };
+
+      canvas.addEventListener("pointermove", evt => {
+        assert_equals(d, style.diameter);
+        assert_throws_dom("NotSupportedError", function() {
+          presenter.updateInkTrailStartPoint(evt, style);
+        }, "Expected a NotSupportedError to be thrown due to diameter set to "+d+".");
+      });
+
+      const actions_promise = new test_driver.Actions().pointerMove(move, move).send();
+      t.add_cleanup(() => actions_promise);
+    });
+  }
+
+  RunTest(0, 10);
+  RunTest(-0.000001, 11);
+  RunTest(-1, 10);
+  RunTest(-100, 11);
+</script>

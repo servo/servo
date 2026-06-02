@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Supported properties in ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#list-style-position">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks the computed 'display' value of ::marker pseudo-elements." />
+<style>
+.inside {
+  list-style-position: inside;
+}
+.color::marker {
+  color: blue;
+}
+.string {
+  list-style-type: "string";
+}
+.content::marker {
+  content: "content";
+}
+</style>
+<div id="log"></div>
+<ol class="inside">
+  <li class="default">item</li>
+  <li class="color">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+</ol>
+<ol class="outside">
+  <li class="default">item</li>
+  <li class="color">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+</ol>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script>
+const inside = document.querySelectorAll(".inside > li");
+for (const target of inside) {
+  const {display} = getComputedStyle(target, "::marker");
+  test(() => {
+    assert_equals(display, "inline", "Inside markers should be inline");
+  }, `Computed 'display' for inside ::marker, variant ${target.className}`);
+}
+
+const outside = document.querySelectorAll(".outside > li");
+const firstDisplay = getComputedStyle(outside[0], "::marker").display;
+for (const target of outside) {
+  const {display} = getComputedStyle(target, "::marker");
+  test(() => {
+    assert_in_array(display, ["inline-block", "block"], "Outside markers should be block containers");
+    assert_equals(display, firstDisplay, "The 'display' value shouldn't vary");
+  }, `Computed 'display' for outside ::marker, variant ${target.className}`);
+}
+</script>

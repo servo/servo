@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Construction of Web Workers in cross-origin iframe is deferred</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<!-- This is a regression test for https://crbug.com/1424250 -->
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {once: true});
+  });
+
+  // This cross-origin iframe starts a dedicated worker and sends a message to
+  // this document once loading the worker is completed.
+  const crossOriginUrl =
+      new URL(`resources/workers-in-cross-origin-iframe.html?uid=${uid}`,
+              get_host_info()['HTTPS_REMOTE_ORIGIN'] +
+                  window.location.pathname);
+
+  // Start prerendering. Loading the cross-origin iframe in a prerendered page
+  // will be deferred until prerender activation.
+  const {exec, activate} = await create_prerendered_page(t);
+  await exec(crossOriginUrl => {
+    const iframe = document.createElement('iframe');
+    iframe.src = crossOriginUrl;
+    document.body.appendChild(iframe);
+  }, [crossOriginUrl.href]);
+
+  // Activate. This resumes loading the cross-origin iframe.
+  await activate();
+
+  // Wait for the completion of the worker creation.
+  assert_equals(await gotMessage, 'Success');
+}, "Dedicated workers in cross-origin iframe should be loaded after " +
+   "activation");
+</script>

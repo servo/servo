@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test the d property animates within a document loaded via "background-image: url()"</title>
+<meta charset=utf-8>
+<style>
+
+div {
+    display: inline-block;
+    width: 96px;
+    height: 96px;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cstyle%3E path { fill: none; stroke-width: 2; stroke: black; animation: path 1s linear forwards paused; } @keyframes path { 0%25 { d: path('M2 2l20 0'); } 100%25 { stroke: green; d: path('M2 2l20 0'); } } %3C/style%3E%3Cpath d='M2 2l2 0' /%3E%3C/svg%3E");
+}
+
+</style>
+<div></div>

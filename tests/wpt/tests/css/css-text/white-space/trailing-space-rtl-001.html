@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: Preserved trailing spaces in RTL</title>
+<link rel="match" href="reference/trailing-space-rtl-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+body {
+  direction: rtl;
+  white-space: pre-wrap;
+}
+.bg {
+  background: orange;
+}
+.override {
+  unicode-bidi: bidi-override;
+}
+</style>
+<body>
+<div>אבג <span class="bg">אבגד</span> אבגדה</div>
+<div>אבג <span class="bg">אבגד</span> אבגדה </div>
+<div class="override">123 <span class="bg override">12345</span> 1234567</div>
+<div class="override">123 <span class="bg override">12345</span> 1234567 </div>
+</body>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift while scrolled</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { height: 2000px; margin: 0; }
+#shift { position: relative; width: 300px; height: 200px; background: blue; }
+
+</style>
+<div id="shift"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Scroll down by 100px.
+  document.scrollingElement.scrollTop = 100;
+  assert_equals(watcher.score, 0);
+
+  // Generate a layout shift.
+  document.querySelector("#shift").style = "top: 60px";
+
+  // Impact region: width * (height - scrollTop + moveDistance)
+  const expectedScore = computeExpectedScore(
+      300 * (200 - 100 + 60), 60);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Layout shift with non-zero scroll offset.');
+
+</script>

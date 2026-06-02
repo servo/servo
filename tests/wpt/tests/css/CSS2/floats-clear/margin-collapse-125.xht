@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: clear (on a self-collapsing block with a margin)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/025.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-125-ref.xht" />
+
+  <style type="text/css">
+   table, td { padding: 0; border-spacing: 0; vertical-align: top; }
+   .comparator { border-spacing: 1em; }
+   .test, .control { border: solid; background: red; }
+   .test .container { display: block; margin: 0; width: 8em; background: lime; }
+   .test .float { float: left; margin: 0; height: 4em; width: 4em; background: aqua; }
+   .test .clear { clear: left; display: block; background: red; margin: 2em 0; }
+   .test .block { display: block; margin: 1em 0 0; border-top: 2em solid yellow; }
+   .control .square { height: 4em; width: 4em; }
+   .control .rectangle { height: 2em; width: 8em; }
+   .control .lime { background: lime; }
+   .control .aqua { background: aqua; }
+   .control .yellow { background: yellow; }
+  </style>
+ </head>
+ <body>
+  <p>The following two rectangles should be identical.</p>
+  <table class="comparator">
+   <tr>
+    <td class="test">
+     <div class="container">
+      <div class="float"> </div>
+      <div class="clear"> </div>
+      <div class="block"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <table>
+      <tr>
+       <td class="square aqua"></td>
+       <td class="square lime"></td>
+      </tr>
+      <tr>
+       <td colspan="2" class="rectangle yellow"></td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#round-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_length_percentage(value) {
+  test_invalid_value('height', value);
+  test_invalid_value('height', `calc(${value})`);
+}
+
+function test_invalid_number(value) {
+  test_invalid_value('opacity', value);
+}
+
+// Syntax checking
+test_invalid_number('round()');
+test_invalid_number('round( )');
+test_invalid_number('round(,)');
+test_invalid_number('round(1, )');
+test_invalid_number('round(, 1)');
+test_invalid_number('round(1 + )');
+test_invalid_number('round(1 - )');
+test_invalid_number('round(1 * )');
+test_invalid_number('round(1 / )');
+test_invalid_number('round(1 2)');
+test_invalid_number('round(nearest, 1 2)');
+test_invalid_number('round(1, nearest, 12)');
+test_invalid_number('round(1, nearest)');
+test_invalid_number('round(nearest, 1, nearest)');
+test_invalid_number('round(1, , 2)');
+test_invalid_number('mod()');
+test_invalid_number('mod( )');
+test_invalid_number('mod(,)');
+test_invalid_number('mod(1, )');
+test_invalid_number('mod(, 1)');
+test_invalid_number('mod(1 + )');
+test_invalid_number('mod(1 - )');
+test_invalid_number('mod(1 * )');
+test_invalid_number('mod(1 / )');
+test_invalid_number('mod(1 2)');
+test_invalid_number('mod(1, , 2)');
+test_invalid_number('rem()');
+test_invalid_number('rem( )');
+test_invalid_number('rem(,)');
+test_invalid_number('rem(1, )');
+test_invalid_number('rem(, 1)');
+test_invalid_number('rem(1 + )');
+test_invalid_number('rem(1 - )');
+test_invalid_number('rem(1 * )');
+test_invalid_number('rem(1 / )');
+test_invalid_number('rem(1 2)');
+test_invalid_number('rem(1, , 2)');
+
+// Type checking
+test_invalid_number('round(0px)');
+test_invalid_number('round(0s)');
+test_invalid_number('round(0deg)');
+test_invalid_number('round(0Hz)');
+test_invalid_number('round(0dpi)');
+test_invalid_number('round(0fr)');
+test_invalid_number('round(1, 1%)');
+test_invalid_number('round(1, 0px)');
+test_invalid_number('round(1, 0s)');
+test_invalid_number('round(1, 0deg)');
+test_invalid_number('round(1, 0Hz)');
+test_invalid_number('round(1, 0dpi)');
+test_invalid_number('round(1, 0fr)');
+test_invalid_number('mod(0px)');
+test_invalid_number('mod(0s)');
+test_invalid_number('mod(0deg)');
+test_invalid_number('mod(0Hz)');
+test_invalid_number('mod(0dpi)');
+test_invalid_number('mod(0fr)');
+test_invalid_number('mod(1, 1%)');
+test_invalid_number('mod(1, 0px)');
+test_invalid_number('mod(1, 0s)');
+test_invalid_number('mod(1, 0deg)');
+test_invalid_number('mod(1, 0Hz)');
+test_invalid_number('mod(1, 0dpi)');
+test_invalid_number('mod(1, 0fr)');
+test_invalid_number('rem(0px)');
+test_invalid_number('rem(0s)');
+test_invalid_number('rem(0deg)');
+test_invalid_number('rem(0Hz)');
+test_invalid_number('rem(0dpi)');
+test_invalid_number('rem(0fr)');
+test_invalid_number('rem(1, 1%)');
+test_invalid_number('rem(1, 0px)');
+test_invalid_number('rem(1, 0s)');
+test_invalid_number('rem(1, 0deg)');
+test_invalid_number('rem(1, 0Hz)');
+test_invalid_number('rem(1, 0dpi)');
+test_invalid_number('rem(1, 0fr)');
+
+test_invalid_length_percentage('round(0px)');
+test_invalid_length_percentage('round(0px, 0s)');
+test_invalid_length_percentage('round(0px, 0deg)');
+test_invalid_length_percentage('round(0px, 0Hz)');
+test_invalid_length_percentage('round(0px, 0dpi)');
+test_invalid_length_percentage('round(0px, 0fr)');
+test_invalid_length_percentage('mod(0px, 0s)');
+test_invalid_length_percentage('mod(0px, 0deg)');
+test_invalid_length_percentage('mod(0px, 0Hz)');
+test_invalid_length_percentage('mod(0px, 0dpi)');
+test_invalid_length_percentage('mod(0px, 0fr)');
+test_invalid_length_percentage('rem(0px, 0s)');
+test_invalid_length_percentage('rem(0px, 0deg)');
+test_invalid_length_percentage('rem(0px, 0Hz)');
+test_invalid_length_percentage('rem(0px, 0dpi)');
+test_invalid_length_percentage('rem(0px, 0fr)');
+</script>

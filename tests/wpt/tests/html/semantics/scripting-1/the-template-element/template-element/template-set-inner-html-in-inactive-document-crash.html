@@ -1,0 +1,6 @@
+<iframe id="i"></iframe>
+<script>
+  var doc = i.contentDocument;
+  i.remove();
+  doc.createElement("template").innerHTML = "";
+</script>

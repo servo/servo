@@ -1,0 +1,42 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='./support/base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#caption-side-property">
+<main>
+
+    <h1>Caption-side</h1>
+    <p>Checks that browsers implement properly the caption-side property</p>
+
+    <hr/>
+    <p>This should read ABC:</p>
+    <p>
+        The first caption (C) should be put on the bottom because it inherits caption-side:bottom from the table;<br/>
+        The second captin (A) should be put on the top because it has caption-side:top specified;
+    </p>
+    <div><table style="caption-side:bottom"><caption>C</caption><tbody><tr><td>B</td></tr></tbody><caption style="caption-side:top">A</caption></table></div>
+
+    <script>void function() { var table; while(table = document.querySelector('.to-remove')) table.parentNode.replaceChild(table.firstChild,table) }();</script>
+    <script>void function() { var td; while(td = document.querySelector('table.no-td td')) td.parentNode.replaceChild(document.createElement('x-td'),td) }();</script>
+    <script>void function() { var divs = document.querySelectorAll("main > div"); for(var i = divs.length; i--;) { var div = divs[i]; var pre = document.createElement('pre'); pre.title = pre.textContent = div.innerHTML; div.parentNode.insertBefore(pre, div); }; }();</script>
+    <hr/>
+
+</main>
+
+<script>
+
+    var i = 1;
+    generate_tests(assert_equals, [
+        [
+            "Caption-side inherits and reorder captions properly",
+            document.querySelector("main > div:nth-of-type("+(i++)+") caption:first-child").offsetTop > document.querySelector("main > div:nth-of-type("+(i-1)+") caption:last-child").offsetTop,
+            true
+        ],
+        [
+            "Multiple captions can be rendered",
+            document.querySelector("main > div:nth-of-type("+(i-1)+") table").offsetHeight > 3 * 16,
+            true
+        ],
+    ])
+
+</script>

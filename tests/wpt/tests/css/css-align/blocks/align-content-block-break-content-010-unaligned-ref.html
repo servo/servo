@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: align-content block fragmentation: simple content</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#align-block">
+
+<style title="Needed for automation; delete to review/debug">
+  @import "/fonts/ahem.css";
+  html { font: 10px/1 Ahem; max-width: 780px; }
+</style>
+
+<style>
+  .pager {
+    column-fill: auto;
+    column-width: 15em;
+    height: 5em;
+  }
+  .test {
+    height: 19em;
+    /* show bounds of test box without interfering with margin-collapsing */
+    border-inline: solid black 1em;
+  }
+  .large, .float {
+    height: 2.5em;
+    break-inside: avoid;
+    padding: 2px; /* using padding because of margin handling bugs
+    margin: 2px;
+switch back once fixed */
+    background: orange;
+  }
+  .float {
+    float: right;
+  }
+  .nobr {
+    break-inside: avoid;
+  }
+
+  /* readability */
+  .pager { border: solid 2px gray; margin: 0.5em 0; }
+  .test  { color: #8888; text-align: center; }
+  .label { color: black; font-weight: bold; }
+  .test .large { margin-top: 0; } /* margins truncated by unforced breaks */
+</style>
+
+<!--
+   This test creates breaks:
+     * after some directly-contained text
+     * after a fixed-height block
+     * through some nested text
+     * after a block containing text
+-->
+
+<div class="pager">
+  <div class="test">
+      <span class="label">CENTER</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="pager">
+  <div class="test">
+      <span class="label">END</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test">
+      <span class="label">BASELINE</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test">
+      <span class="label">LAST BASELINE</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test">
+      <span class="label">UNSAFE CENTER</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="pager">
+  <div class="test">
+      <span class="label">UNSAFE END</span><br>LINE 2<br>LINE 3
+      <div class="large"></div>
+      <div class="large"></div>
+      <div>
+        LINE 4
+        <div class="nobr">LINE 5<br>LINE 6</div>
+      </div>
+    </div>
+  </div>
+</div>

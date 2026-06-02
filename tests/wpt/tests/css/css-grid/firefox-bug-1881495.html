@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1881671">
+<link rel="match" href="firefox-bug-1881495-ref.html">
+<meta name="assert" content="An auto-block-size grid should choose a content-based block-size that accounts for linewrapping in its content-sized items">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+:root {
+  font: 30px/1 Ahem;
+}
+.grid {
+  display: inline-grid;
+  border: 4px solid gray;
+  justify-items: start;
+  vertical-align: top;
+}
+.negMargin {
+  margin-inline-end: -1px;
+}
+</style>
+<div class="grid" style="inline-size: 1em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>
+<div class="grid" style="inline-size: 2em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>
+<div class="grid" style="inline-size: 3em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>
+<br>
+<br>
+<div class="grid" style="writing-mode: vertical-rl; inline-size: 1em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>
+<div class="grid" style="writing-mode: vertical-rl; inline-size: 2em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>
+<div class="grid" style="writing-mode: vertical-rl; inline-size: 3em">
+  <div>
+    X
+    <span class="negMargin">X</span>
+  </div>
+</div>

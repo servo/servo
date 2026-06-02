@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolutely positioned boxes in inlines: 'auto'</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/inline/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos" />
+
+  <meta name="flags" content="interact" />
+
+  <style type="text/css">
+   p { font: 1em monospace; }
+   .filler { color: silver; }
+   .absolute { color: white; background: green; position: absolute; }
+   .fail { color: yellow; background: red; }
+  </style>
+ </head>
+ <body>
+  <p>
+   <span class="filler"> This is filler text. This is filler text. This is filler text. </span>
+   <span class="test"> The test has <span class="absolute">PASSED</span><span class="fail">FAILED</span>.</span>
+   <span class="filler"> This is filler text. This is filler text. This is filler text. </span>
+  </p>
+  <p>(Exception: when the word FAILED is at the beginning of a
+  line, the word PASSED may still be at the end of the previous
+  line.)</p>
+ </body>
+</html>

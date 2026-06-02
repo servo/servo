@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that adopting a stylesheet with an import applies its styles and doesn't panic</title>
+<link rel="match" href="stylesheet-adopt-panic-ref.html">
+<iframe src="blank.html" onload="foo()"></iframe>
+<script>
+  function foo() {
+    var i = document.querySelector('iframe');
+    i.contentDocument.documentElement.innerHTML = "<style>@import 'adopt-panic.css';</style>";
+    var e = i.contentDocument.querySelector('style');
+    document.body.appendChild(e);
+  }
+</script>

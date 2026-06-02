@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().backgroundClip</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-clip">
+<meta name="assert" content="background-clip computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("background-clip", "border-box");
+test_computed_value("background-clip", "padding-box");
+test_computed_value("background-clip", "content-box");
+test_computed_value("background-clip", "border-area");
+
+// See background-computed.html for a test with multiple background images.
+test_computed_value("background-clip", "border-box, padding-box, content-box, border-area", "border-box");
+</script>
+</body>
+</html>

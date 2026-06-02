@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - Highlight pseudos use the originating element's forced colors state</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<style>
+  span.forcedColors {
+    background-color: Highlight;
+    color: HighlightText;
+    text-decoration: underline;
+    text-decoration-color: HighlightText;
+    forced-color-adjust: none;
+  }
+
+  span.noForcedColors {
+    background-color: yellow;
+    color: blue;
+    text-decoration: underline;
+    text-decoration-color: orange;
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <div><span class="forcedColors">This content doesn't have forced-color-adjust set at all</span></div>
+  <div><span class="noForcedColors">This content has forced-color-adjust:none on the originating element only</span></div>
+  <div><span class="forcedColors">This content has forced-color-adjust:none on the ::highlight pseudo only</span></div>
+  <div><span class="noForcedColors">This content has forced-color-adjust:none on the originating element and the ::highlight pseudo</span></div>
+</body>

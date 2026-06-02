@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  Single-line column flex fragmentation: forced breaks with overflow.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-fill: auto; column-gap: 0; background: red;">
+  <div style="display: flex; flex-flow: column;">
+    <div style="height: 100px; width: 50px; background: green;">
+      <div style="height: 50px; width: 50px; background: green;"></div>
+      <div style="height: 10px; width: 50px; background: green; break-before: column;"></div>
+    </div>
+    <div style="height: 50px; width: 50px; background: green; margin-top: 10px; break-before: column;"></div>
+    <div style="height: 40px; width: 50px; background: green;"></div>
+  </div>
+</div>

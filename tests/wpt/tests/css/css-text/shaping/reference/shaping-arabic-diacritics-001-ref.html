@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>shaping: Arabic diacritics on NBSP - reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style type="text/css">
+@font-face {
+    font-family: ArabicTest;
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+}
+.test {
+    font: 120px/2 ArabicTest, sans-serif;
+}
+</style>
+</head>
+<body>
+    <p class="instructions">Test passes if the two lines are rendered identically,
+        with the superscript alef (&#x627;) directly above the raised hamza (&#x621;).</p>
+    <!-- Order of lines is reversed from the testcase; if they render identically
+         they should still match perfectly. -->
+    <div class=test>a<span dir=rtl>&nbsp;&#x670;&#x654;</span>z</div>
+    <div class=test>a<span dir=rtl>&nbsp;&#x654;&#x670;</span>z</div>
+</body>
+</html>

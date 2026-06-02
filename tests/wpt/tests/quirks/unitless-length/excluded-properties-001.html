@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Many properties do not support quirky-length</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-unitless-length-quirk">
+<meta name="assert" content="quirky-length is not supported by properties not listed.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+var properties = [
+    'background-position-x',
+    'background-position-y',
+    'block-size',
+    'border-bottom-left-radius',
+    'border-bottom-right-radius',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'column-gap',
+    'column-rule-width',
+    'column-width',
+    'flex-basis',
+    'grid-auto-columns',
+    'grid-auto-rows',
+    'grid-template-columns',
+    'grid-template-rows',
+    'inline-size',
+    'inset',
+    'inset-block',
+    'inset-block-end',
+    'inset-block-start',
+    'inset-inline',
+    'inset-inline-end',
+    'inset-inline-start',
+    'margin-block-end',
+    'margin-block-start',
+    'margin-inline-end',
+    'margin-inline-start',
+    'min-block-size',
+    'min-inline-size',
+    'offset-distance',
+    'outline-offset',
+    'outline-width',
+    'padding-block-end',
+    'padding-block-start',
+    'padding-inline-end',
+    'padding-inline-start',
+    'perspective',
+    'row-gap',
+    'scroll-margin-block-end',
+    'scroll-margin-block-start',
+    'scroll-margin-bottom',
+    'scroll-margin-inline-end',
+    'scroll-margin-inline-start',
+    'scroll-margin-left',
+    'scroll-margin-right',
+    'scroll-margin-top',
+    'scroll-padding-block-end',
+    'scroll-padding-block-start',
+    'scroll-padding-bottom',
+    'scroll-padding-inline-end',
+    'scroll-padding-inline-start',
+    'scroll-padding-left',
+    'scroll-padding-right',
+    'scroll-padding-top',
+    'shape-margin'
+];
+
+for (let property of properties) {
+  test(() => {
+    if (!getComputedStyle(target)[property])
+      return;
+    target.style[property] = '567px';
+    target.style[property] = '1234';
+    assert_equals(target.style[property], '567px');
+  }, 'Property ' + property + ' does not support quirky length');
+}
+</script>
+</body>
+</html>

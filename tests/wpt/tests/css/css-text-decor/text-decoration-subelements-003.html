@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test case for text-decoration with subelements</title>
+    <meta name="assert" content="line decorations, if any, are added to the element">
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property">
+    <link rel="match" href="reference/text-decoration-subelements-003-ref.html">
+    <style>
+      p {
+        margin: 0;
+        padding: 1em;
+      }
+      div.wrapper {
+        font-size: 2em;
+        text-decoration: underline; /* so browsers that don't accept the color will still show something */
+        text-decoration: underline blue;
+      }
+      sup.test {
+        text-decoration: underline;
+        text-decoration: underline green;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if all the text below has a continuous blue underline,
+        and the raised word “underlined” has an <i>extra</i> green underline.</p>
+    <div class=wrapper>
+      <p>All this text should be <sup class=test>underlined</sup>.</p>
+    </div>
+  </body>
+</html>

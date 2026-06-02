@@ -1,0 +1,31 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+  let key = i.contentWindow.navigation.currentEntry.key;
+
+  await i.contentWindow.navigation.navigate("#1").committed;
+
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[1]);
+
+  const iWindow = i.contentWindow;
+  const iDOMException = iWindow.DOMException;
+  i.contentWindow.navigation.onnavigate = t.unreached_func("navigate should not fire");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror should not fire");
+
+  let promises = i.contentWindow.navigation.traverseTo(key);
+  i.remove();
+  await assertBothRejectDOM(t, promises, "AbortError", iWindow, iDOMException);
+}, "traverseTo() promise rejections when detaching an iframe before onnavigate (same-document)");
+</script>

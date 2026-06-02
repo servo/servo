@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: The template contents owner document (there's browsing context)</title>
+<meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<meta name="assert" content="If template's enclosing document has browsing context, then templates content owner must be a new Document node without browsing context">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#definitions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+
+testInIFrame(null, function(context) {
+    var doc = context.iframes[0].contentDocument;
+    var template = doc.createElement('template');
+
+    var div = doc.createElement('div');
+    div.setAttribute('id', 'div1');
+
+    template.appendChild(div);
+
+    doc.body.appendChild(template);
+
+    // doc has browsing context. There should be another document as a template
+    // content owner
+    assert_not_equals(template.content.ownerDocument, doc, 'Wrong template owner document');
+
+}, 'The template contents owner document must be different from template owner document,' +
+     ' which has browsing context. Template element is created by createElement()');
+
+
+
+testInIFrame(null, function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    doc.body.innerHTML = '<template><div>some text</div></template>';
+
+    var template = doc.querySelector('template');
+
+    // doc has browsing context. There should be another document as a template
+    // content owner
+    assert_not_equals(template.content.ownerDocument, doc, 'Wrong template owner document');
+
+}, 'The template contents owner document must be different from template owner document,' +
+     ' which has browsing context. Template element is created via innerHTML');
+
+
+
+testInIFrame('../resources/template-contents.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var template = doc.querySelector('template');
+
+    // doc has browsing context. There should be another document as a template
+    // content owner
+    assert_not_equals(template.content.ownerDocument, doc, 'Wrong template owner document');
+
+}, 'The template contents owner document must be different from template owner document,' +
+     ' which has browsing context. Template element is created by HTML parser');
+
+</script>
+</body>
+</html>

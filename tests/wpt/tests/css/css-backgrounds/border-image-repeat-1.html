@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Border Image: border-image-repeat with SVG content</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css3-background/#background-repeat">
+    <link rel="match" href="border-image-repeat-1-ref.html">
+    <meta name="assert" content="The test checks the result of border-image-repeat with SVG content.">
+    <style type="text/css">
+      .outer {
+        height: 16px;
+        width: 32px;
+        border-width: 16px;
+        border-style: solid;
+        border-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg fill='blue' stroke-width='0'%3E%3Cpath d='M2 2h4v44H2z'/%3E%3Cpath d='M2 2h44v4H2z'/%3E%3Cpath d='M42 2h4v44h-4z'/%3E%3Cpath d='M2 42h44v4H2zM8'/%3E%3C/g%3E%3C/svg%3E") 16 repeat;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer"></div>
+  </body>
+</html>

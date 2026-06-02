@@ -1,0 +1,61 @@
+<!doctype html>
+<title>Text fragment navigation helper.</title>
+
+<script src="/scroll-to-text-fragment/stash.js"></script>
+<script>
+function isInView(element) {
+  let rect = element.getBoundingClientRect();
+  return rect.top >= 0 && rect.top <= window.innerHeight
+      && rect.left >= 0 && rect.left <= window.innerWidth;
+}
+function checkScroll() {
+  let position = 'unknown';
+  if (window.scrollY == 0)
+    position = 'top';
+  else if(isInView(document.getElementById("text")))
+    position = 'text';
+  else if(isInView(document.getElementById("text2")))
+    position = 'text2';
+  else if(isInView(document.getElementById("text3")))
+    position = 'text3';
+
+  const target = document.querySelector(":target");
+  let results = {
+    scrollPosition: position,
+    href: window.location.href,
+    target: target ? target.id : 'undefined'
+  };
+  let key = (new URL(document.location)).searchParams.get("key");
+  stashResultsThenClose(key, results);
+}
+function doubleRafCheckScroll() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      checkScroll();
+    });
+  });
+}
+</script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+</style>
+
+<body onload="doubleRafCheckScroll()">
+<div class=spacer></div>
+<div hidden=until-found>
+  <div id=text>hiddentext</div>
+</div>
+<div class=spacer></div>
+<div id=text2and3ancestor>
+  <div hidden=until-found>
+    <div id=text2>start</div>
+  </div>
+  <div class=spacer></div>
+  <div hidden=until-found>
+    <div id=text3>end</div>
+  </div>
+</div>
+</body>

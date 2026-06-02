@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - styling SVG from external stylesheet from
+           presentation attribute</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <!-- Helper functions for referrer-policy css tests. -->
+    <script src="/referrer-policy/css-integration/css-test-helper.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body>
+    <p>Check that resources from presentation attributes are loaded with
+    the referrer and referrer policy from the document.</p>
+   <script>
+      function setPresentationAttribute(test)
+      {
+        test.expected = location.origin + "/";
+        let svg = createSvg();
+        document.body.appendChild(svg);
+        let element = svg.getElementsByTagName("path")[0];
+        // The test property should have map 1:1 with presentation attribute.
+        let attr = test.property;
+        element.setAttribute(attr, "url(" + url_prefix + "svg.py?id=" +
+                             test.id + "#invalidFragment)");
+      }
+
+      // mask-image is not the presentation attribute.
+      runSvgTests(svg_test_properties.filter(p => p != 'mask-image'),
+                  "Styling SVG from presentation attributes",
+                  setPresentationAttribute);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>
+

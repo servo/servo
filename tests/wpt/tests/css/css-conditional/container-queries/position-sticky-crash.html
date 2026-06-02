@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/399689229">
+<style>
+.container {
+  min-width: 30px;
+  container-type: inline-size;
+}
+
+.scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+}
+
+@container (width = 100px) {
+  .scroller { display: none; }
+}
+
+.float {
+  background: cyan;
+  float: left;
+}
+</style>
+<div style="display: flow-root; width: 100px;">
+  <!-- The floats create a situation where it needs to perform layout twice, first with 50px, then 100px. -->
+  <div class="float" style="width: 50px; height: 50px;"></div>
+  <div class="float" style="width: 100px; height: 50px;"></div>
+
+  <div class="container">
+    <div class="scroller">
+      <div style="position: sticky; top: 0;"></div>
+    </div>
+  </div>
+</div>

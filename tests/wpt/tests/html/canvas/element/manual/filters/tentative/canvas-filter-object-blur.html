@@ -1,0 +1,24 @@
+<head>
+    <link rel="match" href="canvas-filter-object-blur-expected.html">
+</head>
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.filter = new CanvasFilter({name: "gaussianBlur", stdDeviation: 2});
+  ctx.fillStyle = 'yellow';
+  ctx.fillRect(10,10,100,100);
+  ctx.filter = new CanvasFilter({name: "gaussianBlur", stdDeviation: 5});
+  ctx.fillStyle = 'magenta';
+  ctx.fillRect(120, 10, 100, 100);
+  ctx.filter = new CanvasFilter([
+    {name: "gaussianBlur", stdDeviation: 5},
+    {name: "gaussianBlur", stdDeviation: 10}]);
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(10, 120, 100, 100);
+  ctx.filter = 'none';
+  ctx.fillStyle = 'black';
+  ctx.fillRect(120, 120, 100, 100);
+</script>

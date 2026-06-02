@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<title>CSS Test Reference: breaking of a multicolumn</title>
+<meta charset="utf-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org/">
+<style>
+
+.outer {
+  height: 100px;
+  width: 800px;
+  background: rgba(0, 0, 255, 0.3);
+  position: relative;
+}
+
+.blueborders {
+  position: absolute;
+  top: 0;
+  left: 194px; /* 188px first column + (16px gap - 4px rule) / 2 */
+  width: 200px; /* 188px second column + (16px gap - 4px rule) */
+  height: 100px;
+  border-left: blue solid 4px;
+}
+
+.innerbg {
+  height: 100px;
+  width: 188px;
+  background: rgba(255, 0, 255, 0.3);
+  position: absolute;
+  top: 0;
+}
+
+.inner {
+  height: 100px;
+  width: 86px;
+  font: 16px/1.25 sans-serif;
+  position: absolute;
+  top: 0;
+}
+
+.lefthalf {
+  border-right: 2px solid fuchsia;
+  padding-right: 7px;
+}
+
+.righthalf {
+  padding-left: 7px;
+}
+
+.border-bottom {
+  height: 20px;
+  width: 188px;
+  background: green;
+  position: absolute;
+  top: 80px;
+}
+
+</style>
+
+<div class="outer">
+  <div class="blueborders"></div>
+  <div class="innerbg" style="left: 0"></div>
+  <div class="inner lefthalf" style="left: 0">
+    AAAAA<br>
+    BBBBB<br>
+    CCCCC<br>
+    DDDDD<br>
+    EEEEE
+  </div>
+  <div class="inner righthalf" style="left: 95px">
+    FFFFF<br>
+    GGGGG<br>
+    HHHHH<br>
+    IIIII<br>
+    JJJJJ
+  </div>
+  <div class="innerbg" style="left: 204px"></div>
+  <div class="inner lefthalf" style="left: 204px">
+    KKKKK<br>
+    LLLLL<br>
+    MMMMM<br>
+    NNNNN
+  </div>
+  <div class="inner righthalf" style="left: 299px">
+    OOOOO<br>
+    PPPPP<br>
+    QQQQQ<br>
+  </div>
+  <div class="border-bottom" style="left: 204px"></div>
+</div>

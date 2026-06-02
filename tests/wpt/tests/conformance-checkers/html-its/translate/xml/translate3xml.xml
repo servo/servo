@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<myDoc>
+ <head>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0"
+   xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="translate3xmlrules.xml">
+   <its:translateRule selector="//par[@id='101']/@title" translate="no"/>
+  </its:rules>
+ </head>
+ <body>
+  <par id="100" title="Text">This is the first paragraph. It has some <code>un-translatable code</code>.</par>
+  <par id="101" title="Not extractable text">Some additional text.</par>
+ </body>
+</myDoc>

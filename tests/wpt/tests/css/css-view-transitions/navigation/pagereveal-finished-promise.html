@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>
+  View transitions: Test pagereveal.finished and skipTransition
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  onload = () => { location.replace("?mode=new"); };
+  break;
+case "new":
+  addEventListener('pagereveal', e => {
+    e.viewTransition.finished.then(() => {
+      window.opener.did_reveal("pass");
+    }, err => {
+      window.opener.did_reveal("fail: " + err);
+    });
+    e.viewTransition.skipTransition();
+  });
+  break;
+}
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+::view-transition-group(*) {
+  animation-duration: 300s;
+}
+</style>

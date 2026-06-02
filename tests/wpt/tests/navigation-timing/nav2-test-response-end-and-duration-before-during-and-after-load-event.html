@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="resources/respond-slowly.py"></iframe>
+<body>
+<script>
+async_test(function(t) {
+  window.addEventListener('message', t.step_func_done(function(event) {
+    let originalResponseEnd = event.data[0];
+    let originalDuration = event.data[1];
+    let responseEndDuringLoadEvent = event.data[2];
+    let durationDuringLoadEvent = event.data[3];
+    let responseEndAfterLoadEvent = event.data[4];
+    let durationAfterLoadEvent = event.data[5];
+    assert_equals(originalResponseEnd, 0, "PerformanceNavigationTiming.responseEnd == 0 before load event");
+    assert_equals(originalDuration, 0, "PerformanceNavigationTiming.duration is 0 before load event");
+    assert_greater_than(responseEndDuringLoadEvent, 500, "PerformanceNavigationTiming.responseEnd is reasonable during load event");
+    assert_equals(durationDuringLoadEvent, 0, "PerformanceNavigationTiming.duration is 0 during load event");
+    assert_greater_than(responseEndAfterLoadEvent, 500, "PerformanceNavigationTiming.responseEnd is reasonable after load event");
+    assert_greater_than(durationAfterLoadEvent, 500, "PerformanceNavigationTiming.duration is reasonable after load event");
+  }));
+}, "Check that performance.getEntriesByType('navigation')[0].responseEnd has reasonable values before and after the load has finished");
+</script>
+</body>
+</html>

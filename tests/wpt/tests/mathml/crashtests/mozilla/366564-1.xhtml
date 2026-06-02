@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN" "http://www.w3.org/Math/DTD/mathml2/xhtml-math11-f.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+<head>
+<script>
+function boom1()
+{
+  document.getElementById("mfenced3").appendChild(document.getElementById("div4"));
+  setTimeout(boom2, 30);
+}
+
+function boom2()
+{
+  document.getElementById("sup1").appendChild(document.getElementById("mo2"));
+  document.documentElement.removeAttribute("class");
+}
+
+</script>
+</head>
+
+<body onload="setTimeout(boom1, 30);">
+
+<div><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <msup id="sup1">
+    <mi>b</mi>
+    <mn>2</mn>
+  </msup>
+</math></div>
+
+<div><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mi>j</mi>
+  <mo id="mo2">=</mo>
+  <mfenced id="mfenced3" open="[" close="]">
+    <mn>55</mn>
+  </mfenced>
+</math></div>
+
+<div id="div4"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mo> &int; </mo>
+</math></div>
+
+</body>
+
+</html>

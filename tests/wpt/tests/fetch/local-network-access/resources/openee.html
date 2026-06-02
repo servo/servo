@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Openee</title>
+<script>
+  // Message back to whatever caused this page to load that it was successful.
+  top.opener.postMessage({ message: "loaded" }, "*");
+</script>

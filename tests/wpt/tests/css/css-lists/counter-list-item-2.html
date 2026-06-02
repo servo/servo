@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <title>HTML LI element: explicit scope</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/grouping-content.html#the-li-element">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#list-item-counter">
+  <link rel="match" href="counter-list-item-2-ref.html">
+  <style>
+    li::before { content: counters(list-item,'.'); }
+  </style>
+</head>
+<body>
+<ol>
+<li></li>
+<li></li>
+<ol><li></li></ol>
+<li></li>
+</ol>
+</body>
+</html>

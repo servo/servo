@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Spurious attributes in DOMParser</title>
+<link rel="help" href="https://crbug.com/435995566">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  const html = `<div title="this-should-not-be-an-attribute=1>&quot;hello"></div>`;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const div = doc.querySelector("div");
+
+  assert_false(div.hasAttribute("this-should-not-be-an-attribute"));
+  assert_equals(div.getAttribute("title"), 'this-should-not-be-an-attribute=1>"hello');
+}, 'Using ">" and HTML entities in an attribute creates no unexpected attributes.');
+
+test(() => {
+  const html = `<div title="this-should-not-be-an-attribute=1>\rhello"></div>`;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const div = doc.querySelector("div");
+
+  assert_false(div.hasAttribute("this-should-not-be-an-attribute"));
+  // Note: "\r" gets normalized to "\n" per https://infra.spec.whatwg.org/#normalize-newlines.
+  assert_equals(div.getAttribute("title"), 'this-should-not-be-an-attribute=1>\nhello');
+}, 'Using ">" and "\\r" in an attribute creates no unexpected attributes.');
+
+</script>

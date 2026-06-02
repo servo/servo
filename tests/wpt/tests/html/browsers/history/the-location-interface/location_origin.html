@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function () {
+    assert_equals(
+      location.origin,
+      location.protocol + '//' + location.host,
+      "origin"
+    );
+  }, "location origin");
+</script>

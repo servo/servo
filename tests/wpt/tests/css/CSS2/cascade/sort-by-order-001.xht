@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Casdading order - sort by order specified</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="6.4.1 Cascading order" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#cascading" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#cascading" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="If 2 declarations have the same media, the same importance (normal or !important), the same origin (author, user or user agent) and the same specificity, then the latter specified wins." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  height: 100px;
+  width: 100px;
+  }
+
+  div#parent > div  /* a=0 b=1 c=0 d=2 -> specificity = 0,1,0,2 */
+  {
+  background-color: red;
+  }
+
+  div > div#child /* a=0 b=1 c=0 d=2 -> specificity = 0,1,0,2 */
+  {
+  background-color: green;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="parent">
+      <div id="child"></div>
+  </div>
+
+ </body>
+</html>

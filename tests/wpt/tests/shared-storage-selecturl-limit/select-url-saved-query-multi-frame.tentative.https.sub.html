@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  // Note that we have set the site page bit limit to 3 and the overall page
+  // bit limit to 6. A single saved query with 8 URLs (i.e. log2(8) = 3 bits)
+  // will be permitted by a site's page budget, plus re-uses of the saved
+  // query. Two saved queries with 8 URLs (and their re-uses) will be
+  // permitted by the overall page budget.
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+
+  let url0 = new URL(
+      "/shared-storage-selecturl-limit/" +
+      "resources/select-url-saved-query-multi-frame-inner.https.sub.html",
+      location.href);
+
+  url0.searchParams.append(queryKey, "query");
+  url0.searchParams.append(mockResultKey, "1");
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // The same origin can re-use the saved query with ths same name "query".
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // The same saved query name "query" will refer to a different query when
+  // used by a different origin, as evidenced by having a different index
+  // result. Set a new index result for the iframe to send to selectURL.
+  const crossOrigin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+  let url1 = updateUrlToUseNewOrigin(url0, crossOrigin);
+  url1.searchParams.delete(mockResultKey);
+  url1.searchParams.append(mockResultKey, "2");
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+  // `crossOrigin` can re-use its own query from a separate frame.
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+}, 'selectURL() with saved queries across mutliple frames.');
+</script>
+</body>

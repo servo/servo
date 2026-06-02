@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop to object: dropping block element onto canvas</title>
+<style type="text/css">
+div
+  {width:20px;
+  height:20px;
+  background-color:green;}
+object
+  {width:200px;
+  height:200px;}
+</style>
+<script type="application/ecmascript">
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
+</script>
+</head>
+<body>
+<div draggable="true" ondragstart="start(event)"/>
+<p>Drag green box above to the gray canvas below. Canvas should turn green when you drop green box on it.</p>
+<p><object type="application/xhtml+xml" data="data:application/xhtml+xml,%3Chtml%20xmlns%3D%22http%3A//www.w3.org/1999/xhtml%22%3E%3Chead%3E%3Ctitle%3ECanvas%20drag%20and%20drop%3C/title%3E%3Cscript%20type%3D%22application/ecmascript%22%3Efunction%20paint%28color%29%7Bvar%20canvas%20%3D%20document.querySelector%28%27canvas%27%29%2Cc%20%3D%20canvas.getContext%28%272d%27%29%3Bc.fillStyle%20%3D%20color%3Bc.beginPath%28%29%3Bc.moveTo%280%2C0%29%3Bc.lineTo%28100%2C0%29%3Bc.lineTo%28100%2C100%29%3Bc.lineTo%280%2C100%29%3Bc.closePath%28%29%3Bc.fill%28%29%3B%7Dfunction%20start%28event%29%7Bevent.dataTransfer.effectAllowed%20%3D%20%27copy%27%3Bevent.dataTransfer.setData%28%27text/plain%27%2C%20document.querySelector%28%27input%27%29.value%29%3B%7D%3C/script%3E%3C/head%3E%3Cbody%20onload%3D%22paint%28%27gray%27%29%22%3E%3Cp%3E%3Ccanvas%20width%3D%22100%22%20height%3D%22100%22%20ondragenter%3D%22event.preventDefault%28%29%22%20ondragover%3D%22return%20false%22%20ondrop%3D%22paint%28event.dataTransfer.getData%28%27text/plain%27%29%29%22%3ECanvas%3C/canvas%3E%3C/p%3E%3C/body%3E%3C/html%3E">Canvas</object></p>
+</body>
+</html>

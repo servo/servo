@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'border-clip' with invalid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-clip">
+<meta name="assert"
+  content="This test checks that 'border-clip' supports only the keyword 'normal' or a list of &lt;length-percentage&gt; and &lt;flex&gt; values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("border-clip", "auto");
+test_invalid_value("border-clip", "none");
+test_invalid_value("border-clip", "padding-box");
+test_invalid_value("border-clip", "-10px");
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Clear-Site-Data</title>
+    <script src="test_utils.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      var scheme = location.search.match("scheme=([^&$]+)")[1];
+
+      // TODO(@msramek): Move this logic to TestUtils.
+      var base_url = location.origin
+          .replace(/https?/, scheme)
+          .replace(/:[0-9]+/, ":" + (scheme == "https" ? {{ports[https][0]}}
+                                                       : {{ports[http][0]}})) +
+          "/clear-site-data/support/";
+
+      var image = new Image();
+      image.onload = image.onerror = function() {
+        location.href = base_url + "send_report.html";
+      }
+
+      // TODO(@msramek): Move this logic to TestUtils.
+      image.src = base_url + "echo-clear-site-data.py?storage";
+    </script>
+  </body>
+</html>

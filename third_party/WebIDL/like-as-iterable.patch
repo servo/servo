@@ -1,0 +1,72 @@
+diff --git a/third_party/WebIDL/WebIDL.py b/third_party/WebIDL/WebIDL.py
+index 2366e3f702..e1d973f5fe 100644
+--- a/third_party/WebIDL/WebIDL.py
++++ b/third_party/WebIDL/WebIDL.py
+@@ -9022,6 +9022,67 @@ class Parser(Tokenizer):
+                     itr_iface.asyncIterableInterface = iface
+                 self._productions.append(itr_iface)
+                 iterable.iteratorType = IDLWrapperType(iface.location, itr_iface)
++            if not iterable:
++                # We haven't run finish() on the interface yet, so we don't know
++                # whether our interface is maplike/setlike/iterable or not. This
++                # means we have to loop through the members to see if we have an
++                # iterable member.
++                for m in iface.members:
++                    if isinstance(m, IDLMaplikeOrSetlike):
++                        iterable = m
++                        break
++                if iterable and (iterable.isSetlike() or iterable.isMaplike()):
++
++                    def simpleExtendedAttr(str):
++                        return IDLExtendedAttribute(iface.location, (str,))
++
++                    if isinstance(iterable, IDLAsyncIterable):
++                        nextReturnType = IDLPromiseType(
++                            iterable.location, BuiltinTypes[IDLBuiltinType.Types.any]
++                        )
++                    else:
++                        nextReturnType = BuiltinTypes[IDLBuiltinType.Types.object]
++                    nextMethod = IDLMethod(
++                        iterable.location,
++                        IDLUnresolvedIdentifier(iterable.location, "next"),
++                        nextReturnType,
++                        [],
++                    )
++                    nextMethod.addExtendedAttributes([simpleExtendedAttr("Throws")])
++
++                    methods = [nextMethod]
++
++                    if iterable.isSetlike():
++                        itr_suffix = "Setlike"
++                    else:
++                        itr_suffix = "Maplike"
++                    itr_ident = IDLUnresolvedIdentifier(
++                        iface.location, iface.identifier.name + itr_suffix
++                    )
++                    classNameOverride = iface.identifier.name + " " + itr_suffix
++                    itr_iface = IDLInterface(
++                        iface.location,
++                        self.globalScope(),
++                        itr_ident,
++                        None,
++                        methods,
++                        isKnownNonPartial=True,
++                        classNameOverride=classNameOverride,
++                    )
++                    itr_iface.addExtendedAttributes(
++                        [simpleExtendedAttr("LegacyNoInterfaceObject")]
++                    )
++                    # Make sure the exposure set for the iterator interface is the
++                    # same as the exposure set for the iterable interface, because
++                    # we're going to generate methods on the iterable that return
++                    # instances of the iterator.
++                    itr_iface._exposureGlobalNames = set(iface._exposureGlobalNames)
++                    # Always append generated iterable interfaces after the
++                    # interface they're a member of, otherwise nativeType generation
++                    # won't work correctly.
++                    itr_iface.iterableInterface = iface
++                    self._productions.append(itr_iface)
++                    iterable.iteratorType = IDLWrapperType(iface.location, itr_iface)
+ 
+         # Make sure we finish IDLIncludesStatements before we finish the
+         # IDLInterfaces.

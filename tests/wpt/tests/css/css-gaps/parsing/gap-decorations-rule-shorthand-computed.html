@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decoration: *rule getComputedStyle()</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#propdef-column-rule">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="*rule computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="reference"></div>
+<div id="target"></div>
+<style>
+  #reference {
+    column-rule-style: dotted;
+    column-rule-width: medium;
+  }
+  #target {
+    color: lime;
+  }
+</style>
+<script>
+const properties = ["column-rule", "row-rule", "rule"];
+for (let property of properties) {
+  const currentcolor = "rgb(0, 255, 0)";
+  const mediumWidth = getComputedStyle(document.getElementById('reference')).columnRuleWidth;  // e.g. 3px.
+
+  // <gap-rule> = [<line-width> || <line-style> || <line-color>]
+  test_computed_value(property, "5px solid currentcolor", "5px solid " + currentcolor);
+  test_computed_value(property, "rgb(0, 0, 255) 10px solid", "10px solid rgb(0, 0, 255)");
+  test_computed_value(property, "dotted", mediumWidth + " dotted " + currentcolor);
+
+  // <gap-auto-repeat-rule> = repeat( auto , <gap-rule># )
+  test_computed_value(property, "repeat(auto, 5px solid rgb(0, 0, 255))");
+  test_computed_value(property, "repeat(auto, 5px solid rgb(255, 255, 0), 10px dotted rgb(0, 128, 0))");
+
+
+  // <gap-repeat-rule> = repeat( <integer [1,∞]> , <gap-rule># )
+    test_computed_value(property, "repeat(4, 15px dotted rgb(0, 255, 255))");
+    test_computed_value(property, "repeat(1, 15px ridge rgb(255, 0, 0), 10px dotted rgb(0, 255, 0), 15px double rgb(0, 0, 255))");
+
+
+  // <gap-rule-list> = <gap-rule-or-repeat>#
+  // <gap-rule-or-repeat> = <gap-rule> | <gap-repeat-rule>
+    test_computed_value(property, "5px double rgb(58, 58, 16), repeat(4, 5px ridge rgb(18, 18, 18))");
+    test_computed_value(property, "15px dashed rgb(0, 255, 0), repeat(3, 3px double rgb(255, 0, 0), 10px dotted rgb(0, 0, 255))");
+    test_computed_value(property, "repeat(4, 5px solid rgb(255, 0, 255)), repeat(3, 5px solid rgb(0, 0, 255), 10px dotted rgb(0, 128, 128))");
+
+    // <gap-auto-rule-list>   = <gap-rule-or-repeat>#? ,
+    //                          <gap-auto-repeat-rule> ,
+    //                          <gap-rule-or-repeat>#?
+    test_computed_value(property, "repeat(auto, 5px solid rgb(255, 0, 255)), 13px dotted rgb(0, 0, 128), 10px dotted rgb(0, 128, 128), 15px double rgb(0, 0, 128)");
+    test_computed_value(property, "5px solid rgb(255, 0, 255), repeat(auto, 5px solid rgb(255, 0, 255)), 10px dotted rgb(0, 128, 128)");
+    test_computed_value(property, "10px dotted rgb(0, 128, 128), repeat(4, 20px hidden rgb(0, 128, 128), 30px ridge rgb(255, 0, 255)), repeat(auto, 5px solid rgb(255, 0, 255))");
+}
+</script>
+</body>
+</html>

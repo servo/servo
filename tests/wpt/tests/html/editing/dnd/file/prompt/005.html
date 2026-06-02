@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for special cases</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  if( location.protocol == 'file:' || location.protocol == 'http:' || location.protocol == 'https:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'Use the source of this file as the source of special-case URLs within your browser, such as scriptable chrome: or opera: or attachment: URLs (eg. opera:config and send yourself the file as an email attachments and open the attachment in the browser).';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
+  };
+};
+</script>
+
+<div></div>
+
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, either showing the server name as unknown, or otherwise identifying this URL as the target of the upload.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

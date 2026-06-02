@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<style>
+
+div {
+    position: relative;
+    height: 3000px;
+}
+
+.cell {
+    position: absolute;
+    border: solid;
+    width: 60px;
+    height: 30px;
+    box-sizing: border-box;
+    contain: size layout;
+    line-height: 1;
+}
+
+div:nth-child(2n) {
+  text-align: center;
+}
+
+div:nth-child(3n) {
+  text-align: end;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+  let textNodes = [];
+
+  function populateData() {
+      let container = document.createElement('div');
+      let top = 0;
+      for (let i = 0; i < 100; i++) {
+          let left = 0;
+          for (let j = 0; j < 100; j++) {
+              let cell = document.createElement('div');
+              cell.classList.add('cell');
+              let textNode = document.createTextNode('' + (100 * Math.random()).toFixed(2));
+              cell.appendChild(textNode);
+              cell.style.left = left + "px";
+              cell.style.top = top + "px";
+              container.appendChild(cell);
+              textNodes.push(textNode);
+              left += 60;
+          }
+          top += 30;
+      }
+      document.body.appendChild(container);
+  }
+
+  function startTest() {
+    populateData();
+
+    PerfTestRunner.forceLayout();
+
+    PerfTestRunner.measureTime({
+      description: "Measures performance of changing text nodes content.",
+      run: function() {
+        for (let i = 0; i < textNodes.length; i++) {
+          textNodes[i].data = '' + (100 * Math.random()).toFixed(2);
+        }
+
+        PerfTestRunner.forceLayout();
+      },
+    });
+  }
+</script>
+<body onload="startTest();">
+</body>

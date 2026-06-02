@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (attachment repeat image position)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image interact" />
+        <meta name="assert" content="Background with (attachment repeat image position) sets the tiles the image across the x-axis within the background and the image scrolls with the box." />
+        <style type="text/css">
+            #div1
+            {
+                height: 200px;
+                width: 200px;
+                overflow: scroll;
+            }
+            div div
+            {
+                background: scroll repeat-x url("support/cat.png") bottom;
+                height: 400px;
+                width: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if in the box below, there is a picture of a cat repeated across the bottom of the box that moves with the scrollbar when the box is scrolled to the right.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

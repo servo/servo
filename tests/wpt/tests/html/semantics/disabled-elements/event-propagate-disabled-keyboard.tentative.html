@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>KeyboardEvent propagation on disabled form elements</title>
+<link rel="author" href="mailto:avandolder@mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+  class CustomControl extends HTMLElement {
+    static get formAssociated() {return true;}
+
+    constructor() {
+      super();
+      this.internals = this.attachInternals();
+
+      this.attachShadow({mode: "open", delegatesFocus: true});
+      this.shadowRoot.append(
+        document.querySelector("template").content.cloneNode(true)
+      );
+    }
+
+    get target() {
+      return this.shadowRoot.getElementById("target");
+    }
+  }
+
+  customElements.define("custom-control", CustomControl)
+</script>
+
+<template>
+  <div tabindex="0" id="target">
+    <slot></slot>
+  </div>
+</template>
+
+<div tabindex="0" id="reset"></div>
+
+<form id="form">
+  <input> <!-- Sanity check with non-disabled control -->
+  <select disabled></select>
+  <textarea disabled></textarea>
+  <input disabled type="button">
+  <input disabled type="checkbox">
+  <input disabled type="color" value="#000000">
+  <input disabled type="date">
+  <input disabled type="datetime-local">
+  <input disabled type="email">
+  <input disabled type="file">
+  <input disabled type="image">
+  <input disabled type="month">
+  <input disabled type="number">
+  <input disabled type="password">
+  <input disabled type="radio">
+  <input disabled type="range" value="0">
+  <input disabled type="reset">
+  <input disabled type="search">
+  <input disabled type="submit">
+  <input disabled type="tel">
+  <input disabled type="text">
+  <input disabled type="time">
+  <input disabled type="url">
+  <input disabled type="week">
+
+  <fieldset disabled><span tabindex="0">Span</span></fieldset>
+  <button disabled><span tabindex="0">Span</span></button>
+  <custom-control disabled>Text</custom-control>
+</form>
+
+<script>
+  const keyEvents = ["keydown", "keyup"];
+
+  function setupTest(t, element, observingElement) {
+    const observedEvents = [];
+    const controller = new AbortController();
+    const {signal} = controller;
+    const listenerFn = t.step_func(event => {
+      observedEvents.push(event.type);
+    });
+    for (const event of keyEvents) {
+      observingElement.addEventListener(event, listenerFn, {signal});
+    }
+    t.add_cleanup(() => controller.abort());
+
+    const target = element;
+    return {target, observedEvents};
+  }
+
+  function fire_trusted_key_events(target) {
+    const actions = new test_driver.Actions();
+    return actions.keyDown("a").keyUp("a").send();
+  }
+
+  function fire_untrusted_key_events(target) {
+    target.dispatchEvent(new KeyboardEvent("keydown", {bubbles: true}));
+    target.dispatchEvent(new KeyboardEvent("keyup", {bubbles: true}));
+  }
+
+  const observingElement = document.getElementById("form");
+  const reset = document.getElementById("reset");
+
+  for (const element of observingElement.children) {
+    promise_test(async t => {
+      const {observedEvents} = setupTest(t, element, observingElement);
+
+      const target = element.firstElementChild ?? element.target ?? element;
+      await t.step_func(fire_untrusted_key_events)(target);
+      await new Promise(resolve => t.step_timeout(resolve, 0));
+
+      assert_array_equals(observedEvents, keyEvents, "Observed events");
+    }, `Untrusted key events on ${element.outerHTML}, observed from <${observingElement.localName}>`);
+
+    // Only test elements with children for trusted key events.
+    if (!element.firstElementChild && !element.target) {
+      continue;
+    }
+
+    promise_test(async t => {
+      const {observedEvents} = setupTest(t, element, observingElement);
+
+      const target = element.firstElementChild ?? element.target;
+
+      reset.focus();
+      assert_not_equals(document.activeElement, target, "Reset current focus");
+      target.focus();
+      assert_equals(document.activeElement, element.firstElementChild ?? element, "Focus the target element");
+
+      await t.step_func(fire_trusted_key_events)(target);
+      await new Promise(resolve => t.step_timeout(resolve, 0));
+
+      assert_array_equals(observedEvents, keyEvents, "Observed events");
+    }, `Trusted key events on ${element.outerHTML}, observed from <${observingElement.localName}>`);
+  }
+</script>

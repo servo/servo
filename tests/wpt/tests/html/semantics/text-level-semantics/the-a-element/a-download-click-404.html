@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking on an &lt;a> element with a download attribute and href that leads to 404 should not navigate</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-download">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+async_test(t => {
+    const errorFrame = document.createElement("iframe");
+
+    errorFrame.addEventListener("load", t.step_func(function () {
+        errorFrame.contentWindow.addEventListener(
+            "beforeunload", t.unreached_func("Navigated instead of downloading"));
+
+        errorFrame.contentDocument.querySelector("#error-url").click();
+        t.step_timeout(() => t.done(), 1000);
+    }));
+    errorFrame.src = "resources/a-download-404.html";
+    document.body.appendChild(errorFrame);
+}, "Do not navigate to 404 for anchor with download");
+</script>
+</body>

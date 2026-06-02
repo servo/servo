@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1602347">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>window.devicePixelRatio in an undisplayed iframe matches the dpi of the parent document</title>
+<div style="display: none">
+  <iframe src="about:blank"></iframe>
+</div>
+<script>
+onload = function() {
+  test(function() {
+    let win = document.querySelector("iframe").contentWindow;
+    assert_equals(win.devicePixelRatio, window.devicePixelRatio, "window.devicePixelRatio in an undisplayed iframe matches the dpi of the parent document");
+  });
+};
+</script>

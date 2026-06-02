@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Test: `break-word` should work with `word-break: keep-all`</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-word">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<meta charset="utf-8">
+<style>
+div {
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  font-size: 10px;
+  width: 7ch;
+  line-height: 20px;
+  background: lightgray;
+  margin-bottom: 1em;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>0000000000</div>
+  <div>헬로우월드헬로우월드헬로우월드헬로우월드헬로우월드</div>
+<script>
+for (let e of document.getElementsByTagName('div')) {
+  test(() => {
+    // All boxes should wrap to more than 1 line.
+    assert_greater_than(e.offsetHeight, 20);
+  }, e.textContent);
+}
+</script>
+</body>

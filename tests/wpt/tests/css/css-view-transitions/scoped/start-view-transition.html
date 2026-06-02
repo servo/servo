@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=scope></div>
+<script>
+
+test(() => {
+  const element = document.querySelector("#scope");
+  const transition = element.startViewTransition(() => {});
+  assert_true(transition instanceof ViewTransition);
+});
+
+</script>
+</body>
+</html>

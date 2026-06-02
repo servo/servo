@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Making the incumbent page become non-active must not prevent message transmission</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="support/incumbent.html" id="incumbent"></iframe>
+<iframe src="support/current.html" id="current"></iframe>
+
+<script>
+"use strict";
+const incumbentIframe = document.querySelector("#incumbent");
+const currentIframe = document.querySelector("#current");
+
+window.addEventListener("load", () => {
+  promise_test(async () => {
+    // This will invoke the constructor from currentIframe, but with incumbentIframe as the incumbent.
+    const messageChannel = incumbentIframe.contentWindow.createMessageChannel();
+
+    await new Promise((resolve, reject) => {
+      incumbentIframe.onload = () => resolve();
+      incumbentIframe.onerror = () => reject(new Error("Could not navigate the iframe"));
+      incumbentIframe.src = "/common/blank.html";
+    });
+
+    await new Promise((resolve, reject) => {
+      messageChannel.port1.onmessage = () => resolve();
+      messageChannel.port1.onmessageerror = () => reject("messageerror event recieved");
+      messageChannel.port2.postMessage("boo");
+    });
+  });
+});
+</script>

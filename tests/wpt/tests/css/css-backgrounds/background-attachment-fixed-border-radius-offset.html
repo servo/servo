@@ -1,0 +1,25 @@
+<!doctype html>
+<title>background-attachment: fixed with border-radius and offset</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-attachment">
+<link rel="help" href="https://crbug.com/1439780">
+<link rel="match" href="background-attachment-fixed-border-radius-offset-ref.html">
+<style>
+  .stripe {
+    position: absolute;
+    top: calc(8px - 128px);
+    width: 200px;
+    height: 683px;
+    background-image: url("/images/grgr-256x256.png");
+    background-position: 0px -200px;
+    background-size: 1024px 768px;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    border-radius: 1px 0 0 0;
+    clip-path: inset(0 0 385px 0);
+  }
+  body {
+    overflow: hidden;
+    height: 300vh;
+  }
+</style>
+<div class="stripe"></div>

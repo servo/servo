@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .fakecolumn {
+      width: 100px;
+      height: 100px;
+  }
+  .relpos {
+      position: relative;
+      top: 50px;
+      left: 50px;
+      width: 50px;
+  }
+  .transform {
+      transform: rotate(45deg);
+      height: 100%;
+  }
+  .abspos {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: green;
+  }
+</style>
+<p>Below there should be two green squares, and one green rectangle between
+  them. They should all be rotated.</p>
+<div style="display:flex;">
+  <div class="fakecolumn">
+    <div class="relpos" style="margin-top:50px; height:50px;">
+      <div class="transform">
+        <div class="abspos"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos" style="height:100px;">
+      <div class="transform">
+        <div class="abspos"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos" style="height:50px;">
+      <div class="transform">
+        <div class="abspos"></div>
+      </div>
+    </div>
+  </div>
+</div>

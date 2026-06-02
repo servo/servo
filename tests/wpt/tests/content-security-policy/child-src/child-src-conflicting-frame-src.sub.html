@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>child-src-blocked</title>
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'; child-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS IFrame %231 generated a load event.", "violated-directive=frame-src"]'></script>
+    <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
+
+        window.addEventListener("securitypolicyviolation", function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        function alert_assert(msg) {
+            t_log.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_log.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_equals(expected_alerts[i], msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_log.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+frame-src 'none'; child-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <p>
+        A more permissive child-src should not relax restrictions from a less-
+        permissive frame-src.  Directives still combine for least privilege, even when
+        one obsoletes another.
+    </p>
+    <script>
+        window.wasPostTestScriptParsed = true;
+        var loads = 0;
+
+        function loadEvent() {
+            loads++;
+            log("PASS " + "IFrame #" + loads + " generated a load event.");
+        }
+
+    </script>
+</head>
+
+<body>
+    <iframe src="/content-security-policy/support/postmessage-fail.html" onload="loadEvent()" onerror="log('FAIL')"></iframe>
+    <div id="log"></div>
+</body>
+
+</html>

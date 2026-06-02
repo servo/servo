@@ -1,0 +1,31 @@
+<!doctype html>
+<html class=test-wait>
+  <head>
+    <meta charset="utf-8" />
+    <title>Geolocation creation should not crash after document is shutdown</title>
+    <link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md" />
+  </head>
+  <body>
+    <iframe id="target-frame" src="about:blank"></iframe>
+    <script>
+      const iframe = document.getElementById("target-frame");
+
+      // Save a reference to its contentDocument
+      const savedDoc = iframe.contentDocument;
+
+      iframe.onload = () => {
+        // Call createElement through that reference
+        let geolocation = savedDoc.createElement("geolocation");
+        geolocation.setAttribute("watch", "");
+        geolocation.setAttribute("autolocate", "");
+        geolocation.setAttribute("accuracymode", "precise");
+        savedDoc.body.appendChild(geolocation);
+        document.documentElement.classList.remove("test-wait");
+      };
+
+      // Navigate away the iframe to "shut down" said document
+      // We navigate the iframe to a new URL. This detaches the original document.
+      iframe.src = "data:text/html,<h1>Navigated Away</h1>";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="rect-shape" viewBox="0 0 16 8">
+    <rect width="16" height="8" fill="red"/>
+    <rect x="4" width="8" height="8" fill="green"/>
+  </symbol>
+  <use href="#rect-shape"/>
+  <view id="rect" viewBox="0 0 16 8"/>
+</svg>

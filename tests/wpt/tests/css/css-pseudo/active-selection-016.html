@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection of partial text and color</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="reference/active-selection-016-ref.html">
+
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      background-color: white;
+      color: white;
+      font-size: 300%;
+    }
+
+  div::selection
+    {
+      color: green;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.setStart(document.getElementById("test").childNodes[0], 5);
+  /*
+  Then we set the start boundary of the range inside div#test to
+  */
+  targetRange.setEnd(document.getElementById("test").childNodes[0], 9);
+  /* And we set the end boundary of the range inside div#test right */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <div id="test" class="highlight_reftest">FAIL PASS FAIL</div>

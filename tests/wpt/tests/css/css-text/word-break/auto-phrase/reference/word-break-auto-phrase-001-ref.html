@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: keep-all;
+}
+#ref {
+  border-color: blue;
+}
+</style>
+
+<p>Test passes if the black box is identical to the blue one.
+
+<div id=test lang=ja>
+  東京へ<wbr>行きましょう。
+</div>
+<div id=ref lang=ja>
+  東京へ<wbr>行きましょう。
+</div>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+  Suppress column flexbox gaps: item gap should be suppressed if it's split across
+  fragmentainer breaks or is the last content before a break. Tests row gap that takes entire fragment.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    column-gap: 0px;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+
+  .flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    background: red;
+  }
+
+  .flex>div {
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex" style="row-gap:100px;">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

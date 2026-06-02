@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage with Date object </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www1]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: Messages can contain JavaScript values (e.g., Dates).";
+
+    var t = async_test(description);
+
+    var DATA = new Date();
+    var TYPE = "object";
+    var TARGET = document.querySelector("iframe");
+
+    function PostMessageTest()
+    {
+        TARGET.contentWindow.postMessage(DATA, "*");
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        assert_equals(typeof(e.data), TYPE);
+        assert_equals(e.data.valueOf(), DATA.valueOf());
+        assert_not_equals(e.data, DATA, "Object is cloned");
+        t.done();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection.prototype.iceConnectionState - disconnection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+
+    await listenToIceConnected(caller);
+
+    callee.close();
+    await waitForIceStateChange(caller, ['disconnected', 'failed']);
+    // TODO: this should eventually transition to failed but that takes
+    // somewhat long (15-30s) so is not testable.
+  }, 'ICE goes to disconnected if the other side goes away');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    caller.addTransceiver('audio', {direction: 'sendrecv'});
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    await listenToIceConnected(caller);
+
+    // Now, we pull a fast one, and convince callee to abandon the transport
+    // without telling caller.
+    await caller.setLocalDescription();
+    await callee.setRemoteDescription(caller.localDescription);
+    const staleAnswer = await callee.createAnswer();
+    await callee.setRemoteDescription({type: 'rollback', sdp: ''});
+
+    const mlineRegex = /m=audio [0-9]+ /;
+    const mungedOfferSdp = caller.localDescription.sdp
+      .replace(mlineRegex, 'm=audio 0 ')
+      .replace('BUNDLE', 'BUNGLE'); // Avoid "But that mid is rejected!" errors
+
+    // callee gets the munged reoffer with a rejected m-section, caller gets a
+    // stale answer that was made before callee saw the rejected m-section.
+    await callee.setRemoteDescription({type: 'offer', sdp: mungedOfferSdp});
+    await callee.setLocalDescription();
+    await caller.setRemoteDescription(staleAnswer);
+    assert_equals(await nextIceConnectionState(caller), 'disconnected');
+
+    // Now, let's fix this with an ICE restart! callee has already negotiated
+    // a rejection of the first m-section, so it will tolerate it being
+    // revived.
+    caller.restartIce();
+    await caller.setLocalDescription();
+    await callee.setRemoteDescription(caller.localDescription);
+    await callee.setLocalDescription();
+    await caller.setRemoteDescription(callee.localDescription);
+    assert_equals(await nextIceConnectionState(caller), 'checking');
+    assert_equals(await nextIceConnectionState(caller), 'connected');
+  }, 'ICE restart when ICE is disconnected results in checking, then connected');
+
+</script>

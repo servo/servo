@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS will-change: 'will-change: view-transition-name' creates a stacking context dynamically</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1962862">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#named-and-transitioning">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+div { width: 100px; height: 100px }
+#wc { background: red; position: relative; }
+#child { position: absolute; top: 0; left: 0; z-index: -1; background: green }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="wc">
+  <div id="child"></div>
+</div>
+<script>
+window.addEventListener("TestRendered", function() {
+  wc.style.viewTransitionName = "something";
+  document.documentElement.removeAttribute("class");
+});
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-height applied to elements with 'display' set to 'table-header-group'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-max-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="The 'max-height' property applies to elements with 'display' set to 'table-header-group'." />
+        <style type="text/css">
+            #test
+            {
+                background: black;
+                display: table-header-group;
+                height: 3in;
+                max-height: 1in;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+                width: 1in;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below.</p>
+        <!-- If 'max-height' is supported on 'table-header-group' then a square will be visible. -->
+        <div id="table">
+            <div id="test">
+                <div id="row">
+                    <div id="cell">&nbsp;</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

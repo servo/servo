@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<title>Align-self applies to OOF elements of inline elements when statically positioned.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="match" href="align-self-static-position-003-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.inline {
+  display: inline;
+  color: transparent;
+  font: 10px Ahem;
+  line-height: 25px;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+
+.static-positioned-inline {
+  left: auto;
+  right: auto;
+}
+
+.static-positioned-block {
+  top: auto;
+  bottom: auto;
+}
+
+.positioned-inline {
+  left: 0;
+  right: 0;
+}
+
+.positioned-block {
+  top: 0;
+  bottom: 0;
+}
+
+.center {
+  justify-self: center;
+  align-self: center;
+}
+
+.end {
+  justify-self: end;
+  align-self: end;
+}
+
+.start {
+  justify-self: start;
+  align-self: start;
+}
+</style>
+<!-- start aligned -->
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline static-positioned-block start"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline positioned-block start"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs positioned-inline static-positioned-block start"></div>
+  <br>text
+</div></div>
+<br>
+<!-- end aligned -->
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline static-positioned-block end"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline positioned-block end"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs positioned-inline static-positioned-block end"></div>
+  <br>text
+</div></div>
+<br>
+<!-- center aligned -->
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline static-positioned-block center"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs static-positioned-inline positioned-block center"></div>
+  <br>text
+</div></div>
+<div class="container"><div class="inline">text
+  <div class="abs positioned-inline static-positioned-block center"></div>
+  <br>text
+</div></div>

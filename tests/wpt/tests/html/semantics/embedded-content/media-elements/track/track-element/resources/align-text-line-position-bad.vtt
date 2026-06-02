@@ -1,0 +1,21 @@
+WEBVTT
+One or more of line/text positioning and alignment values are invalid (settings are ignored).
+
+1
+00:00:00.000 --> 00:00:30.500  position: 0% align: start line: 0%
+Bear is Coming!!!!!
+None of the cue settings will be applied, just the default.
+
+2
+00:00:31.000 --> 00:00:01.500 position:0% align:end line:-30%
+I said Bear is coming!!!!
+The line position setting is ignored.
+No text is visible though because it's off-screen at position
+0 and the last character is at position 0%.
+
+3
+00:01:01.000 --> 00:01:30.000 line:-3 align:middler position:60%
+I said Bear is coming now!!!!
+Positioning on line 3 from the viewport bottom, middle aligned,
+with middle character of cue at 60% width.
+The alignment is ignored.

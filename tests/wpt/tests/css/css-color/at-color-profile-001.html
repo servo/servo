@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 5:  Specifying a color profile: the @color-profile at-rule</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#at-profile">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#custom-color">
+<link rel="match" href="greensquare-090-ref.html">
+<meta name="assert" content="custom colorspace, ICC profile">
+<style>
+    /* sRGB except red and green colorants are swapped */
+    @color-profile --foo {
+        src: url(support/swapped.icc);
+    }
+    .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
+    .ref { background-color: #090; width: 12em; height: 6em; margin-bottom: 0; } /* red-green swap of #900 sRGB */
+    .test { background-color: color(--foo 0.6 0 0); } /* hex 99 / FF is decimal 0.6 */
+</style>
+<body>
+    <p>Test passes if you see a green square, and no red.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+</body>

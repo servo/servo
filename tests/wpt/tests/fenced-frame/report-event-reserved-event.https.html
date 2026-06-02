@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: "fledge",
+    register_beacon: true,
+  });
+  const new_url = new URL("resources/dummy.html", location.href);
+  const beacon_data = "This is the beacon data!";
+  const beacon_type = "reserved.top_navigation_commit";
+
+  await fencedframe.execute(
+    (new_url, beacon_data, beacon_type) => {
+      let beacon_event = {
+        eventType: beacon_type,
+        eventData: beacon_data,
+        destination: ["buyer", "seller"],
+      };
+      window.fence.reportEvent(beacon_event);
+    },
+    [new_url, beacon_data, beacon_type]
+  );
+
+  const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
+  const result = await Promise.race(
+      [nextBeacon(beacon_type, beacon_data), timeout]);
+  assert_true(typeof result === "undefined",
+      "A beacon should not have been sent.");
+
+}, 'Reserved events should not be callable through reportEvent()');
+</script>
+</body>

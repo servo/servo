@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_math_utils.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+// 0.25m above world origin.
+const FLOOR_ORIGIN_TRANSFORM = {
+  position: [0, -0.25, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+// Start the screen pointer at the same place as the viewer, so it's essentially
+// coming straight forward from the middle of the screen.
+const SCREEN_POINTER_TRANSFORM = VIEWER_ORIGIN_TRANSFORM;
+
+const screen_controller_init = {
+    handedness: "none",
+    targetRayMode: "screen",
+    pointerOrigin: SCREEN_POINTER_TRANSFORM,  // aka mojo_from_pointer
+    profiles: ["generic-touchscreen",]
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  floorOrigin: FLOOR_ORIGIN_TRANSFORM,    // aka floor_from_mojo
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,  // aka mojo_from_viewer
+  supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // see webxr_test_constants_fake_world.js for details
+};
+
+// Generates a test function given the parameters for the transient hit test.
+// |ray| - ray that will be used to subscribe to hit test.
+// |expectedPoses| - array of expected pose objects. The poses should be expressed in local space.
+//                   Null entries in the array mean that the given entry will not be validated.
+// |inputFromPointer| - input from pointer transform that will be used as the input source's
+//                      inputFromPointer (aka pointer origin) in subsequent rAF.
+// |nextFrameExpectedPoses| - array of expected pose objects. The poses should be expressed in local space.
+//                            Null entries in the array mean that the given entry will not be validated.
+let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextFrameExpectedPoses) {
+  const testFunction = function(session, fakeDeviceController, t) {
+    let debug = xr_debug.bind(this, 'testFunction');
+    return session.requestReferenceSpace('local').then((localRefSpace) => new Promise((resolve, reject) => {
+
+      const input_source_controller = fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
+
+      requestSkipAnimationFrame(session, (time, frame) => {
+        debug('rAF 1');
+        t.step(() => {
+          assert_equals(session.inputSources.length, 1);
+        });
+
+        const hitTestOptionsInit = {
+          profile: "generic-touchscreen",
+          offsetRay: ray,
+        };
+
+        session.requestHitTestSourceForTransientInput(hitTestOptionsInit)
+               .then((hitTestSource) => {
+          t.step(() => {
+            assert_not_equals(hitTestSource, null);
+          });
+
+          // We got a hit test source, now get the results in subsequent rAFcb:
+          session.requestAnimationFrame((time, frame) => {
+            debug('rAF 2');
+            const results = frame.getHitTestResultsForTransientInput(hitTestSource);
+
+            t.step(() => {
+              assert_true(results != null, "Transient input hit tests should not be null");
+              assert_equals(results.length, 1, "There should be exactly one group of transient hit test results!");
+              assert_equals(results[0].results.length, expectedPoses.length);
+              for(const [index, expectedPose] of expectedPoses.entries()) {
+                const pose = results[0].results[index].getPose(localRefSpace);
+                assert_true(pose != null, "Each hit test result should have a pose in local space");
+                if(expectedPose != null) {
+                  assert_transform_approx_equals(pose.transform, expectedPose, FLOAT_EPSILON, "before-move-pose: ");
+                }
+              }
+            });
+
+            input_source_controller.setPointerOrigin(inputFromPointer, false);
+
+            session.requestAnimationFrame((time, frame) => {
+              debug('rAF 3');
+              const results = frame.getHitTestResultsForTransientInput(hitTestSource);
+
+              t.step(() => {
+                assert_equals(results[0].results.length, nextFrameExpectedPoses.length);
+                for(const [index, expectedPose] of nextFrameExpectedPoses.entries()) {
+                  const pose = results[0].results[index].getPose(localRefSpace);
+                  assert_true(pose != null, "Each hit test result should have a pose in local space");
+                  if(expectedPose != null) {
+                    assert_transform_approx_equals(pose.transform, expectedPose, FLOAT_EPSILON, "after-move-pose: ");
+                  }
+                }
+              });
+
+              debug('resolving');
+              resolve();
+            });
+          });
+        });
+      });
+    }));
+  };
+
+  return testFunction;
+};
+
+
+// Pose of the first expected hit test result - straight ahead of the input source, viewer-facing.
+const pose_1 = {
+  position: {x: 0.0, y: 1.0, z: -2.5, w: 1.0},
+  orientation: {x: 0.0, y: -0.707, z: -0.707, w: 0.0},
+    // Hit test API will set Y axis to the surface normal at the intersection point,
+    // Z axis towards the ray origin and X axis to cross product of Y axis & Z axis.
+    // If the surface normal and Z axis would be parallel, the hit test API
+    // will attempt to use `up` vector ([0, 1, 0]) as the Z axis, and if it so happens that Z axis
+    // and the surface normal would still be parallel, it will use the `right` vector ([1, 0, 0]) as the Z axis.
+    // In this particular case, `up` vector will work so the resulting pose.orientation
+    // becomes a rotation around [0, 1, 1] vector by 180 degrees.
+};
+
+xr_session_promise_test("Ensures subscription to transient hit test works with an XRSpace from input source - no move",
+  testFunctionGenerator(new XRRay(), [pose_1], SCREEN_POINTER_TRANSFORM, [pose_1]),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+const moved_pointer_transform_1 = {
+  position: [0, 1, 0],
+  orientation: [ 0.707, 0, 0, 0.707 ] // 90 degrees around X axis = facing up
+};
+
+xr_session_promise_test("Ensures subscription to transient hit test works with an XRSpace from input source - after move - no results",
+  testFunctionGenerator(new XRRay(), [pose_1], moved_pointer_transform_1, []),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+const pose_2 = {
+  position: {x: -1.443, y: 1.0, z: -2.5, w: 1.0},
+    // Intersection point will be on the same height as the viewer, on the front
+    // wall. Distance from the front wall to viewer is 2.5m, and we are rotating
+    // to the left, so X coordinate of the intersection point will be negative
+    // & equal to -2.5 * tan(30 deg) ~= 1.443m.
+  orientation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5 },
+    // See comment for pose_1.orientation for details.
+    // In this case, the hit test pose will have Y axis facing towards world's
+    // positive Z axis ([0,0,1]), Z axis to the right ([1,0,0]) and X axis
+    // towards world's Y axis ([0,1,0]).
+    // This is equivalent to the rotation around [1, 1, 1] vector by 120 degrees.
+};
+
+const moved_pointer_transform_2 = {
+  position: [0, 1, 0],
+  orientation: [ 0, 0.2588, 0, 0.9659 ] // 30 degrees around Y axis = to the left,
+                                        // creating 30-60-90 triangle with the front wall
+};
+
+xr_session_promise_test("Ensures subscription to transient hit test works with an XRSpace from input source - after move - 1 result",
+  testFunctionGenerator(new XRRay(), [pose_1], moved_pointer_transform_2, [pose_2]),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+</script>

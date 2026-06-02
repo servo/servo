@@ -1,0 +1,95 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: align-self/justify-self:baseline/last baseline</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1221525">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-self">
+  <link rel="match" href="grid-item-self-baseline-001-ref.html">
+  <style type="text/css">
+html,body {
+    color:black; background-color:white; font-size:16px; padding:0; margin:0;
+}
+
+.grid {
+  float: left;
+  display: grid;
+  grid: auto / repeat(4, auto);
+  place-items: start;
+  border: 2px solid;
+  padding: 1px;
+  margin: 1px;
+}
+.c {
+  grid: repeat(4, auto) / auto;
+}
+
+span {
+  background: lime;
+  display: inline-block;
+  border: 1px solid black;
+  box-sizing: border-box;
+}
+span:nth-child(1) { font-size:12px; }
+span:nth-child(2) { font-size:16px; }
+span:nth-child(3) { font-size:24px; }
+span:nth-child(4) { font-size:32px; }
+.pbe { padding-block-end:20px; }
+.pbs { padding-block-start:20px; }
+
+.fb { align-self:baseline; }
+.lb { align-self:last baseline; }
+
+.jfb { justify-self:baseline; }
+.jlb { justify-self:last baseline; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; text-orientation: sideways; }
+.vr { writing-mode: vertical-rl; text-orientation: sideways; }
+.vlr { writing-mode: vertical-lr; direction:rtl; text-orientation: sideways; }
+.vrl { writing-mode: vertical-rl; direction:ltr; text-orientation: sideways; }
+
+</style>
+</head>
+<body>
+
+<div class="grid"><span class="fb hl">A</span><span class="fb hl">A</span><span class="fb hl">A</span><span class="fb hl">A</span></div>
+<div class="grid"><span class="fb hl pbe">A</span><span class="fb hl">A</span><span class="fb hl">A</span><span class="fb hl">A</span></div>
+<div class="grid vl"><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span></div>
+<div class="grid vl"><span class="fb pbs">A</span><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span></div>
+<div class="grid vr"><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span></div>
+<div class="grid vr"><span class="fb pbe">A</span><span class="fb">A</span><span class="fb">A</span><span class="fb">A</span></div>
+
+<br clear="all">
+
+<div class="grid"><span class="lb hl">A</span><span class="lb hl">A</span><span class="lb hl">A</span><span class="lb hl">A</span></div>
+<div class="grid"><span class="lb hl pbe">A</span><span class="lb hl">A</span><span class="lb hl">A</span><span class="lb hl">A</span></div>
+<div class="grid vl"><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span></div>
+<div class="grid vl"><span class="lb pbs">A</span><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span></div>
+<div class="grid vr"><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span></div>
+<div class="grid vr"><span class="lb pbe">A</span><span class="lb">A</span><span class="lb">A</span><span class="lb">A</span></div>
+
+<br clear="all">
+
+<div class="grid c"><span class="jfb vl">A</span><span class="jfb vl">A</span><span class="jfb vl">A</span><span class="jfb vl">A</span></div>
+<div class="grid c"><span class="jfb vl pbe">A</span><span class="jfb vl">A</span><span class="jfb vl">A</span><span class="jfb vl">A</span></div>
+<div class="grid c vl"><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span></div>
+<div class="grid c vl"><span class="jfb hl pbs">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span></div>
+<div class="grid c vr"><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span></div>
+<div class="grid c vr"><span class="jfb hl pbe">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span><span class="jfb hl">A</span></div>
+
+<br clear="all">
+
+<div class="grid"><span class="lb hl">A<br>A</span><span class="lb hl">A<br>A</span><span class="lb hl">A<br>A</span><span class="lb hl">A<br>A</span></div>
+<div class="grid"><span class="lb hl pbe">A<br>A</span><span class="lb hl">A<br>A</span><span class="lb hl">A<br>A</span><span class="lb hl">A<br>A</span></div>
+<div class="grid vl"><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span></div>
+<div class="grid vl"><span class="lb pbs">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span></div>
+<div class="grid vr"><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span></div>
+<div class="grid vr"><span class="lb pbe">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span><span class="lb">A<br>A</span></div>
+
+</body>
+</html>

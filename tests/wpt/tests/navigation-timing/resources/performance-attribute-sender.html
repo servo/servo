@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<html>
+<body>
+<script>
+parent.postMessage([
+  performance.timing.connectStart,
+  performance.timing.navigationStart,
+  performance.timing.secureConnectionStart,
+  performance.timing.connectEnd
+], '*');
+</script>
+</body>
+</html>

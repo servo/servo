@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that getComputedStyle() resolves anchor() functions w.r.t. position-area containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<link rel="author" name="David Shin" href="mailto:dshin@mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.abs-cb {
+  width: 200px;
+  height: 200px;
+  border: 5px solid;
+  position: relative;
+}
+
+.anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 50px;
+  margin-left: 75px;
+  background: pink;
+}
+
+.positioned {
+  position: absolute;
+  position-anchor: --a;
+  width: 25px;
+  height: 25px;
+  background: purple;
+}
+
+.top {
+  bottom: anchor(top);
+}
+
+.bottom {
+  top: anchor(bottom);
+}
+
+.left {
+  right: anchor(left);
+}
+
+.right {
+  left: anchor(right);
+}
+
+.bottom.right {
+  position-area: bottom right;
+}
+
+.bottom.left {
+  position-area: bottom left;
+}
+
+.top.right {
+  position-area: top right;
+}
+
+.top.left {
+  position-area: top left;
+}
+</style>
+<div id=cb class=abs-cb>
+  <div style="height: 75px;"></div>
+  <div class=anchor></div>
+  <div id="top-right" class="positioned top right"></div>
+  <div id="bottom-right" class="positioned bottom right"></div>
+  <div id="bottom-left" class="positioned bottom left"></div>
+  <div id="top-left" class="positioned top left"></div>
+</div>
+<script>
+const opposite = {
+  'top': 'bottom',
+  'bottom': 'top',
+  'left': 'right',
+  'right': 'left',
+};
+function test_positioned(y, x) {
+  test(() => {
+    const d = document.getElementById(`${y}-${x}`);
+    const s = getComputedStyle(d);
+    assert_equals(s.getPropertyValue(opposite[y]), '0px');
+    assert_equals(s.getPropertyValue(opposite[x]), '0px');
+  }, `Offsets for ${y} ${x} positioned`);
+}
+
+test_positioned('top', 'right');
+test_positioned('bottom', 'right');
+test_positioned('bottom', 'left');
+test_positioned('top', 'left');
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>:indeterminate and input type=radio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css">
+#test {
+  color: green;
+}
+input:indeterminate + #test {
+  color: red;
+}
+</style>
+<input type="radio" name="radios">
+<div id="test"></div>
+<input type="radio" name="radios" checked>
+<script type="text/javascript">
+test(function() {
+  document.getElementsByTagName("input")[0].indeterminate = true;
+  var target = document.getElementById("test");
+  var val = getComputedStyle(target, null).getPropertyValue("color");
+  assert_equals(val, "rgb(0, 128, 0)",
+                "The indeterminate IDL attribute should not cause the " +
+                ":indeterminate pseudo-class to match on input type=radio");
+})
+</script>

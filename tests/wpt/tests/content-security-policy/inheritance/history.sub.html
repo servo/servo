@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+
+<script>
+  let message_from = (source_token, starts_with) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.data.token === source_token) {
+          if (!starts_with || msg.data.msg.startsWith(starts_with))
+            resolve(msg.data.msg);
+        }
+      });
+    });
+  };
+
+  const img_url = window.origin + "/content-security-policy/support/fail.png";
+
+  const function_addImage_string = img_token => `
+    function addImage() {
+      let img = document.createElement('img');
+      img.src = '${img_url}';
+      img.onload = () => opener.postMessage(
+          {msg: 'img loaded', token: '${img_token}'}, '*');
+      img.onerror = () => opener.postMessage(
+          {msg: 'img blocked', token: '${img_token}'}, '*');
+      document.body.appendChild(img);
+    }
+  `;
+
+  const img_tag_string = img_token => `
+    <img src="${img_url}"
+         onload="opener.postMessage(
+             {msg: 'img loaded', token: '${img_token}'}, '*');"
+         onerror="opener.postMessage(
+             {msg: 'img blocked', token: '${img_token}'}, '*');"
+    >
+  `;
+
+  let write_img_to_popup = (popup, img_token) => {
+    let div = popup.document.createElement('div');
+    div.innerHTML = img_tag_string(img_token);
+    popup.document.body.appendChild(div);
+  };
+
+  // A beforeunload event listener disables bfcache (Firefox only).
+  //
+  // Note: Chrome enables bfcache only on HTTP/HTTPS documents, so a blob will
+  // never be put in the bfcache. Moreover with Chrome, bfcache needs a single
+  // top-level browsing context in the browsing context group. Since we are
+  // using window.open() below, the back-forward cache is not triggered.
+  const disable_bfcache = `
+    window.addEventListener('beforeunload', function(event) {
+      eval('1+1');
+    });
+  `;
+
+  const blob_payload = blob_token => `
+    <!doctype html>
+    <script>window.window_token = "${blob_token}";</scr`+`ipt>
+    <script>${function_addImage_string(`${blob_token}`)}</scr`+`ipt>
+    <body onpageshow="addImage();"></body>
+  `;
+  let blob_url = blob_token => URL.createObjectURL(
+    new Blob([blob_payload(blob_token)], { type: 'text/html' }));
+
+  const blob_payload_no_bfcache = blob_token => `
+    <!doctype html>
+    <script>window.window_token = "${blob_token}";</scr`+`ipt>
+    <script>${disable_bfcache}</scr`+`ipt>
+    <script>${function_addImage_string(`${blob_token}`)}</scr`+`ipt>
+    <body onpageshow="addImage();"></body>
+  `;
+  let blob_url_no_bfcache = blob_token => URL.createObjectURL(
+    new Blob([blob_payload_no_bfcache(blob_token)], { type: 'text/html' }));
+
+  let testCases = [
+    test_token => ({
+      token: test_token,
+      url: "about:blank",
+      add_img_function: popup => write_img_to_popup(popup, test_token),
+      other_origin: window.origin,
+      name: '"about:blank" document is navigated back from history same-origin.',
+    }),
+    test_token => ({
+      token: test_token,
+      url: "about:blank",
+      add_img_function: popup => write_img_to_popup(popup, test_token),
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: '"about:blank" document is navigated back from history cross-origin.',
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url(test_token),
+      other_origin: window.origin,
+      name: 'blob URL document is navigated back from history same-origin.',
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url(test_token),
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'blob URL document is navigated back from history cross-origin.',
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url_no_bfcache(test_token),
+      other_origin: window.origin,
+      name: 'blob URL document is navigated back from history (without bfcache on Firefox) same-origin.',
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url_no_bfcache(test_token),
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'blob URL document is navigated back from history (without bfcache on Firefox) cross-origin.',
+    }),
+  ].map(f => f(token()));
+
+  let async_promise_test = (promise, description) => {
+    async_test(test => {
+      promise(test)
+        .then(() => {test.done();})
+        .catch(test.step_func(error => { throw error; }));
+    }, description);
+  };
+
+  testCases.forEach(testCase => {
+    async_promise_test(async t => {
+      // Create a popup.
+      let popup = window.open();
+
+      // Closing fails sometimes on Firefox:
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1698093
+      t.add_cleanup(() => { popup.close(); });
+
+      // Perform a real navigation in the popup. This is needed because the
+      // initial empty document is not stored in history (so there is no way of
+      // navigating back to it and test history inheritance).
+      const token_1 = token();
+      let loaded_1 = message_from(token_1);
+      popup.location = testCase.other_origin +
+        `/content-security-policy/inheritance/support` +
+        `/postmessage-opener.html?token=${token_1}`;
+      assert_equals(await loaded_1, "ready",
+                    "Could not open and navigate popup.");
+
+      // Navigate to the local scheme document. We need to wait for the
+      // navigation to succeed.
+      let wait = () => t.step_wait(
+        condition = () => {
+          try {
+            return popup.location.href == testCase.url;
+          } catch {}
+          return false;
+        },
+        description = "Wait for the popup to navigate.",
+        timeout=3000,
+        interval=50);
+
+      let message = message_from(testCase.token);
+      popup.location = testCase.url;
+      await wait();
+      if (testCase.add_img_function) {
+        testCase.add_img_function(popup);
+      }
+
+      // Check that the local scheme document inherits CSP from the initiator.
+      assert_equals(await message, "img blocked",
+                    "Image should be blocked by CSP inherited from navigation initiator.");
+
+      const token_2 = token();
+      let loaded_2 = message_from(token_2, "ready");
+      let message_2 = message_from(testCase.token, "img");
+      // Navigate to another page, which will navigate back.
+      popup.location = testCase.other_origin +
+        `/content-security-policy/inheritance/support` +
+        `/message-opener-and-navigate-back.html?token=${token_2}`;
+      assert_equals(await loaded_2, "ready",
+                    "Could not navigate popup.");
+
+      // We need to wait for the history navigation to be performed.
+      await wait();
+
+      // Check that the "about:blank" document reloaded from history has the
+      // original CSPs.
+      if (testCase.add_img_function) {
+        testCase.add_img_function(popup);
+      }
+      assert_equals(await message_2, "img blocked",
+                    "Image should be blocked by CSP reloaded from history.");
+    }, "History navigation: " + testCase.name);
+  });
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS UI Level 4: parsing outline-style with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-style">
+<meta name="assert" content="outline-style supports the full grammar 'auto | <outline-line-style>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("outline-style", "auto");
+
+test_valid_value("outline-style", "none");
+test_valid_value("outline-style", "dotted");
+test_valid_value("outline-style", "dashed");
+test_valid_value("outline-style", "solid");
+test_valid_value("outline-style", "double");
+test_valid_value("outline-style", "groove");
+test_valid_value("outline-style", "ridge");
+test_valid_value("outline-style", "inset");
+test_valid_value("outline-style", "outset");
+</script>
+</body>
+</html>

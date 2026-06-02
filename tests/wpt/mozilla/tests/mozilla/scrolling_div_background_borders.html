@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Background and borders of scrolling div should not scroll</title>
+<link rel="match" href="scrolling_div_background_borders_ref.html">
+<body>
+    <style>
+        #scroller {
+            background: url('scrolling_div_background_borders_background.png'), green;
+            height: 100px;
+            width: 100px;
+            overflow: scroll;
+            border: solid blue 10px;
+        }
+    </style>
+
+    <!-- We are testing that background and borders don't scroll with the content
+         and that the content doesn't overlap the borders when it scrolls. -->
+    <div id="scroller">
+        <div style="width: 100px; height: 200px; background: green;"></div>
+    </div>
+
+    <script>
+            document.getElementById("scroller").scrollTop = 100;
+    </script>
+</body>

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>valueAsNumber stepping</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p>
+    <h3>input_valueAsNumber_stepping</h3>
+    <!-- This test verifies that valueAsNumber reads and writes number values,
+         that those values step by the correct default step, and that the values
+         represent the correct milliseconds/months.
+    -->
+  </p>
+
+  <hr>
+
+  <div id="log"></div>
+
+  <form method="post"
+      enctype="application/x-www-form-urlencoded"
+      action=""
+      name="input_form">
+    <p><input type='date' id='input_date'></p>
+    <p><input type='time' id='input_time'></p>
+    <p><input type='week' id='input_week'></p>
+    <p><input type='month' id='input_month'></p>
+    <p><input type='datetime-local' id='input_datetime-local'></p>
+    <p><input type='range' id='input_range'></p>
+    <p><input type='number' id='input_number'></p>
+  </form>
+
+  <script>
+    function test_stepping(inputType, stringValue, steppedString, baseNumber, stepAmount) {
+       test(function() {
+          // put number in
+          input = document.getElementById("input_" + inputType);
+          input.valueAsNumber = baseNumber
+
+          // get string out
+          // startsWith is here to allow for optional seconds and milliseconds.
+          // the replace("T", " ") fallback is for https://github.com/web-platform-tests/wpt/issues/20994
+          var sanitizedStr = input.value;
+          assert_true(sanitizedStr.startsWith(stringValue) || sanitizedStr.startsWith(stringValue.replace("T", " ")),
+             "The input value [" + sanitizedStr + "] must resemble [" + stringValue + "]");
+
+          // get number out
+          var sanitized = input.valueAsNumber;
+          assert_equals(sanitized, baseNumber, "The input valueAsNumber must equal the original number.")
+
+          // step up, get new date out
+          input.stepUp()
+          var steppedNumber = input.valueAsNumber;
+          assert_equals(steppedNumber, baseNumber + stepAmount, "Stepping must be by the correct amount")
+
+          // get new string out
+          var steppedStrOut = input.value;
+          assert_true(steppedStrOut.startsWith(steppedString) || steppedStrOut.startsWith(steppedString.replace("T", " ")),
+             "The changed input value [" + steppedStrOut + "] must resemble [" + steppedString + "]");
+
+          // step back down, get first date out again
+          input.stepDown()
+          var backDown = input.valueAsNumber;
+          assert_equals(backDown, baseNumber, "Stepping back down must return the number to its original value");
+
+       }, inputType + " should step correctly");
+    }
+
+    var millis_per_day = 24 * 60 * 60 * 1000;
+
+    // jan 1 midnight, step 1 day to jan 2
+    test_stepping("date", "1970-01-01", "1970-01-02", 0, millis_per_day);
+
+    // jan 1 midnight, step 1 minute to 00:01:00
+    test_stepping("time", "00:00", "00:01", 0, 60 * 1000);
+
+    // jan 1 midnight, step 1 month (not counting by milliseconds) to feb 1
+    test_stepping("month", "1970-01", "1970-02", 0, 1);
+
+    // monday jan 5 1970 midnight, step 7 days to jan 12
+    // (this has to start on a monday for stepping up and down to return)
+    test_stepping("week", "1970-W02", "1970-W03", 4 * millis_per_day, 7 * millis_per_day);
+
+    // jan 1 midnight, step 1 minute to 00:01:00
+    test_stepping("datetime-local", "1970-01-01T00:00", "1970-01-01T00:01", 0, 60 * 1000);
+
+    // numbers, for which the default step is 1
+    test_stepping("range", "22", "23", 22, 1);
+    test_stepping("number", "24", "25", 24, 1);
+  </script>
+
+ </body>
+</html>

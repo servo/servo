@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>column-height, column-wrap, spanner</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#cwr">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .row_gap_filler {
+    position: absolute;
+    width: 100px;
+    height: 5px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <div style="columns:2; column-fill:auto; column-height:5px; column-wrap:wrap; gap:5px 0;">
+    <div style="background:green;">
+      <div style="height:20px;"></div>
+      <div style="column-span:all; height:5px; background:green;"></div>
+      <div style="height:10px;"></div>
+      <div style="column-span:all; height:5px; background:green;"></div>
+      <div style="height:20px;"></div>
+      <!-- This spanner takes up almost two rows. -->
+      <div style="column-span:all; height:12px; background:green;"></div>
+      <div style="height:16px;"></div>
+    </div>
+  </div>
+  <div class="row_gap_filler" style="top:5px;"></div>
+  <div class="row_gap_filler" style="top:15px;"></div>
+  <div class="row_gap_filler" style="top:25px;"></div>
+  <div class="row_gap_filler" style="top:35px;"></div>
+  <div class="row_gap_filler" style="top:45px;"></div>
+  <div class="row_gap_filler" style="top:55px;"></div>
+  <div class="row_gap_filler" style="top:65px;"></div>
+  <div class="row_gap_filler" style="top:85px;"></div>
+  <div class="row_gap_filler" style="top:95px;"></div>
+</div>

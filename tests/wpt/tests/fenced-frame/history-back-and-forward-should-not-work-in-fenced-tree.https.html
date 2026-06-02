@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<title>history-back-and-forward-should-not-work-in-fenced-tree</title>
+
+<body>
+  <script>
+    // TODO(crbug.com/1262022): Remove references to ShadowDOM now that the
+    // implementation is obsolete.
+    const test_desc = "history.back() and history.forward() should be " +
+                      "restricted within a fenced tree in shadowDOM thus have" +
+                      " no effect when called within a fenced tree scope.";
+    const history_navigation_performed_key = token();
+    const outer_page_ready_key = token();
+
+    // attach a fenced frame to exeute a series of back and forward history
+    // navigations.
+    attachFencedFrame(
+        generateURL(
+            "resources/history-back-and-forward-should-not-work-in-" +
+            "fenced-tree-inner.html",
+            [history_navigation_performed_key, outer_page_ready_key]));
+
+    promise_test(async function () {
+      await nextValueFromServer(history_navigation_performed_key);
+
+      // Perform a series of history.pushState() to help observe any popstate due
+      // to back and forward history navigations.
+      window.history.pushState(1, document.title, '#tag1');
+      window.history.pushState(2, document.title, '#tag2');
+      window.history.pushState(3, document.title, '#tag3');
+
+      writeValueToServer(outer_page_ready_key, "yes");
+
+      // Assert restricted history.back() within fenced frame.
+      await nextValueFromServer(history_navigation_performed_key);
+      assert_equals(window.history.state, 3, "history.back() should be " +
+        "restricted and will not work when called from a fenced frame.");
+
+      writeValueToServer(outer_page_ready_key, "yes");
+
+      // Assert restricted history.forward() within fenced frame.
+      await nextValueFromServer(history_navigation_performed_key);
+      assert_equals(window.history.state, 3, "history.forward() should be " +
+        "restricted and will not work when called from a fenced frame.");
+
+      writeValueToServer(outer_page_ready_key, "yes");
+
+      // Assert restricted history.back() within iframe in fenced frame.
+      await nextValueFromServer(history_navigation_performed_key);
+      assert_equals(window.history.state, 3, "history.back() should be " +
+        "restricted and will not work within an iframe embeeded in a fenced " +
+        "frame.");
+
+      writeValueToServer(outer_page_ready_key, "yes");
+
+      // Assert restricted history.forward() within iframe in fenced frame.
+      await nextValueFromServer(history_navigation_performed_key);
+      assert_equals(window.history.state, 3, "history.forward() should be " +
+        "restricted and will not work within an iframe embeeded in a fenced " +
+        "frame.");
+    }, test_desc);
+  </script>
+</body>
+</html>

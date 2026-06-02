@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'border-bottom-radius' with invalid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-sizing">
+<meta name="assert"
+  content="This test checks that 'border-bottom-radius' supports only the syntax <length-percentage [0,∞]>{1,2} [ / <length-percentage [0,∞]>{1,2} ]?.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("border-bottom-radius", "auto");
+test_invalid_value("border-bottom-radius", "none");
+test_invalid_value("border-bottom-radius", "1px 2px 3px");
+test_invalid_value("border-bottom-radius", "-1px");
+test_invalid_value("border-bottom-radius", "1px -2px");
+test_invalid_value("border-bottom-radius", "1em /");
+test_invalid_value("border-bottom-radius", "1px / 2px 3px 4px");
+test_invalid_value("border-bottom-radius", "1px / 2px / 3px");
+test_invalid_value("border-bottom-radius", "4");
+test_invalid_value("border-bottom-radius", "4 / 5");
+</script>

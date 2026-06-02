@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Test: mask-image: url(remote.svg#mask)</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#mask-layer-image">
+<link rel="match" href="reference/mask-image-ref.html">
+<meta name="assert" content="mask-image can use reference to a &lt;mask&gt; element from a remote SVG document">
+<style>
+#back {
+  position: absolute;
+  box-sizing: border-box;
+  width: 200px;
+  height: 200px;
+  border: 60px solid green;
+  background: red;
+}
+#front {
+  position: absolute;
+  box-sizing: border-box;
+  width: 200px;
+  height: 200px;
+  border: 40px solid red;
+  background: green;
+  mask-image: url(support/mask.svg#mask);
+}
+</style>
+<p>The test passes if there is a green square and no red below.</p>
+<div id="back"></div><div id="front"></div>

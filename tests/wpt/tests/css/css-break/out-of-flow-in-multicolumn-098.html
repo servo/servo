@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>
+  OOFs and column balancing with a spanner and the CB breaks across the spanner.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="height:200px; width:200px; background:red;"></div>
+<div style="width:200px; columns:2; column-rule:20px solid green; margin-top:-300px; position:relative;">
+  <div style="position:relative;">
+    <div style="contain:size; height:80px;"></div>
+    <div style="column-span:all; height:20px;"></div>
+    <div style="contain:size; height:100px; width:100%; background:green;"></div>
+    <div style="contain:size; height:100px; width:100%; background:green;"></div>
+    <div style="position:absolute; width:100%; height:100px; background:green;"></div>
+  </div>
+  <div style="position:absolute; bottom:0; right:0; width:90px; height:100px; background:green;"></div>
+</div>

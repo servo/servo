@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver multiple consecutive clicks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button type="button" id="button1">Button 1</button>
+<button type="button" id="button2">Button 2</button>
+<button type="button" id="button3">Button 3</button>
+
+<script>
+buttons = [
+  document.getElementById("button1"),
+  document.getElementById("button2"),
+  document.getElementById("button3"),
+];
+
+promise_test(async t => {
+  clicked = [false, false, false];
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", () => {
+      clicked[i] = true;
+    });
+  }
+
+  await Promise.all([
+    test_driver.click(buttons[0]),
+    test_driver.click(buttons[1]),
+    test_driver.click(buttons[2]),
+  ]);
+
+  assert_true(clicked[0]);
+  assert_true(clicked[1]);
+  assert_true(clicked[2]);
+});
+</script>

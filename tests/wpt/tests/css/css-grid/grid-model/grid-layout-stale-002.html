@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Grid: Do not leave stale pointers into the grid container</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://crbug.com/313293">
+<link rel="match" href="reference/grid-layout-stale-002-ref.html">
+<meta name="assert" content="Check that we don't leave stale pointers into the internal grid representation."/>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<p>This test passes if it doesn't crash and it matches the reference.</p>
+<span style="display: grid" contenteditable=plaintext-only></span>
+<script>
+function keyPress(key) {
+  let actions = new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key);
+
+  return actions.send();
+}
+function crash() {
+    keyPress("\t");
+    keyPress("X");
+    document.designMode = 'on';
+    document.execCommand("InsertHTML", false, "<div>");
+}
+document.addEventListener("DOMContentLoaded", crash, false);
+</script>

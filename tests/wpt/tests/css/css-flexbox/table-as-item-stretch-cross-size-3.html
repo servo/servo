@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=799725">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The table's cross-axis (inline-size) is stretched while the main-axis is not growing.">
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex; flex-direction: column; width: 100px; background: red;">
+  <table style="border-spacing: 0; height: 90px;">
+    <caption style="height: 10px; background: green;"></caption>
+    <td style="background: green;"></td>
+  </table>
+</div>

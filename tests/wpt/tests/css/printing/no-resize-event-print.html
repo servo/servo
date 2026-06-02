@@ -1,0 +1,10 @@
+<!doctype html>
+<title>No resize event on the original page when printing</title>
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-4/#valdef-media-print">
+<link rel="match" href="no-resize-event-ref.html">
+<div id="target">PASS</div>
+<script>
+window.addEventListener("resize", function() {
+  document.getElementById("target").innerHTML = `FAIL: ${window.innerWidth}x${window.innerHeight}`;
+})
+</script>

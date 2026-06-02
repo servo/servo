@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<link rel="help" href="https://issues.chromium.org/383593255">
+<link rel="match" href="dynamic-change-with-slotted-text-ref.html">
+
+<div>
+$$\text{math}$$
+after
+<p></p>
+</div>
+
+<script>
+
+let div = document.querySelector("div");
+let shadow = div.attachShadow({mode: "open"});
+shadow.innerHTML = "<slot style='display:block;content-visibility: hidden'></slot>";
+let slot = shadow.querySelector("slot");
+
+requestAnimationFrame(() => {
+  getComputedStyle(div.querySelector("p")).width;
+  let t1 = div.firstChild;
+  let t2 = t1.splitText(1);
+  let t3 = t2.splitText(15);
+  let d = document.createElement("div");
+  d.innerText = "math";
+  t2.replaceWith(d);
+  requestAnimationFrame(() => {
+    slot.style.contentVisibility = "";
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>

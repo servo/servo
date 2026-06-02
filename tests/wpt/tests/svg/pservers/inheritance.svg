@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>Inheritance of SVG paint server properties</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html"/>
+    <h:meta name="assert" content="properties inherit according to the spec."/>
+    <h:meta name="assert" content="properties have expected initial values."/>
+  </metadata>
+  <g id="container">
+      <g id="target"></g>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/inheritance-testcommon.js"/>
+  <script><![CDATA[
+assert_not_inherited('stop-color', 'rgb(0, 0, 0)', 'rgb(42, 53, 64)');
+assert_not_inherited('stop-opacity', '1', '0.5');
+  ]]></script>
+</svg>

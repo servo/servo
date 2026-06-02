@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Dynamic MathML DOM</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript"/>
+<link rel="match" href="dynamic-1-ref.html"/>
+<meta name="assert" content="Verify that the MathML DOM tree can be modified via javascript and that the rendering is correctly updated.">
+<style>
+  mtext.fail { background: red; color: white; }
+  mtext.pass { background: green; color: white; }
+</style>
+<script>
+  window.addEventListener("DOMContentLoaded", function() {
+    var kMathMLNamespace = "http://www.w3.org/1998/Math/MathML";
+    var mtext = document.createElementNS(kMathMLNamespace, "mtext");
+    mtext.setAttribute("class", "pass");
+    mtext.textContent = "PASS";
+    var math = document.getElementsByTagNameNS(kMathMLNamespace, "math")[0];
+    math.replaceChild(mtext, math.firstElementChild);
+  });
+</script>
+</head>
+<body>
+  <p>Test passes if you see the text "PASS".</p>
+  <math>
+    <mtext class="fail">FAIL</mtext>
+  </math>
+</body>
+</html>

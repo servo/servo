@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+"use strict";
+promise_test(async t => {
+  const sentinelIframe = await setupSentinelIframe(t);
+  const startingHistoryLength = history.length;
+
+  const code = `
+    window.onload = () => { window.onloadFired = true; };
+  `;
+  const startURL = "resources/slow-code-injector.html?pipe=sub(none)&code=" + encodeURIComponent(code);
+  const afterReplacementURL = "/common/blank.html?thereplacement";
+  const iframe = insertIframe(t, startURL);
+
+  assert_equals(history.length, startingHistoryLength, "Inserting the under-test iframe must not change history.length");
+
+  const absoluteStartURL = (new URL(startURL, location.href)).href;
+  while (true) {
+    if (iframe.contentWindow.location.href === absoluteStartURL) {
+      break;
+    }
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  assert_equals(iframe.contentWindow.location.href, (new URL(startURL, location.href)).href, "Iframe must be navigated away from the initial about:blank document");
+  assert_equals(iframe.contentWindow.onloadFired, undefined, "onload must not yet have fired");
+
+  iframe.src = afterReplacementURL;
+
+  await checkSentinelIframe(t, sentinelIframe);
+  assert_equals(history.length, startingHistoryLength, "history.length must not change after checking the sentinel iframe");
+}, "Replace before load, triggered by setting iframeElement.src");
+</script>

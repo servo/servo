@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Myles C. Maxfield" href="mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading-3/#font-face-css-connection">
+<meta name="assert" content="Ensure that a file URL in a font-face block appears in document.fonts." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "WebFont";
+    src: url("file://ThisIsNotARealFile.otf") format("opentype");
+}
+</style>
+<script>
+test(function(t) {
+    assert_equals(document.fonts.size, 1, "A nonexistent file URL should appear in document.fonts.");
+});
+</script>
+</html>

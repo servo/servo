@@ -1,0 +1,30 @@
+<!-- This test creates one table, one caption, three rows, three header cells, and six data cells.
+     The table uses fixed table layout algorithm and the table's width specified to 600px.
+     Each column should have same width because the column's widths are not defined here.
+     And table, caption, td, th elements have border. -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Fixed Table</title>
+    <style>
+      table {
+        table-layout: fixed;
+        width: 600px;
+        border: solid black 2px;
+      }
+      caption { border: solid blue 1px; }
+      td { border: solid red 1px; }
+      th { border: solid red 1px; }
+    </style>
+  </head>
+  <body>
+    <table>
+        <caption>This is a 3x3 fixed table</caption>
+        <tbody>
+          <tr><th>Header 1</th><td>Cell 1</td><td>Cell 2</td></tr>
+          <tr><th>Header 2</th><td>Cell 3</td><td>Cell 4</td></tr>
+          <tr><th>Header 3</th><td>Cell 5</td><td>Cell 6</td></tr>
+        </tbody>
+    </table>
+  </body>
+<html>

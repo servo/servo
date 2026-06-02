@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+
+#container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.byteBox {
+    width: 9px;
+    font-size: 9px;
+}
+
+.inlineBlock {
+    font-family: Ahem;
+    width: 100%;
+    display: inline-block;
+}
+
+</style>
+</head>
+<body>
+
+<div id="container" style="">
+</div>
+
+</body>
+<script>
+
+var nbsp = '\u00A0';
+
+function setupTest()
+{
+    var container = document.getElementById("container");
+    for (var i = 0; i < 200; i++) {
+        var div = document.createElement("div");
+        div.className = "byteBox";
+        var span = document.createElement("span");
+        span.className = "inlineBlock";
+        span.innerText = nbsp;
+        div.appendChild(span);
+        container.appendChild(div);
+    };
+    PerfTestRunner.forceLayout();
+};
+
+setupTest();
+
+var switcher = true;
+
+function runTest()
+{
+    var inlineBlocks = document.getElementsByClassName("inlineBlock");
+    for (var i = inlineBlocks.length - 1; i >= 0; i--) {
+        inlineBlocks[i].innerText = switcher ? " " : nbsp;
+        PerfTestRunner.forceLayout();
+    };
+    switcher = !switcher;
+};
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of flexbox containing many small elements with wrapping (column).",
+    run: runTest
+});
+</script>
+</html>

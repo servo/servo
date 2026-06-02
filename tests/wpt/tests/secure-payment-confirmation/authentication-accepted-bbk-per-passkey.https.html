@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - browser bound key per passkey</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#sctn-binding-a-keypair">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=../webauthn/resources/common-inputs.js></script>
+<script src=../webauthn/resources/utils.js></script>
+<script src="utils.sub.js"></script>
+<script src="utils-bbk.js"></script>
+<script>
+'use strict';
+
+async function payWithPasskey(passkey) {
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [passkey.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      payeeOrigin,
+      rpId: window.location.hostname,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: ICON_URL,
+      },
+    }
+  }], PAYMENT_DETAILS);
+  await test_driver.bless('user activation');
+  const response = await request.show();
+  return response;
+}
+
+promise_test(async t => {
+  await window.test_driver.add_virtual_authenticator(
+    AUTHENTICATOR_OPTS)
+    .then(authenticator => {
+      t.add_cleanup(() => {
+        return window.test_driver.remove_virtual_authenticator(authenticator);
+      });
+    });
+
+  await window.test_driver.set_spc_transaction_mode("autoAccept")
+    .then(_ => {
+      t.add_cleanup(() => {
+        return window.test_driver.set_spc_transaction_mode("none");
+      });
+    });
+
+  const enrollmentBrowserBoundPubKeyCredParams = [{
+    type: "public-key",
+    alg: 0 // "Reserved": User agent should not create a key at credential enrollment.
+  }];
+
+  const credential1 = await createCredential(/*set_payment_extension=*/true, {
+    browserBoundPubKeyCredParams: enrollmentBrowserBoundPubKeyCredParams,
+  });
+  assertNoBrowserBoundPublicKeyInCredential(credential1);
+  const instrumentResponse1 = await payWithPasskey(credential1);
+  await instrumentResponse1.complete('success');
+  const browserBoundPublicKey1 = getBrowserBoundPublicKeyFromCredential(instrumentResponse1.details);
+
+  const credential2 = await createCredential(/*set_payment_extension=*/true, {
+    browserBoundPubKeyCredParams: enrollmentBrowserBoundPubKeyCredParams,
+  });
+  assertNoBrowserBoundPublicKeyInCredential(credential2);
+  const instrumentResponse2 = await payWithPasskey(credential2);
+  await instrumentResponse2.complete('success');
+  const browserBoundPublicKey2 = getBrowserBoundPublicKeyFromCredential(instrumentResponse2.details);
+
+  if (browserBoundPublicKey1 === undefined && browserBoundPublicKey2 === undefined) {
+    return;
+  }
+  assert_not_equals(browserBoundPublicKey1, browserBoundPublicKey2,
+    'The browser bound key must be different for different passkeys.');
+}, 'If a browser bound keys are created on authentication then a different browser bound key is created for a different passkey');
+</script>

@@ -1,0 +1,10 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    test(t => {
+      assert_equals(window.sharedStorage, undefined);
+    }, 'test window.sharedStorage in insecure context');
+  </script>
+</body>

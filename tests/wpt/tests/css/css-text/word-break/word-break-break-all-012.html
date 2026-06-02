@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: word-break: break-all</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<meta name="flags" content="ahem">
+<link rel="match" href="reference/word-break-break-all-010-ref.html">
+<meta name="assert" content="The word is broken even if white-space: break-spaces provides a former breaking opportunity in leading white-space.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  position: relative;
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+}
+.red {
+  position: absolute;
+  background: green;
+  color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+  white-space: pre;
+}
+.test {
+  color: green;
+  width: 5ch;
+
+  white-space: break-spaces;
+  word-break: break-all;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div class="red"> XXXX<br>X</div>
+  <div class="test"> XXXXX</div>
+</body>

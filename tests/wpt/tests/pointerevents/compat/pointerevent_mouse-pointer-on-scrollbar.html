@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<style>
+#target {
+  height: 100px;
+  width: 100px;
+  overflow-y: scroll;
+}
+#spacer {
+  background: green;
+  height: 200px;
+}
+</style>
+<h1>Verifies that pointerup/down are fired correctly for corresponding mouse events on the scollbar.</h1>
+<div id="target">
+<div id="spacer"></div>
+</div>
+
+<div id="console"></div>
+
+<script>
+var receivedEvents = [];
+var targetDiv = document.getElementById('target');
+
+function init() {
+  var eventList = ["mousedown", "mouseup", "pointerdown", "pointerup"];
+  eventList.forEach(function(eventName) {
+    targetDiv.addEventListener(eventName, function(event) {
+      receivedEvents.push(event.type + "@target");
+    });
+  });
+}
+
+function performActions(x, y){
+  return new test_driver.Actions()
+        .pointerMove(0, 0)
+        .pointerMove(x, y)
+        .pointerDown(0)
+        .pointerUp(0)
+        .send()
+        .then(()=>resolveWhen(()=>receivedEvents.length == 4));
+}
+
+function runTests() {
+  var rect = targetDiv.getBoundingClientRect();
+  var x1 = rect.right - 5;
+  var y1 = rect.top + 20;
+
+  test(function(){
+    assert_equals(targetDiv, document.elementFromPoint(x1,y1),
+      "Didn't hit the scrollbar as expected");
+  }, `Test point (${x1},${y1}) is on the scrollbar`);
+
+  promise_test(async () => {
+    await performActions(Math.ceil(x1), Math.ceil(y1));
+    assert_array_equals(receivedEvents, ["pointerdown@target", "mousedown@target",
+      "pointerup@target", "mouseup@target"]);
+  }, "Verifies that pointerup/down are fired correctly for corresponding mouse events on the scollbar.");
+}
+
+init();
+runTests();
+</script>

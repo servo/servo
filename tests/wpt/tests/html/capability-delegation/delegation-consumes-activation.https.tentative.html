@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+     https://github.com/whatwg/html/issues/4008
+-->
+<title>Capability Delegation: Consumes User Activation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+
+<div>
+  Test that capability delegation consumes transient user activation.
+
+  https://wicg.github.io/capability-delegation/spec.html
+</div>
+
+<iframe width="300px" height="50px"></iframe>
+
+<script>
+  function sendCapabilityDelegationMessageIgnoringException(origin, capability) {
+      try {
+          frames[0].postMessage("any_message", {targetOrigin: origin, delegate: capability});
+      } catch (e) {}
+  }
+
+  let capability_to_delegate;
+
+  promise_setup(async () => {
+      capability_to_delegate = await findOneCapabilitySupportingDelegation();
+      assert_true(!!capability_to_delegate, "The user agent supports delegating at least one capability");
+  });
+
+  promise_test(async () => {
+      assert_false(navigator.userActivation.isActive);
+
+      await test_driver.bless();
+      assert_true(navigator.userActivation.isActive, "User activation is available initially");
+
+      sendCapabilityDelegationMessageIgnoringException("/", "blah");
+      assert_true(navigator.userActivation.isActive,
+                  "User activation is not consumed by delegation of an unknown delegation");
+
+      sendCapabilityDelegationMessageIgnoringException("*", capability_to_delegate);
+      assert_true(navigator.userActivation.isActive,
+                  "User activation is not consumed by known delegation to disallowed targetOrigin");
+
+      sendCapabilityDelegationMessageIgnoringException("/", capability_to_delegate);
+      assert_false(navigator.userActivation.isActive,
+                   "User activation is consumed by supported delegation");
+
+  }, "Capability delegation consumes transient user activation");
+</script>

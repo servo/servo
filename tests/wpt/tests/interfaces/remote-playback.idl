@@ -1,0 +1,32 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Remote Playback API (https://w3c.github.io/remote-playback/)
+
+[Exposed=Window]
+interface RemotePlayback : EventTarget {
+  Promise<long> watchAvailability(RemotePlaybackAvailabilityCallback callback);
+  Promise<undefined> cancelWatchAvailability(optional long id);
+
+  readonly attribute RemotePlaybackState state;
+
+  attribute EventHandler onconnecting;
+  attribute EventHandler onconnect;
+  attribute EventHandler ondisconnect;
+
+  Promise<undefined> prompt();
+};
+
+enum RemotePlaybackState {
+  "connecting",
+  "connected",
+  "disconnected"
+};
+
+callback RemotePlaybackAvailabilityCallback = undefined(boolean available);
+
+partial interface HTMLMediaElement {
+  [SameObject] readonly attribute RemotePlayback remote;
+
+  [CEReactions] attribute boolean disableRemotePlayback;
+};

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'box-shadow' respects 'currentcolor'</title>
+    <link rel="author" title="Dan Glastonbury" href="mailto:dglastonbury@mozilla.com" />
+    <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-box-shadow" />
+    <link rel="help" href="https://www.w3.org/TR/css-color-3/#currentcolor" />
+    <link rel="match" href="box-shadow-currentcolor-ref.html" />
+    <style type="text/css">
+     div {
+         color: transparent;
+         padding: 40px;
+         box-shadow: 10px 5px 5px currentcolor;
+     }
+
+     p {
+         padding: 2em;
+         border: 1px solid currentcolor;
+         box-shadow: inherit;
+     }
+    </style>
+  </head>
+  <body>
+    <!-- content of test -->
+    <div>
+      <p style="color: limegreen">
+          This box should have a green box shadow.
+      </p>
+    </div>
+  </body>
+</html>

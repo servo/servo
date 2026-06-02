@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Use correct box-sizing when calculating block size</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#valdef-aspect-ratio-auto--ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="CSS aspect-ratio: Use correct box-sizing when calculating block size.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; width: 100px; aspect-ratio: auto 1/1; box-sizing: border-box; padding-top:10px; padding-left: 50px">
+    <div style="height: 90px"></div>
+</div>

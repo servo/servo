@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: justify-self on block-level widgets</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+
+<style>
+.widget {
+  float: left;
+  clear: both;
+  width: auto;
+  box-sizing: border-box;
+}
+</style>
+
+<input class="widget">
+<input class="widget">
+<input class="widget" style="float: right">
+<input class="widget" style="width: 100%">
+
+<select class="widget"></select>
+<select class="widget"></select>
+<select class="widget" style="float: right"></select>
+<select class="widget" style="width: 100%"></select>
+
+<textarea class="widget"></textarea>
+<textarea class="widget"></textarea>
+<textarea class="widget" style="float: right"></textarea>
+<textarea class="widget" style="width: 100%"></textarea>

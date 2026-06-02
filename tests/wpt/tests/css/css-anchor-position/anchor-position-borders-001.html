@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.cb {
+  position: relative;
+  border-bottom: 2px solid gray;
+}
+.not-positioned-cb {
+  transform: translate(0, 0);  /* Make it a containing block. */
+}
+.margins { margin: 5px 6px 7px 8px; }
+.borders { border-width: 5px 6px 7px 8px; border-style: solid; }
+.paddings { padding: 5px 6px 7px 8px; }
+.spacer {
+  height: 9px;
+}
+.anchor1 {
+  anchor-name: --a1;
+  margin-left: 50px;
+  width: 31px;
+  height: 31px;
+  background: blue;
+}
+.target {
+  position: absolute;
+  left: anchor(--a1 left);
+  right: anchor(--a1 right);
+  top: anchor(--a1 top);
+  bottom: anchor(--a1 bottom);
+  background: orange;
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!-- Margins/borders/paddings on the containing block. -->
+  <div class="cb margins">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb borders">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb paddings">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target"
+         data-offset-x=58 data-offset-y=14
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+
+  <!-- Margins/borders/paddings on the nested containing block. -->
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="not-positioned-cb margins">
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"
+         data-offset-x=58 data-offset-y=14
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="not-positioned-cb borders">
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"
+         data-offset-x=58 data-offset-y=14
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="not-positioned-cb paddings">
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"
+         data-offset-x=58 data-offset-y=14
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+
+  <!-- Margins/borders/paddings on the anchor. -->
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1 margins"></div>
+    <div class="target"
+         data-offset-x=50 data-offset-y=14
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1 borders"></div>
+    <div class="target"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=45 data-expected-height=43></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1 paddings"></div>
+    <div class="target"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=45 data-expected-height=43></div>
+  </div>
+
+  <!-- Margins/borders/paddings on the querying element. -->
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target margins"
+         data-offset-x=58 data-offset-y=14
+         data-expected-width=17 data-expected-height=19></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target borders"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+  <div class="cb">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target paddings"
+         data-offset-x=50 data-offset-y=9
+         data-expected-width=31 data-expected-height=31></div>
+  </div>
+</body>

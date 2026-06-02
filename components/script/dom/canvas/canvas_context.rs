@@ -1,0 +1,400 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Common interfaces for Canvas Contexts
+
+use euclid::default::Size2D;
+use pixels::Snapshot;
+use script_bindings::root::{Dom, DomRoot};
+use webrender_api::ImageKey;
+
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::node::{Node, NodeTraits};
+#[cfg(feature = "webgpu")]
+use crate::dom::types::GPUCanvasContext;
+use crate::dom::types::{
+    CanvasRenderingContext2D, HTMLCanvasElement, ImageBitmapRenderingContext, OffscreenCanvas,
+    OffscreenCanvasRenderingContext2D, WebGL2RenderingContext, WebGLRenderingContext,
+};
+
+/// Non rooted variant of [`crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas`]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum HTMLCanvasElementOrOffscreenCanvas {
+    HTMLCanvasElement(Dom<HTMLCanvasElement>),
+    OffscreenCanvas(Dom<OffscreenCanvas>),
+}
+
+impl HTMLCanvasElementOrOffscreenCanvas {
+    pub(crate) fn mark_as_dirty(&self) {
+        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = self {
+            canvas.owner_document().mark_canvas_as_dirty(canvas);
+        }
+    }
+}
+
+impl From<&RootedHTMLCanvasElementOrOffscreenCanvas> for HTMLCanvasElementOrOffscreenCanvas {
+    /// Returns a traced version suitable for use as member of other DOM objects.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn from(
+        value: &RootedHTMLCanvasElementOrOffscreenCanvas,
+    ) -> HTMLCanvasElementOrOffscreenCanvas {
+        match value {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas.as_traced())
+            },
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas.as_traced())
+            },
+        }
+    }
+}
+
+impl From<&HTMLCanvasElementOrOffscreenCanvas> for RootedHTMLCanvasElementOrOffscreenCanvas {
+    /// Returns a rooted version suitable for use on the stack.
+    fn from(
+        value: &HTMLCanvasElementOrOffscreenCanvas,
+    ) -> RootedHTMLCanvasElementOrOffscreenCanvas {
+        match value {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas.as_rooted())
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas.as_rooted())
+            },
+        }
+    }
+}
+
+pub(crate) trait CanvasContext {
+    type ID;
+
+    fn context_id(&self) -> Self::ID;
+
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas>;
+
+    fn resize(&self);
+
+    // Resets the backing bitmap (to transparent or opaque black) without the
+    // context state reset.
+    // Used by OffscreenCanvas.transferToImageBitmap.
+    fn reset_bitmap(&self);
+
+    /// Returns none if area of canvas is zero.
+    ///
+    /// In case of other errors it returns cleared snapshot
+    fn get_image_data(&self) -> Option<Snapshot>;
+
+    fn origin_is_clean(&self) -> bool {
+        true
+    }
+
+    fn size(&self) -> Size2D<u32> {
+        self.canvas()
+            .map(|canvas| canvas.size())
+            .unwrap_or_default()
+    }
+
+    fn mark_as_dirty(&self);
+
+    fn onscreen(&self) -> bool {
+        let Some(canvas) = self.canvas() else {
+            return false;
+        };
+
+        match canvas {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.upcast::<Node>().is_connected()
+            },
+            // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
+            // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
+        }
+    }
+}
+
+pub(crate) trait CanvasHelpers {
+    fn size(&self) -> Size2D<u32>;
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>>;
+}
+
+impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.get_size().cast()
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
+    }
+
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>> {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                Some(canvas.as_rooted())
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),
+        }
+    }
+}
+
+impl CanvasHelpers for RootedHTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.get_size().cast()
+            },
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
+    }
+
+    fn canvas(&self) -> Option<DomRoot<HTMLCanvasElement>> {
+        match self {
+            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                Some(canvas.clone())
+            },
+            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                canvas.placeholder()
+            },
+        }
+    }
+}
+
+/// Non rooted variant of [`crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::RenderingContext`]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum RenderingContext {
+    Placeholder(Dom<OffscreenCanvas>),
+    Context2d(Dom<CanvasRenderingContext2D>),
+    BitmapRenderer(Dom<ImageBitmapRenderingContext>),
+    WebGL(Dom<WebGLRenderingContext>),
+    WebGL2(Dom<WebGL2RenderingContext>),
+    #[cfg(feature = "webgpu")]
+    WebGPU(Dom<GPUCanvasContext>),
+}
+
+impl RenderingContext {
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        match self {
+            RenderingContext::Placeholder(_) => {
+                unreachable!("Should never set an `ImageKey` on a Placeholder")
+            },
+            RenderingContext::Context2d(context) => context.set_image_key(image_key),
+            RenderingContext::BitmapRenderer(_) => {
+                unreachable!("Should never set an `ImageKey` on a ImageBitmapRenderingContext")
+            },
+            RenderingContext::WebGL(context) => context.set_image_key(image_key),
+            RenderingContext::WebGL2(context) => context.set_image_key(image_key),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.set_image_key(image_key),
+        }
+    }
+}
+
+impl CanvasContext for RenderingContext {
+    type ID = ();
+
+    fn context_id(&self) -> Self::ID {}
+
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas.context()?.canvas(),
+            RenderingContext::Context2d(context) => context.canvas(),
+            RenderingContext::BitmapRenderer(context) => context.canvas(),
+            RenderingContext::WebGL(context) => context.canvas(),
+            RenderingContext::WebGL2(context) => context.canvas(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.canvas(),
+        }
+    }
+
+    fn resize(&self) {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.resize()
+                }
+            },
+            RenderingContext::Context2d(context) => context.resize(),
+            RenderingContext::BitmapRenderer(context) => context.resize(),
+            RenderingContext::WebGL(context) => context.resize(),
+            RenderingContext::WebGL2(context) => context.resize(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.resize(),
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.reset_bitmap()
+                }
+            },
+            RenderingContext::Context2d(context) => context.reset_bitmap(),
+            RenderingContext::BitmapRenderer(context) => context.reset_bitmap(),
+            RenderingContext::WebGL(context) => context.reset_bitmap(),
+            RenderingContext::WebGL2(context) => context.reset_bitmap(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.reset_bitmap(),
+        }
+    }
+
+    fn get_image_data(&self) -> Option<Snapshot> {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                offscreen_canvas.context()?.get_image_data()
+            },
+            RenderingContext::Context2d(context) => context.get_image_data(),
+            RenderingContext::BitmapRenderer(context) => context.get_image_data(),
+            RenderingContext::WebGL(context) => context.get_image_data(),
+            RenderingContext::WebGL2(context) => context.get_image_data(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.get_image_data(),
+        }
+    }
+
+    fn origin_is_clean(&self) -> bool {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_none_or(|context| context.origin_is_clean()),
+            RenderingContext::Context2d(context) => context.origin_is_clean(),
+            RenderingContext::BitmapRenderer(context) => context.origin_is_clean(),
+            RenderingContext::WebGL(context) => context.origin_is_clean(),
+            RenderingContext::WebGL2(context) => context.origin_is_clean(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.origin_is_clean(),
+        }
+    }
+
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .map(|context| context.size())
+                .unwrap_or_default(),
+            RenderingContext::Context2d(context) => context.size(),
+            RenderingContext::BitmapRenderer(context) => context.size(),
+            RenderingContext::WebGL(context) => context.size(),
+            RenderingContext::WebGL2(context) => context.size(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.size(),
+        }
+    }
+
+    fn mark_as_dirty(&self) {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.mark_as_dirty()
+                }
+            },
+            RenderingContext::Context2d(context) => context.mark_as_dirty(),
+            RenderingContext::BitmapRenderer(context) => context.mark_as_dirty(),
+            RenderingContext::WebGL(context) => context.mark_as_dirty(),
+            RenderingContext::WebGL2(context) => context.mark_as_dirty(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.mark_as_dirty(),
+        }
+    }
+
+    fn onscreen(&self) -> bool {
+        match self {
+            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
+                .context()
+                .is_some_and(|context| context.onscreen()),
+            RenderingContext::Context2d(context) => context.onscreen(),
+            RenderingContext::BitmapRenderer(context) => context.onscreen(),
+            RenderingContext::WebGL(context) => context.onscreen(),
+            RenderingContext::WebGL2(context) => context.onscreen(),
+            #[cfg(feature = "webgpu")]
+            RenderingContext::WebGPU(context) => context.onscreen(),
+        }
+    }
+}
+
+/// Non rooted variant of [`crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::OffscreenRenderingContext`]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum OffscreenRenderingContext {
+    Context2d(Dom<OffscreenCanvasRenderingContext2D>),
+    BitmapRenderer(Dom<ImageBitmapRenderingContext>),
+    // WebGL(Dom<WebGLRenderingContext>),
+    // WebGL2(Dom<WebGL2RenderingContext>),
+    // #[cfg(feature = "webgpu")]
+    // WebGPU(Dom<GPUCanvasContext>),
+    Detached,
+}
+
+impl CanvasContext for OffscreenRenderingContext {
+    type ID = ();
+
+    fn context_id(&self) -> Self::ID {}
+
+    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.canvas(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.canvas(),
+            OffscreenRenderingContext::Detached => None,
+        }
+    }
+
+    fn resize(&self) {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.resize(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.resize(),
+            OffscreenRenderingContext::Detached => {},
+        }
+    }
+
+    fn reset_bitmap(&self) {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.reset_bitmap(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.reset_bitmap(),
+            OffscreenRenderingContext::Detached => {},
+        }
+    }
+
+    fn get_image_data(&self) -> Option<Snapshot> {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.get_image_data(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.get_image_data(),
+            OffscreenRenderingContext::Detached => None,
+        }
+    }
+
+    fn origin_is_clean(&self) -> bool {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.origin_is_clean(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.origin_is_clean(),
+            OffscreenRenderingContext::Detached => true,
+        }
+    }
+
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.size(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.size(),
+            OffscreenRenderingContext::Detached => Size2D::default(),
+        }
+    }
+
+    fn mark_as_dirty(&self) {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.mark_as_dirty(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.mark_as_dirty(),
+            OffscreenRenderingContext::Detached => {},
+        }
+    }
+
+    fn onscreen(&self) -> bool {
+        match self {
+            OffscreenRenderingContext::Context2d(context) => context.onscreen(),
+            OffscreenRenderingContext::BitmapRenderer(context) => context.onscreen(),
+            OffscreenRenderingContext::Detached => false,
+        }
+    }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const log = [];
+</script>
+</script>
+<script type="module">
+import '../resources/../resources/log.js?pipe=sub&name=a';
+</script>
+<script type="importmap">
+{
+  "scopes": {
+    "/": {
+      "../resources/log.js?pipe=sub&name=a": "../resources/log.js?pipe=sub&name=b"
+    }
+  }
+}
+</script>
+<script type="module">
+promise_test(async () => {
+  await import("../resources/log.js?pipe=sub&name=a");
+  assert_array_equals(log, ["log:a"]);
+},
+"import map should not override already resolved URL, even if spelled differently");
+</script>
+

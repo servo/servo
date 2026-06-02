@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraints-fixedblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that LayoutConstraints#fixedBlockSize is passed into the layout function correctly." />
+<style>
+iframe { border: none; width: 200px; height: 200px; }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<script>
+// For this test we load a quirky iframe with the test file.
+// We can control the auto size of the iframe body element by setting the iframe height.
+const iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+iframe.addEventListener('load', () => {
+  importWorkletAndTerminateTestAfterAsyncPaint(
+    iframe.contentWindow.CSS.layoutWorklet, {url: 'constraints-fixed-block-size.js'});
+});
+iframe.src = 'support/constraints-fixed-block-size-quirky-body-iframe.html';
+</script>

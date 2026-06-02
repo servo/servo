@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): em on Multiple Elements</title>
+    <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content="This tests that when a 'transform' rule using
+    em affects two elements with different font-sizes, it affects each
+    according to its respective font-size, rather than using the same length
+    for both.  See: https://bugzilla.mozilla.org/show_bug.cgi?id=460440">
+    <link rel="match" href="transform-propagate-inherit-boolean-ref.html">
+    <style>
+      p {
+        font-size: 20px;
+        margin: 0;
+        height: 0;
+        width: 100px;
+        transform: translateX(4em);
+      }
+      p + p {
+        font-size: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>One</p>
+    <p>Two</p>
+  </body>
+</html>

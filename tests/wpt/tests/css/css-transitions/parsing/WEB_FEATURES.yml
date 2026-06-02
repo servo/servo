@@ -1,0 +1,12 @@
+features:
+- name: transitions
+  files:
+  - "*"
+  - "!starting-style-*"
+  - "!transition-behavior.html"
+- name: starting-style
+  files:
+  - starting-style-*
+- name: transition-behavior
+  files:
+  - transition-behavior.html

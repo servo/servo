@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Paint Servers: Clear should cause patternTransform to be ignored.</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#PatternElementPatternTransformAttribute"/>
+    <h:link rel="match" href="../reftests/reference/green-100x100.svg"/>
+  </metadata>
+  <pattern id="p1" patternTransform="scale(2)"/>
+  <pattern id="p" href="#p1" viewBox="0 0 50 50" patternTransform="scale(1)" width="100%" height="100%">
+    <rect fill="red" width="50" height="50"/>
+    <rect fill="green" width="25" height="25"/>
+  </pattern>
+  <rect fill="url(#p)" width="100" height="100"/>
+  <script><![CDATA[
+    document.getElementById("p").patternTransform.baseVal.clear();
+  ]]></script>
+</svg>

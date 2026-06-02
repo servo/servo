@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property in column</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=626097">
+<link rel="match" href="reference/clip-path-columns-shape-001-ref.html">
+<meta name="assert" content="This test ensures that clip-path property works correctly in column layout.">
+<style>
+body { margin: 0; }
+.clipped {
+  background-color: green;
+  border: 5px solid red;
+  -webkit-clip-path: inset(5px);
+  clip-path: inset(5px);
+}
+</style>
+<div style="columns: 2; column-gap: 0; width: 200px; height: 100px">
+  <div style="height: 100px"></div>
+  <div style="height: 90px" class="clipped"></div>
+</div>

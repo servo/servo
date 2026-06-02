@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<title>Retrieving a track from a MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStream-getTrackById-MediaStreamTrack-DOMString-trackId">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that MediaStream.getTrackById behaves as expected</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await  navigator.mediaDevices.getUserMedia({video: true});
+  var track = stream.getVideoTracks()[0];
+  assert_equals(track, stream.getTrackById(track.id), "getTrackById returns track of given id");
+  assert_equals(stream.getTrackById(track.id + "foo"), null, "getTrackById of inexistant id  returns null");
+}, "Tests that MediaStream.getTrackById works as expected");
+</script>
+</body>
+</html>

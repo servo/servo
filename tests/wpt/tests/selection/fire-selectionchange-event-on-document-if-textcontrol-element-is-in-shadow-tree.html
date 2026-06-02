@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selectionchange event fired on document if TextControl element is in Shadow Tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="root"></div>
+
+<script>
+    const root = document.getElementById("root");
+    const shadow = root.attachShadow({ mode: "open" });
+    const element = document.createElement("input");
+    element.value = "hello";
+    shadow.append(element);
+
+    const events_on_document = [];
+    document.addEventListener("selectionchange", ev => {
+        events_on_document.push(ev);
+    });
+
+    const events_on_input = [];
+    element.addEventListener("selectionchange", ev => {
+        events_on_input.push(ev);
+    });
+
+    promise_test(async () => {
+        element.focus();
+        element.setSelectionRange(5, 5);
+        await new Promise(resolve => step_timeout(resolve, 500));
+        events_on_document.length = 0;
+        events_on_input.length = 0;
+
+        document.execCommand("delete");
+        // Waits a short time to allow any events to be processed.
+        await new Promise(resolve => step_timeout(resolve, 500));
+
+        const expectedValue = "hell";
+        assert_equals(element.value, expectedValue, "element.value should be " + expectedValue);
+        //selectionchange event should not fire on input element
+        assert_equals(events_on_input.length, 0);
+
+        //selectionchange event should fire on the document
+        assert_equals(events_on_document.length, 1);
+        assert_equals(events_on_document[0].target, document, "Event target should be the document");
+
+    }, "selectionchange event fired on the document in case TextControl element is in Shadow Tree");
+</script>

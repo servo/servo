@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<html class=reftest-wait>
+<title>View transitions: outgoing viewport has scrollbars</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7859">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="old-content-has-scrollbars-ref.html">
+<meta name=fuzzy content="maxDifference=0-40; totalPixels=0-30000">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    background-color: lightpink;
+  }
+  body {
+    /* Margin to make sure background color is correctly drawn into the snapshot. */
+    margin: 50px;
+  }
+  div {
+    /* Draw a checkerboard pattern to make sure the snapshot is captured at the
+     * full size, rather than scaled. */
+    background-image:
+      linear-gradient(45deg, #000 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #000 75%),
+      linear-gradient(45deg, transparent 75%, #000 75%),
+      linear-gradient(45deg, #000 25%, lightgreen 25%);
+    background-size: 200px 200px;
+    background-position: 0 0, 0 0, -100px -100px, 100px 100px;
+    width: 200%;
+    height: 200%;
+  }
+
+  /* We're verifying what we capture, so just display the old contents for 5 minutes.  */
+  html::view-transition-new(root) { animation: unset; opacity: 0; }
+  html::view-transition-old(root) {
+    animation-duration: 300s;
+    animation-timing-function: steps(1, end);
+    opacity: 1;
+  }
+</style>
+
+<div></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+// Ensure a root snapshot captured on a page with scrollbars uses the full
+// viewport size (including scrollbars). Areas obscured by scrollbars should be
+// filled with background and content; the snapshot should not be scaled-to-fit.
+async function runTest() {
+  document.startViewTransition(() => {
+    document.querySelector('div').remove();
+    document.documentElement.style.overflow = "hidden";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

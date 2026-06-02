@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: iframes (cross-origin)</title>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<div id="log"></div>
+<script>
+const host_info = get_host_info();
+
+for (const type of ["REMOTE_ORIGIN", "HTTP_NOTSAMESITE_ORIGIN"]) {
+    promise_test(async t => {
+      const [executor] = await prepare_exec_iframe(t, host_info[type]);
+      await expect_no_long_frame(() => executor.execute_script((duration) => {
+          const deadline = performance.now() + duration;
+          while (performance.now() < deadline) {}
+      }, [very_long_frame_duration]), t);
+  }, `A long busy wait in a ${type} iframe is not a long animation frame`);
+}
+
+</script>
+</body>

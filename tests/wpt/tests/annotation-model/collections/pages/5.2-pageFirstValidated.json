@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageFirstValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has invalid first key (i.e., in description of Collection included using partOf key).",
+  "title": "**Annotation Page _first_ key** (i.e., in description of Collection included using partOf key), if present, has value of string of format uri - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+           { "$ref": "collections.json#/definitions/firstValidIfPresent" }
+  }
+}

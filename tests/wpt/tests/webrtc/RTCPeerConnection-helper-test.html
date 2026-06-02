@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection-helper tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const transceiver = pc1.addTransceiver('video');
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  await waitForState(transceiver.sender.transport, 'connected');
+}, 'Setting up a connection using helpers and defaults should work');
+</script>

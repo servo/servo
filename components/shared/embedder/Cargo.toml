@@ -1,0 +1,46 @@
+[package]
+name = "embedder_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "embedder_traits"
+path = "lib.rs"
+
+[features]
+# bakes default resources into the library.
+# This feature is mainly intended for testing purposes.
+baked-default-resources = []
+gamepad = []
+
+[dependencies]
+accesskit = { workspace = true }
+base = { workspace = true }
+bitflags = { workspace = true }
+cookie = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+http = { workspace = true }
+hyper_serde = { workspace = true }
+image = { workspace = true }
+keyboard-types = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+pixels = { path = "../../pixels" }
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+servo_geometry = { path = "../../geometry" }
+servo_url = { path = "../../url" }
+strum = { workspace = true }
+stylo = { workspace = true }
+stylo_traits = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+url = { workspace = true }
+uuid = { workspace = true }
+webdriver = { workspace = true }
+webrender_api = { workspace = true }

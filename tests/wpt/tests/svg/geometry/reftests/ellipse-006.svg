@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>A negative value for ry is invalid and must be ignored</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#RY"/>
+  <html:link rel="match"  href="circle-ref.svg" />
+  <ellipse cx="204" cy="56" rx="65" ry="-65" fill="blue"/>
+</svg>

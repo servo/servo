@@ -1,0 +1,16 @@
+<svg width="340" height="140"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Circle coordinates and radius specified using calc</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match" href="circle-ref.svg" />
+  <html:meta name="fuzzy" content="maxDifference=0-35; totalPixels=0-434" />
+  <style>
+    circle {
+      fill: blue;
+      font-size: 40px;
+    }
+  </style>
+  <circle cx="calc(80px + 60% - 2em)" cy="calc(80px + 40% - 2em)"
+    r="calc(5 * 5%)" />
+</svg>

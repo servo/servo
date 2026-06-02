@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: Add a range to the selection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = function() {
+  test(function() {
+    var selection = window.getSelection();
+    var p1 = document.getElementById("p1");
+
+    var range = document.createRange();
+    range.selectNode(p1);
+    selection.addRange(range);
+
+    assert_equals(selection.anchorNode, range.startContainer);
+    assert_equals(selection.anchorOffset, range.startOffset);
+    assert_equals(selection.focusNode, range.endContainer);
+    assert_equals(selection.focusOffset, range.endOffset);
+    assert_equals(selection.isCollapsed, range.collapsed);
+    assert_equals(selection.rangeCount, 1);
+    assert_equals(selection.toString(), p1.firstChild.nodeValue);
+  });
+};
+</script>
+<div id=log></div>
+<p id="p1">Add a range to the selection</p>
+</body>
+</html>

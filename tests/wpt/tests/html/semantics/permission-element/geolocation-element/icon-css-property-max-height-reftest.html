@@ -1,0 +1,12 @@
+<!doctype html>
+<title>The icon of the element should be restricted to 50px due to the max-height property.</title>
+<!-- TODO: Update the link to the permission icon spec -->
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="icon-css-property-max-height-reftest-ref.html">
+<style>
+  ::permission-icon {
+    height: 60px;
+    max-height: 50px;
+  }
+</style>
+<geolocation id="geolocation"></geolocation>

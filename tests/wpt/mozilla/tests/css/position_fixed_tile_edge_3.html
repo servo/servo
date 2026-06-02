@@ -1,0 +1,12 @@
+<html>
+  <link rel=match href=position_fixed_tile_edge_ref.html>
+  <body>
+    <div style="position: absolute; top: 0px; left: 0px;">
+        <div style="position: absolute; background: green; top: 0; margin-left: 512px; width: 20px; height: 20px;"></div>
+
+        <!-- This position:fixed sibling should force its sibling to be layerized. -->
+        <div style="position: fixed;"></div>
+    </div>
+  </body>
+</html>
+

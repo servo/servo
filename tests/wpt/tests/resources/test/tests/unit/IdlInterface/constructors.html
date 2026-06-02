@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<title>IdlInterface.prototype.constructors()</title>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+"use strict";
+// [Constructor] extended attribute should not be supported:
+test(function() {
+    var i = interfaceFrom('[Constructor] interface A { };');
+    assert_equals(i.constructors().length, 0);
+}, 'Interface with Constructor extended attribute.');
+
+test(function() {
+    var i = interfaceFrom('interface A { constructor(); };');
+    assert_equals(i.constructors().length, 1);
+}, 'Interface with constructor method');
+
+test(function() {
+    var i = interfaceFrom('interface A { constructor(); constructor(any value); };');
+    assert_equals(i.constructors().length, 2);
+}, 'Interface with constructor overloads');
+</script>

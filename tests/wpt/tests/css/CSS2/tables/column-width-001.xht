@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column with 'width' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+        <meta name="assert" content="Width can be set on a table column." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #column
+            {
+                background: orange;
+                display: table-column;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+                width: 0.5in;
+            }
+            #div1
+            {
+                background: blue;
+            }
+            #div1, #cell
+            {
+                height: 1in;
+            }
+            #column, #div1
+            {
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the orange and blue boxes below are the same width.</p>
+        <div id="table">
+            <div id="column"></div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+        <div id="div1"></div>
+    </body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Test that visibility:hidden affects the page context, but not the actual contents on the page.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-properties">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-model">
+<link rel="match" href="page-visibility-hidden-001-print-ref.html">
+<style>
+  @page {
+    visibility: hidden;
+    border: solid red;
+  }
+</style>
+This text should be visible.

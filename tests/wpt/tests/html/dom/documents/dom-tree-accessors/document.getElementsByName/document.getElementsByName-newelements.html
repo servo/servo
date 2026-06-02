@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>getElementsByName and newly introduced HTML elements</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<section name="section"></section>
+<article name="article"></article>
+<aside name="aside"></aside>
+<hgroup name="hgroup"></hgroup>
+<header name="header"></header>
+<footer name="footer"></footer>
+<nav name="nav"></nav>
+<dialog name="dialog"></dialog>
+<figure name="figure"></figure>
+<audio name="audio"></audio>
+<video name="video"></video>
+<embed name="embed"></embed>
+<mark name="mark"></mark>
+<meter name="meter"></meter>
+<progress name="progress"></progress>
+<time name="time"></time>
+<canvas name="canvas"></canvas>
+<command name="command"></command>
+<menu name="menu"></menu>
+<details name="details"></details>
+<datalist name="datalist"></datalist>
+<keygen name="keygen"></keygen>
+<output name="output"></output>
+<ruby name="ruby"></ruby>
+<rt name="rt"></rt>
+<rp name="rp"></rp>
+<source name="source">
+</div>
+<script>
+var testDiv = document.getElementById("test");
+for (var i = 0; i < testDiv.children.length; i++) {
+  var name = testDiv.children[i].getAttribute("name");
+  test(function() {
+    assert_equals(document.getElementsByName(name).length, 1);
+    assert_equals(document.getElementsByName(name)[0],
+                  document.getElementsByTagName(name)[0]);
+  }, 'getElementsByName("' + name + '")');
+}
+</script>

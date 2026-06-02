@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS3 Grid Layout: Flexible Length</title>
+  <link rel="author" title="swain" href="mailto:swainet@126.com"/>
+  <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"/> <!-- 2013-09-22 -->
+  <link rel="help" href="http://www.w3.org/TR/css-grid-1/#fr-unit"/>
+  <link rel="match" href="../reference/fr-unit-with-percentage-ref.html">
+  <style type="text/css">
+    #container {
+      position:relative;
+      width:400px;
+      height:100px;
+    }
+
+    #grid {
+      display:grid;
+      grid-template-columns:1fr 75%;
+      grid-template-rows:1fr 70%;
+      width:100%;
+      height:100%;
+    }
+
+    #cell1 {
+      grid-column:1;
+      grid-row:1;
+    }
+
+    #cell2 {
+      grid-column:2;
+      grid-row:1;
+    }
+
+    #cell3 {
+      grid-column:1;
+      grid-row:2;
+      height:100%;
+    }
+
+    #cell4 {
+      grid-column:2;
+      grid-row:2;
+      background-color:green;
+      height:100%;
+    }
+
+    .error {
+      position:absolute;
+      top:0;
+      left:0;
+      height:100%;
+      width:100%;
+      z-index:-1;
+    }
+
+    #table {
+      width:100%;
+      height:100%;
+      border-collapse:collapse;
+    }
+
+    #table td {
+      padding:0;
+      vertical-align:top;
+    }
+
+    #table td:first-child {
+      width:100px;
+    }
+
+    #table tr:first-child td {
+      height:30px;
+    }
+  </style>
+</head>
+<body>
+<p>Test passes if there is a green square and no red.</p>
+
+<div id="container">
+  <div id="grid">
+    <div id="cell1">cell1</div>
+    <div id="cell2">cell2</div>
+    <div id="cell3">cell3</div>
+    <div id="cell4">cell4</div>
+  </div>
+  <div class="error">
+    <table id="table">
+      <tbody>
+      <tr>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td>&nbsp;</td>
+        <td style="background-color:red">&nbsp;</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

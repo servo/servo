@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Nested inside list markers (ltr)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/list/list-style-position/inside/001-demo.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+  <link rel="match" href="list-style-position-023-ref.xht" />
+
+  <style type="text/css">
+   ol, li { margin: 0; padding: 0; border: 0; }
+   li, div {
+      color: blue;
+      border: solid silver 0.25em;
+      padding: 0.5em 0.5em 0.5em 3em;
+      list-style-position: inside; }
+   span { color: white; }
+  </style>
+ </head>
+ <body>
+  <ol>
+   <li>
+    <ol>
+     <li>
+      <ol>
+       <li>
+        <span>Text</span>
+       </li>
+      </ol>
+     </li>
+    </ol>
+   </li>
+  </ol>
+  <p>The above should render like the example below.</p>
+  <div>1.
+   <div>1.
+    <div>
+     1. <span>Text</span>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

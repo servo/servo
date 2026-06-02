@@ -1,0 +1,19 @@
+<html><head><script type="text/javascript">
+
+function boom()
+{
+  var dE = document.documentElement;
+  var head = document.getElementsByTagName("head")[0];
+  dE.removeChild(document.body);
+  dE.contentEditable = "true";
+  dE.focus();
+  dE.contentEditable = "false";
+  head.focus();
+  head.contentEditable = "true";
+  try {
+    document.execCommand("selectAll", false, "");
+  } catch(e) {
+  }
+}
+
+</script></head><body onload="boom();"></body></html>

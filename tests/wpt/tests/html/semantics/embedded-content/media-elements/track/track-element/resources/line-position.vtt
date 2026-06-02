@@ -1,0 +1,37 @@
+WEBVTT
+Cues with valid vertical line positioning values.
+
+1
+00:00:00.000 --> 00:00:15.000 line:0%
+Bear is Coming!!!!!
+Positioning on the top of the viewport, in the middle.
+
+00:00:15.500 --> 00:00:30.500 line:0
+Bear is Coming!!!!!
+This is line 0.
+Positioning on the top of the viewport, in the middle.
+
+2
+00:00:31.000 --> 00:00:45.500 line:50%
+I said Bear is coming!!!!
+Positioning on the center of the video.
+
+
+00:00:46.000 --> 00:01:00.500 line:5
+I said Bear is coming!!!!
+This is line 6 from the top of the video viewport.
+
+3
+00:01:01.000 --> 00:01:30.000 line:100%
+I said Bear is coming now!!!!
+Positioning on the bottom middle.
+
+00:01:31.000 --> 00:02:00.500 line:-1
+I said Bear is coming now!!!!
+This is the first line at the bottom of the video viewport.
+Positioning on the bottom middle. Only 1 line shows.
+
+00:02:01.000 --> 00:02:30.000 line:500
+I said Bear is coming now!!!!
+This is legal,
+even though the line will likely not be within the video viewport.

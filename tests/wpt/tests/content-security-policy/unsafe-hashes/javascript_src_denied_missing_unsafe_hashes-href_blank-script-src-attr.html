@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src-attr 'nonce-abc'
+    'sha256-N5bidCKdNO1nSPa1G7MdL6S7Y7MKZ7UMIS/40JBMSe4=';">
+    <script src="/resources/testharness.js" nonce="abc"></script>
+    <script src="/resources/testharnessreport.js" nonce="abc"></script>
+    <script src="support/helper.js" nonce="abc"></script>
+</head>
+<body>
+    <script nonce="abc">
+    // script-src-attr CSP should not have effects because navigation CSP
+    // checks are done against script-src-elem.
+    // https://w3c.github.io/webappsec-csp/#effective-directive-for-inline-check
+    runTest(true, '<a href target=_blank>', ' (script-src-attr should not be used)');
+    </script>
+</body>
+</html>

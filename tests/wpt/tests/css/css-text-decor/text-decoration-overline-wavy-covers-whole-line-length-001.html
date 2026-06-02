@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Wavy overline covers the whole line length</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property">
+<meta name="assert" content="Checks that a wavy overline covers the whole line length.">
+<link rel="mismatch" href="reference/text-decoration-wavy-covers-whole-line-length-001-notref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body {
+    overflow: hidden;
+  }
+  #wrapper {
+    position: absolute;
+    margin: 100px;
+    padding-top: 200px;
+  }
+  #decoration {
+    font: 400px/1 Ahem;
+    color: transparent;
+    text-decoration-line: overline;
+    text-decoration-color: green;
+    text-decoration-style: wavy;
+    text-decoration-skip-ink: none;
+  }
+  #abspos {
+    position: absolute;
+    left: -100px;
+    top: -100px;
+    width: 480px;
+    height: 1000px;
+    background: white;
+  }
+</style>
+<p>The test passes if you see some green below (the end of a wavy green text decoration).</p>
+<div id="wrapper">
+  <div id="decoration">X</div>
+  <div id="abspos"></div>
+</div>

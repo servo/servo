@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>clear-site-data-cache cancels prerenders</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow({
+    origin: 'HTTPS_ORIGIN'
+  }, {
+    features: 'noopener'
+  });
+  const prerenderedRC = await referrerRC.addPrerender({
+    origin: 'HTTPS_REMOTE_ORIGIN',
+    headers: [
+      ['Supports-Loading-Mode', 'credentialed-prerender']
+    ]
+  });
+
+  const differentOrigin = get_host_info().HTTPS_REMOTE_ORIGIN;
+
+  // Open new window with different origin to clear cache data through
+  // Clear-Site-Data header.
+  // Ensure that the cache is cleared before the navigation.
+  const gotMessage = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  window.open(differentOrigin + "/../../clear-site-data/support/clear-site-data-prerenderCache.py");
+  await gotMessage;
+
+  // Because Clear-Site-Data response header is sent on a different origin than
+  // the initiator origin, the existing prerender is not expected to be
+  // canceled.
+  // And the prerender is expected to be activated.
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
+});
+</script>

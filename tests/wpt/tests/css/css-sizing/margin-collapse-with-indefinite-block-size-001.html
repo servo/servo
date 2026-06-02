@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#collapsing-margins">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#behave-auto">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  According to CSS2, the bottom margin of a block container can collapse
+  with the bottom margin of its last in-flow child if `height` computes
+  to `auto`.
+
+  However, according to CSS Sizing, that was 'legacy spec prose' and
+  should be interpreted as 'behaves as `auto`'.
+
+  Therefore, a cyclic percentage in the preferred block size property
+  shouldn't prevent margin collapse, because it behaves as `auto`.
+">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100%; background: red">
+  <div style="height: 100px; margin-bottom: 100px; background: green"></div>
+</div>

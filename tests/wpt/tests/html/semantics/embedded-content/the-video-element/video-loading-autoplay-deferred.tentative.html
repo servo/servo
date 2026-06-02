@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+<body>
+
+<script>
+  const t = async_test(
+    "Video with loading=lazy and autoplay that is not visible in viewport does not load video data or autoplay"
+  );
+
+  const video = document.createElement("video");
+  video.loading = "lazy";
+  video.src = "/media/A4.webm";
+  video.className = "below-viewport";
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+
+  video.addEventListener("loadstart", () => {
+    assert_unreached("Video should not fire loadstart event when not visible in viewport");
+  });
+
+  document.body.appendChild(video);
+
+  t.step_timeout(() => {
+    assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING);
+    assert_true(video.paused, "Video should not autoplay when not visible in viewport");
+    t.done();
+  }, 2000);
+</script>
+</body>

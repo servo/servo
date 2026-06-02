@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<div id="container" style="columns:1000; gap:0; column-fill:auto; height:100px; line-height:20px;">
+  <span id="relpos" style="position:relative;"></span>
+</div>
+<script>
+  // Measure performance of painting a multicol with relatively positioned
+  // inline with many lines / columns.
+
+  for (var i = 0; i < 1000; i++) {
+    relpos.appendChild(document.createTextNode("i "));
+  }
+
+  var cyan = false;
+
+measurePaint({
+  run: function() {
+    relpos.style.background = cyan ? "cyan" : "hotpink";
+    cyan = !cyan;
+  },
+});
+</script>

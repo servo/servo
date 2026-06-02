@@ -1,0 +1,19 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Autoplay Policy Detection (https://w3c.github.io/autoplay/)
+
+enum AutoplayPolicy {
+  "allowed",
+  "allowed-muted",
+  "disallowed"
+};
+
+enum AutoplayPolicyMediaType { "mediaelement", "audiocontext" };
+
+[Exposed=Window]
+partial interface Navigator {
+  AutoplayPolicy getAutoplayPolicy(AutoplayPolicyMediaType type);
+  AutoplayPolicy getAutoplayPolicy(HTMLMediaElement element);
+  AutoplayPolicy getAutoplayPolicy(AudioContext context);
+};

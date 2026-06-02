@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Outdent with concurrent DOM modification should not crash</title>
+<link rel="help" href="https://w3c.github.io/editing/docs/execCommand/">
+<script>
+    function runTest() {
+        iframe.contentWindow.onpagehide = () => {
+            tCF3.innerHTML = 1
+        };
+        document.execCommand("selectAll");
+        document.execCommand("outdent");
+    }
+</script>
+
+<body onload=runTest() contenteditable="" id=tCF1>
+    <h1>This page should not result in crash</h1>
+    <ol id=tCF2>
+        <li id=tCF3> some text
+            <iframe id=iframe></iframe>
+        </li>
+    </ol>
+</body>
+
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Test (Animations): Reparenting an element with a web animation on the compositor</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1301838">
+<meta name="assert" content="This should not crash.">
+
+<style>
+#animate {
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+</style>
+<div id="animate"></div>
+<div id="newparent"></div>
+<script>
+
+document.getElementById("animate").animate(
+  [
+    { transform: "rotate(0deg)" },
+    { transform: "rotate(360deg)" }
+  ],
+  {
+    duration: 5000,
+    iterations: Infinity
+  }
+);
+
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    document.getElementById("newparent").appendChild(document.getElementById("animate"));
+    requestAnimationFrame(function() {
+      document.documentElement.classList.remove("test-wait");
+    });
+  });
+});
+
+</script>

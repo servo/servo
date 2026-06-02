@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200" class="reftest-wait" onload="test()">
+  <metadata>
+    <title>modifying xlink:href on an SVG image</title>
+    <h:link rel="match" href="reference/green-rect-100x100.svg"/>
+  </metadata>
+  <script href="/common/reftest-wait.js"></script>
+  <script href="/common/rendering-utils.js"></script>
+  <script>
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    async function test() {
+      await waitForAtLeastOneFrame();
+
+      const doc = document.implementation.createDocument(SVG_NS, "svg");
+
+      const image = doc.createElementNS(SVG_NS, "image");
+      image.addEventListener('load', function() {
+        takeScreenshot();
+      });
+      image.setAttribute("width", 100);
+      image.setAttribute("height", 100);
+      image.setAttribute("href", "reference/green-rect-100x100.svg");
+      doc.documentElement.appendChild(image);
+
+      document.documentElement.appendChild(document.adoptNode(image));
+    }
+  </script>
+</svg>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale(-1) On Body With Background</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content="This is like transform-root-bg-002.html,
+    except that the transform is specified on the body element, not just the
+    background.  The background gets lifted to the root element, but the
+    transform does not, so the transform has no effect.">
+    <link rel="match" href="transform-root-bg-004-ref.html">
+    <style>
+      body {
+        background: url(support/transform-triangle-left.svg);
+        transform: scale(-1);
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

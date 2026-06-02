@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, bidi U+0628 first</title>
+<link rel="match" href="u0628_first-ref.html">
+<!--
+0620..063F    ; AL # Lo  [32] ARABIC LETTER KASHMIRI YEH..ARABIC LETTER FARSI YEH WITH THREE DOTS ABOVE
+http://www.unicode.org/Public/UNIDATA/extracted/DerivedBidiClass.txt
+-->
+<style>
+html { overflow:hidden }
+body { margin:0 }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../support/u0628_first.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

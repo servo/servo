@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1910290">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the inner div's used main size (height) serves as a percentage basis for the img's max-height. The img can transfer its max-height through the aspect-ratio to the inline axis when computing its intrinsic inline size contribution. This determines the inner div's used cross-size (width).">
+
+<style>
+.outer {
+  display: flex;
+  flex-direction: column;
+  width: 100px;
+  height: 100px;
+  align-items: center;
+}
+.inner {
+  max-height: 100%;
+  background: red;
+}
+img {
+  max-height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="outer">
+  <div class="inner">
+    <img src="aspect-ratio/support/200x200-green.png">
+  </div>
+</div>

@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <a id=link>Click me!</a>
+  </main>
+  <script>
+    testSoftNavigation({
+      testName: "Ensure event bubbling works well with soft navigations.",
+      registerRouteChange: (cb) => {
+        // Interact with the link, but observe the event on anscestor
+        document.getElementById("main").addEventListener('click', cb);
+      },
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const log = [];
+</script>
+<!-- First import map with a less specific scope -->
+<script type="importmap">
+{
+  "scopes": {
+    "/import-maps/": {
+      "bar": "/import-maps/resources/log.js?pipe=sub&name=general"
+    }
+  }
+}
+</script>
+<!-- Second import map with a more specific scope -->
+<script type="importmap">
+{
+  "scopes": {
+    "/import-maps/multiple-import-maps/": {
+      "bar": "/import-maps/resources/log.js?pipe=sub&name=specific"
+    }
+  }
+}
+</script>
+<script type="module">
+// This module's base URL is in /import-maps/multiple-import-maps/
+// The more specific scope should be checked first
+promise_test(async () => {
+  await import("bar");
+  // Should use the more specific scope mapping to "specific", not "general"
+  assert_array_equals(log, ["log:specific"]);
+}, "More specific scope from second import map should be checked first");
+</script>
+</body>
+</html>
+

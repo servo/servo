@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div {line-height: 1.25;}
+
+  span {visibility: hidden;}
+
+  div + div {margin-top: 5px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if "Filler Text1" and "Filler Text3" are on the first line and "Filler Text2" is on the second line and the space has been reserved where "Filler Text2" would have been if it were on the first line.</p>
+
+  <div>Filler Text1<span>Filler Text2</span>Filler Text3</div>
+
+  <div><span>Filler Text1</span>Filler Text2<span>Filler Text3</span></div>
+
+ </body>
+</html>

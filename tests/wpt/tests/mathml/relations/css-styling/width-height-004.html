@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>content position with width/height</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<meta name="assert" content="Verify the inline-start of the children of the munder, mover, munderover and mfrac layout algorithms."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/mathml/support/fonts.js"></script>
+<style>
+  .test, math {
+      font: 25px/1 Ahem;
+      color: black;
+  }
+  .test {
+      margin: .5em;
+  }
+  [data-name] {
+      width: 7em;
+      border: 1px solid blue;
+  }
+</style>
+<script>
+  var epsilon = 1;
+
+  function getMiddle(aElement) {
+    let box = aElement.getBoundingClientRect();
+    return (box.left + box.right) / 2;
+  }
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+
+  function runTests() {
+    Array.from(document.querySelectorAll("[data-name]")).forEach(element => {
+        test(() => {
+          let elementMiddle = getMiddle(element);
+          Array.from(element.children).forEach(child => {
+            assert_approx_equals(getMiddle(child), elementMiddle, epsilon);
+          });
+      }, element.dataset.name);
+    });
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+
+  <div class="test">
+    <math>
+      <mfrac data-name="mfrac">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac data-name="RTL mfrac">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac data-name="mfrac (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac data-name="RTL mfrac (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mfrac linethickness="0" data-name="mfrac without bar">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac linethickness="0" data-name="RTL mfrac without bar">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac linethickness="0" data-name="mfrac without bar (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac linethickness="0" data-name="RTL mfrac without bar (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <munder data-name="munder">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munder>
+    </math>
+    <math dir="rtl">
+      <munder data-name="RTL munder">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munder>
+    </math>
+    <math>
+      <munder data-name="munder (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munder>
+    </math>
+    <math dir="rtl">
+      <munder data-name="RTL munder (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munder>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mover data-name="mover">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mover>
+    </math>
+    <math dir="rtl">
+      <mover data-name="RTL mover">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mover>
+    </math>
+    <math>
+      <mover data-name="mover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mover>
+    </math>
+    <math dir="rtl">
+      <mover data-name="RTL mover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mover>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <munderover data-name="munderover">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munderover>
+    </math>
+    <math dir="rtl">
+      <munderover data-name="RTL munderover">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munderover>
+    </math>
+    <math>
+      <munderover data-name="munderover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munderover>
+    </math>
+    <math dir="rtl">
+      <munderover data-name="RTL munderover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munderover>
+    </math>
+  </div>
+
+</body>
+</htmL>

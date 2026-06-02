@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+Tests for cross-origin iframes due to sandbox flags is deferred properly.
+
+This file cannot be upstreamed to WPT until:
+* The specification describes the loading of cross-origin iframes. The test
+  expects that they are not loaded during prerendering.
+-->
+<title>Load a prerendered iframe with sandbox attributes</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+  const messageQueue = new BroadcastMessageQueue(bc);
+  t.add_cleanup(_ => bc.close());
+
+  const url = `resources/sandbox-iframe.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await messageQueue.nextMessage();
+  const expected = [
+    {
+      event: 'started waiting iframe loaded',
+      prerendering: true
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting iframe loaded',
+      prerendering: false
+    },
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+       `prerendering[${i}]`);
+  }
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, `same-origin sandbox iframes should not load until activation`);
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/425579196">
+<link rel=help href="https://github.com/w3c/pointerevents/issues/542">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id=outside>outside dialog</button>
+<dialog closedby=any>dialog</dialog>
+
+<script>
+const dialog = document.querySelector('dialog');
+const outside = document.getElementById('outside');
+
+promise_test(async () => {
+  dialog.showModal();
+  assert_true(dialog.open, 'dialog should be open after showModal().');
+  await (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: dialog})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: outside})
+    .pointerUp())
+    .send();
+  assert_true(dialog.open, 'dialog should still be open after clicking and dragging.');
+}, 'Dialog should not light dismiss when clicking inside the dialog and dragging outside of it.');
+</script>

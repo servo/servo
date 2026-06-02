@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline-block replaced elements with percentage based intrinsic height that cannot be resolved and 'top' specified</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-height" />
+		<link rel="match" href="absolute-replaced-height-014-ref.xht" />
+
+        <meta name="assert" content="An absolutely positioned inline-block replaced element with a percentage height that cannot be resolved has no intrinsic height." />
+		<!--
+		"
+		(...) the height of the containing block of an absolutely
+		positioned element is independent of the size of the element itself,
+		and thus a percentage height on such an element *_can always be
+		resolved_*. However, it may be that the height is not known until
+		elements that come later in the document have been processed.
+		"
+		http://www.w3.org/TR/CSS21/visudet.html#the-height-property
+		-->
+
+        <style type="text/css">
+            div#containing-block
+            {
+                position: relative;
+            }
+            div div
+            {
+                border: solid green;
+                position: absolute;
+                top: 1in;
+                width: 300px;
+            }
+            iframe
+            {
+                border: solid red;
+                bottom: auto;
+                position: absolute;
+                top: 1in;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="containing-block">
+        <iframe height="50%"></iframe>
+            <div></div>
+        </div>
+    </body>
+</html>

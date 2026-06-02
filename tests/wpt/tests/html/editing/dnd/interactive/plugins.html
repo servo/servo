@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <title>drag and drop should not remove styling of plugin object elements</title>
+    <style type="text/css">
+div {
+  border: 10px solid orange;
+  background: yellow;
+  padding: 10px;
+  height: 140px;
+  width: 140px;
+}
+object {
+  border: 10px solid gray;
+  background: fuchsia;
+  padding: 10px;
+  height: 100px;
+  width: 100px;
+}
+    </style>
+  </head>
+  <body>
+
+    <p>Drag the following block by the orange border. The drag placeholder should contain all inner borders, but may optionally show white or pink instead of the navy square.</p>
+    <div draggable="true" ondragstart="event.dataTransfer.setData('Text','dummy text');"><object data="../resources/boxnavy.swf"></object></div>
+
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Leading and trailing whitespace is stripped from (local) URL references (&#x3c;paint&#x3e;)</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#processingURL"/>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint"/>
+  <html:link rel="match" href="reference/green-100x100.svg"/>
+  <linearGradient id="green">
+    <stop stop-color="green"/>
+  </linearGradient>
+  <linearGradient id="red">
+    <stop stop-color="red"/>
+  </linearGradient>
+  <rect width="50" height="50" fill="url(' #green') red"/>
+  <rect width="50" height="50" fill="url('#green ') red" x="50"/>
+  <rect width="50" height="50" fill="url(' #green ') red" y="50"/>
+  <rect width="50" height="50" fill="url(' # red ') green" y="50" x="50"/>
+</svg>

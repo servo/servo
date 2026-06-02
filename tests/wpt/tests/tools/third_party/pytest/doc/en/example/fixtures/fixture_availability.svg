@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="572" height="542">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class, circle.module, circle.package {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class, text.module, text.package {
+            fill: #0e84b5;
+        }
+        line, path {
+            stroke: black;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+
+    <!-- main scope -->
+    <circle class="package" r="270" cx="286" cy="271" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 26,271 A 260 260 0 0 1 546 271" id="testp"/>
+    </defs>
+    <text class="package">
+        <textPath xlink:href="#testp" startOffset="50%">tests</textPath>
+    </text>
+
+    <!-- subpackage -->
+    <circle class="package" r="140" cx="186" cy="271" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 56,271 A 130 130 0 0 1 316 271" id="subpackage"/>
+    </defs>
+    <text class="package">
+        <textPath xlink:href="#subpackage" startOffset="50%">subpackage</textPath>
+    </text>
+
+    <!-- test_subpackage.py -->
+    <circle class="module" r="90" cx="186" cy="311" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 106,311 A 80 80 0 0 1 266 311" id="testSubpackage"/>
+    </defs>
+    <text class="module">
+        <textPath xlink:href="#testSubpackage" startOffset="50%">test_subpackage.py</textPath>
+    </text>
+    <!-- innermost -->
+    <line x1="186" x2="186" y1="271" y2="351"/>
+    <!-- mid -->
+    <path d="M 186 351 L 136 351 L 106 331 L 106 196" />
+    <!-- order -->
+    <path d="M 186 351 L 256 351 L 316 291 L 316 136" />
+    <!-- top -->
+    <path d="M 186 351 L 186 391 L 231 436 L 331 436" />
+    <ellipse class="fixture" rx="50" ry="25" cx="186" cy="271" />
+    <text x="186" y="271">innermost</text>
+    <rect class="test" width="110" height="50" x="131" y="326" />
+    <text x="186" y="351">test_order</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="126" cy="196" />
+    <text x="126" y="196">mid</text>
+    <!-- scope order number -->
+    <mask id="testSubpackageOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="90" cx="186" cy="311" />
+    </mask>
+    <circle class="module" r="15" cx="96" cy="311" mask="url(#testSubpackageOrderMask)"/>
+    <text class="module" x="96" y="311">1</text>
+     <!-- scope order number -->
+    <mask id="subpackageOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="140" cx="186" cy="271" />
+    </mask>
+    <circle class="module" r="15" cx="46" cy="271" mask="url(#subpackageOrderMask)"/>
+    <text class="module" x="46" y="271">2</text>
+    <!-- scope order number -->
+    <mask id="testsOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="270" cx="286" cy="271" />
+    </mask>
+    <circle class="module" r="15" cx="16" cy="271" mask="url(#testsOrderMask)"/>
+    <text class="module" x="16" y="271">3</text>
+
+    <!-- test_top.py -->
+    <circle class="module" r="85" cx="441" cy="271" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 366,271 A 75 75 0 0 1 516 271" id="testTop"/>
+    </defs>
+    <text class="module">
+        <textPath xlink:href="#testTop" startOffset="50%">test_top.py</textPath>
+    </text>
+    <!-- innermost -->
+    <line x1="441" x2="441" y1="306" y2="236"/>
+    <!-- order -->
+    <path d="M 441 306 L 376 306 L 346 276 L 346 136" />
+    <!-- top -->
+    <path d="M 441 306 L 441 411 L 411 436 L 331 436" />
+    <ellipse class="fixture" rx="50" ry="25" cx="441" cy="236" />
+    <text x="441" y="236">innermost</text>
+    <rect class="test" width="110" height="50" x="386" y="281" />
+    <text x="441" y="306">test_order</text>
+    <!-- scope order number -->
+    <mask id="testTopOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="85" cx="441" cy="271" />
+    </mask>
+    <circle class="module" r="15" cx="526" cy="271" mask="url(#testTopOrderMask)"/>
+    <text class="module" x="526" y="271">1</text>
+    <!-- scope order number -->
+    <circle class="module" r="15" cx="556" cy="271" mask="url(#testsOrderMask)"/>
+    <text class="module" x="556" y="271">2</text>
+
+    <ellipse class="fixture" rx="50" ry="25" cx="331" cy="436" />
+    <text x="331" y="436">top</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="331" cy="136" />
+    <text x="331" y="136">order</text>
+</svg>

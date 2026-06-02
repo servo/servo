@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>No user activation through 'Escape' key</title>
+    <meta name="timeout" content="long">
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="author" title="Google" href="http://www.google.com "/>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#tracking-user-activation">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+      #target {
+        width: 40ex;
+        background-color: yellow;
+      }
+    </style>
+    <script type="text/javascript">
+      let keydown_event_fired = false;
+      let keyup_event_fired = false;
+
+      function run() {
+        let textbox_elem = document.getElementById("target");
+        let test_esc_key = async_test("'Escape' key doesn't activate a page.");
+
+        test_esc_key.step(() => {
+          assert_true(!!navigator.userActivation, "This test requires user activation query API");
+        });
+
+        textbox_elem.focus();
+
+        on_event(textbox_elem, "keydown", () => {
+          test_esc_key.step(() => {
+            keydown_event_fired = true;
+            assert_false(navigator.userActivation.isActive, "No user activation on keydown");
+          });
+        });
+
+        on_event(textbox_elem, "keyup", () => {
+          test_esc_key.step(() => {
+            if (keydown_event_fired)
+              keyup_event_fired = true;
+            assert_true(keydown_event_fired, "keydown event fired before keyup");
+            assert_false(navigator.userActivation.isActive, "No user activation on keyup");
+          });
+        });
+
+        // Inject mouse inputs.
+        const escape_key = "\uE00C";
+        test_driver
+        .send_keys(textbox_elem, escape_key)
+        .then(() => {
+          assert_true(keyup_event_fired, "keydown event fired before keyup");
+          test_esc_key.done();
+        });
+      }
+    </script>
+  </head>
+  <body onload="run()">
+    <h1>No user activation through 'Escape' key</h1>
+    <h4>Tests that pressing/releasing 'Escape' key is not treated as a user activation.</h4>
+    <input id="target" value="Press and release the 'Esc' key." />
+  </body>
+</html>

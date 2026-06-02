@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions bevelled</title>
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mfrac">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://github.com/mathml-refresh/mathml/issues/29">
+    <meta name="assert" content="Verify that the MathML3 bevelled attribute is ignored.">
+    <link rel="match" href="frac-legacy-bevelled-attribute.tentative-ref.html">
+  </head>
+  <body>
+    <p>Test passes is you see a blue rectangle <em>above</em> a green rectangle, separated by a horizontal bar.</p>
+    <p>
+      <math>
+        <mfrac bevelled="true">
+          <mspace width="100px" height="30px" style="background: lightblue"></mspace>
+          <mspace width="100px" height="30px" style="background: lightgreen"></mspace>
+        </mfrac>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");
+      MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");
+    </script>
+  </body>
+</html>

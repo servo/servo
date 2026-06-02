@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML OffscreenCanvas reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<canvas id="c1"></canvas>
+<br>
+<canvas id="c2"></canvas>
+
+<script>
+for (let c = 1; c <= 2; ++c) {
+  let ctx = document.getElementById("c" + c).getContext("2d");
+  ctx.font = "32px serif";
+  ctx.fillText("Hello World", 20, 100);
+}
+</script>

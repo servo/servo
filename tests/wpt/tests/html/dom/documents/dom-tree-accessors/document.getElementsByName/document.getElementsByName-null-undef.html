@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Calling getElementsByName with null and undefined</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname">
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-DOMString">
+<link rel="help" href="http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-262.pdf#page=57">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var n = document.createElement("div");
+  n.setAttribute("name", "null");
+
+  document.body.appendChild(n);
+  this.add_cleanup(function() { document.body.removeChild(n) });
+
+  assert_equals(document.getElementsByName(null)[0], n);
+}, "getElementsByName(null)");
+
+test(function() {
+  var u = document.createElement("div");
+  u.setAttribute("name", "undefined");
+
+  document.body.appendChild(u);
+  this.add_cleanup(function() { document.body.removeChild(u) });
+
+  assert_equals(document.getElementsByName(undefined)[0], u);
+}, "getElementsByName(undefined)");
+</script>

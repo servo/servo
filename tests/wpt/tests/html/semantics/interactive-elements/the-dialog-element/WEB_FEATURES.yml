@@ -1,0 +1,27 @@
+features:
+- name: dialog
+  files: "**"
+- name: closewatcher
+  files:
+  - "dialog-cancel-events.html"
+  - "dialog-canceling.html"
+- name: dialog-closedby
+  files:
+  - dialog-closedby.html
+  - dialog-closedby-*
+  - dialog-popover-closedby-*
+- name: requestclose
+  files:
+  - dialog-requestclose.html
+  - dialog-requestclose-*
+- name: backdrop
+  files:
+  - backdrop-*
+  - dialogs-with-no-backdrop.html
+  - modal-dialog-backdrop.html
+  - modal-dialog-backdrop-opacity.html
+  - modal-dialog-display-contents.html
+  - modal-dialog-generated-content.html
+- name: open-pseudo
+  files:
+  - dialog-open-pseudo-invalidation.html

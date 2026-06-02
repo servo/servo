@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-details pointing to div element</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_DETAILS",
+                  "is",
+                  "[details]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "relations",
+                  "contains",
+                  "IA2_RELATION_DETAILS"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomationElement.DescribedBy",
+                  "is",
+                  "[details]"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "details",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_DETAILS_FOR",
+                  "is",
+                  "[test]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "relations",
+                  "contains",
+                  "IA2_RELATION_DETAILS_FOR"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-details pointing to div element"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-details pointing to div element.</p>
+    <img id="test" src="foo.jpg" aria-details="details">
+  <div id="details">
+    <iframe src="data:text/html,<body>foo</body>"/>
+  </div>
+
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

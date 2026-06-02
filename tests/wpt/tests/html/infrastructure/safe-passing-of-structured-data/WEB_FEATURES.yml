@@ -1,0 +1,12 @@
+features:
+- name: channel-messaging
+  files:
+  - messagechannel.any.js
+  - transfer-errors.window.js
+- name: postmessage
+  files:
+  - cross-origin-transfer-resizable-arraybuffer.html
+  - structured-cloning-error-extra.html
+  - structured-cloning-error-stack-optional.sub.window.js
+  - structuredclone_0.html
+  - window-postmessage.window.js

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    function checkConstructionSucceeds(type, language, label, kinds, byteStreamTrackID)
+    {
+        var trackDefault = new TrackDefault(type, language, label, kinds, byteStreamTrackID);
+        assert_equals(trackDefault.type, type, "type");
+        assert_equals(trackDefault.language, language, "language");
+        assert_equals(trackDefault.label, label, "label");
+        assert_equals(trackDefault.byteStreamTrackID, byteStreamTrackID, "byteStreamTrackID");
+        assert_array_equals(trackDefault.kinds, kinds, "kinds");
+    }
+
+    function checkConstructionFails(type, language, label, kinds, byteStreamTrackID)
+    {
+        assert_throws_js(TypeError,
+            function() { new TrackDefault(type, language, label, kinds, byteStreamTrackID); },
+            "TrackDefault construction threw an exception");
+    }
+
+    function trackDefaultConstructionTest(type, language, label, kinds, byteStreamTrackID, expectation, description)
+    {
+        test(function()
+        {
+            if (expectation)
+                checkConstructionSucceeds(type, language, label, kinds, byteStreamTrackID);
+            else
+                checkConstructionFails(type, language, label, kinds, byteStreamTrackID);
+        }, description + ": type '" + type + "', language '" + language + "', label '" + label + "', multiple kinds, byteStreamTrackID '" + byteStreamTrackID + "'");
+
+        // If all of |kinds| are expected to succeed, also test each kind individually.
+        if (!expectation || kinds.length <= 1)
+            return;
+        for (var i = 0; i < kinds.length; ++i) {
+            test(function()
+            {
+                checkConstructionSucceeds(type, language, label, new Array(kinds[i]), byteStreamTrackID);
+            }, description + ": type '" + type + "', language '" + language + "', label '" + label + "', kind '" + kinds[i] + "', byteStreamTrackID '" + byteStreamTrackID + "'");
+        }
+    }
+
+    var VALID_AUDIO_TRACK_KINDS = [
+        "alternative",
+        "descriptions",
+        "main",
+        "main-desc",
+        "translation",
+        "commentary",
+        "",
+    ];
+
+    var VALID_VIDEO_TRACK_KINDS = [
+        "alternative",
+        "captions",
+        "main",
+        "sign",
+        "subtitles",
+        "commentary",
+        "",
+    ];
+
+    var VALID_TEXT_TRACK_KINDS = [
+        "subtitles",
+        "captions",
+        "descriptions",
+        "chapters",
+        "metadata",
+    ];
+
+    trackDefaultConstructionTest("audio", "en-US", "audio label", VALID_AUDIO_TRACK_KINDS, "1", true, "Test valid audio kinds");
+
+    trackDefaultConstructionTest("video", "en-US", "video label", VALID_VIDEO_TRACK_KINDS, "1", true, "Test valid video kinds");
+
+    trackDefaultConstructionTest("text", "en-US", "text label", VALID_TEXT_TRACK_KINDS, "1", true, "Test valid text kinds");
+
+    trackDefaultConstructionTest("audio", "en-US", "audio label", VALID_VIDEO_TRACK_KINDS, "1", false, "Test mixed valid and invalid audio kinds");
+
+    trackDefaultConstructionTest("video", "en-US", "video label", VALID_AUDIO_TRACK_KINDS, "1", false, "Test mixed valid and invalid video kinds");
+
+    trackDefaultConstructionTest("text", "en-US", "text label", VALID_VIDEO_TRACK_KINDS, "1", false, "Test mixed valid and invalid text kinds");
+
+    trackDefaultConstructionTest("invalid type", "en-US", "label", VALID_AUDIO_TRACK_KINDS, "1", false, "Test invalid 'type' parameter type passed to TrackDefault constructor");
+
+    test(function()
+    {
+        checkConstructionFails("audio", "en-US", "label", "this is not a valid sequence", "1");
+    }, "Test invalid 'kinds' parameter type passed to TrackDefault constructor");
+
+    test(function()
+    {
+        var trackDefault = new TrackDefault("audio", "en-US", "label", VALID_AUDIO_TRACK_KINDS, "1");
+        var kinds = trackDefault.kinds;
+        kinds[0] = "invalid kind";
+        assert_equals(kinds[0], "invalid kind", "local kinds is updated");
+        assert_equals(VALID_AUDIO_TRACK_KINDS[0], "alternative", "local original kinds unchanged");
+        assert_array_equals(trackDefault.kinds, VALID_AUDIO_TRACK_KINDS, "trackDefault kinds unchanged");
+    }, "Test updating the retval of TrackDefault.kinds does not modify TrackDefault.kinds");
+</script>

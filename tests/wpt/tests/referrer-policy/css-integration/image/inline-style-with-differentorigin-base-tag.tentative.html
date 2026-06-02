@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS integration - image from inline style from document with base tag</title>
+<link rel="help" href="https://crbug.com/1158645" />
+
+<head>
+  <meta name="referrer" content="origin">
+</head>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<!-- Common global functions for referrer-policy tests. -->
+<script src="/common/security-features/resources/common.sub.js"></script>
+
+<!-- This has to follow the <script> tags, or it will make the js files fail to load. -->
+<base href="http://other-site.example" />
+
+<p>Check that resources from inline styles are loaded with
+  the referrer and referrer policy from the document and, in
+  particular, not with the different base URL set in the base tag.</p>
+
+<div class="styled"></div>
+
+<script>
+  'use strict';
+  promise_test(function(css_test) {
+    var id = token();
+    var css_url = location.protocol + "//www1." + location.hostname + ":" + location.port + "/common/security-features/subresource/image.py" + "?id=" + id;
+    var img_url = css_url + "&report-headers";
+
+    var div = document.querySelector("div.styled");
+    div.style = "content:url(" + css_url + ")";
+    return timeoutPromise(css_test, 1000)
+      .then(() => requestViaXhr(img_url))
+      .then(function(message) {
+        assert_own_property(message, "headers");
+        assert_own_property(message, "referrer");
+        assert_equals(message.referrer, location.origin + "/");
+      });
+  }, "Image from inline styles.");
+</script>
+
+<div id="log"></div>
+
+</html>

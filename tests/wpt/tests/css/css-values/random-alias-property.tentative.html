@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS random(): random() values in -webkit-prefixed properties</title>
+<meta name="assert" content="Use unprefixed property name for -webkit-prefixed property alias for caching random() values">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test"></div>
+<script>
+    test(() => {
+        const el = document.getElementById('test');
+
+        el.style["-webkit-animation-delay"] = "random(10s, 30s)";
+        let webkitAnimationDelayComputed = getComputedStyle(el)['-webkit-animation-delay'];
+
+        el.style["animation-delay"] = "random(10s, 30s)";
+        let animationDelayComputed = getComputedStyle(el)['animation-delay'];
+
+        assert_true(animationDelayComputed == webkitAnimationDelayComputed);
+    }, `Alias properties with property-dependant random() values should resolve to the same value`);
+</script>

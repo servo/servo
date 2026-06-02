@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  document.querySelector("ol").addEventListener("input", () => {
+    const inlineEditingHost = document.querySelector("span[contenteditable]");
+    const iter = document.createNodeIterator(inlineEditingHost, NodeFilter.SHOW_ELEMENT);
+    iter.nextNode().before(inlineEditingHost);
+  });
+  document.execCommand("selectAll");
+  document.execCommand("bold");
+});
+</script>
+</head>
+<body>
+<ol>
+<span contenteditable>
+<h6></h6>
+</span></ol></body>
+</html>

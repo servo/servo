@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (position image color attachment)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image interact" />
+        <meta name="assert" content="Background with (position image color attachment) sets the background to the image and the image scrolls with the element. The image is centered across the bottom and then tile out from there." />
+        <style type="text/css">
+            #div1
+            {
+                height: 200px;
+                width: 200px;
+                overflow: scroll;
+            }
+            div div
+            {
+                background: bottom url("support/cat.png") green scroll;
+                width: 400px;
+                height: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below is filled with cat images that move when the box is scrolled. Also, after scrolling to the bottom of the box, there is a cat image that is not cut off, and it is centered at the bottom of the box (there can be additional cat images).</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

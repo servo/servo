@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>munder/mover/munderover align</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.munder">
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mover">
+    <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.munderover">
+    <meta name="assert" content="Check that the legacy align attribute is ignored.">
+    <link rel="match" href="underover-legacy-align-attribute-001-ref.html">
+  </head>
+  <body>
+    <p>Test passes if the center of the following rectangles is aligned
+      on the same vertical axis.</p>
+    <p>
+      <math>
+        <munder align="left">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </munder>
+      </math>
+    </p>
+    <p>
+      <math>
+        <munder align="right">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </munder>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mover align="left">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </mover>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mover align="right">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </mover>
+      </math>
+    </p>
+    <p>
+      <math>
+        <munderover align="left">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </munderover>
+      </math>
+    </p>
+    <p>
+      <math>
+        <munderover align="right">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </munderover>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");
+      MathMLFeatureDetection.ensure_for_match_reftest("has_munderover");
+    </script>
+  </body>
+</html>

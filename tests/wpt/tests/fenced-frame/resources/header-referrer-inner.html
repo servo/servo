@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of header.referrer</title>
+
+<body>
+<script>
+async function init() { // Needed in order to use top-level await.
+  // This file is meant to run in a <fencedframe>. It reports back to the
+  // outermost page the value of `referer` in the request header:
+  //   1.) Nested iframes inside a fenced frame
+  //   2.) Nested fenced frames
+  //   3.) Top-level fenced frames (aka this frame) after initial navigation
+  const [referrer_key, referrer_ack_key] = parseKeylist();
+
+  const referrer_url = generateURL("check-header-referrer.py",
+      [referrer_key, referrer_ack_key]);
+
+  const iframe = document.createElement('iframe');
+  iframe.src = referrer_url;
+  document.body.append(iframe);
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `referrer_key` stash that the iframe above wrote to, and we can write
+  // to it again.
+  await nextValueFromServer(referrer_ack_key);
+
+  attachFencedFrame(referrer_url);
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `referrer_key` stash that the nested fenced frame wrote to, and we can
+  // can write to it again.
+  await nextValueFromServer(referrer_ack_key);
+
+  location.href = referrer_url;
+}
+
+init();
+</script>
+</body>

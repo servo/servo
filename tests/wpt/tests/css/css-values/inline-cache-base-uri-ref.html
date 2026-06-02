@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<style>
+  :root {
+    background-image: url("/images/blue.png");
+  }
+  .frame {
+    box-sizing: border-box;
+    width: 100px;
+    height: 100px;
+    background-color: purple;
+    padding: 8px; /* Matches default body margin */
+  }
+
+  .frame > div {
+    width: 50px;
+    height: 50px;
+    background-color: lime;
+  }
+</style>
+<div class="frame">
+  <div></div>
+</div>

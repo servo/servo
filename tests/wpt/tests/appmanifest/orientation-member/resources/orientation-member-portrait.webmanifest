@@ -1,0 +1,12 @@
+{
+    "name": "Orientation member with portrait value WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../orientation-member-portrait-manual.html",
+    "display": "standalone",
+    "orientation": "portrait"
+}

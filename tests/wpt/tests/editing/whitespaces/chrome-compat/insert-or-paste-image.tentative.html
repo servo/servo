@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="flags" content="may">
+<meta name="variant" content="?execCommand-insertImage">
+<meta name="variant" content="?execCommand-insertHTML">
+<meta name="variant" content="?paste-image">
+<title>Testing normalizing white-space sequence after execCommand("insertImage")</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const method = location.search.substr(1);
+const methodName = (() => {
+  switch (method) {
+    case "execCommand-insertImage":
+      return "document.execCommand(\"insertImage\")";
+    case "execCommand-insertHTML":
+      return "document.execCommand(\"insertHTML\")";
+    case "paste-image":
+      return "Pasting an <img>";
+  }
+})();
+
+addEventListener("load", () => {
+  // README:
+  // These tests based on the behavior of Chrome 134.  This test does NOT define
+  // nor suggest any standard behavior (actually, some expected results might
+  // look odd), but this test must help you to understand how other browsers
+  // use different logic to normalize white-space sequence.
+
+  const editingHost = document.querySelector("div[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+  const img = document.querySelector("img");
+  const imgURL = img.getAttribute("src");
+  let doCopy = method == "paste-image";
+
+  async function addPromiseTest(aInitHTML, aExpectedHTML) {
+    promise_test(async () => {
+      if (doCopy) {
+        await test_driver.click(img);
+        getSelection().selectAllChildren(img.parentNode);
+        await utils.sendCopyShortcutKey();
+        doCopy = false;
+      }
+      utils.setupEditingHost(aInitHTML);
+      switch (method) {
+        case "execCommand-insertImage":
+          document.execCommand("insertImage", false, imgURL);
+          break;
+        case "execCommand-insertHTML":
+          document.execCommand("insertHTML", false, `<img src="${imgURL}">`);
+          break;
+        case "paste-image":
+          await utils.sendPasteShortcutKey();
+          break;
+      }
+      editingHost.querySelector("img")?.removeAttribute("src");
+      assert_equals(editingHost.innerHTML, aExpectedHTML);
+    }, `${methodName} when "${aInitHTML}"`);
+  }
+
+  function generateWhiteSpaces(num, lastIsAlwaysNBSP) {
+    let str = "";
+    for (let i = 0; i < num - 1; i++) {
+      str += i % 2 ? " " : "\u00A0";
+    }
+    str += lastIsAlwaysNBSP || num % 2 ? "\u00A0" : " ";
+    return str.replaceAll("\u00A0", "&nbsp;");
+  }
+
+  addPromiseTest(
+    "[]a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `<img>a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a<img>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a&nbsp;<img>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a&nbsp;&nbsp;<img>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a${generateWhiteSpaces(3, true)}<img>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a${generateWhiteSpaces(4, true)}<img>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]&nbsp;&nbsp;&nbsp;&nbsp;b",
+    `a${generateWhiteSpaces(5, true)}<img>&nbsp;&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]&nbsp;&nbsp;&nbsp;b",
+    `a${generateWhiteSpaces(6, true)}<img>&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]&nbsp;&nbsp;b",
+    `a${generateWhiteSpaces(7, true)}<img>&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]&nbsp;b",
+    `a${generateWhiteSpaces(8, true)}<img>&nbsp;b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]b",
+    `a${generateWhiteSpaces(9, true)}<img>b`
+  );
+  addPromiseTest(
+    "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b[]",
+    `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b<img>`
+  );
+}, {once: true});
+</script>
+</head>
+<body>
+  <div><img src="../../../images/green-16x16.png"></div>
+  <div contenteditable></div>
+</body>
+</html>

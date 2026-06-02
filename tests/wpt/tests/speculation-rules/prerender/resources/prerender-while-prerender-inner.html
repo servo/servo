@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Prerender while prerendering test: inner maybe-prerendered page</title>
+
+<script>
+"use strict";
+window.onFirstScriptExecutedPrerendering = document.prerendering;
+</script>
+
+<script src="utils.js"></script>
+
+<script type="module">
+const params = new URLSearchParams(location.search);
+const uid = params.get("uid");
+
+const channel = new PrerenderChannel("result", uid);
+channel.postMessage(window.onFirstScriptExecutedPrerendering);
+channel.close();
+</script>

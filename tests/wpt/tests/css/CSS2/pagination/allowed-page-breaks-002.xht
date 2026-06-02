@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: allowed page break - line box breaking</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="Breaking between line boxes is allowed only if the number of line boxes between the break and the start of the enclosing block box is the value of 'orphans' or more, and the number of line boxes between the break and the end of the box is the value of 'widows' or more and the value of the 'page-break-inside' property is 'auto'."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	html, body { height: 100%; line-height: 1; font-size: 20px; margin: 0; padding: 0; }
+
+	* {page-break-inside: auto;}
+	div.spacer {
+		height: 50%;
+	}
+	div.backup {
+		margin-top: -3em;
+	}
+	div.dummy {
+		width: 0;
+		page-break-after: always;
+		color: blue;
+	}
+
+	div {
+		widows: 1;
+		orphans: 1;
+	}
+	div#second {orphans: 4;}
+	div#third {widows: 4;}
+	div#fourth {page-break-inside: avoid; page-break-after: auto; }
+</style>
+</head>
+<body>
+	<div class="spacer">This test requires 8 pages. The blue text must
+		denote accurate page numbers. Lines A-C must appear on this page;
+		lines D-F must appear on the next page.</div>
+	<div class="spacer backup"></div>
+	<div class="dummy">
+		Page&nbsp;1&nbsp;Line&nbsp;A
+		Page&nbsp;1&nbsp;Line&nbsp;B
+		Page&nbsp;1&nbsp;Line&nbsp;C
+		Page&nbsp;2&nbsp;Line&nbsp;D
+		Page&nbsp;2&nbsp;Line&nbsp;E
+		Page&nbsp;2&nbsp;Line&nbsp;F
+	</div>
+	<div class="spacer">Lines G-L must appear on the next page.</div>
+	<div class="spacer backup"></div>
+	<div class="dummy" id="second">
+		Page&nbsp;4&nbsp;Line&nbsp;G
+		Page&nbsp;4&nbsp;Line&nbsp;H
+		Page&nbsp;4&nbsp;Line&nbsp;I
+		Page&nbsp;4&nbsp;Line&nbsp;J
+		Page&nbsp;4&nbsp;Line&nbsp;K
+		Page&nbsp;4&nbsp;Line&nbsp;L
+	</div>
+	<div class="spacer">Lines M-N must appear on this page; lines O-R on the next page.</div>
+	<div class="spacer backup"></div>
+	<div class="dummy" id="third">
+		Page&nbsp;5&nbsp;Line&nbsp;M
+		Page&nbsp;5&nbsp;Line&nbsp;N
+		Page&nbsp;6&nbsp;Line&nbsp;O
+		Page&nbsp;6&nbsp;Line&nbsp;P
+		Page&nbsp;6&nbsp;Line&nbsp;Q
+		Page&nbsp;6&nbsp;Line&nbsp;R
+	</div>
+	<div class="spacer">Lines S-X must appear on the next page.</div>
+	<div class="spacer backup"></div>
+	<div class="dummy" id="fourth">
+		Page&nbsp;8&nbsp;Line&nbsp;S
+		Page&nbsp;8&nbsp;Line&nbsp;T
+		Page&nbsp;8&nbsp;Line&nbsp;U
+		Page&nbsp;8&nbsp;Line&nbsp;V
+		Page&nbsp;8&nbsp;Line&nbsp;W
+		Page&nbsp;8&nbsp;Line&nbsp;X
+	</div>
+</body>
+</html>

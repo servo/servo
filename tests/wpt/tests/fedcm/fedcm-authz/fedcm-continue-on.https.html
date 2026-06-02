@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_with_continue_on.json');
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "account=1234");
+}, "continue_on and IdentityProvider.resolve work correctly.");
+
+</script>

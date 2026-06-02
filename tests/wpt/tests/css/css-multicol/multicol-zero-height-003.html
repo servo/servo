@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Test: Test a block element with box-decoration-break:clone in a zero height multi-column container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1693616">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1754598">
+<link rel="match" href="multicol-zero-height-003-ref.html">
+<meta name="assert" content="This test verifies that a block element with box-decoration-break:clone can make progress when fragmenting in a zero height multi-column container. Also, it should expend 1px of its content-box per fragment, and therefore should only need to create 2 fragments.">
+
+<style>
+.multicol {
+  column-width: 100px;
+  inline-size: 300px;
+  block-size: 0;
+}
+
+.child {
+  color: green;
+  inline-size: 100px;
+  block-size: 2px;
+  border: 5px solid green;
+  box-decoration-break: clone;
+}
+</style>
+
+<!-- WARNING: This test hangs Firefox version < 99 without the fix in bug 1754598. -->
+
+<p>There shouldn't be a green strip in the third column.</p>
+<div class="multicol">
+  <div class="child"></div>
+</div>

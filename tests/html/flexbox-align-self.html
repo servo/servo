@@ -1,0 +1,41 @@
+<style type="text/css">
+#box {
+    display: flex;
+    align-items: center;
+}
+
+#box>div {
+    background-color: yellow;
+    margin: 2px;
+    border: 1px solid black;
+}
+#a div {
+    height: 20px;
+}
+
+#b div {
+    height: 50px;
+}
+
+#c div,#d div,#e div  {
+    height: 30px;
+}
+
+#a {
+    align-self: stretch;
+}
+
+#d {
+    align-self: flex-end;
+}
+#e {
+    align-self: flex-start;
+}
+</style>
+<div id=box>
+    <div id=a><div>A</div></div>
+    <div id=b><div>B</div></div>
+    <div id=c><div>C</div></div>
+    <div id=d><div>D</div></div>
+    <div id=e><div>E</div></div>
+</div>

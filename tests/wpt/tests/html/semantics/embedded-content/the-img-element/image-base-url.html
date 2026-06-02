@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image load parses URL after microtask runs</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+// See https://github.com/whatwg/html/issues/7383 and
+// https://chromium-review.googlesource.com/c/chromium/src/+/3311225.
+// This test asserts two things:
+//   1.) That Document base URL modifications that take place in between an
+//       image loading microtask being scheduled and executed are reflected in
+//       the final image request
+//   2.) That subsequent changes to a Document's base URL before an image is
+//       inserted into the DOM do not lead to the image being refetched when it
+//       is inserted asynchronously later. This is because image insertion is
+//       not a relevant mutation
+//       (https://html.spec.whatwg.org/#relevant-mutations).
+promise_test(async t => {
+  const image = new Image();
+  image.src = 'green.png';
+
+  // Dynamically insert a <base> tag that should influence the above image
+  // request because the above code triggers a microtask to continue fetching
+  // the image, which will run while we await `loadPromise` below.
+  const base = document.createElement('base');
+  base.setAttribute('href', 'resources/');
+  document.head.append(base);
+
+  const loadPromise = new Promise((resolve, reject) => {
+    image.addEventListener('load', e => {
+      resolve();
+    }, {once: true});
+
+    image.addEventListener('error', e => {
+      reject('The image must load');
+    }, {once: true});
+  });
+
+  // The image should load successfully, since its request was influenced by the
+  // <base> element which points the request to the right directory.
+  await loadPromise;
+
+  // Now manipulate the <base> element to point to a bogus directory.
+  base.setAttribute('href', 'bogus/');
+  document.body.append(image);
+
+  const timeoutPromise = new Promise(resolve => t.step_timeout(resolve, 1500));
+  const imageErrorPromise = new Promise((resolve, reject) => {
+    image.addEventListener('load', e => {
+      reject('The image should not be refetched upon insertion and load, ' +
+             'because (1) insertion is not a relevant mutation, and (2) the ' +
+             'new relative URL should not resolve to a real resource');
+    }, {once: true});
+
+    image.addEventListener('error', e => {
+      reject('The image should not be refetched upon insertion, because ' +
+             'insertion is not a relevant mutation');
+    }, {once: true});
+  });
+
+  await Promise.race([timeoutPromise, imageErrorPromise]);
+}, "An image should not be refetched upon insertion asynchronously after its " +
+   "Document's base URL changes");
+</script>
+</body>
+</html>

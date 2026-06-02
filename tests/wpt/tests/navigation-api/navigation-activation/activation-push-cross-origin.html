@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let i = document.createElement("iframe");
+  i.src = get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT + "/common/blank.html";
+  document.body.appendChild(i);
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.location = "/common/blank.html";
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+  let current_entry_after_nav = i.contentWindow.navigation.currentEntry;
+
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+  assert_equals(i.contentWindow.navigation.activation.entry, current_entry_after_nav);
+  assert_equals(i.contentWindow.navigation.activation.from, null);
+  assert_equals(i.contentWindow.navigation.activation.navigationType, "push");
+}, "navigation.activation after push cross-origin");
+</script>

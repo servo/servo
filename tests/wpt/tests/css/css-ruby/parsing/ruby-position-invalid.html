@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Ruby Layout: parsing ruby-position with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#propdef-ruby-position">
+<meta name="assert" content="ruby-position supports only the grammar 'over | under | inter-character'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("ruby-position", "auto");
+test_invalid_value("ruby-position", "center");
+test_invalid_value("ruby-position", "above");
+test_invalid_value("ruby-position", "10px 20px");
+
+test_invalid_value("ruby-position", "over under");
+</script>
+</body>
+</html>

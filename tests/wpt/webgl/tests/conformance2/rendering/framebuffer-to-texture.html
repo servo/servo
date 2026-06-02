@@ -1,0 +1,203 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL framebuffer to texture conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test resolving and copying the framebuffer to a texture, and drawing the result.");
+debug('Reduced test case for <a href="http://anglebug.com/6972">http://anglebug.com/6972</a>');
+
+// Reproduces two behaviors:
+//
+// 1) The initial draw disappearing entirely from the default back
+// buffer. The current test case does not show this behavior
+// independently from the other, but a previous iteration, with the
+// textured quad scaled to half size and translated (-0.5, -0.5), did.
+//
+// 2) With Metal debug layers and load/store validation turned on on
+// Intel Macs, the transparent area of the texture prior to the bug
+// fix was magenta = undefined. Similar behavior would presumably
+// reproduce on M1 hardware without debug layers or validation.
+
+const size = 64;
+const halfSize = size / 2;
+const green = [ 0, 255, 0, 255 ];
+const transparent = [ 0, 0, 0, 0 ];
+
+let wtu = WebGLTestUtils;
+let canvas = document.getElementById("canvas");
+canvas.width = size;
+canvas.height = size;
+
+let gl = wtu.create3DContext("canvas", {
+    // Antialiasing is crucial for reproducing the bug.
+    antialias: true,
+    // Depth testing is not.
+    depth: false,
+}, 2);
+
+function allocateTexture(sz) {
+    let texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, sz, sz);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return texture;
+}
+
+// Allocate destination texture
+let destTexture = allocateTexture(halfSize);
+
+// Set up half-size solid color quad in center
+let colorQuadVAO = gl.createVertexArray();
+gl.bindVertexArray(colorQuadVAO);
+let colorQuadProgram = wtu.setupColorQuad(gl, 0, { scale: 0.5 });
+
+// Setup textured quad covering the entire renderable area
+let quadVAO = gl.createVertexArray();
+gl.bindVertexArray(quadVAO);
+let quadProgram = wtu.setupTexturedQuad(gl, 0, 1);
+gl.useProgram(quadProgram);
+let quadTexLoc = gl.getUniformLocation(quadProgram, "tex");
+gl.uniform1i(quadTexLoc, 0);
+
+gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+gl.activeTexture(gl.TEXTURE0); // To match quadTexLoc=0
+
+function runTest() {
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(colorQuadVAO);
+    gl.useProgram(colorQuadProgram);
+    wtu.drawUByteColorQuad(gl, [ 0, 255, 0, 255 ]);
+
+    gl.bindTexture(gl.TEXTURE_2D, destTexture);
+    // Copy the upper right corner of the framebuffer to the texture.
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, halfSize, halfSize, halfSize, halfSize);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(quadProgram);
+    gl.enable(gl.BLEND);
+    gl.bindVertexArray(quadVAO);
+    gl.bindTexture(gl.TEXTURE_2D, destTexture);
+    // Magnify and blend this texture over the current framebuffer.
+    wtu.drawUnitQuad(gl);
+}
+
+function runUserDefinedFBOTest() {
+    let fbo1 = gl.createFramebuffer();
+    let fbo2 = gl.createFramebuffer();
+    let rb = gl.createRenderbuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, size, size);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, [ gl.FRAMEBUFFER_COMPLETE ]);
+
+    let tex = allocateTexture(size, size);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, [ gl.FRAMEBUFFER_COMPLETE ]);
+
+    // Same rendering steps as in the default-framebuffer test, with appropriate framebuffer blits interspersed.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo1);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.BLEND);
+    gl.bindVertexArray(colorQuadVAO);
+    gl.useProgram(colorQuadProgram);
+    wtu.drawUByteColorQuad(gl, [ 0, 255, 0, 255 ]);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo1);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo2);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2);
+
+    gl.bindTexture(gl.TEXTURE_2D, destTexture);
+    // Copy the upper right corner of the framebuffer to the texture.
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, halfSize, halfSize, halfSize, halfSize);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo1);
+
+    gl.useProgram(quadProgram);
+    gl.enable(gl.BLEND);
+    gl.bindVertexArray(quadVAO);
+    gl.bindTexture(gl.TEXTURE_2D, destTexture);
+    // Magnify and blend this texture over the current framebuffer.
+    wtu.drawUnitQuad(gl);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo1);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo2);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2);
+
+    // No longer easy to put these results on the canvas, because it's
+    // antialiased and we can't blitFramebuffer to it. Let's assume
+    // that if failures occur, they'll be straightforward to debug.
+}
+
+function checkRenderingResults(prefix) {
+    // Center quad should be rendered correctly.
+    wtu.checkCanvasRect(gl,
+                        halfSize / 2 + 1, halfSize / 2 + 1,
+                        halfSize - 2, halfSize - 2,
+                        green,
+                        prefix + ": center quad should be green");
+
+    // Overlapping lower-left quad should be green as well.
+    wtu.checkCanvasRect(gl,
+                        1, 1,
+                        halfSize - 2, halfSize - 2,
+                        green,
+                        prefix + ": lower left quad should be green");
+
+    // Leftmost area above the lower-left quad should be transparent.
+    wtu.checkCanvasRect(gl,
+                        1, halfSize + 1,
+                        halfSize / 2 - 2, halfSize / 2 - 2,
+                        transparent,
+                        prefix + ": leftmost area above lower left quad should be transparent");
+
+    // Bottommost area to the right of the lower-left quad should be transparent.
+    wtu.checkCanvasRect(gl,
+                        halfSize + 1, 1,
+                        halfSize / 2 - 2, halfSize / 2 - 2,
+                        transparent,
+                        prefix + ": bottommost area to the right of lower left quad should be transparent");
+}
+
+runTest();
+checkRenderingResults("default back buffer");
+
+runUserDefinedFBOTest();
+checkRenderingResults("user-defined framebuffer");
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors at the end of the test.");
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

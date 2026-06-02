@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let i = document.createElement("iframe");
+  i.src = get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT + "/common/blank.html";
+  document.body.appendChild(i);
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.location = "about:blank";
+  await new Promise(resolve => i.onload = resolve);
+  let entries = i.contentWindow.navigation.entries();
+  assert_equals(entries.length, 1);
+  assert_equals(entries[0].url, "about:blank");
+}, "entries() should not be leaked from cross-origin when navigating to about:blank");
+</script>
+</body>

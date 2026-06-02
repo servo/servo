@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: battery neither empty or full, charger plugged in</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/battery-status/">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<h2>Description</h2>
+<p>
+  This test validates that all of the BatteryManager attributes exist and are set to their correct values when battery is charging.
+</p>
+
+<h2>Preconditions</h2>
+<ol>
+  <li>
+    The device is plugged in to the charger before this test is run.
+  </li>
+  <li>
+    The battery must neither be empty or full, nor reach empty or full capacity during the test.
+  </li>
+  <li>
+    Waiting for battery level change to fire levelchange event, maybe need a long time
+  </li>
+</ol>
+
+<script>
+
+setup({ explicit_timeout: true });
+
+async_test(function (t) {
+  navigator.getBattery().then(function (battery) {
+    t.step(function () {
+      assert_true(battery.charging, 'charging must be set to true');
+      assert_equals(battery.dischargingTime, Infinity, 'dischargingTime must be set to Infinity');
+      assert_greater_than(battery.level, 0, 'level must be greater than 0');
+      assert_less_than_equal(battery.level, 1.0, 'level must be less than or equal to 1.0');
+
+      var battery_level = battery.level;
+      battery.onlevelchange = t.step_func(function () {
+        assert_greater_than(battery.level, battery_level, 'The value of the level attribute must increase');
+        t.done();
+      });
+    });
+  }, function (error) {
+    t.step(function () {
+      assert_unreached(error.message);
+    });
+    t.done();
+  });
+}, document.title);
+
+</script>

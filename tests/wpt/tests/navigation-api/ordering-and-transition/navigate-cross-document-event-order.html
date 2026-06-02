@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="resources/notify-top-early.html"></iframe>
+<script>
+async_test(t => {
+  let events = [];
+  function finish() {
+    assert_array_equals(events, ["onnavigate", "onunload", "readystateinteractive", "domcontentloaded", "readystatecomplete", "onload", "onpageshow"]);
+    t.done();
+  };
+
+  window.onload = t.step_func(() => {
+    window.childStarted = () => {
+      i.contentWindow.navigation.onnavigatesuccess = () => events.push("onnavigatesuccess");
+      i.contentWindow.navigation.onnavigateerror = () => events.push("onnavigateerror");
+      i.contentWindow.onpageshow = () => events.push("onpageshow");
+      i.contentWindow.onhashchange = () => events.push("onhashchange");
+      i.contentWindow.onpopstate = () => events.push("onpopstate");
+      i.onload = t.step_func(() => {
+        events.push("onload");
+        t.step_timeout(finish, 0);
+      });
+      i.contentDocument.addEventListener("DOMContentLoaded", () => events.push("domcontentloaded"));
+      i.contentDocument.onreadystatechange = () => events.push("readystate" + i.contentDocument.readyState);
+    };
+    i.contentWindow.onunload = () => events.push("onunload");
+    i.contentWindow.navigation.onnavigate = () => events.push("onnavigate");
+    i.contentWindow.navigation.navigate("?1").committed.then(
+        () => events.push("promisefulfilled"), () => events.push("promiserejected"));
+  });
+}, "navigate() event ordering for cross-document navigation");
+</script>

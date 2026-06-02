@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<title>CSS Text Decoration test: decoration inset and text-indent in an orthogonal block</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-indent-property">
+<link rel="match" href="reference/text-decoration-inset-orthogonal-block-001-ref.html">
+
+<style>
+body {
+  font-size: 64px;
+}
+u {
+  text-decoration-inset: 10px;
+  writing-mode: sideways-lr;
+  text-indent: 40px;
+}
+div {
+  writing-mode: initial;
+}
+</style>
+<u>vertical<div>horizontal</div>text</u>

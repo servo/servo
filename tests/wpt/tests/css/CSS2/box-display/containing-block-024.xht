@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Containing block and absolutely positioned element in paged media</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+        <meta name="flags" content="paged" />
+        <meta name="assert" content="An absolutely positioned element ignores page breaks in paged media." />
+        <style type="text/css">
+            @media print
+            {
+                #print
+                {
+                    display: none;
+                }
+                p
+                {
+                    margin-top: 1.1in;
+                    page-break-after: always;
+                }
+                div
+                {
+                    border: solid black;
+                    height: 1in;
+                    left: 0;
+                    position: absolute;
+                    top: 0;
+                    width: 1in;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <p id="print">PREREQUISITE: Switch to paged media view.</p>
+        <p>Test passes if there is a black box above.</p>
+        <div></div>
+    </body>
+</html>

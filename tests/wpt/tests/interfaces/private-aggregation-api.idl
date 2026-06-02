@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Private Aggregation API (https://patcg-individual-drafts.github.io/private-aggregation-api/)
+
+[Exposed=(InterestGroupScriptRunnerGlobalScope,SharedStorageWorklet),
+ SecureContext]
+interface PrivateAggregation {
+  undefined contributeToHistogram(PAHistogramContribution contribution);
+  undefined contributeToHistogramOnEvent(DOMString event,
+                                         record<DOMString, any> contribution);
+  undefined enableDebugMode(optional PADebugModeOptions options = {});
+};
+
+dictionary PAHistogramContribution {
+  required bigint bucket;
+  required long value;
+  bigint filteringId = 0;
+};
+
+dictionary PADebugModeOptions {
+  required bigint debugKey;
+};

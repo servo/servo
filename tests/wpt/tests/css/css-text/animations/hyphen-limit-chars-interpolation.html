@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jkew@mozilla.com">
+<link rel=help href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<script>
+test_interpolation({
+  property: "hyphenate-limit-chars",
+  from: "5 1 2",
+  to: "17 5 10",
+}, [
+  {at: -0.5, expect: "-1 -1 -2"},
+  {at: -0.25, expect: "2 0"},
+  {at: 0, expect: "5 1 2"},
+  {at: 0.25, expect: "8 2 4"},
+  {at: 0.5, expect: "11 3 6"},
+  {at: 0.75, expect: "14 4 8"},
+  {at: 1, expect: "17 5 10"},
+  {at: 1.5, expect: "23 7 14"},
+]);
+
+test_interpolation({
+  property: "hyphenate-limit-chars",
+  from: "auto 1 2",
+  to: "auto 5 10",
+}, [
+  {at: -0.5, expect: "auto -1 -2"},
+  {at: -0.25, expect: "auto 0"},
+  {at: 0, expect: "auto 1 2"},
+  {at: 0.25, expect: "auto 2 4"},
+  {at: 0.5, expect: "auto 3 6"},
+  {at: 0.75, expect: "auto 4 8"},
+  {at: 1, expect: "auto 5 10"},
+  {at: 1.5, expect: "auto 7 14"},
+]);
+
+test_interpolation({
+  property: "hyphenate-limit-chars",
+  from: "5",  // the missing values should both be 'auto'
+  to: "17",
+}, [
+  {at: -0.5, expect: "-1 auto"},
+  {at: -0.25, expect: "2 auto"},
+  {at: 0, expect: "5 auto"},
+  {at: 0.25, expect: "8 auto"},
+  {at: 0.5, expect: "11 auto"},
+  {at: 0.75, expect: "14 auto"},
+  {at: 1, expect: "17 auto"},
+  {at: 1.5, expect: "23 auto"},
+]);
+</script>

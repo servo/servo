@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="attr-style-sharing-1-ref.html">
+<style>
+  span {
+    background-color: attr(data-foo type(<color>));
+  }
+</style>
+<span data-foo="green">green</span>
+<span>not green</span>

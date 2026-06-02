@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS filter: hue-rotate turns red to green</title>
+    <link rel="author" title="Ezzeldin Ibrahim" href="mailto:ezzibrahimx@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/filter-effects-1/#funcdef-filter-hue-rotate">
+    <link rel="help" href="https://www.w3.org/TR/filter-effects-1/#huerotateEquivalent">
+    <link rel="match" href="filter-hue_rotate-002-ref.html">
+
+    <meta name="assert"
+        content="Applying filter: hue-rotate(120deg) to a red rectangle should produce a green(#007100) rectangle.">
+
+    <style type="text/css">
+        div {
+            width: 200px;
+            height: 200px;
+            background-color: red;
+            filter: hue-rotate(120deg);
+        }
+    </style>
+</head>
+
+<body>
+    <p>You should see a green(#007100) rectangle.</p>
+    <div></div>
+</body>
+
+</html>

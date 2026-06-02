@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::first-line on list item with block children</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-text-line">
+<link rel="match" href="first-line-on-list-item-with-block-children-ref.html">
+<meta name=assert content="For a block container containing block-level children, the ::first-line pseudo-element applies to the first formatted line of its first in-flow block-level child">
+<style>
+li::first-line {
+  background: yellow;
+}
+</style>
+<body>
+  <ol>
+    <li>
+      <div>First line</div>
+      <div>Second line</div>
+    </li>
+  </ol>
+</body>

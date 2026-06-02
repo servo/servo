@@ -1,0 +1,35 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test that DataView does not crash with bad offset or length.");
+
+var array = new Uint8Array([164, 112, 157, 63]);
+var view;
+shouldThrow("view = new DataView(array.buffer, -4500000000)");
+shouldThrow("view = new DataView(array.buffer, -4500000000, 4500000000)");
+var value = view ? view.getFloat32(0, true) : 0;
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe id="existing" src="resources/post-your-protocol.html?existing"></iframe>
+<iframe id="http-and-gunk" src="resources/post-your-protocol.html?http-and-gunk"></iframe>
+<!-- iframe id="https-and-gunk" src="resources/post-your-protocol.html?https-and-gunk"></iframe -->
+<script>
+// NOTE: we do not listen to message events until our load event fires, so we
+// only get them for the things we actually care about.
+var wrapper_test = async_test("General setup");
+var tests = {
+  "existing": { test: async_test("Set location.protocol = location.protocol"),
+                result: location.protocol },
+  "http-and-gunk": { test:  async_test("Set location.protocol to http:gunk"),
+                     result: "http:" },
+  // We should really test the "https:gunk" case too, and assert that it ends up
+  // with a protocol of "https:", but can't.  See comments below for why.
+};
+
+function messageListener(e) {
+  var data = e.data;
+  var id = data.id;
+  var t = tests[id].test;
+  t.step(function() {
+    assert_equals(data.protocol, tests[id].result, "Protocol should match");
+  })
+  t.done();
+}
+
+addEventListener("load", wrapper_test.step_func_done(function() {
+  addEventListener("message", messageListener);
+
+  tests["existing"].test.step(function() {
+    var loc = document.getElementById("existing").contentWindow.location;
+    loc.protocol = loc.protocol;
+  });
+  tests["http-and-gunk"].test.step(function() {
+    var loc = document.getElementById("http-and-gunk").contentWindow.location;
+    loc.protocol = "http:gunk";
+  });
+  // I wish we could test the https bit, but can't figure out a non-racy way to
+  // do it, because we need to change both protocol (to https) _and_ port to
+  // {{ports[https][0]}} to get a successful load unless we're running on the
+  // default http port, but the setter uses the current value, which doesn't get
+  // updated sync, as the url to start with for the set.  Oh, and there's no
+  // good way to detect when the port set is "done" either.
+}));
+
+</script>

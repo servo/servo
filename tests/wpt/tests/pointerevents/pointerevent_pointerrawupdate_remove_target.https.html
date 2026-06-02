@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale:1">
+<title>If a `pointerrawupdate` listener removes the target, `pointermove` should be fired its connected ancestor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+/**
+ * `pointerrawupdate` is defined as:
+ * > The target of pointerrawupdate events might be different from the
+ * > pointermove events due to the fact that pointermove events might get
+ * > delayed or coalesced, and the final position of the event which is used
+ * > for finding the target could be different from its coalesced events.
+ *
+ * This checks whether `pointermove` is fired on the latest element underneath
+ * the pointer when the `pointerrawupdate` event listener removes its target.
+ */
+
+addEventListener("DOMContentLoaded", () => {
+  const testContainer = document.getElementById("testContainer");
+  let events = [];
+  function logEvent(event) {
+    if (event.eventPhase != Event.AT_TARGET) {
+      return;
+    }
+    events.push(`${event.type}@${event.target.id ? event.target.id : `<${event.target.nodeName}>`}`);
+  }
+  promise_test(async () => {
+    testContainer.innerHTML = "<div id=container><div id=init></div><div id=target></div></div>";
+    const initialDiv = document.getElementById("init");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    const target = document.getElementById("target");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      target.addEventListener(type, logEvent);
+    }
+    const container = document.getElementById("container");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      container.addEventListener(type, logEvent);
+    }
+    target.addEventListener("pointerrawupdate", () => {
+      target.remove();
+    }, {once: true});
+    events = [];
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .send();
+    assert_equals(
+      events.join(","),
+      [
+        "pointerover@target",
+        "pointerrawupdate@target",
+        "pointerover@container",
+        "pointermove@container",
+      ].join(",")
+    );
+  }, `"pointermove" and its preceding boundary events should be fired on parent if "pointerrawupdate" event listener removes its target`);
+
+  promise_test(async () => {
+    testContainer.innerHTML =
+      "<div id=container><div id=container2><div id=init></div><div id=target></div></div></div>";
+    const initialDiv = document.getElementById("init");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    const target = document.getElementById("target");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      target.addEventListener(type, logEvent);
+    }
+    const container = document.getElementById("container");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      container.addEventListener(type, logEvent);
+    }
+    target.addEventListener("pointerrawupdate", () => {
+      target.parentNode.remove();
+    }, {once: true});
+    events = [];
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .send();
+    assert_equals(
+      events.join(","),
+      [
+        "pointerover@target",
+        "pointerrawupdate@target",
+        "pointerover@container",
+        "pointermove@container",
+      ].join(",")
+    );
+  }, `"pointermove" and its preceding boundary events should be fired on ancestor if "pointerrawupdate" event listener removes its target parent`);
+
+  promise_test(async () => {
+    testContainer.innerHTML =
+      "<div id=container><div id=init></div><iframe srcdoc='<div id=target style=height:64px></div>'></iframe></div>";
+    const iframe = document.querySelector("iframe");
+    if (iframe.contentDocument.readyState != "complete") {
+      await new Promise(resolve => iframe.addEventListener("load", resolve, {once: true}));
+    }
+    const initialDiv = document.getElementById("init");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    const target = iframe.contentDocument.getElementById("target");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      target.addEventListener(type, logEvent);
+    }
+    const container = document.getElementById("container");
+    for (const type of ["pointerrawupdate", "pointermove", "pointerover"]) {
+      container.addEventListener(type, logEvent);
+    }
+    target.addEventListener("pointerrawupdate", () => {
+      iframe.remove();
+    }, {once: true});
+    events = [];
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .send();
+    assert_equals(
+      events.join(", "),
+      [
+        "pointerover@target",
+        "pointerrawupdate@target",
+        "pointerover@container",
+        "pointermove@container",
+      ].join(", ")
+    );
+  }, `"pointermove" and its preceding boundary events should be fired on parent if "pointerrawupdate" event listener removes its document`);
+}, {once: true});
+</script>
+<style>
+#container, #container2 {
+  min-height: 200px;
+}
+#target, #init {
+  width: 64px;
+  height: 64px;
+}
+
+</style>
+<body><div id="testContainer"></div></body>
+</html>

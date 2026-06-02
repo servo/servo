@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-web-locks.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const method = params.get('method');
+  const prerenderEventCollector = new PrerenderEventCollector();
+  let promise;
+  switch(method) {
+    case 'request':
+      promise = navigator.locks.request('prerender-test-lock', lock => {});
+      break;
+    case 'query':
+      promise = navigator.locks.query();
+      break;
+  }
+  prerenderEventCollector.start(promise, `navigator.locks.${method}`);
+}
+
+</script>

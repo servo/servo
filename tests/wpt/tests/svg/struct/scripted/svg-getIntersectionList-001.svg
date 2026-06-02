@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+<html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__getIntersectionList"/>
+<html:script src="/resources/testharness.js"/>
+<html:script src="/resources/testharnessreport.js"/>
+<html:link rel="stylesheet" href="/fonts/ahem.css"/>
+<style>
+text {
+  font-family: Ahem;
+  font-size: 100px;
+}
+</style>
+<text x="0" y="80">Text0</text>
+<text x="0" y="80" style="display:none">Text1</text>
+<text x="0" y="80" pointer-events="none">Text2</text>
+<text x="0" y="80">Text3</text>
+
+<script>
+test(t => {
+  const svg = document.documentElement;
+  const rect = svg.createSVGRect();
+  rect.x = 10;
+  rect.y = 70;
+  rect.width = 20;
+  rect.height = 20;
+  const texts = document.querySelectorAll('text');
+  const list = svg.getIntersectionList(rect, null);
+  assert_array_equals(list, [texts[0], texts[3]]);
+}, 'SVGSVGElement.getIntersectionList()');
+</script>
+</svg>

@@ -1,0 +1,70 @@
+<!doctype html>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/protected-audience-helper-module.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async test => {
+  const uuid = generateUuid();
+  const contribution = '{ bucket: 340282366920938463463374607431768211456n, value: 1 }';
+
+  await runReportTest(test, uuid,
+    { scoreAd:
+    `try {
+      privateAggregation.contributeToHistogram(${contribution});
+    } catch {
+      forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');
+    }`},
+    /*expectedNumReports=*/ 1);
+}, 'contributeToHistogram() with too large bucket in scoreAd()');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+  const contribution = '{ bucket: -1n, value: 1 }';
+
+  await runReportTest(test, uuid,
+    { reportResult:
+    `try {
+      privateAggregation.contributeToHistogram(${contribution});
+    } catch {
+      sendReportTo('${createWritingURL(uuid)}');
+    }`},
+    /*expectedNumReports=*/ 1);
+}, 'contributeToHistogram() with negative bucket in reportResult()');
+
+
+promise_test(async test => {
+  const uuid = generateUuid();
+  const contribution = '{ bucket: 1, value: 1 }';
+
+  await runReportTest(test, uuid,
+    { generateBid:
+    `try {
+      privateAggregation.contributeToHistogram(${contribution});
+    } catch {
+      forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');
+    }`},
+    /*expectedNumReports=*/ 1);
+}, 'contributeToHistogram() with non-BigInt bucket in generateBid()');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+  const contribution = '{ bucket: 1n, value: -1 }';
+
+  await runReportTest(test, uuid,
+    { reportWin:
+    `try {
+      privateAggregation.contributeToHistogram(${contribution});
+    } catch {
+      sendReportTo('${createWritingURL(uuid)}');
+    }`},
+    /*expectedNumReports=*/ 1);
+}, 'contributeToHistogram() with negative value in reportWin()');
+
+</script>
+</body>

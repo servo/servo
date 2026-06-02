@@ -1,0 +1,43 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+// fragment shader with comma assignment should succeed
+precision mediump float;
+void main() {
+  float a = 0.0;
+  float b = 0.0;
+  float c = 0.0;
+  float d = 0.0;
+  a = 1.1, b = 3.1;
+  c = 2.1, d = 4.1;
+  // Output green if successful, red if not.
+  gl_FragColor = ((a + b + c + d > 10.0) ? vec4(0,1,0,1) : vec4(1,0,0,1));
+}
+</script>
+<script>
+"use strict";
+GLSLConformanceTester.runRenderTest();
+var successfullyParsed = true;
+</script>
+</body>
+</html>

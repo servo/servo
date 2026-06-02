@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<head>
+  <title>Tests that an element positioned using position-area renders when it's initially hidden, then shown</title>
+
+  <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area">
+  <link rel="author" href="mailto:kiet.ho@apple.com">
+  <link rel="match" href="reference/position-area-visibility-change-ref.html">
+
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/common/rendering-utils.js"></script>
+
+  <style>
+    .containing-block {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      outline: 2px black solid;
+    }
+
+    .cell {
+      width: 50px;
+      height: 50px;
+    }
+
+    #anchor-cell {
+      position: absolute;
+      top: 50px;
+      left: 50px;
+
+      anchor-name: --anchor;
+
+      background: green;
+    }
+
+    .anchor-positioned-cell {
+      position: absolute;
+      position-anchor: --anchor;
+    }
+
+    #target-1 {
+      position-area: top right;
+
+      /* Will be changed to 'block' */
+      display: none;
+    }
+
+    #target-2 {
+      position-area: bottom left;
+
+      /* Will be changed to 'visible' */
+      visibility: hidden;
+    }
+
+    #target-3 {
+      position-area: bottom right;
+
+      /* Override default popover style */
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    .blue-background {
+      background: blue;
+    }
+
+    .magenta-background {
+      background: magenta;
+    }
+
+    .cyan-background {
+      background: cyan;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="containing-block">
+    <div class="cell" id="anchor-cell"></div>
+
+    <div class="cell anchor-positioned-cell" id="target-1">
+      <div class="cell blue-background"></div>
+    </div>
+
+    <div class="cell anchor-positioned-cell" id="target-2">
+      <div class="cell magenta-background"></div>
+    </div>
+
+    <div class="cell anchor-positioned-cell" id="target-3" popover>
+      <div class="cell cyan-background"></div>
+    </div>
+  </div>
+
+  <script>
+    // All targets should initially be hidden.
+    waitForAtLeastOneFrame().then(() => {
+      // Change targets to be visible.
+      document.getElementById('target-1').style.display = 'block';
+      document.getElementById('target-2').style.visibility = 'visible';
+      document.getElementById('target-3').showPopover();
+
+      waitForAtLeastOneFrame().then(() => {
+        // All targets should be visible now.
+        takeScreenshot();
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: computed values ouf outline-width</title>
+  <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="outline-width values compute to absolute lengths">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+<style>
+body > div {
+  width: 100px;
+  height: 100px;
+  background: red;
+
+  font-size: 10px;
+
+  /* stacking  of outlines is undefined, so we cannot reliably to have an outline hide another outline.
+   We are using a border instead,
+   but still need to create an (invisible) outline to make sure that outline-width does not compute to 0. */
+  outline: solid 1em transparent;
+  border: solid 1em red;
+  margin-left: -10px;
+  margin-top: -10px;
+
+}
+div > div {
+  width: 100px;
+  height: 100px;
+  background: green;
+
+  font-size: 5px;
+  outline-width: inherit;
+  outline-style: solid;
+  outline-color: white;
+}
+</style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div><div></div></div>
+

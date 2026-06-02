@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Event handling of endEvent with various types of event listeners</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <rect width="100" height="100" fill="blue">
+    <animate attributeName="x" begin="0s" from="0" to="100" dur="5ms" end="5ms"
+             id="targetWithAttributeHandlers"
+             onend="gOnEndHandlerCallCount++"
+             onendEvent="gNonexistentOnEndEventHandlerCallCount++"/>
+    <animate attributeName="y" begin="0s" from="0" to="100" dur="5ms" end="5ms"
+             id="targetWithIDLListeners"/>
+    <animate attributeName="width" begin="0s" from="100" to="120" dur="5ms" end="5ms"
+             id="targetWithRegularListeners"/>
+    <set attributeName="visibility" begin="0s" end="10ms" from="visible" to="visible"
+        id="timekeeper"/>
+  </rect>
+</svg>
+<script>
+  // This test checks how various types of event handlers / listeners react to an
+  // animation end event.
+  // The SVG spec does not define an event called "end" - the animation event is called "endEvent".
+  // The SVG spec does not define an IDL property called "onendEvent", only one called "onend".
+  // The SVG spec does not define an attribute called "onendEvent", only one called "onend".
+
+  // Incremented in the "onend" attribute event handler.
+  gOnEndHandlerCallCount = 0;
+  // "onendEvent" is an invalid attribute name so this should never be incremented.
+  gNonexistentOnEndEventHandlerCallCount = 0;
+  // Incremented in the "onend" IDL property event listener.
+  gOnEndListenerCallCount = 0;
+  // "onendEvent" is an unrecognized property name so this should never be incremented.
+  gNonexistentOnEndEventListenerCallCount = 0;
+  // Incremented in the "endEvent" event listener.
+  gEndEventListenerCallCount = 0;
+  // Incremented in the "end" event listener. This should only happen for custom
+  // events with the name "end" (which are not used in this test).
+  gEndListenerCallCount = 0;
+
+  let targetWithAttributeHandlers = document.getElementById("targetWithAttributeHandlers");
+  let targetWithIDLListeners = document.getElementById("targetWithIDLListeners");
+  targetWithIDLListeners.onend = () => { gOnEndListenerCallCount++; };
+  targetWithIDLListeners.onendEvent = () => { gNonexistentOnEndEventListenerCallCount++; };
+  let targetWithRegularListeners = document.getElementById("targetWithRegularListeners");
+  targetWithRegularListeners.addEventListener("endEvent", () => { gEndEventListenerCallCount++; });
+  targetWithRegularListeners.addEventListener("end", () => { gEndListenerCallCount++; });
+
+  async_test(t => {
+    let timekeeper = document.getElementById("timekeeper");
+    timekeeper.addEventListener("endEvent", t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        assert_equals(gOnEndHandlerCallCount, 1);
+        assert_equals(gNonexistentOnEndEventHandlerCallCount, 0);
+        assert_equals(gOnEndListenerCallCount, 1);
+        assert_equals(gNonexistentOnEndEventListenerCallCount, 0);
+        assert_equals(gEndEventListenerCallCount, 1);
+        assert_equals(gEndListenerCallCount, 0);
+      }));
+    }));
+  }, "When the animation ends, only the 'onend' attribute + IDL listeners and the 'endEvent' listener should be called");
+
+</script>

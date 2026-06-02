@@ -1,0 +1,34 @@
+<!doctype html>
+<title>radial-gradient() with line-height relative unit &lt;position> (horizontal)</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#radial-gradient-syntax">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<link rel="match" href="radial-gradient-line-height-relative-units-ref.html">
+<style>
+.base {
+  position: absolute;
+  z-index: -2;
+  width: 200px;
+  height: 200px;
+  background: green;
+}
+.ref {
+  position: absolute;
+  z-index: 0;
+  width: 200px;
+  height: 200px;
+  background-image: radial-gradient(25px at 100px 50px, green 100%, transparent);
+}
+.box {
+  position: absolute;
+  z-index: -1;
+  width: 200px;
+  font-size: 50px;
+  line-height: 2;
+  aspect-ratio: 1;
+  mask-image: radial-gradient(25px at 1lh 50px, red 100%, transparent);
+  background: red;
+}
+</style>
+<div class="base"></div>
+<div class="ref"></div>
+<div class="box"></div>

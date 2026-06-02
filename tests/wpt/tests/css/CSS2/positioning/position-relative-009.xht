@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Over-constrained situation with position 'left' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+		<link rel="match" href="position-relative-005-ref.xht" />
+
+        <meta name="assert" content="If the 'direction' property of the containing block is 'ltr', the value of 'left' wins and 'right' becomes negative 'left'." />
+        <style type="text/css">
+			body {direction: ltr;}
+            div
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #div1
+            {
+                background: orange;
+            }
+            #div2
+            {
+                background: blue;
+                left: 1in;
+                position: relative;
+                right: 1in;
+                top: -1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue square is on the right-hand side of an orange square.</p>
+        <div id="div1"></div>
+        <div id="div2"></div>
+    </body>
+</html>

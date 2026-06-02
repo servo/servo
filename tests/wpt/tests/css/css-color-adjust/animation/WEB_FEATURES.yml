@@ -1,0 +1,7 @@
+features:
+- name: color-scheme
+  files:
+  - color-scheme-*
+- name: forced-colors
+  files:
+  - forced-color-adjust-*

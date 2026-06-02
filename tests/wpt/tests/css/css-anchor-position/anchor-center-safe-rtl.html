@@ -1,0 +1,59 @@
+<!doctype html>
+<title>Tests whether safe alignment works correctly on the anchor element.</title>
+<link rel="match" href="anchor-center-safe-rtl-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-center">
+<style>
+body {
+  direction: rtl;
+  display: inline;
+}
+.anchor {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  height: 30px;
+  color: white;
+  background-color: green;
+  anchor-name: --myAnchor;
+}
+.infobox {
+  color: darkblue;
+  background-color: azure;
+  border: 1px solid #ddd;
+  padding: 10px;
+  position: fixed;
+  position-anchor: --myAnchor;
+  top: calc(anchor(bottom) + 5px);
+  right: 0px;
+  justify-self: safe anchor-center;
+}
+.anchor2 {
+  position: fixed;
+  top: 0px;
+  right: 390px;
+  width: 100px;
+  height: 30px;
+  color: white;
+  background-color: green;
+  anchor-name: --myAnchor2;
+}
+.infobox2 {
+  color: darkblue;
+  background-color: azure;
+  border: 1px solid #ddd;
+  padding: 10px;
+  position: fixed;
+  position-anchor: --myAnchor2;
+  top: calc(anchor(right) + 5px);
+  right: calc(anchor(left) + 5px);
+  align-self: safe anchor-center;
+}
+</style>
+<div class="anchor">Anchor</div>
+<div class="infobox">
+  <p>Anchored element with justify-self</p>
+</div>
+<div class="anchor2">Anchor</div>
+<div class="infobox2">
+  <p>Anchored element with align-self</p>
+</div>

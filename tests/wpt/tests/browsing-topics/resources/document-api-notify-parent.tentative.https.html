@@ -1,0 +1,11 @@
+<!doctype html>
+<body>
+  <script>
+    document.browsingTopics().then((topics) => {
+      window.parent.postMessage({error: 'No error'}, '*');
+    })
+    .catch((err) => {
+      window.parent.postMessage({error: err.message}, '*');
+    });
+  </script>
+</body>

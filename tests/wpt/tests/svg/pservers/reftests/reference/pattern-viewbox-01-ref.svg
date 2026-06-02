@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5669 5669">
+  <pattern width="2258.997" height="1289.823" patternUnits="userSpaceOnUse" id="pattern"
+           viewBox="0 0 2258.997 1289.823" patternTransform="scale(0.5)">
+    <g transform="translate(-752.999, 1934.735)" fill="none" stroke="black" stroke-width="10">
+      <rect x="752.999" y="-1934.735" width="2258.997" height="1289.823"/>
+      <circle cx="1882.4975" cy="-1289.8235" r="644.9115"/>
+    </g>
+  </pattern>
+  <rect width="100%" height="100%"  fill="url(#pattern)"/>
+</svg>

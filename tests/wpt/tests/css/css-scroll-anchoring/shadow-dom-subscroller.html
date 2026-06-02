@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    body {
+        height: 5000px;
+    }
+
+    .filler {
+        width: 20px;
+        height: 500px;
+        background-color: silver;
+    }
+
+    #container {
+        height: 800px;
+        width: 800px;
+        padding: 10px;
+        border: 1px solid black;
+    }
+
+    #target {
+        border: 1px solid gray;
+        padding: 10px;
+        height: 150px;
+        background-color: orange;
+    }
+</style>
+
+<div id="container">
+    <test-container id="shadowHost" >
+        <div class="filler">
+        </div>
+        <div id="target">
+            <p>Scrolling over this element doesn't scroll the main scroller<p>
+        </div>
+        <div class="filler">
+        </div>
+    </test-container>
+</div>
+
+<script type="module">
+    const content = document.getElementById('target');
+    class TestContainer extends HTMLElement {
+        connectedCallback() {
+            const shadow = this.attachShadow({ mode: 'open' });
+            shadow.innerHTML = `
+                    <div id = "shadowScroller" style="height: calc(100% - 20px); overflow: auto; border: 1px solid green; padding: 10px">
+                        <slot></slot>
+                    </div>`;
+        }
+    }
+
+    customElements.define('test-container', TestContainer);
+
+    promise_test(async function() {
+        var root = document.getElementById('shadowHost');
+        var shadowElement = root.shadowRoot.querySelector("#shadowScroller");
+        document.scrollingElement.scrollBy(0,100);
+        shadowElement.scrollBy(0,150);
+        await new Promise(resolve => {
+            shadowElement.addEventListener("scroll", () => step_timeout(resolve, 0));
+        });
+
+        assert_equals(document.scrollingElement.scrollTop, 100);
+    }, "Ensure there is no scroll anchoring adjustment in the main frame.");
+
+</script>

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>scroll{Width,Height} with visible overflow and negative margins.</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1906475">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+body { margin: 0 }
+.wrapper {
+  width: 90px;
+  border: 10px solid #d1d1d2;
+}
+.inner {
+  margin: -10px;
+  height: 100px;
+  width: 100px;
+  background-color: blue;
+}
+</style>
+<div class="wrapper" style="overflow: visible">
+  <div class="inner"></div>
+</div>
+<div class="wrapper" style="overflow: hidden">
+  <div class="inner"></div>
+</div>
+<div class="wrapper" style="overflow: auto">
+  <div class="inner"></div>
+</div>
+<div class="wrapper" style="overflow: clip">
+  <div class="inner"></div>
+</div>
+<script>
+for (let wrapper of document.querySelectorAll(".wrapper")) {
+  test(function() {
+    assert_equals(wrapper.scrollWidth, 90, "scrollWidth");
+    assert_equals(wrapper.scrollHeight, 90, "scrollHeight");
+  }, "scrollWidth/Height with negative margins: " + wrapper.style.cssText);
+}
+</script>

@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Blob Perf (File)</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script>
+// Note: This test requires setting the command line flags:
+// --blob-transport-by-file-trigger=307300
+// --blob-transport-min-file-size=2048
+// --blob-transport-max-file-size=10240
+// to guarantee these blobs are transported using files.
+// There should be 31 files created for each blob.
+let runnerParams = { size: 301 * 1024, numBlobs: 10 };
+let test = {
+  description:
+    'Benchmark for creating blobs using File transport then reading both synchronously and in parallel.',
+  unit: 'ms',
+  iterationCount: 20,
+  tracingCategories: 'Blob',
+  traceEventsToMeasure: [
+    'BlobRequest::ReadFileItem', 'Registry::RegisterBlob'
+  ],
+  path: 'resources/blob-perf-runner.html',
+  params: runnerParams
+}
+PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+</script>

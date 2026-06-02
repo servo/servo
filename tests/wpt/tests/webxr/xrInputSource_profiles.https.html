@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "WebXR InputSource's profiles list can be set";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+
+  let input_source = fakeDeviceController.simulateInputSourceConnection({
+    handedness: "right",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: ["most-specific-name", "less-specific-name"]
+  });
+
+  // Input events and state changes need one frame to propagate, which is why we
+  // are requesting an animation frame before checking the profiles list.
+  return new Promise((resolve) => {
+    requestSkipAnimationFrame(session, () => {
+      let profiles = session.inputSources[0].profiles;
+      t.step(() => {
+        assert_equals(profiles.length, 2);
+        assert_equals(profiles[0], "most-specific-name");
+        assert_equals(profiles[1], "less-specific-name");
+      }, "Verify profiles list is set");
+      resolve();
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+</script>

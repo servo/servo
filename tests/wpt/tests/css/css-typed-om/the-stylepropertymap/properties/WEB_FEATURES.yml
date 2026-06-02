@@ -1,0 +1,62 @@
+features:
+- name: box-shadow
+  files:
+  - box-shadow.html
+- name: speak
+  files:
+  - speak.html
+- name: font-feature-settings
+  files:
+  - font-feature-settings.html
+- name: font-kerning
+  files:
+  - font-kerning.html
+- name: font-variant
+  files:
+  - font-variant.html
+- name: font-variant-caps
+  files:
+  - font-variant-caps.html
+- name: font-variant-east-asian
+  files:
+  - font-variant-east-asian.html
+- name: font-variant-ligatures
+  files:
+  - font-variant-ligatures.html
+- name: font-variant-numeric
+  files:
+  - font-variant-numeric.html
+- name: dominant-baseline
+  files:
+  - dominant-baseline.html
+- name: filter
+  files:
+  - filter.html
+- name: opacity
+  files:
+  - opacity.html
+- name: opacity-svg
+  files:
+  - fill-opacity.html
+  - stroke-opacity.html
+- name: text-overflow
+  files:
+  - text-overflow.html
+- name: font-style
+  files:
+  - font-style.html
+- name: font-variation-settings
+  files:
+  - font-variation-settings.html
+- name: font-stretch
+  files:
+  - font-stretch.html
+- name: overflow-clip-margin
+  files:
+  - overflow-clip-margin.html
+- name: overflow-wrap
+  files:
+  - overflow-wrap.html
+- name: pointer-events
+  files:
+  - pointer-events.html

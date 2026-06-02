@@ -1,0 +1,105 @@
+Need tests for (likely not a complete list):
+
+* Test how InterestGroup values affected by k-anon checks are passed to generateBid.
+  * adSizes, sizeGroups, ads, and adComponents all need such tests.
+  * adSizes and sizeGroups currently have no tests, since they are incorectly
+      currently not passed to generateBid at all.
+* Test empty ads array:
+   Maybe simplest to test its numBids is empty?  Hard to test a script isn't run.
+* directFromSellerSignals.
+    * The expected order when both responses use the same ad slot is currently
+        undefined. However, we are in the process of resolving this matter by
+        implementing a LIFO approach, as outlined in progress at
+        crrev.com/c/4930438. Once this solution is in place, a test case will be
+        created by fetching two different URLs with signals that share the same
+        ad slot.
+    * After adding new test cases for the component auction, test the
+        directFromSellerSignals function with component auctions. Consider to
+        set up one auction in the top frame and two component auctions. Send
+        three fetch requests to retrieve three different AdAuctionSignals
+        headers. Ensure that you use three different seller origins for the
+        auctions and a different one for the buyer origin.
+* All generateBid() and scoreAd() input parameters.
+* All interest group fields (passed to auction, have effect on auction).
+    Very few fields covered.
+    Should be sure to cover buyerAndSellerReportingId and buyerReportingId for
+        component ads, as they should not be settable.
+    Already covered:
+        Validation when joining/leaving interest group.
+        renderURL and metadata for component ads (only integers covered, but
+            probably not worth covering all types, if we have coverage for the
+            main renderURL).
+* Filtering/prioritization (including bidding signals influencing priorities)
+* Size restrictions / ad and component ad sizes.
+* additionalBids.
+* adCost.
+* bidCurrency.
+* modellingSignals.
+* Updates (both after auction and triggered).
+* All auctionConfig parameters (including invalid auctionConfigs, and ones
+    with no buyers).
+* Joining interest group with duration of 0 should just leave the IG (not
+    currently guaranteed to work, due to potential time skew between processes).
+* Multiple buyers.
+* Multiple interest groups with same owner.
+* Multiple frame tests (including loading component
+    ad URNs in fenced frames of other frames, etc)
+* adAuctionConfig passed to reportResult().
+* Component auctions.
+  * Including cross-origin sellers.
+  * Timeouts (seller timeout, buyer timeout, reporting timeout).
+* browserSignals fields in scoring/bidding methods.
+* In reporting methods, browserSignals fields: topLevelSeller,
+    componentSeller, modifiedBid, adCost, madeHighestScoringOtherBid
+    (with interest group from another origin).
+* Loading ads in iframes.
+* In fencedframes window.fence.setReportEventDataForAutomaticBeacons()
+* Automatic beacons (e.g., reserved.top_navigation)
+* Network timeouts.
+* Validate specific escaping behavior logic (still under discussion). There
+    are a number of different rules for which characters are escaped, and
+    whether spaces are escaped as "%20" or "+".
+* Reports not sent if ad not used.
+* Interactions with local network access API, which requires public
+    networks to send CORS preflights for requests made over local networks.
+    Needs testing with public publisher pages running auctions with
+    sellers / buyers / update URLs on local networks.
+* Calling FLEDGE APIs (or at least leaveAdInterestGroup() with no args)
+    in a non-ad FencedFrame.
+* Promise AuctionConfig parameters
+* Test network requests in terms of fetch behavior
+  * Network partition (not yet specced).
+* Test that await is not needed for same-origin interest groups
+  * Verify that's still in the spec/explainer first.
+* executionMode
+  * Including cross-origin join/leave behavior with "group-by-origin" mode.
+* Make sure state is not shared.
+  * Across scoreAd() / generateBid() calls, and with report calls.
+  * In "group-by-origin" execution mode across IGs joined from different
+      origins, and between generateBid() and reportWin().
+* Test Content-Type headers allowed in responess for script/wasm/JSON fetches.
+* Test WASM support, updating createBiddingWasmHelperURL().
+* Remaining interest group updates.
+    * Check that an update with one valid field and one invalid one fails.
+    * Test that an update works if owner and/or name match those in the interest group.
+    * Test updating the update URL and bidding script URL so they are all the
+      same origin (requires updating test fixture to handle multiple updates).
+    * Test when Ads is null.
+    * Test updating a cross origin interest group.
+    * Test fields that are updatable but do not make it to 'generateBid'.
+If possible:
+* Aggregate reporting.
+* Join/leave permission delegation via .well-known files
+  * Including tests for clearOriginJoinedInterestGroups().
+  * Include tests for HTTP-y/fetch-y things (e.g., whether they have cookies)
+* k-anonymity.
+* Signals request batching. This is an optional feature, so can't require it,
+    but maybe a test where batching could be used, and make sure things work,
+    whether batching is used or not?
+* reporting timeout being 0.
+* Test input with invalid https origin in web platform tests for both trusted bidding
+  and scoring signals coordinators.
+* Test selectable buyer and seller reporting ids with k-anonymity enforcement.
+* Test that service workers cannot see update urls.
+    * This was attempted in [here](https://chromium-review.googlesource.com/c/chromium/src/+/5512083),
+      but needed to be reverted because it kept timing out, [see here](https://g-issues.chromium.org/issues/339048485)

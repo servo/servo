@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Test GetFencedFrameMode() on a nested nested iframe.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  // This test has the following setup:
+  // root -> (fencedframe) -> (first_iframe) -> (second_iframe)
+  // (second_iframe) will attempt an _unfencedTop navigation, which will result
+  // in GetFencedframeMode() being called. For this test to pass, it shouldn't
+  // timeout.
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'fledge'});
+  await fencedframe.execute(async () => {
+    const first_iframe = attachIFrameContext();
+    await first_iframe.execute(async () => {
+      const second_iframe = attachIFrameContext();
+      await second_iframe.execute(async () => {
+        // This call will cause FrameTreeNode::GetFencedFrameMode() to be called
+        // for second_iframe. If the browser process doesn't hang (and timeout
+        // the test), then the test passes.
+        window.open("https://www.google.com", "_unfencedTop");
+      });
+    });
+  });
+}, 'Trigger GetFencedFrameMode() in a nested nested iframe');
+</script>
+</body>

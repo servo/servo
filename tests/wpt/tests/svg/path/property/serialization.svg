@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+    <h:meta name="assert" content="computed d is serialized using absolute commands"/>
+  </metadata>
+  <path id="target"></path>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+  let test1 = 'path("m 10 20 q 30 60 40 50 q 100 70 90 80")';
+  test_valid_value('d', test1);
+  test_computed_value('d', test1, 'path("M 10 20 Q 40 80 50 70 Q 150 140 140 150")');
+
+  let test2 = 'path("M 0 0 L 100 100 m 0 100 l 100 0 Z l 160 20 Z")';
+  test_valid_value('d', test2);
+  test_computed_value('d', test2, 'path("M 0 0 L 100 100 M 100 200 L 200 200 Z L 260 220 Z")');
+
+  let test3 = 'path("m 10 20   l 20 30   Z   l 50 60   Z   m 70 80   l 90 60   Z   t 70 120")';
+  test_valid_value('d', test3, 'path("m 10 20 l 20 30 Z l 50 60 Z m 70 80 l 90 60 Z t 70 120")');
+  test_computed_value('d', test3, 'path("M 10 20 L 30 50 Z L 60 80 Z M 80 100 L 170 160 Z T 150 220")');
+
+  let test4 = 'path("m 10.0 170.0 h 90.00 v 30.00 m 0 0 s 1 2 3 4 z c 9 8 7 6 5 4")';
+  test_valid_value('d', test4, 'path("m 10 170 h 90 v 30 m 0 0 s 1 2 3 4 Z c 9 8 7 6 5 4")');
+  test_computed_value('d', test4, 'path("M 10 170 H 100 V 200 M 100 200 S 101 202 103 204 Z C 109 208 107 206 105 204")');
+
+  let test5 = '  path(  "m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50"  )';
+  test_valid_value('d', test5, 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")');
+  test_computed_value('d', test5, 'path("M 10 20 A 10 20 30 1 0 50 70 A 110 120 30 1 1 190 120")');
+  ]]></script>
+</svg>

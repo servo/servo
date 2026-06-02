@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="history.js"></script>
+<script>
+  onunload = function() {opener.unload_ran = true;}
+
+  opener.pages.push(id);
+  if (!opener.started) {
+    onload = function() {
+      setTimeout(function() {
+        opener.started = true;
+        history.back();
+      }, 100);
+    }
+  }
+</script>

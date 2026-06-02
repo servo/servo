@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;var&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><var class="class" lang="en">text</var></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><var class="class" lang="en">text</var></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <var></var></p>
+  <p>text <dfn><var></var></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><var><a>text</a></var></p>
+  <p><dfn><var><a>text</a></var></dfn></p>
+
+  <!-- cannot contain structured inline -->
+</body>
+</html>

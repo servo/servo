@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let immersiveTestName = "XRSession requestAnimationFrame must fail if the session has "
+  + "no baseLayer for immersive";
+
+let nonImmersiveTestName = "XRSession requestAnimationFrame must fail if the session has "
+  + "no baseLayer for non immersive";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = (session, controller, t, sessionObjects) => new Promise((resolve, reject) => {
+  // Clear the base layer that the boilerplate sets.  This ensures that the rAF
+  // won't fire.  If the fire *does* fire, it will fail because the baseLayer
+  // won't match the new baselayer we later create.
+  session.updateRenderState({
+    baseLayer: null
+  });
+  let gl = sessionObjects.gl;
+
+  // Session must have a baseLayer or frame requests will be ignored.
+  let webglLayer = new XRWebGLLayer(session, gl);
+
+  function onEarlyFrame(time, vrFrame) {
+    // We shouldn't be allowed to reach this callback with no baseLayer
+    t.step(() => {
+      assert_equals(session.renderState.baseLayer, webglLayer);
+    });
+    resolve();
+  }
+
+  // This callback shouldn't go through, since the session doesn't
+  // have a baseLayer when this call is made.
+  let handle = session.requestAnimationFrame(onEarlyFrame);
+  // Should still give us a valid handle, though.
+  assert_not_equals(handle, 0);
+
+  // Wait for a bit and set the baseLayer.
+  t.step_timeout(() => {
+    // Once the base layer is set the previously registered callback should run.
+    session.updateRenderState({
+        baseLayer: webglLayer
+    });
+  }, 300);
+});
+
+xr_session_promise_test(
+  immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>CSS Test: visibility: collapse hides ruby annotations</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#hiding">
+<link rel="match" href="ruby-text-collapse-ref.html">
+<style>
+  body { line-height: 5; }
+  rt { font-size: 80%; }
+</style>
+<ruby>
+  <rb>昆</rb><rb>虫</rb><rb>記</rb>
+  <rt>こん</rt><rt>ちゅう</rt><rt>き</rt>
+</ruby><br>
+<ruby>
+  <rb>昆</rb><rb>虫</rb><rb>記</rb>
+  <rt>こん</rt><rt style="visibility: hidden">ちゅう</rt><rt>き</rt>
+</ruby><br>
+<ruby>
+  <rb>昆</rb><rb>虫</rb><rb>記</rb>
+  <rt>こん</rt><rt style="visibility: collapse">ちゅう</rt><rt>き</rt>
+</ruby>

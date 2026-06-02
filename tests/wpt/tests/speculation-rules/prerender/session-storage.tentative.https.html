@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!--
+This file is marked as "tentative" until:
+* The "clone & swap" mechanism for session storage in prerendering described in
+  https://github.com/whatwg/storage/issues/119 is added to the specification.
+-->
+<title>Same-origin prerendering can access sessionStorage</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/session-storage-utils.js"></script>
+<body>
+<script>
+const uid = token();
+
+session_storage_test(
+  'session-storage-carry-over-to-prerender-page.html', uid);
+
+session_storage_test(
+  'session-storage-no-leak-to-initiator-page.html', uid);
+
+session_storage_test(
+  'session-storage-isolated-while-prerendering.html', uid);
+
+session_storage_test(
+  'session-storage-swap-after-activate.html', uid);
+</script>
+</body>

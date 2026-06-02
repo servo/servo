@@ -1,0 +1,169 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Verifies rotation metadata tag is respected when uploading videos to WebGL textures.</title>
+    <link rel="stylesheet" href="../../../resources/js-test-style.css" />
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../../js/js-test-pre.js"></script>
+    <script src="../../../js/webgl-test-utils.js"></script>
+    <script src="../../../js/tests/tex-image-and-sub-image-utils.js"></script>
+</head>
+
+<body onload="run()">
+    <canvas id="c" width="256" height="256"></canvas>
+    <div id="description"></div>
+    <div id="console"></div>
+    <script>
+        "use strict";
+        description();
+        let wtu = WebGLTestUtils;
+        let tiu = TexImageUtils;
+        let canvas = document.getElementById("c");
+        let gl = wtu.create3DContext(canvas);
+        let program = tiu.setupTexturedQuad(gl, gl.RGBA);
+        const resourcePath = "../../../resources/";
+        const mp4Tolerance = 10;
+        // Significantly higher tolerance needed for VP9 tests. http://crbug.com/1219015 .
+        const vp9Tolerance = 45;
+
+        const expectedColors = {
+            top: { location: [0.5, 0.25], color: [255, 0, 0] },
+            left: { location: [0.4, 0.5], color: [0, 0, 255] },
+            right: { location: [0.6, 0.5], color: [255, 255, 0] },
+            bottom: { location: [0.5, 0.75], color: [0, 255, 0] },
+        }
+
+        function output(str) {
+            debug(str);
+            bufferedLogToConsole(str);
+        }
+
+        function checkPixels(tolerance) {
+            for (let place in expectedColors) {
+                let color = expectedColors[place];
+                let loc = color.location;
+                let x = loc[0];
+                let y = loc[1];
+                output("  Checking " + place);
+                wtu.checkCanvasRect(gl, Math.floor(canvas.width * x), Math.floor(canvas.height * y), 1, 1,
+                    color.color, "shouldBe " + color.color + " +/-" + tolerance, tolerance);
+            }
+        }
+
+        function loadVideoElement(filename) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.crossOrigin = 'anonymous';
+                video.src = resourcePath + filename;
+                wtu.startPlayingAndWaitForVideo(video, resolve);
+            });
+        }
+
+        async function testVideoElement(filename, isVP9) {
+            const video = await loadVideoElement(filename);
+
+            output("----------------------------------------------------------------");
+            output("Testing " + filename + " via HTMLVideoElement");
+
+            output("  Testing texImage2D");
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+            wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+            const localTolerance = isVP9 ? vp9Tolerance : mp4Tolerance;
+            checkPixels(localTolerance);
+
+            output("  Testing texSubImage2D");
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, video.videoWidth, video.videoHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, video);
+            wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+            checkPixels(localTolerance);
+        }
+
+        async function run() {
+            await (async () => {
+                const video = document.createElement('video');
+                if (!video.canPlayType) {
+                    testFailed("video.canPlayType required method missing");
+                    return;
+                }
+
+                let supports_h264 = !!video.canPlayType('video/mp4; codecs="avc1.42E01E"').replace(/no/, '');
+                let supports_vp9 = !!video.canPlayType('video/mp4; codecs="vp09.00.10.08"').replace(/no/, '');
+                if (!supports_h264 && !supports_vp9) {
+                    testFailed("No supported video types.");
+                    return;
+                }
+
+                let tex = gl.createTexture();
+                // Bind the texture to the default texture unit 0
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                // Set up texture parameters
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                // These files were created by converting exif-orientation-test.psd to mp4
+                // files, rotating them using the transpose filter, and adding rotate metadata, all
+                // using the ffmpeg command-line tool.
+                //
+                // From sdk/tests/resources/ directory:
+                //
+                // 0:
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96 -pix_fmt yuv420p -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=0 video-rotation-0.mp4
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96 -pix_fmt yuv420p -crf 0 -vcodec libvpx-vp9 -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=0 video-rotation-0.vp9.mp4
+                //
+                // 90:
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=2 -pix_fmt yuv420p -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=270 video-rotation-90.mp4
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=2 -pix_fmt yuv420p -crf 0 -vcodec libvpx-vp9 -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=270 video-rotation-90.vp9.mp4
+                //
+                // 180:
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=2,transpose=2 -pix_fmt yuv420p -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=180 video-rotation-180.mp4
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=2,transpose=2 -pix_fmt yuv420p -crf 0 -vcodec libvpx-vp9 -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=180 video-rotation-180.vp9.mp4
+                //
+                // 270:
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=1 -pix_fmt yuv420p -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=90 video-rotation-270.mp4
+                // ffmpeg -noautorotate -i exif-orientation-originals\exif-orientation-test.psd -vf scale=128x96,transpose=1 -pix_fmt yuv420p -crf 0 -vcodec libvpx-vp9 -y temp.mp4
+                // ffmpeg -i temp.mp4 -c copy -metadata:s:v:0 rotate=90 video-rotation-270.vp9.mp4
+
+                const filenames = [
+                    "video-rotation-0",
+                    "video-rotation-90",
+                    "video-rotation-180",
+                    "video-rotation-270",
+                ];
+
+                if (supports_h264) {
+                    for (let fn of filenames)
+                        await testVideoElement(fn + ".mp4", false);
+                }
+
+                if (supports_vp9) {
+                    for (let fn of filenames)
+                        await testVideoElement(fn + ".vp9.mp4", true);
+                }
+            })();
+
+            finishTest();
+        }
+
+        var successfullyParsed = true;
+    </script>
+</body>
+
+</html>

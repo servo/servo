@@ -1,0 +1,15 @@
+<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>No Width and Height defined on use and referencing symbol element has its width and height</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#SymbolElement"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement"/>
+    <html:link rel="match" href="reference/green-100x100.svg"/>
+  </metadata>
+  <defs>
+    <symbol id="sym" width="100" height="100">
+      <rect width="400" height="400" fill="green"/>
+    </symbol>
+  </defs>
+  <use href="#sym"/>
+</svg>

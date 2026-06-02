@@ -1,0 +1,32 @@
+<!doctype html>
+<title>WebSockets: navigating top-level browsing context with closed websocket</title>
+<script src=../constants.sub.js></script>
+<script>
+var controller = opener || parent;
+var t = controller.t;
+var assert_equals = controller.assert_equals;
+var assert_unreached = controller.assert_unreached ;
+var uuid = controller.uuid;
+t.add_cleanup(function() {delete sessionStorage[uuid];});
+t.step(function() {
+  // this test can fail if the document is unloaded on navigation e.g. due to OOM
+  if (sessionStorage[uuid]) {
+    assert_unreached('document was discarded');
+  } else {
+    sessionStorage[uuid] = 'true';
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    ws.onopen = t.step_func(function(e) {
+
+      t.step_timeout(function() {
+        assert_equals(ws.readyState, ws.CLOSED, 'ws.readyState');
+        t.done();
+      }, 4000);
+      ws.close();
+      ws.onclose = t.step_func(function() {
+        controller.navigate();
+      });
+    })
+    ws.onerror = ws.onmessage = t.step_func(e => assert_unreached("Got unexpected event " + e.type));
+  }
+});
+</script>

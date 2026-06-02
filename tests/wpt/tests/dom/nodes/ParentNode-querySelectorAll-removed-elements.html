@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelectorAll must not return removed elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2519 -->
+
+<div id="container"></div>
+
+<script>
+"use strict";
+
+setup({ single_test: true });
+
+const container = document.querySelector("#container");
+function getIDs() {
+  return [...container.querySelectorAll("a.test")].map(el => el.id);
+}
+
+container.innerHTML = `<a id="link-a" class="test">a link</a>`;
+assert_array_equals(getIDs(), ["link-a"], "Sanity check: initial setup");
+
+container.innerHTML = `<a id="link-b" class="test"><img src="foo.jpg"></a>`;
+assert_array_equals(getIDs(), ["link-b"], "After replacement");
+
+container.innerHTML = `<a id="link-a" class="test">a link</a>`;
+assert_array_equals(getIDs(), ["link-a"], "After changing back to the original HTML");
+
+done();
+</script>

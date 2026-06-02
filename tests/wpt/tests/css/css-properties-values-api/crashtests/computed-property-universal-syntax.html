@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf8>
+<style>
+@property --my-registered-property {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #f0f2f5;
+}
+
+.outer {
+  --unregistered-property: var(--my-registered-property);
+}
+
+.inner {
+  --unregistered-property: #c6cfdb;
+}
+</style>
+<div class="outer">
+  <div class="inner"></div>
+</div>

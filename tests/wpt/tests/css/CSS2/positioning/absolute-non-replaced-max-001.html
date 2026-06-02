@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ‘max-width’ and ‘max-height’ affect percentage sizes in descendants</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#min-max-widths">
+<link rel="help" href="https://drafts.csswg.org/css2/#min-max-heights">
+<link rel="match" href="absolute-non-replaced-max-001-ref.html">
+<meta name="assert" value="This test verifies that when the used ‘width’ and ‘height’ are affected by ‘max-width’ and ‘max-height’, the descendants are laid out with a containing block of the new size, so any percentage sizes are resolved against that new size.">
+<p>Test passes if there is a green square containing a smaller black square below.
+<div style="position: absolute; width: 4em; height: 4em; max-width: 2em; max-height: 2em; background: green;">
+    <div style="width: 50%; height: 50%; background: black;"></div>
+</div>

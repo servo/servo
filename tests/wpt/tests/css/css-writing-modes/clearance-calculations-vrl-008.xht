@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: clearance calculations</title>
+
+  <!--
+  This test is the verticalized version of
+  http://test.csswg.org/suites/css2.1/latest/html4/clear-clearance-calculation-004.htm
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="clearance-calculations-vrl-008-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="In this test, the right border edge of div#clearing-left must be on the left side of div#floated-left, i.e., 50px further on its left-hand side. That means that the margin-left of div#preceding-sibling must not collapse with the right margin of the div#clearing-left and clearance must be added such that clearance + margin-right of div#clearing-left = 50px, i.e., clearance = 50px - margin-right of div#clearing-left; therefore clearance is equal to 50px - 75px = - 25px." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      height: 116px;
+      writing-mode: vertical-rl;
+    }
+
+  div#preceding-sibling
+    {
+      margin-left: 25px;
+      width: 25px;
+    }
+
+  div#floated-left
+    {
+      float: left;
+      width: 50px;
+    }
+
+  div#clearing-left
+    {
+      background-color: green;
+      clear: left;
+      margin-left: 8px;
+      margin-right: 75px;
+      width: 100px;
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      height: 100px;
+      position: absolute;
+      right: 108px;
+      top: 8px;
+      width: 100px;
+      z-index: -1;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="preceding-sibling"></div>
+
+  <div id="floated-left"></div>
+
+  <div id="clearing-left"></div>
+
+  <div><img src="support/pass-cdts-clearance-calculations.png" width="474" height="17" alt="Image download support must be enabled" /></div>
+
+  <div id="reference-overlapped-red"></div>
+
+ </body>
+</html>

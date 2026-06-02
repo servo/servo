@@ -1,0 +1,32 @@
+whitespace chars
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-block">
+
+assert_equals(cues.length, 3);
+
+assert_equals(cues[0].id, 'spaces');
+assert_equals(cues[0].text, '   text0');
+
+assert_equals(cues[1].id, 'tabs');
+assert_equals(cues[1].text, 'text1');
+
+assert_equals(cues[2].id, 'form feed');
+assert_equals(cues[2].text, 'text2');
+
+===
+WEBVTT
+
+spaces
+   00:00:00.000    -->  00:00:01.000\x20
+   text0
+
+tabs
+\t\t\t00:00:00.000\t\t\t\t-->\t\t00:00:01.000\t
+text1
+
+form feed
+\f\f\f00:00:00.000\f\f\f\f-->\f\f00:00:01.000\f
+text2
+
+vertical tab
+\v\v\v00:00:00.000\v\v\v\v-->\v\v00:00:01.000\v
+invalid

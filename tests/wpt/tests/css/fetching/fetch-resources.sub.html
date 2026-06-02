@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test various interactions between fetch, service-workers and resource timing</title>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/echo-helper.js"></script>
+<link rel=help href="https://github.com/w3c/csswg-drafts/pull/6715">
+</head>
+
+<body>
+<script>
+    const image_url = '/css/support/1x1-green.png'
+    const font_url = '/fonts/pass.woff'
+    const stylesheet_url = '/css/support/a-green.css'
+
+    async function load_image({url, prop, uid}, t) {
+        const element = document.createElement('div');
+        const echo = get_resource_echo_url(uid, url)
+        element.style[prop] = `url(${echo})`
+        document.body.appendChild(element);
+        t.add_cleanup(() => element.remove());
+        await wait_for_resource(echo);
+        const headers = await get_headers(uid);
+        return headers[url]
+    }
+
+    async function load_font({url, uid}, t) {
+        const echo = get_resource_echo_url(uid, url)
+        const style = `
+          @font-face { font-family: "SomeFont"; src: url(${echo}); }
+        `
+        const styleElement =  document.createElement('style')
+        styleElement.innerHTML = style
+        document.head.appendChild(styleElement)
+        const element = document.createElement('p')
+        element.innerText = "SomeFont"
+        element.style.fontFamily = 'SomeFont'
+        document.body.appendChild(element)
+        t.add_cleanup(() => element.remove())
+        t.add_cleanup(() => styleElement.remove())
+        await wait_for_resource(echo);
+        const headers = await get_headers(uid);
+        return headers[url]
+    }
+
+    async function load_stylesheet({url, uid}, t) {
+        const echo = get_resource_echo_url(uid, url)
+        const styleElement =  document.createElement('style')
+        styleElement.innerHTML = `@import "${echo}"`
+        document.head.appendChild(styleElement)
+        t.add_cleanup(() => styleElement.remove())
+        await wait_for_resource(echo);
+        const headers = await get_headers(uid);
+        return headers[url]
+    }
+
+    function load_style(text, host, t) {
+        const styleElement =  document.createElement('style');
+        const styleURL = `${host || window.origin}/css/fetching/support/echo-css.py?content=${encodeURIComponent(text)}`;
+        styleElement.innerHTML = `@import "${styleURL}"`;
+        document.head.appendChild(styleElement);
+        t.add_cleanup(() => styleElement.remove());
+        return styleURL
+    }
+
+    function extract_cors_mode(result) {
+        const fetchMode = result['sec-fetch-mode'];
+        if (fetchMode)
+            return fetchMode;
+
+        return Reflect.has(result, 'origin') ? 'cors' : 'no-cors';
+    }
+
+    promise_test(async t => {
+        const uid = "{{uuid()}}";
+        const result = await load_image({uid, url: image_url, prop: 'background'}, t)
+        assert_equals(extract_cors_mode(result), 'no-cors');
+    }, 'Background images should fetch with no-cors');
+
+    promise_test(async t => {
+        const uid = "{{uuid()}}";
+        const result = await load_image({uid, url: image_url, prop: 'shape-outside'}, t)
+        assert_equals(extract_cors_mode(result), 'cors');
+    }, 'Shape images should fetched with cors');
+
+    promise_test(async t => {
+        const uid = "{{uuid()}}";
+        const result = await load_font({uid, url: font_url}, t)
+        assert_equals(extract_cors_mode(result), 'cors');
+    }, "WebFonts should be fetched with cors")
+
+    promise_test(async t => {
+        const uid = "{{uuid()}}";
+        const result = await load_stylesheet({uid, url: stylesheet_url}, t)
+        assert_equals(extract_cors_mode(result), 'no-cors');
+    }, "CSS imports should be fetched without cors")
+</script>
+
+</body>
+</html>

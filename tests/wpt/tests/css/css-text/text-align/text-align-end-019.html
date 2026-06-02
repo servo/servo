@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: end, textarea, dir=ltr inherited</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<meta name="assert" content="text-align:end aligns inline-level content to the end edge of the line box – ie. right when base direction is ltr.">
+<style type='text/css'>
+.test { text-align: end; }
+/* the CSS below is not part of the test */
+.test { border: 1px solid blue;  margin: 20px; width: 300px;  font-size: 24px; line-height: 1;}
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if both words are right-aligned in the box.</div>
+<div dir="ltr">
+<textarea class="test">latin
+و·کمی</textarea>
+</div>
+</body>
+</html>

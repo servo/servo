@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<style>
+body { margin: 5px; }
+#scope { contain: strict; position: relative; z-index: 0;
+         width: 150px; height: 100px; border: 5px solid #ccc;
+         view-transition-name: container; }
+.item { width: 6rem; height: 4rem; margin: 10px; background: #def;
+        view-transition-name: a1; contain: strict; }
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) { animation: unset; }
+</style>
+</head>
+<body>
+<div id="scope"><div class="item"></div></div>
+<script>
+onload = async () => {
+  await scope.startViewTransition().finished;
+  document.documentElement.classList.remove('test-wait');
+}
+</script>
+</body>
+</html>

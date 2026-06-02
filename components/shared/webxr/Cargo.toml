@@ -1,0 +1,27 @@
+[package]
+name = "webxr-api"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+keywords = ["ar", "headset", "openxr", "vr", "webxr"]
+description = '''A safe Rust API that provides a way to interact with
+virtual reality and augmented reality devices and integration with OpenXR.
+The API is inspired by the WebXR Device API (https://www.w3.org/TR/webxr/)
+but adapted to Rust design patterns.'''
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+base = { workspace = true }
+embedder_traits = { workspace = true }
+ipc-channel = { workspace = true }
+profile_traits = { workspace = true }
+euclid = { workspace = true }
+serde = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }

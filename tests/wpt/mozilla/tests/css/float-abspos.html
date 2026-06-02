@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A positioned element's float value computes to "none"</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test" style="float: left"></div>
+<script>
+test(function() {
+  var elem = document.getElementById('test');
+  assert_equals(getComputedStyle(elem).float, "left");
+  elem.style.position = "absolute";
+  assert_equals(getComputedStyle(elem).float, "none");
+  elem.style.position = "";
+  assert_equals(getComputedStyle(elem).float, "left");
+  elem.style.position = "fixed";
+  assert_equals(getComputedStyle(elem).float, "none");
+}, "A positioned element's float value computes to none");
+</script>

@@ -1,0 +1,101 @@
+<svg version="1.1" baseProfile="basic" onload="domTest(evt)" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: struct-dom-06-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#DOMInterfaces">
+      <p>
+        Verify the basic capability to handle the DOM API. The test is composed of a top
+        level svg element with an onload event handler. This handler invokes core (i.e., non
+        SVG specific) DOM API methods to modify the document's content: it removes an element,
+        modifies an attribute and adds elements.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the text "DOM API is supported" is shown, the text
+      "Removing DOM Elements is not supported" is not shown, and no red is
+      visible.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-dom-06-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="text/ecmascript"><![CDATA[
+
+      function domTest(evt) {
+      // Get Document
+      var target = evt.target;
+      var doc = target.ownerDocument;
+
+      //
+      // Test attribute modification
+      //
+      var attributeErrorRect = doc.getElementById('attributeErrorRect');
+      attributeErrorRect.setAttribute('width', '0')
+      attributeErrorRect.setAttribute('height', '0');
+
+      //
+      // Test removing element from DOM tree
+      //
+      var elementErrorText = doc.getElementById('elementErrorText');
+      var parent = elementErrorText.parentNode;
+      parent.removeChild(elementErrorText);
+
+      //
+      // Test adding element to the DOM tree
+      //
+      var svg_ns = "http://www.w3.org/2000/svg"
+      var newText = doc.createElementNS(svg_ns, 'text');
+      newText.setAttribute('x', '50');
+      newText.setAttribute('y', '200');
+      var textContent = doc.createTextNode('DOM API is supported');
+      newText.appendChild(textContent);
+      parent.appendChild(newText);
+      }
+
+    ]]></script>
+    <!-- ===================================================================== -->
+    <!-- The following rectangle's color is red. It is modified to zero size   -->
+    <!-- in the 'domTest' ECMAScript handler.                                  -->
+    <!-- ===================================================================== -->
+    <rect id="attributeErrorRect" width="450" height="450" fill="red"/>
+    <!-- ===================================================================== -->
+    <!-- The following text element is removed from the document in the        -->
+    <!-- 'domTest' ECMAScript handler.                                         -->
+    <!-- ===================================================================== -->
+    <text id="elementErrorText" x="50" y="200" font-family="Verdana" font-size="30" fill="black">
+      Removing DOM Elements is not supported
+    </text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

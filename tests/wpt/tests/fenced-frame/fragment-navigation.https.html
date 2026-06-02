@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Test that embedder-initiated fragment navigations are forced to be cross-document.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function runTest(first_url_opaque, second_url_opaque) {
+  const frame = await attachFencedFrameContext({generator_api: 'fledge'});
+  let base_url = frame.src;
+  let fragment_url = base_url + "#foo";
+
+  if (first_url_opaque) {
+      base_url = await generateURNFromFledge(base_url, []);
+  }
+
+  if (second_url_opaque) {
+      fragment_url = await generateURNFromFledge(fragment_url, []);
+  }
+
+  // Start the fenced frame at about:blank.
+  await frame.execute(() => {
+    window.executor.suspend(() => { location.href = "about:blank"; });
+  });
+
+  // Navigate the fenced frame to the base url from the embedder, and then
+  // suspend the remote executor.
+  frame.src = base_url;
+  await frame.execute(() => { window.executor.suspend(() => {}); });
+
+  // Navigate the fenced frame to the fragment url from the embedder. Now
+  // the remote executor will only exist if the navigation wasn't considered
+  // same-document.
+  frame.src = fragment_url;
+  await frame.execute(() => {});
+}
+
+promise_test(async () => { await runTest(true, true); },
+    "opaque to opaque fragment navigation");
+promise_test(async () => { await runTest(true, false); },
+    "opaque to transparent fragment navigation");
+promise_test(async () => { await runTest(false, true); },
+    "transparent to opaque fragment navigation");
+promise_test(async () => { await runTest(false, false); },
+    "transparent to transparent fragment navigation");
+</script>
+</body>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <style>
+    #space {
+      height: 300vh;
+      width: 300vw;
+      position: absolute;
+    }
+    #scroller {
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      width: 450px;
+      height: 450px;
+      border: solid 1px black;
+      position: relative;
+    }
+    .box {
+      height: 200px;
+      width: 200px;
+      position: absolute;
+      background-color: green;
+      scroll-snap-align: start;
+    }
+    .box:target {
+      background-color: red;
+    }
+    .toprow { top: 0px; }
+    .midrow { top: 210px; }
+    .bottomrow { top: 420px; }
+    .leftcol { left: 0px; }
+    .midcol { left: 210px; }
+    .rightcol { left: 420px; }
+  </style>
+  <div id="scroller">
+    <div id="space"></div>
+    <div class="leftcol toprow box" id="box1"></div>
+    <div class="midcol toprow box" id="box2"></div>
+    <div class="rightcol toprow box" id="box3"></div>
+    <div class="leftcol midrow box" id="box4"></div>
+    <div class="midcol midrow box" id="box5"></div>
+    <div class="rightcol midrow box" id="box6"></div>
+    <div class="leftcol bottomrow box" id="box7"></div>
+    <div class="midcol bottomrow box" id="box8"></div>
+    <div class="rightcol bottomrow box" id="box9"></div>
+  </div>
+  <script>
+    // This test sets up a 3x3 grid within scroller:
+    // -------------------------
+    // | Box 1 | Box 2 | Box 3 |
+    // ------------------------
+    // | Box 4 | Box 5 | Box 6 |
+    // -------------------------
+    // | Box 7 | Box 8 | Box 9 |
+    // -------------------------
+    // This function just gets the boxes beside boxn on each row.
+    // E.g. box4: 4%3 = 1; so the boxes we want are box5 (4+1) and box6 (4+2).
+    function getAlignedBoxes(n) {
+      n = parseInt(n);
+      const mod_3 = n % 3;
+      let n1 = n - 1, n2 = n - 2;
+      if (mod_3 == 1) {
+        n1 = n + 1;
+        n2 = n + 2;
+      } else if (mod_3 == 2) {
+        n1 = n - 1;
+        n2 = n + 1;
+      }
+      return [document.getElementById(`box${n1}`),
+              document.getElementById(`box${n2}`)];
+    }
+
+    function stashResult(key, result) {
+      fetch(`/css/css-scroll-snap/snap-after-relayout` +
+        `/multiple-aligned-targets/stash.py?key=${key}`, {
+        method: "POST",
+        body: JSON.stringify(result)
+      }).then(() => {
+        window.close();
+      });
+    }
+
+    function assert_equals(test_number, v1, v2, description) {
+      if (v1 != v2) {
+        throw new Error(
+          `Test ${n} expected equality of ${v1} and ${v2}, ` +
+          `Description: ${description}`);
+      }
+    }
+
+    async function waitForScrollReset(scroller, x = 0, y = 0) {
+      return new Promise((resolve) => {
+        if (scroller.scrollLeft == x && scroller.scrollTop == y) {
+          resolve();
+        } else {
+          scroller.addEventListener("scrollend", resolve);
+          scroller.scrollTo(x, y);
+        }
+      });
+    }
+
+    async function setLocationHash(id) {
+      return new Promise((resolve) => {
+        if (location.hash === `#${id}`) {
+          resolve();
+        } else {
+          window.addEventListener("hashchange", resolve);
+          location.hash = `#${id}`;
+        }
+      });
+    }
+
+    let result = {
+      passed: 0,
+      errors: "",
+    };
+
+    async function test(n) {
+      try {
+        const target_id = `box${n}`;
+        const target = document.getElementById(target_id);
+
+        // Make boxn the targeted element.
+        await setLocationHash(target_id);
+
+        // Reset the scroll position.
+        await waitForScrollReset(scroller);
+
+        const aligned_boxes = getAlignedBoxes(n);
+        // Make sure all the boxes are equally aligned.
+        assert_equals(n, aligned_boxes[0].offsetTop, target.offsetTop,
+          `${aligned_boxes[0].id} is at offset ${target.offsetTop}`);
+        assert_equals(n, aligned_boxes[1].offsetTop, target.offsetTop,
+          `${aligned_boxes[1].id} is at offset ${target.offsetTop}`);
+
+        // Scroll to the aligned boxes.
+        await waitForScrollReset(scroller, 0, target.offsetTop);
+        assert_equals(n, scroller.scrollTop, target.offsetTop,
+          `scrolled to ${target.id} at offset ${target.offsetTop}`);
+
+        // Save target's original top.
+        const original_top = getComputedStyle(target).top;
+        const original_offset_top = target.offsetTop;
+
+        // Move target along the y axis.
+        target.style.top = `${target.offsetTop + 100}px`;
+
+        // Assert that scroller followed target as it moved down.
+        assert_equals(n, scroller.scrollTop, target.offsetTop,
+          `scrolled followed ${target.id} to offset ${target.offsetTop}`);
+
+        // Cleanup: undo style change.
+        target.style.top = original_top;
+        assert_equals(n, target.offsetTop, original_offset_top,
+          `${target.id} is put back to offset ${original_offset_top}`);
+
+        // Record the result.
+        result.passed += 1;
+      } catch (error) {
+        result.errors = [result.errors, error.message].join();
+      }
+    }
+
+    window.onload = async () => {
+      let key = (new URL(document.location)).searchParams.get("key");
+
+      for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+        await test(n);
+      }
+
+      stashResult(key, result);
+    }
+  </script>
+</body>
+
+</html>

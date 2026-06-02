@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'fledge'});
+  await fencedframe.execute(() => {
+    let event = {
+      eventType: "reserved.top_navigation_commit",
+      eventData: "a".repeat(64000),
+      destination: ["buyer"],
+    }
+    window.fence.setReportEventDataForAutomaticBeacons(event);
+  });
+}, 'setReportEventDataForAutomaticBeacons works at the size limit');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'fledge'});
+  await fencedframe.execute(() => {
+    let event = {
+      eventType: "reserved.top_navigation_commit",
+      eventData: "a".repeat(64001),
+      destination: ["buyer"],
+    }
+    assert_throws_dom("SecurityError", () => {
+      window.fence.setReportEventDataForAutomaticBeacons(event);
+    });
+  });
+}, 'setReportEventDataForAutomaticBeacons fails over the size limit');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'fledge'});
+  await fencedframe.execute(() => {
+    let event = {
+      eventType: "reserved.top_navigation_commit",
+      eventData: "a".repeat(32),
+      destination: ["invalid"],
+    }
+    assert_throws_js(TypeError, () => {
+      window.fence.setReportEventDataForAutomaticBeacons(event);
+    });
+  });
+}, 'setReportEventDataForAutomaticBeacons fails for invalid destination');
+</script>
+</body>

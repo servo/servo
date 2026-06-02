@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value source-order should work</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  reading-flow: source-order;
+}
+</style>
+
+<div class="test-case" data-expect="b1,c1,a1"
+      data-description="Block elements. Focus should be in DOM tabindexed-order, but reading-order takes effect.">
+  <div class="wrapper" style="display: block">
+    <button id="a1" style="reading-order: 1">Item A</button>
+    <button id="b1" style="reading-order: -1">Item B</button>
+    <button id="c1" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="b2,c2,a2"
+      data-description="Block inline elements. Focus should be in DOM tabindexed-order, but reading-order takes effect.">
+  <div class="wrapper" style="display: block-inline">
+    <button id="a2" style="reading-order: 1">Item A</button>
+    <button id="b2" style="reading-order: -1">Item B</button>
+    <button id="c2" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="b3,c3,a3"
+      data-description="Flex elements. Focus should be in DOM tabindexed-order, but reading-order takes effect.">
+  <div class="wrapper" style="display: flex">
+    <button id="a3" style="reading-order: 1; order: -1">Item A</button>
+    <button id="b3" style="reading-order: -1">Item B</button>
+    <button id="c3" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="b4,c4,a4"
+      data-description="Grid elements. Focus should be in DOM tabindexed-order, but reading-order takes effect.">
+  <div class="wrapper" style="display: grid">
+    <button id="a4" style="reading-order: 1; order: -1">Item A</button>
+    <button id="b4" style="reading-order: -1">Item B</button>
+    <button id="c4" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="b5,c5,a5"
+      data-description="Flow root elements. Focus should be in DOM tabindexed-order, but reading-order takes effect.">
+  <div class="wrapper" style="display: flow-root">
+    <button id="a5" style="reading-order: 1">Item A</button>
+    <button id="b5" style="reading-order: -1">Item B</button>
+    <button id="c5" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+
+<script>
+runFocusTestCases();
+</script>

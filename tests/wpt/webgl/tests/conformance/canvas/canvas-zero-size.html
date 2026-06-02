@@ -1,0 +1,45 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+    <title>Zero Size Canvas Test</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../js/js-test-pre.js"></script>
+    <script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Tests that a zero size canvas does not fail.");
+var wtu = WebGLTestUtils;
+var canvas = document.createElement('canvas');
+var gl = wtu.create3DContext(canvas);
+canvas.width = 0;
+canvas.height = 0;
+gl.viewport(0, 0, 0, 0);
+var program = wtu.setupTexturedQuad(gl);
+shouldBeTrue("program != null");
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+var pixel = new Uint8Array([0, 255, 0, 255]);
+gl.texImage2D(
+  gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+wtu.clearAndDrawUnitQuad(gl);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

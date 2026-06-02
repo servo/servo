@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test change of unit type for SVGLengthList animation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+
+// Setup test document
+var text = createSVGElement("text");
+text.setAttribute("id", "text");
+text.textContent = "ABCD";
+text.setAttribute("dx", "50 70 90 110");
+text.setAttribute("y", "50");
+text.setAttribute("onclick", "executeTest()");
+rootSVGElement.appendChild(text);
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "dx");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("from", "50px 70px 90px 100px");
+animate.setAttribute("to", "60% 90% 120% 150%");
+text.appendChild(animate);
+
+// Setup animation test
+function sample1() {
+    assert_equals(text.dx.animVal.numberOfItems, 4);
+    assert_equals(text.dx.animVal[0].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.animVal[1].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.animVal[2].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.animVal[3].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+
+    assert_equals(text.dx.baseVal.numberOfItems, 4);
+    assert_equals(text.dx.baseVal[0].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[1].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[2].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[3].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+}
+
+function sample2() {
+    assert_equals(text.dx.animVal.numberOfItems, 4);
+    assert_equals(text.dx.animVal[0].unitType, SVGLength.SVG_LENGTHTYPE_PX);
+    assert_equals(text.dx.animVal[1].unitType, SVGLength.SVG_LENGTHTYPE_PX);
+    assert_equals(text.dx.animVal[2].unitType, SVGLength.SVG_LENGTHTYPE_PX);
+    assert_equals(text.dx.animVal[3].unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+    assert_equals(text.dx.baseVal.numberOfItems, 4);
+    assert_equals(text.dx.baseVal[0].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[1].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[2].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[3].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+}
+
+function sample3() {
+    assert_equals(text.dx.animVal.numberOfItems, 4);
+    assert_equals(text.dx.animVal[0].unitType, SVGLength.SVG_LENGTHTYPE_PERCENTAGE);
+    assert_equals(text.dx.animVal[1].unitType, SVGLength.SVG_LENGTHTYPE_PERCENTAGE);
+    assert_equals(text.dx.animVal[2].unitType, SVGLength.SVG_LENGTHTYPE_PERCENTAGE);
+    assert_equals(text.dx.animVal[3].unitType, SVGLength.SVG_LENGTHTYPE_PERCENTAGE);
+
+    assert_equals(text.dx.baseVal.numberOfItems, 4);
+    assert_equals(text.dx.baseVal[0].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[1].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[2].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+    assert_equals(text.dx.baseVal[3].unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 2.0,   sample2],
+        ["animation", 3.999, sample3],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

@@ -1,0 +1,15 @@
+.customizable-select-listbox {
+  display: inline-block;
+  overflow-inline: auto;
+  overflow-block: auto;
+  border: 1px solid;
+  block-size: calc(max(24px, 1lh) * attr(size type(<integer>), 4));
+}
+
+.customizable-select-listbox.disabled {
+  color: color-mix(in lab, currentColor 50%, transparent);
+}
+
+.customizable-select-listbox:not(.disabled) .customizable-select-legend.disabled {
+  color: color-mix(in lab, currentColor 50%, transparent);
+}

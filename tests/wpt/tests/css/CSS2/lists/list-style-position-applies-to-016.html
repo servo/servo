@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS2/generate.html#propdef-list-style-position">
+<link rel="help" href="https://www.w3.org/TR/CSS21/generate.html#list-style">
+<link rel="help" href="https://github.com/servo/servo/issues/37222">
+<link rel="match" href="list-style-position-applies-to-ref-3.html">
+<meta name="assert" content="The 'list-style-position' property applies to a list item which is a sibling of a float.">
+
+<p>Test passes if there is a black dot inside an orange box below.</p>
+<div style="margin-left: 1in">
+  <div style="float: left"></div>
+  <div style="display: list-item; list-style-position: inside; background: orange"></div>
+</div>

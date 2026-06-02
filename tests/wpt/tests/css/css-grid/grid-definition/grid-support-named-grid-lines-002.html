@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Support for named grid lines when 'grid-template-columns' and 'grid-template-rows' have multiple values inside of a repeat.</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#named-lines" title="5.1.1. Named Grid Lines: the '(&lt;custom-ident\&gt;*)' syntax">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#valdef-repeat-auto-fill" title="7.2.2.2. Repeat-to-fill: 'auto-fill' and 'auto-fit' repetitions">
+<link rel="match" href="grid-support-named-grid-lines-002-ref.html">
+<style>
+
+.holder {
+  width: 300px;
+  height: 20px;
+  border-bottom: 2px solid #cfbfcf;
+}
+
+.grid-container {
+  display: grid;
+  /*
+    Defines the grid areas 'repeat', which covers the repeat only, and
+    'around-repeat' which covers the repeat and one track on either end.
+
+    Provides the line name 'all' in every track, the line names 'v' and 'u'
+    which alternate in every grid line.
+  */
+  grid-template-columns: [v] 10px [around-repeat-start a t-start w-start u all] 20px [repeat-start b] repeat(auto-fill, [all x v] 30px [all w-end y u] 40px [all t-end z]) [repeat-end c v] 50px [around-repeat-end all d u] 60px [e v];
+  grid-template-rows:
+    [w-start t-start around-repeat-start repeat-start]
+    repeat(auto-fill, 8px)
+    [w-end   t-end   around-repeat-end   repeat-end  ]
+    8px;
+  grid-row-gap: 2px;
+}
+
+.grid-container > :nth-child(3n)   {  background: sienna; }
+.grid-container > :nth-child(3n+1) {  background: gold; }
+.grid-container > :nth-child(3n+2) {  background: orange; }
+
+/* Alternate colors for some grid containers, where sometimes multiple grid
+ items would appear as one item or the actual ordering would be ambiguous
+ otherwise. */
+.alt-color > :nth-child(2n) { background: sienna; }
+.alt-color > :nth-child(2n+1) { background: orange; }
+
+</style>
+
+<p>The test passes if it has the same visual effect as reference.</p>
+
+<!-- Use the line names just before and just after the repeat. -->
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column:b / span 1"></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column:c / span 1"></div>
+  </div>
+</div>
+
+<!-- Use line names that are inside a repeat. -->
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column-start:x"></div>
+    <div style="grid-column-start:z"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div style="grid-column-start:x"></div>
+    <div style="grid-column-start:z"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column-start:x 1"></div>
+    <div style="grid-column-start:z 2"></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div style="grid-column-start:x 1"></div>
+    <div style="grid-column-start:z 2"></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<!-- Using a span that goes from outside a repeat to inside the repeat. -->
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column:u / y"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-column:u / z"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<!-- Using an area which has one end inside the repeat. -->
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-area: t;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container alt-color">
+    <div style="grid-area: t;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div style="grid-area: t;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-area: w;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container alt-color">
+    <div style="grid-area: w;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div style="grid-area: w;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+<!-- Using an area which spans the entire repeat. -->
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div></div>
+    <div style="grid-area: repeat;"></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div></div>
+    <div style="grid-area: repeat;"></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container alt-color">
+    <div></div>
+    <div style="grid-area: repeat;"></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-area: repeat;"></div>
+    <div></div>
+  </div>
+</div>
+
+<div class="holder">
+  <div class="grid-container">
+    <div style="grid-area: around-repeat;"></div>
+    <div></div>
+  </div>
+</div>
+

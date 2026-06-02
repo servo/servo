@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Test embedder CSP not propagate to fenced frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+ const iframe = attachIFrameContext(
+     {headers:[["Content-Security-Policy", "frame-src 'self'"]]});
+  await iframe.execute(async() => {
+    const fencedframe = attachFencedFrameContext();
+    await fencedframe.execute(async() => {
+      const nested_iframe = attachIFrameContext(
+          {origin:get_host_info().HTTPS_REMOTE_ORIGIN});
+      await nested_iframe.execute(() => {});
+    });
+  });
+}, 'Embedder CSP should not propagate to fenced frame');
+</script>
+</body>

@@ -1,0 +1,10 @@
+{
+  "app": {
+    "bundleName": "org.servo.servo",
+    "vendor": "example",
+    "versionCode": 1000000,
+    "versionName": "1.0.0",
+    "icon": "$media:servo_64",
+    "label": "$string:app_name"
+  }
+}

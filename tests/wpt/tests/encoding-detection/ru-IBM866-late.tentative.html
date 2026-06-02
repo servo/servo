@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ru IBM866 late</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    test(function() {
+        assert_equals(e.data, "IBM866", 'Expected IBM866');
+    }, "Check detection result");
+    w.close();
+    done();
+};
+var w = window.open("support/ru-IBM866-late.sub.html");
+</script>

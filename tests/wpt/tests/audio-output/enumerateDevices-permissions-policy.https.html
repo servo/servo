@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <title>
+    Test permissions policy on enumerateDevices() after getUserMedia()
+  </title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-output/#privacy-obtaining-consent">
+  <meta charset=utf-8>
+<body>
+  <p class="instructions">If prompted, <strong>please allow</strong> access to
+    a microphone device.</p>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+'use strict';
+
+promise_test(async () => {
+  const frame = document.createElement('iframe');
+  frame.allow = "speaker-selection 'none'"
+  const promise_load = new Promise(r => frame.onload = r);
+  document.body.appendChild(frame);
+  await promise_load;
+
+  const fDevices = frame.contentWindow.navigator.mediaDevices;
+  await fDevices.getUserMedia({ audio: true });
+  const list = await fDevices.enumerateDevices();
+  const outputDevicesList = list.filter(({kind}) => kind == "audiooutput");
+  assert_equals(outputDevicesList.length, 0, "number of output devices.");
+}, "permissions policy on enumerateDevices() after getUserMedia()");
+  </script>
+</body>

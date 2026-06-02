@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1221121">
+
+<style>
+</style>
+<style>
+</style>
+<style>
+</style>
+<div>
+  <template shadowrootmode=open>
+    <slot style="content-visibility: hidden; display: block"></slot>
+  </template>
+<embed id="I7" class= accesskey="h">
+<meter class="C8">a
+<script>
+  document.head.appendChild(document.createElement("style"));
+  const styleSheet = document.styleSheets[document.styleSheets.length - 1];
+  styleSheet.insertRule(":root{}");
+  const styleSheet0 = document.styleSheets[0];
+  const test2 = document.getElementById("I7");
+  test2.className += "fuzzClass5";
+  styleSheet0.insertRule('.C8 {}');
+  try {
+    test2.style.setProperty();
+  } catch(e) {}
+  document.styleSheets[3].disabled = true;
+  test2.style['border-right-color-value'] = '';
+  styleSheet0.insertRule('.foo { color: blue }', styleSheet0.cssRules.length);
+  document.execCommand("false");
+  document.designMode = "on";
+</script>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  .content::before {
+    content: "";
+    display: block;
+    width: 256px;
+    height: 256px;
+    background-image: url(/images/lcp-256x256.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+</style>
+
+<button id="navigateButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const url = 'soft-nav-1';
+
+    navigateButton.addEventListener('click', async () => {
+      const firstIcpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('interaction-contentful-paint');
+
+      container.innerHTML = `<div><div id="content">Text</div></div>`;
+      history.pushState({}, '', url);
+
+      // After the ICP entry for the text is produced, add the 'content' class
+      // to cause an image paint for the same node. We expect an ICP entry for
+      // this as well.
+      await (new SoftNavigationTestHelper(t)).withTimeoutMessage(
+          firstIcpPromise, 'Timed out waiting for initial ICP', /*timeout=*/ 3000);
+      content.classList.add('content');
+    }, {once: true});
+
+    // Set up the PerformanceObservers before clicking to avoid races,
+    // and use unbuffered here so we don't get duplicate entries.
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('soft-navigation');
+    const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        'interaction-contentful-paint',
+        /* minNumEntries= */ 2);
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+
+    // Check if we detected a soft nav.
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith(url),
+      `Unexpected Soft Navigation URL. Expected url to end with ${url} but got ${softNavs[0].name}`);
+
+    // Check that we get two ICP entries, one for the text and one for the image.
+    const icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICPs not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 2, 'Expected exactly two ICP entries.');
+
+    assert_equals(icps[0].id, 'content', 'Expected first ICP candidate to be "content"');
+    assert_equals(icps[0].url, '', 'Expected first ICP url to be empty');
+
+    assert_equals(icps[1].id, 'content', 'Expected second ICP candidate to be "content"');
+    assert_true(
+        icps[1].url.endsWith('/images/lcp-256x256.png'),
+        'Expected second ICP url to be the image url');
+  }, 'Soft Navigation Detection supports adding nodes with image pseudo elements and text')
+</script>

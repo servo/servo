@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.container {
+  position: relative;
+  display: inline-block;
+  width: 320px;
+  height: 240px;
+}
+.cue {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+.cue > span {
+  font-family: sans-serif;
+  background: green;
+  color: green;
+  font-size: 120px;
+  padding: 2px;
+}
+</style>
+<div class="container">
+  <video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+  </video>
+  <div class="cue"><span>PAS</span></div>
+</div>

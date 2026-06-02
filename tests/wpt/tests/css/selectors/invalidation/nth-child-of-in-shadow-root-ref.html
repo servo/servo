@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>CSS Selectors Invalidation: :nth-child(... of class) within shadow root</title>
+<link rel="author" title="Steinar H. Gunderson" href="sesse@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<div>
+  <div>No green</div>
+  <div>No green</div>
+  <div style="color: green">Should be green</div>
+</div>

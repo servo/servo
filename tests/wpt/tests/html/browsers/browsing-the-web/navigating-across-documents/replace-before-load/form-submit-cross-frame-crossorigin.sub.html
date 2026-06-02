@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<form target="the-frame">
+  <input type="hidden" name="pushed">
+</form>
+
+<script>
+"use strict";
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+
+  const form = document.querySelector("form");
+  const frameEndingURL = changeURLHost(
+    absoluteURL("resources/slow-message-source-with-history-and-location.html?pushed="),
+    "{{hosts[][www]}}"
+  );
+  form.action = frameEndingURL;
+
+  const frameStartingCode = `
+    parent.postMessage({ historyLength: history.length, locationHref: location.href }, "*");
+  `;
+
+  const frameStartingURL = codeInjectorURL(frameStartingCode);
+  const frame = insertIframe(t, frameStartingURL, "the-frame");
+  t.add_cleanup(() => frame.remove()); // helps avoid waiting for the slow load to finish the tests
+  assert_equals(history.length, startingHistoryLength, "Inserting frame must not change history.length");
+
+  const frameBeforeLoadedMessage = await waitForMessage();
+  assert_equals(frameBeforeLoadedMessage.historyLength, startingHistoryLength, "frame's starting history.length");
+  assert_equals(frameBeforeLoadedMessage.locationHref, frame.src, "frame's starting location.href");
+
+  form.submit();
+
+  const frameAfterFormSubmitMessage = await waitForMessage();
+  assert_equals(frameAfterFormSubmitMessage.historyLength, startingHistoryLength + 1, "frame's after-submit history.length");
+  assert_equals(frameAfterFormSubmitMessage.locationHref, frameEndingURL, "frame's after-submit location.href");
+}, "No replace before load, triggered by cross-iframe formElement.submit() [iframe is cross-origin]");
+</script>

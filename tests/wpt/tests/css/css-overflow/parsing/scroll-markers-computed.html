@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: scroll-marker-group computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    scroll-marker-group: before;
+  }
+</style>
+<div id="target"></div>
+<script>
+  test_computed_value('scroll-marker-group', 'initial', 'none');
+  test_computed_value('scroll-marker-group', 'inherit', 'none');
+  test_computed_value('scroll-marker-group', 'unset', 'none');
+  test_computed_value('scroll-marker-group', 'revert', 'none');
+
+  test_computed_value('scroll-marker-group', 'none');
+  test_computed_value('scroll-marker-group', 'before');
+  test_computed_value('scroll-marker-group', 'after');
+
+  test(() => {
+    let style = getComputedStyle(document.getElementById('target'));
+    assert_not_equals(Array.from(style).indexOf('scroll-marker-group'), -1);
+  }, 'The scroll-marker-group property shows up in CSSStyleDeclaration enumeration');
+
+  test(() => {
+    let style = document.getElementById('target').style;
+    assert_not_equals(style.cssText.indexOf('scroll-marker-group'), -1);
+  }, 'The scroll-marker-group property shows up in CSSStyleDeclaration.cssText');
+
+</script>

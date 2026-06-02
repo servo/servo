@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-source">
+<style>
+#target {
+  baseline-source: first;
+  vertical-align: baseline;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  assert_equals(getComputedStyle(target).baselineSource, 'auto');
+});
+</script>

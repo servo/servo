@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<title>Scroll timeline with inline orientation and root scroller</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#descdef-scroll-timeline-orientation">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<meta name="assert" content="CSS animation correctly updates values when using the inline orientation">
+<link rel="match" href="scroll-timeline-inline-orientation-ref.html">
+
+<style>
+  @keyframes update {
+    from { transform: translateX(0px); }
+    to { transform: translateX(200px); }
+  }
+
+  html {
+    min-width: 100%;
+    padding-right: 100px;
+    font-size: 0;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: update 1s linear;
+    animation-timeline: scroll(inline root);
+    display: inline-block;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    display: inline-block;
+  }
+
+  * {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  document.documentElement.addEventListener('TestRendered', async () => {
+    runTest();
+  }, { once: true });
+
+  async function runTest() {
+    const scroller = document.scrollingElement;
+
+    await waitForCompositorReady();
+
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    scroller.scrollLeft = 0.5 * maxScroll;
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>

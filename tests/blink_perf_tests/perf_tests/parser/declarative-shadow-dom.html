@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<body>
+<pre id="log"></pre>
+<div id=host></div>
+
+<script src="../resources/runner.js"></script>
+<script src="../shadow_dom/resources/declarative.js"></script>  
+<script>
+const shadowHtml = getShadowMarkup(true, /*depth=*/4, /*copies=*/100);
+const host = document.getElementById('host');
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "This benchmark tests declarative Shadow DOM attachment",
+  run: function() {
+    host.replaceChildren();
+    parseAndAppend(host,shadowHtml);
+  }
+});
+</script>

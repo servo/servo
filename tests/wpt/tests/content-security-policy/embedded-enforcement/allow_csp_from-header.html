@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Allow-CSP-From header.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Same origin iframes with correct Allow-CSP-From header are allowed.",
+        "origin": Host.SAME_ORIGIN,
+        "csp": "style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+        "allow_csp_from": getOrigin(),
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": null},
+      { "name": "Same origin iframes with an empty Allow-CSP-From header get blocked.",
+        "origin": Host.SAME_ORIGIN,
+        "csp": "style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+        "allow_csp_from": "",
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Same origin iframes without Allow-CSP-From header gets blocked.",
+        "origin": Host.SAME_ORIGIN,
+        "csp": "style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+        "allow_csp_from": null,
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Same origin iframes are blocked if Allow-CSP-From does not match origin.",
+        "origin": Host.SAME_ORIGIN,
+        "csp": "style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+        "allow_csp_from": "http://example.com:888",
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Cross origin iframe with an empty Allow-CSP-From header gets blocked.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "script-src 'unsafe-inline'",
+        "allow_csp_from": "",
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Cross origin iframe without Allow-CSP-From header gets blocked.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "script-src 'unsafe-inline'",
+        "allow_csp_from": null,
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Cross origin iframe with correct Allow-CSP-From header is allowed.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+        "allow_csp_from": getOrigin(),
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": null},
+      { "name": "Iframe with improper Allow-CSP-From header gets blocked.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "script-src 'unsafe-inline'",
+        "allow_csp_from": "* ¢¥§",
+        "expected": IframeLoad.EXPECT_BLOCK,
+        "blockedURI": null},
+      { "name": "Allow-CSP-From header with a star value allows cross origin frame.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "script-src 'unsafe-inline'",
+        "allow_csp_from": "*",
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": null},
+      { "name": "Star Allow-CSP-From header enforces EmbeddingCSP.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "script-src 'nonce-123'",
+        "allow_csp_from": "*",
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": "inline"},
+      { "name": "Allow-CSP-From header enforces EmbeddingCSP.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "style-src 'none'; script-src 'nonce-123'",
+        "allow_csp_from": getOrigin(),
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": "inline"},
+      { "name": "'self' in blanket enforced EmbeddingCSP matches the target response origin.",
+        "origin": Host.CROSS_ORIGIN,
+        "csp": "img-src 'self'",
+        "allow_csp_from": "*",
+        "expected": IframeLoad.EXPECT_LOAD,
+        "blockedURI": null},
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        const url = generateUrlWithAllowCSPFrom(
+            test.origin, test.allow_csp_from);
+        assert_iframe_with_csp(t, url, test.csp, test.expected, test.name,
+                               test.blockedURI, /*checkImageLoaded=*/true);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

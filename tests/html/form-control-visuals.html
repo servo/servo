@@ -1,0 +1,122 @@
+<style>
+    .set {
+        display: inline-block;
+        margin: 5px;
+        padding: 5px;
+        vertical-align: top;
+        border: 1px solid grey;
+    }
+
+    .group {
+        display: inline-block;
+        margin: 5px;
+        padding: 5px;
+        vertical-align: top;
+        border: 1px solid grey;
+    }
+</style>
+
+<form>
+
+<div class="group">
+    <h2>Text and Password Input (no text)</h2>
+    <div class="set">
+        <input type="text"><br>
+        <input type="password"><br>
+        <input type="text" disabled><br>
+        <input type="password" disabled><br>
+        <input type="text" placeholder="placeholder"><br>
+        <input type="password"placeholder="placeholder"><br>
+        <input type="text" placeholder="placeholder" disabled><br>
+        <input type="password" placeholder="placeholder" disabled><br>
+        <input type="text" size="10" value="shortinputwithveeeeeeeerrylongtext">
+    </div>
+    <div class="set">
+        Field: <input type="text"><br>
+        Field: <input type="password"><br>
+        Field: <input type="text" disabled><br>
+        Field: <input type="password" disabled><br>
+        Field: <input type="text" placeholder="placeholder"><br>
+        Field: <input type="password"placeholder="placeholder"><br>
+        Field: <input type="text" placeholder="placeholder" disabled><br>
+        Field: <input type="password" placeholder="placeholder" disabled><br>
+    </div>
+</div>
+
+<hr>
+
+<div class="group">
+    <h2>Checkboxes</h2>
+    <div class="set">
+        <input type="checkbox"><br>
+        <input type="checkbox" checked><br>
+        <input type="checkbox" class="indeterminate" checked><br>
+        <input type="checkbox" disabled><br>
+        <input type="checkbox" checked disabled><br>
+        <input type="checkbox" class="indeterminate" checked disabled><br>
+    </div>
+    <div class="set">
+        <input type="checkbox">One<br>
+        <input type="checkbox" checked>Two<br>
+        <input type="checkbox" class="indeterminate" checked>Three<br>
+        <input type="checkbox" disabled>Four<br>
+        <input type="checkbox" checked disabled>Five<br>
+        <input type="checkbox" class="indeterminate" checked disabled>Six<br>
+        <input type="checkbox" disabled>Seven<br>
+    </div>
+</div>
+
+<div class="group">
+    <h2>Radio</h2>
+    <div class="set">
+        <input type="radio" name="a"><br>
+        <input type="radio" name="a" checked><br>
+        <input type="radio" name="b" disabled><br>
+        <input type="radio" name="b" check disabled><br>
+    </div>
+    <div class="set">
+        <input type="radio" name="c"> One<br>
+        <input type="radio" name="c" checked> Two<br>
+        <input type="radio" name="d" disabled> Three<br>
+        <input type="radio" name="d" checked disabled> Four<br>
+    </div>
+</div>
+
+<div class="group">
+    <h2>Combined</h2>
+    <div class="set">
+        <input type="radio"><br>
+        <input type="checkbox"><br>
+        <input type="radio"><br>
+        <input type="checkbox"><br>
+    </div>
+    <div class="set">
+        <input type="radio">One<br>
+        <input type="checkbox">Two<br>
+        <input type="radio">Three<br>
+        <input type="checkbox">Four<br>
+    </div>
+</div>
+
+<hr>
+
+<div class="group">
+    <h2>Other Controls</h2>
+    Buttons: <input type="submit"> <input type="submit" disabled>
+        <input type="button" value="Button"> <input type="button" value="Button" disabled>
+        <input type="reset"> <input type="reset" disabled>
+        <select><option>one</option></select>
+        <select disabled><option>one</option></select><br>
+    File: <input type="file"> <input type="file" disabled><br>
+    Color: <input type="color"> <input type="color" disabled><br>
+    Range: <input type="range"> <input type="range" disabled><br>
+    Number: <input type="number"> <input type="number" disabled><br>
+    Date: <input type="date"> <input type="date" disabled><br>
+    Time: <input type="time"> <input type="time"><br>
+</div>
+
+</form>
+
+<script>
+    document.querySelectorAll(".indeterminate").forEach((node) => node.indeterminate=true);
+</script>

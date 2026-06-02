@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+
+<title>CSS Test: CSS-specified vs. attribute-specified percentages in SVG intrinsic sizing</title>
+
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1790167">
+<link rel="match" href="svg-intrinsic-size-005-ref.html">
+
+<div style="width: max-content; height: 50px">
+  <svg style="width: 100%; height: 100%; display: block">
+    <rect width="200" height="200" fill="green"/>
+  </svg>
+</div>

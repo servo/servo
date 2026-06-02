@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <style>
+    .target {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      scroll-snap-align: start;
+    }
+    .placeholder {
+      background-color: purple;
+    }
+    .snapcontainer {
+      border:solid 1px black;
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+    }
+    .big {
+      height: 315px;
+      width: 600px;
+      position: relative;
+    }
+    .small {
+      height: 115px;
+      width: 120px;
+    }
+    .positioned {
+      position: absolute;
+    }
+    #target1, #target2, #target3, #target4, #target5 {
+      top: 400px;
+    }
+    #target1 {
+      left: 0px;
+    }
+    #target2 {
+      left: 110px;
+    }
+    #target3 {
+      left: 220px;
+    }
+    #target4 {
+      left: 330px;
+    }
+    #target5 {
+      left: 440px;
+    }
+    :target {
+      background-color: yellow;
+    }
+    .large-space {
+      position: absolute;
+      height: 300vh;
+      width: 300vw;
+    }
+  </style>
+  <div id="outer" class="big snapcontainer">
+    <div id="outerplaceholder1" class="placeholder target"></div>
+    <div id="outerplaceholder2" class="placeholder target"></div>
+    <div id="inner" class="small snapcontainer">
+      <div id="innerplaceholder1" class="placeholder target"></div>
+      <div id="innerplaceholder2" class="placeholder target"></div>
+      <div id="target1" class="positioned target"><h1>Box 1</h1></div>
+      <div id="target2" class="positioned target"><h1>Box 2</h1></div>
+      <div id="target3" class="positioned target"><h1>Box 3</h1></div>
+      <div id="target4" class="positioned target"><h1>Box 4</h1></div>
+      <div id="target5" class="positioned target"><h1>Box 5</h1></div>
+    </div>
+    <div class="large-space"></div>
+  </div>
+</body>
+</html>

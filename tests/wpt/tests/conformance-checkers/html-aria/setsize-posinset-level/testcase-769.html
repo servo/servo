@@ -1,0 +1,89 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 769</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 769</h1>
+    
+    <div role="list">
+      <div role="listitem">Item 1
+        <div role="group">
+          <div role="listitem">Item 1A</div>
+          <div role="listitem">Item 1B</div>
+        </div>
+      </div>
+      <div role="listitem">Item 2
+        <div role="group">
+          <div role="listitem">Item 2A</div>
+          <div role="listitem">Item 2B</div>          
+        </div>
+      </div>
+    </div>
+    
+    <h2>Description</h2>
+    <p>A div element with the role='list' with two child div elements with with the role='listitem'.
+      Each of the child div element also contain a div element with the role="group" with two child 
+      div elements with the role='listitem'.</p>
+
+      <h2>Expected Results</h2>
+      
+      <h3>MSAA + UIA Express</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+          where X is the position in list and Y = 2 (since all lists have 2 items)</li>
+        <li>Expose level=1 in AriaProperites for list items for "Item 1" and "Item 2"</li> 
+        <li>Expose level=2 in AriaProperites for list items for "Item 1A", "Item 1B", "Item 2A" and "Item 2B"</li> 
+      </ul>
+      
+      <h3>MSAA + IAccessible2</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>function groupPosition() should be available and have the following results:
+          <ul>
+            <li>groupLevel: 1 for "Item 1" and "Item 2" (since all lists have 2 items)</li>
+            <li>groupLevel: 2 for "Item 1A", "Item 1B", "Item 2A" and "Item 2B"</li>
+            <li>similarItemsInGroup: 2</li>
+            <li>positionInGroup: position in list</li>
+          </ul>
+        </li>
+      </ul>
+      
+      <h3>UIA</h3>
+      <ul>
+        <li>role="list": List</li>
+        <li>role="listitem": Listitem</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+          where X is the position in list and Y = 2 (since all lists have 2 items)</li>
+        <li>Expose level=1 in AriaProperites for "Item 1" and "Item 2"</li> 
+        <li>Expose level=2 in AriaProperites for "Item 1A", "Item 1B", "Item 2A" and "Item 2B"</li> 
+      </ul>
+    
+      <h3>ATK/AT-SPI</h3>
+      <ul>
+        <li>role="list": ROLE_LIST and STATE_EDITABLE is not exposed</li>
+        <li>role="listitem": ROLE_LISTITEM and STATE_EDITABLE is not exposed</li>
+        <li>setsize: 2 (since all lists have 2 items)</li>
+        <li>posinset: position in list</li>
+        <li>level: 1 for "Item 1" and "Item 2"</li>
+        <li>level: 2 for "Item 1A", "Item 1B", "Item 2A" and "Item 2B"</li>
+      </ul>
+      
+      <h3>AXAPI</h3>
+      <ul>
+        <li>role="list": AXList and AXContentList = 'content list'</li>
+        <li>role="listitem" for "Item 1" and "Item 2": AXGroup = 'group'</li>
+        <li>role="listitem" for "Item 1A", "Item 1B", "Item 2A" and "Item 2B": AXGroup = nil</li>
+        <li>AXARIASetSize: 2 (since all lists have 2 items)</li>
+        <li>AXARIAPosInSet: position in list</li>
+        <li>AXDisclosureLevel: 1 for "Item 1" and "Item 2"</li>
+        <li>AXDisclosureLevel: 2 for "Item 1A", "Item 1B", "Item 2A" and "Item 2B"</li>
+      </ul>
+          
+  </body>
+  
+</html>

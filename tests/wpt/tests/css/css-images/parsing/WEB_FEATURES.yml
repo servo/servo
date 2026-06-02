@@ -1,0 +1,19 @@
+features:
+- name: gradients
+  files:
+  - gradient-position-*
+- name: gradient-interpolation
+  files:
+  - gradient-interpolation-*
+- name: image-orientation
+  files:
+  - image-orientation-*
+- name: image-rendering
+  files:
+  - image-rendering-*
+- name: object-fit
+  files:
+  - object-fit-*
+- name: object-position
+  files:
+  - object-position-*

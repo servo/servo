@@ -1,0 +1,9 @@
+An example showing how to use Python optimized mode.
+To run:
+
+  - First run 'python calc.py'
+
+  - Then run 'python -OO calc.py'
+
+If working correctly, the second version should run the
+same way.

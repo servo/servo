@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-cancel-ref.html">
+<style>
+  /* This test ensures that canceling an animation properly results in a
+     repaint. If this does not happen, the animation will remain stuck until
+     invalidated for another reason. */
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath 10s;
+    clip-path: circle(20% at 20% 20%);
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(35% at 35% 35%);
+    }
+
+    100% {
+      clip-path: circle(50% at 50% 50%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => {
+      document.getAnimations()[0].cancel();
+      requestAnimationFrame(takeScreenshot);
+    });
+  </script>
+</body>
+
+</html>

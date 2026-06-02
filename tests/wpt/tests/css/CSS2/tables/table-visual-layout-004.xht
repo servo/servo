@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table row boxes are rendered in source order</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="assert" content="Table row boxes fill the table from top to bottom by the order they occur in the page source." />
+        <style type="text/css">
+            td
+            {
+                border: 1px solid black;
+                color: blue;
+                font-size: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are numbered one through five, from top-to-bottom.</p>
+        <table>
+            <tr>
+                <td>1</td>
+            </tr>
+             <tr>
+                <td>2</td>
+            </tr>
+             <tr>
+                <td>3</td>
+            </tr>
+             <tr>
+                <td>4</td>
+            </tr>
+             <tr>
+                <td>5</td>
+            </tr>
+        </table>
+    </body>
+</html>

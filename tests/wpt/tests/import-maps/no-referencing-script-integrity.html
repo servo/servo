@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let log = [];
+</script>
+<script type="importmap">
+{
+  "integrity": {
+    "./resources/log.js?pipe=sub&name=NoReferencingScriptInvalidCheck": "sha384-Li9vy3DqF8tnTXuiaAJuML3ky+er10rcgNR/VqsVpcw+ThHmYcwiB1pbOxEbzJr7"
+  }
+}
+</script>
+<script>
+let promiseResolve;
+let promiseReject;
+let promise = new Promise((resolve, reject) => {
+  promiseResolve = resolve;
+  promiseReject = reject;
+});
+</script>
+</head>
+<body>
+<!-- This is testing the part of
+https://html.spec.whatwg.org/multipage/webappapis.html#hostloadimportedmodule
+where step 6's condition is false and referencingScript remains null.
+Therefore, the onload event must be defined as an HTML attribute, outside of any script tag.
+-->
+<img src="/images/green.png"
+  onload="import('./resources/log.js?pipe=sub&name=NoReferencingScriptInvalidCheck').then(promiseResolve).catch(promiseReject)">
+<script type="module">
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError, promise);
+}, "Script was not loaded as its integrity check failed");
+</script>
+</body>
+</html>

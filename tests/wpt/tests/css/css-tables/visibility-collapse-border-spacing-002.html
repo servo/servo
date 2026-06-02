@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#visibility-collapse-rendering">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-spacing-property">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  A cell spanning two rows is typically at least as tall as the vertical border-spacing.
+  However, in this case the 2nd row is collapsed, so the cell should be 0px tall.
+  This matches Gecko and Blink.">
+
+<style>
+table {
+  border-spacing: 50px 100px;
+  background: green;
+}
+td {
+  width: 100px;
+  padding: 0;
+  background: red;
+}
+tr + tr {
+  visibility: collapse;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table>
+  <tr>
+    <td rowspan="2"></td>
+  </tr>
+  <tr></tr>
+</table>

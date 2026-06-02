@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <title>support init file</title>
+  </head>
+  <body>
+    <script>
+      onload = function() {
+        // Run async, because navigations from inside onload can be a bit weird.
+        setTimeout(function() {
+          if (parent != window) {
+            parent.init()
+          } else {
+            opener.init();
+          }
+        }, 0);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+#target {
+  width: 600px;
+  display: none;
+  text-wrap: balance;
+}
+#serif {
+  font-family: serif;
+}
+#sans-serif {
+  font-family: sans-serif;
+}
+</style>
+<pre id="log"></pre>
+<div id="target">
+  <div id="serif">
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ut elit lacus, non convallis odio. Integer facilisis, dolor quis porttitor auctor, nisi tellus aliquet urna, a dignissim orci nisl in nunc. Vivamus elit risus, sagittis et lacinia quis, blandit ac elit.
+    </p>
+  </div>
+  <div id="sans-serif"></div>
+<script>
+function setup() {
+  // Create paragraphs whose number of words is less than its previous
+  // paragraph by 1.
+  const serif = document.getElementById('serif');
+  let text = serif.textContent.trim();
+  while (text.length > 50) {
+    text = text.substring(text.indexOf(' ') + 1).trimStart();
+    const p = document.createElement('p');
+    p.textContent = text;
+    serif.appendChild(p);
+  }
+
+  // Clone the test paragraphs into the `sans-serif`.
+  const sans = document.getElementById('sans-serif');
+  for (const child of serif.childNodes) {
+    sans.appendChild(child.cloneNode(true));
+  }
+}
+setup();
+
+const target = document.getElementById("target");
+const style = target.style;
+
+function test() {
+  style.display = "block";
+  for (let width = 600; width >= 200; width -= 100) {
+    style.width = `${width}px`;
+    PerfTestRunner.forceLayout();
+  }
+  style.display = "none";
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of balancing line breaking in layout.",
+  run: test
+});
+</script>

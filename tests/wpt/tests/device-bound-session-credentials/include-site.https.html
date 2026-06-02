@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer } from "./helper.js";
+
+  async function runTest(t, includeSite) {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    await configureServer({ includeSite });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Expire the cookie, and check whether a refresh has occurred.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const url = `${location.protocol}//www1.${location.host}/device-bound-session-credentials/verify_authenticated.py`;
+    const authResponseAfterExpiry = await fetch(url, {credentials: "include"});
+    // The cookie should only be refreshed if the session includes the whole site.
+    assert_equals(authResponseAfterExpiry.status, includeSite ? 200 : 403);
+    assert_equals(documentHasCookie(expectedCookieAndValue), includeSite);
+  }
+
+  promise_test(async t => {
+    await runTest(t, /*includeSite=*/true);
+  }, "An established session refreshes across origins if the site is included");
+
+  promise_test(async t => {
+    await runTest(t, /*includeSite=*/false);
+  }, "An established session does not refresh across origins if the site is not included");
+</script>

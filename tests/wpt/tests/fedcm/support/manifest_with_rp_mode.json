@@ -1,0 +1,6 @@
+{
+  "accounts_endpoint": "two_accounts.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "token_with_rp_mode.py",
+  "login_url": "login.html"
+}

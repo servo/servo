@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#handler-onreadystatechange">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#handler-onvisibilitychange">
+<script>
+  var handlerExecuted = false;
+  ["div", "body", "frameset"].forEach(elementName => {
+    ["readystatechange", "visibilitychange"].forEach(eventName => {
+      let attributeName = `on${eventName}`;
+      test(t => {
+        t.add_cleanup(_ => { handlerExecuted = false });
+        let element = document.createElement(elementName);
+        element.setAttribute(attributeName, "handlerExecuted = true;")
+        element.dispatchEvent(new Event(eventName, {bubbles: false}));
+        assert_false(handlerExecuted);
+      },`${elementName}.on${eventName} is not an event handler content attribute`);
+    });
+  });
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Default properties on &lt;semantics&gt; and &lt;maction&gt;</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#semantics-and-presentation">
+<link rel="help" href="https://w3c.github.io/mathml-core/#enlivening-expressions">
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="Test that only the first children of semantics/maction are displayed.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <div>
+    <math>
+      <semantics>
+        <mn>1</mn>
+        <mn>2</mn>
+        <mn>3</mn>
+        <mn>4</mn>
+        <mn>5</mn>
+      </semantics>
+      <maction>
+        <mn>1</mn>
+        <mn>2</mn>
+        <mn>3</mn>
+        <mn>4</mn>
+        <mn>5</mn>
+      </maction>
+    </math>
+  </div>
+
+  <script>
+    ["semantics", "maction"].forEach(name => {
+      let element = document.getElementsByTagName(name)[0];
+      test(() => {
+        let child = element.firstElementChild;
+        assert_not_equals(window.getComputedStyle(child).display, "none", `Child ${child.innerText} does not have display: none`);
+        for (child = child.nextElementSibling; child; child = child.nextElementSibling) {
+          assert_equals(window.getComputedStyle(child).display, "none", `Child ${child.innerText} has display: none`);
+        }
+      }, `Display value of children of the <${name}> element`);
+    });
+  </script>
+</body>
+</html>

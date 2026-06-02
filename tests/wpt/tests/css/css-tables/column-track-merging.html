@@ -1,0 +1,278 @@
+<!doctype html>
+<title>Column track merging</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#dimensioning-the-row-column-grid--step2" />
+<style>
+
+main table {
+  border: 10px solid gray;
+  border-spacing: 20px;
+}
+
+main td {
+  width: 50px;
+  height:50px;
+  padding: 0;
+  background:linear-gradient(to right, yellow, orange);
+}
+main caption {
+  background: #EEE;
+}
+main .desc {
+  margin-top: 20px;
+  color: rgb(50,0,0);
+}
+main pre {
+  white-space: pre-wrap;
+
+}
+</style>
+<h3>Column merging investigation</h3>
+<o>Empty columns is a column that has no originating cells</o>
+<p><a href="https://www.w3.org/TR/css-tables-3/#dimensioning-the-row-column-grid--step2">Table standard</a> discusses this under "track merging".</p>
+<ul>
+  <li>Do empty columns get coalesced?</li>
+  <li>How does this interact with table-layout:fixed, table width</li>
+  <li>Is there a difference between columns defined by COL, vs TD.colspan? Yes!</li>
+  <li>Do COLs with specified width get merged?</li>
+</ul>
+<p>Compatibility</p>
+<li>Edge17 has a bug where width of a colspanned cell always includes cell width + width of border spacing. It should be max(cell width, border spacing)</li>
+<li>Safari matches Chrome Legacy. TD-originated columns are always merged.</li>
+<li>Firefox follows the standard, but has a few bugs.</li>
+<main>
+
+<h3>TD merging</h3>
+
+<pre class="desc">Auto table, and TD.colspan=10
+  FF/Chrome Legacy/Safari: Standard. Tracks merge.
+  Edge17: Tracks do not merge. Wide cell is 180px (9 * border spacing)
+</pre>
+<table id="td_auto" data-expected-width=180>
+<caption>auto</caption>
+<tr>
+  <td colspan=10 data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td colspan=10></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table(400px), and TD.colspan=10
+  FF/Chrome Legacy/Safari/Edge17: Standard. Tracks merge. Colspan cell grows because it is unconstrained.
+</pre>
+<table id="td_auto_width" style="width:400px" data-expected-width=400>
+<caption>auto 400px</caption>
+<tr>
+  <td colspan=10 data-expected-width=270></td>
+  <td></td>
+</tr>
+<tr>
+  <td colspan=10></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table(130px), and TD.colspan=10
+  FF/Chrome Legacy/Safari: Standard. Tracks merge. Colspan cell shrinks to min width becuase it is unconstrained.
+  Edge17: Non-compliant, buggy. Wide cell too wide, narrow cell disappears.
+</pre>
+<table id="td_auto_width_130" style="width:130px" data-expected-width=130>
+<caption>auto 130px</caption>
+<tr>
+  <td colspan=10 data-expected-width=10><div style="width:10px"></div></td>
+  <td></td>
+</tr>
+<tr>
+  <td colspan=10></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="td_fixed">Fixed(400px) table, and TD.colspan=10
+  Chrome/Safari: Non-compliant. Tracks merge. Cells are the same size, fixed algo distributes extra width evenly.
+  Firefox: Standard.
+  Edge17: Standard, buggy. Wide cell too wide. Edge's bug is that it computes max width as (width + border_spacing) instead of max(width, border_spacing).
+</pre>
+<table id="td_fixed" style="table-layout:fixed; width: 400px" data-expected-width=400>
+<caption>fixed 400px</caption>
+<tr>
+  <td colspan=10 data-expected-width=180></td>
+  <td></td>
+</tr>
+<tr>
+  <td colspan=10></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="td_fixed">Fixed(130px) table, and TD.colspan=10
+  Chrome/Safari: Non-compliant.Tracks merge, cells same size.
+  Firefox: Standard + buggy. Table does not grow.
+  Edge17: Standard + buggy. Wide cell too wide.
+</pre>
+<table id="td_fixed" style="table-layout:fixed; width: 130px" data-expected-width=310>
+<caption>fixed 130px</caption>
+<tr>
+  <td colspan=10 data-expected-width=180></td>
+  <td></td>
+</tr>
+<tr>
+  <td colspan=10></td>
+  <td></td>
+</tr>
+</table>
+
+<h3>COL merging. Same tests with COL span=10 replacing TD</h3>
+
+<pre class="desc">Auto table
+  FF/Chrome Legacy/Safari, Edge17: Standard. wide cell is 50px, tracks do merge.
+</pre>
+<table id="col_auto" data-expected-width=180>
+<caption>auto</caption>
+<col span=10>
+<tr>
+  <td data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table(400px)
+  FF/Chrome Legacy/Safari, Edge17: Standard. Both cells grow the same because unconstrained.
+</pre>
+<table id="col_auto_width" style="width:400px" data-expected-width=400>
+<caption>auto 400px</caption>
+<col span=10>
+<tr>
+  <td data-expected-width=160></td>
+  <td></td>
+</tr>
+<tr>
+  <td ></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table(130px)
+  FF/Chrome Legacy/Safari, Edge17: Standard. Both cells shrink.
+</pre>
+<table id="col_auto_width_130" style="width:130px" data-expected-width=130>
+<caption>auto 130px</caption>
+<col span=10>
+<tr>
+  <td data-expected-width=28><div style="width:10px"></div></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Fixed(400px) table
+  Chrome/Safari,Firefox: Standard.
+  Edge17: Buggy. Fixed cells grow to fill table.
+</pre>
+<table id="col_fixed" style="table-layout:fixed; width: 400px" data-expected-width=400>
+<caption>fixed 400px</caption>
+<col span=10>
+<tr>
+  <td data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="td_fixed">Fixed(130px) table
+  Chrome/Safari: Standard, very buggy. Non-collapsed columns shrink to single border spacing.
+  Firefox: Standard.
+  Edge17: Non-compliant, collapses columns.
+</pre>
+<table id="col_fixed_130" style="table-layout:fixed; width: 130px" data-expected-width=340>
+<col span=10>
+<caption>fixed 130px</caption>
+<tr>
+  <td data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<h3>COL merging when COL has specified width.</h3>
+
+<ul><li>Chrome Legacy/Edge17/Safari: non-compliant, merge COLs with specified widths.
+ <li>Firefox: Standard, unless COL width is 0px. Buggy, does not include border-spacing around columns.</ul>
+<pre class="desc">Auto table, COL width 30px.
+  Chrome Legacy/Edge17/Safari: non-compliant, merge.
+  Firefox: Standard, buggy. does not include border-spacing around columns.
+</pre>
+<table id="col_auto" data-expected-width=580>
+<caption>auto col 30px</caption>
+<col span=10 style="width:30px">
+<tr>
+  <td data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table, COL width 5%.
+  Chrome Legacy/Edge17/Safari: non-compliant, merge.
+  Firefox: Standard, buggy. does not include border-spacing around columns.
+</pre>
+<table id="col_auto" data-expected-width=640>
+<caption>auto col 10%</caption>
+<col span=5 style="width:10%">
+<tr>
+  <td data-expected-width=100></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+<pre class="desc">Auto table, COL width 0px.
+  Everyone: merges COL
+</pre>
+<table id="col_auto" data-expected-width=180>
+<caption>auto col 0px</caption>
+<col span=10 style="width:0px">
+<tr>
+  <td data-expected-width=50></td>
+  <td></td>
+</tr>
+<tr>
+  <td></td>
+  <td></td>
+</tr>
+</table>
+
+
+</main>
+<script>
+  checkLayout("main table");
+</script>
+
+
+</body>
+</html>

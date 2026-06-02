@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#valdef-box-decoration-break-slice">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-image">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1200242">
+<link rel="match" href="background-image-001-ref.html">
+<style>
+  .container {
+    writing-mode: vertical-rl;
+    inline-size: 472px;
+  }
+  .mc {
+    columns: 3;
+    column-gap: 10px;
+    column-fill: auto;
+    block-size: 120px;
+    border: 1px solid;
+    margin-block-end: 20px;
+    background: yellow;
+  }
+</style>
+<div class="container">
+  <div class="mc">
+    <div style="block-size:350px; background:red url(../support/cat.png) left top;"></div>
+  </div>
+  <div class="mc">
+    <div style="block-size:350px; background:red url(../support/cat.png) right top;"></div>
+  </div>
+  <div class="mc">
+    <div style="block-size:350px; background:red url(../support/cat.png) left bottom;"></div>
+  </div>
+  <div class="mc">
+    <div style="block-size:350px; background:red url(../support/cat.png) right bottom;"></div>
+  </div>
+</div>

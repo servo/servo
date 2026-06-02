@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-dynamic-ref.html">
+<p>You should see a button with the text PASS below.</p>
+<button id="interest" interestfor="target">PASS</button>
+<div id="target"></div>
+<style>
+  ::interest-hint { content: "FAIL"; }
+</style>
+<script>
+  interest.offsetTop;
+  interest.removeAttribute("interestfor");
+</script>

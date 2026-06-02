@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: element in top layer during transition (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<style>
+div {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+}
+
+.dialog {
+  background: lightgreen;
+}
+
+.backdrop {
+  background: grey;
+  top: 120px;
+}
+
+</style>
+<div class="dialog"></div>
+<div class="backdrop"></div>
+

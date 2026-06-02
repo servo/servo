@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration on absolutely positioned children</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="assert" content="Text-decoration is not propagated to children elements that are absolutely positioned." />
+        <style type="text/css">
+            #div1
+            {
+               text-decoration: underline;
+            }
+            div div
+            {
+                position: absolute;
+                left: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below does not have a line under it.</p>
+        <div id="div">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>GeolocationSensor Test</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://wicg.github.io/geolocation-sensor/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<script src="resources/sensor-data.js"></script>
+<script>
+runGenericSensorTests(kGeolocationSensorData, kGeolocationReadings);
+</script>

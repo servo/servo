@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>HTML Test: BDI: neutral when number</title>
+    <link rel="match" href="bdi-neutral-number-ref.html"/>
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com"/>
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com"/>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-bdi-element"/>
+    <meta name="assert" content="
+      'For the purposes of applying the bidirectional algorithm to the paragraph-level
+      container that a bdi element finds itself within, the bdi element must be treated
+      like a U+FFFC OBJECT REPLACEMENT CHARACTER.'"/>
+    <style>
+      body{
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="comments">
+      Key to entities used below:
+        &#x05D0; ... &#x05D5; - The first six Hebrew letters (strongly RTL).
+        &#x202D; - The LRO (left-to-right override) formatting character.
+        &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
+      If the BDI in the test's first DIV were a SPAN, the 1 inside it would be visually ordered
+      to the left of the &#x05D0;.
+    </div>
+    <div class="test">
+      <div dir="ltr">&#x05D0; - <bdi>[1]</bdi>...</div>
+      <div dir="ltr">&#x05D0; - <bdi dir="ltr">[1]</bdi>...</div>
+      <div dir="ltr">&#x05D0; - <bdi dir="rtl">[1]</bdi>...</div>
+      <div dir="rtl">a - <bdi>[1]</bdi>...</div>
+      <div dir="rtl">a - <bdi dir="ltr">[1]</bdi>...</div>
+      <div dir="rtl">a - <bdi dir="rtl">[1]</bdi>...</div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">&#x202D;&#x05D0; - [1]...&#x202C;</div>
+      <div dir="ltr">&#x202D;&#x05D0; - [1]...&#x202C;</div>
+      <div dir="ltr">&#x202D;&#x05D0; - [1]...&#x202C;</div>
+      <div dir="rtl">&#x202D;...[1] - a&#x202C;</div>
+      <div dir="rtl">&#x202D;...[1] - a&#x202C;</div>
+      <div dir="rtl">&#x202D;...[1] - a&#x202C;</div>
+    </div>
+  </body>
+</html>

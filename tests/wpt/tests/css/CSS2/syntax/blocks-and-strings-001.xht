@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Parsing blocks and strings in style blocks</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#block" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="Nested blocks and strings are parsed accordingly." />
+        <style type="text/css">
+            div
+            {
+                "this is a string]}""[{\"'";  /*should be parsed as a string but be ignored*/
+                {{}}[]'';                     /*should be parsed as nested blocks and a string but be ignored*/
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

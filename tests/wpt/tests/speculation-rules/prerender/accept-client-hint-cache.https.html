@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test Prerender pages maintain their own Client Hint Caches</title>
+<meta name="timeout" content="long">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/client-hints/resources/open-and-add-load-event.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(
+  async t => {
+    const uid = token();
+    const initialization_bc = new PrerenderChannel(`test-channel`, uid);
+    t.add_cleanup(_ => initialization_bc.close());
+
+    const gotMessage = new Promise(resolve => {
+      initialization_bc.addEventListener('message', e => {
+        resolve(e.data);
+      }, {once: true});
+    });
+
+    // Initialization. For the active pages, it has the client hint cache of
+    // "sec-ch-ua-bitness".
+    await open_and_add_load_event('resources/accept-ch.html');
+    window.open(
+        `resources/echo-client-hints-received.py?uid=${uid}`, '_blank',
+        'noopener');
+
+    const result = await gotMessage;
+    assert_equals(result.result, 'PASSED', result.reason);
+  },
+  'Prerender page should maintain their own client hints cache and do not propagate it to' +
+      'the global cache until activation');
+
+</script>

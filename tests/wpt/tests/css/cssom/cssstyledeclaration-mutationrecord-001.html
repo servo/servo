@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: CSSStyleDeclaration.setPropertyValue queues a mutation record when changed</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setpropertyvalue">
+<link rel="help" href="https://drafts.csswg.org/cssom/#update-style-attribute-for">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  document.documentElement.style.top = "0px";
+
+  let test = async_test("CSSStyleDeclaration.setPropertyValue queues a mutation record when serialization is changed");
+  let m = new MutationObserver(function(r) {
+    assert_equals(r.length, 1);
+    test.done();
+  });
+
+  m.observe(document.documentElement,  { attributes: true });
+  document.documentElement.style.top = "1px";
+</script>

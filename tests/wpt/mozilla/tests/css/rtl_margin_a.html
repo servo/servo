@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel='match' href='rtl_margin_ref.html'>
+    <meta charset="UTF-8">
+    <title>RTL margin test</title>
+    <style>
+      body {
+        margin: 8px;
+      }
+      #a {
+        direction: rtl;
+      }
+      #b {
+        border: 1px solid red;
+        width: 100px;
+        height: 100px;
+      }
+      #c {
+        border: 1px solid blue;
+        margin: 10px;
+        width: 50px;
+        height: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="a">
+      <div id="b">
+        <div id="c">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Blur filter</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="match" href="blur-filter-ref.html"/>
+<meta name="assert" content="Verify that 'filter: blur' works on MathML elements.">
+</head>
+<body>
+  <p>Rectangles should be blurred.</p>
+  <div>
+    <math><mspace width="200px" height="200px" style="background: green; filter: blur(5px)"/></math>
+  </div>
+  <div style="position: absolute; top: 300px">
+    <math style="filter: blur(5px)"><mspace width="200px" height="200px" style="background: green"/></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

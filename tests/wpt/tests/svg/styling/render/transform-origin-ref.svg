@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <style>
+    rect {
+      fill: cyan;
+    }
+  </style>
+  <g transform="translate(140, 130)">
+    <rect x="-30" y="-20" width="80" height="30" />
+  </g>
+</svg>

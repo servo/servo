@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Event handlers processing algorithm: error events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm">
+
+<div id="log"></div>
+
+<script>
+"use strict";
+setup({ allow_uncaught_exception: true });
+
+promise_test(t => {
+  document.body.onerror = t.step_func((...args) => {
+    assert_equals(args.length, 1);
+    return true;
+  });
+
+  const eventWatcher = new EventWatcher(t, window, "error");
+  const promise = eventWatcher.wait_for("error").then(e => {
+    assert_equals(e.defaultPrevented, false);
+  });
+
+  document.body.dispatchEvent(new Event("error", { bubbles: true, cancelable: true }));
+
+  return promise;
+}, "error event is normal (return true does not cancel; one arg) on Window, with a synthetic Event");
+</script>

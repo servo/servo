@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Slotted anchor with anchored pseudo-element</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target-anchor-element">
+<link rel="match" href="pseudo-element-with-slotted-anchor-ref.html">
+<my-anchor>
+  <template shadowrootmode="open">
+    <style>
+    :host {
+      display: block;
+    }
+
+    ::slotted(*) {
+      display: block;
+      anchor-name: --anchor;
+      padding: 2rem;
+      background: red;
+      color: white;
+      inline-size: fit-content;
+    }
+
+    :host::after {
+      content: 'target';
+      position: absolute;
+      position-anchor: --anchor;
+      position-area: bottom center;
+      background: lightblue;
+      padding: 1rem;
+    }
+    </style>
+    <slot></slot>
+  </template>
+  <span>anchor</span>
+</my-anchor>

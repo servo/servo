@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Range.compareBoundaryPoints() crash test</title>
+<link rel=help href="crbug.com/410996563">
+
+<table id="table">
+<thead>
+<tr id="row"></tr>
+
+<script>
+const selection = document.getSelection();
+const range = new Range();
+const cell = row.insertCell();
+range.setEndBefore(cell);
+selection.addRange(range);
+selection.removeRange(range);
+table.tHead = null;
+range.compareBoundaryPoints(Range.START_TO_END, range);
+</script>

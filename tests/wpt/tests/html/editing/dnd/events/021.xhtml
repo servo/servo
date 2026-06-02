@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Link drag and drop: events after drag is cancelled</title>
+<script type="application/ecmascript">
+function dragMe(event)
+  {event.preventDefault();}
+function dropIt(event)
+  {say('FAIL (no drop should occur after drag is cancelled)')}
+function say(it)
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+</script>
+</head>
+<body dropzone="copy string:text/uri-list" ondrop="dropIt(event)">
+<p><a href="data:text/plain,1" ondrag="dragMe(event)">Try to drag me</a></p>
+<p>You should not be able to drag link above.</p>
+<pre/>
+</body>
+</html>

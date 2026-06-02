@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: Line wrapping after leading out-of-flow objects</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#propdef-position">
+<style>
+div {
+  width: 5ch;
+  /* When the line was broken after the leading OOF, it is hardly visible
+     because it is an empty line box.
+     Applying `text-indent` can make it visible; if the line is indented,
+     it is the first line, proving the line did not wrap. */
+  text-indent: 3ch;
+}
+</style>
+<body>
+  <div><span style="position: absolute"></span>123456</div>
+</body>

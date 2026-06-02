@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <style>
+  div.outer
+    {
+      height: 20px;
+      margin-bottom: 16px;
+      width: 20px;
+    }
+
+  div.inside
+    {
+      background-color: blue;
+      height: 12px;
+      margin: 2px 4px 6px 8px;
+      width: 8px;
+    }
+
+  div#first-subtest
+    {
+      border: green solid 1px;
+      padding: 39px;
+    }
+
+  div#second-subtest
+    {
+      border-top: green solid 1px;
+      border-right: green solid 5px;
+      border-bottom: green solid 1px;
+      border-left: green solid 5px;
+      padding: 39px 35px;
+    }
+
+  div#third-subtest
+    {
+      border-top: green solid 1px;
+      border-right: green solid 5px;
+      border-bottom: green solid 10px;
+      border-left: green solid 5px;
+      padding: 39px 35px 30px;
+    }
+
+  div#fourth-subtest
+    {
+      border-top: green solid 1px;
+      border-right: green solid 5px;
+      border-bottom: green solid 10px;
+      border-left: green solid 15px;
+      padding: 39px 35px 30px 25px;
+    }
+  </style>
+
+  <div class="outer" id="first-subtest"><div class="inside"></div></div>
+
+  <div class="outer" id="second-subtest"><div class="inside"></div></div>
+
+  <div class="outer" id="third-subtest"><div class="inside"></div></div>
+
+  <div class="outer" id="fourth-subtest"><div class="inside"></div></div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/345562934">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-decoration-line-property">
+<style>
+.c7 {
+  text-decoration: underline;
+  appearance: button;
+}
+
+.c7::first-line {
+  text-decoration: overline;
+}
+
+.c15 {
+  text-decoration: line-through;
+}
+</style>
+<dfn class="c7"><strong class="c15">test</strong></dfn>

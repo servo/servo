@@ -1,0 +1,8 @@
+features:
+- name: data-urls
+  files:
+  - getactionurl.html
+- name: form
+  files:
+  - "*"
+  - "!getactionurl.html"

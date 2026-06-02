@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#synthesize-baseline">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; writing-mode: vertical-rl; align-items: baseline; text-orientation: sideways; position: relative; background: red;">
+  <div style="background: green; line-height: 100px; font-size: 0; height: 50px;"><div style="display: inline-block;"></div></div>
+  <div style="background: green; width: 50px; height: 50px;"></div> <!-- text-orientation: sideways should synthesize the baseline at the block-end edge. -->
+  <div style="background: green; position: absolute; left: 0; bottom: 0; width: 50px; height: 50px;"></div>
+</div>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_06_00_06</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles:CSS rules declared in a shadow root style sheets must not apply in the document tree,">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+//check querySelector method
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    d.body.innerHTML =
+        '<div>' +
+            '<span class="invis" id="theTreeSpan">This is an element in the document tree</span>' +
+        '</div>' +
+        '<div id="sr">' +
+        '</div>';
+
+    var host = d.querySelector('#sr');
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    var style = d.createElement('style');
+    style.innerHTML ='.invis {display:none}';
+    s.appendChild(style);
+
+    var span = d.createElement('span');
+    span.setAttribute('id', 'theShadowSpan');
+    span.setAttribute('class', 'invis');
+    s.appendChild(span);
+
+    //theTreeSpan should be visible, theShadowSpan not
+    assert_true(d.querySelector('#theTreeSpan').offsetTop > 0,
+        'CSS styles declared in shadow tree must not be applied to the elements ' +
+        'in the document tree');
+
+    //theTreeSpan should be visible, theShadowSpan not
+    assert_equals(s.querySelector('#theShadowSpan').offsetTop, 0,
+        'CSS styles declared in shadow tree must be applied to the element ' +
+        'in the same shadow tree');
+
+}), 'A_06_00_06_T01');
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation:none computed style</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    body {
+        overflow: hidden;
+        image-orientation: from-image;
+    }
+    div {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+</style>
+<script>
+function run_tests() {
+    test(function() {
+        for (var i = 1; i <= 4; i++) {
+            var el = document.getElementById("img" + i);
+            var computedStyle = window.getComputedStyle(el);
+            assert_equals(computedStyle.width, "100px");
+            assert_equals(computedStyle.height, "50px");
+            assert_equals(computedStyle.imageOrientation, "from-image");
+        }
+        for (var i = 5; i <= 8; i++) {
+            var el = document.getElementById("img" + i);
+            var computedStyle = window.getComputedStyle(el);
+            assert_equals(computedStyle.width, "50px");
+            assert_equals(computedStyle.height, "100px");
+            assert_equals(computedStyle.imageOrientation, "from-image");
+        }
+        var el = document.getElementById("img9");
+        var computedStyle = window.getComputedStyle(el);
+        assert_equals(computedStyle.width, "100px");
+        assert_equals(computedStyle.height, "50px");
+        assert_equals(computedStyle.imageOrientation, "from-image");
+      }, "image-orientation:from-image computed style reports correct values");
+}
+</script>
+</head>
+<body onload="run_tests()">
+    <div><img id="img1" src="support/exif-orientation-1-ul.jpg"/></div>
+    <div><img id="img2" src="support/exif-orientation-2-ur.jpg"/></div>
+    <div><img id="img3" src="support/exif-orientation-3-lr.jpg"/></div>
+    <div><img id="img4" src="support/exif-orientation-4-lol.jpg"/></div>
+    <div><img id="img5" src="support/exif-orientation-5-lu.jpg"/></div>
+    <div><img id="img6" src="support/exif-orientation-6-ru.jpg"/></div>
+    <div><img id="img7" src="support/exif-orientation-7-rl.jpg"/></div>
+    <div><img id="img8" src="support/exif-orientation-8-llo.jpg"/></div>
+    <div><img id="img9" src="support/exif-orientation-9-u.jpg"/></div>
+</body>
+</html>

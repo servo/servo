@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Blocks within inlines: Simple with :hover</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-07 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/ib/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+  <meta name="flags" content="interact"/>
+  <meta name="assert" content="A block that splits an inline still inherits
+    from the inline, even in dynamic cases."/>
+  <style type="text/css">
+   .inline { color: blue; display: inline; }
+   .block { display: block; }
+   .inline:hover { color: green; }
+  </style>
+ </head>
+ <body>
+  <div class="block">
+   <div class="inline">
+    The text of all 3 sentences should become green when you hover over any text.
+    <div class="block">
+     The text of all 3 sentences should become green when you hover over any text.
+    </div>
+    The text of all 3 sentences should become green when you hover over any text.
+   </div>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Based on a test that was submitted from TestTWF Paris -->
+<meta charset="utf-8">
+<title>Testing 1 - skew()</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Myriam Goude" href="mailto:mymygo@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="svg">
+<meta name="assert" content="The two skew_div squares in this test have skew transform applied, with a different angle in each axis: 45deg on x and 135deg on y. The red polygon should be totally hidden by the green skewed square; and the orange skewed square should be totally hidden by the white polygon.">
+<style>
+  .green_container {
+    background-color: green;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  .skew_div {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    transform: skew(45deg,135deg);
+    transform-origin:0 0;
+  }
+  .front {
+    /* This one is positioned in front of a red reference polygon: */
+    top: 50px;
+    left: 10px;
+    background: green;
+    z-index: 1;
+  }
+  .back {
+    /* This one is positioned in back of a white reference polygon: */
+    top: 50px;
+    left: 110px;
+    background: orange;
+    z-index: -1;
+  }
+</style>
+<p>
+  Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+<div class="green_container">
+   <!-- These divs should both render as 80px-tall-and-wide diamond shapes. -->
+  <div class="skew_div front"></div>
+  <div class="skew_div back"></div>
+
+  <svg width="300px" height="100px">
+    <g transform="translate(10,10)">
+      <!-- A diamond-shaped red polygon, slightly less than 80px tall and
+           wide (should be covered up by the green 'front' div) -->
+      <polygon points="2,40 40,2 78,40 40,78" fill="red"></polygon>
+    </g>
+    <g transform="translate(110,10)">
+      <!-- A diamond-shaped white polygon, slightly more than 80px tall and
+           wide (should cover up the orange 'back' div) -->
+      <polygon points="-2,40 40,-2 82,40 40,82" fill="white"></polygon>
+    </g>
+  </svg>
+</div>

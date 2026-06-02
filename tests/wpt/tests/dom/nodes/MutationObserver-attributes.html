@@ -1,0 +1,406 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>MutationObservers: attributes mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mutationobservers.js"></script>
+<h1>MutationObservers: attributes mutations</h1>
+<div id="log"></div>
+
+<section style="display: none">
+<p id='n'></p>
+
+<p id='n00'></p>
+<p id='n01'></p>
+<p id='n02'></p>
+<p id='n03'></p>
+<input id="n04" type="text">
+
+<p id='n10'></p>
+<p id='n11'></p>
+<p id='n12' class='c01'></p>
+<p id='n13' class='c01 c02'></p>
+
+<p id='n20'></p>
+<p id='n21'></p>
+<p id='n22'></p>
+<p id='n23'></p>
+<p id='n24' class="c01 c02"></p>
+
+<p id='n30' class="c01 c02"></p>
+<p id='n31' class="c01 c02"></p>
+<p id='n32' class="c01 c02"></p>
+
+<p id='n40' class="c01 c02"></p>
+<p id='n41' class="c01 c02"></p>
+<p id='n42' class="c01 c02"></p>
+<p id='n43' class="c01 c02"></p>
+<p id='n44' class="c01 c02"></p>
+<p id='n45' class="c01 c02"></p>
+
+<p id='n50' class="c01 c02"></p>
+<p id='n51'></p>
+
+<p id='n60'></p>
+<p id='n61' class="c01"></p>
+<p id='n62'></p>
+
+<p id='n70' class="c01"></p>
+<p id='n71'></p>
+<input id="n72" type="text">
+
+<p id='n80'></p>
+<p id='n81'></p>
+
+<p id='n90'></p>
+<p id='n91'></p>
+<p id='n92'></p>
+
+<p id='n1000'></p>
+<p id='n1001' class='c01'></p>
+
+<p id='n2000'></p>
+<p id='n2001' class='c01'></p>
+
+<p id='n3000'></p>
+
+</section>
+
+<script>
+
+var n = document.getElementById('n');
+
+runMutationTest(n,
+                  {"attributes":true},
+                  [{type: "attributes", attributeName: "id"}],
+                  function() { n.id = "n000";},
+                  "attributes Element.id: update, no oldValue, mutation");
+
+var n00 = document.getElementById('n00');
+runMutationTest(n00,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n00", attributeName: "id"}],
+                  function() { n00.id = "n000";},
+                  "attributes Element.id: update mutation");
+
+var n01 = document.getElementById('n01');
+runMutationTest(n01,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n01", attributeName: "id"}],
+                  function() { n01.id = "";},
+                  "attributes Element.id: empty string update mutation");
+
+var n02 = document.getElementById('n02');
+runMutationTest(n02,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n02", attributeName: "id"}, {type: "attributes", attributeName: "class"}],
+                  function() { n02.id = "n02"; n02.setAttribute("class", "c01");},
+                  "attributes Element.id: same value mutation");
+
+var n03 = document.getElementById('n03');
+runMutationTest(n03,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n03", attributeName: "id"}],
+                  function() { n03.unknown = "c02"; n03.id = "n030";},
+                  "attributes Element.unknown: IDL attribute no mutation");
+
+var n04 = document.getElementById('n04');
+runMutationTest(n04,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "text", attributeName: "type"}, {type: "attributes", oldValue: "n04", attributeName: "id"}],
+                  function() { n04.type = "unknown"; n04.id = "n040";},
+                  "attributes HTMLInputElement.type: type update mutation");
+
+  var n10 = document.getElementById('n10');
+runMutationTest(n10,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "class"}],
+                  function() { n10.className = "c01";},
+                  "attributes Element.className: new value mutation");
+
+  var n11 = document.getElementById('n11');
+runMutationTest(n11,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "class"}],
+                  function() { n11.className = "";},
+                  "attributes Element.className: empty string update mutation");
+
+  var n12 = document.getElementById('n12');
+runMutationTest(n12,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01", attributeName: "class"}],
+                  function() { n12.className = "c01";},
+                  "attributes Element.className: same value mutation");
+
+  var n13 = document.getElementById('n13');
+runMutationTest(n13,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n13.className = "c01 c02";},
+                  "attributes Element.className: same multiple values mutation");
+
+  var n20 = document.getElementById('n20');
+runMutationTest(n20,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "class"}],
+                  function() { n20.classList.add("c01");},
+                  "attributes Element.classList.add: single token addition mutation");
+
+  var n21 = document.getElementById('n21');
+runMutationTest(n21,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "class"}],
+                  function() { n21.classList.add("c01", "c02", "c03");},
+                  "attributes Element.classList.add: multiple tokens addition mutation");
+
+  var n22 = document.getElementById('n22');
+runMutationTest(n22,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n22", attributeName: "id"}],
+                  function() { try { n22.classList.add("c01", "", "c03"); } catch (e) { };
+                               n22.id = "n220"; },
+                  "attributes Element.classList.add: syntax err/no mutation");
+
+  var n23 = document.getElementById('n23');
+runMutationTest(n23,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n23", attributeName: "id"}],
+                  function() { try { n23.classList.add("c01", "c 02", "c03"); } catch (e) { };
+                               n23.id = "n230"; },
+                  "attributes Element.classList.add: invalid character/no mutation");
+
+  var n24 = document.getElementById('n24');
+runMutationTest(n24,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}, {type: "attributes", oldValue: "n24", attributeName: "id"}],
+                  function() { n24.classList.add("c02"); n24.id = "n240";},
+                  "attributes Element.classList.add: same value mutation");
+
+  var n30 = document.getElementById('n30');
+runMutationTest(n30,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n30.classList.remove("c01");},
+                  "attributes Element.classList.remove: single token removal mutation");
+
+  var n31 = document.getElementById('n31');
+runMutationTest(n31,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n31.classList.remove("c01", "c02");},
+                  "attributes Element.classList.remove: multiple tokens removal mutation");
+
+  var n32 = document.getElementById('n32');
+runMutationTest(n32,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}, {type: "attributes", oldValue: "n32", attributeName: "id"}],
+                  function() { n32.classList.remove("c03"); n32.id = "n320";},
+                  "attributes Element.classList.remove: missing token removal mutation");
+
+  var n40 = document.getElementById('n40');
+runMutationTest(n40,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n40.classList.toggle("c01");},
+                  "attributes Element.classList.toggle: token removal mutation");
+
+  var n41 = document.getElementById('n41');
+runMutationTest(n41,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n41.classList.toggle("c03");},
+                  "attributes Element.classList.toggle: token addition mutation");
+
+  var n42 = document.getElementById('n42');
+runMutationTest(n42,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n42.classList.toggle("c01", false);},
+                  "attributes Element.classList.toggle: forced token removal mutation");
+
+  var n43 = document.getElementById('n43');
+runMutationTest(n43,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n43", attributeName: "id"}],
+                  function() { n43.classList.toggle("c03", false); n43.id = "n430"; },
+                  "attributes Element.classList.toggle: forced missing token removal no mutation");
+
+  var n44 = document.getElementById('n44');
+runMutationTest(n44,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n44", attributeName: "id"}],
+                  function() { n44.classList.toggle("c01", true); n44.id = "n440"; },
+                  "attributes Element.classList.toggle: forced existing token addition no mutation");
+
+  var n45 = document.getElementById('n45');
+runMutationTest(n45,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() { n45.classList.toggle("c03", true);},
+                  "attributes Element.classList.toggle: forced token addition mutation");
+
+  var n50 = document.getElementById('n50');
+runMutationTest(n50,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01 c02", attributeName: "class"}],
+                  function() {
+                    for (var i = 0; i < n50.attributes.length; i++) {
+                      var attr = n50.attributes[i];
+                      if (attr.localName === "class") {
+                        attr.value = "c03";
+                      }
+                    };
+                  },
+                  "attributes Element.attributes.value: update mutation");
+
+  var n51 = document.getElementById('n51');
+runMutationTest(n51,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n51", attributeName: "id"}],
+                  function() {
+                    n51.attributes[0].value = "n51";
+                  },
+                  "attributes Element.attributes.value: same id mutation");
+
+  var n60 = document.getElementById('n60');
+runMutationTest(n60,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n60", attributeName: "id"}],
+                  function() {
+                    n60.setAttribute("id", "n601");
+                  },
+                  "attributes Element.setAttribute: id mutation");
+
+  var n61 = document.getElementById('n61');
+runMutationTest(n61,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01", attributeName: "class"}],
+                  function() {
+                    n61.setAttribute("class", "c01");
+                  },
+                  "attributes Element.setAttribute: same class mutation");
+
+  var n62 = document.getElementById('n62');
+runMutationTest(n62,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "classname"}],
+                  function() {
+                    n62.setAttribute("classname", "c01");
+                  },
+                  "attributes Element.setAttribute: classname mutation");
+
+  var n70 = document.getElementById('n70');
+runMutationTest(n70,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "c01", attributeName: "class"}],
+                  function() {
+                    n70.removeAttribute("class");
+                  },
+                  "attributes Element.removeAttribute: removal mutation");
+
+  var n71 = document.getElementById('n71');
+runMutationTest(n71,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n71", attributeName: "id"}],
+                  function() {
+                    n71.removeAttribute("class");
+                    n71.id = "n710";
+                  },
+                  "attributes Element.removeAttribute: removal no mutation");
+
+  var n72 = document.getElementById('n72');
+runMutationTest(n72,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "text", attributeName: "type"}, {type: "attributes", oldValue: "n72", attributeName: "id"}],
+                  function() {
+                    n72.removeAttribute("type");
+                    n72.id = "n720";
+                  },
+                  "childList HTMLInputElement.removeAttribute: type removal mutation");
+
+  var n80 = document.getElementById('n80');
+runMutationTest(n80,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "private", attributeNamespace: "http://example.org/"}],
+                  function() {
+                    n80.setAttributeNS("http://example.org/", "private", "42");
+                  },
+                  "attributes Element.setAttributeNS: creation mutation");
+
+  var n81 = document.getElementById('n81');
+runMutationTest(n81,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", attributeName: "lang", attributeNamespace: "http://www.w3.org/XML/1998/namespace"}],
+                  function() {
+                    n81.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:lang", "42");
+                  },
+                  "attributes Element.setAttributeNS: prefixed attribute creation mutation");
+
+  var n90 = document.getElementById('n90');
+  n90.setAttributeNS("http://example.org/", "private", "42");
+runMutationTest(n90,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "42", attributeName: "private", attributeNamespace: "http://example.org/"}],
+                  function() {
+                    n90.removeAttributeNS("http://example.org/", "private");
+                  },
+                  "attributes Element.removeAttributeNS: removal mutation");
+
+  var n91 = document.getElementById('n91');
+runMutationTest(n91,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n91", attributeName: "id"}],
+                  function() {
+                    n91.removeAttributeNS("http://example.org/", "private");
+                    n91.id = "n910";
+                  },
+                  "attributes Element.removeAttributeNS: removal no mutation");
+
+  var n92 = document.getElementById('n92');
+runMutationTest(n92,
+                  {"attributes":true, "attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n92", attributeName: "id"}],
+                  function() {
+                    n92.removeAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:lang");
+                    n92.id = "n920";
+                  },
+                  "attributes Element.removeAttributeNS: prefixed attribute removal no mutation");
+
+  var n1000 = document.getElementById('n1000');
+runMutationTest(n1000,
+                  {"attributes":true, "attributeOldValue": true,"attributeFilter": ["id"]},
+                  [{type: "attributes", oldValue: "n1000", attributeName: "id"}],
+                  function() { n1000.id = "abc"; n1000.className = "c01"},
+                  "attributes/attributeFilter Element.id/Element.className: update mutation");
+
+  var n1001 = document.getElementById('n1001');
+runMutationTest(n1001,
+                  {"attributes":true, "attributeOldValue": true,"attributeFilter": ["id", "class"]},
+                  [{type: "attributes", oldValue: "n1001", attributeName: "id"},
+                   {type: "attributes", oldValue: "c01", attributeName: "class"}],
+                  function() { n1001.id = "abc"; n1001.className = "c02"; n1001.setAttribute("lang", "fr");},
+                  "attributes/attributeFilter Element.id/Element.className: multiple filter update mutation");
+
+  var n2000 = document.getElementById('n2000');
+runMutationTest(n2000,
+                  {"attributeOldValue": true},
+                  [{type: "attributes", oldValue: "n2000", attributeName: "id"}],
+                  function() { n2000.id = "abc";},
+                  "attributeOldValue alone Element.id: update mutation");
+
+  var n2001 = document.getElementById('n2001');
+runMutationTest(n2001,
+                  {"attributeFilter": ["id", "class"]},
+                  [{type: "attributes", attributeName: "id"},
+                   {type: "attributes", attributeName: "class"}],
+                  function() { n2001.id = "abcd"; n2001.className = "c02"; n2001.setAttribute("lang", "fr");},
+                  "attributeFilter alone Element.id/Element.className: multiple filter update mutation");
+
+  var n3000 = document.getElementById('n3000');
+runMutationTest(n3000,
+                  {"subtree": true, "childList":false, "attributes" : true},
+                  [{type: "attributes", attributeName: "id" }],
+                  function() { n3000.textContent = "CHANGED"; n3000.id = "abc";},
+                  "childList false: no childList mutation");
+
+</script>

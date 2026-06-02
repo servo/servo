@@ -1,0 +1,162 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mousemove handling across elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/uievents/resources/eventrecorder.js"></script>
+<style>
+#a {
+  background: red;
+  height: 120px;
+  width: 200px;
+}
+#b {
+  margin: 100px;
+  height: 120px;
+  width: 200px;
+  background: green;
+}
+#c {
+  height: 120px;
+  width: 200px;
+  background: yellow;
+}
+
+#a1 {
+  background: blue;
+  height: 120px;
+  width: 200px;
+}
+#b1 {
+  padding: 1px;
+  margin: 100px;
+  height: 120px;
+  width: 200px;
+  background: green;
+}
+#c1 {
+  height: 120px;
+  width: 200px;
+  background: black;
+}
+</style>
+<p>
+  Steps:
+  <ol>
+    <li>Move your mouse across the yellow/red <code>&lt;div&gt;</code> element quickly from right to left.
+    <li>Move your mouse across the black/blue <code>&lt;div&gt;</code> element quickly from right to left.
+    <li>If the test fails, redo it again and move faster on the black/blue <code>&lt;div&gt;</code> element next time.
+  </ol>
+</p>
+
+<div id="c">
+  <div id="b">
+    <div id="a" align="center"></div>
+  </div>
+</div>
+<br />
+<div id="c1">
+  <div id="b1">
+    <div id="a1" align="center"></div>
+  </div>
+</div>
+
+<script>
+setup({explicit_timeout: true});
+var relevantEvents = [
+  "mousemove",
+  "mouseover",
+  "mouseenter",
+  "mouseout",
+  "mouseleave"
+];
+
+function stopPropagation(e) {
+  event.stopPropagation();
+}
+
+window.onload = async function() {
+  var a = document.getElementById("a");
+  var b = document.getElementById("b");
+  var c = document.getElementById("c");
+  var a1 = document.getElementById("a1");
+  var b1 = document.getElementById("b1");
+  var c1 = document.getElementById("c1");
+  var inputs = [a, b, c, a1, b1, c1];
+  EventRecorder.configure({
+      mergeEventTypes: ["mousemove"],
+      objectMap: {
+         "a": a,
+         "b": b,
+         "c": c,
+         "a1": a1,
+         "b1": b1,
+         "c1": c1
+      }
+    });
+  EventRecorder.addEventListenersForNodes(relevantEvents, inputs, stopPropagation);
+  var expected = [
+    {type: "mouseover", target: "a"},
+    {type: "mouseenter", target: "c"},
+    {type: "mouseenter", target: "b"},
+    {type: "mouseenter", target: "a"},
+    {type: "mousemove", target: "a", optional: true},
+    {type: "mouseout", target: "a"},
+    {type: "mouseleave", target: "a"},
+    {type: "mouseleave", target: "b"},
+    {type: "mouseover", target: "c"},
+    {type: "mousemove", target: "c", optional: true},
+    {type: "mouseout", target: "c"},
+    {type: "mouseleave", target: "c"},
+    {type: "mouseover", target: "a1"},
+    {type: "mouseenter", target: "c1"},
+    {type: "mouseenter", target: "b1"},
+    {type: "mouseenter", target: "a1"},
+    {type: "mousemove", target: "a1", optional: true},
+    {type: "mouseout", target: "a1"},
+    {type: "mouseleave", target: "a1"},
+    {type: "mouseleave", target: "b1"},
+    {type: "mouseover", target: "c1"},
+    {type: "mousemove", target: "c1", optional: true},
+    {type: "mouseout", target: "c1"},
+    {type: "mouseleave", target: "c1"},
+  ];
+  async_test(function(t) {
+    c1.addEventListener("mouseleave", function() {
+      t.step(function() {
+        assert_true(EventRecorder.checkRecords(expected));
+        t.done();
+      });
+    }, false);
+  }, "Mousemove events across elements should fire in the correct order.");
+  EventRecorder.start();
+
+  var a_rect = a.getClientRects()[0];
+  var c_rect = c.getClientRects()[0];
+  var center_a_x = Math.round((a_rect.left + a_rect.right) / 2);
+  var center_a_y = Math.round((a_rect.top + a_rect.bottom) / 2);
+
+  var a1_rect = a1.getClientRects()[0];
+  var c1_rect = c1.getClientRects()[0];
+  var center_a1_x = Math.round((a1_rect.left + a1_rect.right) / 2);
+  var center_a1_y = Math.round((a1_rect.top + a1_rect.bottom) / 2);
+  // Inject mouse inputs.
+  await new test_driver.Actions()
+      .pointerMove(a_rect.right + 20, center_a_y)
+      .pointerMove(center_a_x, center_a_y)
+      .pointerMove(a_rect.left + 20, center_a_y)
+      .pointerMove(a_rect.left - 20, center_a_y)
+      .pointerMove(c_rect.left + 20, center_a_y)
+      .pointerMove(0, center_a_y)
+      .pointerMove(a1_rect.right + 20, center_a1_y)
+      .pointerMove(center_a1_x, center_a1_y)
+      .pointerMove(a1_rect.left + 20, center_a1_y)
+      .pointerMove(a1_rect.left - 20, center_a1_y)
+      .pointerMove(c1_rect.left + 20, center_a1_y)
+      .pointerMove(0, center_a1_y)
+      .send();
+};
+</script>

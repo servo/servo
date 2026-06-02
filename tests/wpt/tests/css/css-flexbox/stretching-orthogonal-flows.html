@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: Stretch alignment for children with orthogonal flows</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-property">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#align-items-property">
+<link rel="match" href="reference/stretching-orthogonal-flows-ref.html">
+<link href="support/flexbox.css" rel="stylesheet">
+<meta name="assert" content="The test ensures that the stretch alignment of flex items work
+similarly with both parallel and orthogonal flows.">
+
+<p>You should see no red.</p>
+
+<div class="flexbox column align-items-stretch" style="background-color: red;">
+  <div style="background-color: green; height: 20px;"></div>
+  <div style="writing-mode: vertical-lr; background-color: green; height: 20px;"></div>
+</div>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>Prevent browsing context group changes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+
+<body>
+<script>
+
+/*
+ * These tests are tentative. They are based on the following proposal:
+ * https://github.com/explainers-by-googlers/future-browsing-context-group-dependency-hint
+ */
+
+function navigateByRelOpenerAnchorToNew(remote) {
+  function navigateByRelOpenerAnchorExecutorCreator(remote) {
+    return (url) => {
+      return remote.navigate((url) => {
+        let anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.rel = 'opener';
+        anchor.text = 'Link';
+        document.body.appendChild(anchor);
+        anchor.click();
+      }, [url]);
+    };
+  }
+
+  return remote.helper.createContext({
+        executorCreator: navigateByRelOpenerAnchorExecutorCreator(remote),
+      });
+}
+
+function navigateBySelfOpenToNew(remote) {
+  function navigateBySelfOpenExecutorCreator(remote) {
+    return (url) => {
+      return remote.navigate((url) => {
+        window.open(url, '_self', 'opener');
+      }, [url]);
+    };
+  }
+
+  return remote.helper.createContext({
+        executorCreator: navigateBySelfOpenExecutorCreator(remote),
+      });
+}
+
+async function runNoGroupChangeTest(performNavigation) {
+  const rcHelper = new RemoteContextHelper();
+  // This test harness cannot be in the same browsing context group as the
+  // navigating window, otherwise that would interfere with the test.
+  const rcWindow = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+  const rcWindow2 = await performNavigation(rcWindow);
+
+  const rcPopup = await rcWindow2.addWindow(undefined, { target: 'my_popup' });
+
+  assert_equals(await rcPopup.executeScript(() => {
+    window.previouslyOpened = true;
+    return window.name;
+  }), 'my_popup', 'popup created');
+
+  rcWindow2.historyBack();
+
+  // In order for the original page to find the popup by name, they must be in
+  // the same browsing context group.
+  assert_true(await rcWindow.executeScript(() => {
+    const popup = window.open('', 'my_popup');
+    return popup.previouslyOpened;
+  }), 'first page can access original popup');
+}
+
+promise_test(async t => {
+  await runNoGroupChangeTest((remote) => {
+    // Navigate away using rel=opener. The next page should remain in the same
+    // browsing context group.
+    return navigateByRelOpenerAnchorToNew(remote);
+  });
+}, 'rel=opener prevents browsing context group change');
+
+promise_test(async t => {
+  await runNoGroupChangeTest((remote) => {
+    // Navigate away using window.open with the opener window feature. The next
+    // page should remain in the same browsing context group.
+    return navigateBySelfOpenToNew(remote);
+  });
+}, 'opener window feature prevents browsing context group change');
+
+</script>
+</body>

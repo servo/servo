@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>space and vertical-align</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#space-mspace">
+<link rel="match" href="space-vertical-align.tentative-ref.html"/>
+<meta name="assert" content="Verify that vertical-align property has no effect on mspace">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="position: relative;">
+    <div style="position: absolute; top: 0px; left: 0px;
+                width: 200px; height: 200px;">
+      <math style="position: absolute; top: 0px; left: 0px">
+        <mspace width="50px" height="100px" style="background: green;vertical-align:50px"/>
+        <mspace width="50px" height="100px" style="background: green;vertical-align:50%"/>
+      </math>
+    </div>
+  </div>
+</body>
+</html>

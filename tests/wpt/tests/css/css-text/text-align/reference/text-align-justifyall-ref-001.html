@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>text-align: justify-all, direction: rtl</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style type='text/css'>
+.ref { border: 1px solid orange; margin: 20px; width: 510px; color: orange; font: 30px/1 Ahem; word-spacing: 20px; }
+div.last-line { word-spacing: 90px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is identical.</div>
+<div class="ref"><div>REF REF REF REF</div><div>REF REF REF REF</div><div class="last-line">REF REF REF </div></div>
+<div class="ref"><div>REF REF REF REF</div><div>REF REF REF REF</div><div class="last-line">REF REF REF </div></div>
+</body>
+</html>

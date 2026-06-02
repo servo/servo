@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/">
+<link rel="match" href="specified-block-size-007-ref.html">
+<p>There should be four columns. The first one should be yellow, the three
+  others should be cyan. No red should be seen.</p>
+<div style="columns:4; gap:10px; column-fill:auto; width:130px; height:100px;">
+  <div style="display:table; height:400px; width:100%; background:red;">
+    <div style="display:table-row; background:yellow;">
+      <div style="height:1px;"></div>
+    </div>
+    <div style="display:table-row; background:cyan;">
+      <div style="height:3px;"></div>
+    </div>
+  </div>
+</div>

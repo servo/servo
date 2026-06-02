@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for Mask-image with backdrop-filter inside parent with border-radius and overflow hidden</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+
+
+<div class="wrapper">
+  <div class="element">
+    <div>Item 1</div>
+    <div>Item 2</div>
+    <div>Item 3</div>
+  </div>
+</div>
+
+<style>
+  body {
+    background-color: rgb(173, 216, 230);
+  }
+
+  .wrapper {
+    border-radius: 1px;
+  }
+
+  .element {
+    backdrop-filter: saturate(300%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0, #000 100%);
+  }
+</style>

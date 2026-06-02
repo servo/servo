@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+var style = document.body.style;
+
+test(function() {
+    style.color = 'white';
+
+    assert_equals(style.color, 'white');
+    style.setProperty('color', undefined);
+    assert_equals(style.color, 'white');
+}, "Verify that setting a CSS property to undefined has no effect.");
+
+test(function() {
+    style.color = 'white';
+
+    assert_equals(style.color, 'white');
+    assert_equals(style.getPropertyPriority('color'), '');
+    style.setProperty('color', 'red', undefined);
+    assert_equals(style.color, 'red');
+    assert_equals(style.getPropertyPriority('color'), '');
+}, "Verify that setting a CSS property priority to undefined is accepted.");
+
+test(function() {
+    style.color = 'white';
+
+    assert_equals(style.color, 'white');
+    style.setProperty('color', null);
+    assert_equals(style.color, '');
+}, "Verify that setting a CSS property to null is treated like empty string.");
+
+test(function() {
+    style.color = 'white';
+
+    assert_equals(style.color, 'white');
+    style.setProperty('color', 'red', null);
+    assert_equals(style.color, 'red');
+}, "Verify that setting a CSS property priority to null is treated like empty string.");
+</script>
+</body>
+</html>

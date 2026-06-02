@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Differing border color at the start of a rotate-right page
+  should produce a reftest mismatch result</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-page/#page-orientation-prop">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1875182">
+<link rel="mismatch" href="page-orientation-on-portrait-003-notref.html">
+<style>
+@page {
+  margin: 0;
+  size: 200px 300px;
+}
+@page rotated {
+  page-orientation: rotate-right;
+}
+body {
+  margin: 0;
+}
+.filler {
+  box-sizing: border-box;
+  width: 200px;
+  height: 300px;
+  border: 10px solid black;
+}
+.specialborder {
+  border-top-color: cyan;
+}
+</style>
+<div class="filler">Page 1</div>
+<!-- Page 2 gets a special border at the start which should make it
+     compare as a "mismatch" against the reference case, if things are
+     working properly. -->
+<div class="filler specialborder" style="page: rotated">Page 2</div>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <style>
+    path {
+      stroke-width: 3;
+      stroke: blue;
+    }
+  </style>
+  <path d="M 20 150 v -120 h 140 v 120 z" />
+</svg>

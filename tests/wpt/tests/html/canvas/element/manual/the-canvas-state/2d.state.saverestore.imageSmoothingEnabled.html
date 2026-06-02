@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CanvasRenderingContext2D imageSmoothingEnabled save/restore test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#image-smoothing">
+<script>
+function createTestImage() {
+  var image = document.createElement('canvas');
+  var imgctx = image.getContext('2d');
+  imgctx.fillStyle = "#F00";
+  imgctx.fillRect(0, 0, 2, 2);
+  imgctx.fillStyle = "#0F0";
+  imgctx.fillRect(0, 0, 1, 1);
+  return image;
+}
+
+test(function() {
+  var ctx = document.createElement('canvas').getContext('2d');
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.restore();
+  assert_equals(ctx.imageSmoothingEnabled, true);
+}, "Test that restore() undoes any modifications to imageSmoothingEnabled.");
+
+test(function() {
+  var ctx = document.createElement('canvas').getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  var old = ctx.imageSmoothingEnabled;
+  ctx.save();
+  assert_equals(ctx.imageSmoothingEnabled, old);
+  ctx.restore();
+}, "Test that save() doesn't modify the values of imageSmoothingEnabled.");
+
+test(function() {
+  var ctx = document.createElement('canvas').getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.restore();
+  var image = createTestImage();
+  ctx.scale(10, 10);
+  ctx.drawImage(image, 0, 0);
+  var pixels = ctx.getImageData(0, 0, 1, 1).data;
+  assert_array_equals(pixels, [0, 255, 0, 255]);
+}, "Test that restoring actually changes smoothing and not just the attribute value.");
+</script>

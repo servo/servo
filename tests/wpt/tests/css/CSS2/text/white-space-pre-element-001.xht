@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'pre' vs. 'pre' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property"/>
+        <link rel="match" href="white-space-pre-element-001-ref.xht" />
+        <meta name="assert" content="The 'pre' element and 'white-space: pre' assignment behave the same way with respect to white space." />
+        <style type="text/css">
+            pre, div
+            {
+                font-family: monospace;
+                font-size: 10pt;
+                margin: 0;
+            }
+            div
+            {
+                white-space: pre;
+            }
+       </style>
+    </head>
+    <body>
+        <p>Test passes if the next two lines have the exact same spacing.</p>
+        <div> The   spacing  on      these         two  sentences need to be the    same!  </div>
+        <pre> The   spacing  on      these         two  sentences need to be the    same!  </pre>
+    </body>
+</html>

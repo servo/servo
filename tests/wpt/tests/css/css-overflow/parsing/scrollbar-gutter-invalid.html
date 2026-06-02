@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing invalid scrollbar-gutter declarations</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-4/#scollbar-gutter-property"/>
+<meta name="assert" content="Parsing invalid scrollbar-gutter declarations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+
+    test_invalid_value("scrollbar-gutter", "auto both");
+    test_invalid_value("scrollbar-gutter", "force auto");
+    test_invalid_value("scrollbar-gutter", "auto always");
+    test_invalid_value("scrollbar-gutter", "always stable");
+    test_invalid_value("scrollbar-gutter", "force");
+    test_invalid_value("scrollbar-gutter", "both");
+    test_invalid_value("scrollbar-gutter", "force both");
+
+    test_invalid_value("scrollbar-gutter", "");
+    test_invalid_value("scrollbar-gutter", "0");
+    test_invalid_value("scrollbar-gutter", "1px");
+    test_invalid_value("scrollbar-gutter", "3em");
+    test_invalid_value("scrollbar-gutter", "1 2 3");
+    test_invalid_value("scrollbar-gutter", "none");
+    test_invalid_value("scrollbar-gutter", "red");
+
+    test_invalid_value("scrollbar-gutter", "stable both");
+    test_invalid_value("scrollbar-gutter", "stable force");
+    test_invalid_value("scrollbar-gutter", "stable both force");
+    test_invalid_value("scrollbar-gutter", "always");
+    test_invalid_value("scrollbar-gutter", "always both");
+    test_invalid_value("scrollbar-gutter", "always force");
+    test_invalid_value("scrollbar-gutter", "always both force");
+
+    test_invalid_value("scrollbar-gutter", "auto stable");
+    test_invalid_value("scrollbar-gutter", "auto both-edges");
+    test_invalid_value("scrollbar-gutter", "both-edges");
+    test_invalid_value("scrollbar-gutter", "both-edges auto");
+    test_invalid_value("scrollbar-gutter", "stable auto");
+
+</script>

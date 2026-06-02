@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  {%- if subtests|length > 10 %}
+  <meta name="timeout" content="long">
+  {%- endif %}
+  <title>HTTP headers on request for CSS image-accepting properties</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  /**
+   * The subtests in this file use an iframe to induce requests for CSS
+   * resources because an iframe's `onload` event is the most direct and
+   * generic mechanism to detect loading of CSS resources. As an optimization,
+   * the subtests share the same iframe and document.
+   */
+  const declarations = [];
+  const iframe = document.createElement('iframe');
+  const whenIframeReady = new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+
+  {%- for subtest in subtests %}
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %]);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_equals(headers['[%subtest.headerName%]'], '[%subtest.expected%]');
+        {%- endif %}
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image [%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %]);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image [%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %]);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content [%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %]);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor [%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %]);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image [%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+
+  iframe.srcdoc = declarations.map((declaration, index) => `
+    <style>.el${index} { ${declaration} }</style><div class="el${index}"></div>`
+    ).join('');
+  document.body.appendChild(iframe);
+
+  </script>
+  </body>
+</html>

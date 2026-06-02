@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+  .root .child {}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+function addChildren(element, numChildren, idPrefix)
+{
+    for (var i = 0; i < numChildren; i++) {
+        var child = document.createElement("div");
+        child.id = idPrefix  + i;
+        element.appendChild(child);
+    }
+}
+
+function makeTree(element, depth, fanOut, idPrefix)
+{
+    if (depth <= 0)
+        return;
+    addChildren(element, fanOut, idPrefix);
+    for (var child = element.firstChild; child.nextSibling; child = child.nextSibling) {
+        makeTree(child, depth - 1, fanOut, child.id);
+    }
+    if (child)
+        makeTree(child, depth - 1, fanOut, child.id);
+}
+
+var root = document.querySelector("#root");
+makeTree(root, 6, 5, "child");
+
+var child = document.querySelector("#child012341");
+child.className = "child";
+var runFunction = function()
+{
+    root.offsetHeight; // force recalc style
+    root.className = "root";
+    root.offsetHeight;
+    root.className = "";
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of the CSS class descendant selector (.a .b).",
+    run: runFunction
+});
+
+</script>
+</body>
+</html>

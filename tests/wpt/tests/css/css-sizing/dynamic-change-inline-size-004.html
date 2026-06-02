@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <title>Dynamic change to inline size is reflected in intrinsic size of width: max-content parent</title>
+    <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com">
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+    <link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes">
+
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div style="width: 100px; height: 100px; background: red;">
+        <div style="background: green; width: max-content; height: 100px;">
+            <div id=inner style="width: 10px; height: 100px;"></div>
+        </div>
+    </div>
+
+    <script>
+        addEventListener("load", () => {
+            inner.style.width = "100px";
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    </script>
+</html>

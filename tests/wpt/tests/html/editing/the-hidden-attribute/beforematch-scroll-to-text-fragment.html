@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=timeout content=long>
+<title>beforematch fired on ScrollToTextFragment</title>
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-hidden-attribute:event-beforematch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script src="/common/utils.js"></script>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<script>
+async function fetchResultsNoResolver(key) {
+  return new Promise((resolve, reject) => {
+    fetchResults(key, resolve, reject);
+  });
+}
+
+promise_test(async () => {
+  const key = token();
+  await test_driver.bless('Open a scroll to text fragment URL');
+  window.open(
+    `resources/beforematch-scroll-to-text-fragment-basic.html?key=${key}#:~:text=foo`,
+    '_blank',
+    'noopener');
+  const results = await fetchResultsNoResolver(key);
+  assert_true(results.beforematchFiredOnFoo,
+    'Foo was searched for, so it should get a beforematch event.');
+  assert_false(results.beforematchFiredOnBar,
+    'Bar was not searched for, so it should not get a beforematch event.');
+  assert_equals(results.pageYOffsetDuringBeforematch, 0,
+    'Scrolling should happen after beforematch is fired.');
+  assert_true(results.pageYOffsetAfterRaf > 0,
+    'The page should be scrolled down to foo.');
+  assert_true(results.beforematchHiddenAttributePresent,
+    'The hidden attribute should be set inside the beforematch event handler.');
+}, 'Verifies that the beforematch event is fired on the matching element of a ScrollToTextFragment navigation.');
+
+promise_test(async () => {
+  const key = token();
+  await test_driver.bless('Open a scroll to text fragment URL');
+  window.open(
+    `resources/beforematch-scroll-to-text-fragment-with-anchor.html?key=${key}#bar:~:text=foo`,
+    '_blank',
+    'noopener');
+  const results = await fetchResultsNoResolver(key);
+  assert_true(results.fooHasHiddenAttribute,
+    'hidden=until-found revealing should not happen until after the script tag loads.');
+  assert_true(results.beforematchFiredOnFoo,
+    'foo was searched for, so it should get the beforematch event.');
+  assert_false(results.beforematchFiredOnBar,
+    'bar should not get the beforematch event despite being the target of an element fragment due to the text fragment.');
+  assert_equals(results.pageYOffsetDuringBeforematch, 0,
+    'Scrolling should happen after beforematch is fired.');
+  assert_true(results.pageYOffsetAfterRaf > 0,
+    'The page should be scrolled down to foo.');
+}, 'Verifies that beforematch is only fired on elements targeted by a text fragment when there is both a text fragment and an element fragment.');
+
+promise_test(async () => {
+  const key = token();
+  await test_driver.bless('Open a scroll to text fragment URL');
+  window.open(
+    `resources/beforematch-scroll-to-text-fragment-bubble.html?key=${key}#:~:text=foo`,
+    '_blank',
+    'noopener');
+  const results = await fetchResultsNoResolver(key);
+  assert_true(results.beforematchFiredOnChild,
+    'The element containing the searched text should have beforematch fired on it.');
+  assert_true(results.beforematchFiredOnParent,
+    'The parent element of the element containing the matching text should have the beforematch event fired on it because the event should bubble.');
+}, 'Verifies that the beforematch event bubbles with scroll to text fragment.');
+
+// TODO(jarhar): Write more tests here once we decide on a behavior here: https://github.com/WICG/display-locking/issues/150
+</script>

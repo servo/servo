@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>
+  removeFormat should remove background-color from styled elements
+</title>
+<body>
+  <div id="container1" contenteditable>The <b id="bold1" style="background-color: rgb(0, 255, 0)">quick</b> brown fox</div>
+  <div id="container2" contenteditable>The <span id="span1" style="background-color: yellow">quick</span> brown fox</div>
+  <div id="container3" contenteditable>The <b id="bold2" style="background-color: red; font-weight: bold; color: blue">quick</b> brown fox</div>
+  <div id="container4" contenteditable><b id="bold3" style="background-color: green"><i>quick</i></b></div>
+  <div id="container5" contenteditable>The <b id="bold4" style="background-color: rgba(255, 0, 0, 0.5)">quick</b> brown fox</div>
+  <div id="container6" contenteditable><span id="span2" style="background-color: #ff0000">Hello World</span></div>
+</body>
+<script>
+  test(() => {
+    const bold = document.getElementById("bold1");
+    const container = document.getElementById("container1");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(bold);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color should be removed by removeFormat"
+    );
+    assert_false(
+      container.innerHTML.includes("rgb(0, 255, 0)"),
+      "Specific background-color value should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "The quick brown fox",
+      "Text content should remain unchanged"
+    );
+  }, "removeFormat removes background-color from bold element");
+
+  test(() => {
+    const span = document.getElementById("span1");
+    const container = document.getElementById("container2");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(span);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color should be removed from span"
+    );
+    assert_false(
+      container.innerHTML.includes("yellow"),
+      "Yellow background should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "The quick brown fox",
+      "Text content should remain unchanged"
+    );
+  }, "removeFormat removes background-color from span element");
+
+  test(() => {
+    const bold = document.getElementById("bold2");
+    const container = document.getElementById("container3");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(bold);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color should be removed"
+    );
+    assert_false(
+      container.innerHTML.includes("font-weight"),
+      "Font-weight should be removed"
+    );
+    assert_false(
+      container.innerHTML.includes("color"),
+      "Color should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "The quick brown fox",
+      "Text content should remain unchanged"
+    );
+  }, "removeFormat removes multiple styles including background-color");
+
+  test(() => {
+    const bold = document.getElementById("bold3");
+    const container = document.getElementById("container4");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(bold);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color should be removed from nested structure"
+    );
+    assert_false(
+      container.innerHTML.includes("green"),
+      "Green background should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "quick",
+      "Text content should remain unchanged"
+    );
+  }, "removeFormat removes background-color from nested elements");
+
+  test(() => {
+    const bold = document.getElementById("bold4");
+    const container = document.getElementById("container5");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(bold);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color with rgba should be removed"
+    );
+    assert_false(
+      container.innerHTML.includes("rgba"),
+      "RGBA value should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "The quick brown fox",
+      "Text content should remain unchanged"
+    );
+  }, "removeFormat handles complex background-color values");
+
+  test(() => {
+    const span = document.getElementById("span2");
+    const container = document.getElementById("container6");
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(span);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("removeFormat");
+    assert_false(
+      container.innerHTML.includes("background-color"),
+      "Background-color should be removed"
+    );
+    assert_false(
+      container.innerHTML.includes("#ff0000"),
+      "Hex color should be removed"
+    );
+    assert_equals(
+      container.textContent,
+      "Hello World",
+      "Text content should be preserved"
+    );
+  }, "removeFormat preserves text when only background-color is present");
+</script>

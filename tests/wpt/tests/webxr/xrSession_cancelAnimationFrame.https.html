@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+    let immersiveTestName = "XRSession requestAnimationFrame callbacks can be "
+      + "unregistered with cancelAnimationFrame for immersive sessions";
+    let nonImmersiveTestName = "XRSession requestAnimationFrame callbacks can be "
+      + "unregistered with cancelAnimationFrame for non-immersive sessions";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = (session) => new Promise((resolve, reject) => {
+
+      // Schedule and immediately cancel animation frame
+      session.cancelAnimationFrame(session.requestAnimationFrame(
+        (time, vrFrame) => { reject("Cancelled frame callback was called"); }));
+
+      let counter = 0;
+      let handle;
+      function onFrame(time, vrFrame) {
+        // Cancel the second animation frame.
+        if (handle != 0) {
+          session.cancelAnimationFrame(handle);
+          handle = 0;
+        }
+
+        // Run a few more animation frames to be sure that the cancelled frame isn't
+        // going to call.
+        counter++;
+        if (counter >= 4) {
+          // Ok, we're done here.
+          resolve();
+        } else {
+          session.requestAnimationFrame(onFrame);
+        }
+      }
+
+      // Schedule two animation frame and cancel one during on animation frame.
+      session.requestAnimationFrame(onFrame);
+      handle = session.requestAnimationFrame(
+        (time, vrFrame) => { reject("Cancelled frame callback was called"); });
+    });
+
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+    xr_session_promise_test(nonImmersiveTestName, testFunction,
+      fakeDeviceInitParams, 'inline');
+
+  </script>
+</body>
+

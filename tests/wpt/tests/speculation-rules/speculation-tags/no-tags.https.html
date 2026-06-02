@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Sec-Speculation-Tags request headers</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="resources/speculation-tags-utils.js"></script>
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+// No tags case.
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const nextUrl = agent.getExecutorURL({ page: 2 });
+  await agent.forceSpeculationRules({
+      prefetch: [{source: "list", urls: [nextUrl]}]
+  });
+  await agent.navigate(nextUrl);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.sec_speculation_tags, "null", "Sec-Speculation-Tags");
+}, "Sec-Speculation-Tags: no tags (prefetch)");
+
+promise_test(async t => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+  const prerenderedRC = await referrerRC.addPrerender();
+  const headers = await prerenderedRC.getRequestHeaders();
+  assert_equals(headers.get("sec-purpose"), "prefetch;prerender");
+  assert_equals(headers.get("sec-speculation-tags"), "null");
+}, "Sec-Speculation-Tags: no tags (prerender)");
+
+</script>

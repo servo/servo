@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Resource file for test of Referer with location.replace</title>
+  </head>
+  <body>
+    <div></div>
+    <script>
+      const referer = "{{header_or_default(referer, missing)}}"
+      window.parent.parent.postMessage(referer);
+      document.querySelector("div").textContent = `Referer header: ${referer}`;
+    </script>
+  </body>
+</html>

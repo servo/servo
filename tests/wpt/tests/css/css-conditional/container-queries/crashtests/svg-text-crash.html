@@ -1,0 +1,8 @@
+<!doctype html>
+<title>SVG text element with size container-type should not crash</title>
+<link rel="help" href="https://crbug.com/1298319">
+<style>
+  text { container-type: inline-size; }
+</style>
+<p>Pass if no crash.</p>
+<svg><text></text></svg>

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS text-indent: Negative</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/indent/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+  <link rel="match" href="text-indent-010-ref.xht" />
+  <style type="text/css">
+   div { color: red; width: 10em; }
+   .a { text-indent: -100em; }
+   .b { text-indent: -1000em; }
+   .c { text-indent: -100000em; }
+   .d { text-indent: -100000000em; }
+   .e { text-indent: -1000000000000em; }
+  </style>
+ </head>
+ <body>
+  <p>You should not see any text below.</p>
+  <div class="a">FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL
+  FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL</div>
+  <div class="b">FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL
+  FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL</div>
+  <div class="c">FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL
+  FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL</div>
+  <div class="d">FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL
+  FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL</div>
+  <div class="e">FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL
+  FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL FAIL</div>
+ </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Flex gaps</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#main-alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align/#gaps">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="There are gaps between 0-main-size items" />
+
+<style>
+.item {
+  height: 10px;
+  flex: 0 0 auto;
+}
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id=reference-overlapped-red></div>
+
+<div style="display: flex; width: 100px; row-gap: 40px; background: green; flex-direction: column;">
+  <div class=item></div>
+  <div class=item style="height: 0px"></div>
+  <div class=item></div>
+</div>

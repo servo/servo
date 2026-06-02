@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-inside:auto</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'auto' value of the 'page-break-inside' property neither forces nor forbids a page break inside the box."/>
+<style type="text/css">
+	html,body {
+		font-size:12pt;
+		line-height:1;
+		height:100%;
+		margin:0;
+	}
+	.marginDiv1, .marginDiv2 {
+		height:50%;
+	}
+	.marginDiv2 {
+		margin-top:-5em;
+	}
+	div.break {
+		page-break-inside:auto;
+		width:4em;
+	}
+</style>
+</head>
+<body>
+	<div class="marginDiv1"></div>
+	<div class="marginDiv2"></div>
+	<div>There must be a page break below between "FIRST" and "LAST"</div>
+	<div class="break">
+		FIRST
+		dummy
+		dummy
+		dummy
+		dummy
+		dummy
+		dummy
+		dummy
+		dummy
+		dummy
+		LAST
+	</div>
+</body>
+</html>

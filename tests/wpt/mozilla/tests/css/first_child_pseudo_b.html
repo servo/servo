@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>:first-child test</title>
+    <style type="text/css">
+      html             { background: yellow;}
+
+      p { width: 20px; height: 20px; background: orange; float: left; margin-left: 10px; }
+      div { clear: both; }
+      #p1 { background: green; }
+      #p2 { background: green; }
+      #p3 { background: green; }
+      #p4 { background: green; }
+   </style>
+  </head>
+  <body>
+    <div id="d1"><p id="p1"> </p><p> </p></div>
+    <div id="d2"> <p id="p2"> </p><p> </p></div>
+    <div id="d3"><!-- comment --><p id="p3"> </p><p> </p></div>
+    <div id="d4"><span> </span><p id="p4"> </p><p> </p></div>
+  </body>
+</html>

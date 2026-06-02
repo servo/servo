@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#descdef-page-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // size is not a property, but a descriptor. test_invalid_value() tries to specify
+  // it on an element, and this should fail, even when using a valid
+  // value. size is only valid as a descriptor inside an @page rule.
+  test_invalid_value("size", "initial");
+  test_invalid_value("size", "inherit");
+  test_invalid_value("size", "revert");
+  test_invalid_value("size", "revert-layer");
+  test_invalid_value("size", "unset");
+  test_invalid_value("size", "640px 480px");
+  test_invalid_value("size", "8.5in 11in");
+  test_invalid_value("size", "a4");
+  test_invalid_value("size", "3in 10in");
+  test_invalid_value("size", "jis-b5");
+  test_invalid_value("size", "auto");
+  test_invalid_value("size", "landscape");
+  test_invalid_value("size", "letter");
+  test_invalid_value("size", "legal landscape");
+</script>

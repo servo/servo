@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+<head>
+	<style type="text/css">
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		p {
+			clear: both;
+			margin: 10px 0;
+		}
+
+		/* The first test box has its vertical dimension is set to
+		   some `vh` units. */
+		#testBoxWithVhOnly {
+			background: #F00;
+			width: 60px; height: 20vh;
+			float: left;
+		}
+
+		/* The second test box, with fixed height. */
+		#testBoxNotGrownHorizontallyByJS {
+			background: #F0F;
+			width: 20vh;
+			height: 60px;
+			float: left;
+		}
+
+		/* The third box, changed by using CSS transition. */
+		#testBoxWithTransition {
+			background: #FF0;
+			width: 20vh;
+			height: 40px;
+			float: left;
+			transition-property: width, height;
+			transition-duration: 0.3s;
+			transition-delay: 0;
+		}
+
+		/* The reference box, growing in both directions (height
+		   by script, width by `vh` units. */
+		#referenceBoxGrownHorizontallyByJS {
+			background: #0F0;
+			width: 20vh;
+			height: 40px;
+			float: left;
+		}
+	</style>
+</head>
+<body>
+
+<p>
+	All boxes should end up the same size. The green box is the reference one.
+</p>
+
+<div id="testBoxWithVhOnly"></div>
+<div id="testBoxNotGrownHorizontallyByJS"></div>
+<div id="testBoxWithTransition"></div>
+<div id="referenceBoxGrownHorizontallyByJS"></div>
+
+<script type="text/javascript">
+	'use strict';
+
+	function animate() {
+		var viewportHeight = document.documentElement.clientHeight;
+		var referenceDimension = Math.round(20 * viewportHeight / 100);
+
+		document.getElementById('referenceBoxGrownHorizontallyByJS')
+			.style['height'] = referenceDimension + "px";
+		if (referenceDimension < 60) {
+			setTimeout(animate, 20);
+		}
+	}
+
+	addEventListener('transitionend', event => {
+		if (event.propertyName == 'width') {
+			// Stop any further transitions.
+			testBoxWithTransition.style.transitionProperty = 'none';
+			parent.postMessage('transitionInIFrameEnded', '*');
+		}
+	}, false);
+
+	document.getElementById('testBoxWithTransition').style.height = "60px";
+	setTimeout(animate, 20);
+	parent.postMessage('frameLoaded', '*');
+</script>
+
+</body>
+</html>

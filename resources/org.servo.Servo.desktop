@@ -1,0 +1,33 @@
+# You can use this file to get a menu entry on Linux and so you can pin Servo to your taskbar.
+#
+# Steps:
+#   1. Create the applications folder if it doesn't exist:
+#           mkdir -p ~/.local/share/applications/
+#   2. Copy this file:
+#           cp org.servo.Servo.desktop ~/.local/share/applications
+#   3. Edit the copied file and replace the two SERVO_SRC_PATH occurrences
+#      with the path to the Servo sources.
+#   4. Create the icons folder if it doesn't exist:
+#          mkdir -p ~/.local/share/icons/hicolor/scalable/apps
+#   5. Create a link for the icon:
+#          ln -s servo.svg ~/.local/share/icons/hicolor/scalable/apps/servo.svg
+[Desktop Entry]
+Version=1.0
+Name=Servo
+GenericName=Web Browser
+Comment=Browse the Web
+# TODO: Replace SERVO_SRC_PATH with the path to the Servo sources
+Exec=SERVO_SRC_PATH/target/release/servo %u
+Icon=servo
+Terminal=false
+Type=Application
+MimeType=text/html;text/xml;application/xhtml+xml;text/mml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+Categories=Network;WebBrowser;
+Keywords=web;browser;internet;
+Actions=new-window;
+
+[Desktop Action new-window]
+Name=Open a New Window
+# TODO: Replace SERVO_SRC_PATH with the path to the Servo sources
+Exec=SERVO_SRC_PATH/target/release/servo %u

@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>test reference</title>
+        <meta name="flags" content="ahem" />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below (with no jagged edges).</p>
+        <div>
+            <div>
+                <span>x x</span>
+            </div>
+            <div id="test">x x</div>
+        </div>
+    </body>
+</html>

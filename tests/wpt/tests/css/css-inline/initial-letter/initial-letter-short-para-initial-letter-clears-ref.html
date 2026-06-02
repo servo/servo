@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests initial letter subsequent paragraph clears initial letter.</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#short-para-initial-letter">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+    }
+
+    .fake-initial-letter {
+        background: lime;
+        float: left;
+        height: 80px;
+        margin-top: 2px;
+        width: 80px;
+        clear: left;
+    }
+</style>
+</head>
+<body>
+<div class="sample"><div class="fake-initial-letter"></div>bc<br>Def<br></div>
+<div class="sample" style="padding-top:32px"><div class="fake-initial-letter"></div>XY<br>ABC<br></div>
+</body>
+</html>

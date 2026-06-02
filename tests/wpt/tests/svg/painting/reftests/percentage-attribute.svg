@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="310" height="170" viewBox="0, 0, 620, 340"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Percentages in stroke dimensions</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match"  href="percentage-ref.svg" />
+
+  <style>
+    rect {
+      fill: none;
+      stroke: blue;
+    }
+  </style>
+
+  <rect x="62" y="68" width="434" height="204"
+    stroke-width="10%" stroke-dasharray="20% 30%" stroke-dashoffset="-10%" />
+</svg>

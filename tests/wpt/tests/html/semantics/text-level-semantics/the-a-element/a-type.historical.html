@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>The type attribute is purely advisory</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#attr-hyperlink-type">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<body>
+<iframe name="i"></iframe>
+<a id="link" href="resources/plain-text.unknown" target="i" type="text/html">click me</a>
+<script>
+async_test(t => {
+  let link = document.getElementById("link");
+  link.click();
+
+  let iframe = document.querySelector("iframe");
+  iframe.onload = t.step_func_done(() => {
+    assert_true(iframe.contentWindow.location.href.endsWith(".unknown"));
+    assert_equals(iframe.contentDocument.contentType, "text/plain");
+  });
+}, "type attribute on anchor doesn't cause document to be loaded as HTML");
+</script>
+</body>

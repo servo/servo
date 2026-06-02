@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<title>Tab focus from ::colum::scroll-marker, some columns with no elements</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-next-focus">
+<style>
+  body {
+    margin: 0;
+  }
+  #scrollable {
+    scroll-marker-group: after;
+    overflow: hidden;
+    height: 100px;
+    line-height: 20px;
+  }
+  #multicol {
+    columns: 11;
+    column-gap: 10px;
+    column-fill: auto;
+    column-rule: solid;
+    height: 100%;
+    orphans: 1;
+    widows: 1;
+  }
+  #scrollable::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    background: hotpink;
+  }
+  #multicol::column::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    background: blue;
+  }
+  #multicol::column::scroll-marker:focus {
+    background: cyan;
+  }
+</style>
+<div id="scrollable">
+  <div id="multicol">
+    <div tabindex="0" id="block1" style="height:85px; background:#ccc;"></div>
+    <div tabindex="0" id="block2">
+      block<br>
+      block<br>
+      block<br>
+      block<br>
+      block<br>
+      block<br>
+    </div>
+    <div tabindex="0" id="inlineBlock1" style="display:inline-block; width:100%; height:81px; background:#ccc;"></div>
+    <span tabindex="0" id="inlineElm1">
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+    </span>
+    <div tabindex="0" id="inlineBlock2" style="display:inline-block; width:100%; height:81px; background:#ccc;"></div>
+    <span tabindex="0" id="inlineElm2">
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+    </span>
+  </div>
+</div>
+<div id="after" tabindex="0">after</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  async function activateMarker(idx) {
+    await new test_driver.Actions()
+      .pointerMove(5 + idx*25, 105)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  async function focusNext() {
+    // https://w3c.github.io/webdriver/#keyboard-actions
+    const kTab = '\uE004';
+
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+  }
+
+  promise_test(async t => {
+    await activateMarker(1);
+    await focusNext();
+    assert_equals(document.activeElement, block2);
+  }, "Focus column #1");
+
+  promise_test(async t => {
+    await activateMarker(10);
+    await focusNext();
+    assert_equals(document.activeElement, after);
+  }, "Focus column #10");
+
+  promise_test(async t => {
+    await activateMarker(2);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock1);
+  }, "Focus column #2");
+
+  promise_test(async t => {
+    await activateMarker(9);
+    await focusNext();
+    assert_equals(document.activeElement, after);
+  }, "Focus column #9");
+
+  promise_test(async t => {
+    await activateMarker(8);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm2);
+  }, "Focus column #8");
+
+  promise_test(async t => {
+    await activateMarker(7);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock2);
+  }, "Focus column #7");
+
+  promise_test(async t => {
+    await activateMarker(6);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock2);
+  }, "Focus column #6");
+
+  promise_test(async t => {
+    await activateMarker(5);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock2);
+  }, "Focus column #5");
+
+  promise_test(async t => {
+    await activateMarker(4);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm1);
+  }, "Focus column #4");
+
+  promise_test(async t => {
+    await activateMarker(3);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock1);
+  }, "Focus column #3");
+
+  promise_test(async t => {
+    await activateMarker(0);
+    await focusNext();
+    assert_equals(document.activeElement, block1);
+  }, "Focus column #0");
+</script>

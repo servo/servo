@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <text><textPath href='#a'>Some text.</textPath></text>
+  <text><textPath href='#b'>More text.</textPath></text>
+  <path id="a" d="m50,100 l300,-50" stroke="lime"/>
+  <path id="b" d="m50,50 l300,60" stroke="red"/>
+</svg>

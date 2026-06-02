@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="match" href="modal-dialog-generated-content-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+dialog {
+    padding: 0px;
+    border: none;
+    margin: 0px;
+    top: 100px;
+    left: 100px;
+    height: 100px;
+    width: 100px;
+    background: green;
+    outline: none;
+}
+
+dialog::before {
+    content: '::before';
+    position: absolute;
+    top: 0px;
+}
+
+dialog::after {
+    content: '::after';
+    position: absolute;
+    bottom: 0px;
+}
+
+dialog::backdrop {
+    position: absolute;
+    top: 100px;
+    left: 300px;
+    height: 100px;
+    width: 100px;
+    background: green;
+    content: 'THIS TEXT SHOULD NOT BE SEEN';
+}
+
+dialog::backdrop::before {
+    content: '::backdrop::before';
+    position: absolute;
+    top: 0px;
+    background: red;
+}
+dialog::backdrop::after {
+    content: '::backdrop::after';
+    position: absolute;
+    bottom: 0px;
+    background: red;
+}
+</style>
+<body>
+Test for a modal dialog with ::before, ::after, and ::backdrop. The test passes
+if there are two green boxes, one with the texts "::before" and "::after" in it.
+<dialog></dialog>
+<script>
+document.querySelector('dialog').showModal();
+</script>
+</body>

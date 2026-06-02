@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing align-self with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-self">
+<meta name="assert" content="align-self supports the full grammar 'auto | normal | stretch | <baseline-position> | <overflow-position>? <self-position>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("align-self", "auto");
+test_valid_value("align-self", "normal");
+test_valid_value("align-self", "stretch");
+
+// <baseline-position> = [ first | last ]? baseline
+test_valid_value("align-self", "baseline");
+test_valid_value("align-self", "first baseline", "baseline");
+test_valid_value("align-self", "last baseline");
+
+// <overflow-position>? <self-position>
+// <overflow-position> = unsafe | safe
+// <self-position> = center | start | end | self-start | self-end | flex-start | flex-end
+test_valid_value("align-self", "center");
+test_valid_value("align-self", "start");
+test_valid_value("align-self", "end");
+test_valid_value("align-self", "self-start");
+test_valid_value("align-self", "self-end");
+test_valid_value("align-self", "flex-start");
+test_valid_value("align-self", "flex-end");
+test_valid_value("align-self", "unsafe center");
+test_valid_value("align-self", "safe self-end");
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+
+// Run captureStream() on different videos, and assert the mediastream is
+// ended when the source HTMLMediaElement finishes
+
+var makeAsyncTest = function(filename) {
+  async_test(function(test) {
+    var video = document.createElement('video');
+    video.src = "/media/" + filename;
+    video.onerror = this.unreached_func("<video> error");
+    video.play();
+
+    assert_true('captureStream' in video);
+
+    var stream = video.captureStream();
+
+    stream.onremovetrack = this.step_func_done(function() {
+      assert_true(video.ended, 'video must be ended');
+      assert_equals(stream.getTracks().length, 0, 'stream must have no tracks');
+      assert_false(stream.active, 'stream must be inactive');
+    });
+
+ }), "<video>.captureStream() and assert ended event.";
+};
+
+generate_tests(makeAsyncTest, [
+  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm" ],
+  [ "audio-only", "test-a-128k-44100Hz-1ch.webm" ],
+  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm" ]
+]);
+
+</script>
+</body>
+</html>

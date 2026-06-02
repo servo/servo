@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Margin, border, and padding should not be supported in &lt;text></title>
+    <html:link rel="help"
+          href="https://svgwg.org/svg2-draft/text.html#TextPropertiesAdaptions" />
+    <html:link rel="match"  href="no-margin-border-padding-ref.svg" />
+  </g>
+
+  <text font-size="32" y="50" style="border:5px solid red; padding:20px;">
+  foo<tspan style="border:5px solid blue; padding:20px; margin-right:40px;">bar</tspan>baz
+  </text>
+</svg>

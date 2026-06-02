@@ -1,0 +1,28 @@
+<!doctype html>
+<title>salvagable state of document after setting unload listener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+var loaded = false;
+var unload_fired = false;
+var timeout_fired = false;
+
+function start_test() {
+  step_timeout(t.step_func(function() {
+                             assert_true(unload_fired);
+                             assert_false(timeout_fired);
+                             t.done()
+                         }), 1000);
+}
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+  onload = null;
+  iframe.src="007-1.html?" + Math.random();
+}, 100)};
+
+</script>
+<iframe></iframe>

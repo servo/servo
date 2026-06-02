@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing an element from its own focus() call doesn't leave stale :focus-within state</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1996182">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="root">
+  <div id="container" tabindex="-1">
+    <input type="text">
+  </div>
+</div>
+<script>
+onload = function() {
+  test(function() {
+    let root = document.getElementById("root");
+    let container = document.getElementById("container");
+    let input = document.querySelector("input");
+
+    input.focus();
+    assert_equals(document.activeElement, input, "activeElement after focus");
+    assert_true(container.matches(":focus-within"), "container matches :focus-within");
+    assert_true(root.matches(":focus-within"), "root also matches :focus-within");
+    // This fires from within the next focus() call
+    input.addEventListener("focusout", () => { root.innerHTML = "" });
+    // container is focusable, but gets removed before we get a chance at focusing it.
+    container.focus();
+    assert_equals(document.activeElement, document.body, "activeElement after trying to focus sibling");
+    assert_equals(container.parentNode, null, "container should get removed");
+    assert_false(container.matches(":focus-within"), "container no longer matches :focus-within");
+    assert_false(root.matches(":focus-within"), "root no longer matches :focus-within");
+  });
+}
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Text Test: overflow-wrap: break-word</title>
+<link rel="author" title="Koji Ishii" href="kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-word">
+<link rel="match" href="reference/overflow-wrap-break-word-span-001-ref.html">
+<meta name="assert" content="Test when the `break-word` value is applied to an inline element.">
+<style>
+div {
+  font-size: 10px;
+  line-height: 1;
+  width: 8ch;
+}
+span {
+  word-wrap: break-word;
+}
+</style>
+<div>12345<span>67890</span></div>

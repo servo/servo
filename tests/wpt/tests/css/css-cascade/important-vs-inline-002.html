@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: inline style loses to !important</title>
+  <link rel="help" href="https://www.w3.org/TR/css-cascade-4/#cascade-sort">
+  <link rel="author" href="mailto:sesse@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .outer {
+       font-size: 18px !important;
+       line-height: 2em;
+       border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <p class="outer" id="el">Test passes if the line-height is twice the font size.</p>
+</body>
+<script>
+test(() => {
+  el.offsetTop;
+  assert_equals(getComputedStyle(el).lineHeight, "36px", "style is set correctly");
+});
+test(() => {
+  el.offsetTop;
+  el.style.fontSize = "24px";
+  assert_equals(getComputedStyle(el).lineHeight, "36px", "!important has higher priority than adding inline style");
+});
+test(() => {
+  el.offsetTop;
+  el.style.fontSize = "36px";
+  assert_equals(getComputedStyle(el).lineHeight, "36px", "!important has higher priority than modifying inline style");
+});
+test(() => {
+  el.offsetTop;
+  el.style.fontSize = null;
+  assert_equals(getComputedStyle(el).lineHeight, "36px", "!important has higher priority than removing inline style");
+});
+</script>
+</html>

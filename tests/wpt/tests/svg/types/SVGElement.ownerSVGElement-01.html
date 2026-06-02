@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>SVGElement.ownerSVGElement</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGElement__ownerSVGElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+  <div id="container">
+    <svg id="top-svg">
+      <rect width="10" height="10"></rect>
+      <g>
+        <circle r="10">
+          <title>A circle.</title>
+        </circle>
+        <svg id="inner-svg">
+          <polygon points="1,1 2,2 3,1"></polygon>
+        </svg>
+        <foreignObject>
+          <svg id="svg-in-fo">
+            <svg id="inner-svg-in-fo"></svg>
+          </svg>
+        </foreignObject>
+      </g>
+    </svg>
+  </div>
+</div>
+<script>
+setup(() => {
+  var topSVG = document.querySelector("#top-svg");
+  var innerSVG = document.querySelector("#inner-svg");
+  window.tests = [
+    // [Element or selector used to find element,
+    //  expected ownerSVGElement value,
+    //  description]
+    [topSVG, null, "outer <svg> element"],
+    ["rect", topSVG, "non-<svg> child of outer <svg> element"],
+    ["#top-svg title", topSVG, "non-<svg> descendant of outer <svg> element"],
+    [innerSVG, topSVG, "inner <svg> descendant of outer <svg> element"],
+    ["polygon", innerSVG, "non-<svg> descendant of inner <svg> element"],
+    ["#svg-in-fo", null, "outer <svg> in foreignObject"],
+    ["#inner-svg-in-fo", "#svg-in-fo", "inner <svg> child of outer <svg> in foreignObject"],
+  ];
+
+  // Resolve the selectors to actual elements.
+  tests.forEach(function(t) {
+    for (var i = 0; i < 2; i++) {
+      if (typeof t[i] === "string") {
+        t[i] = document.querySelector(t[i]);
+      }
+    }
+  });
+});
+// First, run all the tests with the elements in the document.
+tests.forEach(function(t) {
+  test(function() {
+    assert_equals(t[0].ownerSVGElement, t[1]);
+  }, t[2] + " (in document)");
+});
+
+// Then remove the elements from the document and test again.
+var container = document.querySelector("#container");
+container.remove();
+tests.forEach(function(t) {
+  test(function() {
+    assert_equals(t[0].ownerSVGElement, t[1]);
+  }, t[2] + " (not in document)");
+});
+
+// Finally a couple of tests for SVG elements with no parent.
+test(function() {
+  var ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+  assert_equals(ellipse.ownerSVGElement, null);
+}, "non-svg element with no parent");
+
+test(function() {
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  assert_equals(svg.ownerSVGElement, null);
+}, "svg element with no parent");
+</script>

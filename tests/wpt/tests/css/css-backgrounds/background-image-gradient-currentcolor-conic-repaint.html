@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: Repaint gradient on currentColor change</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="background-image-gradient-currentcolor-conic-repaint-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-images-3/#color-stop-syntax">
+<style>
+  #outer {
+    color: red;
+  }
+  #inner {
+    width: 100px;
+    height: 100px;
+    background: conic-gradient(white, currentColor);
+  }
+</style>
+<p>There should be a square with a white-to-green gradient and some text below.</p>
+<div id="outer">
+  <div id="inner">This text should be green</div>
+</div>
+<script>
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      outer.style.color = "green";
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

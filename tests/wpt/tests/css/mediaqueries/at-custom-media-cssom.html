@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>CSS Custom Media Queries: CSSOM</title>
+<link rel="help" href=https://drafts.csswg.org/mediaqueries-5/#custom-mq-cssom/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --true true
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--true');
+  assert_equals(customMediaRule.query, true);
+}, 'CSSCustomMediaRule true');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --false false
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--false');
+  assert_equals(customMediaRule.query, false);
+}, 'CSSCustomMediaRule false');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --empty
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--empty');
+  assert_not_equals(typeof customMediaRule.query, "boolean");
+  assert_equals(customMediaRule.query.length, 0);
+}, 'CSSCustomMediaRule empty');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --query (color) and (--query)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--query');
+  assert_equals(customMediaRule.query.length, 1);
+  assert_equals(customMediaRule.query.mediaText, '(color) and (--query)');
+}, 'CSSCustomMediaRule cycle');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --query (hover) and (width > 1024px)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--query');
+  assert_equals(customMediaRule.query.length, 1);
+  assert_equals(customMediaRule.query.mediaText, '(hover) and (width > 1024px)');
+}, 'CSSCustomMediaRule simple');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --query (color), (hover)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.name, '--query');
+  assert_equals(customMediaRule.query.length, 2);
+  assert_equals(customMediaRule.query.mediaText, '(color), (hover)');
+}, 'CSSCustomMediaRule multiple media queries');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --true (color), (hover)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.query.length, 2);
+  assert_equals(customMediaRule.query.mediaText, '(color), (hover)');
+  customMediaRule.query.mediaText = '(min-width: 100px)';
+  assert_equals(customMediaRule.query.length, 1);
+  assert_equals(customMediaRule.query.mediaText, '(min-width: 100px)');
+}, 'CSSCustomMediaRule change mediaText');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --true (color)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.query.length, 1);
+  assert_equals(customMediaRule.query.mediaText, '(color)');
+  customMediaRule.query.appendMedium('(hover)');
+  assert_equals(customMediaRule.query.length, 2);
+  assert_equals(customMediaRule.query.mediaText, '(color), (hover)');
+}, 'CSSCustomMediaRule appendMedium');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --true (color), (hover)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.query.length, 2);
+  assert_equals(customMediaRule.query.mediaText, '(color), (hover)');
+  customMediaRule.query.deleteMedium('(hover)');
+  assert_equals(customMediaRule.query.length, 1);
+  assert_equals(customMediaRule.query.mediaText, '(color)');
+}, 'CSSCustomMediaRule deleteMedium');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @custom-media --true (color)
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let customMediaRule = sheet.cssRules[0];
+  assert_true(customMediaRule instanceof CSSCustomMediaRule);
+  assert_equals(customMediaRule.query.item(0), '(color)');
+  assert_equals(customMediaRule.query.item(1), null);
+}, 'CSSCustomMediaRule item');
+
+</script>

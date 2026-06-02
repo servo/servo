@@ -1,0 +1,31 @@
+<!doctype html>
+<title>legend and flexbox, grid & multicol</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+legend { width: 200px; background: silver }
+#flex { display: flex; }
+#inline-flex { display: inline-flex; }
+#grid { display: grid; }
+#inline-grid { display: inline-grid; }
+#grid, #inline-grid { grid-template-columns: auto auto }
+#multicol { columns: 2; }
+</style>
+<fieldset><legend id=ref>12</legend></fieldset>
+<fieldset><legend id=flex><div>1</div><div>2</div></legend></fieldset>
+<fieldset><legend id=inline-flex><div>1</div><div>2</div></legend></fieldset>
+<fieldset><legend id=grid><div>1</div><div>2</div></legend></fieldset>
+<fieldset><legend id=inline-grid><div>1</div><div>2</div></legend></fieldset>
+<fieldset><legend id=multicol><div>1</div><div>2</div></legend></fieldset>
+<script>
+ const ref = document.getElementById('ref');
+ for (const id of ["flex", "inline-flex", "grid", "inline-grid", "multicol"]) {
+   test(() => {
+     const elm = document.getElementById(id);
+     assert_equals(elm.offsetHeight, ref.offsetHeight, 'offsetHeight');
+     if (id !== "multicol") {
+       assert_equals(getComputedStyle(elm).display, id, 'display');
+     }
+   }, id);
+ }
+</script>

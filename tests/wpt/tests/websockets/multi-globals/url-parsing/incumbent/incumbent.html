@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Incumbent page used as a test helper</title>
+
+<iframe src="../current/current.html" id="current"></iframe>
+
+<script>
+  const current = document.querySelector("#current").contentWindow;
+
+  window.hello = () => {
+    window.ws = new current.WebSocket('foo');
+    ws.close();
+  };
+</script>

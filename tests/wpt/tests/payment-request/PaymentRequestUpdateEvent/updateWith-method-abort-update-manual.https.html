@@ -1,0 +1,286 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#dfn-abort-the-update">
+<title>
+  updateWith() method - "abort the update"
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+
+// PaymentMethod
+const validMethod = Object.freeze({
+  supportedMethods: "valid-but-wont-ever-match",
+});
+
+const validMethodBasicCard = Object.freeze({
+  supportedMethods: "basic-card",
+});
+
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+
+// Methods
+const validMethods = Object.freeze([validMethodBasicCard, validMethod, applePay]);
+
+// Amounts
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "1.00",
+});
+
+const invalidAmount = Object.freeze({
+  currency: "¡INVALID!",
+  value: "A1.0",
+});
+
+const negativeAmount = Object.freeze({
+  currency: "USD",
+  value: "-1.00",
+});
+
+// Totals
+const validTotal = Object.freeze({
+  label: "Valid Total",
+  amount: validAmount,
+});
+
+const invalidTotal = Object.freeze({
+  label: "Invalid Total",
+  amount: invalidAmount,
+});
+
+const invalidNegativeTotal = Object.freeze({
+  label: "Invalid negative total",
+  amount: negativeAmount,
+});
+
+// PaymentDetailsInit
+const validDetails = Object.freeze({
+  total: validTotal,
+});
+
+const invalidDetailsNegativeTotal = Object.freeze({
+  total: invalidNegativeTotal,
+});
+
+// PaymentOptions
+const validOptions = Object.freeze({
+  requestShipping: true,
+});
+
+// PaymentItem
+const validPaymentItem = Object.freeze({
+  amount: validAmount,
+  label: "Valid payment item",
+});
+
+const invalidPaymentItem = Object.freeze({
+  amount: invalidAmount,
+  label: "Invalid payment item",
+});
+
+// PaymentItem
+const validPaymentItems = Object.freeze([validPaymentItem]);
+const invalidPaymentItems = Object.freeze([invalidPaymentItem]);
+
+// PaymentShippingOption
+const invalidShippingOption = Object.freeze({
+  id: "abc",
+  label: "Invalid shipping option",
+  amount: invalidAmount,
+  selected: true,
+});
+
+// PaymentShippingOptions
+const validShippingOption = Object.freeze({
+  id: "abc",
+  label: "valid shipping option",
+  amount: validAmount,
+});
+
+const validShippingOptions = Object.freeze([validShippingOption]);
+const invalidShippingOptions = Object.freeze([invalidShippingOption]);
+
+// PaymentDetailsModifier
+const validModifier = Object.freeze({
+  additionalDisplayItems: validPaymentItems,
+  supportedMethods: "valid-but-wont-ever-match",
+  total: validTotal,
+});
+
+const modifierWithInvalidDisplayItems = Object.freeze({
+  additionalDisplayItems: invalidPaymentItems,
+  supportedMethods: "basic-card",
+  total: validTotal,
+});
+
+const modifierWithValidDisplayItems = Object.freeze({
+  additionalDisplayItems: validPaymentItems,
+  supportedMethods: "basic-card",
+  total: validTotal,
+});
+
+const modifierWithInvalidTotal = Object.freeze({
+  additionalDisplayItems: validPaymentItems,
+  supportedMethods: "basic-card",
+  total: invalidTotal,
+});
+
+const recursiveData = {};
+recursiveData.foo = recursiveData;
+Object.freeze(recursiveData);
+
+const modifierWithRecursiveData = Object.freeze({
+  supportedMethods: "basic-card",
+  total: validTotal,
+  data: recursiveData,
+});
+
+function testBadUpdate(button, badDetails, expectedError, errorCode) {
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(
+      validMethods,
+      validDetails,
+      validOptions
+    );
+    request.onshippingaddresschange = event => {
+      event.updateWith(badDetails);
+    };
+    // First we check the bad update.
+    const acceptPromise = request.show();
+    let test_func;
+    if (typeof expectedError == "function") {
+      test_func = promise_rejects_js;
+    } else {
+      test_func = promise_rejects_dom;
+    }
+    await test_func(
+      t,
+      expectedError,
+      acceptPromise,
+      "badDetails must cause acceptPromise to reject with expectedError"
+    );
+    // The request [[state]] is now "closed", so let's check for InvalidStateError
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      request.show(),
+      "show() must reject with InvalidStateError"
+    );
+  }, button.innerText.trim());
+}
+</script>
+<h2>updateWith() method - "abort the update"</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When the payment sheet is shown, change the shipping address.
+</p>
+<ol>
+  <li>
+    <button onclick="
+      const rejectedPromise = Promise.reject(new SyntaxError('test'));
+      testBadUpdate(this, rejectedPromise, 'AbortError');
+    ">
+      Rejection of detailsPromise must abort the update with an "AbortError" DOMException.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      const invalidDetails = { total: `this will cause a TypeError!` };
+      testBadUpdate(this, invalidDetails, TypeError);
+    ">
+      Total in the update is a string, so converting to IDL must abort the update with a TypeError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      const invalidDetails = { total: recursiveData };
+      testBadUpdate(this, invalidDetails, TypeError);
+    ">
+      Total is recursive, so converting to IDL must abort the update with a TypeError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      testBadUpdate(this, invalidDetailsNegativeTotal, TypeError);
+    ">
+      Updating with a negative total results in a TypeError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      const badDetails = Object.assign({}, validDetails, { displayItems: invalidPaymentItems });
+      testBadUpdate(this, badDetails, RangeError);
+    ">
+      Updating with a displayItem with an invalid currency results in RangeError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      const duplicateShippingOptions = [validShippingOption, validShippingOption];
+      const badDetails = Object.assign({}, validDetails, { shippingOptions: duplicateShippingOptions });
+      testBadUpdate(this, badDetails, TypeError);
+    ">
+      Updating with duplicate shippingOptions (same IDs) results in a TypeError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      const badDetails = Object.assign({}, validDetails, { shippingOptions: invalidShippingOptions });
+      testBadUpdate(this, badDetails, RangeError);
+    ">
+      Updating with a shippingOption with an invalid currency value results in a RangError.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      // validModifier is there as to avoid false positives - it should just get ignored
+      const badModifiers = { modifiers: [ modifierWithInvalidTotal, validModifier ] };
+      const badDetails = Object.assign({}, validDetails, badModifiers);
+      testBadUpdate(this, badDetails, RangeError);
+    ">
+      Must throw a RangeError when a modifier's total item has an invalid currency.
+    </button>
+  </li>
+  <li>
+    <button onclick="
+      // validModifier is there as to avoid false positives - it should just get ignored
+      const badModifiers = { modifiers: [ modifierWithInvalidDisplayItems, validModifier ] };
+      const badDetails = Object.assign({}, validDetails, badModifiers);
+      testBadUpdate(this, badDetails, RangeError);
+    ">
+      Must throw a RangeError when a modifier display item has an invalid currency.
+   </button>
+  </li>
+  <li>
+    <button onclick="
+      // validModifier is there as to avoid false positives - it should just get ignored
+      const badModifiers = { modifiers: [ modifierWithRecursiveData, validModifier ] };
+      const badDetails = Object.assign({}, validDetails, badModifiers);
+      testBadUpdate(this, badDetails, TypeError);
+    ">
+      Must throw as Modifier has a recursive dictionary.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">Done!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

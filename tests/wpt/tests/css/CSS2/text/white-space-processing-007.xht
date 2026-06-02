@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'pre-line' with carriage return adjoining linefeed</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-processing"/>
+        <meta name="flags" content="ahem may" />
+        <link rel="match" href="white-space-processing-005-ref.xht"/>
+        <meta name="assert" content="A carriage return before a linefeed is removed if 'white-space' is set to 'pre-line'.  The linefeed may be rendered as a space or not rendered. Under css-text-3, the result is fully deterministic." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font-family: Ahem;
+                height: 1em;
+                margin-bottom: 3px;
+                width: 3em;
+            }
+            #div1
+            {
+                white-space: pre-line;
+            }
+            #div2
+            {
+                background-color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is shorter than the blue box.</p>
+        <div id="div1">XX&#13;&#10;</div>
+        <div id="div2"></div>
+    </body>
+</html>

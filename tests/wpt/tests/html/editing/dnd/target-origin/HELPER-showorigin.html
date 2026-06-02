@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Readout of .origin</title>
+    <style type="text/css">
+html, body { margin: 0; padding: 0; }
+div { height: 100px; width: 100px; background: blue; }
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  var blue = document.getElementsByTagName('div')[0];
+  blue.ondragenter = blue.ondragover = function (e) {
+    e.preventDefault();
+  };
+  blue.ondrop = function (e) {
+    e.preventDefault();
+    if( e.dataTransfer.origin === 'null' ) {
+      document.body.innerHTML = 'null (string)';
+    } else {
+      document.body.innerHTML = e.dataTransfer.origin;
+    }
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div></div>
+
+  </body>
+</html>

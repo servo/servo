@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/worker-transferable-perf-test.js"></script>
+<script>
+var data = new Uint32Array(10485760);
+for (var i = 0; i < data.length; i++) { data[i] = i; }
+WorkerTransferablePerfTestRunner.measureTimeAsync({
+  description: "Measures performance of sending an array buffer as a transferable to a worker.",
+  data: data.buffer,
+  measure: "toWorker",
+});
+</script>
+</body>

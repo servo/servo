@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-bodyCreatorAgentNameImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Name for Body Creator (Agent) not found. Agents may have one or more name values.",
+  "title": "Implements Body-level creator (Agent) **_name_ key** with one or more values - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when one or more name values for Body Creator (Agent) is implemented (Section 3.3.2)",
+    "required": [ "body" ],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorAgentWithNameFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithNameFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithNameFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorAgentWithNameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithNameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithNameFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

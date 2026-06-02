@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Tests inheritance of CSS user-select property</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#content-selection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container">abc<div id="target">xyz</div>def</div>
+<script>
+const container = document.getElementById('container');
+const target = document.getElementById('target');
+function test_inheritance(value) {
+    const property = `user-select:${value}`;
+    test(() => {
+        container.setAttribute('style', property);
+        assert_equals(getComputedStyle(container).userSelect, value,
+                      `${property} should be supported.`);
+        assert_equals(getComputedStyle(target).userSelect, 'auto',
+                      `${property} should not be inherited.`);
+    }, `${property} should not be inherited.`);
+}
+test_inheritance('all');
+test_inheritance('auto');
+test_inheritance('contain');
+test_inheritance('none');
+test_inheritance('text');
+</script>

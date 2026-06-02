@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/10905">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id=target>target</div>
+<div id=popover popover=auto>popover</div>
+
+<script>
+const target = document.getElementById('target');
+const popover = document.getElementById('popover');
+
+promise_test(async () => {
+  let contextmenuFired = false;
+  target.addEventListener('contextmenu', event => {
+    event.preventDefault();
+    popover.showPopover();
+    contextmenuFired = true;
+  });
+
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: target})
+    .pointerDown({button: actions.ButtonType.RIGHT})
+    .pointerUp({button: actions.ButtonType.RIGHT})
+    .send();
+
+  assert_true(contextmenuFired, 'right clicking should fire a contextmenu event.');
+  assert_true(popover.matches(':popover-open'), 'popover should be open.');
+}, 'Popovers should not be light dismissed during contextmenu event.');
+</script>

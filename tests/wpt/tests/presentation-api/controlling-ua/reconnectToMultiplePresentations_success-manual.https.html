@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reconnecting presentations on two distinct displays</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-reconnect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<style>
+#second-step {
+  display: none;
+}
+</style>
+
+<p id="first-step">Click the button below and select the available presentation display, to start the manual test.</p>
+<p id="second-step">Click the button below and select the other available presentation display, to continue the manual test.</p>
+<p>This test asks you to click the button twice, unless the test fails.<br>
+<em>This test requires two or more available displays.<em></p>
+<button id="presentBtn">Start Presentation Test</button>
+
+
+<script>
+  promise_test(async t => {
+    const presentBtn = document.getElementById("presentBtn");
+
+    const request1 = new PresentationRequest(presentationUrls);
+    const request2 = new PresentationRequest(presentationUrls);
+    const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+    let connection1, connection2, eventWatcher1, eventWatcher2, timer;
+
+    t.add_cleanup(() => {
+      [
+        { connection: connection1, request: request1 },
+        { connection: connection2, request: request2 }
+      ].forEach(p => {
+        if (p.connection) {
+          p.connection.onconnect = () => { p.connection.terminate(); };
+          if (p.connection.state == 'closed')
+            p.request.reconnect(p.connection.id);
+          else
+            p.connection.terminate();
+        }
+      });
+    });
+
+    const disableTimeout = () => {
+      setup({explicit_timeout: true});
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const enableTimeout = () => {
+      timer = t.step_timeout(() => {
+        t.force_timeout();
+        t.done();
+      }, 5000);
+    }
+
+    disableTimeout();
+
+    await clickWatcher.wait_for('click');
+    presentBtn.disabled = true;
+    connection1 = await request1.start();
+
+    presentBtn.disabled = false;
+    document.getElementById('first-step').style.display = 'none';
+    document.getElementById('second-step').style.display = 'block';
+    presentBtn.innerText = 'Continue Presentation Test';
+    eventWatcher1 = new EventWatcher(t, connection1, ['connect', 'close', 'terminate']);
+
+    await Promise.all([
+      eventWatcher1.wait_for('connect'),
+      (async () => {
+        await clickWatcher.wait_for('click');
+        presentBtn.disabled = true;
+
+        connection2 = await request2.start();
+        enableTimeout();
+        eventWatcher2 = new EventWatcher(t, connection2, ['connect', 'close', 'terminate']);
+        await eventWatcher2.wait_for('connect');
+      })()
+    ]);
+
+    connection1.close();
+    assert_equals(connection2.state, 'connected',
+      'Closing one presentation connection does not affect the state of the other.');
+
+    await eventWatcher1.wait_for('close');
+    assert_equals(connection1.state, 'closed', 'The presentation connection is successfully closed.');
+
+    connection2.close();
+    await eventWatcher2.wait_for('close');
+    assert_equals(connection2.state, 'closed', 'The presentation connection is successfully closed.');
+
+    const c11 = await request1.reconnect(connection1.id);
+    assert_equals(c11, connection1, 'The promise is resolved with the existing presentation connection.');
+
+    const c22 = await request2.reconnect(connection2.id);
+    assert_equals(c22, connection2, 'The promise is resolved with the existing presentation connection.');
+
+    await Promise.all([
+      eventWatcher1.wait_for('connect'),
+      eventWatcher2.wait_for('connect')
+    ]);
+
+    assert_equals(connection1.state, 'connected', 'The presentation connection is successfully reconnected.');
+    assert_equals(connection2.state, 'connected', 'The presentation connection is successfully reconnected.');
+
+    // Reconnecting a presentation via a different presentation request with the same presentation
+    // URLs will succeed
+    connection2.close();
+    await eventWatcher2.wait_for('close');
+    const c12 = await request1.reconnect(connection2.id);
+    assert_equals(c12, connection2, 'The promise is resolved with the existing presentation connection.');
+
+    connection1.close();
+    await eventWatcher1.wait_for('close');
+    const c21 = await request2.reconnect(connection1.id);
+    assert_equals(c21, connection1, 'The promise is resolved with the existing presentation connection.');
+
+    await Promise.all([
+      eventWatcher1.wait_for('connect'),
+      eventWatcher2.wait_for('connect')
+    ]);
+
+    assert_equals(connection1.state, 'connected', 'The presentation connection is successfully reconnected.');
+    assert_equals(connection2.state, 'connected', 'The presentation connection is successfully reconnected.');
+    connection1.terminate();
+    connection2.terminate();
+
+    await Promise.all([
+      eventWatcher1.wait_for('terminate'),
+      eventWatcher2.wait_for('terminate')
+    ]);
+  });
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: Container for ::before/::after pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="match" href="pseudo-elements-002-ref.html">
+<style>
+  .container { container-type: inline-size; }
+
+  @container (max-width: 100px) { #c1::before { content: "PASS" } }
+  @container (min-width: 150px) { #c1::before { content: "FAIL" } }
+
+  @container (max-width: 100px) { #c2::before { content: "PASS" } }
+  @container (min-width: 150px) { #c2::before { content: "FAIL" } }
+
+  @container (max-width: 100px) { #c3::after { content: "PASS" } }
+  @container (min-width: 150px) { #c3::after { content: "FAIL" } }
+
+  @container (max-width: 100px) { #c4::after { content: "PASS" } }
+  @container (min-width: 150px) { #c4::after { content: "FAIL" } }
+</style>
+<div id="c1" class="container" style="width:100px"></div>
+<div id="c2" class="container" style="width:200px"></div>
+<div id="c3" class="container" style="width:100px"></div>
+<div id="c4" class="container" style="width:200px"></div>
+<script>
+  document.body.offsetTop;
+  c2.style.width = "100px";
+  c4.style.width = "100px";
+</script>

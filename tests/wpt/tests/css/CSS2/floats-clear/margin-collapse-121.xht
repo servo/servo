@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: clear (control: no margins)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/021.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-121-ref.xht" />
+
+  <style type="text/css">
+   table, td { padding: 0; border-spacing: 0; }
+   .comparator { border-spacing: 1em; }
+   .test, .control { border: solid; background: red; }
+   .test .container { display: block; margin: 0; width: 8em; background: lime; }
+   .test .float { float: left; margin: 0; height: 4em; width: 4em; background: aqua; }
+   .test .clear { clear: left; display: block; border: 2em solid yellow; margin: 0; }
+   .control .square { height: 4em; width: 4em; }
+   .control .rectangle { height: 4em; width: 8em; }
+   .control .lime { background: lime; }
+   .control .aqua { background: aqua; }
+   .control .yellow { background: yellow; }
+  </style>
+ </head>
+ <body>
+  <p>The following two squares should be identical.</p>
+  <table class="comparator">
+   <tr>
+    <td class="test">
+     <div class="container">
+      <div class="float"> </div>
+      <div class="clear"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <table>
+      <tr>
+       <td class="square aqua"></td>
+       <td class="square lime"></td>
+      </tr>
+      <tr>
+       <td colspan="2" class="rectangle yellow"></td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+
+
+</body>
+</html>

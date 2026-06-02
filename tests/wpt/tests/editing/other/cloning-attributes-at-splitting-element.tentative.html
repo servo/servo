@@ -1,0 +1,522 @@
+<!doctype html>
+<meta chareset="utf-8">
+<meta name="timeout" content="long">
+<title>Cloning attributes at splitting an element in contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<div contenteditable></div>
+<script>
+"use strict";
+
+document.execCommand("defaultParagraphSeparator", false, "div");
+const utils =
+  new EditorTestUtils(document.querySelector("div[contenteditable]"));
+
+// DO NOT USE multi-line comment in this file, then, you can comment out
+// unnecessary tests when you need to attach the browser with a debugger.
+
+// When an element is being split, all attributes except id attribute should be
+// cloned to the new element.
+promise_test(async t => {
+  utils.setupEditingHost(`<div id="splittee">abc[]def</div>`);
+  const splittee = document.getElementById("splittee");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+}, "Splitting <div id=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<div class="splittee">abc[]def</div>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("div");
+  const rightNode = utils.editingHost.querySelector("div + div");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+}, "Splitting <div class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<div data-foo="1" data-bar="2">abc[]def</div>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("div");
+  const rightNode = utils.editingHost.querySelector("div + div");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+}, "Splitting <div data-foo=\"1\" data-bar=\"2\">");
+
+// Same tests for list items since browsers may use different path to handle
+// splitting a list item.
+promise_test(async t => {
+  utils.setupEditingHost(`<ul><li id="splittee">abc[]def</li></ul>`);
+  const splittee = document.getElementById("splittee");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+}, "Splitting <li id=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<ul><li class="splittee">abc[]def</li></ul>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("li");
+  const rightNode = utils.editingHost.querySelector("li + li");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+}, "Splitting <li class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<ul><li data-foo="1" data-bar="2">abc[]def</li></ul>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("li");
+  const rightNode = utils.editingHost.querySelector("li + li");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+}, "Splitting <li data-foo=\"1\" data-bar=\"2\">");
+
+// Same tests for heading since browsers may use different path to handle
+// splitting a heading element.
+promise_test(async t => {
+  utils.setupEditingHost(`<h3 id="p">abc[]def</h3>`);
+  const splittee = document.getElementById("splittee");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=p]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+}, "Splitting <h3 id=\"p\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<h3 class="splittee">abc[]def</h3>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("h3");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+}, "Splitting <h3 class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<h3 data-foo="1" data-bar="2">abc[]def</h3>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("h3");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+}, "Splitting <h3 data-foo=\"1\" data-bar=\"2\">");
+
+// Same tests for <dt> since browsers may use different path to handle
+// splitting a <dt>.
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dt id="splittee">abc[]def</dt></dl>`);
+  const splittee = document.getElementById("splittee");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+}, "Splitting <dt id=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dt class="splittee">abc[]def</dt></dl>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("dt");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+}, "Splitting <dt class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dt data-foo="1" data-bar="2">abc[]def</dt></dl>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("dt");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+}, "Splitting <dt data-foo=\"1\" data-bar=\"2\">");
+
+// Same tests for <dd> since browsers may use different path to handle
+// splitting a <dd>.
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dd id="splittee">abc[]def</dd></dl>`);
+  const splittee = document.getElementById("splittee");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+}, "Splitting <dd id=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dd class="splittee">abc[]def</dd></dl>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("dd");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+}, "Splitting <dd class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<dl><dd data-foo="1" data-bar="2">abc[]def</dd></dl>`);
+  await utils.sendEnterKey();
+  const leftNode = utils.editingHost.querySelector("dd");
+  const rightNode = leftNode.nextSibling;
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+}, "Splitting <dd data-foo=\"1\" data-bar=\"2\">");
+
+// Same tests for inline elements.
+promise_test(async t => {
+  utils.setupEditingHost(`<div id="splittee-parent"><span id="splittee">abc[]def</span></div>`);
+  const splittee = document.getElementById("splittee");
+  const splitteeParent = document.getElementById("splittee-parent");
+  await utils.sendEnterKey();
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee"),
+      splittee,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.getElementById("splittee-parent"),
+      splitteeParent,
+      `The element instance returned by Document.getElementById shouldn't be changed after splitting the element (splittee-parent) (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      document.querySelectorAll("[id=splittee-parent]").length,
+      1,
+      `The new element created by splitting an element shouldn't have same id attribute value (splittee-parent) (${t.name})`
+    );
+  });
+}, "Splitting <div id=\"splittee-parent\"> and <span id=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<div class="splittee-parent"><span class="splittee">abc[]def</span></div>`);
+  await utils.sendEnterKey();
+  const leftParent = utils.editingHost.querySelector("div");
+  const leftNode = leftParent.querySelector("span");
+  const rightParent = utils.editingHost.querySelector("div + div");
+  const rightNode = rightParent.querySelector("span");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "splittee",
+      `The left element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      leftParent.getAttribute("class"),
+      "splittee-parent",
+      `The left element should keep having the class attribute (splittee-parent) (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "splittee",
+      `The right element should keep having the class attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightParent.getAttribute("class"),
+      "splittee-parent",
+      `The right element should keep having the class attribute (splittee-parent) (${t.name})`
+    );
+  });
+}, "Splitting <div class=\"splittee-parent\"> and <span class=\"splittee\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(`<div data-foo="1" data-bar="2"><span data-foo="3" data-bar="4">abc[]def</span></div>`);
+  await utils.sendEnterKey();
+  const leftParent = utils.editingHost.querySelector("div");
+  const leftNode = leftParent.querySelector("span");
+  const rightParent = utils.editingHost.querySelector("div + div");
+  const rightNode = rightParent.querySelector("span");
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "3",
+      `The left element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      leftNode.getAttribute("data-bar"),
+      "4",
+      `The left element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      leftParent.getAttribute("data-foo"),
+      "1",
+      `The left element should keep having the data-foo attribute (splittee-parent) (${t.name})`
+    );
+    assert_equals(
+      leftParent.getAttribute("data-bar"),
+      "2",
+      `The left element should keep having the data-bar attribute (splittee-parent) (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-foo"),
+      "3",
+      `The right element should keep having the data-foo attribute (${t.name})`
+    );
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "4",
+      `The right element should keep having the data-bar attribute (${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightParent.getAttribute("data-foo"),
+      "1",
+      `The right element should keep having the data-foo attribute (splittee-parent) (${t.name})`
+    );
+    assert_equals(
+      rightParent.getAttribute("data-bar"),
+      "2",
+      `The right element should keep having the data-bar attribute (splittee-parent) (${t.name})`
+    );
+  });
+}, "Splitting <div data-foo=\"1\" data-bar=\"2\"> and <span data-foo=\"3\" data-bar=\"4\">");
+
+</script>

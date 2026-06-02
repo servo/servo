@@ -1,0 +1,155 @@
+<!doctype html>
+<body>
+<meta name="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
+<meta name="assert" content="HighlightRegistry.highlightsFromPoint returns HighlightHitResults with the Highlights and their corresponding ranges present at a given point inside the shadow roots passed as argument.">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/highlight/HighlightsFromPointsExplainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+::highlight(example-highlight) {
+    background-color: rgba(0, 255, 255, 0.5);
+}
+::highlight(example-highlight-2) {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+body {
+    font-family: monospace;
+}
+</style>
+<span id="container"></span>
+<script>
+    test(() => {
+        assert_throws_js(TypeError, () => { CSS.highlights.highlightsFromPoint(10, 10, {shadowRoots: [container]}); });
+        container.setHTMLUnsafe(`
+            <div id="host">
+                <template shadowrootmode=open></template>
+            </div>`);
+        const shadowRoot = host.shadowRoot;
+        assert_throws_js(TypeError, () => { CSS.highlights.highlightsFromPoint(10, 10, {shadowRoots: [shadowRoot, container]}); });
+    }, 'CSS.highlights.highlightsFromPoint() should throw when called with nodes that are not ShadowRoot objects in options.');
+
+    test(() => {
+        container.setHTMLUnsafe(`
+            <div id="host">
+                <template shadowrootmode=open>
+                    <span>0123456789</span>
+                </template>
+            </div>`);
+        const shadowRoot = host.shadowRoot;
+        const spanInShadowDOM = shadowRoot.querySelector("span");
+
+        let range = new Range();
+        range.setStart(spanInShadowDOM.childNodes[0], 2);
+        range.setEnd(spanInShadowDOM.childNodes[0], 10);
+        let range2 = new Range();
+        range2.setStart(spanInShadowDOM.childNodes[0], 5);
+        range2.setEnd(spanInShadowDOM.childNodes[0], 10);
+
+        // Set two Highlights in the shadow tree in this way: 01[234[56789]]
+        let highlight = new Highlight(range);
+        CSS.highlights.set("example-highlight", highlight);
+        let highlight2 = new Highlight(range2);
+        CSS.highlights.set("example-highlight-2", highlight2);
+
+        const spanBoundingRectangle = spanInShadowDOM.getBoundingClientRect();
+        const characterWidth = spanBoundingRectangle.width / spanInShadowDOM.textContent.length;
+
+        // Get x and y coordinates between '0' and '1'.
+        let x = spanBoundingRectangle.left + characterWidth;
+        let y = spanBoundingRectangle.top + spanBoundingRectangle.height / 2;
+        let highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the coordinates provided point at no Highlights');
+
+        // Get x and y coordinates between '2' and '3'.
+        x = spanBoundingRectangle.left + 3 * characterWidth;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 1, 'CSS.highlights.highlightsFromPoint() returns exactly one Highlight when the given coordinates point at a Highlight under the shadow root provided');
+        assert_equals(highlight_hit_results[0].highlight, highlight, 'CSS.highlights.highlightsFromPoint() returns the Highlight present at the given coordinates when it\'s under the shadow root provided');
+        assert_array_equals(highlight_hit_results[0].ranges, [range], 'CSS.highlights.highlightsFromPoint() returns a HighlightHitResult with the ranges of the Highlight present at the coordinates provided');
+
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the coordinates provided point at one Highlight in the shadow DOM but shadowRoots provided is empty');
+
+        // Get x and y coordinates between '6' and '7'.
+        // Same priority for the Highlights, break tie by order of registration.
+        x = spanBoundingRectangle.left + 7 * characterWidth;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 2, 'CSS.highlights.highlightsFromPoint() returns exactly two Highlights when the coordinates provided point at two overlapping Highlights');
+        assert_equals(highlight_hit_results[0].highlight, highlight2, 'CSS.highlights.highlightsFromPoint() returns first the Highlight registered last when both Highlights present at the point provided have the same priority');
+        assert_equals(highlight_hit_results[1].highlight, highlight, 'CSS.highlights.highlightsFromPoint() returns last the Highlight registered first when both Highlights present at the point provided have the same priority');
+        assert_array_equals(highlight_hit_results[0].ranges, [range2], 'CSS.highlights.highlightsFromPoint() returns first a HighlightHitResult with the ranges of the Highlight present on top at the coordinates provided');
+        assert_array_equals(highlight_hit_results[1].ranges, [range], 'CSS.highlights.highlightsFromPoint() returns last a HighlightHitResult with the ranges of the Highlight present at the bottom at the coordinates provided');
+    }, 'CSS.highlights.highlightsFromPoint() returns Highlights present at a given point inside a shadow tree in the right order.');
+
+    test(() => {
+        container.setHTMLUnsafe(
+            `0123456789<div id=host>
+                <template shadowrootmode=open>
+                    <span>0123456789</span>
+                </template>
+            </div>0123456789`);
+
+        const host = document.querySelector("#host");
+        const shadowRoot = host.shadowRoot;
+        const spanInShadowDOM = shadowRoot.querySelector("span");
+
+        const spanBoundingRectangle = spanInShadowDOM.getBoundingClientRect();
+        const characterWidth = spanBoundingRectangle.width / spanInShadowDOM.textContent.length;
+        const characterHeight = spanBoundingRectangle.height;
+
+        let range = new Range();
+        range.setStart(container.childNodes[0], 0);
+        range.setEnd(container.childNodes[2], 5);
+
+        // Set a Highlight with a range like this one:
+        // [0123456789
+        //  0123456789
+        //  01234]56789
+        // But only the first and third lines are highlighted because the second line belongs on a shadow tree.
+        const highlight = new Highlight(range);
+        CSS.highlights.set("example-highlight", highlight);
+
+        // Get x and y coordinates between '0' and '1' in the first line.
+        let x = spanBoundingRectangle.left + characterWidth;
+        let y = container.getBoundingClientRect().top + characterHeight / 2.0;
+        let highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 1, 'CSS.highlights.highlightsFromPoint() returns one Highlight present at the coordinates provided');
+        assert_equals(highlight_hit_results[0].highlight, highlight, 'CSS.highlights.highlightsFromPoint() returns the Highlight present at the given coordinates even when no shadowRoots are provided because it\'s outside the shadow DOM');
+        assert_array_equals(highlight_hit_results[0].ranges, [range], 'CSS.highlights.highlightsFromPoint() returns a HighlightHitResult with the ranges of the Highlight present at the coordinates provided');
+
+        // Now move y to the second line (inside shadow DOM).
+        y += characterHeight;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the given coordinates point at text under the shadow root provided even when there is a Highlight set with a Range that starts and ends in the regular DOM surrounding it, even when shadowRoots are provided');
+
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the given coordinates point at text under the shadow root provided even when there is a Highlight set with a Range that starts and ends in the regular DOM surrounding it');
+
+        // Now move y to the third line.
+        y += characterHeight;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
+        assert_equals(highlight_hit_results.length, 1, 'CSS.highlights.highlightsFromPoint() returns one Highlight present at the coordinates provided');
+        assert_equals(highlight_hit_results[0].highlight, highlight, 'CSS.highlights.highlightsFromPoint() returns the Highlight present at the given coordinates because it\'s outside of the shadow DOM');
+        assert_array_equals(highlight_hit_results[0].ranges, [range], 'CSS.highlights.highlightsFromPoint() returns a HighlightHitResult with the ranges of the Highlight present at the coordinates provided');
+
+        // Set a Highlight with a range like this one:
+        // [0123456789
+        //  01234]56789
+        //  0123456789
+        // Here nothing is highlighted since the range starts in the light DOM and ends in the shadow DOM.
+        CSS.highlights.clear();
+        const staticRange = new StaticRange({startContainer: container.childNodes[0], startOffset: 0, endContainer: spanInShadowDOM.childNodes[0], endOffset: 5})
+        CSS.highlights.set("example-highlight", new Highlight(staticRange));
+
+        // Set x and y coordinates between '0' and '1' in the first line.
+        y = container.getBoundingClientRect().top + characterHeight / 2.0;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the given coordinates point at text in the light DOM that is not highlighted even when there is a Highlight set with a StaticRange that starts in the light DOM and ends in the shadow DOM surrounding it');
+
+        // Now move y to the second line (inside shadow DOM).
+        y += characterHeight;
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y, {shadowRoots: [shadowRoot]});
+        assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns no Highlights when the given coordinates point at text in the shadow DOM that is not highlighted even when there is a Highlight set with a StaticRange that starts in the light DOM and ends in the shadow DOM surrounding it');
+    }, 'CSS.highlights.highlightsFromPoint() doesn\'t return Highlights that are not painted at the given coordinates even when they fall inside the Highlights\' ranges');
+</script>
+</body>

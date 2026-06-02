@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss with anchor behavior</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<button id=p1anchor  tabindex="0">Popover1 anchor (no action)</button>
+<div popover id=p1 anchor=p1anchor>
+  <span id=inside1>Inside popover 1</span>
+  <button id=b2 popovertarget='p2' popovertargetaction=show>Popover 2</button>
+</div>
+<div popover id=p2 anchor=b2>
+  <span id=inside2>Inside popover 2</span>
+</div>
+<style>
+  #p1 {top: 50px;}
+  #p2 {top: 120px;}
+  [popover] {bottom:auto;}
+  [popover]::backdrop {
+    /* This should *not* affect anything: */
+    pointer-events: auto;
+  }
+</style>
+<script>
+  const popover1 = document.querySelector('#p1');
+  const popover1anchor = document.querySelector('#p1anchor');
+  const popover2 = document.querySelector('#p2');
+  const inside1 = document.querySelector('#inside1');
+  const inside2 = document.querySelector('#inside2');
+
+  let popover1HideCount = 0;
+  popover1.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
+    ++popover1HideCount;
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
+  });
+  let popover2HideCount = 0;
+  popover2.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
+    ++popover2HideCount;
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
+  });
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover();
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    let p2HideCount = popover2HideCount;
+    await clickOn(inside2);
+    assert_true(popover1.matches(':popover-open'),'popover1 should be open');
+    assert_true(popover2.matches(':popover-open'),'popover2 should be open');
+    assert_equals(popover1HideCount,p1HideCount,'popover1');
+    assert_equals(popover2HideCount,p2HideCount,'popover2');
+    popover1.hidePopover();
+    assert_false(popover1.matches(':popover-open'));
+    assert_false(popover2.matches(':popover-open'));
+  },'Clicking inside a child popover shouldn\'t close either popover');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover();
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    p2HideCount = popover2HideCount;
+    await clickOn(inside1);
+    assert_true(popover1.matches(':popover-open'));
+    assert_equals(popover1HideCount,p1HideCount);
+    assert_false(popover2.matches(':popover-open'));
+    assert_equals(popover2HideCount,p2HideCount+1);
+    popover1.hidePopover();
+  },'Clicking inside a parent popover should close child popover');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    await waitForRender();
+    await clickOn(popover1anchor);
+    assert_false(popover1.matches(':popover-open'),'popover1 should close');
+  },'Clicking on anchor element (that isn\'t an invoking element) shouldn\'t prevent its popover from being closed');
+</script>

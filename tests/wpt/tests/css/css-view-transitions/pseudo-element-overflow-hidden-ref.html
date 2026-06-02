@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html style="background:pink">
+<title>View transitions: overflow:hidden is respected on pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+body {
+  margin: 0px;
+}
+div {
+  width: 200px;
+  height: 200px;
+}
+#target {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: green;
+  overflow: hidden;
+}
+#inner {
+  position: relative;
+  left: 100px;
+  top: 100px;
+  background: blue;
+}
+.offset {
+  left: 400px;
+}
+</style>
+
+<div id="target"><div id="inner"></div></div>
+<div id="target" class="offset"><div id="inner"></div></div>
+</html>

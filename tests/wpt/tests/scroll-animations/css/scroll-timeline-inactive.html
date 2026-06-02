@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  .scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<main id=main></main>
+<script>
+  function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    main.append(template.content.cloneNode(true));
+    main.offsetTop;
+  }
+</script>
+
+<template id=basic>
+  <style>
+    #timeline {
+      scroll-timeline: --timeline;
+    }
+    #element {
+      width: 0px;
+      animation: expand 10s linear paused;
+      animation-timeline: --timeline;
+    }
+  </style>
+  <div id="container">
+    <div id=timeline class=scroller><div>
+    <div id=element></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, basic);
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element).width, '0px');
+  }, 'Animation does not apply when the timeline is inactive because there is ' +
+     'not scroll range');
+</script>
+
+<template id=dynamically_change_range>
+  <style>
+    #contents {
+      height: 200px;
+    }
+    #element {
+      width: 0px;
+      animation: expand 10s linear paused;
+      animation-timeline: --timeline;
+    }
+  </style>
+  <div id="container">
+    <div id=element></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, dynamically_change_range);
+    await waitForNextFrame();
+
+    let div = document.createElement('div');
+    div.setAttribute('class', 'scroller');
+    div.style.scrollTimeline = 'timeline';
+    div.innerHTML = '<div id=contents></div>';
+    try {
+      container.insertBefore(div, element);
+
+      // The source has no layout box at the time the scroll timeline is created.
+      assert_equals(getComputedStyle(element).width, '0px');
+      scroller.offsetTop; // Ensure a layout box for the scroller.
+      // Wait for an update to the timeline state:
+      await waitForNextFrame();
+      // The timeline should now be active, and the animation should apply:
+      assert_equals(getComputedStyle(element).width, '100px');
+    } finally {
+      div.remove();
+    }
+  }, 'Animation does not apply when timeline is initially inactive');
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests that dynamically deleting a @font-palette-values rule causes the necessary rendering update</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-palette-values">
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<style id="style">
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+</style>
+</head>
+<body>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+</body>
+</html>

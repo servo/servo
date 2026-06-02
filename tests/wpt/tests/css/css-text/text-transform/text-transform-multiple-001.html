@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<meta charset=utf-8>
+<title>text-transform with multiple values</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel=match href="reference/text-transform-multiple-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property">
+<meta name="assert" content="case transforms can be combined with full-width and/or full-size-kana transforms">
+<body style="font-family:serif">
+<h4>Each pair of lines should look identical:</h4>
+<hr>
+<div style="text-transform:uppercase full-width">HELLO Transformed world</div>
+<div>ＨＥＬＬＯ　ＴＲＡＮＳＦＯＲＭＥＤ　ＷＯＲＬＤ</div>
+<hr>
+<div style="text-transform:lowercase full-width">HELLO Transformed world</div>
+<div>ｈｅｌｌｏ　ｔｒａｎｓｆｏｒｍｅｄ　ｗｏｒｌｄ</div>
+<hr>
+<div style="text-transform:capitalize full-width">HELLO Transformed world</div>
+<div>ＨＥＬＬＯ　Ｔｒａｎｓｆｏｒｍｅｄ　Ｗｏｒｌｄ</div>
+<hr>
+<div style="text-transform:uppercase full-size-kana">Katakana: ァィゥェォヵㇰヶㇱㇲッㇳㇴ</div>
+<div>KATAKANA: アイウエオカクケシスツトヌ</div>
+<hr>
+<div style="text-transform:full-width full-size-kana lowercase">Hiragana: ぁぃぅぇぉゕゖっゃゅょゎ</div>
+<div>ｈｉｒａｇａｎａ：　あいうえおかけつやゆよわ</div>
+<hr>

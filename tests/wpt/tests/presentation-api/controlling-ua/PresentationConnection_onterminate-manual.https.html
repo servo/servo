@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Terminating a presentation in a controlling browsing context</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Chunyan Wang" href="mailto:chunyanx.wang@intel.com">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#terminating-a-presentation-in-a-controlling-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<style>iframe { display: none; }</style>
+<p>
+  Click the button below and select the available presentation display, to start the manual test. The test passes if a "PASS" result appears.<br>
+  This test asks you to click the button twice, unless the test fails.<br>
+</p>
+<button id="presentBtn">Start Presentation Test</button>
+<iframe id="childFrame" src="support/iframe.html"></iframe>
+
+<script>
+  setup({explicit_timeout: true});
+  const presentBtn = document.getElementById('presentBtn');
+  const childFrame = document.getElementById('childFrame');
+
+  promise_test(t => {
+    const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+    const messageWatcher = new EventWatcher(t, window, 'message');
+    const request = new PresentationRequest(presentationUrls);
+    let connection, eventWatcher, timeout;
+
+    t.add_cleanup(() => {
+      if (connection) {
+        connection.onconnect = () => { connection.terminate(); };
+        if (connection.state === 'closed')
+          request.reconnect(connection.id);
+        else
+          connection.terminate();
+      }
+    });
+
+    const startTimeout = () => {
+      timeout = t.step_timeout(() => {
+          t.force_timeout();
+          t.done();
+      }, 10000);
+    };
+
+    const checkTerminateEvent = evt => {
+      assert_true(evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event, 'A simple event is fired.');
+      assert_equals(evt.type, 'terminate', 'The event name is "terminate".');
+      assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+      assert_equals(connection.state, 'terminated', 'State of the presentation connection is "terminated".');
+    };
+
+    const watchEvent = (obj, watcher, type) => {
+      const watchHandler = new Promise(resolve => {
+        obj['on' + type] = evt => { resolve(evt); };
+      });
+      return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+        assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+        return results[0];
+      });
+    };
+
+    const waitForEvent = (obj, watcher, type) => {
+      const watchHandler = new Promise(resolve => {
+        obj['on' + type] = evt => { resolve(evt); };
+      });
+      return Promise.race([ watchHandler, watcher.wait_for(type) ]);
+    };
+
+    return Promise.all([
+      clickWatcher.wait_for('click'),
+      messageWatcher.wait_for('message')
+    ]).then(() => {
+      presentBtn.disabled = true;
+
+      return request.start();
+    }).then(c => {
+      startTimeout();
+
+      connection = c;
+      eventWatcher = new EventWatcher(t, connection, 'terminate');
+
+      // Step 1: terminate the presentation when the presentation connection is in "connecting" state
+      connection.terminate();
+      return Promise.race([
+        new Promise((_, reject) => {
+          t.step_timeout(() => { reject('The presentation is not terminated successfully when the presentation connection in "connecting" state.'); }, 3000);
+        }),
+        watchEvent(connection, eventWatcher, 'terminate')
+      ]);
+    }).then(evt => {
+      checkTerminateEvent(evt);
+
+      // Step 2: terminate the presentation when the presentation connection is in "closed" state (nothing should happen)
+      presentBtn.textContent = 'Continue Presentation Test';
+      presentBtn.disabled = false;
+      clearTimeout(timeout);
+      return clickWatcher.wait_for('click');
+    }).then(() => {
+      return request.start();
+    }).then(c => {
+      startTimeout();
+      connection = c;
+      eventWatcher = new EventWatcher(t, connection, ['connect', 'close', 'terminate']);
+      return eventWatcher.wait_for('connect');
+    }).then(() => {
+      connection.close();
+      return eventWatcher.wait_for('close');
+    }).then(() => {
+      const terminateWatcher = new EventWatcher(t, connection, 'terminate');
+      connection.terminate();
+      return Promise.race([
+        new Promise(resolve => { t.step_timeout(resolve, 1000); }),
+        waitForEvent(connection, terminateWatcher, 'terminate').then(() => {
+          assert_unreached('Invoking PresentationConnection.terminate() in the "closed" state causes nothing.'); })
+      ]);
+    }).then(() => {
+      // Step 3: terminate the presentation when the presentation connection is in "connected" state;
+      // this step also checks an event fired at another presentation connection in a nested browsing context
+      return request.reconnect(connection.id);
+    }).then(() => {
+      return eventWatcher.wait_for('connect');
+    }).then(() => {
+      childFrame.contentWindow.postMessage('terminate?id=' + connection.id, '*');
+      return messageWatcher.wait_for('message')
+    }).then(() => {
+      connection.terminate();
+      return Promise.race([
+        new Promise((_, reject) => {
+          t.step_timeout(() => { reject('The presentation is not terminated successfully when the presentation connection in "connected" state.'); }, 3000);
+        }),
+        Promise.all([
+          watchEvent(connection, eventWatcher, 'terminate'),
+          messageWatcher.wait_for('message')
+        ])
+      ]);
+    }).then(results => {
+      checkTerminateEvent(results[0]);
+      const evt = results[1].data;
+      assert_true(evt.isSimpleEvent, 'A simple event is fired in a nested browsing context.');
+      assert_equals(evt.type, 'terminate', 'The event name is "terminate".');
+      assert_true(evt.checkConnection, 'event.target is the presentation connection.');
+      assert_equals(evt.state, 'terminated', 'State of the presentation connection is "terminated".');
+
+      // Step 4: terminate the presentation when the presentation connection is in "terminated" state (nothing should happen)
+      const terminateWatcher = new EventWatcher(t, connection, 'terminate');
+      connection.terminate();
+      return Promise.race([
+        new Promise(resolve => { t.step_timeout(resolve, 1000); }),
+        waitForEvent(connection, terminateWatcher, 'terminate').then(() => {
+          assert_unreached('Invoking PresentationConnection.terminate() in the "terminated" state causes nothing.'); })
+      ]);
+    });
+  });
+</script>

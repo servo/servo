@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - caret-color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-43-ref.html">
+<style>
+  div {
+    caret-color: red;
+  }
+  [contenteditable] {
+    outline: none;
+  }
+</style>
+<div id="caret" contenteditable>The caret color should be overridden to currentColor</a>
+<script>
+  window.onload = function() {
+    document.getElementById("caret").focus();
+  }
+</script>
+

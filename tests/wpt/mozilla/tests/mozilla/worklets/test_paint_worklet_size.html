@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="reftest-wait">
+    <head>
+        <meta charset=utf-8>
+        <title>Test the size parameter of paint worklets</title>
+        <link rel=match href=/_mozilla/mozilla/worklets/test_paint_worklet_ref.html>
+    </head>
+    <body>
+        <div style="height: 100px; width: 200px; background: paint(test);
+                    margin: 10px; border: 3px solid blue; padding: 5px;"></div>
+    </body>
+    <script>
+        CSS.paintWorklet
+            .addModule("test_paint_worklet_size.js")
+            .then(function() { document.documentElement.classList.remove("reftest-wait"); });
+    </script>
+</html>

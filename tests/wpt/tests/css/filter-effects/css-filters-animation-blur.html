@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Filters Animation: Blur</title>
+    <link rel="author" title="Gunther Brunner" href="mailto:takeshimiya@gmail.com">
+    <link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur">
+    <link rel="help" href="http://www.w3.org/TR/css3-animations/#animations">
+    <link rel="match" href="css-filters-animation-blur-ref.html">
+    <meta name="assert" content="The blue square should be 10px blurred">
+    <meta name="fuzzy" content="0-5;0-16000">
+    <style type="text/css">
+        @keyframes animate {
+            0% {
+                filter: blur(20px);
+            }
+            100% {
+                filter: none;
+            }
+        }
+
+        .square {
+            width: 100px;
+            height: 100px;
+            background: blue;
+            animation-name: animate;
+            animation-play-state: paused;
+            animation-delay: -2s;
+            animation-duration: 4s;
+            animation-timing-function: linear;
+        }
+     </style>
+</head>
+<body>
+<p>You should see a blurred rectangle.</p>
+<div class="square"></div>
+</body>
+</html>

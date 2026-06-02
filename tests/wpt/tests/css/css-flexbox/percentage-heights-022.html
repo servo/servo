@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: percentage in inline-level inside anonymous block inside flex item</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://github.com/servo/servo/issues/41633">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="The <canvas> size is 200 x 200">
+
+<style>
+#flex-container {
+  display: flex;
+  flex-direction: column;
+}
+#flex-item {
+  width: max-content;
+  height: 200px;
+  background: red;
+}
+#target {
+  height: 100%;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="flex-container">
+  <div id="flex-item">
+    <div><!-- This wraps the inline-level canvas inside an anonymous block --></div>
+    <canvas id="target" width="400" height="400"></canvas>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Tests for the construction of initial offers according to
+  // draft-ietf-rtcweb-jsep-24 section 5.2.1
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const offer = await generateVideoReceiveOnlyOffer(pc);
+    let offer_lines = offer.sdp.split('\r\n');
+    // The first 3 lines are dictated by JSEP.
+    assert_equals(offer_lines[0], "v=0");
+    assert_equals(offer_lines[1].slice(0, 2), "o=");
+
+    assert_regexp_match(offer_lines[1], /^o=\S+ \d+ \d+ IN IP4 \S+$/);
+    const fields = RegExp(/^o=\S+ (\d+) (\d+) IN IP4 (\S+)/).exec(offer_lines[1]);
+    // Per RFC 3264, the sess-id should be representable in an uint64
+    // Note: JSEP -24 has this wrong - see bug:
+    // https://github.com/rtcweb-wg/jsep/issues/855
+    assert_less_than(Number(fields[1]), 2**64);
+    // Per RFC 3264, the version should be less than 2^62 to avoid overflow
+    assert_less_than(Number(fields[2]), 2**62);
+    // JSEP says that the address part SHOULD be a meaningless address
+    // "such as" IN IP4 0.0.0.0. This is to prevent unintentional disclosure
+    // of IP addresses, so this is important enough to verify. Right now we
+    // allow 127.0.0.1 and 0.0.0.0, but there are other things we could allow.
+    // Maybe 0.0.0.0/8, 127.0.0.0/8, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24?
+    // (See RFC 3330, RFC 5737)
+    assert_true(fields[3] == "0.0.0.0" || fields[3] == "127.0.0.1",
+      fields[3] + " must be a meaningless IPV4 address")
+
+    assert_regexp_match(offer_lines[2], /^s=\S+$/);
+    // After this, the order is not dictated by JSEP.
+    // TODO: Check lines subsequent to the s= line.
+  }, 'Offer conforms to basic SDP requirements');
+</script>

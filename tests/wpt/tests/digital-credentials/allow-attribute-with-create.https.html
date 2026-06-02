@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            Test allow attribute with "digital-credentials-create" and
+            CredentialsContainer's .create() method
+        </title>
+        <script src="/common/get-host-info.sub.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script type="module">
+            import { makeCreateOptions } from "./support/helper.js";
+
+            const hostInfo = get_host_info();
+            const iframeDetails = [
+                {
+                    policy: null,
+                    crossOrigin: false,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: null,
+                    crossOrigin: true,
+                    expectIsAllowed: false,
+                },
+                {
+                    policy: "digital-credentials-create",
+                    crossOrigin: false,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: "digital-credentials-create",
+                    crossOrigin: true,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: "digital-credentials-create *",
+                    crossOrigin: false,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: "digital-credentials-create *",
+                    crossOrigin: true,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: "digital-credentials-create 'none'",
+                    crossOrigin: false,
+                    expectIsAllowed: false,
+                },
+                {
+                    policy: "digital-credentials-create 'none'",
+                    crossOrigin: true,
+                    expectIsAllowed: false,
+                },
+                {
+                    policy: "digital-credentials-create 'self'",
+                    crossOrigin: false,
+                    expectIsAllowed: true,
+                },
+                {
+                    policy: "digital-credentials-create 'self'",
+                    crossOrigin: true,
+                    expectIsAllowed: false,
+                },
+                {
+                    policy: `digital-credentials-create ${hostInfo.HTTPS_REMOTE_ORIGIN}`,
+                    crossOrigin: false,
+                    expectIsAllowed: false,
+                },
+                {
+                    policy: `digital-credentials-create ${hostInfo.HTTPS_REMOTE_ORIGIN}`,
+                    crossOrigin: true,
+                    expectIsAllowed: true,
+                },
+            ];
+
+            async function loadIframe({ policy, crossOrigin, expectIsAllowed }) {
+                const iframe = document.createElement("iframe");
+                if (policy !== null) {
+                    iframe.allow = policy;
+                }
+
+                await new Promise((resolve) => {
+                    iframe.onload = resolve;
+                    iframe.src = new URL(
+                        "/digital-credentials/support/iframe.html",
+                        crossOrigin
+                            ? hostInfo.HTTPS_REMOTE_ORIGIN
+                            : location.origin
+                    ).href;
+                    iframe.dataset.expectIsAllowed = expectIsAllowed;
+                    document.body.appendChild(iframe);
+                });
+                iframe.focus();
+                return iframe;
+            }
+
+            function runTests() {
+                for (const details of iframeDetails) {
+                    promise_test(async (test) => {
+                        const iframe = await loadIframe(details);
+                        test.add_cleanup(() => {
+                            document.body.removeChild(iframe);
+                        });
+                        const { expectIsAllowed } = details;
+                        const action = "create";
+                        // Results in TypeError when allowed, NotAllowedError when disallowed
+                        const options = makeCreateOptions({ protocol: [] });
+                        const { data } = await new Promise((resolve) => {
+                            const callback = (e) => {
+                                if (e.source === iframe.contentWindow) {
+                                    window.removeEventListener('message', callback);
+                                    resolve(e);
+                                }
+                            }
+                            window.addEventListener("message", callback);
+                            iframe.contentWindow.postMessage(
+                                { action, options, needsActivation: true },
+                                "*"
+                            );
+                        });
+                        const { name, message } = data;
+                        const fullMessage = `${iframe.outerHTML} - ${message}`;
+                        if (expectIsAllowed) {
+                            assert_true(
+                                name == "TypeError" || name == "NotAllowedError",
+                                fullMessage
+                            );
+                        } else {
+                            assert_equals(name, "NotAllowedError", fullMessage);
+                        }
+                    }, `With Create: Policy to use: ${details.policy}, is cross-origin: ${details.crossOrigin}, is allowed by policy: ${details.expectIsAllowed}`);
+                }
+            }
+            window.onload = runTests;
+        </script>
+    </head>
+    <body></body>
+</html>

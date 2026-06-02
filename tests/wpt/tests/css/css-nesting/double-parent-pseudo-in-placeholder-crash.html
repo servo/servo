@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS Nesting: Crash with multi-level '&' inside ::placeholder</title>
+<link rel="help" href="https://issues.chromium.org/issues/433073118">
+<style>
+::placeholder { & { & {} } }
+::placeholder, .a { & { & {} } }
+.a, ::placeholder { & { & {} } }
+.a, ::placeholder { &, .b { & {} } }
+.a, ::placeholder { .b, & { & {} } }
+</style>

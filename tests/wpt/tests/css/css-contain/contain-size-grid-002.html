@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on grid container with explicit non-intrinsically sized tracks (and gaps)</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<meta name=assert content="grid-gap, grid-template-columns, and grid-template-rows do affect the size of the grid, even with size containment">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+body {
+  overflow: hidden;
+}
+div {
+  position: absolute;
+}
+#red {
+  background: red;
+  width: 100px;
+  height: 100px;
+}
+#test {
+  background: green;
+
+  contain: size;
+  display: grid;
+  grid-gap: 20px;
+  grid-template-columns: auto 80px; /* 0 + 20 + 80 = 100 */
+  grid-template-rows: 40px 40px; /* 40 + 20 + 40 = 100 */
+  font-size: 800px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=red></div>
+<div id=test>&nbsp;</div>
+
+<!--
+The &nbsp;, auto sized column, and 800px font size
+are to make the test fail in browsers
+that do not implement contain:size at all,
+by making the box non square.
+-->
+
+

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>getAnimations for scroll-linked animations</title>
+<link rel="help"
+ href="https://www.w3.org/TR/web-animations-1/#animation-effect-phases-and-states">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes slide {
+    from { transform: translateX(100px);  }
+    to   { transform: translateX(100px); }
+  }
+
+  #container {
+    border:  10px solid lightgray;
+    overflow-x: scroll;
+    height:  200px;
+    width: 200px;
+    scroll-timeline-name:  --timeline;
+  }
+  #spacer {
+    height:  200vh;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+    animation:  slide 1s linear;
+    animation-timeline: --timeline;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="spacer"></div>
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  setup(assert_implements_animation_timeline);
+
+  promise_test(async t => {
+    let animations = document.getAnimations();
+    assert_equals(animations.length, 1,
+                  'Single running animation');
+    assert_true(animations[0].timeline instanceof ScrollTimeline,
+                'Animation associated with a scroll timeline');
+
+    // Canceled animation is no longer current.
+    const anim = animations[0];
+    animations[0].cancel();
+
+    assert_equals(
+        document.getAnimations().length, 0,
+        'A canceled animation is no longer returned by getAnimations');
+
+    // Replaying an animation makes it current.
+    anim.play();
+    assert_equals(
+        document.getAnimations().length, 1,
+        'A play-pending animation is return by getAnimations');
+
+    // Animation effect is still current even if the timeline's source element
+    // cannot be scrolled.
+    spacer.style = 'display: none';
+    t.add_cleanup(() => {
+      spacer.style = '';
+    });
+
+    animations = document.getAnimations();
+    assert_equals(
+        animations.length, 1,
+        'Running animation is included in getAnimations list even if ' +
+        'currentTime is null');
+    assert_true(animations[0].timeline  instanceof ScrollTimeline,
+                'Animation has timeline associated with an element that ' +
+                'cannot be scrolled');
+    assert_equals(animations[0].timeline.currentTime, null,
+                  'Inactive timeline when timeline\'s source element cannot ' +
+                  'be scrolled');
+  }, 'getAnimations includes inactive scroll-linked animations that have not ' +
+     'been canceled');
+</script>

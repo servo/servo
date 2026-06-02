@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1184357">
+
+<link rel="match" href="/dom/slot-recalc-ref.html">
+
+<body>
+<script>
+const host = document.createElement('div');
+document.body.appendChild(host);
+const root = host.attachShadow({mode: 'open'});
+
+const slot = document.createElement('slot');
+slot.innerHTML = `<p>there should be more text below this</p>`;
+root.appendChild(slot);
+
+onload = () => {
+  const shouldBeVisible = document.createElement('p');
+  shouldBeVisible.textContent = 'PASS if this text is visible';
+  slot.appendChild(shouldBeVisible);
+};
+</script>

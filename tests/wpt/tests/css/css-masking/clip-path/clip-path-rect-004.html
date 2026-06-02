@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and rect function</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-rect">
+  <link rel="match" href="reference/green-100x100.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'rect()' for clipping. On pass you should see a green rect without any red.">
+</head>
+<style>
+  #background {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  #rect {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    clip-path: rect(50px 0 0 50px);
+  }
+</style>
+<body>
+  <div id="background"></div>
+  <div id="rect"></div>
+</body>
+</html>

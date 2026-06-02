@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>COEP - policy derivation for Shared Workers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script src="resources/worker-support.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<body>
+<p>Verify the Document Isolation Policy for Shared Workers by performing a
+cross-origin "fetch" request for a resource that does not specify CORP. Only
+Shared Workers with the default DIP should be able to successfully perform
+this operation.</p>
+<script>
+'use strict';
+
+function makeWorkerUrl(options) {
+  return resolveUrl("resources/shared-worker-fetch.js.py", options);
+}
+
+/**
+ * Create a Shared Worker within an iframe and insrtuct it to fetch from a
+ * specified URL and report on the success of the operation.
+ *
+ * @param {object} t - a testharness.js subtest instance (used to reset global
+ *                     state)
+ * @param {string} url - the URL from which the Shared Worker should be
+ *                       created
+ * @param {string} ownerDip - the Document Isolation Policy of the
+                                       iframe
+ */
+async function fetchFromWorker(t, url, ownerDip) {
+  const uuid = await createIframeContext(t, get_host_info().HTTPS_ORIGIN, ownerDip);
+  const ctx = new RemoteContext(uuid[0]);
+  const resourceUrl =
+   get_host_info().HTTPS_REMOTE_ORIGIN+"/html/document-isolation-policy/resources/nothing-no-corp.js";
+  const result = await ctx.execute_script(
+    async (workerUrl, fetchUrl) => {
+      try {
+        const worker = new SharedWorker(workerUrl);
+        worker.onerror = (event) => {throw new Error("Worker.onerror should not be called");};
+        await new Promise((resolve) => {
+          worker.port.addEventListener('message', resolve, { once: true });
+          worker.port.start();
+        });
+        return await new Promise((resolve) => {
+          worker.port.postMessage(fetchUrl);
+          worker.port.addEventListener(
+          'message', (event) => resolve(event.data), { once: true });
+        });
+      } catch (error) {
+        return error;
+      }
+    }, [url, resourceUrl]);
+  return result;
+}
+
+promise_test(async (t) => {
+  const result = await fetchFromWorker(t, makeWorkerUrl(), dip_none);
+  assert_equals(result, 'success');
+}, 'default policy (derived from response)');
+
+promise_test(async (t) => {
+  const result = await fetchFromWorker(t, makeWorkerUrl({ dip: 'isolate-and-require-corp' }), dip_none);
+  assert_equals(result, 'failure');
+}, '"isolate-and-require-corp" (derived from response)');
+
+promise_test(async (t) => {
+  const blobUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    scheme: "blob",
+  });
+  const result = await fetchFromWorker(t, blobUrl, dip_none);
+  assert_equals(result, 'success');
+}, 'default policy (derived from owner set due to use of local scheme - blob URL)');
+
+promise_test(async (t) => {
+  const blobUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    creatorDip: "isolate-and-require-corp",
+    scheme: "blob",
+  });
+  const result = await fetchFromWorker(t, blobUrl, dip_none);
+  assert_equals(result, 'failure');
+}, 'isolate-and-require-corp (derived from blob URL creator)');
+
+promise_test(async (t) => {
+  const blobUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    scheme: "blob",
+  });
+  const result = await fetchFromWorker(t, blobUrl, dip_require_corp);
+  assert_equals(result, 'failure');
+}, '"isolate-and-require-corp" (derived from owner set due to use of local scheme - blob URL)');
+
+promise_test(async (t) => {
+  const dataUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    scheme: "data",
+  });
+  const result = await fetchFromWorker(t, dataUrl, dip_none);
+  assert_equals(result, 'success');
+}, 'default policy (derived from owner set due to use of local scheme - data URL)');
+
+promise_test(async (t) => {
+  const dataUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    creatorDip: "isolate-and-require-corp",
+    scheme: "data",
+  });
+  const result = await fetchFromWorker(t, dataUrl, dip_none);
+  assert_equals(result, 'success');
+}, 'default policy (not derived from data URL creator)');
+
+promise_test(async (t) => {
+  const dataUrl = await createLocalUrl(t, {
+    url: makeWorkerUrl(),
+    scheme: "data",
+  });
+  const result = await fetchFromWorker(t, dataUrl, dip_require_corp);
+  assert_equals(result, 'failure');
+}, '"isolate-and-require-corp" (derived from owner set due to use of local scheme - data URL)');
+</script>
+</body>
+</html>

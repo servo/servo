@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Registering a property causes invalidation for initial value</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<style>
+#target {
+  background: paint(geometry);
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div id="target"></div>
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  static get inputProperties() { return ['--color']; }
+  paint(ctx, geom, styleMap) {
+    ctx.fillStyle = styleMap.get('--color').toString();
+    ctx.fillRect(0, 0, geom.width, geom.height);
+  }
+});
+</script>
+
+<script>
+  async function test() {
+    getComputedStyle(target);
+    let code = document.getElementById('code').textContent;
+    await importWorklet(CSS.paintWorklet, code);
+    await workletPainted();
+    CSS.registerProperty({
+      name: '--color',
+      syntax: '<color>',
+      initialValue: 'green',
+      inherits: false
+    });
+    await workletPainted();
+    takeScreenshot();
+  }
+
+  test();
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getDisplayMedia</title>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<video id="display"></video>
+<script>
+  'use strict';
+
+const stopTracks = stream => stream.getTracks().forEach(track => track.stop());
+
+async function getDisplayMedia(constraints) {
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+  return navigator.mediaDevices.getDisplayMedia(constraints);
+}
+
+promise_test( async t => {
+  const v = document.getElementById('display');
+  v.autoplay = true;
+  // work around firefox bug 1586505, orthogonal to what's being tested
+  const frames = () => v.mozPaintedFrames ?? v.getVideoPlaybackQuality()?.totalVideoFrames;
+  const target_rate = 5;
+  const stream = await getDisplayMedia({video: {width:160, frameRate: target_rate}});
+  t.add_cleanup(() => stopTracks(stream));
+  v.srcObject = stream;
+  const intitial_time = v.currentTime;
+  const initial_frame_count = frames();
+  await new Promise(r => t.step_timeout(r, 10000));
+  const total_elapsed_frames = frames() - initial_frame_count;
+  const total_elapsed_time = v.currentTime - intitial_time;
+  const average_fps = total_elapsed_frames / total_elapsed_time;
+  assert_greater_than_equal(average_fps, target_rate * 0.50);
+  assert_less_than_equal(average_fps, target_rate * 1.75);
+}, "getDisplayMedia() must adhere to frameRate if set");
+
+</script>

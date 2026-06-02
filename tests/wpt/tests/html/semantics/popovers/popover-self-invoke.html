@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<button popover id="lock" popovertarget="lock" style="display: inline">
+  Tapping this should not hang
+</button>
+
+<script>
+const button = document.getElementById('lock');
+function runTest(activator, description) {
+  promise_test(async t => {
+    assert_false(button.matches(':popover-open'), 'Button should not be open initially');
+    await activator();
+    assert_true(button.matches(':popover-open'), 'Button should be open after touch');
+    button.hidePopover(); // Cleanup
+    assert_false(button.matches(':popover-open'), 'Cleanup should close the popover');
+  }, `${description} on a popover button that is its own target should open it.`);
+}
+// Try with both mouse and touchscreen, via test_driver.Actions()
+['mouse','touch'].forEach((method) => {
+  runTest(() => clickOn(button, method === 'touch'), method);
+});
+// Also try programmatic click.
+runTest(() => button.click(), 'click');
+</script>

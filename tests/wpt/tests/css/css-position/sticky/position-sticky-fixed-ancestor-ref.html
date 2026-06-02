@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Reference for sticky elements inside fixed ancestors shouldn't account for scroll</title>
+<style>
+  body,html {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sticky {
+    background: green;
+    width: 100px;
+    height: 10%;
+  }
+
+  .spacer {
+    height: calc(25vh - 10%);
+  }
+  .long {
+    height: 600vh;
+  }
+
+  .position-parent {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    top: 100vh;
+    background-color: lightgrey;
+  }
+
+  .container {
+    width: 100px;
+    height: 100%;
+    background-color: grey;
+  }
+
+  button {
+    position: fixed;
+    left: 20px;
+    top: 20px;
+  }
+
+  .fixed {
+    position: fixed;
+    top: 25vh;
+  }
+</style>
+
+<div>You should see a green box below. No blue should be visible.</div>
+<div class="position-parent fixed">
+  <div class="container">
+    <div class="spacer"></div>
+    <div class="sticky"></div>
+  </div>
+</div>
+<div class="long"></div>
+<button id="button">Toggle Fixed</button>
+
+<script>
+  window.scrollTo(0, document.querySelector('.long').clientHeight);
+</script>

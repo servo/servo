@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; width: 100px; height: 50px;">
+  <table style="position: relative; flex: 1; border-spacing: 0;">
+    <td style="padding: 0;">
+      <div style="height: 100px;"></div>
+      <div style="position: absolute; inset: 0; background: green;"></div>
+    </td>
+  </table>
+</div>

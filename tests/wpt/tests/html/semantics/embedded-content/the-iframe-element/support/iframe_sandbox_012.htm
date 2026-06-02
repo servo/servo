@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page with access to document.cookie</title>
+</head>
+<body>
+    <script type="text/javascript">
+        cookie = document.cookie;
+        document.cookie = "name=browser";
+        parent.window.postMessage("cookies are R/W", "*");
+    </script>
+</body>
+</html>

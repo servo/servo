@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Object cloning: throw an exception if function values encountered</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var obj = { f : function(){}};
+  var ch = new MessageChannel();
+  ch.port1.onmessage = function(){};
+  ch.port2.start();
+  assert_throws_dom('DATA_CLONE_ERR', function() { ch.port2.postMessage({obj: obj}); });
+});
+</script>

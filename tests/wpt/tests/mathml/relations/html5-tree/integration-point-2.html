@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MathML as a phrasing content</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#html-and-svg">
+<link rel="match" href="integration-point-2-ref.html"/>
+<meta name="assert" content="Verify that MathML can be used at positions where phrasing content is accepted.">
+<style type="text/css">
+  span, math { font-family: monospace; font-size: 10px; }
+  div {
+    color: green;
+  }
+  span.redsquare {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: red;
+  }
+  mspace {
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+
+  <div>
+
+    <div style="position: absolute; background: green; width: 300px; height: 300px;">
+      <p><span class="redsquare"></span></p>
+      <h1><span class="redsquare"></span></h1>
+      <h2><span class="redsquare"></span></h2>
+      <ul>
+        <li><span class="redsquare"></span></li>
+      </ul>
+      <ol>
+        <li><span class="redsquare"></span></li>
+      </ol>
+      <table><tr><td><span class="redsquare"></span></td></tr></table>
+      <a href="#id"><span class="redsquare"></span></a>
+      <em><span class="redsquare"></span></em>
+      <strong><span class="redsquare"></span></strong>
+      <small><span class="redsquare"></span></small>
+      <span><span class="redsquare"></span></span>
+      <u><span class="redsquare"></span></u>
+      <q><span class="redsquare"></span></q>
+    </div>
+    <div style="position: absolute; width: 400px;">
+      <p><math><mspace width="10px" height="10px"/></math></p>
+      <h1><math><mspace width="10px" height="10px"/></math></h1>
+      <h2><math><mspace width="10px" height="10px"/></math></h2>
+      <ul>
+        <li><math><mspace width="10px" height="10px"/></math></li>
+      </ul>
+      <ol>
+        <li><math><mspace width="10px" height="10px"/></math></li>
+      </ol>
+      <table><tr><td><math><mspace width="10px" height="10px"/></math></td></tr></table>
+      <a href="#id"><math><mspace width="10px" height="10px"/></math></a>
+      <em><math><mspace width="10px" height="10px"/></math></em>
+      <strong><math><mspace width="10px" height="10px"/></math></strong>
+      <small><math><mspace width="10px" height="10px"/></math></small>
+      <span><math><mspace width="10px" height="10px"/></math></span>
+      <u><math><mspace width="10px" height="10px"/></math></u>
+      <q><math><mspace width="10px" height="10px"/></math></q>
+    </div>
+
+  </div>
+
+</body>
+</html>

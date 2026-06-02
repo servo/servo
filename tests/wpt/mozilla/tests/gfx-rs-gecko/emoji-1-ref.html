@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<style>
+.test {
+  width: 6em;
+  border: 1px solid silver;
+  margin: 1em;
+  padding: 2px;
+}
+.wrapped {
+  word-wrap: break-word;
+}
+</style>
+</head>
+<body>
+The emoji should wrap within the box in both cases:
+<div class="test">
+abcde fghij klmno pqrst uvw xyz
+&#x1f600;&#x1f601;&#x1f602;&#x1f603; &#x1f604;&#x1f605;&#x1f606;&#x1f607;
+&#x1f608;&#x1f609;&#x1f60a;&#x1f60b; &#x1f60c;&#x1f60d;&#x1f60e;&#x1f60f;
+abcdefghijklmnopqrstuvwxyz
+<span class="wrapped">&#x1f600;&#x1f601;&#x1f602;&#x1f603;&#x1f604;&#x1f605;&#x1f606;&#x1f607;<!--
+-->&#x1f608;&#x1f609;&#x1f60a;&#x1f60b;&#x1f60c;&#x1f60d;&#x1f60e;&#x1f60f;</span>
+</div>
+<div class="test wrapped">
+abcde fghij klmno pqrst uvw xyz
+&#x1f600;&#x1f601;&#x1f602;&#x1f603; &#x1f604;&#x1f605;&#x1f606;&#x1f607;
+&#x1f608;&#x1f609;&#x1f60a;&#x1f60b; &#x1f60c;&#x1f60d;&#x1f60e;&#x1f60f;
+abcdefghijklmnopqrstuvwxyz
+&#x1f600;&#x1f601;&#x1f602;&#x1f603;&#x1f604;&#x1f605;&#x1f606;&#x1f607;<!--
+-->&#x1f608;&#x1f609;&#x1f60a;&#x1f60b;&#x1f60c;&#x1f60d;&#x1f60e;&#x1f60f;
+</div>
+</body>
+</html>

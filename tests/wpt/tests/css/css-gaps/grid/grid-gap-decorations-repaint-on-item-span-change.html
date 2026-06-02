@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Gap Decorations: repaint when grid item span changes</title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+  <link rel="match" href="grid-gap-decorations-repaint-on-item-span-change-ref.html">
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <meta name="assert" content="Gap decorations repaint correctly when a grid item's column span changes">
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template: repeat(2, 50px) / repeat(2, 50px);
+      gap: 20px;
+      column-rule: 20px solid green;
+      row-rule: 20px solid green;
+      rule-break: intersection;
+      rule-interior-inset: -20px;
+      rule-visibility-items: around;
+    }
+
+    .grid-item {
+      background: green;
+    }
+
+    #spanning-item {
+      /* Start spanning 2 columns, will change to span 1 */
+      grid-column: span 2;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div class="grid-container">
+    <div id="spanning-item" class="grid-item"></div>
+  </div>
+  <script>
+    // Use double requestAnimationFrame to ensure style is computed and painted.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Change the item to span 1 column. The gap decorations should repaint
+        // to reflect the spanning item now covering the column gap in the first row.
+        document.getElementById('spanning-item').style.gridColumn = 'span 1';
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</body>
+</html>

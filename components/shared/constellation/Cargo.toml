@@ -1,0 +1,47 @@
+[package]
+name = "constellation_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "constellation_traits"
+path = "lib.rs"
+
+[features]
+bluetooth = []
+webgpu = ["wgpu-core"]
+
+[dependencies]
+base = { workspace = true }
+canvas_traits = { workspace = true }
+content-security-policy = { workspace = true }
+devtools_traits = { workspace = true }
+embedder_traits = { workspace = true }
+encoding_rs = { workspace = true }
+euclid = { workspace = true }
+fonts_traits = { workspace = true }
+http = { workspace = true }
+hyper_serde = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
+paint_api = { workspace = true }
+pixels = { path = "../../pixels" }
+profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+servo_config = { path = "../../config" }
+servo_url = { path = "../../url" }
+storage_traits = { workspace = true }
+strum = { workspace = true }
+stylo_traits = { workspace = true }
+uuid = { workspace = true }
+webgpu_traits = { workspace = true }
+webrender_api = { workspace = true }
+wgpu-core = { workspace = true, optional = true }

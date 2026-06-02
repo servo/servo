@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Color Adjustment Test: initial color on visited link affected by color-scheme</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+<link rel="match" href="color-scheme-visited-link-initial-ref.html">
+<style>
+  :root { color-scheme: dark }
+  a { text-decoration: none }
+  a:visited { color: initial }
+</style>
+<a href="">This text should be rendered with canvastext for the dark color-scheme.</a>

@@ -1,0 +1,81 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="author" title="Richard Townsend" href="Richard.Townsend@arm.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-column-measures" />
+<style type="text/css">
+td {
+    padding: 0;
+}
+div {
+    /* Bug does not happen when the table's containing block is less
+       than (100+200+300)=600px, so make sure sure that it's larger. */
+    width: 750px;
+}
+</style>
+<div>
+    <h1>Width Distribution</h1>
+    <h4>"Computing column measures"</h4>
+    <p>This is testing that the table's auto columns are correctly recalculated after removing and adding a <code>col</code> element.
+         <a href="https://www.w3.org/TR/CSS2/tables.html#auto-table-layout">Spec Text</a></p>
+
+    <hr/>
+
+    <table id="one" style="border: 1px solid orange">
+        <colgroup>
+            <col style="width: 100px" />
+            <col style="width: 200px" />
+            <col style="width: 300px;" id="hideable" />
+        </colgroup>
+        <tr>
+            <td>100</td>
+            <td>200</td>
+            <td>300</td>
+        </tr>
+    </table>
+
+    <table id="two" style="border: 1px solid orange">
+        <colgroup>
+            <col style="width: 100px; display: none;" id="displayable" />
+            <col style="width: 200px;" />
+            <col style="width: auto;" />
+        </colgroup>
+        <tr>
+            <td>100</td>
+            <td>200</td>
+            <td>300</td>
+        </tr>
+    </table>
+
+    <table id="ref" style="border: 1px solid orange">
+        <colgroup>
+            <col style="width: 100px;" />
+            <col style="width: 200px;" />
+            <col style="width: auto;" />
+        </colgroup>
+        <tr>
+            <td>100</td>
+            <td>200</td>
+            <td>300</td>
+        </tr>
+    </table>
+
+</div>
+<script>
+    test(function() {
+        var one = document.getElementById('one');
+        var two = document.getElementById('two');
+        var ref = document.getElementById('ref');
+
+        // Force initial layout.
+        assert_greater_than(one.offsetWidth, ref.offsetWidth);
+
+        // Display two's colgroup and hide one's.
+        document.getElementById('displayable').style.display = 'table-column';
+        document.getElementById('hideable').style.display = 'none';
+
+        // Both tables should now match the reference.
+        assert_equals(one.offsetWidth, ref.offsetWidth);
+        assert_equals(two.offsetWidth, ref.offsetWidth);
+    }, "Table recalculations should match the reference");
+</script>

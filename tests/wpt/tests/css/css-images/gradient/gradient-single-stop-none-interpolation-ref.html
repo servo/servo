@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <style>
+    div {
+      height: 100px;
+    }
+    #basic {
+      /* "none" should resolve to zero when we only have one single stop. */
+      background: linear-gradient(to right in srgb, color(srgb 0 0.5 0.5));
+    }
+    #multipleNone {
+      /* "none" and "none" gives zero. */
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0));
+    }
+    #allNone {
+      /* "none" and "none" gives zero. */
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0));
+    }
+    #noneHue {
+      background: linear-gradient(to right in oklch, oklch(0.8 0.4 0));
+    }
+    #noneHueLonger {
+      background: linear-gradient(to right in oklch longer hue, oklch(0.5 0.3 0));
+    }
+ </style>
+ </head>
+ <body>
+  <div id="basic"></div>
+  <div id="multipleNone"></div>
+  <div id="allNone"></div>
+  <div id="noneHue"></div>
+  <div id="noneHueLonger"></div>
+ </body>
+</html>

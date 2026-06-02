@@ -1,0 +1,11 @@
+<!doctype html>
+<title>fieldset accessibility test: legend display: none</title>
+<link rel=help href=https://w3c.github.io/html-aam/#fieldset-element-accessible-name-computation>
+<style>
+ legend { display: none; }
+</style>
+<fieldset id=fieldset>
+ <legend>Foo</legend>
+ <input>
+</fieldset>
+<p>Expected accessible name for id=fieldset: ""

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline delay</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #container {
+    border:  10px solid lightgray;
+    overflow: auto;
+    height:  200px;
+    width: 200px;
+  }
+  .spacer {
+    height: 400px;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div class="spacer"></div>
+    <div id="target"></div>
+    <div class="spacer"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  const keyframes = {transform: ['translateX(0)', 'translateX(100px)']};
+  let target = document.getElementById('target');
+  let scroller = document.querySelector('#container');
+  let timeline = new ViewTimeline({subject: target});
+  promise_test(async t => {
+    let animation = target.animate(keyframes, {
+      timeline,
+      fill: 'both'
+    });
+    scroller.scrollTo({top: 0});
+    await waitForCompositorReady();
+    let finishedPromise = animation.finished;
+    let finished = false;
+    let finishEvents = 0;
+    finishedPromise.then(() => {
+      finished = true;
+    });
+    animation.addEventListener('finish', () => { finishEvents++; });
+
+    scroller.scrollTo({top: 100});
+    await waitForNextFrame();
+    assert_false(finished, "Animation is not finished before starting");
+    assert_equals(finishEvents, 0, "No finish event before scrolling");
+
+    scroller.scrollTo({top: 400});
+    await waitForNextFrame();
+    assert_false(finished, "Animation is not finished while active");
+    assert_equals(finishEvents, 0, "No finish event while active");
+
+    scroller.scrollTo({top: 600});
+    await waitForNextFrame();
+    assert_true(finished, "Animation is finished after passing end");
+    assert_equals(finishEvents, 1, "A finish event is generated after end");
+
+    scroller.scrollTo({top: 400});
+    await waitForNextFrame();
+    assert_not_equals(finishedPromise, animation.finished,
+        "A new finish promise is created when back in active range");
+    finished = false;
+    animation.finished.then(() => {
+      finished = true;
+    });
+
+    scroller.scrollTo({top: 600});
+    await waitForNextFrame();
+    assert_true(finished, "Finishes after passing end");
+    assert_equals(finishEvents, 2, "Another finish event is generated after end");
+    animation.cancel();
+  }, 'View timeline generates and resolves finish promises and events' );
+
+
+</script>

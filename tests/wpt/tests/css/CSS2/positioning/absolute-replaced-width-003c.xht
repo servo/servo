@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN" "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  <head>
+
+  <title>CSS Test: Absolutely positioned inline replaced element, 'auto' specified for 'margin-left', 'margin-right', no intrinsic width and no intrinsic ratio</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width" />
+  <link rel="match" href="absolute-replaced-width-003c-ref.xht" />
+
+  <meta name="flags" content="nonHTML svg" />
+  <meta name="assert" content="If an absolutely positioned inline replaced element (like the svg element in this test) has no intrinsic width and no intrinsic ratio, then the used value of 'width' becomes 300px. Then, if both left and right values are 'auto' and the 'direction' property of the element establishing the static-position containing block is 'ltr', then set 'left' to the static position. If 'left' or 'right' are 'auto' (like in this test), then replace any 'auto' on 'margin-left' or 'margin-right' with '0'. If at this point there is an 'auto' left (like in this test: right is 'auto'), solve the equation for that value." />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  height: 300px;
+  width: 600px;
+  }
+
+  svg#overlapped-red {position: absolute;}
+
+  div#overlapping-green
+  {
+  background-color: green;
+  height: 300px;
+  left: auto;
+  position: absolute;
+  top: auto;
+  width: 300px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a big filled green square and <strong>no red</strong>.</p>
+
+  <div>
+      <svg:svg version="1.1" xmlns:svg="http://www.w3.org/2000/svg" baseProfile="full" id="overlapped-red" height="300">
+          <svg:rect x="0" y="0" width="600" height="300" fill="red" />
+      </svg:svg>
+
+      <div id="overlapping-green"></div>
+  </div>
+
+  </body>
+</html>

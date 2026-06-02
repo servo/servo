@@ -1,0 +1,38 @@
+<!doctype html>
+<title>NOT invoking resource selection by inserting &lt;source> when networkState is not NETWORK_EMPTY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var loadstartCount = 0;
+var s1ErrorCount = 0;
+var s2ErrorCount = 0;
+var v;
+var t = async_test(function(t) {
+  v = document.createElement('video');
+  v.onloadstart = function() { loadstartCount++; };
+  var s1 = document.createElement('source');
+  s1.src = 'resources/delayed-broken-video.py';
+  s1.onerror = function() { s1ErrorCount++; };
+  v.appendChild(s1); // invokes resource selection
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState in first script');
+});
+</script>
+<script>
+t.step(function() {
+  assert_equals(v.networkState, v.NETWORK_LOADING, 'networkState in second script');
+  assert_equals(s1ErrorCount, 0, 's1ErrorCount in second script');
+  var s2 = document.createElement('source');
+  s2.onerror = t.step_func(function() {
+    s2ErrorCount++;
+    assert_equals(s1ErrorCount, 1, 's1ErrorCount in s2.onerror');
+  });
+  v.appendChild(s2);
+  onload = t.step_func(function() {
+    assert_equals(s2ErrorCount, 1, 's2ErrorCount in window.onload');
+    assert_equals(loadstartCount, 1, 'loadstartCount in window.onload'); // reliable if https://www.w3.org/Bugs/Public/show_bug.cgi?id=24353 is fixed
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState in window.onload'); // See Waiting step
+    t.done();
+  });
+});
+</script>

@@ -1,0 +1,9 @@
+<!doctype html>
+<script>
+window.onmessage = async (event) => {
+    let certificate = event.data;
+    if (!certificate)
+        certificate = await RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256'});
+    event.source.postMessage(certificate, "*");
+}
+</script>

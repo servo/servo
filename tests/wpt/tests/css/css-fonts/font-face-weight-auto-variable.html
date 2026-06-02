@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-weight:auto in @font-face</title>
+<link rel="match" href="font-face-weight-auto-variable-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-prop-desc" />
+<meta name="assert" content="font-weight: auto applies automatic weight range for variable fonts in @font-face descriptor">
+<style>
+    @font-face {
+        font-family: "Roboto";
+        src: url('support/fonts/RobotoExtremo-VF.subset.ttf') format('truetype');
+        font-display: swap;
+        font-style: normal;
+        font-weight: auto;
+    }
+    .weight50 {
+        font-family: "Roboto";
+        font-size: 3em;
+        font-weight: 50;
+    }
+    .weight100 {
+        font-family: "Roboto";
+        font-size: 3em;
+        font-weight: 100;
+    }
+    .weight400 {
+        font-family: "Roboto";
+        font-size: 3em;
+        font-weight: 400;
+    }
+    .weight900 {
+        font-family: "Roboto";
+        font-size: 3em;
+        font-weight: 900;
+    }
+    .weight990 {
+        font-family: "Roboto";
+        font-size: 3em;
+        font-weight: 990;
+    }
+</style>
+
+<p class="weight50">text</p>
+<p class="weight100">text</p>
+<p class="weight400">text</p>
+<p class="weight900">text</p>
+<p class="weight990">text</p>

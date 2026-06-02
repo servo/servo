@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Delete at start boundary of div containing hidden select element
+with non editable node</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<div contenteditable="true" id="editableDiv"><div id="first">First block</div>
+<div id="second">Second block<select style="visibility:hidden"></select></div></div>
+<script>
+"use strict";
+
+const kBackspaceKey = "\uE003";
+
+function sendBackspaceKey() {
+  return new test_driver.Actions()
+    .keyDown(kBackspaceKey)
+    .keyUp(kBackspaceKey)
+    .send();
+}
+
+promise_test(async () => {
+  const secondDiv = document.getElementById("second");
+  await new test_driver.click(document.querySelector('#second'));
+  const range = document.createRange();
+  const selection = window.getSelection();
+  range.setStart(secondDiv.firstChild, 0);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  await sendBackspaceKey();
+  const expected = "<div id=\"first\">First blockSecond block</div>"
+    + "<div id=\"second\"><select style=\"visibility:hidden\"></select></div>";
+  assert_equals(
+    editableDiv.innerHTML,
+    expected,
+    "The test should not crash and Second block should be merged with First block"
+  );
+}, "waiting for command to execute");
+</script>
+</body>
+</html>

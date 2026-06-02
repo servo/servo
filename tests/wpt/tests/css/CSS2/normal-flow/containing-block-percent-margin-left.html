@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#propdef-margin-left">
+<style>
+  #container > div { margin-left:50%; height:100px; background:blue; }
+</style>
+<p>There should be a blue square below.</p>
+<div id="container" style="width:456px;">
+  <div data-expected-width="100" data-expected-height="100"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  document.body.offsetTop;
+  document.getElementById("container").style.width = "200px";
+  checkLayout("#container");
+</script>

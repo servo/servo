@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="./csp-violations.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const maxSinkGroupCount = 10;
+let results = [];
+async function trySendPlainStringToTrustedTypeSink(sinkGroup) {
+  let {violations, exception} = await trusted_type_violations_and_exception_for(_ => {
+    switch (sinkGroup) {
+    case "script":
+      document.createElement("div").innerHTML = "unsafe";
+      break;
+    default:
+      throw "unknown sink group";
+      break;
+    }
+  });
+  return {
+    sinkGroup: sinkGroup,
+    exception: exception,
+    violatedPolicies: violations.map(v => {
+      return { policy: v.originalPolicy, disposition: v.disposition};
+    }),
+  };
+}
+(async function (sinkGroup) {
+  for (let sinkGroup of params.get("sinkGroups").split(",", maxSinkGroupCount)) {
+    results.push(await trySendPlainStringToTrustedTypeSink(sinkGroup));
+  }
+  parent.postMessage(results);
+})();
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1209217">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<div id=div1 tabindex=0>one</div>
+<span>
+  <template shadowrootmode=open>
+    <slot name=myslot></slot>
+  </template>
+  <slot slot=myslot>
+    <div id=div2 tabindex=0>two</div>
+    <div id=div3 tabindex=0>three</div>
+    <div id=div4 tabindex=0>four</div>
+  </slot>
+</span>
+<div id=div5 tabindex=0>five</div>
+
+<script>
+
+promise_test(async () => {
+  div1.focus();
+  assert_equals(document.activeElement, div1);
+
+  await navigateFocusForward();
+  assert_equals(document.activeElement, div2);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, div3);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, div4);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, div5);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, div4);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, div3);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, div2);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, div1);
+}, `Verifies that focus order goes in flat tree order with buttons inside nested slots which have a mixture of assigned and unassigned states.`);
+
+</script>

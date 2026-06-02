@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>View transitions: capture elements and then change overflow (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+body { background: pink }
+#target {
+  position: relative;
+  background: green;
+  left: 10px;
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+#target.toggle {
+  outline: 300px solid transparent;
+}
+</style>
+
+<div id=target class=toggle></div>
+

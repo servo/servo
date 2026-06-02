@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="match" href="table_margin_ref.html" />
+    <style type="text/css">
+    table.ombox {
+      margin: 0 0 0 50%;
+      background: #f9f9f9;
+    }
+
+    td, tr, table {
+      padding: 0;
+      margin: 0;
+    }
+
+    .template-documentation {
+      width: 100%;
+      background-color: #ecfcf4;
+      padding: 0;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="template-documentation">
+      <table class="ombox">
+        <tr>
+          <td>
+            This is a test. This line is large, large enough so that it will wrap.
+            Issue #12748, for which this test was created, is about the table margin not behaving correctly.
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>textarea placeholder line-height</title>
+  <link rel="author" title="Daniel Libby" href="mailto:dlibby@microsoft.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    textarea {
+      margin: 0;
+      border: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <textarea rows=1 placeholder=foo style="border:0"></textarea>
+  <script>
+    let textarea = document.querySelector('textarea');
+    const lineHeight = 19.5;
+    textarea.style.lineHeight = lineHeight + "px";
+    test(
+      function () {
+        assert_equals(textarea.getBoundingClientRect().height, lineHeight);
+      }, "Bounding rect height for textarea must be the same as line-height");
+
+    test(
+      function () {
+        assert_equals(getComputedStyle(textarea).lineHeight, lineHeight + "px");
+      }, "ComputedStyle line-height for textarea must be the same as set value");
+  </script>
+</body>
+
+</html>
+

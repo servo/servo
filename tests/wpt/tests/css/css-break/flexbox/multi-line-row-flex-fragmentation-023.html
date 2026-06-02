@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation with break-after. A forced break should
+  trump break-before:avoid and break-after:avoid.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  #flex > div {
+    background: green;
+    width: 50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div style="position: absolute; height: 20px; width: 50px; background: green; top: 80px;"></div>
+  <div id="flex">
+    <div style="height: 80px; width: 25px;">
+      <div style="break-after: column;"></div>
+    </div>
+    <div style="width: 25px; break-after: avoid;"></div>
+    <div style="height: 100px; break-before: avoid;"></div>
+  </div>
+</div>

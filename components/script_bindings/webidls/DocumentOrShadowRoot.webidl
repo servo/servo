@@ -1,0 +1,29 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+/*
+ * The origin of this IDL file is
+ * https://dom.spec.whatwg.org/#documentorshadowroot
+ * https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
+ * https://fullscreen.spec.whatwg.org/#api
+ */
+
+interface mixin DocumentOrShadowRoot {
+  // Selection? getSelection();
+  Element? elementFromPoint (double x, double y);
+  sequence<Element> elementsFromPoint (double x, double y);
+  // CaretPosition? caretPositionFromPoint (double x, double y);
+  readonly attribute Element? activeElement;
+  readonly attribute StyleSheetList styleSheets;
+};
+
+partial interface mixin DocumentOrShadowRoot {
+  // TODO(37902): Use ObservableArray Array when available
+  [Pref="dom_adoptedstylesheet_enabled", SetterThrows]
+  attribute /* ObservableArray<CSSStyleSheet> */ any adoptedStyleSheets;
+};
+
+// https://fullscreen.spec.whatwg.org/#api
+partial interface mixin DocumentOrShadowRoot {
+  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
+};

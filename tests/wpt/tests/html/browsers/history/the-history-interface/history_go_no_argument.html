@@ -1,0 +1,27 @@
+<!doctype html>
+<title>history.go()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t = async_test();
+  started = false;
+  gone = false;
+  pages = []
+  timer = setInterval(
+    function() {
+      if (pages.length < 3)
+        return;
+      clearInterval(timer);
+      setTimeout(t.step_func(
+        function() {
+          assert_array_equals(pages, [3, 2, 2], "Pages opened during history navigation");
+          t.done();
+        }
+      ), 500);
+    }, 50);
+  t.step(function() {
+    win = window.open("history_entry.html?urls=history_go_no_argument-1.html,history_forward-2.html");
+    t.add_cleanup(function() { win.close(); });
+  });
+</script>

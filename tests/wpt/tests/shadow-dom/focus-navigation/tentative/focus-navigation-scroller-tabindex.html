@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src='../resources/shadow-dom.js'></script>
+<script src='../resources/focus-utils.js'></script>
+
+<style>
+div.scroll {
+  overflow: auto;
+  width: 20em;
+  height: 5em;
+  display: block;
+  border: 1px solid lightgray;
+}
+div.long {
+  width: 40em;
+  height: 40em;
+}
+</style>
+
+<button id="start">START</button>
+
+<div id="scroller-tabindex" class="scroll" tabindex="0">
+  <p>Scroller has tabindex=0.</p>
+  <button id="A">BUTTON A</button>
+  <div class="long"></div>
+</div>
+
+<div id="scroller-tabindex-2" class="scroll" tabindex="0">
+  <p>Scroller has tabindex=0.</p>
+  <div class="long"></div>
+</div>
+
+<div id="scroller-none" class="scroll">
+  <p>Scroller has no tabindex.</p>
+  <button id="B">BUTTON B</button>
+  <div class="long"></div>
+</div>
+
+<div id="scroller-none-2" class="scroll">
+  <p>Scroller has no tabindex.</p>
+  <div class="long"></div>
+</div>
+
+<div id="scroller-negative" class="scroll" tabindex="-1">
+  <p>Scroller has tabindex=-1.</p>
+  <button id="C">BUTTON C</button>
+  <div class="long"></div>
+</div>
+
+<div id="scroller-negative-2" class="scroll" tabindex="-1">
+  <p>Scroller has tabindex=-1.</p>
+  <div class="long"></div>
+</div>
+
+<button id="end">END</button>
+
+<script>
+
+promise_test(async () => {
+  let elements = [
+    'start',
+    'scroller-tabindex',
+    'A',
+    'scroller-tabindex-2',
+    'B',
+    'scroller-none-2',
+    'C',
+    'end',
+  ];
+
+  assert_focus_navigation_bidirectional(elements);
+}, 'Should focus on scroller depending on tabindex value.');
+
+</script>

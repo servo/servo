@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Position Test: Replaced &lt;object&gt; renders ::backdrop in top layer</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<link rel="match" href="/css/reference/green.html">
+<style>
+  object.green::backdrop { background-color: green; visibility: visible; }
+  object { visibility: hidden; }
+</style>
+<object id="pop" popover="auto"></object>
+<script>
+  pop.showPopover();
+  pop.className = "green";
+</script>

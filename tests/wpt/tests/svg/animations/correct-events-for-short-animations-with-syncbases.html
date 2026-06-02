@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Correct events for short animations with syncbases</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Edvard Thörnros" href="mailto:edvardt@opera.com">
+<link rel="help" href="https://svgwg.org/specs/animations/#TimingAttributes">
+
+<svg viewBox="0 0 250 50" xmlns="http://www.w3.org/2000/svg">
+  <g id="a" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" begin="0ms;last.end+100ms" dur="10ms" fill="freeze"
+      id="first"/>
+    <animate attributeName="opacity" from="1" to="0" begin="last.end" dur="10ms" fill="freeze"/>
+    <rect x="0" y="0" width="50" height="50" fill="#AA0"/>
+  </g>
+  <g id="b" opacity="0">
+    <animate attributeName="opacity" from="1" to="1" begin="first.end+10ms" dur="10ms" fill="freeze"
+      id="last" onend="onend_filling()"/>
+    <animate attributeName="opacity" from="1" to="0" begin="last.end+1ms" dur="10ms" fill="freeze"
+      onbegin="onend_clearing()"/>
+    <rect x="50" y="0" width="50" height="50" fill="#AA0"/>
+  </g>
+</svg>
+<script>
+  let onend_clearing = null;
+  let onend_filling = null;
+
+  async_test(t => {
+    let svg = document.querySelector("svg");
+    // Deliberate no a
+    let b = document.querySelector("#b");
+    let passed = false;
+    let triggers = 0;
+    let filling_steps = 0;
+    let runs = 3; // Issue 379751 broke after 2 cycles, hence this is a 3.
+    onend_filling = t.step_func(() => {
+      filling_steps++;
+      if (filling_steps < (runs + 1)) return;
+      svg.pauseAnimations();
+      assert_unreached("Fired too many onend events.");
+    });
+    onend_clearing = t.step_func(() => {
+      triggers++;
+      if (triggers != runs) return;
+      svg.pauseAnimations();
+      // We don't check the first element, since it might have started fading in
+      assert_not_equals(window.getComputedStyle(b, null).opacity, "1");
+      t.done();
+    });
+  });
+</script>

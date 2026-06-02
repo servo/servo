@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.5-bodyChoiceSetNoPurpose.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "A Choice or Set body cannot include an purpose key. purpose key is only valid with Specific Resources and Embedded Textual Bodies.",
+    "title": "If a **Choice or Set** is a body, it does NOT have a **_purpose_ key** - [model 3.3.5](https://www.w3.org/TR/annotation-model/#motivation-and-purpose)",
+    "description": "True when no Choice or Set bodies or when none of the Choice or Set bodies include the purpose key. (Section 3.3.5)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithPurpose" } },
+                      { "items": { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithPurpose" } } }
+                     ]
+         }
+     }
+}

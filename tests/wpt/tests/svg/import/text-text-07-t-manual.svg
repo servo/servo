@@ -1,0 +1,79 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AE" author="MI" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-text-07-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
+        <p>
+          Tests multiple x, y, rotate, with various combinations. Since an
+          array of values is given, each glyph must use the value from the
+          corresponding character in the list.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>
+          Each letter in the word "ROTATE" is rotated 10
+          degrees more than the previous letter, with the first letter being
+          rotated at 0 degrees.
+        </li>
+        <li>
+          Each letter in the word "Multi XY" (including the white space) is
+          shifted in the x and y by 20 pixels more (in user space) than the
+          previous letter, with the first letter beginning at coordinate
+          240, 60.
+        </li>
+        <li>
+          Each letter in the word "Both Together" (including the space) is
+          rotated and shifted. Each of the rotated letters is rotated -10
+          degrees more than the previous letter, with the first letter being
+          rotated a 0 degrees. Each of the shifted letters is shifted by 20
+          pixels more than the previous letter in the x direction and -10 pixels
+          more than the previous letter in the y direction, with the first
+          letter beginning at the coordinate 10, 300.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-text-07-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="240 260 280 300 320 340 360" y="60 80 100 120 140 160 180 200" font-size="35">Multi X Y</text>
+    <text x="10" y="60" rotate="0 10 20 30 40 50 60" font-size="35">ROTATE</text>
+    <text x="10 30 50 70 90 110 130 150 170 190 210 230 250" y="300 290 280 270 260 250 240 230 220 210 200 190 180" rotate="0 -10 -20 -30 -40 -50 -60 -70 -80 -90 -100 -110 -120" font-size="35">Both Together</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

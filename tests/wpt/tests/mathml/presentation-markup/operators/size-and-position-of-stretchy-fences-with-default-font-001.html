@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Size of nested stretchy fences with inner mo</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=40066018">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=40068339">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=40856331">
+
+<div id="log"></div>
+
+<p>
+  <math>
+    <mrow>
+      <mo id="left1">(</mo>
+      <mrow>
+        <mo>(</mo>
+        <mrow>
+          <mi>x</mi>
+          <mo>+</mo>
+          <mi>y</mi>
+        </mrow>
+        <mo>)</mo>
+      </mrow>
+      <mo id="right1">)</mo>
+    </mrow>
+  </math>
+  <math>
+    <mrow>
+      <mo id="left2">(</mo>
+      <mrow>
+        <mo>(</mo>
+        <mrow>
+          <mi>x</mi>
+        </mrow>
+        <mo>)</mo>
+      </mrow>
+      <mo id="right2">)</mo>
+    </mrow>
+  </math>
+</p>
+
+<p>
+  <math>
+    <mn id="plus3">+</mn>
+    <mrow>
+      <mo id="left3" fence="true" form="prefix">(</mo>
+      <mi>x</mi>
+      <mo id="right3" fence="true" form="postfix">)</mo>
+    </mrow>
+  </math>
+</p>
+
+<p>
+  <math display="block">
+    <mrow>
+      <mo id="left4" fence="false" symmetric="true" minsize="2.4em" maxsize="2.4em">(</mo>
+      <mfrac>
+        <msup>
+          <mi>∂</mi>
+          <mn>2</mn>
+        </msup>
+        <mrow>
+          <mi>∂</mi>
+          <msup>
+            <mi>x</mi>
+            <mn>2</mn>
+          </msup>
+        </mrow>
+      </mfrac>
+      <mo id="plus4">+</mo>
+      <mfrac>
+        <msup>
+          <mi>∂</mi>
+          <mn>2</mn>
+        </msup>
+        <mrow>
+          <mi>∂</mi>
+          <msup>
+            <mi>y</mi>
+            <mn>2</mn>
+          </msup>
+        </mrow>
+      </mfrac>
+      <mo id="right4" fence="false" symmetric="true" minsize="2.4em" maxsize="2.4em">)</mo>
+    </mrow>
+  </math>
+</p>
+
+<script>
+  function getBox(id) {
+      return document.getElementById(id).getBoundingClientRect();
+  }
+  function middleOf(id) {
+      let box = getBox(id);
+      return (box.top + box.bottom) / 2;
+  }
+  const epsilon = 2;
+
+  test(t => {
+      assert_approx_equals(getBox("left1").top, getBox("left2").top, epsilon);
+      assert_approx_equals(getBox("left1").bottom, getBox("left2").bottom, epsilon);
+      assert_approx_equals(getBox("right1").top, getBox("right2").top, epsilon);
+      assert_approx_equals(getBox("right1").bottom, getBox("right2").bottom, epsilon);
+  }, "Inner binary operator should not affect position and size of outer fences.");
+
+  test(t => {
+      const math_axis_3 = middleOf("plus3")
+      assert_approx_equals(middleOf("left3"), math_axis_3, epsilon);
+      assert_approx_equals(middleOf("right3"), math_axis_3, epsilon);
+      const math_axis_4 = middleOf("plus4")
+      assert_approx_equals(middleOf("left4"), math_axis_4, epsilon);
+      assert_approx_equals(middleOf("right4"), math_axis_4, epsilon);
+  }, "Fences are stretched symmetrically with respect to the math axis");
+</script>

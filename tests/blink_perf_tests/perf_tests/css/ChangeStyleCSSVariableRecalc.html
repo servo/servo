@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>
+    <title>CSS Custom Properties and Variables: Changes that require resolving variable references</title>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<style>
+    .container > div {
+        display: inline-block;
+        height: 14px;
+        width: 14px;
+        box-sizing: border-box;
+        border: 1px solid green;
+    }
+    .container {
+        height: 0px;
+        overflow: hidden;
+    }
+</style>
+<body>
+    <header id=info>CSS Variables: <button id=button></button></header>
+    <script>
+        const NUM_ELEMENTS = 20000;
+        const PROP_COUNT = 1000;
+        let curBorder = -1;
+        let root = document.createElement('div');
+        root.classList.add(`container`);
+
+        // Add ?ref to URL to run a similar test without CSS Variables.
+        const ref = document.location.href.endsWith('?ref');
+        button.textContent = ref ? 'OFF' : 'ON';
+        button.addEventListener('click', function(){
+            let href = document.location.href;
+            if (ref) {
+                document.location.href = href.substr(0, href.length - 4);
+            } else {
+                document.location.href = href + '?ref';
+            }
+        });
+
+        function hexcolor(i) {
+            let hex = i.toString(16);
+            while (hex.length < 6)
+                hex = '0' + hex;
+            return '#' + hex;
+        }
+
+        function createDOMTree() {
+            for (let n = 0; n < NUM_ELEMENTS; n++) {
+                let div = document.createElement('div');
+                let i = n % PROP_COUNT;
+                div.classList.add(`bg-color${i}`);
+                root.appendChild(div);
+            }
+            document.body.appendChild(root);
+        }
+
+        function createDivRules() {
+            let lines = [];
+            for (let i = 0; i < PROP_COUNT; i++) {
+                lines.push(`.border${i} > div { border-color: ${hexcolor(i)}; }`);
+                if (ref)
+                    lines.push(`.bg-color${i} { background-color: ${hexcolor(i)}; }`);
+                else
+                    lines.push(`.bg-color${i} { background-color: var(--prop-${i}); }`);
+            }
+            return lines.join('\n');
+        }
+
+        // Create a rule which defines 'propCount' custom properties at :root.
+        function createRootRule() {
+            if (ref)
+                return;
+            let lines = [':root {'];
+            for (let i = 0; i < PROP_COUNT; i++) {
+                lines.push(`--prop-${i}: ${hexcolor(i)};`);
+            }
+            lines.push('}');
+            return lines.join('\n');
+        }
+
+        applyCSSRule(createDivRules());
+        applyCSSRule(createRootRule());
+        createDOMTree();
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of the CSS variable reference recalc.",
+            setup: () => {
+                root.classList.remove(`border${curBorder}`);
+                // Using PROP_COUNT to ensure different border values, avoiding the style cache
+                curBorder = (curBorder + 1) % PROP_COUNT;
+            },
+            run: function() {
+                root.classList.add(`border${curBorder}`);
+                forceStyleRecalc(document.body);
+            },
+        });
+    </script>
+</body>

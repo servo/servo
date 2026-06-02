@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline - create outline likes border property</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. 'outline' property" href="http://www.w3.org/TR/css3-ui/#outline">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test checks that the outline property creates outlines around visual objects and makes them stand out">
+<style>
+  #container {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+  #test {
+    background-color: green;
+    height: 60px;
+    left: 20px;
+    outline: 20px green solid;
+    position: relative;
+    top: 20px;
+    width: 60px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="test"></div>
+  </div>
+</body>

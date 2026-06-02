@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Values and Units Module Level 5: computed values for &lt;position&gt;</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<script>
+const property = "object-position";
+
+test_computed_value(property, "10% center", "10% 50%");
+test_computed_value(property, "right 30% top 60px", "70% 60px");
+test_computed_value(property, "-20% -30px");
+test_computed_value(property, "30px center", "30px 50%");
+test_computed_value(property, "40px top", "40px 0%");
+test_computed_value(property, "right 20% bottom 10%", "80% 90%");
+test_computed_value(property, "right bottom", "100% 100%");
+test_computed_value(property, "center 50px", "50% 50px");
+test_computed_value(property, "center bottom", "50% 100%");
+test_computed_value(property, "left center", "0% 50%");
+test_computed_value(property, "left bottom", "0% 100%");
+test_computed_value(property, "right 40%", "100% 40%");
+test_computed_value(property, "center top", "50% 0%");
+test_computed_value(property, "center", "50% 50%");
+test_computed_value(property, "center center", "50% 50%");
+test_computed_value(property, "right 20px bottom 10px", "calc(100% - 20px) calc(100% - 10px)");
+
+test_computed_value(property, "x-start", "0% 50%");
+test_computed_value(property, "x-start 10px", "0% 10px");
+test_computed_value(property, "x-start 10% top 20px", "10% 20px");
+test_computed_value(property, "x-end", "100% 50%");
+test_computed_value(property, "x-end 10%", "100% 10%");
+test_computed_value(property, "x-end 10px top 20px", "calc(100% - 10px) 20px");
+test_computed_value(property, "y-start", "50% 0%");
+test_computed_value(property, "10px y-start", "10px 0%");
+test_computed_value(property, "left 10px y-start 20%", "10px 20%");
+test_computed_value(property, "y-end", "50% 100%");
+test_computed_value(property, "10px y-end", "10px 100%");
+test_computed_value(property, "left 10px y-end 20%", "10px 80%");
+
+function test_writing_modes(property) {
+  const writing_modes = [
+    {
+      styles: [
+        {"writing-mode": "horizontal-tb", "direction": "ltr"},
+      ],
+      mappings: [
+        { "x-start": "left" },
+        { "x-end": "right" },
+        { "y-start": "top" },
+        { "y-end": "bottom" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "horizontal-tb", "direction": "rtl"},
+      ],
+      mappings: [
+        { "x-start": "right" },
+        { "x-end": "left" },
+        { "y-start": "top" },
+        { "y-end": "bottom" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "vertical-rl", "direction": "rtl"},
+        {"writing-mode": "sideways-rl", "direction": "rtl"},
+      ],
+      mappings: [
+        { "x-start": "right" },
+        { "x-end": "left" },
+        { "y-start": "bottom" },
+        { "y-end": "top" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "vertical-rl", "direction": "ltr"},
+        {"writing-mode": "sideways-rl", "direction": "ltr"},
+      ],
+      mappings: [
+        { "x-start": "right" },
+        { "x-end": "left" },
+        { "y-start": "top" },
+        { "y-end": "bottom" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "vertical-lr", "direction": "rtl"},
+      ],
+      mappings: [
+        { "x-start": "left" },
+        { "x-end": "right" },
+        { "y-start": "bottom" },
+        { "y-end": "top" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "sideways-lr", "direction": "ltr"},
+      ],
+      mappings: [
+        { "x-start": "left" },
+        { "x-end": "right" },
+        { "y-start": "bottom" },
+        { "y-end": "top" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "vertical-lr", "direction": "ltr"},
+      ],
+      mappings: [
+        { "x-start": "left" },
+        { "x-end": "right" },
+        { "y-start": "top" },
+        { "y-end": "bottom" },
+      ]
+    },
+    {
+      styles: [
+        {"writing-mode": "sideways-lr", "direction": "rtl"},
+      ],
+      mappings: [
+        { "x-start": "left" },
+        { "x-end": "right" },
+        { "y-start": "top" },
+        { "y-end": "bottom" },
+      ]
+    },
+  ];
+
+  function inner_test(property, specified, expected_to_match, container_styles) {
+    test(() => {
+      const target = document.getElementById('target');
+      assert_true(property in getComputedStyle(target), "'" + property + "' is a supported property for the computed style");
+      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+
+      target.style[property] = '';
+      target.style[property] = expected_to_match;
+      let expectedValue = getComputedStyle(target)[property];
+
+      target.style[property] = '';
+      target.style[property] = specified;
+      let readValue = getComputedStyle(target)[property];
+      assert_equals(readValue, expectedValue, `'${specified}' is equal to the computed value of ''${expected_to_match}' which is '${expectedValue}'`);
+      if (readValue !== specified) {
+        target.style[property] = '';
+        target.style[property] = readValue;
+        assert_equals(getComputedStyle(target)[property], readValue,
+                      'computed value should round-trip');
+      }
+    }, `Property ${property} value '${specified}' in mode '${container_styles.join(', ')}'`);
+  }
+
+  const container = document.getElementById('container');
+  for (let writing_mode of writing_modes) {
+    for (let style of writing_mode.styles) {
+      var container_styles = [];
+      for (let container_property in style) {
+        container.style[container_property] = style[container_property];
+        container_styles.push(`${container_property}: ${style[container_property]}`);
+      }
+
+      for (let mapping of writing_mode.mappings) {
+        for (let key in mapping) {
+          inner_test(property, key, mapping[key], container_styles);
+        }
+      }
+    }
+  }
+}
+
+test_writing_modes(property);
+
+</script>
+</body>
+</html>

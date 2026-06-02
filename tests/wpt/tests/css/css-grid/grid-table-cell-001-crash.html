@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1232875">
+<script>
+
+function boom()
+{
+    document.documentElement.offsetHeight;
+    document.getElementsByTagName("table")[0].style.inlineSize = "1px";
+    document.documentElement.offsetHeight;
+    document.getElementsByTagName("td")[0].style.display = "inline-grid";
+    document.documentElement.offsetHeight;
+}
+
+</script>
+</head>
+
+<body onload="boom();">
+
+<table style="writing-mode: vertical-rl; table-layout: fixed;">
+    <caption style="float: inline-end;">A B</caption>
+    <tbody><tr><td></td></tr></tbody>
+</table>
+
+<div style="height: 3000px;"></div>
+
+</body>
+</html>

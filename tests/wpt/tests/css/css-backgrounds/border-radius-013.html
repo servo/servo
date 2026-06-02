@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-radius">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1107832">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 90px; height: 90px; border: 5px solid green; background: red">
+  <div style="width: 90px; height: 90px; background: green">
+    <!-- the src is a 1x1 green png -->
+    <img style="border-radius: 50%; width: 90px; height: 90px"
+         src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAABGdBTUEAAK/INwWK6QAAAANQTFRFAIAAnPmlkQAAAApJREFUeNpjYAAAAAIAAeUn3vwAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAAAElFTkSuQmCC">
+  </div>
+</div>

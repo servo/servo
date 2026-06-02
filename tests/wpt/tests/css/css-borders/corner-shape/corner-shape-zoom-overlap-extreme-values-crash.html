@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape" />
+<style>
+  .target {
+    display: inline;
+    clip-path: border-box;
+    corner-shape: bevel square scoop;
+    zoom: 10%;
+    border-radius: 100%;
+    border: 5px solid purple;
+    bottom: -1e100px;
+    position: relative;
+    background: green;
+  }
+</style>
+<div class="target"></div>
+
+This test should not crash.

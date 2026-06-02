@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="match" href="scope-during-transition-2-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <title>View-transition-scope: auto applied during view transition</title>
+</head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #outer {
+    box-sizing: border-box;
+    border: 5px solid black;
+    height: 300px;
+    width: 300px;
+    position: relative;
+    view-transition-name: outer;
+    z-index: 0;
+  }
+
+  #inner {
+    box-sizing: border-box;
+    border: 5px solid black;
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    view-transition-name: inner;
+    z-index: 1;
+  }
+
+  ::view-transition-group(*) {
+    animation-timing-function: steps(1, jump-start);
+    animation-play-state: paused;
+  }
+
+  #outer::view-transition {
+    background-color: green;
+  }
+
+  #inner::view-transition {
+    background-color: rebeccapurple;
+  }
+
+  /*
+   * This rule should not apply since there will be an active view-transition on
+   * inner, when the view-transition on outer starts.
+   */
+  #outer::view-transition-group(inner) {
+    background-color: red;
+  }
+
+</style>
+<body>
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</body>
+<script>
+  window.onload = async () => {
+    await waitForCompositorReady();
+    const vt1 = inner.startViewTransition();
+    await vt1.ready;
+    const animations = document.getAnimations();
+    const vt2 = outer.startViewTransition();
+    await vt2.ready;
+    // The inner element no longer has "view-transition-scope: auto". but
+    // as the VT on outer has already started, the VT names are locked in
+    // place. Ensure that an "inner" transition group was not created for
+    // the VT on outer.
+    takeScreenshotOnAnimationsReady();
+  };
+</script>
+</html>

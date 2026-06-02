@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Base URLs used in resolving specifiers in dynamic imports from workers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+fetch_tests_from_worker(new Worker(
+    "../beta/redirect.py?location=http://{{host}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/dynamic-import/gamma/base-url.sub.js"));
+</script>

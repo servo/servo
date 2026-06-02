@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-spacing: 0px;
+  height: 96px;
+  table-layout: fixed;
+  width: 96px;
+  }
+
+  col#first-column {width: 72px;}
+
+  col#second-column {width: 24px;}
+
+  td
+  {
+  background-color: blue;
+  padding: 0px;
+  }
+
+  tr {height: 72px;}
+
+  tr#twenty-four {height: 24px;}
+
+  td#orange-dot
+  {
+  background-color: orange;
+  vertical-align: top;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if a small orange square (with a black dot in its middle) is in the bottom right corner of the blue square.</p>
+
+  <table>
+    <col id="first-column"></col><col id="second-column"></col>
+    <tr><td></td><td></td></tr>
+    <tr id="twenty-four"><td></td><td id="orange-dot">.</td></tr>
+  </table>
+
+ </body>
+</html>

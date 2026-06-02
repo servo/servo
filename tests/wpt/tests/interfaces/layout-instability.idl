@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Layout Instability API (https://wicg.github.io/layout-instability/)
+
+[Exposed=Window]
+interface LayoutShift : PerformanceEntry {
+  readonly attribute double value;
+  readonly attribute boolean hadRecentInput;
+  readonly attribute DOMHighResTimeStamp lastInputTime;
+  readonly attribute FrozenArray<LayoutShiftAttribution> sources;
+  [Default] object toJSON();
+};
+
+[Exposed=Window]
+interface LayoutShiftAttribution {
+  readonly attribute Node? node;
+  readonly attribute DOMRectReadOnly previousRect;
+  readonly attribute DOMRectReadOnly currentRect;
+};

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Layout Instability: source attribution with redundant enclosure</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<style>
+body { margin: 0; }
+#shifter {
+  position: relative; background: #def;
+  width: 300px; height: 200px;
+}
+#inner {
+  position: relative; background: #f97;
+  width: 100px; height: 100px;
+}
+#absfollow {
+  position: absolute; background: #ffd; opacity: 50%;
+  width: 350px; height: 200px; left: 0; top: 160px;
+}
+.stateB { top: 160px; }
+.stateB #inner { left: 100px; }
+.stateC ~ #absfollow { top: 0; }
+</style>
+<div id="shifter" class="stateA">
+  <div id="inner"></div>
+</div>
+<div id="absfollow"></div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  let shifter = document.querySelector("#shifter");
+  let absfollow = document.querySelector("#absfollow");
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  shifter.className = "stateB";
+  await watcher.promise;
+
+  // Shift of #inner ignored as redundant, fully enclosed by #shifter.
+  cls_expect(watcher, {sources: [{
+    node: shifter,
+    previousRect: [0, 0, 300, 200],
+    currentRect: [0, 160, 300, 200]
+  }]});
+
+  shifter.className = "stateC";
+  await watcher.promise;
+
+  // Shift of #shifter ignored as redundant, fully enclosed by #absfollow.
+  cls_expect(watcher, {sources: [{
+    node: absfollow,
+    previousRect: [0, 160, 350, 200],
+    currentRect: [0, 0, 350, 200]
+  }]});
+
+}, "Sources with redundant enclosure.");
+
+</script>

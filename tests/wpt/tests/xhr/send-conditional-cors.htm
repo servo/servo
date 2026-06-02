@@ -1,0 +1,42 @@
+<!doctype html>
+<title>XMLHttpRequest: send() - conditional cross-origin requests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/cors/support.js?pipe=sub></script>
+<div id=log></div>
+<script>
+function request(withCORS, desc) {
+  async_test(t => {
+    const client = new XMLHttpRequest,
+          identifier = Math.random(),
+          cors = withCORS ? "&cors=yes" : "",
+          url = CROSSDOMAIN + "resources/conditional.py?tag=" + identifier + cors
+    client.onload = t.step_func(() => {
+      assert_equals(client.status, 200)
+      assert_equals(client.statusText, "OK")
+      assert_equals(client.responseText, "MAYBE NOT")
+
+      if(withCORS) {
+        client.onload = t.step_func_done(() => {
+          assert_equals(client.status, 304)
+          assert_equals(client.statusText, "SUPERCOOL")
+          assert_equals(client.responseText, "")
+        })
+      } else {
+        client.onload = null
+        client.onerror = t.step_func_done(() => {
+          assert_equals(client.status, 0)
+          assert_equals(client.statusText, "")
+        })
+      }
+      client.open("GET", url)
+      client.setRequestHeader("If-None-Match", identifier)
+      client.send()
+    })
+    client.open("GET", url)
+    client.send()
+  }, desc)
+}
+request(false, "304 without appropriate CORS header")
+request(true, "304 with appropriate CORS header")
+</script>

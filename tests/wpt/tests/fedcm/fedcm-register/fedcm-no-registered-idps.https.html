@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+promise_test(async t => {
+  const cred = navigator.credentials.get({
+    identity: {
+      providers: [{
+        configURL: "any",
+        clientId: "na",
+        nonce: "1"
+      }]
+    }
+  });
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, "When no providers are registered an error should be returned.");
+
+</script>

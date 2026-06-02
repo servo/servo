@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="assert" content="Video that has no intrinsic size should have height constrained by max-width">
+<link rel="help" href="https://w3c.github.io/csswg-drafts/css-sizing-4/#aspect-ratio-size-transfers">
+<link author="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<style>
+  video {
+    background-color: green;
+    width: auto;
+    height: auto;
+    max-width: 100px;
+  }
+</style>
+</head>
+<!-- aspect-ratio should be set to: auto 100 / 100-->
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<video width="100" height="100" src="/css/support/60x60-green.png">
+</body>
+</html>

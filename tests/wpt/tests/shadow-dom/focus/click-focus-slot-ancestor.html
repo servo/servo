@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="crbug.com/41420461">
+
+ <div id='normalDiv' tabindex='0'><span id='normalSpan'>Text to click and select</span></div>
+ <div id='container'><span id='slottedSpan'>Slotted text to click and select</span></div>
+
+<script>
+
+function clickOn(element) {
+  const actions = new test_driver.Actions();
+  actions.pointerMove(5, 5, {origin: element});
+  actions.pointerDown();
+  actions.pointerUp();
+  return actions.send();
+}
+
+function selectText(element) {
+    getSelection().empty();
+    const actions = new test_driver.Actions();
+    actions.pointerMove(0, 0, {origin: element});
+    actions.pointerDown();
+    actions.pointerMove(50, 0, {origin: element});
+    actions.pointerUp();
+    return actions.send();
+}
+
+let sr = container.attachShadow({ mode: 'open' });
+sr.innerHTML = '<div id="shadowDiv" tabindex="0"><slot></slot></div>';
+
+promise_test(async () => {
+  await clickOn(normalSpan);
+  assert_equals(document.activeElement, normalDiv);
+
+  await clickOn(slottedSpan);
+  assert_equals(document.activeElement, container);
+  assert_equals(sr.activeElement, sr.getElementById('shadowDiv'));
+}, 'Clicking on non-focusable slot inside focusable div will make the flat-tree focusable ancestor get focused');
+
+promise_test(async () => {
+  let selection = getSelection();
+
+  await selectText(normalSpan);
+  assert_equals(document.activeElement, normalDiv);
+  assert_equals(selection.anchorNode, normalSpan.firstChild);
+  assert_greater_than(selection.toString().length, 0);
+
+  await selectText(slottedSpan);
+  assert_equals(document.activeElement, container);
+  assert_equals(sr.activeElement, sr.getElementById('shadowDiv'));
+  assert_equals(selection.anchorNode, slottedSpan.firstChild);
+  assert_greater_than(selection.toString().length, 0);
+}, 'Select on non-focusable slot inside focusable div will select text');
+
+promise_test(async () => {
+  let selection = getSelection();
+  // Reset selection
+  await clickOn(normalSpan);
+
+  container.setAttribute('contenteditable', true);
+  await selectText(slottedSpan);
+  assert_equals(document.activeElement, container);
+  assert_equals(sr.activeElement, null, 'focus is on contenteditable container only');
+  assert_equals(selection.anchorNode, slottedSpan.firstChild);
+  assert_greater_than(selection.toString().length, 0);
+  container.removeAttribute('contenteditable');
+}, 'Select on non-focusable non-editable slot in a contenteditable shadow DOM and inside focusable div will select text');
+
+</script>

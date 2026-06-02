@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let second_handler_run = false;
+    i.contentWindow.navigation.onnavigate = e => {
+      e.intercept({ handler() { i.remove(); }});
+      e.intercept({ handler() { second_handler_run = true; }});
+    };
+
+    i.contentWindow.location.href = "#1";
+    t.step_timeout(t.step_func_done(() => assert_true(second_handler_run)), 0);
+  });
+}, "event.intercept() throws if used on an event from a detached iframe");
+</script>

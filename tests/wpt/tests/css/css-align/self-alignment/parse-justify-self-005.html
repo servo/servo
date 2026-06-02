@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Self-Alignment: justify-self - inherit value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#self-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self" />
+<meta name="assert" content="Check bad cobinations of specified values."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+    checkInheritValues("justifySelf", "justify-self", "end");
+}, "Test the value 'inherit' overrides current value ('end')");
+test(function() {
+    checkInheritValues("justifySelf", "justify-self", "safe left");
+}, "Test the value 'inherit' overrides current value ('safe left')");
+test(function() {
+    checkInheritValues("justifySelf", "justify-self", "unsafe center");
+}, "Test the value 'inherit' overrides current value ('unsafe center')");
+</script>

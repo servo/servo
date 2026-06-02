@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Writing Modes Test: Computed writing-mode for html element when writing mode for body propagated to viewport</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow">
+<meta name="assert" content="Test that propagating writing-mode from body to viewport does not affect the computed writing-mode of the html element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .vertical-lr { writing-mode: vertical-lr }
+</style>
+<body class="vertical-lr">
+<script>
+  test(function() {
+    assert_equals(getComputedStyle(document.body).writingMode, "vertical-lr");
+  }, "Check computed writing-mode for body element.");
+
+  test(function() {
+    assert_not_equals(getComputedStyle(document.documentElement).writingMode, "vertical-lr");
+  }, "Check computed writing-mode for html root element.");
+
+  test(function() {
+    document.body.className = "";
+    assert_not_equals(getComputedStyle(document.body).writingMode, "vertical-lr");
+  }, "Check computed writing-mode for body element when style no longer applies.");
+</script>

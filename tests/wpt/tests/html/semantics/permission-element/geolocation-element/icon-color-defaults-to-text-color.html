@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+
+  <style>
+    geolocation {
+      color: #ff0000;
+    }
+  </style>
+
+  <geolocation id="geolocation_element"></geolocation>
+
+  <script>
+    promise_test(async() => {
+      let geolocation_element = document.getElementById("geolocation_element");
+      assert_equals(getComputedStyle(geolocation_element, "::permission-icon").fill, 'rgb(255, 0, 0)')
+    }, "Permission element icon's color should be same as the text color unless explicitly changed.")
+  </script>
+</body>

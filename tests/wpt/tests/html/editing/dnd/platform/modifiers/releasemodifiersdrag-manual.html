@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Modifier keys being released before end of drag</title>
+    <style type="text/css">
+div:first-child {
+  height: 100px;
+  width: 100px;
+  background: orange;
+  display: inline-block;
+}
+div:first-child + div {
+  height: 100px;
+  width: 100px;
+  background: blue;
+  display: inline-block;
+}
+div:first-child + div + div {
+  height: 100px;
+  width: 100px;
+  background: fuchsia;
+  display: inline-block;
+}
+div:first-child + div + div + div {
+  height: 100px;
+  width: 100px;
+  background: yellow;
+  display: inline-block;
+}
+div {
+  font-family: monospace;
+}
+table {
+  display: inline-table;
+  margin-right: 1em;
+  border-collapse: collapse;
+}
+table, th, td {
+  border: 1px solid black;
+}
+thead th {
+  background: silver;
+  color: black;
+}
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  var bde, bdo, bdo2, fde, fdo, fdo2, yde, ydo, ydr;
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function (e) {
+    e.dataTransfer.setData('text','http://example.com/');
+    e.dataTransfer.effectAllowed = 'linkMove';
+    bde = bdo = bdo2 = fde = fdo = fdo2 = yde = ydo = ydr = '';
+  };
+  var blue = document.getElementsByTagName('div')[1];
+  blue.ondragenter = function (e) {
+    e.preventDefault();
+    bde = e.dataTransfer.dropEffect;
+  };
+  blue.ondragover = function (e) {
+    e.preventDefault();
+    if( !bdo ) {
+      bdo = e.dataTransfer.dropEffect;
+    }
+    //bdo2 always collects dropEffect, since it can change multiple times in rapid succession when pressing multiple modifiers
+    //test cares about the last dropEffect that was seen before leaving the blue square, and that will be stored in bdo2
+    bdo2 = e.dataTransfer.dropEffect;
+  };
+  var fuchsia = document.getElementsByTagName('div')[2];
+  fuchsia.ondragenter = function (e) {
+    e.preventDefault();
+    fde = e.dataTransfer.dropEffect;
+  };
+  fuchsia.ondragover = function (e) {
+    e.preventDefault();
+    if( !fdo ) { fdo = e.dataTransfer.dropEffect; }
+    fdo2 = e.dataTransfer.dropEffect;
+  };
+  var yellow = document.getElementsByTagName('div')[3];
+  yellow.ondragenter = function (e) {
+    e.preventDefault();
+    yde = e.dataTransfer.dropEffect;
+  };
+  yellow.ondragover = function (e) {
+    e.preventDefault();
+    if( !ydo ) { ydo = e.dataTransfer.dropEffect; }
+  };
+  yellow.ondrop = function (e) {
+    e.preventDefault();
+    ydr = e.dataTransfer.dropEffect;
+  };
+  orange.ondragend = function (e) {
+    var sequence = ([bde,bdo,bdo2,fde,fdo,fdo2,yde,ydo,ydr,e.dataTransfer.dropEffect]).join('=&gt;')
+    var desiredsequence = (['link','link','move','move','move','link','link','link','link','link']).join('=&gt;')
+    if( sequence == desiredsequence ) {
+      document.getElementsByTagName('div')[4].innerHTML = 'PASS';
+    } else {
+      document.getElementsByTagName('div')[4].innerHTML = 'FAIL, got:<br>'+sequence+'<br>instead of:<br>'+desiredsequence;
+    }
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div draggable="true"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div><strong>&nbsp;</strong></div>
+    <ol>
+      <li>Drag the orange square over the blue square</li>
+      <li>Press the relevant modifier keys for your platform to request a &quot;move&quot; drop effect (eg. Shift on Windows/Unix/Linux, Command on Mac)</li>
+      <li>If supported by the platform, the mouse cursor should show that a &quot;move&quot; drop effect will be used</li>
+      <li>Continue dragging over the pink square</li>
+      <li>Release the modifier keys</li>
+      <li>If supported by the platform, the mouse cursor should show that a &quot;link&quot; drop effect will be used</li>
+      <li>Continue dragging over the yellow square</li>
+      <li>Release the drag</li>
+      <li>Fail if no new text appears above this list</li>
+    </ol>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+
+  </body>
+</html>

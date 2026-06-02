@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<link rel="match" href="metrics-override-normal-keyword-ref.html">
+<title>Tests the 'normal' keyword on descriptors ascent-override, descent-override and line-gap-override</title>
+<style>
+@font-face {
+  font-family: ascent-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  ascent-override: 50%;
+  ascent-override: normal;
+}
+
+@font-face {
+  font-family: descent-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  descent-override: 50%;
+  descent-override: normal;
+}
+
+@font-face {
+  font-family: line-gap-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  line-gap-override: 50%;
+  line-gap-override: normal;
+}
+</style>
+
+<div style="font-family: ascent-font">Test<br>Test</div>
+
+<div style="font-family: descent-font">Test<br>Test</div>
+
+<div style="font-family: line-gap-font">Test<br>Test</div>

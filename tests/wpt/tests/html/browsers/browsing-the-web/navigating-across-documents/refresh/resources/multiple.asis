@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Refresh: 0,./refreshed.txt
+Content-Type:text/html
+
+I don't understand.
+<meta http-equiv=refresh content=1;./>

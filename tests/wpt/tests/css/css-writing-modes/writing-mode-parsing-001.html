@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes: parsing writing-mode</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta name="assert" content="This test asserts the parser and getComputedStyle works correctly for the writing-mode property.">
+<meta name="flags" content="dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div
+  data-expected="horizontal-tb" title="writing-mode initial value"></div>
+
+<div style="writing-mode: vertical-rl"
+  data-expected="vertical-rl"></div>
+<div style="writing-mode: vertical-lr"
+  data-expected="vertical-lr"></div>
+
+<div style="writing-mode: vertical-rl">
+  <div
+    data-expected="vertical-rl" title="writing-mode should inherit"></div>
+
+  <div style="writing-mode: horizontal-tb"
+    data-expected="horizontal-tb"></div>
+
+  <div style="writing-mode: initial"
+    data-expected="horizontal-tb"></div>
+  <div style="writing-mode: inherit"
+    data-expected="vertical-rl"></div>
+  <div style="writing-mode: horizontal-tb; writing-mode: inherit"
+    data-expected="vertical-rl"></div>
+
+  <div style="writing-mode: foo"
+    data-expected="vertical-rl"></div>
+</div>
+
+<script>
+Array.prototype.forEach.call(document.querySelectorAll("[data-expected]"), function (element) {
+  test(function () {
+    var actual = getComputedStyle(element).writingMode;
+    assert_equals(actual, element.dataset.expected);
+  }, element.title || element.getAttribute("style"));
+});
+</script>

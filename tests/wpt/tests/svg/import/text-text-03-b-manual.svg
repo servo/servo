@@ -1,0 +1,94 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Shenxue Zhou" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-text-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
+      <p>
+        Test text element, tspan element and various text decorations
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>the word "Plain" is displayed using a blue serif font</li>
+        <li>the word "Italic" is displayed using a blue italic serif font</li>
+        <li>the word "Bold" is displayed using a blue serif bold font</li>
+        <li>the words "Line through" are displayed with a line through, using a pink serif font</li>
+        <li>the word "Underline" is displayed underlined using a blue serif font</li>
+        <li>the words "Bold, italic and underlined" are displayed underlined using a bold italic serif font</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-text-03-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerif.svg#FreeSerif"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifBold.svg#FreeSerifBold"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400" font-style="italic">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifItalic.svg#FreeSerifItalic"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700"  font-style="italic">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="FreeSerif, serif" font-size="18">
+    <text x="19" y="61" font-size="32" fill="blue">Plain</text>
+    <text x="142" y="61" font-size="32" font-style="italic" fill="blue">Italic</text>
+    <text x="257" y="60" font-size="32" font-weight="bold" fill="blue">Bold</text>
+    <text x="224" y="110" font-size="32" fill="blue" text-decoration="underline">Underline</text>
+    <text x="39" y="147" font-size="32" fill="fuchsia" text-decoration="line-through">Line through</text>
+    <text x="1" y="200" font-size="32" font-style="italic" font-weight="bold" fill="black" text-decoration="underline">Bold, italic and underlined</text>
+    <g>
+      <rect x="50" y="225" width="380" height="64" fill="none" stroke="black" stroke-width="2"/>
+      <g font-family="SVGFreeSansASCII,sans-serif">
+        <text x="55" y="245" font-size="24" fill="black">Each line of text which flows in a </text>
+        <text x="55" y="265" font-size="24" fill="black">rectangular box has to be broken</text>
+        <text x="55" y="285" font-size="24" fill="black">into separated lines.</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

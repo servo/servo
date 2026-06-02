@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> WheelEvent: wheel - WheelEvent.deltaMode </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "wheel";
+            var TARGET;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if ((0x00 == evt.deltaMode) || (0x01 == evt.deltaMode) || (0x02 == evt.deltaMode))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: WheelEvent.deltaMode attribute contains an indication of the units of
+            measurement for the delta values. Its value may be different based on system configuration.
+        </h4>
+
+        <span id="parent">
+            <div id="target" style="border:solid 1px green; width:220px; height:70px; overflow:scroll">
+                TOP TOP TOP TOP TOP TOP TOP
+                Scroll mouse wheel over here
+                Scroll mouse wheel over here
+                Scroll mouse wheel over here
+                Scroll mouse wheel over here
+                Scroll mouse wheel over here
+                Scroll mouse wheel over here
+                END END END END END END END
+            </div>
+        </span>
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Note: an input device with scroll wheel support (e.g., mouse wheel) is required
+                <li> Move the mouse pointer over the above green box
+                <li> Scroll down the mouse wheel 1 or more units
+            </ol>
+        </p>
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

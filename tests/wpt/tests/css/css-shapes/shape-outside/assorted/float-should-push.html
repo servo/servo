@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Ensure shape-outside floats that don't cover their margin-rect affect layout properly</title>
+<link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/">
+<link rel="match" href="reference/float-should-push-ref.html">
+<meta name="assert" content="Test that a too-wide inline block clear floats defined by shape-outside shapes that don't reach the top of the margin rect.">
+
+<style>
+  body {
+    margin: 0px;
+    line-height: 1;
+  }
+
+  .container {
+    width: 300px;
+    height: 100px;
+    background: lightgray;
+  }
+
+  .too-wide {
+    display: inline-block;
+    width: 250px;
+    height: 20px;
+    background: lightblue;
+  }
+
+  .shape {
+    background: black;
+    width: 100px;
+    height: 100px;
+    float: left;
+  }
+
+  .spacer {
+    clear: left;
+    height: 30px;
+  }
+
+  .inset {
+    background: orange;
+    shape-outside: inset(1px 0px 0px 0px);
+  }
+
+  .polygon {
+    background: pink;
+    shape-outside: polygon(0px 0px, 100px 0px, 100px 100px, 0px 100px);
+  }
+
+  .image {
+    background: brown;
+    shape-outside: linear-gradient(0deg, black, black 100%);
+  }
+
+</style>
+
+<p>All light blue bars should be pushed below the square floats, regardless of how those floats are defined.</p>
+
+<div class="container">
+<div class="shape inset">inset(1px) at top</div>
+<span class="too-wide"></span>
+</div>
+
+<div class="spacer"></div>
+
+<div class="container">
+<div class="shape polygon">polygon</div>
+<span class="too-wide"></span>
+</div>
+
+<div class="spacer"></div>
+
+<div class="container">
+<div class="shape image">image</div>
+<span class="too-wide"></span>
+</div>

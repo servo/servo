@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+  async function showNotification() {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification('foo');
+  }
+</script>

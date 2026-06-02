@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection Video detector test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// This test verifies that the helper function "detectSignal" from
+// RTCPeerConnectionHelper, which is used to detect changes in a video
+// signal, performs properly for a range of "signal" values.
+
+// If it fails, it indicates that the video codec used in this particular
+// browser at this time doesn't reproduce the luma signal reliably enough
+// for this particular application, which may lead to other tests that
+// use the "detectSignal" helper failing without an obvious cause.
+
+// The most likely failure is timeout - which will happen if the
+// luma value detected doesn't settle within the margin of error before
+// the test times out.
+
+async function signalSettlementTime(t, v, sender, signal, backgroundTrack) {
+  const detectionStream = await getNoiseStream({video: {signal}});
+  const [detectionTrack] = detectionStream.getTracks();
+  try {
+    await sender.replaceTrack(detectionTrack);
+    const framesBefore = v.getVideoPlaybackQuality().totalVideoFrames;
+    await detectSignal(t, v, signal);
+    const framesAfter = v.getVideoPlaybackQuality().totalVideoFrames;
+    await sender.replaceTrack(backgroundTrack);
+    await detectSignal(t, v, 100);
+    return framesAfter - framesBefore;
+  } finally {
+    detectionTrack.stop();
+  }
+}
+
+promise_test(async t => {
+  const v = document.createElement('video');
+  v.autoplay = true;
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const stream1 = await getNoiseStream({video: {signal: 100}});
+  const [track1] = stream1.getTracks();
+  t.add_cleanup(() => track1.stop());
+
+  const sender = pc1.addTrack(track1);
+  const haveTrackEvent = new Promise(r => pc2.ontrack = r);
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  v.srcObject = new MediaStream([(await haveTrackEvent).track]);
+  await new Promise(r => v.onloadedmetadata = r);
+  // The basic signal is a track with signal 100. We replace this
+  // with tracks with signal from 0 to 255 and see if they are all
+  // reliably detected.
+  await detectSignal(t, v, 100);
+  // A few buffered frames are received with the old content, and a few
+  // frames may not have settled on exactly the right value. In testing,
+  // this test passes with maxFrames = 3; give a little more margin.
+  const maxFrames = 7;
+  // Test values 0 and 255
+  let maxCount = await signalSettlementTime(t, v, sender, 0, track1);
+  assert_less_than(maxCount, maxFrames,
+      'Should get the black value within ' + maxFrames + ' frames');
+  maxCount = Math.max(
+      await signalSettlementTime(t, v, sender, 255, track1), maxCount);
+  assert_less_than(maxCount, maxFrames,
+      'Should get the white value within ' + maxFrames + ' frames');
+  // Test a set of other values - far enough apart to make the test fast.
+  for (let signal = 2; signal <= 255; signal += 47) {
+    if (Math.abs(signal - 100) > 10) {
+      const count = await signalSettlementTime(t, v, sender, signal, track1);
+      maxCount = Math.max(count, maxCount);
+      assert_less_than(maxCount, 10,
+          'Should get value ' + signal + ' within ' + maxFrames + ' frames');
+    }
+  }
+  assert_less_than(maxCount, 10, 'Should get the right value within 10 frames');
+}, 'Signal detector detects track change within reasonable time');
+</script>

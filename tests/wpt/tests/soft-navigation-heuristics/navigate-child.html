@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Navigate a child window.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a href="empty.html?2" rel=opener target=child id=link>Click me!</a>
+  </main>
+  <script>
+    const child = window.open("resources/empty.html?1", "child");
+
+    testSoftNavigation({
+      testName: "Test that a navigated child window doesn't crash",
+      extraSetup: async () => {
+        while (!child.document) {
+          await new Promise(r => t.step_timeout(r, 10));
+        }
+      },
+      // No-op for the main page, so we don't navigate it
+      dontExpectSoftNavs: true,
+      pushState: () => {},
+      addContent: () => {},
+      extraValidations: async (t) => {
+        while (!child.location.href.includes("2")) {
+          await new Promise(r => t.step_timeout(r, 10));
+        }
+      }
+    });
+  </script>
+</body>
+</html>

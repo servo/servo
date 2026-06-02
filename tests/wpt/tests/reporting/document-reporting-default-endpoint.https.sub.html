@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Test that document level reports are sent to default endpoint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src='resources/report-helper.js'></script>
+<p id="error">No error</p>
+<script>
+  async_test(function (test) {
+    var observer = new ReportingObserver(function (reports) {
+      test.step(function () {
+        assert_equals(reports.length, 1);
+        assert_equals(reports[0].type, "deprecation");
+      });
+      test.done();
+    });
+    observer.observe();
+  }, "report generated");
+</script>
+<script>webkitRequestAnimationFrame(() => {});</script>
+<script>
+  const base_url = `${location.protocol}//${location.host}`;
+  const endpoint = `${base_url}/reporting/resources/report.py`;
+    const id = '46ecac28-6d27-4763-a692-bcc588054716';
+  promise_test(async t => {
+    await wait(3000);
+    const reports = await pollReports(endpoint, id);
+    checkReportExists(reports, 'deprecation', location.href);
+  }, "Reporting-Endpoints defined endpoint received reports.");
+</script>
+</body>
+
+</html>

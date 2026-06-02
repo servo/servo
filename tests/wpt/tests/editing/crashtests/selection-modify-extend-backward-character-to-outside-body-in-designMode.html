@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+onload = () => {
+  document.designMode = 'on';
+  getSelection().selectAllChildren(document.body);
+  getSelection().modify('extend', 'backward', 'character');
+};
+</script>
+<audio controls>

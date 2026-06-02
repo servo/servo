@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <title>allowTargetOrigin with fake dataTransfer should block dragenter, dragover, dragleave and drop synthetic events</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div draggable="true"></div>
+    <div></div>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+test(function () {
+  var dragsource = document.getElementsByTagName('div')[0], targ = document.getElementsByTagName('div')[1], evtdone = {};
+  dragsource.ondragstart = function (e) {
+    var evt;
+    evtdone.initial = true;
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+    e.dataTransfer.allowTargetOrigin('http://example.com');
+    evt = new DragEvent('dragstart', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('drag', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('dragenter', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('dragover', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('dragleave', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('drop', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+    evt = new DragEvent('dragend', {dataTransfer:e.dataTransfer});
+    targ.dispatchEvent(evt);
+  };
+  targ.ondragstart = function (e) {
+    evtdone[e.type] = true;
+  };
+  targ.ondragenter = targ.ondragover = targ.ondrop = function (e) {
+    e.preventDefault();
+    evtdone[e.type] = true;
+  };
+  targ.ondrag = targ.ondragleave = function (e) {
+    evtdone[e.type] = true;
+  };
+  targ.ondragend = function (e) {
+    evtdone[e.type] = true;
+  };
+  var creatorevent = document.createEvent('DragEvent');
+  creatorevent.initDragEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body, {});
+  dragsource.dispatchEvent(creatorevent);
+  assert_true(evtdone.dragstart, 'dragstart must fire');
+  assert_true(evtdone.drag, 'drag must fire');
+  assert_true(evtdone.dragend, 'dragend must fire');
+  assert_false(evtdone.dragenter, 'dragenter must not fire');
+  assert_false(evtdone.dragover, 'dragover must not fire');
+  assert_false(evtdone.dragleave, 'dragleave must not fire');
+  assert_false(evtdone.drop, 'drop must not fire');
+}, "allowTargetOrigin with fake dataTransfer should block events");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Querying keyframes for an effect in a removed iframe should not crash
+  </title>
+<link rel="help" href="https://www.w3.org/TR/web-animations-1/#dom-keyframeeffect-getkeyframes">
+</head>
+<body>
+  <div id="target"></div>
+  <iframe id="iframe"></iframe>
+</body>
+<script type="text/javascript">
+  const target = document.getElementById('target');
+  const iframe = document.getElementById('iframe');
+  const keyframes = [{ background: 'green' }, { background: 'blue' }, ];
+  const effect = new iframe.contentWindow.KeyframeEffect(target, keyframes);
+  iframe.parentNode.removeChild(iframe);
+  const result = effect.getKeyframes();
+</script>
+</html>

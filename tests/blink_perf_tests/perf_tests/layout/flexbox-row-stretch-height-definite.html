@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body style="overflow-y: scroll">
+
+<div id="flexbox-outer" style="display: flex; width: 512px; height: 256px">
+    <div id="neighbor" style="width: 256px">
+    </div>
+    <div id="flexbox-inner" style="flex-direction: column; overflow: auto">
+        <div id="contents" style="height: 100%; overflow: hidden">
+        </div>
+    </div>
+</div>
+
+</body>
+<script>
+
+// Add wrapping text to make the relayout from scrollbar positioning more expensive.
+const contents = document.querySelector('#contents');
+for (let i = 0; i < 1000; i++) {
+    contents.innerHTML += '<div>this text should wrap so a change in its container width triggers a relayout</div>';
+}
+
+const neighbor = document.querySelector("#neighbor");
+
+function runTest()
+{
+    neighbor.innerHTML = "changing this element's contents should not relayout the right flexbox";
+    PerfTestRunner.forceLayout();
+    neighbor.innerHTML = "";
+    PerfTestRunner.forceLayout();
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of definite-height flexbox that stretches its children's height (row).",
+    run: runTest,
+});
+</script>
+</html>

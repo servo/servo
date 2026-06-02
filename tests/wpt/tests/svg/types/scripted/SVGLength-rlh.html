@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<title>SVGLength with 'rlh' unit</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/types.html#InterfaceSVGLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+:root {
+  font-family: initial;
+  font-size: 20px;
+}
+</style>
+<div style="font-size: 10px">
+  <div id="rlh_ref" style="width:10rlh"></div>
+  <svg>
+    <text id="rlh_test" x="10rlh"></text>
+  </svg>
+</div>
+<script>
+  let ref_width = rlh_ref.getBoundingClientRect().width;
+  let rlh_length = rlh_test.x.baseVal[0];
+
+  test(() => {
+    assert_equals(rlh_length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+    assert_equals(rlh_length.value, ref_width);
+  }, "rlh unit in SVGLength");
+
+  test(() => {
+    rlh_length.value = ref_width * 2;
+    assert_equals(rlh_length.valueInSpecifiedUnits, 20);
+  }, "Convert back to rlh from new user unit value");
+</script>

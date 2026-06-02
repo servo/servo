@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-align set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-property"/>
+        <meta name="assert" content="The 'text-align' property set to a value of 'inherit' correctly inherits its value from the parent element." />
+        <style type="text/css">
+            body
+            {
+                text-align: right;
+            }
+            p
+            {
+                text-align: left;
+            }
+            div
+            {
+                border: 1px solid blue;
+                text-align: left;
+                text-align: inherit;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "Filler Text" below are aligned to the right, inside the blue box.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

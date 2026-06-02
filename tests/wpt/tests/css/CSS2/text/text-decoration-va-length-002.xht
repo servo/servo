@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: text-decoration: underline - vertical-align: &lt;length&gt;</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" title="16.3.1 Underlining, overlining, striking, and blinking: the 'text-decoration' property" />
+  <link rel="bookmark" href="https://bugzilla.mozilla.org/show_bug.cgi?id=695442" title="Mozilla Bug 695442: strike style not correctly applied to sub and sup elements" />
+  <link rel="match" href="text-decoration-va-length-002-ref.xht" />
+
+  <meta content="The position of text decoration lines must be determined in relation to the same baseline and is not affected by 'vertical-align' applied on its descendants." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: black;
+  font: 3.75em/0.4 serif;
+  margin-left: 1em;
+  text-decoration: underline;
+  text-decoration-skip-ink: none;
+  }
+
+  span#wrapper
+  {
+  color: white;
+  font-size: 0.4em;
+  }
+
+  span#high {vertical-align: 1em;}
+
+  span#up {vertical-align: 0.5em;}
+
+  span#baseline {vertical-align: 0em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is one <strong>and only one</strong> short straight horizontal black line.</p>
+
+  <div>
+    <span id="wrapper">
+      <span id="high">abcde</span><span id="up">fghij</span><span id="baseline">klmno</span>
+    </span>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,22 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+<body></body>
+<script>
+    let crossOriginUrl =
+      "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/frame-src/support/frame.html";
+
+    promise_test(async test => {
+      let iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+
+      for(let hash of ["#0", "#1"]) {
+        let violation = new Promise(resolve => {
+          window.addEventListener('securitypolicyviolation', resolve);
+        });
+        iframe.src = crossOriginUrl + hash;
+        await violation;
+      }
+    }, "Same-document navigation in an iframe blocked by CSP frame-src");
+</script>
+</html>

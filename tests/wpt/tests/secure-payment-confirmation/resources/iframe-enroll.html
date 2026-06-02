@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SPC Enrollment iframe</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../utils.sub.js"></script>
+<script>
+'use strict';
+
+// Setup the listener first, to avoid race conditions.
+window.addEventListener('message', async function handler(evt) {
+  window.removeEventListener('message', handler);
+
+  if (evt.data.userActivation) {
+    test_driver.set_test_context(window.parent);
+    await test_driver.bless('user activation');
+  }
+  // Assume that our parent has already created a virtual authenticator device.
+  await createCredential().then(credential => {
+    parent.postMessage({type: 'spc_result', id: credential.id, rawId: credential.rawId, error: null}, '*');
+  }).catch(e => {
+    parent.postMessage({type: 'spc_result', error: e}, '*');
+  });
+});
+
+// Now let our parent know that we are ready to enroll.
+window.parent.postMessage({ type: 'loaded' }, '*');
+</script>

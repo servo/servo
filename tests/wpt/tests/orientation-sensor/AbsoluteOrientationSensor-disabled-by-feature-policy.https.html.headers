@@ -1,0 +1,1 @@
+Feature-Policy: accelerometer 'none'; gyroscope 'none'; magnetometer 'none'

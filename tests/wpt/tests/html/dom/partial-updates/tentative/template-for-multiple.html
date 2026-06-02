@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - multiple patches</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div marker="p1"><?start name="p1">Old P1<?end name="p1"></div>
+<div marker="p2 p2-append p2-prepend"><?marker name="p2-prepend"><?start name="p2">Old P2<?end name="p2"><?marker name="p2-append"></div>
+<div marker="p3 p3-prepend"><?marker name="p3-prepend"><?start name="p3">Old P3<?end name="p3"></div>
+
+<template for="p1"><span>New P1</span></template>
+<template for="p2"><span>New P2</span></template>
+
+<template for="p3"><span>New P3</span></template>
+<template for="p2-append"><span>...</span><span></span>more P2</template>
+<template for="p2-prepend"><span>And</span><span>...</span></template>
+<template for="p3-prepend"><span>Pre P3 </span></template>
+<script>
+test(() => {
+    assert_equals(document.querySelector("div[marker*='p1']").textContent, 'New P1');
+    assert_equals(document.querySelector("div[marker*='p2']").textContent, 'And...New P2...more P2');
+    assert_equals(document.querySelector("div[marker*='p3']").textContent, 'Pre P3 New P3');
+}, "Multiple <template for>");
+</script>

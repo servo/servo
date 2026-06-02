@@ -1,0 +1,212 @@
+<!doctype html>
+<title>Pointer Events attributes</title>
+<meta name="viewport" content="width=device-width">
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?mouse-right">
+<meta name="variant" content="?pen-right">
+<meta name="variant" content="?touch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<script>
+  "use strict";
+  const queryStringFragments = location.search.substring(1).split('-');
+  const pointerType = queryStringFragments[0];
+  const button = queryStringFragments[1] === "right" ? "right" : undefined;
+
+  assert_true(['mouse', 'pen', 'touch'].indexOf(pointerType) >= 0,
+        `Unexpected pointer type (${pointerType})`);
+
+  let frameLoaded = undefined;
+  const frameLoadedPromise = new Promise(resolve => {
+    frameLoaded = resolve;
+  });
+
+  const eventsTested = [
+    'pointerover',
+    'pointerenter',
+    'pointerdown',
+    'pointerup',
+    'pointerout',
+    'pointerleave',
+    'pointermove'
+  ];
+
+  let eventsLogged = [];
+
+  function verifyButtonAttributes(event) {
+    let downButton, upButton, downButtons, upButtons;
+    if (button == 'right') {
+        downButton = 2;
+        downButtons = 2;
+        upButton = 2;
+        upButtons = 0;
+    } else {
+      // defaults to left button click
+      downButton = 0;
+      downButtons = 1;
+      upButton = 0;
+      upButtons = 0;
+    }
+    const expectationsHover = {
+      // Pointer over, enter, and move are processed before the button press.
+      pointerover:  { button: -1, buttons: 0 },
+      pointerenter: { button:  -1, buttons: 0 },
+      pointermove:  { button:  -1, buttons: 0 },
+      // Button status changes on pointer down and up.
+      pointerdown:  { button:  downButton, buttons: downButtons },
+      pointerup:    { button:  upButton, buttons: upButtons },
+      // Pointer out and leave are processed after the button release.
+      pointerout:   { button:  -1, buttons: 0 },
+      pointerleave: { button:  -1, buttons: 0 }
+    };
+    const expectationsNoHover = {
+      // We don't see pointer events except during a touch gesture.
+      // Move is the only pointer event where the "button" click state is not
+      // changing. All other pointer events are associated with the start or
+      // end of a touch gesture.
+      pointerover:  { button:  0, buttons: 1 },
+      pointerenter: { button:  0, buttons: 1 },
+      pointerdown:  { button:  0, buttons: 1 },
+      pointermove:  { button: -1, buttons: 1 },
+      pointerup:    { button:  0, buttons: 0 },
+      pointerout:   { button:  0, buttons: 0 },
+      pointerleave: { button:  0, buttons: 0 }
+    };
+    const expectations =
+        (pointerType == 'touch') ? expectationsNoHover : expectationsHover;
+
+    assert_equals(event.button, expectations[event.type].button,
+                  `Button attribute on ${event.type}`);
+    assert_equals(event.buttons, expectations[event.type].buttons,
+                  `Buttons attribute on ${event.type}`);
+  }
+
+  function verifyPosition(event) {
+    const boundingRect = event.target.getBoundingClientRect();
+
+    // With a touch pointer type, the pointerout and pointerleave will trigger
+    // on pointerup while clientX and clientY are still within the target's
+    // bounds. With a hover pointer, these events will be triggered only after
+    // clientX or clientY are out of the target's bounds.
+    if (pointerType != 'touch' &&
+        (event.type == 'pointerout' || event.type == 'pointerleave')) {
+      assert_true(
+          boundingRect.left > event.clientX ||
+          boundingRect.right < event.clientX ||
+          boundingRect.top > event.clientY ||
+          boundingRect.bottom < event.clientY,
+          `clientX/clientY is outside the element bounds for ${event.type} event`);
+    } else {
+      assert_true(
+          boundingRect.left <= event.clientX &&
+          boundingRect.right >= event.clientX,
+          `clientX is within the expected range for ${event.type} event`);
+      assert_true(
+          boundingRect.top <= event.clientY &&
+          boundingRect.bottom >= event.clientY,
+          `clientY is within the expected range for ${event.type} event`);
+    }
+  }
+
+  async function runTests() {
+    await frameLoadedPromise;
+
+    // Prevent opening a contextmenu on right-click.
+    addEventListener("contextmenu", e => e.preventDefault());
+    frames[0].addEventListener("contextmenu", e => e.preventDefault());
+
+    function addPromiseTest(testNamePrefix, target) {
+      const testName = `${testNamePrefix} attribute test.`;
+
+      promise_test(async test => {
+        eventsLogged = [];
+
+        function eventChecker(e) {
+          e.preventDefault();
+          eventsLogged.push(e.type);
+
+          verifyButtonAttributes(e);
+          verifyPosition(e);
+          assert_true(e.isPrimary, `${testNamePrefix}: isPrimary attribute is true`);
+          check_PointerEvent(e, testNamePrefix);
+        };
+
+        eventsTested.forEach(type => {
+          target.addEventListener(type, eventChecker, { once: true });
+          test.add_cleanup(() => {
+            target.removeEventListener(type, eventChecker, { once: true });
+          });
+        });
+
+        // Start the pointer outside, then scrub the target, then move outside
+        // again to make sure the boundary events are fired for hoverable
+        // pointers. Non-hoverable pointers fire those events on pointerdown/up.
+        {
+          const actions = new test_driver.Actions();
+          let buttonArguments = (button == 'right')
+                                ? { button: actions.ButtonType.RIGHT }
+                                : undefined;
+          await actions
+            .addPointer('pointer1', pointerType)
+            .pointerMove(0, 0)
+            .pointerMove(-20, -20, { origin: target })
+            .pointerDown(buttonArguments)
+            .pointerMove(20, 20, { origin: target })
+            .pointerUp(buttonArguments)
+            .pointerMove(0, 0)
+            .send();
+        }
+
+        // Processing a click or tap on the done button is used to signal that
+        // all other events should have been handled.
+        {
+          const doneButton = document.getElementById('done');
+          const clickOnDone = getEvent('click', doneButton);
+          await new test_driver.Actions()
+            .addPointer('pointer1', pointerType)
+            .pointerMove(0, 0, {origin: doneButton})
+            .pointerDown()
+            .pointerUp()
+            .send();
+          await clickOnDone;
+        }
+
+        assert_array_equals(eventsLogged.toSorted(), eventsTested.toSorted(),
+              `${testNamePrefix}: Logged and tested events should be the same`);
+      }, testName);
+    }
+
+    addPromiseTest("Main-frame", document.getElementById('square1'));
+    addPromiseTest("Inner-frame", frames[0].document.getElementById('square2'));
+  }
+</script>
+<style>
+  #square1 {
+    touch-action: none;
+    user-select: none;
+    height: 50px;
+    width: 50px;
+  }
+</style>
+<body onload="runTests()">
+  <div id="square1" draggable="false"></div>
+  <iframe onload="frameLoaded()" id="innerFrame" srcdoc='
+    <style>
+      #square2 {
+        touch-action: none;
+        user-select: none;
+        height: 50px;
+        width: 50px;
+      }
+    </style>
+    <body>
+      <div id="square2" draggable="false"></div>
+    </body>
+  '></iframe>
+  <button id="done">done</button>
+</body>

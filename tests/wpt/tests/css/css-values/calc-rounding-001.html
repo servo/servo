@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>CSS Test: calc rounding doesn't accumulate a lot of error.</title>
+<link rel="author" href="mailto:mats@mozilla.com" title="Mats Palmgren">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1323735">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="match" href="calc-rounding-001-ref.html">
+<style>
+body {
+  background: #f3f5f6;
+}
+
+div {
+  font-size: 15px;
+  width: 401px;
+  margin: 20px;
+  background: #fff;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+b {
+  height: 50px;
+  background: red;
+  width: calc((100% - 4.5em) / 4); /* .5em gutters */
+}
+
+b:not(:last-child) {
+  margin-right: 1.5em;
+}
+</style>
+<div><b></b><b></b><b></b><b></b></div>

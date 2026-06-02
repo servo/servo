@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Initial value of 'border-radius' is 0</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="assert" content="Initial value of 'border-radius' is 0." />
+        <style type="text/css">
+            div
+            {
+                width: 1in;
+                height: 1in;
+                border: 0.2in solid black;
+                margin: 10px;
+            }
+            #reference
+            {
+            }
+            #test
+            {
+                border-radius : 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two boxes are identical.</p>
+        <div id="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

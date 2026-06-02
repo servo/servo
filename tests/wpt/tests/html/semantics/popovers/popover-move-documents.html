@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9177">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function iframeLoaded(iframe) {
+  return new Promise(resolve => {
+    if (iframe.contentWindow.document.readyState == 'complete') {
+      resolve();
+    } else {
+      iframe.onload = resolve;
+    }
+  });
+}
+</script>
+
+<iframe id=myframe srcdoc="<p>iframe</p>"></iframe>
+<div id=p1 popover=auto>p1</div>
+<script>
+promise_test(async () => {
+  await iframeLoaded(myframe);
+  await new Promise(resolve => {
+    if (myframe.contentWindow.document.readyState == 'complete') {
+      resolve();
+    } else {
+
+    }
+  });
+  p1.addEventListener('beforetoggle', () => {
+    myframe.contentWindow.document.body.appendChild(p1);
+  });
+  assert_throws_dom('InvalidStateError', () => p1.showPopover());
+}, 'Moving popovers between documents while showing should throw an exception.');
+</script>
+
+<iframe id=myframe2 srcdoc="<p>iframe</p>"></iframe>
+<div id=p2 popover=auto>p2</div>
+<script>
+promise_test(async () => {
+  await iframeLoaded(myframe2);
+  const p2 = document.getElementById('p2');
+  p2.showPopover();
+  p2.addEventListener('beforetoggle', () => {
+    myframe2.contentWindow.document.body.appendChild(p2);
+  });
+  assert_true(p2.matches(':popover-open'),
+    'The popover should be open after calling showPopover()');
+
+  p2.hidePopover();
+  assert_false(p2.matches(':popover-open'),
+    'The popover should be closed after moving it between documents.');
+}, 'Moving popovers between documents while hiding should not throw an exception.');
+</script>
+
+<iframe id=myframe3 srcdoc="<p>iframe</p>"></iframe>
+<div id=p3 popover=auto>
+  p3
+  <div id=p4 popover=auto>p4</div>
+  <div id=p5 popover=auto>p5</div>
+</div>
+<script>
+promise_test(async () => {
+  await iframeLoaded(myframe3);
+  p3.showPopover();
+  p4.showPopover();
+  p4.addEventListener('beforetoggle', event => {
+    if (event.newState === 'closed') {
+      assert_true(p3.matches(':popover-open'),
+        'p3 should be showing in the event handler.');
+      assert_true(p4.matches(':popover-open'),
+        'p4 should be showing in the event handler.');
+      assert_equals(event.target, p4,
+        'The events target should be p4.');
+      myframe3.contentWindow.document.body.appendChild(p5);
+    }
+  });
+  assert_true(p3.matches(':popover-open'),
+    'p3 should be open after calling showPopover on it.');
+  assert_true(p4.matches(':popover-open'),
+    'p4 should be open after calling showPopover on it.');
+
+  const p5 = document.getElementById('p5');
+  assert_throws_dom('InvalidStateError', () => p5.showPopover());
+  assert_false(p5.matches(':popover-open'),
+    'p5 should be closed after moving it between documents.');
+}, 'Moving popovers between documents during light dismiss should throw an exception.');
+</script>

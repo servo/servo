@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas></canvas>
+<script>
+
+  let testName =
+    "Inline viewer support with no device";
+
+  // Purposefully not connecting a device to ensure that viewer is always
+  // supported if that is the only feature requested.
+  xr_promise_test(testName,
+    (t) => {
+    function session_resolves(sessionMode, sessionInit) {
+      return navigator.xr.requestSession(sessionMode, sessionInit)
+        .then(session => session.end());
+    }
+
+    function session_rejects(expected, sessionMode, sessionInit) {
+      return promise_rejects_dom(t, expected, navigator.xr.requestSession(sessionMode, sessionInit)
+        .then(session => session.end()));
+    }
+
+    return session_resolves('inline', {
+      // RequestSession with 'viewer' as a required featre should succeed, even
+      // without user activation.
+      requiredFeatures: ['viewer']
+    })
+    .then(() => {
+      // RequestSession with 'viewer' as an optional feature should succeed, even
+      // without user activation.
+      return session_resolves('inline', {
+        optionalFeatures: ['viewer']
+      })
+    })
+    .then(() => {
+      // RequestSession with no requirements should succeed.
+      return session_resolves('inline', {});
+    })
+    .then(() => {
+      // RequestSession with non-viewer optional features should fail
+      // without user activation.
+      return session_rejects("SecurityError", 'inline', {
+        optionalFeatures: ['local']
+      });
+    })
+    .then(() => {
+      // RequestSession with non-viewer required features should fail
+      // without user activation.
+      return session_rejects("SecurityError", 'inline', {
+        optionalFeatures: ['local']
+      });
+    })
+    .then(() => promise_simulate_user_activation(() => {
+      // RequestSession with unsupported optional features should succeed.
+      return session_resolves('inline', {
+        requiredFeatures: ['viewer'],
+        optionalFeatures: ['local']
+      })
+    }))
+    .then(() => promise_simulate_user_activation(() => {
+      // Request with unsupported required features should reject.
+      return session_rejects("NotSupportedError", 'inline', {
+          requiredFeatures: ['local']
+      });
+    }));
+  });
+
+</script>
+</body>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel=match href=block_formatting_context_max_width_ref.html>
+<style>
+html, body {
+    margin: 0;
+}
+section {
+    width: 300px;
+}
+div {
+    height: 100px;
+}
+#a {
+    float: right;
+    width: 100px;
+    background: gold;
+}
+#b {
+    overflow: hidden;
+    max-width: 200px;
+    background: blue;
+}
+</style>
+<section><div id=a></div><div id=b>
+

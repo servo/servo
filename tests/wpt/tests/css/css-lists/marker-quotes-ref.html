@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Lists reference: use of `quotes` in ::marker</title>
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+
+<style>
+li:nth-child(1)::marker {
+  content: "\2018" "1" "\2019" " ";
+}
+li:nth-child(2)::marker {
+  content: "«2»" " ";
+}
+li:nth-child(3)::marker {
+  content: "‹3›" " ";
+}
+</style>
+
+<ol>
+  <li>one
+  <li>two
+  <li>three
+</ol>

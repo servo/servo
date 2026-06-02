@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Selection isCollapsed in shadow tree">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-iscollapsed">
+<link rel="help" href="https://issues.chromium.org/issues/40400558">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <div id="host">
+    <template shadowrootmode=open>
+      <p id="inText">Inside shadow tree 1.</p>
+    </template>
+  </div>
+  <p id="outText">Outside shadow tree.</p>
+  <div id="host2">
+    <template shadowrootmode=open>
+      <p id="inText2">Inside shadow tree 2.</p>
+    </template>
+  </div>
+</div>
+
+<script>
+
+const root = host.shadowRoot;
+const inText = root.getElementById('inText');
+const root2 = host2.shadowRoot;
+const inText2 = root2.getElementById('inText2');
+
+test(() => {
+  const sel = window.getSelection();
+  sel.setBaseAndExtent(outText.firstChild, 0, outText.firstChild, 5);
+  assert_false(sel.isCollapsed);
+  assert_false(sel.getComposedRanges()[0].collapsed);
+  assert_equals(sel.anchorNode, outText.firstChild);
+  assert_equals(sel.anchorOffset, 0);
+  assert_equals(sel.focusNode, outText.firstChild);
+  assert_equals(sel.focusOffset, 5);
+}, "Selection in light tree is not collapsed");
+
+test(() => {
+  const sel = window.getSelection();
+  sel.setBaseAndExtent(inText.firstChild, 0, inText.firstChild, 5);
+  assert_false(sel.isCollapsed);
+  assert_false(sel.getComposedRanges()[0].collapsed);
+  assert_equals(sel.anchorNode, inText.firstChild);
+  assert_equals(sel.anchorOffset, 0);
+  assert_equals(sel.focusNode, inText.firstChild);
+  assert_equals(sel.focusOffset, 5);
+}, "Selection in shadow tree is not collapsed");
+
+test(() => {
+  const sel = window.getSelection();
+  sel.setBaseAndExtent(inText.firstChild, 0, outText.firstChild, 1);
+  assert_true(sel.isCollapsed);
+  assert_false(sel.getComposedRanges()[0].collapsed);
+  assert_equals(sel.anchorNode, outText.firstChild);
+  assert_equals(sel.anchorOffset, 1);
+  assert_equals(sel.focusNode, outText.firstChild);
+  assert_equals(sel.focusOffset, 1);
+}, "Selection between light and shadow tree is not valid and is collapsed. Composed range is not collapsed");
+
+test(() => {
+  const sel = window.getSelection();
+  sel.setBaseAndExtent(inText.firstChild, 0, inText2.firstChild, 1);
+  assert_true(sel.isCollapsed);
+  assert_false(sel.getComposedRanges()[0].collapsed);
+  assert_equals(sel.anchorNode, inText2.firstChild);
+  assert_equals(sel.anchorOffset, 1);
+  assert_equals(sel.focusNode, inText2.firstChild);
+  assert_equals(sel.focusOffset, 1);
+}, "Selection between two shadow trees is not valid and is collapsed. Composed range is not collapsed");
+
+</script>

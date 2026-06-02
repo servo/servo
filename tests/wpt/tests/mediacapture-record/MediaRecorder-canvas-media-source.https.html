@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+
+<head>
+  <title>MediaRecorder canvas media source</title>
+  <meta name=variant content="?mimeType=''">
+  <meta name=variant content="?mimeType=video/webm;codecs=vp8,opus">
+  <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
+  <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=avc1.64003E,mp4a.40.2">
+  <meta name=variant content="?mimeType=video/mp4;codecs=avc3.64003E,mp4a.40.2">
+  <meta name=variant content="?mimeType=video/mp4;codecs=vp9,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=av01,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=av01,mp4a.40.2">
+  <meta name=variant content="?mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=hev1.1.6.L186.B0,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,mp4a.40.2">
+  <meta name=variant content="?mimeType=video/mp4;codecs=hev1.1.6.L186.B0,mp4a.40.2">
+  <meta name=variant content="?mimeType=video/x-matroska;codecs=hvc1.1.6.L186.B0,opus">
+  <meta name=variant content="?mimeType=video/x-matroska;codecs=hev1.1.6.L186.B0,opus">
+  <meta name=variant content="?mimeType=video/mp4">
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../mediacapture-streams/permission-helper.js"></script>
+</head>
+
+<body>
+  <script>
+async function createWorker(script) {
+  script += "self.postMessage('ready');";
+  const blob = new Blob([script], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const worker = new Worker(url);
+  await new Promise(resolve => worker.onmessage = resolve);
+  return worker;
+}
+
+async_test(test => {
+  const CANVAS_WIDTH = 256;
+  const CANVAS_HEIGHT = 144;
+
+  let large_size_data_available = false;
+
+  // Empty video frames from this resolution consistently have ~750 bytes in my
+  // tests, while valid video frames usually contain 7-8KB. A threshold of
+  // 1.5KB consistently fails when video frames are empty but passes when video
+  // frames are non-empty.
+  const THRESHOLD_FOR_EMPTY_FRAMES = 1500;
+
+  const CAMERA_CONSTRAINTS = {
+    video: {
+      width: { ideal: CANVAS_WIDTH },
+      height: { ideal: CANVAS_HEIGHT }
+    }
+  };
+
+  function useUserMedia(constraints) {
+    let activeStream = null;
+
+    function startCamera() {
+      return navigator.mediaDevices.getUserMedia(constraints).then(
+        (stream) => {
+          activeStream = stream;
+          return stream;
+        }
+      );
+    }
+
+    function stopCamera() {
+      activeStream?.getTracks().forEach((track) => track.stop());
+    }
+
+    return { startCamera, stopCamera };
+  }
+
+  function useMediaRecorder(stream, mimeType, frameSizeCallback) {
+    const mediaRecorder = new MediaRecorder(
+      stream, { mimeType }
+    );
+
+    mediaRecorder.ondataavailable = event => {
+      const {size} = event.data;
+      frameSizeCallback(size);
+
+      if (mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    };
+
+    mediaRecorder.onstop = event => {
+      assert_equals(large_size_data_available, true),
+          "onstop is called after valid data is available";
+    };
+
+    mediaRecorder.start(1000);
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const mimeType = params.get('mimeType');
+  if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+    test.done();
+    return;
+  }
+
+  const {startCamera, stopCamera} = useUserMedia(CAMERA_CONSTRAINTS);
+  startCamera().then(async stream => {
+    const videoTrack = stream.getVideoTracks()[0];
+    const worker = await createWorker(`
+      const CANVAS_WIDTH = ${CANVAS_WIDTH};
+      const CANVAS_HEIGHT = ${CANVAS_HEIGHT};
+      onmessage = e => {
+        const videoTrack = e.data;
+        const { readable: readableStream } = new MediaStreamTrackProcessor({
+          track: videoTrack
+        });
+
+        const composedTrackGenerator = new VideoTrackGenerator();
+        const sink = composedTrackGenerator.writable;
+
+        const canvas = new OffscreenCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+        const ctx = canvas.getContext("2d", {
+          alpha: false,
+        });
+        ctx.fillStyle = "#333";
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        const transformer = new TransformStream({
+          async transform(cameraFrame, controller) {
+            if (cameraFrame && cameraFrame?.codedWidth > 0) {
+              const leftPos = (CANVAS_WIDTH - cameraFrame.displayWidth) / 2;
+              const topPos = (CANVAS_HEIGHT - cameraFrame.displayHeight) / 2;
+
+              ctx.drawImage(cameraFrame, leftPos, topPos);
+
+              const newFrame = new VideoFrame(canvas, {
+                timestamp: cameraFrame.timestamp
+              });
+              cameraFrame.close();
+              controller.enqueue(newFrame);
+            }
+          }
+        });
+
+        readableStream.pipeThrough(transformer).pipeTo(sink);
+        self.postMessage(composedTrackGenerator.track, [composedTrackGenerator.track]);
+      }
+    `);
+    try {
+      worker.postMessage(videoTrack, [videoTrack]);
+    } catch(e) {
+      test.step_func_done(() => {
+         assert_unreached("MediaStreamTrack transfer not supported");
+      })();
+    }
+    const composedTrack = await new Promise((resolve, reject) => {
+      worker.onmessage = e => resolve(e.data);
+      test.step_timeout(() => reject("unable to get composited track"), 2000);
+    });
+    const compositedMediaStream = new MediaStream([composedTrack]);
+
+    useMediaRecorder(compositedMediaStream, mimeType, (size => {
+      if (size > THRESHOLD_FOR_EMPTY_FRAMES) {
+        large_size_data_available = true;
+        stopCamera();
+        test.done();
+      }
+    }));
+  });
+}, "MediaRecorder returns frames containing video content");
+  </script>
+</body>
+
+</html>

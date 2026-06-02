@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS margin: Margin collapsing and elements with min-height</title>
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+<link rel="help" href="http://www.w3.org/TR/CSS22/box.html#collapsing-margins" />
+<link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.8.3.1c" />
+<link rel="match" href="margin-collapse-min-height-002-ref.xht" />
+<meta name="assert" content="If the top margin of a box with non-zero computed 'min-height' and 'auto' computed 'height' collapses with the bottom margin of its last in-flow child, then the child's bottom margin does not collapse with the parent's bottom margin." />
+<style type="text/css">
+  #container {width: 50px; height: 50px; border-top: 1px solid transparent;
+    border-bottom: 100px solid red; background: green}
+  #parent {height: auto; min-height: 50px; background-color: white}
+  #child {margin-bottom: 50px}
+  #following-sibling {height: 50px; background-color: green}
+</style>
+</head>
+  <body>
+    <!-- Credit for this test goes to Anton Prowse, see
+	 https://www.w3.org/Bugs/Public/show_bug.cgi?id=16036#c4 -->
+    <p>There should be two solid green squares and no red on this page</p>
+    <div id="container" >
+      <div id="parent">
+     	<div id="child"></div>
+      </div>
+      <div id="following-sibling"></div>
+    </div>
+  </body>
+</html>

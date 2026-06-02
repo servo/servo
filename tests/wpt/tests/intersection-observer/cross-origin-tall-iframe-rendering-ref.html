@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Intersection observer with cross-origin iframe and tall viewport</title>
+<style>
+:root { scrollbar-width: none }
+.spacer {
+  height: calc(200vh + 100px);
+}
+.frame {
+  width: 160px;
+  height: 5100px;
+  outline: 1px solid;
+
+  > .spacer {
+    height: 5000px;
+  }
+
+  > .target {
+    height: 100px;
+    background-color: green;
+  }
+}
+</style>
+<div class="spacer"></div>
+<div class="frame"><div class="spacer"></div><div class="target"></div></div>
+<div class="spacer"></div>
+<script>
+document.querySelector(".frame").scrollIntoView({ block: "end" });
+</script>

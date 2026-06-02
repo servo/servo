@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>incremental trailing whitespace test</title>
+    <link rel="match" href="incremental_trailing_whitespace_ref.html">
+    <style>
+      #a {
+        border: 0 solid;
+      }
+      #a.go {
+        border-bottom-width: 4px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="display: inline-block; width: 33.3333%;"></div>
+    <div style="display: inline-block; width: 66.66%;">
+      <div id="a" style="transition: all .1s ease-out;">Hello</div>
+    </div>
+    <script>
+      let transitioningDiv = document.querySelector('#a');
+      transitioningDiv.addEventListener('transitionend', () => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+
+      document.body.offsetWidth; // force layout
+      transitioningDiv.classList.add('go');
+    </script>
+  </body>
+</html>

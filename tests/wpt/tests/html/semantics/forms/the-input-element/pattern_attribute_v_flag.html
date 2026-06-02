@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>pattern attribute: v flag</title>
+<meta name=viewport content="width=device-width">
+<link rel="author" title="Fabrice Clari" href="mailto:f.clari@inno-group.com">
+<link rel="author" title="Dimitri Bocquet" href="mailto:Dimitri.Bocquet@mosquito-fp7.eu">
+<link rel="author" title="Mathias Bynens" href="https://mathiasbynens.be/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-input-pattern">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1><code>pattern</code> attribute: v flag</h1>
+<div style="display: none">
+  <input pattern="[\p{ASCII_Hex_Digit}--[Ff]]" value="0123456789abcdefABCDEF" id="set-difference">
+  <input pattern="[_\q{a|bc|def}]" value="q" id="string-literal">
+
+  <div class="breaking-changes-from-u-to-v">
+    <!-- Unescaped special characters in character classes. -->
+    <input pattern="[(]" value="foo">
+    <input pattern="[)]" value="foo">
+    <input pattern="[[]" value="foo">
+    <input pattern="[{]" value="foo">
+    <input pattern="[}]" value="foo">
+    <input pattern="[/]" value="foo">
+    <input pattern="[-]" value="foo">
+    <input pattern="[|]" value="foo">
+    <!-- Double punctuators in character classes. -->
+    <input pattern="[&&]" value="foo">
+    <input pattern="[!!]" value="foo">
+    <input pattern="[##]" value="foo">
+    <input pattern="[$$]" value="foo">
+    <input pattern="[%%]" value="foo">
+    <input pattern="[**]" value="foo">
+    <input pattern="[++]" value="foo">
+    <input pattern="[,,]" value="foo">
+    <input pattern="[..]" value="foo">
+    <input pattern="[::]" value="foo">
+    <input pattern="[;;]" value="foo">
+    <input pattern="[<<]" value="foo">
+    <input pattern="[==]" value="foo">
+    <input pattern="[>>]" value="foo">
+    <input pattern="[??]" value="foo">
+    <input pattern="[@@]" value="foo">
+    <input pattern="[``]" value="foo">
+    <input pattern="[~~]" value="foo">
+    <input pattern="[_^^]" value="foo">
+  </div>
+</div>
+<div id="log"></div>
+<script>
+  test(() => {
+    const input = document.querySelector("#set-difference");
+    assert_false(input.validity.valid);
+    assert_false(input.matches(":valid"));
+    assert_true(input.validity.patternMismatch);
+  }, "<input pattern> supports set difference syntax");
+
+  test(() => {
+    const input = document.querySelector("#string-literal");
+    assert_false(input.validity.valid);
+    assert_true(input.validity.patternMismatch);
+    assert_true(input.matches(":invalid"));
+  }, "<input pattern> supports string literal syntax");
+
+  test(() => {
+    const inputs = document.querySelectorAll(".breaking-changes-from-u-to-v input");
+    // These examples are all written such that they’re all `:invalid`
+    // when using `u`, but would become `:valid` when using `v` because
+    // the pattern would error, in turn resulting in
+    // `validity.valid === true`.
+    for (const input of inputs) {
+      const html = input.outerHTML;
+      assert_true(input.validity.valid, `${html} should be valid`);
+      assert_true(input.matches(":valid"), `${html} should match \`:valid\``);
+      assert_false(input.validity.patternMismatch, `${html} should not trigger a pattern mismatch`);
+    }
+  }, "<input pattern> enables the RegExp v flag");
+</script>

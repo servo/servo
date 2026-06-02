@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Size - landscape</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-size"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'landscape' value of the 'size' property specifies that the page's content be printed in landscape orientation: the longer sides of the page box are horizontal."/>
+<style type="text/css">
+
+	@page {
+		size:landscape;
+	}
+
+</style>
+</head>
+<body>
+	<div>This page must be printed in landscape orientation: the longer edges of the page must be horizontal.</div>
+</body>
+</html>

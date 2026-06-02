@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
+<style>
+    body {
+        overflow: hidden;
+        image-orientation: none;
+    }
+    div {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+</style>
+</head>
+<body>
+    <p>The following images should not be identical.</p>
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is same origin.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>This image should rotate respecting their EXIF orientation because
+       image-orientation: none should be effectively ignored for opaque (cross-origin) images.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg" style="image-orientation: from-image" /></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is CORS anonymous.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is CORS
+       use-credentials.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a blob.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a data url.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+</body>
+</html>

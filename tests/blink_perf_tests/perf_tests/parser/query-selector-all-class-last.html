@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+for (var i = 0; i < 1000; i++) {
+    var div = document.createElement("div");
+    div.id = "foo" + i;
+    div.className = "bar" + i;
+    document.body.appendChild(div);
+}
+
+var h1 = document.createElement("h1");
+h1.id = "id";
+h1.className = "class";
+document.body.lastChild.appendChild(h1);
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests querySelectorAll() for an element that appears near the tail of the document, and is a child of an element with a given id",
+    run: function() {
+        for (var i = 0; i < 100; i++) {
+            var res = document.querySelectorAll(".bar999 > h1");
+        }
+    }});
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script nonce="abc" src="/resources/testharness.js"></script>
+    <script nonce="abc" src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script nonce='abc'>
+      var url = "data:text/html,<script>alert(document.domain)<\/scri"+"pt>";
+
+      var i = document.createElement('iframe');
+      i.src = url;
+      document.body.appendChild(i);
+    </script>
+    <script nonce='abc' async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27nonce-abc%27'></script>
+</body>
+
+</html>

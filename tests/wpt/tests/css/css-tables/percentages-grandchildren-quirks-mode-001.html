@@ -1,0 +1,9 @@
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<meta name="assert" content="This test checks that table cell children, in quirks mode, don't apply the percentage height quirk to their children." />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p style="margin-top: 1em;">Test passes if there is a filled green square.</p>
+<div style="display:table-cell; height:100px; background:green;">
+  <div style="width:100px;">
+    <div style="height:100%; background:red;"></div>
+  </div>
+</div>

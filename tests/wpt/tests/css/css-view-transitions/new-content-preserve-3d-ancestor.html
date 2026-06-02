@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: computed transform for elements with transform-style:preserve-3d ancestors is correct</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+<link rel="match" href="new-content-preserve-3d-ancestor-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../../resources/ui-helper.js"></script>
+<style>
+.box {
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  transform: rotateY(60deg);
+  view-transition-name: target;
+}
+.outer {
+  width: 100px;
+  height: 100px;
+  transform-style: preserve-3d;
+  transform: rotateY(60deg);
+}
+
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<div class=outer>
+  <div class=outer>
+    <div class=box></div>
+  </div>
+</div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  let t = document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

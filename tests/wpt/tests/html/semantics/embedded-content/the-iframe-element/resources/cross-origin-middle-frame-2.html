@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- This document is used for the test `move-node-local-root-events-still-fire.html` -->
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+(async function() {
+  // This iframe will be cross-origin to the current document, but same-origin
+  // with its grandparent, our direct parent.
+  const iframe = document.createElement('iframe');
+  // A URL that's cross-origin to this document, and same-origin to our parent.
+  const crossOriginChildURL = new URL('create-button-with-pointerdown-listener.html', location.href).toString().replace(location.origin, get_host_info().HTTP_ORIGIN);
+  iframe.src = crossOriginChildURL;
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await loadPromise;
+
+  parent.postMessage('grandchild loaded', '*');
+})();
+</script>
+</body>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): preserve-3d containing a br</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1276151">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-style-property">
+<meta name="assert" content="This should not crash.">
+
+<div style="transform-style: preserve-3d; column-count: 128">
+  <br>
+</div>

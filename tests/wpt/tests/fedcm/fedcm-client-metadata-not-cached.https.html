@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  // Reset the client_metadata fetch count.
+  const clear_metadata_count_path = `/fedcm/support/client_metadata_clear_count.py`;
+  await fetch(clear_metadata_count_path);
+
+  // FedCM flow causes the counter of client metadata to increase by 1.
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  assert_equals(cred.token, "token");
+
+  await new Promise(resolve => {
+    // Fetch the client metadata from a popup window.
+    let popup_window = window.open('/fedcm/support/client_metadata.py?skip_checks=1');
+    const popup_window_load_handler = (event) => {
+      popup_window.removeEventListener('load', popup_window_load_handler);
+      popup_window.close();
+      resolve();
+    };
+    popup_window.addEventListener('load', popup_window_load_handler);
+  });
+
+  const client_metadata_counter = await fetch(clear_metadata_count_path);
+  const client_metadata_counter_text = await client_metadata_counter.text();
+  // Check that the client metadata response is not cached. If the client metadata response was
+  // cached, when the user visits the IDP as a first party, the IDP would be able to determine the
+  // last RP the user visited regardless of whether the user granted consent via the FedCM prompt.
+  assert_equals(client_metadata_counter_text, "2");
+}, 'Test client_metadata request is not cached');
+</script>

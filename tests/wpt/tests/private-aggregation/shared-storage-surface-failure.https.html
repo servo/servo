@@ -1,0 +1,74 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/private-aggregation/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note: This file should contain at most 6 shared storage subtests due to the
+// budget on selectURL().
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    contributions: [{bucket: 340282366920938463463374607431768211456n, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'contributeToHistogram() with a bucket too large');
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    contributions: [{bucket: -1n, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'contributeToHistogram() with negative bucket');
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    contributions: [{bucket: 1, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'contributeToHistogram() with non-BigInt bucket');
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    enableDebugModeArgs: 1234n,
+    contributions: [{bucket: 1n, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'Invalid enableDebugMode argument');
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    enableDebugModeArgs: {debugKey: 1234},
+    contributions: [{bucket: 1n, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'contributeToHistogram() with a non-BigInt debugKey');
+
+promise_test(async () => {
+  const paa_data = {
+    enableDebugMode: true,
+    enableDebugModeExtraTime: true,
+    contributions: [{bucket: 1n, value: 2}]
+  };
+
+  await VerifyContributeToHistogram(paa_data, /*expected_error=*/true);
+}, 'enableDebugMode called twice');
+
+</script>
+</body>

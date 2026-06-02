@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-dynamic-text-001-ref.html">
+<style>
+:root { text-autospace: normal; }
+</style>
+<div id="target">国国</div>
+<script>
+const target_text = document.getElementById('target').firstChild;
+for (const ch of 'AA国国AA国国') {
+  document.body.offsetTop;  // Force layout.
+  target_text.appendData(ch);
+}
+</script>

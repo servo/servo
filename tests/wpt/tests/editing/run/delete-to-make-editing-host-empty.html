@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  const editingHostHeightWhenEmpty = editingHost.getBoundingClientRect().height;
+  editingHost.innerHTML = "<br>";
+  const editingHostHeightWhenHasBR = editingHost.getBoundingClientRect().height;
+  test(() => {
+    assert_true(
+      Math.abs(editingHostHeightWhenHasBR - editingHostHeightWhenEmpty) <= 1,
+      `"<div contenteditable></div>" height: ${
+        editingHostHeightWhenEmpty
+      }, "<div contenteditable><br></div>" height: ${editingHostHeightWhenHasBR}`
+    );
+  }, `"<div contenteditable></div>" and "<div contenteditable><br></div>" should have almost same height`);
+  test(() => {
+    const editingHostHeightWhenHasChar = editingHost.getBoundingClientRect().height;
+    assert_true(
+      Math.abs(editingHostHeightWhenHasBR - editingHostHeightWhenHasChar) <= 1,
+      `"<div contenteditable><br></div>" height: ${
+        editingHostHeightWhenHasBR
+      }, "<div contenteditable>a</div>" height: ${editingHostHeightWhenHasChar}`
+    );
+  }, `"<div contenteditable><br></div>" and "<div contenteditable>a</div>" should have almost same height`);
+  editingHost.focus();
+  const utils = new EditorTestUtils(editingHost);
+  promise_test(async () => {
+    utils.setupEditingHost("a[]");
+    await utils.sendBackspaceKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Backspace when "a[]"`);
+  promise_test(async () => {
+    utils.setupEditingHost("[]a");
+    await utils.sendDeleteKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Delete when "[]a"`);
+  promise_test(async () => {
+    utils.setupEditingHost("{a}");
+    await utils.sendBackspaceKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Backspace when "{a}"`);
+  promise_test(async () => {
+    utils.setupEditingHost("{a}");
+    await utils.sendDeleteKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Delete when "{a}"`);
+  promise_test(async () => {
+    utils.setupEditingHost("{a}");
+    await utils.sendCutShortcutKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Accel - x when "{a}"`);
+  promise_test(async () => {
+    utils.setupEditingHost("<span>a[]</span>");
+    await utils.sendBackspaceKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Backspace when "<span>a[]</span>"`);
+  promise_test(async () => {
+    utils.setupEditingHost("<span>[]a</span>");
+    await utils.sendDeleteKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Delete when "<span>[]a</span>"`);
+  promise_test(async () => {
+    utils.setupEditingHost("<span>{a}</span>");
+    await utils.sendBackspaceKey();
+    assert_equals(editingHost.innerHTML, "<br>", "Comparing innerHTML");
+    const editingHostHeight = editingHost.getBoundingClientRect().height;
+    assert_equals(editingHostHeightWhenHasBR, editingHostHeight, "Comparing editing host height");
+  }, `Backspace when "<span>{a}</span>"`);
+  promise_test(async () => {
+    utils.setupEditingHost("{}");
+    await utils.sendBackspaceKey();
+    assert_equals(editingHost.innerHTML, "", "Comparing innerHTML");
+  }, `Backspace when "{}"`);
+  promise_test(async () => {
+    utils.setupEditingHost("{}");
+    await utils.sendDeleteKey();
+    assert_equals(editingHost.innerHTML, "", "Comparing innerHTML");
+  }, `Delete when "{}"`);
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

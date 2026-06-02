@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>SVG Test: &lt;g&gt; and &lt;symbol&gt; are SVGGraphicsElements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <g transform="translate(200, 0)">
+    <rect width="100" height="100"></rect>
+  </g>
+  <symbol transform="translate(100, 0)">
+    <rect width="100" height="100"></rect>
+  </symbol>
+</svg>
+<script>
+  const g = document.querySelector("g");
+  const symbol = document.querySelector("symbol");
+  test(() => {
+    assert_equals(getComputedStyle(g).transform, "matrix(1, 0, 0, 1, 200, 0)");
+  }, "<g> element has transform presentation style from being an SVGGraphicsElement");
+  test(() => {
+    assert_equals(getComputedStyle(symbol).transform, "matrix(1, 0, 0, 1, 100, 0)");
+  }, "<symbol> element has transform presentation style from being an SVGGraphicsElement");
+</script>

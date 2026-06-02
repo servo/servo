@@ -1,0 +1,52 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+
+    const rawDeleteHeader = 'delete;key=hello';
+    const deleteHeader = encodeURIComponent(rawDeleteHeader);
+    const sameOriginDeleteUrl =
+      `/shared-storage/resources/shared-storage-write.py?write=${deleteHeader}`
+    const sameOrigin = generateURL(sameOriginDeleteUrl, []).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+    const crossOriginDeleteUrl = crossOrigin + sameOriginDeleteUrl;
+
+    promise_test(async t => {
+      await sharedStorage.set("hello", "there");
+      await verifyKeyValueForOrigin('hello', 'there', sameOrigin);
+
+      let response = await fetch(sameOriginDeleteUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      // JS does not see the `Shared-Storage-Write` response header.
+      assert_false(!!response.headers.get('Shared-Storage-Write'));
+
+      await verifyKeyNotFoundForOrigin('hello', sameOrigin);
+    }, 'Deleting from shared storage via the \'Shared-Storage-Write\' header '
+       + 'for a same-origin shared storage fetch request');
+
+    promise_test(async t => {
+      await setKeyValueForOrigin('hello', 'there', crossOrigin);
+      await verifyKeyValueForOrigin('hello', 'there', crossOrigin);
+
+      let response = await fetch(crossOriginDeleteUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      // JS does not see the `Shared-Storage-Write` response header.
+      assert_false(!!response.headers.get('Shared-Storage-Write'));
+
+      await verifyKeyNotFoundForOrigin('hello', crossOrigin);
+    }, 'Deleting from shared storage via the \'Shared-Storage-Write\' header '
+       + 'for a cross-origin shared storage fetch request');
+  </script>
+</body>

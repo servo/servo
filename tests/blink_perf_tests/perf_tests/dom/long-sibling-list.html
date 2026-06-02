@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="container"></div>
+<script>
+'use strict';
+
+PerfTestRunner.assert_true(typeof window.GCController !== "undefined", 'GCController is required for accurate measurement');
+
+PerfTestRunner.measureTime({
+  description: 'Adds, then lays out, a long list of sibling elements ' +
+               'separated by spaces',
+  setup: () => {
+    container.parentNode.replaceChild(container.cloneNode(false), container);
+    PerfTestRunner.gc();
+  },
+  run: () => {
+    const num_words = 30000;
+    for (var i = 0; i < num_words; i++) {
+      var a = document.createElement('a');
+      a.appendChild(document.createTextNode('' + i));
+      container.appendChild(a);
+      container.appendChild(document.createTextNode(' '));
+    }
+    PerfTestRunner.forceLayout();
+  }
+});
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>text-indent in anonymous flex and grid items</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+main {
+  font: 10px/1 Ahem;
+  color: orange;
+}
+</style>
+
+<p>
+Pass conditions:
+<ul>
+  <li>The top left quadrant of the black-bordered rectangle is white.
+  <li>Only the top left quadrant of the black-bordered rectangle is white.
+  <li>The rest of the black-bordered rectangle is orange.
+  <li>No orange is outside the black-bordered rectangle.
+</ul>
+</p>
+
+<main>
+<div style="text-indent: 50px; border: 3px solid black; width: 100px;">
+  ABCDE ABCDEABCDE
+</div>
+</main>

@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Computed styles for URLs use the resolved URL and specified styles use the original URL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="tests"></div>
+<script>
+  var origin = window.location.origin;
+  var container = document.getElementById("tests");
+
+  // Some shorthands like background and border-image compute to other properties
+  var computedPropertyName = {
+    background: "backgroundImage",
+    borderImage: "borderImageSource",
+    listStyle: "listStyleImage",
+  };
+
+  function makeComputedUrlStyle(path) {
+    return `url("${origin}/${path}")`;
+  }
+  function makeSpecifiedUrlStyle(path) {
+    return `url("${path}")`;
+  }
+  function testUrlsForProperty(property, urlValue, extraShorthand) {
+    test(function() {
+      var extra = extraShorthand ? ` ${extraShorthand}` : "";
+
+      var elem = document.createElement("div");
+      elem.style[property] = `url("${urlValue}")${extra}`;
+      container.appendChild(elem);
+
+      assert_equals(
+        getComputedStyle(elem)[computedPropertyName[property] || property],
+        makeComputedUrlStyle(`_mozilla/css/${urlValue}`)
+      );
+      assert_equals(
+        elem.style[computedPropertyName[property] || property],
+        makeSpecifiedUrlStyle(urlValue)
+      );
+    }, `getComputedStyle(elem) for url() ${property} uses the resolved URL and elem.style uses the original URL`);
+  }
+
+  function testNoneForProperty(property) {
+    test(function() {
+      var elem = document.createElement("div");
+      elem.style[property] = "none";
+      container.appendChild(elem);
+
+      assert_equals(
+        getComputedStyle(elem)[computedPropertyName[property] || property],
+        "none"
+      );
+      assert_equals(
+        elem.style[computedPropertyName[property] || property],
+        "none"
+      );
+    }, `getComputedStyle(elem) and elem.style for url() ${property} correctly return "none"`);
+  }
+
+  testNoneForProperty("background");
+  testNoneForProperty("backgroundImage");
+  testNoneForProperty("borderImage");
+  testNoneForProperty("listStyle");
+  testNoneForProperty("listStyleImage");
+
+  testUrlsForProperty("backgroundImage", "test.jpg");
+  testUrlsForProperty("background", "test.jpg", "no-repeat");
+  testUrlsForProperty("borderImage", "test.jpg", "30 round");
+  testUrlsForProperty("listStyleImage", "test.jpg");
+  testUrlsForProperty("listStyle", "test.jpg", "square");
+</script>
+

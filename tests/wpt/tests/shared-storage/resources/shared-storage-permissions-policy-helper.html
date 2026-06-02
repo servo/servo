@@ -1,0 +1,18 @@
+<!doctype html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/shared-storage/resources/util.js"></script>
+  <script>
+  'use strict';
+
+  window.onload = async function() {
+    if (await AreRegularSharedStorageMethodsAllowed()) {
+      parent.postMessage({ type: 'availability-result', enabled: true }, '*');
+      return;
+    }
+
+    parent.postMessage({ type: 'availability-result', enabled: false }, '*');
+  }
+  </script>
+</body>

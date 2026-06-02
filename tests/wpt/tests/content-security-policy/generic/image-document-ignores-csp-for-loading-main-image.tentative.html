@@ -1,0 +1,7 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSP header ignored for image in image document</title>
+<link rel="help" href="https://github.com/servo/servo/issues/38180">
+<link rel='match' href='image-document-ignores-csp-for-loading-main-image-ref.html'>
+<link rel="author" title="Josh Matthews" href="mailto:josh@joshmatthews.net">
+<iframe src="../support/pass.png?pipe=header(Content-Security-Policy,default-src 'none')">

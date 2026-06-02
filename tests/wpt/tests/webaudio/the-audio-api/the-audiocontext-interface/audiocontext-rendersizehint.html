@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Test AudioContextOptions renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const SAMPLE_RATE = 44100;
+const SIX_SECONDS_SAMPLES = SAMPLE_RATE * 6;
+
+test(function() {
+  const context = new AudioContext();
+  assert_equals(context.renderQuantumSize, 128,
+      'renderQuantumSize with no hint');
+  context.close();
+}, 'AudioContext with no renderSizeHint');
+
+test(function() {
+  const context = new AudioContext({renderSizeHint: 'default'});
+  assert_equals(context.renderQuantumSize, 128,
+      'renderQuantumSize with "default" hint');
+  context.close();
+}, 'AudioContext with renderSizeHint: "default"');
+
+test(function() {
+  const context = new AudioContext({renderSizeHint: 'hardware'});
+  assert_greater_than(context.renderQuantumSize, 0,
+      'renderQuantumSize with "hardware" hint');
+  context.close();
+}, 'AudioContext with renderSizeHint: "hardware"');
+
+test(function() {
+  const context = new AudioContext({renderSizeHint: 256});
+  assert_equals(context.renderQuantumSize, 256,
+      'renderQuantumSize with 256 hint');
+  context.close();
+}, 'AudioContext with renderSizeHint: 256');
+
+test(function() {
+  // 1 is a valid render quantum size.
+  const context = new AudioContext({renderSizeHint: 1});
+  assert_equals(context.renderQuantumSize, 1, 'renderQuantumSize with 1 hint');
+  context.close();
+}, 'AudioContext with renderSizeHint: 1');
+
+test(function() {
+  const context = new AudioContext({sampleRate: SAMPLE_RATE,
+    renderSizeHint: SIX_SECONDS_SAMPLES});
+  assert_equals(context.renderQuantumSize, SIX_SECONDS_SAMPLES,
+      'renderQuantumSize at 6s boundary');
+  context.close();
+}, 'AudioContext with renderSizeHint at 6s boundary');
+
+test(function() {
+  assert_throws_dom('NotSupportedError', () => {
+    new AudioContext({renderSizeHint: 0});
+  }, 'new AudioContext({renderSizeHint: 0})');
+}, 'AudioContext with invalid renderSizeHint (0) throws NotSupportedError');
+
+test(function() {
+  assert_throws_dom('NotSupportedError', () => {
+    new AudioContext({sampleRate: SAMPLE_RATE,
+      renderSizeHint: SIX_SECONDS_SAMPLES + 1});
+  }, `new AudioContext({renderSizeHint: ${SIX_SECONDS_SAMPLES + 1}})`);
+}, 'AudioContext with renderSizeHint > 6s boundary throws NotSupportedError');
+</script>

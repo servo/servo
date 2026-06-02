@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline-offset width negative values</title>
+  <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="Negative values on outline-offset must cause the outline to shrink into the border box.">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: red;
+  outline: solid 50px green;
+  outline-offset: -50px;
+}
+</style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div></div>
+

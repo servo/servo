@@ -1,0 +1,138 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation should not occur when `src` matches the location of a anscestor browsing context</title>
+<script>
+// Avoid recursion in non-conforming browsers
+if (parent !== window && parent.title == window.title) {
+  window.stop();
+}
+</script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+/**
+ * This test uses the `beforeunload` event to detect navigation. Because that
+ * event is fired synchronously in response to "process the iframe attributes",
+ * a second "control" iframe may be used to verify cases where navigation
+ * should *not* occur. `Promise.race` ensures that tests complete as soon as
+ * possible.
+ *
+ * Although the specification dictates that the `beforeunload` event must be
+ * emitted synchronously during navigation, a number of user agents do not
+ * adhere to this requirement. WPT includes a dedicated test for synchronous
+ * emission of the event [1]. This test is authored to support non-standard
+ * behavior in order to avoid spuriously passing in those UAs.
+ *
+ * [1] https://github.com/web-platform-tests/wpt/pull/12343
+ */
+'use strict';
+
+function when(target, eventName) {
+  return new Promise(function(resolve, reject) {
+    target.addEventListener(eventName, function() {
+      resolve();
+    }, { once: true });
+    target.addEventListener('error', function() {
+      reject(new Error('Error while waiting for ' + eventName));
+    }, { once: true });
+  });
+}
+
+function init(doc, t) {
+  var iframes = [doc.createElement('iframe'), doc.createElement('iframe')];
+
+  iframes.forEach(function(iframe) {
+    iframe.src = '/common/blank.html';
+    doc.body.appendChild(iframe);
+
+    t.add_cleanup(function() {
+      iframe.parentNode.removeChild(iframe);
+    });
+  });
+
+  return Promise.all([when(iframes[0], 'load'), when(iframes[1], 'load')])
+    .then(function() { return iframes; });
+}
+
+// This test verifies that navigation does occur; it is intended to validate
+// the utility functions.
+promise_test(function(t) {
+  return init(document, t)
+    .then(function(iframes) {
+      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
+      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
+
+      iframes[0].src = '/common/blank.html?2';
+      iframes[1].src = '/common/blank.html?3';
+
+      return Promise.all([subjectNavigation, controlNavigation]);
+    });
+}, 'different path name');
+
+promise_test(function(t) {
+  return init(document, t)
+    .then(function(iframes) {
+      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
+      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
+
+      iframes[0].src = location.href;
+      iframes[1].src = '/common/blank.html?4';
+
+      return Promise.race([
+        subjectNavigation.then(function() {
+          assert_unreached('Should not navigate');
+        }),
+        controlNavigation
+      ]);
+    });
+}, 'same path name, no document fragment');
+
+promise_test(function(t) {
+  return init(document, t)
+    .then(function(iframes) {
+      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
+      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
+
+      iframes[0].src = location.href + '#something-else';
+      iframes[1].src = '/common/blank.html?5';
+
+      return Promise.race([
+        subjectNavigation.then(function() {
+          assert_unreached('Should not navigate');
+        }),
+        controlNavigation
+      ]);
+    });
+}, 'same path name, different document fragment');
+
+promise_test(function(t) {
+  var intermediate = document.createElement('iframe');
+
+  document.body.appendChild(intermediate);
+
+  t.add_cleanup(function() {
+    intermediate.parentNode.removeChild(intermediate);
+  });
+  intermediate.contentDocument.open();
+  intermediate.contentDocument.write('<body></body>');
+  intermediate.contentDocument.close();
+
+  return init(intermediate.contentDocument, t)
+    .then(function(iframes) {
+      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
+      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
+
+      iframes[0].src = location.href;
+      iframes[1].src = '/common/blank.html?6';
+
+      return Promise.race([
+        subjectNavigation.then(function() {
+          assert_unreached('Should not navigate');
+        }),
+        controlNavigation
+      ]);
+    });
+}, 'same path name, no document fragement (intermediary browsing context)');
+</script>
+</body>

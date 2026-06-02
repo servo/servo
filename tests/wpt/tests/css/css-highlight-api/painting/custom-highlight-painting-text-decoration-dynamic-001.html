@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Highlight API Test: ::highlight dynamic change text-decoration</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-text-decoration-dynamic-001-ref.html">
+<meta name="assert" content="This test checks that it's possible to modify dynamically the text-decoration of a custom highlight through ::highlight pseudo-element.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  ::highlight(example) {
+    text-decoration: solid underline red;
+  }
+</style>
+<p>The test passes if it line below has a green underline.</p>
+<div id="target">target</div>
+<script>
+  let range = new Range();
+  range.setStart(target, 0);
+  range.setEnd(target, 1);
+  CSS.highlights.set(`example`, new Highlight(range));
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.styleSheets[0].cssRules[0].style.textDecorationColor = "green";
+    takeScreenshot();
+  }));
+</script>
+</html>

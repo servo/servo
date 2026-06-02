@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?prefetch=true&bypass_cache=true">
+<meta name="variant" content="?prefetch=false&bypass_cache=true">
+<meta name="variant" content="?prefetch=true&bypass_cache=false">
+<meta name="variant" content="?prefetch=false&bypass_cache=false">
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const prefetchEnabled = (Object.fromEntries(
+  new URLSearchParams(location.search)).prefetch === "true");
+const bypassCache = (Object.fromEntries(
+  new URLSearchParams(location.search)).bypass_cache === "true");
+
+promise_test(async t => {
+    const agent = await spawnWindow(t);
+    // Some meaningless query param to avoid cached response.
+    const prefetchUrl =
+      bypassCache ? agent.getExecutorURL({ a: "b" }) : agent.getExecutorURL();
+
+    if (prefetchEnabled)
+      await agent.forceSinglePrefetch(prefetchUrl);
+
+    await agent.navigate(prefetchUrl);
+
+    if (prefetchEnabled)
+      assert_prefetched(await agent.getRequestHeaders(),
+        `Prefetch ${prefetchUrl.href} should work.`);
+    else
+      assert_not_prefetched(await agent.getRequestHeaders(),
+        `${prefetchUrl.href} should not be prefetched.`);
+
+    await agent.execute_script(
+      () => window.entries = performance.getEntriesByType('navigation'));
+
+    // Expects one entry, whose `deliveryType` is "navigational-prefetch" for
+    // the prefetched request, and "" for the non-prefetched.
+    //
+    // TODO(crbug/1317756): Currently the initial prefetch request bypasses the
+    // HTTP cache, making `deliveryType` always an empty string for non-prefetch
+    // request. Expand test coverage when `net::LOAD_DISABLE_CACHE` is removed.
+    assert_equals(await agent.execute_script(() => window.entries.length), 1,
+      'Wrong number of entries');
+    const deliveryType =
+      await agent.execute_script(() => window.entries[0].deliveryType);
+    const expectedDeliveryType = prefetchEnabled ? 'navigational-prefetch' : '';
+    assert_equals(deliveryType, expectedDeliveryType);
+
+  }, `PerformanceNavigationTiming.deliveryType test, same origin prefetch.`);
+</script>

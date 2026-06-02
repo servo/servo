@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Node.moveBefore should preserve CSS transition state (transform)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <section id="old-parent">
+    <div id="item"></div>
+  </section>
+  <section id="new-parent">
+  </section>
+  <style>
+    #item {
+      width: 100px;
+      height: 100px;
+      background: green;
+      transition: transform 60s steps(1, jump-both);
+    }
+
+    body {
+      margin-left: 0;
+    }
+  </style>
+  <script>
+    promise_test(async t => {
+      const item = document.querySelector("#item");
+      assert_equals(item.getBoundingClientRect().x, 0);
+      item.style.transform = "translateX(400px)";
+      await new Promise(resolve => item.addEventListener("transitionstart", resolve));
+      document.querySelector("#new-parent").moveBefore(item, null);
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      assert_equals(item.getBoundingClientRect().x, 200);
+      assert_equals(item.getAnimations().length, 1);
+    });
+  </script>
+</body>

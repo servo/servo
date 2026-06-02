@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: the ellipsis is not placed on the last line of the line-clamp container</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-011-ref.html">
+<meta name="assert" content="block-ellipsis will insert an ellipsis immediately before a region break, and there can be no region break after the last line of the line-clamp container. If a line would be the last if the ellipsis was not inserted, then it must not be inserted.">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 31.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+p {
+  margin: 0;
+}
+</style>
+<div class="clamp">
+  <p>
+    There should not be an ellipsis
+    at the end of this line of text
+  </p>
+</div>

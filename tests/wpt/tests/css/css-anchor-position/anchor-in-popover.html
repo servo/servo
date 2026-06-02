@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<title>Tests that anchors in a popover are discoverable</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+  body {
+    margin: 0;
+  }
+
+  #containing-block {
+    position: relative;
+    width: 100px;
+    height: 100px;
+
+    border: 1px black solid;
+  }
+
+  #anchor-1 {
+    width: 50px;
+    height: 50px;
+
+    position: absolute;
+    top: 25px;
+    left: 25px;
+
+    background: green;
+
+    anchor-name: --anchor-1;
+  }
+
+  #popover-1 {
+    margin: 0;
+    border: 1px black solid;
+    padding: 0;
+
+    width: 100px;
+    height: 100px;
+
+    position: absolute;
+    position-anchor: --anchor-1;
+    position-area: bottom right;
+  }
+
+  #anchor-2 {
+    width: 50px;
+    height: 50px;
+
+    position: absolute;
+    top: 25px;
+    left: 25px;
+
+    background: cyan;
+
+    anchor-name: --anchor-2;
+  }
+
+  #popover-2 {
+    margin: 0;
+    border: 1px black solid;
+    padding: 0;
+
+    width: 100px;
+    height: 100px;
+
+    position: absolute;
+    position-anchor: --anchor-2;
+    position-area: bottom right;
+  }
+</style>
+
+<body>
+  <div id="containing-block">
+    <div id="anchor-1"></div>
+  </div>
+
+  <!--
+    1px border of #containing-block
+  + 25px gap between #containing-block and #anchor-1
+  + 50px width of #anchor-1
+  = 76px
+  -->
+  <div class="target" id="popover-1" popover data-offset-x="76" data-offset-y="76">
+    <div id="anchor-2">
+      <!--
+        76px left offset of #anchor-1
+      + 1px border of #popover-2
+      + 25px gap between #popover-2 and #anchor-2
+      + 50px width of #anchor-2
+      = 152px
+      -->
+
+      <!-- #popover-2 has to be here to trigger a bug in Safari -->
+      <div class="target" id="popover-2" popover data-offset-x="152" data-offset-y="152"></div>
+    </div>
+  </div>
+
+
+  <script>
+    const popover1 = document.getElementById("popover-1");
+    const popover2 = document.getElementById("popover-2");
+
+    popover1.showPopover();
+    popover2.showPopover();
+
+    checkLayoutForAnchorPos('.target');
+  </script>
+</body>

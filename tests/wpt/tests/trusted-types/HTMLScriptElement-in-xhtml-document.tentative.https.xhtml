@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'"/>
+</head>
+<body>
+<script>
+  // This this a regresion test that verifies that in-tree script element in
+  // an xhtml document still works correctly. The test itself doesn't do much.
+  test(t => {
+    t.done();
+  }, "Test whether a script element still executes for XHTML documents.");
+</script>
+</body>
+</html>
+

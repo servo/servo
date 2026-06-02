@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#first-text-line">
+<meta name="assert" content="Floats are not part of lines, so if a float is too wide to fit any inline content beside it, the first formatted line goes below it">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    font: 50px/50px Ahem;
+    color: red;
+    background: red;
+  }
+  .container::first-line {
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container">
+  <div style="float:left; width:100px; height:50px; background:green;"></div>
+  xx
+</div>

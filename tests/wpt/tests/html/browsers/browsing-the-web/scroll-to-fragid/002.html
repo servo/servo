@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- this tests the spec as it hopefully will be once bug https://www.w3.org/Bugs/Public/show_bug.cgi?id=17155 is fixed -->
+<title>Fragment Navigation: Updating document address twice</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_equals(location.hash, "", "Page must be loaded with no hash")
+  var original_location = location.href;
+  location.hash = "test";
+  assert_equals(location.hash, "#test");
+  assert_equals(location.href, original_location + "#test");
+
+  location.hash = "test1";
+  assert_equals(location.hash, "#test1");
+  assert_equals(location.href, original_location + "#test1");
+
+  location.hash = "";
+});
+</script>

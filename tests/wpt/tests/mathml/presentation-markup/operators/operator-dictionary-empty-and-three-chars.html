@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Spacing of empty and three-char operators</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-dictionary">
+    <meta name="assert" content="Verifies that empty and three-char operators use the default spacing.">
+    <link rel="match" href="operator-dictionary-empty-and-three-chars-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math {
+        font: 50px/1 Ahem;
+      }
+      mn:first-child {
+        color: blue;
+      }
+      mn:last-child {
+        color: yellow;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p><math><mn>_</mn><mo lspace="0.2777777777777778em" rspace="0.2777777777777778em">_</mo><mn>_</mn></math></p>
+
+    <p>The spacing after the blue squares and before the yellow squares should be the same as the above reference:</p>
+
+    <p><math><mn>_</mn><mo><!-- empty --></mo><mn>_</mn></math></p>
+    <p><math><mn>_</mn><mo>...</mo><mn>_</mn></math></p>
+    <p><math><mn>_</mn><mo>lim</mo><mn>_</mn></math>
+    <p><math><mn>_</mn><mo>max</mo><mn>_</mn></math>
+    <p><math><mn>_</mn><mo>min</mo><mn>_</mn></math>
+    <p><math><mn>_</mn><mo>|||</mo><mn>_</mn></math>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

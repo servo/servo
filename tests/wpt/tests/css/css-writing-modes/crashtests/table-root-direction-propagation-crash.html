@@ -1,0 +1,14 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/1303287">
+<style>
+  html {
+    display: table;
+    border-right: solid;
+  }
+  head { display: inline; }
+  body { direction: rtl; }
+</style>
+<body></body>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.remove()));
+</script>

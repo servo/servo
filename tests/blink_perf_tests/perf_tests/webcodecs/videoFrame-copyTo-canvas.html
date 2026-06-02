@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Test copyTo() performance with VideoFrame from canvas</title>
+<script src="../resources/runner.js"></script>
+<script src="videoFrame-utils.js"></script>
+<script src="copyTo-test.js"></script>
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+(function() {
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  fourColorsFrame(ctx, canvas.width, canvas.height, 0x4C.toString(2));
+
+  let frame = new VideoFrame(canvas, {timestamp: 0});
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  runCopyToTest(
+      frame, "CPU time for copyTo() w/ VideoFrame from canvas");
+})();
+</script>

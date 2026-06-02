@@ -1,0 +1,65 @@
+<!doctype HTML>
+<!--
+This test appends 1000 locked items to the page, lays them out,
+and calculates the offsetTop value on 5 of them.
+
+Since the locked elements have been laid out, the offsetTop
+calculations should be fast.
+
+The test works with and without display locking, and they
+should have similar performance.
+-->
+
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+.box {
+  background: blue;
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+  contain: style layout;
+}
+</style>
+</head>
+<body>
+<template id="template">
+<div class="box" hidden=until-found>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Quisque ante dui, posuere at pretium suscipit, condimentum at augue.
+</div>
+</template>
+<div id="container"></div>
+</body>
+
+<script>
+const NUMBER_OF_ELEMENTS = 1000;
+const NUMBER_OF_QUERIES = 5;
+
+function appendChildren() {
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+  for (let i = 0; i < NUMBER_OF_ELEMENTS; ++i) {
+    const clone = template.content.cloneNode(true).firstElementChild;
+    clone.id = "box" + i;
+    container.appendChild(clone);
+  }
+  container.offsetTop;
+}
+
+function runTest() {
+  for (let i = 0; i < NUMBER_OF_QUERIES; ++i) {
+    document.getElementById("box" + i).offsetTop;
+  }
+}
+
+PerfTestRunner.measureTime({
+  setup: appendChildren,
+  run: runTest,
+  warmUpCount: 1,
+  iterationCount: 5,
+});
+
+</script>
+

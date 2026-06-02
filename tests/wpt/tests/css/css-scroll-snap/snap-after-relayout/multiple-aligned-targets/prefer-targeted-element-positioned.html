@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js"></script>
+  </head>
+<body>
+  <style>
+    .iframe {
+      height: 1000px;
+      width: 1000px;
+    }
+  </style>
+  <script>
+    window.onload = async () => {
+      await waitForCompositorCommit();
+      async function test(target_number) {
+        return promise_test(async (t) => {
+          let finish = null;
+          const finished = new Promise((res) => { finish = res; });
+          var iframe = document.createElement("iframe");
+          iframe.classList.add("iframe");
+          iframe.onload = async () => {
+            let boxes =
+              iframe.contentDocument.getElementsByClassName("positioned");
+            const box = (i) => {
+              return boxes[i - 1];
+            }
+            let scroller = iframe.contentDocument.getElementById("outer");
+            // There are 5 aligned boxes in positioned-target-iframe.html.
+            assert_equals(boxes.length, 5);
+            await runScrollSnapSelectionVerificationTest(t, scroller,
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
+              /*axis=*/"y",
+              /*expected_target_x*/null,
+              /*expected_target_x*/box(target_number));
+
+            // Let scroller no longer be a scroll container.
+            scroller.style.overflow = "visible";
+            assert_equals(scroller.scrollTop, 0);
+
+            // Let scroller be a scroll container once again.
+            scroller.style.overflow = "scroll";
+
+            // Run the test again.
+            await runScrollSnapSelectionVerificationTest(t, scroller,
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
+              /*axis=*/"y",
+              /*expected_target_x*/null,
+              /*expected_target_x*/box(target_number));
+            finish();
+          };
+          iframe.src = `positioned-target-iframe.html#target${target_number}`;
+          document.body.appendChild(iframe);
+          await finished;
+          document.body.removeChild(iframe);
+        }, "");
+      }
+
+      await test(1);
+      await test(2);
+      await test(3);
+      await test(4);
+      await test(5);
+    }
+  </script>
+</body>
+</html>

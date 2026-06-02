@@ -1,0 +1,31 @@
+<!doctype html>
+<title>fO with positioned descendants overlapping a fO with 'will-change: transform' child</title>
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<style>
+  #outer {
+    position: relative;
+    width: 50px;
+    margin: 0 25px;
+    background-color: red;
+  }
+  #inner {
+    position: relative;
+    width: 50px;
+    height: 100px;
+    background-color: green;
+  }
+  #willtransform {
+    will-change: transform;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<svg>
+  <foreignObject width="100" height="100">
+    <div id="willtransform"></div>
+  </foreignObject>
+  <foreignObject width="100" height="100">
+    <div id="outer"><div id="inner"></div></div>
+  </foreignObject>
+</svg>

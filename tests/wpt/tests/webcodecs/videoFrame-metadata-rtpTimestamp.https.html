@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>VideoFrame.metadata.rtpTimestamp exposed via MediaStreamTrackProcessor over WebRTC</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+
+<script>
+    promise_test(async t => {
+        if (!("MediaStreamTrackProcessor" in self) ||
+            !("VideoFrame" in self)) {
+            assert_implements_optional(true, "MediaStreamTrackProcessor/VideoFrame APIs not supported. Skipping test.");
+            return;
+        }
+
+        const stream = await getNoiseStream({ video: true });
+        const track = stream.getVideoTracks()[0];
+
+        // This test validates the RTP timestamps on the encoded video frames
+        // sent by a WebRTC peer (sender) are preserved when received by the
+        // WebRTC receiver which in turn uses the MediaStreamTrackProcessor
+        // API to render the video frames. We expect the RTP timestamps to
+        // be available in the metadata() object exposed by the VideoFrame
+        // in MediaStreamTrackProcessor if the VideoFrameMetadataRtpTimestamp
+        // feature is enabled.
+
+        const senderPc = new RTCPeerConnection();
+        const receiverPc = new RTCPeerConnection();
+
+        senderPc.onicecandidate = e => e.candidate && receiverPc.addIceCandidate(e.candidate);
+        receiverPc.onicecandidate = e => e.candidate && senderPc.addIceCandidate(e.candidate);
+
+        const receiverTrackPromise = new Promise(resolve => {
+            receiverPc.ontrack = e => resolve(e.track);
+        });
+
+        const sender = senderPc.addTrack(track, stream);
+
+        // Offer/Answer exchange
+        const offer = await senderPc.createOffer();
+        await senderPc.setLocalDescription(offer);
+        await receiverPc.setRemoteDescription(offer);
+
+        const answer = await receiverPc.createAnswer();
+        await receiverPc.setLocalDescription(answer);
+        await senderPc.setRemoteDescription(answer);
+
+        let receiverTrack = await receiverTrackPromise;
+
+        // Send the received track to MediaStreamTrackProcessor for rendering.
+        const processor = new MediaStreamTrackProcessor({ track: receiverTrack });
+        const reader = processor.readable.getReader();
+
+        const result = await reader.read();
+        const frame = result.value;
+        const metadata = frame.metadata?.();
+
+        // If the VideoFrameMetadataRtpTimestamp feature is enabled we expect that
+        // the rtpTimestamp will be available in the metadata.
+        if (metadata && 'rtpTimestamp' in metadata) {
+            assert_equals(typeof metadata.rtpTimestamp, "number", "rtpTimestamp should be a number");
+            assert_greater_than(metadata.rtpTimestamp, 0, "rtpTimestamp should be non-zero");
+            assert_true(true, "rtpTimestamp present in VideoFrame metadata")
+        } else {
+            assert_true(true, "rtpTimestamp not present in VideoFrame metadata. Skipping validation because feature may be disabled.");
+        }
+
+        frame.close();
+        receiverTrack.stop();
+        track.stop();
+        senderPc.close();
+        receiverPc.close();
+    }, "Check VideoFrame.metadata.rtpTimestamp only when feature is enabled");
+</script>

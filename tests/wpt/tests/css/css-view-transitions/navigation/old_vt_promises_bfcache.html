@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<title>VT object created on the old Document is skipped before persisting in BFCache</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script>
+// runBfcacheTest opens a popup to pageA which navigates to pageB and then
+// back, ensuring pageA is stored in the BFCache.
+
+runBfcacheTest({
+  funcBeforeNavigation: async () => {
+    // This function executes in pageA
+
+    function addTransitionOptIn() {
+      let css = '@view-transition { navigation: auto; }';
+      let style = document.createElement('style');
+      style.appendChild(document.createTextNode(css));
+      document.head.appendChild(style);
+    }
+    addTransitionOptIn();
+
+    // Wait for at least one frame to ensure there is a transition on the
+    // navigation.
+    function waitForAtLeastOneFrame() {
+      return new Promise(resolve => {
+        // Different web engines work slightly different on this area but waiting
+        // for two requestAnimationFrames() to happen, one after another, should be
+        // sufficient to ensure at least one frame has been generated anywhere.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+    }
+    await waitForAtLeastOneFrame();
+
+    onpageswap = (e) => {
+      if (e.viewTransition == null)
+        return;
+
+      document.documentElement.classList.add('transition');
+
+      e.viewTransition.updateCallbackDone.then(() => {
+        document.documentElement.classList.add('updateCallbackDone');
+      });
+
+      e.viewTransition.ready.catch(() => {
+        document.documentElement.classList.add('ready');
+      });
+
+      e.viewTransition.finished.then(() => {
+        document.documentElement.classList.add('finished');
+      });
+    }
+  },
+  funcBeforeBackNavigation: async () => {
+    // This function executes in pageB
+
+    function addTransitionOptIn() {
+      let css = '@view-transition { navigation: auto; }';
+      let style = document.createElement('style');
+      style.appendChild(document.createTextNode(css));
+      document.head.appendChild(style);
+    }
+    addTransitionOptIn();
+
+    // Wait for at least one frame to ensure there is a transition on the
+    // navigation.
+    function waitForAtLeastOneFrame() {
+      return new Promise(resolve => {
+        // Different web engines work slightly different on this area but waiting
+        // for two requestAnimationFrames() to happen, one after another, should be
+        // sufficient to ensure at least one frame has been generated anywhere.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+    }
+    await waitForAtLeastOneFrame();
+  },
+  funcAfterAssertion: async (pageA, pageB, t) => {
+    assert_true(
+      await pageA.execute_script(() => {
+          return document.documentElement.classList.contains('transition');
+      }),
+      'navigation had viewTransition');
+
+    assert_true(
+      await pageA.execute_script(() => {
+          return document.documentElement.classList.contains('updateCallbackDone');
+      }),
+      'updateCallbackDone was resolved');
+
+    assert_true(
+      await pageA.execute_script(() => {
+          return document.documentElement.classList.contains('ready');
+      }),
+      'ready was rejected');
+
+    assert_true(
+      await pageA.execute_script(() => {
+          return document.documentElement.classList.contains('finished');
+      }),
+      'finished was resolved');
+  },
+  targetOrigin: originSameOrigin,
+});
+</script>

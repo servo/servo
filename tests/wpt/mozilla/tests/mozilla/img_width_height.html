@@ -1,0 +1,25 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <img src="test.png"/>
+<script>
+// Testing get/set of image width/height properties
+async_test(function() {
+  var img = window.document.getElementsByTagName("img")[0];
+
+  img.onload = this.step_func_done(function() {
+      assert_equals(img.width, 500);
+      assert_equals(img.height, 378);
+      img.width = 200;
+      img.height = 100;
+      assert_equals(img.width, 200);
+      assert_equals(img.height, 100);
+  });
+});
+</script>
+</body>
+</html>

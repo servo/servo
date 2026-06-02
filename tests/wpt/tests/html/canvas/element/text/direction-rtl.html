@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Canvas Test: the 'direction' property</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles">
+<link rel="match" href="reference/direction-rtl-ref.html">
+<meta name="assert" content="text rendering respects the direction property">
+<style>
+canvas {
+  margin: 10px;
+  border: 1px solid gray;
+}
+</style>
+
+<canvas id="c" width="300" height="300"></canvas>
+
+<script>
+let ctx = c.getContext("2d");
+ctx.direction = "rtl";
+ctx.font = "16px sans-serif";
+ctx.textAlign = "left";
+ctx.fillText("Hello World!", 150, 50);
+ctx.textAlign = "right";
+ctx.fillText("Hello World!", 150, 100);
+ctx.textAlign = "start";
+ctx.fillText("Hello World!", 150, 150);
+ctx.textAlign = "end";
+ctx.fillText("Hello World!", 150, 200);
+ctx.textAlign = "center";
+ctx.fillText("Hello World!", 150, 250);
+</script>

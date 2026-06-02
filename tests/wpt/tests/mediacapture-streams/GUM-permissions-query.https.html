@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<title>Check permissions.query with getUserMedia</title>
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your camera or microphone.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that permissions.query() of camera and
+microphone produce "granted" after successful calls to getUserMedia for the
+respective device kinds.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async t => {
+  let status = await navigator.permissions.query({name: "camera"});
+  assert_equals(status.state, "prompt", "initial camera state is prompt");
+
+  let eventFired = false;
+  status.onchange = () => eventFired = true;
+
+  // state is set by setMediaPermission in automation & by gUM when run manually
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => stream.getTracks()[0].stop());
+  status.onchange = null; // defer assert to not overshadow main assert below
+
+  status = await navigator.permissions.query({name: "camera"});
+  assert_equals(status.state, "granted", "camera is granted after getUserMedia");
+  assert_true(eventFired, "status.onchange fired for camera permission change");
+}, "camera is granted after getUserMedia, according to permissions.query()");
+
+promise_test(async t => {
+  let status = await navigator.permissions.query({name: "microphone"});
+  assert_equals(status.state, "prompt", "initial microphone state is prompt");
+  let eventFired = false;
+  status.onchange = () => eventFired = true;
+
+  // state is set by setMediaPermission in automation & by gUM when run manually
+  await setMediaPermission("granted", ["microphone"]);
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+  t.add_cleanup(() => stream.getTracks()[0].stop());
+  status.onchange = null; // defer assert to not overshadow main assert below
+
+  status = await navigator.permissions.query({name: "microphone"});
+  assert_equals(status.state, "granted", "microphone is granted after getUserMedia");
+  assert_true(eventFired, "status.onchange fired for microphone permission change");
+}, "microphone is granted after getUserMedia, according to permissions.query()");
+
+</script>
+</body>
+</html>

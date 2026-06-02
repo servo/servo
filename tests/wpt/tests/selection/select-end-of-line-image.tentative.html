@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Selection: Select the image at the end of the line</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1745435">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src='/resources/testdriver-vendor.js'></script>
+
+  <style>
+  img {
+    inline-size: 100px;
+    block-size: 20px;
+    background: orange;
+  }
+  </style>
+
+  <body>
+    You shouldn't see an orange image at the end of this line
+    <img id="target" src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><text>hello</text></svg>'>
+  </body>
+
+  <script>
+  promise_test(async function() {
+    let target = document.getElementById("target");
+    let actions = new test_driver.Actions();
+
+    // Move the pointer from the left edge of the image, to the right for about
+    // 3/4 width of the image. This should be sufficient to select the image.
+    await actions.pointerMove(0, 10, {origin: target})
+                 .pointerDown()
+                 .pointerMove(75, 10, {origin: target})
+                 .pointerUp()
+                 .send();
+
+    // Delete the image to verify the image is selected. It's tricky to verify
+    // it using Range API.
+    window.getSelection().deleteFromDocument();
+
+    assert_equals(document.getElementById("target"), null,
+                  "The image should be selected and then deleted.")
+  }, "Select image at the end of the line.");
+  </script>
+</html>

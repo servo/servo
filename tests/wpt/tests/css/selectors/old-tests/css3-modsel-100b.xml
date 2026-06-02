@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Attribute dash-separated value selector with declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|p, *|r { background-color : lime ! important }
+*|*[a|foo|="bar"], *|*[html|lang|="en"] { background-color : red }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml">
+<p html:lang="en-us">This paragraph should have a green background.</p>
+<q xmlns="http://www.example.org/a" a:foo="bargain-trash">This paragraph should be unstyled.</q>
+<r xmlns="http://www.example.org/a" a:foo="bar-drink-glass">This paragraph should have a green background</r>
+<s xmlns="http://www.example.org/b" b:foo="bar-drink-glass">This paragraph should be unstyled.</s>
+</body>
+</html>

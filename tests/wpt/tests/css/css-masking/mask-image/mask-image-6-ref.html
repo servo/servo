@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask on inline element</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div {
+        width: 100px;
+        height: 100px;
+        font-size: 100px;
+        line-height: 100px;
+      }
+
+      div.mask-by-png {
+        mask-image: url(support/transparent-100x50-blue-100x50.png);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mask-by-png">A</div>
+    <div class="mask-by-png">B</div>
+  </body>
+</html>

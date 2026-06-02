@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Scrollable Overflow Transform Rotate Nested Element</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubham13297@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable" />
+<meta name="assert" content="Checks the scrollable overflow with overflow property and some nested element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+    .container-2 {
+        width: 100px;
+        height: 100px;
+        overflow: auto;
+        background: silver;
+        border: solid thick;
+        scrollbar-width: none;
+    }
+
+    .element {
+        width: 1000px;
+        height: 5000px;
+        background: lime;
+    }
+</style>
+
+<body onload="checkLayout('.container')">
+    <div class="container" data-expected-scroll-height="110" data-expected-height="110"
+        data-expected-client-height="110">
+        <div class="container-2" data-expected-scroll-height="5000" data-expected-scroll-width="1000"
+            data-expected-client-width="100" data-expected-client-height="100"
+            data-expected-bounding-client-rect-width="110" data-expected-bounding-client-rect-height="110"
+            data-expected-height="110" data-expected-width="110">
+            <div class="element">hello</div>
+        </div>
+    </div>
+</body>

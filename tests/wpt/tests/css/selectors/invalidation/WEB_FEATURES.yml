@@ -1,0 +1,73 @@
+features:
+- name: selectors
+  files:
+  - attribute.html
+  - class-id-attr.html
+  - sibling.html
+  - insert-sibling-*
+  - selectorText-dynamic-001.html
+  - sheet-going-away-*
+- name: has
+  files:
+  - has-*
+  - "*-in-has.*"
+  - "*-in-has-*"
+- name: link-selectors
+  files:
+  - "any-link-*"
+- name: media-pseudos
+  files:
+  - media-loading-pseudo-classes-in-has.html
+  - media-pseudo-classes-in-has.html
+- name: modal
+  files:
+  - modal-pseudo-class-in-has.html
+- name: not
+  files:
+  - not-*
+- name: nth-child
+  files:
+  - first-child-last-child.html
+  - nth-child-in-shadow-root.html
+- name: nth-child-of
+  files:
+  - nth-child-of-*
+  - nth-child-when-*
+  - nth-child-whole-subtree.html
+  - nth-child-containing-ancestor.html
+  - negated-nth-child-when-*
+  - nth-last-child-of-*
+  - nth-last-child-when-*
+  - nth-last-child-containing-ancestor.html
+  - negated-nth-last-child-when-*
+- name: nth-of-type
+  files:
+  - 'negated-*-of-type*'
+- name: user-pseudos
+  files:
+  - user-valid-user-invalid.html
+- name: state
+  files:
+  - state-in-has.html
+- name: placeholder-shown
+  files:
+  - placeholder-shown.html
+- name: shadow-parts
+  files:
+  - part-dir.html
+  - part-lang.html
+  - part-pseudo.html
+- name: host
+  files:
+  - host-*
+  - "!host-context-*"
+- name: is
+  files:
+  - is.html
+  - negated-is-*
+- name: where
+  files:
+  - where.html
+- name: input-selectors
+  files:
+  - enabled-disabled.html

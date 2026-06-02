@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div#black-walls
+    {
+      border: solid 40px;
+      border-color: transparent black;
+      height: 400px;
+      width: 400px;
+    }
+
+  div#gradient
+    {
+      background-image: linear-gradient(orange, blue);
+      height: 100%; /* computes to 400px */
+      margin: 0px auto;
+      /* the gradient block is horizontally centered inside div#black-walls */
+      width: 200px;
+    }
+  </style>
+
+  <div id="black-walls"><div id="gradient"></div></div>

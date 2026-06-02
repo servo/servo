@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <math class="hidden">
+    <mi>x</mi>
+    <mo>=</mo>
+  </math>
+<script>
+window.onload = function() {
+  let s = document.createElement("style");
+  s.textContent = `
+    body {
+      line-height: 1.42857143;
+    }
+
+    .hidden {
+      display: none;
+    }
+  `;
+  document.body.appendChild(s);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <title>xml:lang attribute should affect text rendering</title>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#LangSpaceAttrs"/>
+    <h:link rel="mismatch" href="lang-attribute-ref.svg"/>
+  </metadata>
+
+  <text>
+    <tspan x="10" y="100" font-size="90" xml:lang="ja" lang="en">今骨直</tspan>
+    <tspan x="10" y="200" font-size="90" xml:lang="zh-CN">今骨直</tspan>
+    <tspan x="10" y="300" font-size="90" xml:lang="zh-TW">今骨直</tspan>
+  </text>
+</svg>

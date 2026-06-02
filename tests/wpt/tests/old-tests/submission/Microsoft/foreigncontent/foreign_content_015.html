@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG Elements outside SVG namespace are camelCased" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var parentNode = document.getElementById("div1");
+
+                for(var i=0;i<parentNode.childNodes.length;i++)
+                {
+                    var idName = parentNode.childNodes[i].id;
+                    var localName = parentNode.childNodes[i].localName;
+                    assert_equals(localName, idName);
+                }
+            }
+        </script>
+    </head>
+
+    <body onload="test(RunTest)">
+
+        <div id="div1">
+            <AlTglYph id="altGlyph" />
+        </div>
+
+    </body>
+
+</html>

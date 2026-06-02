@@ -1,0 +1,28 @@
+features:
+- name: absolute-positioning
+  files:
+  - 'position-absolute-*'
+  - '!position-absolute-center-003.html'
+  - '!position-absolute-center-004.html'
+- name: backdrop
+  files:
+  - backdrop-inherit-computed.html
+  - backdrop-inherit-rendered.html
+  - backdrop-tree-abiding-slotted.html
+  - replaced-object-backdrop.html
+- name: fixed-positioning
+  files:
+  - 'position-fixed-*'
+- name: relative-positioning
+  files:
+  - 'position-relative-*'
+- name: z-index
+  files:
+  - '*z-index*'
+- name: static-positioning
+  files:
+  - "position-static-*.html"
+- name: box-sizing
+  files:
+  - position-absolute-center-003.html
+  - position-absolute-center-004.html

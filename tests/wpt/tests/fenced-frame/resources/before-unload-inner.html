@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the beforeunload event is not fired</title>
+
+<body>
+<script>
+window.onload = () => {
+  const [before_unload_key] = parseKeylist();
+  const url = new URL(location.href);
+  const next_url = url.searchParams.get('next_url');
+
+  if (next_url != null) {
+    writeValueToServer(
+        before_unload_key, 'Loaded the next url in a fenced frame');
+    return;
+  }
+
+  window.onbeforeunload = () => {
+    writeValueToServer(
+        before_unload_key, 'The beforeunload event is unexpectely fired.');
+  };
+
+  location.href =
+      generateURL('before-unload-inner.html?next_url', [before_unload_key]);
+};
+</script>
+</body>

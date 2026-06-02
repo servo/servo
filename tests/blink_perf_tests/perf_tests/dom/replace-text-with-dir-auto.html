@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div id="container" dir="auto"></div>
+
+<script>
+'use strict';
+container.style.display = 'none';
+
+var textNode = document.createTextNode('a');
+container.appendChild(textNode);
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measures performance of changing a text data of the child' +
+               'in an element having dir=auto attribute ',
+  run() {
+    for (var i = 0; i < 10000; i++) {
+        textNode.replaceData(0, 1, "b");
+        textNode.replaceData(0, 1, "a");
+    }
+  }
+});
+</script>

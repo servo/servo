@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy"
+      content="script-src 'nonce-dummy' 'unsafe-hashes'
+               'sha256-KMqmvVOJ9XW5OiOAYYYPPTFk+Zj/3KrlSEyqWgqibwU=' <!-- 'window.eventHandlerExecuted = true' -->
+               'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' <!-- empty string -->">
+<script src='/resources/testharness.js' nonce='dummy'></script>
+<script src='/resources/testharnessreport.js' nonce='dummy'></script>
+<script nonce="dummy">
+  ["div", "script"].forEach(tag => {
+    test(t => {
+      t.add_cleanup(_ => { window.eventHandlerExecuted = false});
+      let el = document.createElement(tag);
+      el.textContent = `/* ${tag} */`;
+      el.setAttribute("onclick", "window.eventHandlerExecuted = true");
+      el.dispatchEvent(new Event('click'));
+      assert_true(window.eventHandlerExecuted);
+    }, `Use the hash of a non-empty event handler content attribute (<${tag}> element).`);
+
+    promise_test(async t => {
+      let violations = [];
+      let pushViolation = e => violations.push(e.violatedDirective);
+      window.addEventListener("securitypolicyviolation", pushViolation);
+      t.add_cleanup(_ =>
+        window.removeEventListener("securitypolicyviolation", pushViolation)
+      );
+      let el = document.createElement(tag);
+      el.textContent = `/* ${tag} */`;
+      el.setAttribute("onclick", "");
+      el.dispatchEvent(new Event('click'));
+      await new Promise(resolve =>
+        requestAnimationFrame(_ => requestAnimationFrame(resolve)));
+      assert_array_equals(violations, []);
+    }, `Use the hash of an empty event handler content attribute (<${tag}> element).`);
+  });
+</script>

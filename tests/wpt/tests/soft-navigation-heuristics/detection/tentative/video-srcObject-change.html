@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/media-source/dedicated-worker/mediasource-message-util.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<video id="testVideo" style="height:500px;width:500px"></img>
+
+<script>
+  // Based on /media-source/dedicated-worker/mediasource-worker-play.html.
+  promise_test(async t => {
+    // Fail fast if MSE-in-Workers is not supported.
+    assert_implements(
+        MediaSource.hasOwnProperty('canConstructInDedicatedWorker'),
+        'MediaSource hasOwnProperty \'canConstructInDedicatedWorker\'');
+    assert_implements(
+        MediaSource.canConstructInDedicatedWorker,
+        'MediaSource.canConstructInDedicatedWorker');
+
+    t.add_cleanup(() => { testVideo.srcObject = null; });
+
+    const url = '/video-srcobject-change-1';
+    let worker;
+
+    // Returns a promise that will be resolved with the MediaSource handle for
+    // the video.
+    function initVideoWorker() {
+      return new Promise(resolve => {
+        worker = new Worker('/media-source/dedicated-worker/mediasource-worker-play.js');
+        worker.onerror = t.unreached_func('worker error');
+        worker.onmessage = t.step_func(e => {
+          let subject = e.data.subject;
+          assert_true(subject != undefined, 'message must have a subject field');
+          switch (subject) {
+            case messageSubject.ERROR:
+              assert_unreached('Worker error: ' + e.data.info);
+              break;
+            case messageSubject.HANDLE:
+              resolve(e.data.info);
+              break;
+            default:
+              assert_unreached('Unexpected message subject: ' + subject);
+          }
+        });
+      });
+    }
+
+    navigateButton.addEventListener("click", async () => {
+      history.pushState({}, '', url);
+      let handle = await initVideoWorker();
+      testVideo.srcObject = handle;
+      testVideo.play();
+    }, {once: true});
+
+    const softNavPromise =
+      SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    const entries = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation entry never arrived.", 5000);
+    assert_equals(entries.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+        entries[0].name.endsWith(url),
+        'Unexpected Soft Navigation URL.');
+  }, 'Soft Navigation Detection supports HTMLVideoElment.srcObject');
+</script>

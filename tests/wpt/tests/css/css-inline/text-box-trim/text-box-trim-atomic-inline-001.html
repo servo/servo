@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test the `text-box-trim` isn't propagated into atomic inlines</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="match" href="text-box-trim-atomic-inline-001-ref.html">
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font: 100px/2 MetricsTestFont;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+}
+.atomic {
+  display: inline-block;
+  background: lime;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <span class="atomic">ApÉx</span>
+</div>
+<div class="spacer"></div>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: capture opacity elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-content-captures-opacity-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.box {
+  color: red;
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  font-size: 30pt;
+  will-change: opacity;
+}
+#e1 { opacity: 0.75; top: 20px; left: 20px; view-transition-name: e1; }
+#e2 { opacity: 0.5; top: 160px; left: 20px; view-transition-name: e2; }
+#e3 { opacity: 0.25; top: 300px; left: 20px; view-transition-name: e3; }
+div.dst { background: lightgreen; }
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<div id=e1 class=box></div>
+<div id=e2 class=box></div>
+<div id=e3 class=box></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let t = document.startViewTransition(() => {
+    e1.classList.add("dst");
+    e2.classList.add("dst");
+    e3.classList.add("dst");
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

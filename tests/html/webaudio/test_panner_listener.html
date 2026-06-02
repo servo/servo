@@ -1,0 +1,32 @@
+<script type="text/javascript">
+    let ctx = new AudioContext();
+    let osc = ctx.createOscillator();
+    let options = {
+        "coneOuterAngle": 0,
+        "positionX": 100, "positionY": 0, "positionZ": 100,
+        "refDistance": 100, "rolloffFactor": 0.01
+    };
+    let panner = new PannerNode(ctx, options);
+    osc.connect(panner);
+    panner.connect(ctx.destination);
+    osc.start();
+    panner.positionX.linearRampToValueAtTime(-100, 0.2);
+    panner.positionZ.linearRampToValueAtTime(100, 0.2);
+    panner.positionX.linearRampToValueAtTime(-100, 0.4);
+    panner.positionZ.linearRampToValueAtTime(-100, 0.4);
+    panner.positionX.linearRampToValueAtTime(100, 0.6);
+    panner.positionZ.linearRampToValueAtTime(-100, 0.6);
+    panner.positionX.linearRampToValueAtTime(100, 0.8);
+    panner.positionZ.linearRampToValueAtTime(100, 0.8);
+    panner.positionX.linearRampToValueAtTime(-100, 1.0);
+    panner.positionZ.linearRampToValueAtTime(100, 1.0);
+    panner.positionX.linearRampToValueAtTime(-100, 1.2);
+    panner.positionZ.linearRampToValueAtTime(-100, 1.2);
+    panner.positionX.linearRampToValueAtTime(100, 1.4);
+    panner.positionZ.linearRampToValueAtTime(-100, 1.4);
+    panner.positionX.linearRampToValueAtTime(100, 1.6);
+    panner.positionZ.linearRampToValueAtTime(100, 1.6);
+    panner.positionZ.linearRampToValueAtTime(10000, 3);
+    ctx.listener.positionZ.setValueAtTime(0, 3);
+    ctx.listener.positionZ.linearRampToValueAtTime(10000, 4);
+</script>

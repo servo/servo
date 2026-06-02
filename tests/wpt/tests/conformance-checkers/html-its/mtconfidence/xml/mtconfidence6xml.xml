@@ -1,0 +1,16 @@
+<text xmlns:its="http://www.w3.org/2005/11/its">
+<head>
+     <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+    <its:param name="mtconfidenceParam">ireland</its:param>
+    <its:mtConfidenceRule selector="//span[@id=$mtconfidenceParam]" mtConfidence="0.6982"/>
+  </its:rules>
+</head>
+  <body>
+    <p>
+      <span its:annotatorsRef="mt-confidence|file:///tools.xml#T1" id="ireland">Dublin is the capital city of Ireland and has the 50th biggest population density in Europe.</span>
+      <span its:annotatorsRef="mt-confidence|file:///tools.xml#T2" id="spain">Madrid is the capital of Spain.</span>
+      <span its:annotatorsRef="mt-confidence|file:///tools.xml#T3" id="germany">Berlin is the capital of Germany.</span>
+      <span its:annotatorsRef="mt-confidence|file:///tools.xml#T4" id="england">London is the capital of England</span>
+    </p>
+  </body>
+</text>

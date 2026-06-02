@@ -1,0 +1,41 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  var textB = document.createTextNode("b");
+  var textC = document.createTextNode("c");
+  var textN = document.createTextNode("n");
+  var textP = document.createTextNode("p");
+
+  var blv = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+  var odj = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+  var tr = document.createElementNS("http://www.w3.org/1999/xhtml", "tr");
+  var td = document.createElementNS("http://www.w3.org/1999/xhtml", "td");
+  var mathMO = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mo");
+
+  td.appendChild(textB);
+  document.body.appendChild(blv);
+  blv.appendChild(tr);
+  blv.appendChild(mathMO);
+  mathMO.appendChild(textP);
+  odj.appendChild(td);
+  odj.appendChild(textN);
+
+  blv.removeChild(tr);
+  mathMO.appendChild(odj);
+  td.removeChild(textB);
+  blv.appendChild(textC);
+  document.body.appendChild(odj);
+  odj.insertBefore(mathMO, textN);
+  document.body.appendChild(mathMO);
+  mathMO.appendChild(odj);
+}
+
+</script>
+</head>
+
+<body onload="boom();"></body>
+
+</html>

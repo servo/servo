@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A multi-line flex container with the 'align-content' property set to 'space-between'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-content-property" />
+        <link rel="match" href="reference/align-content-001-ref.html" />
+        <meta name="assert" content="This test checks that a multi-line flex container with 'align-content: space-between' distributes lines evenly in the flex container." />
+        <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4835" />
+        <style type="text/css">
+            #flexbox
+            {
+                background: repeating-linear-gradient(to bottom, red 0, red 20px, green 20px, green 40px);
+                align-content:  space-between;
+                display: flex;
+                flex-flow: wrap;
+                height: 100px;
+                width: 300px;
+            }
+            div div
+            {
+                background-color: green;
+                height: 21px;
+                width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="flexbox">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </body>
+</html>

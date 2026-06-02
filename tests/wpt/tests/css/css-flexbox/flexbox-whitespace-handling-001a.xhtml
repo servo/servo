@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that we don't create anonymous flex items around
+     runs of inline content that are _purely_ whitespace.
+
+     The test uses "white-space: pre", to try to tempt us into honoring
+     that whitespace. (but we should resist that temptation).
+
+     The test also uses 'justify-content: space-around' to be sure we can
+     tell whether anonymous flex items are being created around the whitespace
+     (since they'd claim a share of the packing space if they were there).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Test that anonymous flex items aren't created for pure-whitespace inline content</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-items"/>
+    <link rel="match" href="flexbox-whitespace-handling-001-ref.xhtml"/>
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        white-space: pre;
+        border: 1px dashed blue;
+        width: 200px;
+        display: flex;
+        justify-content: space-around;
+      }
+      div.a {
+        flex: none;
+        width: 30px;
+        background: lightgreen;
+      }
+      div.b {
+        flex: none;
+        width: 20px;
+        background: lightblue;
+      }
+      img { width: 40px; }
+    </style>
+  </head>
+  <body>
+    <!-- whitespace & tab after flex item -->
+    <div class="flexbox"><div class="a"/> 	</div>
+
+    <!-- 2 spaces before flex item -->
+    <div class="flexbox">  <div class="a"/><div class="b"/></div>
+
+    <!-- newline & whitespace between flex items  -->
+    <div class="flexbox"><img src="support/solidblue.png"/>
+      <img src="support/solidblue.png"/></div>
+  </body>
+</html>
+

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored(fallback) changes on scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  body { margin: 0; }
+  #anchor {
+    anchor-name: --a;
+    margin-top: 100px;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: fixed;
+    position-anchor: --a;
+    position-area: top;
+    position-try-fallbacks: flip-block;
+    width: 100px;
+    height: 100px;
+    container-type: anchored;
+  }
+  @container anchored(fallback: none) {
+    #t1 { --fallback: no; }
+  }
+  @container anchored(fallback: flip-block) {
+    #t1 { --fallback: yes; }
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored">
+  <div id="t1"></div>
+</div>
+<div style="height:3000px">XXX</div>
+<script>
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    assert_equals(document.documentElement.scrollTop, 0);
+    assert_equals(getComputedStyle(t1).getPropertyValue("--fallback"), "no");
+  }, "@container anchored() without applied fallback at initial scroll position");
+
+  promise_test(async t => {
+    document.documentElement.scrollTop = 100;
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t1).getPropertyValue("--fallback"), "yes");
+  }, "@container anchored() applies fallback after scrolling down");
+</script>

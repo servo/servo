@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Send additional codec supported by the other side</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+// Tests behaviour from
+// https://www.rfc-editor.org/rfc/rfc8829.html#section-5.3.1
+// in particular "but MAY include formats that are locally
+// supported but not present in the offer"
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  exchangeIceCandidates(pc1, pc2);
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+  pc1.addTrack(stream.getTracks()[0], stream);
+  pc2.addTrack(stream.getTracks()[0], stream);
+  // Only offer VP8.
+  pc1.getTransceivers()[0].setCodecPreferences([{
+    clockRate: 90000,
+    mimeType: 'video/VP8'
+  }]);
+  await pc1.setLocalDescription();
+
+  // Add H264 to the SDP.
+  const sdp = pc1.localDescription.sdp.split('\n')
+    .map(l => {
+      if (l.startsWith('m=')) {
+        return l.trim() + ' 63'; // 63 is the least-likely to be used PT.
+      }
+      return l.trim();
+    }).join('\r\n') +
+    'a=rtpmap:63 H264/90000\r\n' +
+    'a=fmtp:63 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n'
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: sdp.replaceAll('VP8', 'no-such-codec'), // Remove VP8
+  });
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  await listenToConnected(pc2);
+  const stats = await pc1.getStats();
+  const rtp = [...stats.values()].find(({type}) => type === 'outbound-rtp');
+  assert_true(!!rtp);
+  assert_equals(stats.get(rtp.codecId).mimeType, 'video/H264');
+}, 'Listing an additional codec in the answer causes it to be sent.');
+</script>

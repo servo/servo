@@ -1,0 +1,260 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for caret movement around generated content</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1958985">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+function getRangeDescription(range) {
+  function getNodeDescription(node) {
+    if (!node) {
+      return "null";
+    }
+    switch (node.nodeType) {
+      case Node.TEXT_NODE:
+        return `${node.nodeName} "${node.data}"`;
+      case Node.ELEMENT_NODE:
+        return `<${node.nodeName.toLowerCase()}>`;
+      default:
+        return `${node.nodeName}`;
+    }
+  }
+  if (range === null) {
+    return "null";
+  }
+  if (range === undefined) {
+    return "undefined";
+  }
+  return range.startContainer == range.endContainer &&
+    range.startOffset == range.endOffset
+    ? `(${getNodeDescription(range.startContainer)}, ${range.startOffset})`
+    : `(${getNodeDescription(range.startContainer)}, ${
+        range.startOffset
+      }) - (${getNodeDescription(range.endContainer)}, ${range.endOffset})`;
+}
+
+const kArrowLeft = "\uE012";
+const kArrowUp = "\uE013";
+const kArrowRight = "\uE014";
+const kArrowDown = "\uE015";
+
+function sendKey(k) {
+  return new test_driver.Actions().keyDown(k).keyUp(k).send();
+}
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", resolve, {once: true});
+  });
+}, "Initializing tests");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("#test1");
+  editingHost.focus();
+  const p = editingHost.querySelector("#a");
+
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#a").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#a").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: caret should start at the beginning of the first line`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#one").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#one").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the start of the first list item`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#two"),
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#two"),
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the second list item`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#three").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#three").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the third list item`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#z").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#z").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the final paragraph`);
+}, "Moving caret between list items using arrow keys");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("#test2");
+  editingHost.focus();
+  const p = editingHost.querySelector("#before");
+
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#before").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#before").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: caret should start at the beginning of the first line`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#quote").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#quote").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the start of the block quote`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#after").firstChild,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("#after").firstChild,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the final paragraph`);
+
+  await sendKey(kArrowLeft);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#quote").firstChild,
+        startOffset: 5,
+        endContainer: editingHost.querySelector("#quote").firstChild,
+        endOffset: 5,
+      }),
+    );
+  }, `${t.name}: arrow-left should move the caret to the end of the quote`);
+
+  await sendKey(kArrowUp);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#before").firstChild,
+        startOffset: 10,
+        endContainer: editingHost.querySelector("#before").firstChild,
+        endOffset: 10,
+      }),
+    );
+  }, `${t.name}: arrow-up should move the caret to into the first line`);
+
+  await sendKey(kArrowRight);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#before").firstChild,
+        startOffset: 11,
+        endContainer: editingHost.querySelector("#before").firstChild,
+        endOffset: 11,
+      }),
+    );
+  }, `${t.name}: arrow-right should move the caret forward by one character`);
+
+  await sendKey(kArrowDown);
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("#quote").firstChild,
+        startOffset: 5,
+        endContainer: editingHost.querySelector("#quote").firstChild,
+        endOffset: 5,
+      }),
+    );
+  }, `${t.name}: arrow-down should move the caret to the end of the quote`);
+}, "Moving caret past the block-quote using arrow keys");
+</script>
+<style>
+div {
+  font-family: monospace;
+}
+ul {
+  list-style-type: none;
+}
+li::before {
+  content: "*\00a0";
+  display: inline-block;
+}
+blockquote {
+  margin-inline-start: 5ch;
+}
+blockquote::after {
+  content: "\00a0*";
+  display: inline-block;
+}
+</style>
+</head>
+<body>
+<div id=test1 contenteditable>
+  <p id=a>abc</p>
+  <ul>
+    <li id=one>one</li>
+    <li id=two><br></li>
+    <li id=three>three</li>
+  </ul>
+  <p id=z>xyz</p>
+</div>
+<div id=test2 contenteditable>
+  <p id=before>paragraph before the blockquote</p>
+  <blockquote id=quote>quote</blockquote>
+  <p id=after>after the blockquote</p>
+</div>
+</body>
+</html>

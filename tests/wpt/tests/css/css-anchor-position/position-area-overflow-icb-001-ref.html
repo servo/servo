@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html dir=rtl>
+<title>Reference: position-area overflow alignment against ICB - non-scrollable RTL</title>
+<style>
+.anchor {
+  border: solid orange 20px;
+  position: absolute;
+  margin: auto;
+  top: 50%;
+  left: 50%;
+}
+.above, .below, .left, .right {
+  border: solid blue 3px;
+  padding: 2px;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.above { top: 0;     left: 50%;    height: 60vh;  margin-left:   25px; }
+.below { bottom: 0;  left: 50%;    height: 60vh;  margin-left:    5px; }
+.left  { left: 0;    top: 50%;     width:  60vw;  margin-top:    25px; }
+.right { right: 0;   top: 50%;     width:  60vw;  margin-top:     5px; }
+</style>
+
+<div class=anchor></div>
+<div class=above></div>
+<div class=below></div>
+<div class=left></div>
+<div class=right></div>

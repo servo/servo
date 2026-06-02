@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Crash Reporting (https://wicg.github.io/crash-reporting/)
+
+dictionary CrashReportBody : ReportBody {
+  DOMString reason;
+  DOMString stack;
+  boolean is_top_level;
+  DocumentVisibilityState visibility_state;
+  object crash_report_api;
+};
+
+partial interface Window {
+  readonly attribute CrashReportContext crashReport;
+};
+
+[Exposed=Window]
+interface CrashReportContext {
+    Promise<undefined> initialize(unsigned long long length);
+    undefined set(DOMString key, DOMString value);
+    undefined delete(DOMString key);
+};

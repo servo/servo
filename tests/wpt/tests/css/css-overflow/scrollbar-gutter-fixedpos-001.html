@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Root element's scrollbar-gutter is accounted for in fixed-pos positioning</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=728807">
+<link rel="match" href="scrollbar-gutter-fixedpos-001-ref.html">
+<style>
+:root {
+  scrollbar-gutter: stable;
+}
+body {
+  margin: 0;
+}
+.fixed {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: fixed;
+}
+</style>
+
+<div class="fixed" style="left: 0"></div>
+<div class="fixed" style="right: 0"></div>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  table
+    {
+    border-spacing: 0px;
+    table-layout: fixed;
+    }
+
+  td
+    {
+      height: 18px;
+      padding: 0px;
+    }
+
+  td.corner
+    {
+      background-image: url("../support/new-red-diamond-27x27.png");
+      background-size: cover;
+    }
+
+  td#first-row-second-cell , td#third-row-second-cell , td.second-row
+    {
+      background-image: url("../support/blue-diamond-27x27.png");
+      background-size: contain;
+      background-position: center;
+    }
+
+  td.second-row
+    {
+      height: 108px; /* 6 times 18 == 108 */
+    }
+  </style>
+
+  <p>Test passes if a blue diamond is repeated 8 times horizontally between red diamonds and repeated  6 times vertically between red diamonds. Each of the 4 edges between red diamonds must start and end with a half slice of a blue diamond.
+
+  <table>
+
+    <col width="18"><col width="144"><col width="18">
+
+    <tr><td class="corner"><td id="first-row-second-cell"><td class="corner">
+
+    <tr><td class="second-row"><td><td class="second-row">
+
+    <tr><td class="corner"><td id="third-row-second-cell"><td class="corner">
+
+  </table>

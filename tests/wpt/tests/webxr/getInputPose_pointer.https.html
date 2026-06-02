@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let testName = "XRInputSources with a target ray mode of 'tracked-pointer' "
+  + "properly communicate their poses";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: IDENTITY_TRANSFORM,
+      profiles: []
+    });
+
+    // Don't set a grip matrix yet
+
+    // Must have a reference space to get input poses. eye-level doesn't apply
+    // any transforms to the given matrix.
+    session.requestReferenceSpace('local').then( (referenceSpace) => {
+
+      function CheckInvalidGrip(time, xrFrame) {
+        let source = session.inputSources[0];
+        let grip_pose = xrFrame.getPose(source.gripSpace, referenceSpace);
+
+        t.step( () => {
+          // The input pose should be null when no grip matrix is provided.
+          assert_equals(source.targetRayMode, "tracked-pointer");
+          assert_equals(grip_pose, null);
+        });
+
+        input_source.setGripOrigin(VALID_GRIP_TRANSFORM);
+
+        session.requestAnimationFrame(CheckValidGrip);
+      }
+
+      function CheckValidGrip(time, xrFrame) {
+        let source = session.inputSources[0];
+
+        let grip_pose = xrFrame.getPose(source.gripSpace, referenceSpace);
+
+        let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
+
+        t.step( () => {
+          // When a grip matrix is set, both the grip and pointer matrices
+          // should yield their set values (i.e. the pointerOrigin is *not*
+          // transformed by the gripOrigin).
+          assert_not_equals(grip_pose, null);
+          assert_matrix_approx_equals(grip_pose.transform.matrix, VALID_GRIP,
+            FLOAT_EPSILON, "Grip matrix is not equal to input.");
+          assert_matrix_approx_equals(input_pose.transform.matrix,
+            IDENTITY_MATRIX, FLOAT_EPSILON,
+            "Pointer matrix is not equal to its set value.");
+        });
+
+        input_source.setPointerOrigin(VALID_POINTER_TRANSFORM);
+
+        session.requestAnimationFrame(CheckValidGripAndPointer);
+      }
+
+      function CheckValidGripAndPointer(time, xrFrame) {
+        let source = session.inputSources[0];
+
+        let grip_pose = xrFrame.getPose(source.gripSpace, referenceSpace);
+        let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
+
+        t.step( () => {
+          // Verify that changes to the pointer origin are properly reflected.
+          assert_not_equals(grip_pose, null);
+          assert_matrix_approx_equals(grip_pose.transform.matrix, VALID_GRIP,
+            FLOAT_EPSILON, "Grip matrix is not equal to input valid grip.");
+          assert_matrix_approx_equals(input_pose.transform.matrix,
+            VALID_POINTER, FLOAT_EPSILON,
+            "Pointer matrix not set properly.");
+        });
+
+        resolve();
+      }
+
+      // Can only request input poses in an xr frame.
+      requestSkipAnimationFrame(session, CheckInvalidGrip);
+    });
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

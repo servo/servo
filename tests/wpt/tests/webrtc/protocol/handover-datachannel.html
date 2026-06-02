@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Handovers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  const answerPcFirst = new RTCPeerConnection();
+  const answerPcSecond = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerPc.close();
+    answerPcFirst.close();
+    answerPcSecond.close();
+  });
+  const offerDatachannel1 = offerPc.createDataChannel('initial');
+  exchangeIceCandidates(offerPc, answerPcFirst);
+
+  // Negotiate connection with PC 1
+  const offer1 = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer1);
+  await answerPcFirst.setRemoteDescription(offer1);
+  const answer1 = await answerPcFirst.createAnswer();
+  await offerPc.setRemoteDescription(answer1);
+  await answerPcFirst.setLocalDescription(answer1);
+  const datachannelAtAnswerPcFirst = await new Promise(
+    r => answerPcFirst.ondatachannel = ({channel}) => r(channel));
+  const iceTransport = offerPc.sctp.transport;
+  // Check that messages get through.
+  datachannelAtAnswerPcFirst.send('hello');
+  const message1 = await awaitMessage(offerDatachannel1);
+  assert_equals(message1, 'hello');
+
+  // Renegotiate with PC 2
+  // Note - ICE candidates will also be sent to answerPc1, but that shouldn't matter.
+  exchangeIceCandidates(offerPc, answerPcSecond);
+  const offer2 = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer2);
+  await answerPcSecond.setRemoteDescription(offer2);
+  const answer2 = await answerPcSecond.createAnswer();
+  await offerPc.setRemoteDescription(answer2);
+  await answerPcSecond.setLocalDescription(answer2);
+
+  // Kill the first PC. This should not affect anything, but leaving it may cause untoward events.
+  answerPcFirst.close();
+
+  const answerDataChannel2 = answerPcSecond.createDataChannel('second back');
+
+  const datachannelAtOfferPcSecond = await new Promise(r => offerPc.ondatachannel = ({channel}) => r(channel));
+
+  await new Promise(r => datachannelAtOfferPcSecond.onopen = r);
+
+  datachannelAtOfferPcSecond.send('hello again');
+  const message2 = await awaitMessage(answerDataChannel2);
+  assert_equals(message2, 'hello again');
+}, 'Handover with datachannel reinitiated from new callee completes');
+
+</script>

@@ -1,0 +1,115 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! This module contains implementations of structured data as described in
+//! <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
+
+mod serializable;
+mod transferable;
+
+use base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
+};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::{FxBuildHasher, FxHashMap};
+use serde::{Deserialize, Serialize};
+pub use serializable::*;
+use strum::IntoEnumIterator;
+pub use transferable::*;
+
+/// A data-holder for serialized data and transferred objects.
+/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct StructuredSerializedData {
+    /// Data serialized by SpiderMonkey.
+    pub serialized: Vec<u8>,
+    /// Serialized in a structured callback,
+    pub blobs: Option<FxHashMap<BlobId, BlobImpl>>,
+    /// Serialized point objects.
+    pub points: Option<FxHashMap<DomPointId, DomPoint>>,
+    /// Serialized rect objects.
+    pub rects: Option<FxHashMap<DomRectId, DomRect>>,
+    /// Serialized quad objects.
+    pub quads: Option<FxHashMap<DomQuadId, DomQuad>>,
+    /// Serialized matrix objects.
+    pub matrices: Option<FxHashMap<DomMatrixId, DomMatrix>>,
+    /// Serialized exception objects.
+    pub exceptions: Option<FxHashMap<DomExceptionId, DomException>>,
+    /// Serialized quota exceeded errors.
+    pub quota_exceeded_errors:
+        Option<FxHashMap<QuotaExceededErrorId, SerializableQuotaExceededError>>,
+    /// Transferred objects.
+    pub ports: Option<FxHashMap<MessagePortId, MessagePortImpl>>,
+    /// Transform streams transferred objects.
+    pub transform_streams: Option<FxHashMap<MessagePortId, TransformStreamData>>,
+    /// Serialized image bitmap objects.
+    pub image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred image bitmap objects.
+    pub transferred_image_bitmaps: Option<FxHashMap<ImageBitmapId, SerializableImageBitmap>>,
+    /// Transferred offscreen canvas objects.
+    pub offscreen_canvases: Option<FxHashMap<OffscreenCanvasId, TransferableOffscreenCanvas>>,
+    /// Serialized image data objects.
+    pub image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
+}
+
+impl StructuredSerializedData {
+    fn is_empty(&self, val: Transferrable) -> bool {
+        fn is_field_empty<K, V>(field: &Option<FxHashMap<K, V>>) -> bool {
+            field.as_ref().is_none_or(|h| h.is_empty())
+        }
+        match val {
+            Transferrable::ImageBitmap => is_field_empty(&self.transferred_image_bitmaps),
+            Transferrable::MessagePort => is_field_empty(&self.ports),
+            Transferrable::OffscreenCanvas => is_field_empty(&self.offscreen_canvases),
+            Transferrable::ReadableStream => is_field_empty(&self.ports),
+            Transferrable::WritableStream => is_field_empty(&self.ports),
+            Transferrable::TransformStream => is_field_empty(&self.ports),
+        }
+    }
+
+    /// Clone all values of the same type stored in this StructuredSerializedData
+    /// into another instance.
+    fn clone_all_of_type<T: BroadcastClone>(&self, cloned: &mut StructuredSerializedData) {
+        let existing = T::source(self);
+        let Some(existing) = existing else { return };
+        let mut clones = FxHashMap::with_capacity_and_hasher(existing.len(), FxBuildHasher);
+
+        for (original_id, obj) in existing.iter() {
+            if let Some(clone) = obj.clone_for_broadcast() {
+                clones.insert(*original_id, clone);
+            }
+        }
+
+        *T::destination(cloned) = Some(clones);
+    }
+
+    /// Clone the serialized data for use with broadcast-channels.
+    pub fn clone_for_broadcast(&self) -> StructuredSerializedData {
+        for transferrable in Transferrable::iter() {
+            if !self.is_empty(transferrable) {
+                // Not panicking only because this is called from the constellation.
+                warn!(
+                    "Attempt to broadcast structured serialized data including {:?} (should never happen).",
+                    transferrable,
+                );
+            }
+        }
+
+        let serialized = self.serialized.clone();
+
+        let mut cloned = StructuredSerializedData {
+            serialized,
+            ..Default::default()
+        };
+
+        for serializable in Serializable::iter() {
+            let clone_impl = serializable.clone_values();
+            clone_impl(self, &mut cloned);
+        }
+
+        cloned
+    }
+}

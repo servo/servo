@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-top</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-top"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: silver; }
+   span { color: blue; }
+   .one { border-top: blue double 10px; }
+   .two { border-top: blue thin solid; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <div>The blue bits of text should be decorated as described.</div>
+  <p>
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   <span class="one">two blue lines above</span> dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text <span class="two">one thin blue line
+   above</span> dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text
+  </p>
+  <div>(All the lines of text in the block above should be equally spaced.)</div>
+ </body>
+</html>

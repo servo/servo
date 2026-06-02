@@ -1,0 +1,187 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_polygon_mode Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_polygon_mode extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+var ext;
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the parameters without the extension");
+    shouldBeNull("gl.getParameter(0x0B40 /* POLYGON_MODE_WEBGL */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBeNull("gl.getParameter(0x2A02 /* POLYGON_OFFSET_LINE_WEBGL */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    debug("Check the cap without the extension");
+    gl.disable(0x2A02 /* POLYGON_OFFSET_LINE_WEBGL */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    gl.enable(0x2A02 /* POLYGON_OFFSET_LINE_WEBGL */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    shouldBeFalse("gl.isEnabled(0x2A02 /* POLYGON_OFFSET_LINE_WEBGL */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.POLYGON_MODE_WEBGL", "0x0B40");
+    shouldBe("ext.POLYGON_OFFSET_LINE_WEBGL", "0x2A02");
+    shouldBe("ext.LINE_WEBGL", "0x1B01");
+    shouldBe("ext.FILL_WEBGL", "0x1B02");
+}
+
+function checkQueries() {
+    debug("");
+    debug("Check default state");
+    shouldBe('gl.getParameter(ext.POLYGON_MODE_WEBGL)', 'ext.FILL_WEBGL');
+    shouldBeFalse('gl.getParameter(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    shouldBeFalse('gl.isEnabled(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    debug("");
+    debug("Check state updates");
+    ext.polygonModeWEBGL(gl.FRONT_AND_BACK, ext.LINE_WEBGL);
+    shouldBe('gl.getParameter(ext.POLYGON_MODE_WEBGL)', 'ext.LINE_WEBGL');
+    ext.polygonModeWEBGL(gl.FRONT_AND_BACK, ext.FILL_WEBGL);
+    shouldBe('gl.getParameter(ext.POLYGON_MODE_WEBGL)', 'ext.FILL_WEBGL');
+    debug("");
+    debug("Check errors");
+    ext.polygonModeWEBGL(gl.FRONT, ext.LINE_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "invalid face");
+    ext.polygonModeWEBGL(gl.FRONT_AND_BACK, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "invalid mode");
+    shouldBe('gl.getParameter(ext.POLYGON_MODE_WEBGL)', 'ext.FILL_WEBGL');
+    debug("");
+    debug("Check cap updates");
+    gl.enable(ext.POLYGON_OFFSET_LINE_WEBGL);
+    shouldBeTrue('gl.getParameter(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    shouldBeTrue('gl.isEnabled(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    gl.disable(ext.POLYGON_OFFSET_LINE_WEBGL);
+    shouldBeFalse('gl.getParameter(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    shouldBeFalse('gl.isEnabled(ext.POLYGON_OFFSET_LINE_WEBGL)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkDiagonal(r, g, b) {
+    const pixels = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    for (let i = 0; i < w; i++)
+    {
+        const baseOffset = (i * w + i) * 4;
+        if (pixels[baseOffset + 0] != r ||
+            pixels[baseOffset + 1] != g ||
+            pixels[baseOffset + 2] != b) {
+            testFailed(`Unexpected diagonal color at (${i}, ${i})`);
+            return;
+        }
+    }
+    testPassed("Expected diagonal color");
+}
+
+function checkLineMode() {
+    debug("");
+    debug("Check line polygon mode");
+
+    gl.enable(gl.DEPTH_TEST);
+
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    const colorLoc = gl.getUniformLocation(program, "u_color");
+
+    wtu.setupUnitQuad(gl);
+
+    // Draw red quad with lines
+    gl.uniform4f(colorLoc, 1, 0, 0, 1);
+    ext.polygonModeWEBGL(gl.FRONT_AND_BACK, ext.LINE_WEBGL);
+    wtu.clearAndDrawUnitQuad(gl);
+
+    // Nothing is drawn inside triangles
+    wtu.checkCanvasRect(gl, 2, 17, 13, 13, [255, 255, 255, 255]);
+    wtu.checkCanvasRect(gl, 17, 2, 13, 13, [255, 255, 255, 255]);
+
+    // Main diagonal is drawn
+    checkDiagonal(255, 0, 0);
+
+    // Test polygon offset
+    gl.polygonOffset(0, -2);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+
+    // Depth test must fail because line mode uses its own polygon offset toggle
+    gl.uniform4f(colorLoc, 0, 1, 0, 1);
+    wtu.drawUnitQuad(gl);
+    checkDiagonal(255, 0, 0);
+
+    // Depth test must pass
+    gl.enable(ext.POLYGON_OFFSET_LINE_WEBGL)
+    wtu.drawUnitQuad(gl);
+    checkDiagonal(0, 255, 0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function runTestExtension() {
+    checkEnums();
+    checkQueries();
+    checkLineMode();
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("WEBGL_polygon_mode");
+
+    wtu.runExtensionSupportedTest(gl, "WEBGL_polygon_mode", ext !== null);
+
+    if (ext !== null) {
+        runTestExtension();
+    } else {
+        testPassed("No WEBGL_polygon_mode support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

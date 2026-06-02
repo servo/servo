@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: child-indexed selectors should match without a parent element.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecoal95@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel="match" href="child-indexed-no-parent-ref.html">
+<style>
+  :root:first-child #a {
+    color: green;
+  }
+  :root:nth-child(n) #b {
+    color: green;
+  }
+  :root:first-of-type #c {
+    color: green;
+  }
+  :root:nth-of-type(1) #d {
+    color: green;
+  }
+  :root:last-of-type #e {
+    color: green;
+  }
+  :root:last-child #f {
+    color: green;
+  }
+  :root:nth-last-child(1) #g {
+    color: green;
+  }
+  :root:nth-last-of-type(n) #h {
+    color: green;
+  }
+
+  #i {
+    color: green;
+  }
+
+  /* NB: not matching intentionally */
+  :root:nth-last-child(2) #i {
+    color: red;
+  }
+</style>
+<p id="a">Should be green
+<p id="b">Should be green
+<p id="c">Should be green
+<p id="d">Should be green
+<p id="e">Should be green
+<p id="f">Should be green
+<p id="g">Should be green
+<p id="h">Should be green
+<p id="i">Should be green

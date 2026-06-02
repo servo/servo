@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' http://{{host}}:{{ports[http][0]}}/security/contentSecurityPolicy/resources/redir.php; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-eventsource-redirect-to-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS EventSource() did not follow the disallowed redirect.","TEST COMPLETE", "violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        var es;
+        try {
+            es = new EventSource("/common/redirect.py?location= http://www.{{host}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
+        } catch (e) {
+            log("FAIL " + "EventSource() should not throw an exception.");
+        }
+        es.onload = function() {
+            log("FAIL " + "EventSource() should fail to follow the disallowed redirect.");
+            log("TEST COMPLETE");
+        };
+        es.onerror = function() {
+            log("PASS " + "EventSource() did not follow the disallowed redirect.");
+            log("TEST COMPLETE");
+        };
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

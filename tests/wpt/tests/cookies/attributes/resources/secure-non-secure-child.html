@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie secure attribute parsing (on non-secure page)</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.5">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <script>
+      setTestContextUsingRootWindow();
+      // These tests are the non-secure analog to secure.https.html.
+      // They're not in the /cookies/attributes folder because they shouldn't
+      // be run by themselves. Instead, /cookies/attributes/secure.https.html
+      // opens this in a non-secure window.
+      const secureNonSecureTests = [
+      {
+        cookie: "test=1; Secure",
+        expected: "",
+        name: "(non-secure) Ignore cookie for Secure attribute",
+      },
+      {
+        cookie: "test=2; seCURe",
+        expected: "",
+        name: "(non-secure) Ignore cookie for seCURe attribute",
+      },
+      {
+        cookie: "test=3; Secure=",
+        expected: "",
+        name: "(non-secure) Ignore cookie for for Secure= attribute",
+      },
+      {
+        cookie: "test=4; Secure=aaaa",
+        expected: "",
+        name: "(non-secure) Ignore cookie for Secure=aaaa",
+      },
+      {
+        cookie: "test=5; Secure =aaaaa",
+        expected: "",
+        name: "(non-secure) Ignore cookie for Secure space equals",
+      },
+      {
+        cookie: "test=6; Secure= aaaaa",
+        expected: "",
+        name: "(non-secure) Ignore cookie for Secure equals space",
+      },
+      {
+        cookie: "test=7;                Secure",
+        expected: "",
+        name: "(non-secure) Ignore cookie for spaced Secure",
+      },
+      {
+        cookie: "test=8;       Secure     ;",
+        expected: "",
+        name: "(non-secure) Ignore cookie for space Secure with ;",
+      },
+      {
+        cookie: "__Secure-test=9; Secure",
+        expected: "",
+        name: "(non-secure) Ignore cookie with __Secure- prefix and Secure",
+      },
+      {
+        cookie: "__Secure-test=10",
+        expected: "",
+        name: "(non-secure) Ignore cookie with __Secure- prefix and without Secure",
+      },
+      // This is really a test that the cookie name isn't URL-decoded, but this
+      // is here to be next to the other __Secure- prefix tests.
+      {
+        cookie: "__%53ecure-test=11",
+        expected: "__%53ecure-test=11",
+        name: "(non-secure) Cookie returned with __%53ecure- prefix and without Secure",
+      },
+    ];
+
+    for (const test of secureNonSecureTests) {
+      httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+    }
+    </script>
+  </body>
+</html>

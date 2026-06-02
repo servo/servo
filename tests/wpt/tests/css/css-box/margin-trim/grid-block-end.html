@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: grid-block-end</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<link rel="match" href="grid-block-end-ref.html">
+<meta name="assert" content="block-end should trim block-end margins of items on last row">
+<style>
+grid {
+    display: inline-grid;
+    border: 1px solid black;
+    grid-template-columns: auto auto;
+    margin-trim: block-end;
+}
+
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+    margin-block-end: 10px;
+}
+</style>
+</head>
+<body>
+<grid>
+<item style="grid-row: span 2; height: auto;"></item>
+<item></item>
+<item></item>
+</grid>
+</body>
+</html>

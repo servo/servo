@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: Test the column rules' block-size with nested balancing multicol container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#cf">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-gaps-and-rules">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2309">
+  <link rel="match" href="multicol-rule-nested-balancing-004-ref.html">
+  <meta name="assert" content="This test verifies that the column-rules are extended to the content block-end edges of their corresponding inner and outer multicol container.">
+
+  <style>
+  .outer {
+    column-count: 1;
+    column-rule: 6px solid black;
+    background-color: rgba(0, 0, 255, 0.3);
+    width: 200px;
+    height: 300px;
+  }
+  .inner {
+    column-count: 1;
+    column-rule: 3px solid gray;
+    background-color: rgba(255, 0, 255, 0.3);
+    height: 500px;
+  }
+  .inner-block {
+    background-color: rgba(0, 255, 0, 0.3);
+    height: 600px;
+  }
+  </style>
+
+  <!-- It is deliberate that the inner column's block-size is greater than
+       outer column's, and the inner-block's block-size is also greater than
+       inner column's. -->
+  <article class="outer">
+    <article class="inner">
+      <div class="inner-block"></div>
+    </article>
+  </article>
+</html>

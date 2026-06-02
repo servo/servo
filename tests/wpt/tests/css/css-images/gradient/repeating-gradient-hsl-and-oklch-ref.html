@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Repeating linear gradients in HSL and OKLCH space</title>
+    <link rel="author" title="Ashley Hale" href="mailto:ahale@mozilla.com">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        .a {
+          width: 100px;
+          height: 100px;
+          background: repeating-linear-gradient(
+            to bottom,
+            hsl(180 50% 70%) 0px 20px,
+            hsl(0 50% 50%) 20px 40px,
+            hsl(180 50% 70%) 40px 60px,
+            hsl(0 50% 50%) 60px 80px,
+            hsl(180 50% 70%) 80px 100px
+          );
+        }
+
+        .b {
+          width: 100px;
+          height: 100px;
+          background: repeating-linear-gradient(
+            to bottom,
+            oklch(70% 50% 180) 0px 20px,
+            oklch(50% 50% 0) 20px 40px,
+            oklch(70% 50% 180) 40px 60px,
+            oklch(50% 50% 0) 60px 80px,
+            oklch(70% 50% 180) 80px 100px
+          );
+        }
+    </style>
+</head>
+
+<body>
+    <p>repeating-linear-gradient with HSL</p>
+    <div class="a"></div>
+    <p>repeating-linear-gradient with OKLCH</p>
+    <div class="b"></div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/content-security-policy/support/testharness-helper.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+</head>
+<body>
+  <script>
+  async_test(t => {
+    waitUntilCSPEventForURL(t, "https://evil.com/img.png")
+      .then(t.step_func_done(e => {
+        var u = new URL(e.documentURI);
+        assert_equals(u.hash, "");
+      }));
+
+    window.location.hash = "should-not-appear-in-report";
+
+    var i = document.createElement("img");
+    i.src = "https://evil.com/img.png#boo";
+  }, "Reported document URI does not contain fragments.");
+  </script>
+</body>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A tables collapsed borders paint in the background paint phase, after children.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<!DOCTYPE html>
+<table style="border-collapse: collapse; border-spacing: 0;">
+  <td style="border-right: solid 100px green; height: 100px; padding: 0;">
+    <div style="width: 0;">
+      <div style="width: 100px; height: 100px; background: red;"></div>
+    </div>
+  </td>
+</table>

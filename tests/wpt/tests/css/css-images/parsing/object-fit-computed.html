@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images: getComputedStyle().objectFit</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#propdef-object-fit">
+<meta name="assert" content="object-fit computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("object-fit", "contain");
+test_computed_value("object-fit", "cover");
+test_computed_value("object-fit", "cover scale-down");
+test_computed_value("object-fit", "fill");
+test_computed_value("object-fit", "none");
+test_computed_value("object-fit", "scale-down");
+</script>
+</body>
+</html>

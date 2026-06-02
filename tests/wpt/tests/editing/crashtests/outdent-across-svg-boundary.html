@@ -1,0 +1,38 @@
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+<head>
+<script>
+function init()
+{
+  var targetWindow = window.frames[0];
+  var targetDocument = targetWindow.document;
+  var rootish = document.getElementById('rootish');
+
+  targetDocument.body.appendChild(targetDocument.adoptNode(rootish));
+  targetDocument.designMode = 'on';
+
+  targetWindow.getSelection().removeAllRanges();
+
+  var r = targetDocument.createRange();
+  r.setStart(targetDocument.getElementById("start"), 0);
+  r.setEnd(targetDocument.getElementById("endparent").firstChild, 0);
+  targetWindow.getSelection().addRange(r);
+
+  targetDocument.execCommand('outdent', false, null);
+  document.documentElement.removeAttribute("class");
+}
+</script>
+
+</head>
+
+<body onload="setTimeout(init, 300);">
+
+<iframe srcdoc="" style="width: 95%; height: 500px;"></iframe>
+
+<div id="rootish">
+  <div id="start"></div>
+  <p>Huh</p>
+  <svg xmlns="http://www.w3.org/2000/svg" id="endparent"> </svg>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+    const header = 'Default permissions policy';
+    const rawSetHeader = 'set;key=hello;value=world';
+    const setHeader = encodeURIComponent(rawSetHeader);
+    const sameOriginUrl =
+          `/shared-storage/resources/shared-storage-write.py?write=${setHeader}`;
+    const sameOrigin = generateURL(sameOriginUrl, []).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+    const crossOriginUrl = crossOrigin + sameOriginUrl;
+
+    promise_test(async t => {
+      let response = await fetch(sameOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the same-origin shared storage fetch request.');
+
+    promise_test(async t => {
+      let response = await fetch(crossOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      await verifyKeyValueForOrigin('hello', 'world', crossOrigin);
+      await deleteKeyForOrigin('hello', crossOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the cross-origin shared storage fetch request.');
+
+    promise_test(async t => {
+      let response = await fetch('/common/redirect.py?location='
+                                 + sameOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
+              + 'where the redirect has a same-origin URL.');
+
+    promise_test(async t => {
+      let response = await fetch('/common/redirect.py?location='
+                                 + crossOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader, "?1");
+
+      await verifyKeyValueForOrigin('hello', 'world', crossOrigin);
+      await deleteKeyForOrigin('hello', crossOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
+              + 'where the redirect has a cross-origin URL.');
+  </script>
+</body>

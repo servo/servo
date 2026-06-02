@@ -1,0 +1,61 @@
+<svg viewBox="-10 -10 280 220" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <marker id="m" refX="5" refY="5" viewBox="0 0 10 10" overflow="visible">
+      <circle cx="5" cy="5" r="3" fill="black" stroke="black" fill-opacity="0.5"/>
+    </marker>
+    <svg id="poly" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke="lime" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+    </svg>
+    <svg id="poly-f-m-s" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke="lime" stroke-width="50" stroke-opacity="0.5"/>
+    </svg>
+    <svg id="poly-m-f-s" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke-width="50" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke="lime" stroke-width="50" stroke-opacity="0.5"/>
+    </svg>
+    <svg id="poly-s-m-f" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke="lime" stroke-width="50" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke-width="50" stroke-opacity="0.5"/>
+    </svg>
+    <svg id="poly-s-f-m" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke="lime" stroke-width="50" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke-width="50" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+    </svg>
+    <svg id="poly-m-s-f" viewBox="-10 -10 420 420">
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke-width="50" style="marker: url(#m)" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="none" stroke="lime" stroke-width="50" stroke-opacity="0.5"/>
+      <polygon points="50 50 50 350 350 350 250 200" fill="blue" stroke-width="50" stroke-opacity="0.5"/>
+    </svg>
+  </defs>
+
+  <use xlink:href="#poly" width="50" height="50"/>
+  <use xlink:href="#poly" width="50" height="50" x="50"/>
+
+  <g transform="translate(0,50)">
+    <use xlink:href="#poly" width="50" height="50" x="0"/>
+    <use xlink:href="#poly" width="50" height="50" x="50"/>
+    <use xlink:href="#poly" width="50" height="50" x="100"/>
+    <use xlink:href="#poly-f-m-s" width="50" height="50" x="150"/>
+    <use xlink:href="#poly-f-m-s" width="50" height="50" x="200" />
+  </g>
+
+  <g transform="translate(0,100)">
+    <use xlink:href="#poly-s-f-m" width="50" height="50" x="0"/>
+    <use xlink:href="#poly-s-f-m" width="50" height="50" x="50"/>
+    <use xlink:href="#poly-s-f-m" width="50" height="50" x="100"/>
+    <use xlink:href="#poly-s-m-f" width="50" height="50" x="150"/>
+    <use xlink:href="#poly-s-m-f" width="50" height="50" x="200"/>
+  </g>
+
+  <g transform="translate(0,150)">
+    <use xlink:href="#poly-m-f-s" width="50" height="50" x="0"/>
+    <use xlink:href="#poly-m-s-f" width="50" height="50" x="50"/>
+    <use xlink:href="#poly-m-s-f" width="50" height="50" x="100"/>
+    <use xlink:href="#poly-m-f-s" width="50" height="50" x="150"/>
+    <use xlink:href="#poly-m-f-s" width="50" height="50" x="200"/>
+  </g>
+</svg>

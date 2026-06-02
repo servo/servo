@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'align' vs. CSS 'caption-side' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#preshint" />
+        <meta name="assert" content="Attribute 'align' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            div
+            {
+                border: 1px solid black;
+                float: left;
+            }
+            table
+            {
+                width: 300px;
+            }
+            *
+            {
+                caption-side: bottom;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the word "Bottom" is centered inside the black box and is below the word "Top".</p>
+        <div>
+            <table>
+                <caption align="right">Bottom</caption>
+                <tr>
+                    <td>Top</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

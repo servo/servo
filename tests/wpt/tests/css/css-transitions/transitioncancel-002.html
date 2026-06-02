@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions Test: Removing transitioning property from transition-property triggers transitioncancel</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<meta name="assert" content="Removing transitioning property from transition-property
+causes transitioncancel.">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#event-dispatch">
+
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  // Create element and prepare to trigger a transition on it.
+  const div = addDiv(t, {
+    style: 'transition: background-color 0.25s; background-color: red;',
+  });
+
+  // Attach event listeners
+  const eventWatcher = new EventWatcher(t, div, ['transitioncancel']);
+  div.addEventListener('transitionend', t.step_func((event) => {
+    assert_unreached('transitionend event should not be fired');
+  }));
+
+  // Trigger transition
+  getComputedStyle(div).backgroundColor;
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  // Remove the transitioning property from transition-property asynchronously.
+  await waitForFrame();
+  div.style.transitionProperty = 'none';
+
+  await eventWatcher.wait_for('transitioncancel');
+}, 'Removing a transitioning property from transition-property should trigger transitioncancel');
+</script>
+
+</body>
+</html>

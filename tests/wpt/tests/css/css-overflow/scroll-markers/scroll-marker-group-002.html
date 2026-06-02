@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker-group invalidation</title>
+<link rel="match" href="scroll-marker-group-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<style>
+  :root {
+    --scroll-marker-group-background: red;
+  }
+
+  div {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+
+  div::scroll-marker-group {
+    background: var(--scroll-marker-group-background);
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is a <strong>filled green rectangle</strong>.
+<div></div>
+<script>
+  document.documentElement.offsetTop;
+  document.documentElement.style.setProperty('--scroll-marker-group-background', 'green');
+  document.documentElement.offsetTop;
+</script>

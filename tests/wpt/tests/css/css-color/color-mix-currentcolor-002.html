@@ -1,0 +1,22 @@
+<!doctype html>
+<link rel="match" href="color-mix-currentcolor-002-ref.html">
+<title>currentColor is mixed with the correct color-space in color-mix()</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  color: red;
+  background-color: color-mix(in lch, currentColor 50%, blue);
+}
+div div {
+  color: green;
+  background-color: inherit;
+}
+</style>
+<div>
+  <div></div>
+</div>

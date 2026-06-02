@@ -1,0 +1,28 @@
+<!doctype html>
+<title>css-transitions-2 IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<!-- used to provide objects -->
+<style>
+  @starting-style {
+    #id { color: green }
+  }
+</style>
+<script>
+  "use strict";
+
+  idl_test(
+    ['css-transitions-2'],
+    ['web-animations', 'cssom', 'html', 'dom'],
+    idl_array => {
+      idl_array.add_objects({
+        Animation: ['new Animation()'],
+        CSSStartingStyleRule: ['sheet.cssRules[0]'],
+      });
+      self.sheet = document.styleSheets[0];
+    }
+  );
+</script>

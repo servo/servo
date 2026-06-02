@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#spanning-columns">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1383916">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; width:100px; gap:0; orphans:1; widows:1; background:red;">
+  <div style="float:left; width:50px; height:180px; background:green;"></div>
+  <div>
+    <div>
+      <div style="column-span:all; height:10px; background:green;"></div>
+    </div>
+  </div>
+</div>

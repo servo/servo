@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value("page", "auto");
+  test_computed_value("page", "AUTO", "auto");
+  test_computed_value("page", "blablabla");
+  test_computed_value("page", "BLABLABLA");
+  test_computed_value("page", "table");
+  test_computed_value("page", "TABLE");
+</script>

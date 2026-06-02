@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#monolithic">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:balance; gap:0; width:100px; background:red;">
+  <div style="contain:size; height:50px; width:50px;">
+    <div style="height:50px; background:green; break-after:column;"></div>
+  </div>
+  <div style="width:50px; height:150px; background:green;"></div>
+</div>

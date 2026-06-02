@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  .grid {
+    display: grid;
+    align-items: baseline;
+  }
+</style>
+<div class="grid">
+  <div class="grid">
+    <div class="grid">
+      <div class="grid">
+        <div class="grid">
+          <div class="grid">
+              <div id="target"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+PerfTestRunner.measureRunsPerSecond({
+    description: 'Layout of nested grid with baseline alignment.',
+    run: () => {
+      document.getElementById('target').innerText = 'Some text here.';
+      PerfTestRunner.forceLayout();
+      document.getElementById('target').innerText = '';
+      PerfTestRunner.forceLayout();
+    },
+});
+</script>

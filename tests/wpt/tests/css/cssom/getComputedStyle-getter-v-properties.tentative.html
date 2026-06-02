@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSStyleDeclaration index getter v. attributes</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2529">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="testElement"></div>
+<script>
+
+/* per spec, the indexed getter gives all supported longhand properties, whereas
+   attributes are created for all supported properties; this implies the indexed
+   getter gives a subset of the attributes */
+
+const decl = window.getComputedStyle(document.getElementById("testElement"));
+const declItems = Array.from(decl).sort();
+
+const shorthands = ['border-top', 'border-right', 'border-bottom', 'border-left', 'border', 'font'];
+const non_shorthands = ['margin-top', 'font-size', 'max-width', 'width'];
+
+for (const prop of shorthands) {
+  test(() => {
+    assert_true(prop in decl, "getComputedStyle attribute");
+    assert_false(declItems.includes(prop), "getComputedStyle indexed getter");
+  }, prop);
+}
+
+for (const prop of non_shorthands) {
+  test(() => {
+    assert_true(prop in decl, "getComputedStyle attribute");
+    assert_true(declItems.includes(prop), "getComputedStyle indexed getter");
+  }, prop);
+}
+</script>

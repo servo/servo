@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>telugu, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name="assert" content="list-style-type:telugu produces numbers up to 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: telugu;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<div><bdi>౧. </bdi>౧</div>
+<div><bdi>౨. </bdi>౨</div>
+<div><bdi>౩. </bdi>౩</div>
+<div><bdi>౪. </bdi>౪</div>
+<div><bdi>౫. </bdi>౫</div>
+<div><bdi>౬. </bdi>౬</div>
+<div><bdi>౭. </bdi>౭</div>
+<div><bdi>౮. </bdi>౮</div>
+<div><bdi>౯. </bdi>౯</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

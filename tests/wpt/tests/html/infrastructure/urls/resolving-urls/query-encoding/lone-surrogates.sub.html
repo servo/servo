@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset={{GET[encoding]}}> <!-- ends up as <meta charset> by default which is windows-1252 -->
+<meta name=variant content="?encoding=windows-1252">
+<meta name=variant content="?encoding=utf8">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+function expected(encoding) {
+  return "?" + {
+    // Replacement character (not bogus UTF-8)
+    "UTF-8": "%EF%BF%BD",
+    // Charref for the replacement character (not the lone surrogate)
+    "windows-1252": "%26%2365533%3B",
+  }[encoding];
+}
+
+test(t => {
+  const elm = document.createElement("a");
+  document.body.appendChild(elm);
+  t.add_cleanup(() => elm.remove());
+  elm.setAttribute("href", "?\uD800");
+
+  const shouldEndWith = expected(document.characterSet);
+  assert_true(
+    elm.href.endsWith(shouldEndWith),
+    `${elm.href} did not end with ${shouldEndWith}`
+  );
+}, `Query parsing with lone surrogates in ${document.characterSet}`);
+</script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Scroll anchoring at focused input element inside editable newly created table-column</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/427715253">
+<div id="container" contenteditable>
+  <input id="input" style="height:200vh;">
+</div>
+<script>
+  scrollTo(0, 10);
+  input.focus();
+  container.style.display = "table-column-group";
+</script>

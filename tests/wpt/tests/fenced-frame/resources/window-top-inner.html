@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of window.top</title>
+
+<body>
+<script>
+async function init() { // Needed in order to use top-level await.
+  // This file is meant to run in a <fencedframe>. It reports back to the
+  // outermost page whether or not the value of `window.top` was correct for:
+  //   1.) Top-level fenced frames
+  //   2.) Nested iframes inside a fenced frame
+  //   3.) Nested fenced frames
+  const url = new URL(location.href);
+
+  const [window_top_key, window_top_ack_key, nested] = parseKeylist();
+
+  // Report whether or not `window.top` was correct.
+  let pass_string = "";
+  if (nested == "nested")
+    pass_string = "pass: fenced frame > fenced frame";
+  else
+    pass_string = "pass: fenced frame";
+
+  let result = (window.top == window) ? pass_string : "fail";
+  writeValueToServer(window_top_key, result);
+
+  // If this page is a nested fenced frame, all we need to do is report the
+  // top-level value.
+  if (nested == "nested")
+    return;
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `window_top_key` stash and we can write to it again.
+  await nextValueFromServer(window_top_ack_key);
+
+  // Now test `window.top` inside an iframe.
+  const iframe = document.createElement('iframe');
+  iframe.src = "dummy.html";
+  const load_promise = new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+  document.body.append(iframe);
+
+  await load_promise;
+
+  // Report whether or not the subframe's `window.top` was correct.
+  result = (iframe.contentWindow.top == window) ?
+      "pass: fenced frame > iframe" : "fail";
+  writeValueToServer(window_top_key, result);
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `window_top_key` stash and we can write to it again.
+  await nextValueFromServer(window_top_ack_key);
+
+  attachFencedFrame(generateURL("window-top-inner.html",
+      [window_top_key, window_top_ack_key, "nested"]));
+}
+
+init();
+</script>
+</body>

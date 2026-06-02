@@ -1,0 +1,18 @@
+<book
+  xmlns:its="http://www.w3.org/2005/11/its" 
+  its:version="2.0">
+ <info>
+  <legalnotice its:localeFilterList="*-CA" its:localeFilterType="include">
+   <para>Text only for Canadian locales.</para>
+  </legalnotice>
+  <legalnotice its:localeFilterList="*-CA" its:localeFilterType="exclude">
+   <para>Text for non-Canadian locales.</para>
+  </legalnotice>
+  <legalnotice its:localeFilterList="*" its:localeFilterType="exclude">
+   <para>Text for no locales.</para>
+  </legalnotice>
+  <legalnotice its:localeFilterList="" its:localeFilterType="exclude">
+   <para>Text for all locales.</para>
+  </legalnotice>
+ </info>
+</book>

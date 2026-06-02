@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>CSS Masking: clip-path applied to an element in a clipPath with objectBoundingBox units</title>
+    <html:link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au"/>
+    <html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+    <html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+    <html:link rel="match" href="reference/clip-path-content-clip-004-ref.svg" />
+    <metadata class="flags">svg</metadata>
+    <desc class="assert">
+      When a clipPath establishes a coordinate system using objectBoundingBox
+      units, any other clipPath referenced through the clip-path property on
+      the first clipPath's children must use that same coordinate system if
+      it is using userSpaceOnUse units.
+    </desc>
+  </g>
+  <defs>
+    <clipPath id="inner">
+      <rect width="0.25" height="0.25"/>
+    </clipPath>
+    <clipPath id="outer" clipPathUnits="objectBoundingBox">
+      <rect width="0.5" height="0.5" clip-path="url(#inner)"/>
+    </clipPath>
+  </defs>
+  <rect width="100" height="100" fill="red"/>
+  <g clip-path="url(#outer)">
+    <rect width="400" height="400" fill="red"/>
+    <rect width="100" height="100" fill="green"/>
+  </g>
+</svg>

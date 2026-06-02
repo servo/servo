@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Adjoining borders with different thicknesses show a smooth transition between the thicker and the thinner borders.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="assert" content="When 'border-radius' is applied to two adjoining sides with different thicknesses the border shows a smooth transition between the thicker and the thinner sides." />
+        <style type="text/css">
+            div
+            {
+                width:200px;
+                height:100px;
+                border-style:solid;
+                border-radius: 40px;
+                margin: 10px;
+            }
+            #test1
+            {
+                border-width:10px 15px 20px 30px;
+            }
+            #test2
+            {
+                border-width:10px 25px 40px;
+            }
+            #test3
+            {
+                border-width:10px 25px;
+            }
+            #test4
+            {
+                border-width:thin medium thick thin;
+            }
+            #test5
+            {
+                border-width:thin medium thick;
+            }
+            #test6
+            {
+                border-width:thin thick;
+            }
+            #test7
+            {
+                border-style:solid;
+                border-width:4px 16px 32px 100px;
+                border-radius:80px;
+                height:264px;
+                width:50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes have rounded corners and show a smooth transition between the thicker and the thinner sides.</p>
+        <table>
+            <tr>
+                <td>
+                    <div id="test1"></div>
+                    <div id="test2"></div>
+                    <div id="test3"></div>
+                </td>
+                <td>
+                    <div id="test4"></div>
+                    <div id="test5"></div>
+                    <div id="test6"></div>
+                </td>
+                <td>
+                    <div id="test7"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

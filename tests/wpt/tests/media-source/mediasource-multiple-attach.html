@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test Attaching a MediaSource to multiple HTMLMediaElements.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function twoMediaElementTest(testFunction, description)
+          {
+              media_test(function(test)
+              {
+                  var firstMediaTag = document.createElement('video');
+                  var secondMediaTag = document.createElement('video');
+                  document.body.appendChild(firstMediaTag);
+                  document.body.appendChild(secondMediaTag);
+
+                  // Overload done() so that elements added to the document can be
+                  // removed.
+                  var removeMediaElements = true;
+                  var oldTestDone = test.done.bind(test);
+                  test.done = function()
+                  {
+                      if (removeMediaElements) {
+                          document.body.removeChild(secondMediaTag);
+                          document.body.removeChild(firstMediaTag);
+                          removeMediaElements = false;
+                      }
+                      oldTestDone();
+                  };
+
+                  testFunction(test, firstMediaTag, secondMediaTag);
+              }, description);
+          }
+
+          twoMediaElementTest(function(test, firstMediaTag, secondMediaTag)
+          {
+              // When attachment of mediaSource to two MediaElements is done
+              // without an intervening stable state, exactly one of the two
+              // MediaElements should successfully attach, and the other one
+              // should get error event due to mediaSource already in 'open'
+              // readyState.
+              var mediaSource = new MediaSource();
+              var mediaSourceURL = URL.createObjectURL(mediaSource);
+              var gotSourceOpen = false;
+              var gotError = false;
+              var doneIfFinished = test.step_func(function()
+              {
+                  if (gotSourceOpen && gotError)
+                      test.done();
+              });
+              var errorHandler = test.step_func(function(e)
+              {
+                  firstMediaTag.removeEventListener('error', errorHandler);
+                  secondMediaTag.removeEventListener('error', errorHandler);
+
+                  var eventTarget = e.target;
+                  var otherTarget;
+                  if (eventTarget == firstMediaTag) {
+                      otherTarget = secondMediaTag;
+                  } else {
+                      assert_equals(eventTarget, secondMediaTag, 'Error target check');
+                      otherTarget = firstMediaTag;
+                  }
+
+                  assert_true(eventTarget.error != null, 'Error state on one tag');
+                  assert_equals(eventTarget.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED, 'Expected error code');
+                  assert_equals(otherTarget.error, null, 'No error on other tag');
+
+                  assert_equals(eventTarget.networkState, HTMLMediaElement.NETWORK_NO_SOURCE,
+                                'Tag with error state networkState');
+                  assert_equals(otherTarget.networkState, HTMLMediaElement.NETWORK_LOADING,
+                                'Tag without error state networkState');
+
+                  gotError = true;
+                  doneIfFinished();
+              });
+
+              test.expectEvent(mediaSource, 'sourceopen', 'An attachment succeeded');
+              firstMediaTag.addEventListener('error', errorHandler);
+              secondMediaTag.addEventListener('error', errorHandler);
+
+              firstMediaTag.src = mediaSourceURL;
+              secondMediaTag.src = mediaSourceURL;
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, 'open', 'Source is opened');
+                  gotSourceOpen = true;
+                  doneIfFinished();
+              });
+          }, 'Test exactly one succeeds when two MediaElements attach to same MediaSource');
+
+          mediasource_test(function(test, mediaElement, mediaSource) {
+              assert_equals(mediaSource.readyState, 'open', 'Source open');
+              // Set the tag's src attribute.  This should close mediaSource,
+              // reattach it to the tag, and initiate source reopening.
+              test.expectEvent(mediaSource, 'sourceopen', 'Source attached again');
+              mediaElement.src = URL.createObjectURL(mediaSource);
+              assert_equals(mediaSource.readyState, 'closed', 'Source closed');
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, 'open', 'Source reopened');
+                  test.done();
+              });
+          }, 'Test that MediaSource can reattach if closed first');
+        </script>
+    </body>
+</html>

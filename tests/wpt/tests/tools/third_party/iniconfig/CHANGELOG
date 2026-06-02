@@ -1,0 +1,32 @@
+1.1.1
+=========
+
+* fix version determination (thanks @florimondmanca)
+
+1.1.0
+=====
+
+- typing stubs (thanks @bluetech)
+- ci fixes
+
+1.0.1
+======
+
+pytest 5+ support
+
+1.0
+====
+
+- re-sync with pylib codebase
+
+0.2
+==================
+
+- added ability to ask "name in iniconfig", i.e. to check
+  if a section is contained.
+
+- fix bug in "name=value" parsing where value was "x=3"
+
+- allow for ': ' to delimit name=value pairs, so that e.g. .pypirc files
+  like http://docs.python.org/distutils/packageindex.html
+  can be successfully parsed

@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that canvases are scaled up to their computed size</title>
+<link rel="match" href="canvas_scale_ref.html">
+<style>
+canvas {
+  width: 20px;
+  height: 20px;
+}
+div {
+  line-height: 0;
+}
+</style>
+<div><canvas width="16" height="16" data-color="#FF00FF"></canvas><canvas width="16" height="16" data-color="#00FF00"></canvas></div>
+<div><canvas width="16" height="16" data-color="#0000FF"></canvas><canvas width="16" height="16" data-color="#FF00FF"></canvas></div>
+<script>
+var canvases = document.getElementsByTagName('canvas');
+for (var i = 0; i < canvases.length; i++) {
+  var ctx = canvases[i].getContext('2d');
+  ctx.fillStyle = canvases[i].getAttribute('data-color');
+  ctx.fillRect(0, 0, 16, 16);
+}
+</script>

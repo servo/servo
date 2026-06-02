@@ -1,0 +1,39 @@
+<meta charset="utf-8">
+<title>WebGL Context Attributes test</title>
+<script>
+(function () {
+    var canvas = document.createElement('canvas'),
+        closure = function() {},
+        gl, attributes;
+
+    closure.alpha = false;
+    closure.antialias = "";
+
+    gl = canvas.getContext("webgl", closure);
+
+    if ( ! gl ) {
+        console.log("Passing a closure to `getContext` didn't generate a context");
+        gl = canvas.getContext("webgl", { alpha: false, antialias: "" });
+    }
+
+    if ( ! gl ) {
+        console.error("Unable to generate a WebGL context");
+        return;
+    }
+
+    attributes = gl.getContextAttributes();
+    console.log("Got context attributes: ", JSON.stringify(attributes));
+
+    if ( attributes.alpha )
+        console.error("Alpha not expected");
+
+    if ( attributes.antialias )
+        console.error("Antialias not expected, should be casted to false");
+
+    gl = canvas.getContext("webgl", { alpha: true });
+    attributes = gl.getContextAttributes();
+
+    if ( attributes.alpha )
+        console.error("Should have returned the previous context attributes");
+})();
+</script>

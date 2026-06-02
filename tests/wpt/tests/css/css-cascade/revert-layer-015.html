@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' with shadow pseudo-element</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="match" href="revert-layer-015-ref.html">
+
+<style>
+@layer first {
+    input::placeholder { background-color: green; }
+}
+@layer second {
+    input::placeholder { background-color: revert-layer; }
+}
+</style>
+<input placeholder="placeholder">

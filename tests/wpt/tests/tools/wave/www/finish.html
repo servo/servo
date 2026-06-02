@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Session Finished - Web Platform Test Runner</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <script src="lib/davidshimjs/qrcode.js"></script>
+    <script src="lib/keycodes.js"></script>
+    <script src="lib/wave-service.js"></script>
+  </head>
+  <body>
+    <section class="section">
+      <div class="container site-header">
+        <img src="res/wavelogo_2016.jpg" alt="WAVE Logo" class="site-logo" />
+        <h1 class="title is-spaced" id="title"></h1>
+      </div>
+
+      <div class="container">
+        <div id="content">
+          <div id="qr-code"></div>
+          <div id="button-wrapper">
+            <div id="new-button" class="button is-success is-large tabbable">
+              Create New Session
+            </div>
+            <button id="results-button" class="button is-large tabbable">
+              View Result Page
+            </button>
+          </div>
+          <div id="details-wrapper">
+            <h3 class="title is-5 is-spaced">Details</h3>
+            <div class="detail">
+              <div>Token:</div>
+              <div id="token"></div>
+            </div>
+            <div class="detail">
+              <div>User Agent:</div>
+              <div id="user-agent"></div>
+            </div>
+            <div class="detail">
+              <div>Test Types:</div>
+              <div id="test-types"></div>
+            </div>
+            <div class="detail">
+              <div>Total Test Files:</div>
+              <div id="total-tests"></div>
+            </div>
+            <div class="detail">
+              <div>Reference Tokens:</div>
+              <div id="reference-tokens"></div>
+            </div>
+            <div class="detail">
+              <div>Test Timeouts:</div>
+              <div id="test-timeout"></div>
+            </div>
+            <div class="detail">
+              <div>Test Paths:</div>
+              <div id="test-path"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      var HOSTNAME = location.hostname;
+      var PORT = location.port;
+      var PROTOCOL = location.protocol.replace(/:/, "");
+      var QUERY = location.search.replace(/\?/, "");
+      var match = QUERY.match(/token=([^&]+)/);
+      var TOKEN = match ? match[1] : null;
+      var selectedTabbable = -1;
+
+      function displaySessionConfiguration(configuration) {
+        var userAgent = document.getElementById("user-agent");
+        userAgent.innerText = configuration.userAgent;
+        var testPath = document.getElementById("test-path");
+        for (var i = 0; i < configuration.tests.include.length; i++) {
+          var path = configuration.tests.include[i];
+          testPath.innerText += path + "\n";
+        }
+        var testTypes = document.getElementById("test-types");
+        testTypes.innerText = configuration.types.join(", ");
+        var testTimeout = document.getElementById("test-timeout");
+        for (var timeout in configuration.timeouts) {
+          testTimeout.innerText +=
+            timeout + ": " + configuration.timeouts[timeout] / 1000 + "s\n";
+        }
+        var referenceTokens = document.getElementById("reference-tokens");
+        if (configuration.referenceTokens.length === 0) {
+          referenceTokens.innerText = "none";
+        } else {
+          for (var i = 0; i < configuration.referenceTokens.length; i++) {
+            var token = configuration.referenceTokens[i];
+            referenceTokens.innerText += token + "\n";
+          }
+        }
+      }
+
+      function displaySessionStatus(status) {
+        var title = document.getElementById("title");
+        if (status.status === "aborted") {
+          title.innerText = "Session Aborted";
+        } else {
+          title.innerText = "Session Complete";
+        }
+
+        var testTypes = document.getElementById("total-tests");
+        var count = 0;
+        for (var api in status.testFilesCount) {
+          count += status.testFilesCount[api];
+        }
+        testTypes.innerText = count;
+      }
+
+      function startTests() {
+        sendRequest("GET", WEB_ROOT + "api/next", null, function(response) {
+          location.href = response;
+        });
+      }
+
+      var resultsUrl =
+        "http://" + location.host + WEB_ROOT + "overview.html" + location.search;
+      new QRCode(document.getElementById("qr-code"), resultsUrl);
+
+      var resultsButton = document.getElementById("results-button");
+      resultsButton.onclick = function() {
+        window.open(resultsUrl, "_blank");
+      };
+
+      var newButton = document.getElementById("new-button");
+      newButton.onclick = function() {
+        location.href = WEB_ROOT + "index.html";
+      };
+
+      function removeClass(element, className) {
+        var elementClass = element.className;
+        var index = elementClass.indexOf(className);
+        if (index !== -1) {
+          element.className = elementClass.replace(className, "");
+        }
+      }
+
+      function addClass(element, className) {
+        element.className += " " + className;
+      }
+
+      function skipFocus(steps) {
+        var tabbables = document.getElementsByClassName("tabbable");
+        if (selectedTabbable === -1) {
+          selectedTabbable = 0;
+        } else {
+          removeClass(tabbables[selectedTabbable], "focused");
+          selectedTabbable += steps;
+        }
+
+        if (selectedTabbable >= tabbables.length) {
+          selectedTabbable = 0;
+        }
+
+        if (selectedTabbable < 0) {
+          selectedTabbable = tabbables.length - 1;
+        }
+
+        tabbables[selectedTabbable].focus();
+        addClass(tabbables[selectedTabbable], "focused");
+      }
+
+      function focusNext() {
+        skipFocus(1);
+      }
+
+      function focusPrevious() {
+        skipFocus(-1);
+      }
+
+      document.onkeydown = function(event) {
+        event = event || window.event;
+        var charCode =
+          typeof event.which === "number" ? event.which : event.keyCode;
+
+        if (ACTION_KEYS.indexOf(charCode) !== -1) {
+          event.preventDefault();
+          if (selectedTabbable === -1) {
+            return;
+          }
+          var tabbables = document.getElementsByClassName("tabbable");
+          var element = tabbables[selectedTabbable];
+          if (element.type === "checkbox") {
+            element.checked = !element.checked;
+          } else {
+            element.click();
+          }
+        }
+
+        if (PREV_KEYS.indexOf(charCode) !== -1) {
+          focusPrevious();
+        }
+
+        if (NEXT_KEYS.indexOf(charCode) !== -1) {
+          focusNext();
+        }
+      };
+
+      var match = location.search.match(/token=(.+)/);
+      var token = match[1];
+      var tokenView = document.getElementById("token");
+      tokenView.innerText = token;
+
+      WaveService.readSession(token, displaySessionConfiguration);
+      WaveService.readSessionStatus(token, displaySessionStatus);
+    </script>
+  </body>
+</html>

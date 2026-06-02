@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Proximity Sensor (https://w3c.github.io/proximity/)
+
+[SecureContext, Exposed=Window]
+interface ProximitySensor : Sensor {
+  constructor(optional SensorOptions sensorOptions = {});
+  readonly attribute double? distance;
+  readonly attribute double? max;
+  readonly attribute boolean? near;
+};

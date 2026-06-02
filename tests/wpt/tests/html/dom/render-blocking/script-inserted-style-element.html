@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Script-inserted style elements with "blocking=render" are render-blocking</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<script>
+const style = document.createElement('style');
+style.blocking = 'render';
+style.textContent = "@import url('support/target-red.css?pipe=trickle(d1)');";
+document.head.appendChild(style);
+</script>
+
+<div class="target">
+  This should be red
+</div>
+
+<script>
+test_render_blocking(
+    style,
+    () => {
+      let color = getComputedStyle(document.querySelector('.target')).color;
+      assert_equals(color, 'rgb(255, 0, 0)');
+    },
+    'Render-blocking stylesheet is applied');
+</script>

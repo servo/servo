@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-items with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-items">
+<meta name="assert" content="place-items supports the full grammar '<align-items> <justify-items>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("place-items", "normal");
+test_valid_value("place-items", "stretch stretch", "stretch");
+
+test_valid_value("place-items", "first baseline", "baseline");
+test_valid_value("place-items", "last baseline last baseline", "last baseline");
+
+test_valid_value("place-items", "center");
+test_valid_value("place-items", "end end", "end");
+test_valid_value("place-items", "self-start");
+test_valid_value("place-items", "flex-end");
+test_valid_value("place-items", "unsafe center unsafe center", "unsafe center");
+test_valid_value("place-items", "safe self-end");
+
+test_valid_value("place-items", "stretch baseline");
+test_valid_value("place-items", "last baseline center");
+test_valid_value("place-items", "safe self-end normal");
+
+test_valid_value("place-items", "normal right");
+test_valid_value("place-items", "baseline unsafe left");
+
+test_valid_value("place-items", "flex-end legacy");
+test_valid_value("place-items", "stretch legacy left");
+test_valid_value("place-items", "first baseline right legacy", "baseline legacy right");
+</script>
+</body>
+</html>

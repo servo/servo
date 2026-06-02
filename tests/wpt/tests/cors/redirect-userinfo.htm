@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - redirect with userinfo</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odinho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>CORS userinfo redirect handling</h1>
+
+<div id=log></div>
+
+<script>
+
+    // Test count for cache busting and easy identifying of request in traffic analyzer
+    var num_test = 0
+
+    shouldFail("Disallow redirect with userinfo (user:pass@)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://test:test@") + "resources/cors-makeheader.py?"]);
+
+    shouldFail("Disallow redirect with userinfo (user:@)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://user:@") + "resources/cors-makeheader.py?"]);
+
+    shouldFail("Disallow redirect with userinfo (user@)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://user:@") + "resources/cors-makeheader.py?"]);
+
+    shouldPass("Allow redirect without userinfo (:@ is trimmed during URL parsing)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://:@") + "resources/cors-makeheader.py?"]);
+
+    shouldFail("Disallow redirect with userinfo (:pass@)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://:pass@") + "resources/cors-makeheader.py?"]);
+
+    shouldPass("Allow redirect without userinfo (@ is trimmed during URL parsing)", [
+                    CROSSDOMAIN + "resources/cors-makeheader.py?",
+                    CROSSDOMAIN.replace("http://", "http://@") + "resources/cors-makeheader.py?"]);
+
+    function shouldFail(desc, urls) {
+        var test_id = num_test,
+            t = async_test(desc);
+
+        num_test++;
+
+        t.step(function() {
+            var client = new XMLHttpRequest();
+
+            client.open('GET', buildURL(urls, test_id));
+
+            client.onload = t.unreached_func();
+            client.onerror = t.step_func_done();
+
+            client.send(null)
+        });
+    }
+
+    function shouldPass(desc, urls) {
+        var test_id = num_test,
+            t = async_test(desc);
+
+        num_test++;
+
+        t.step(function() {
+            var client = new XMLHttpRequest();
+
+            client.open('GET', buildURL(urls, test_id));
+
+            client.onload = t.step_func_done(function() {
+                r = JSON.parse(client.response)
+                assert_equals(r['get_value'], 'last', 'get_value')
+            });
+            client.onerror = t.unreached_func()
+            client.send(null)
+        });
+    }
+
+    function buildURL(urls, id) {
+        var tmp_url;
+
+        for (var i = urls.length; i--; ) {
+            if (!tmp_url)
+            {
+                tmp_url = urls[i] + "&get_value=last&" + id + "_" + i;
+                continue;
+            }
+            tmp_url = urls[i]
+                        + "&location="
+                        + encodeURIComponent(tmp_url)
+                        + "&" + id + "_" + i;
+        }
+
+        return tmp_url;
+    }
+
+</script>

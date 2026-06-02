@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel=match href="input-type-change-from-image-1-ref.html">
+<input type="image" align="right">
+<script>
+  onload = function() {
+    var i = document.querySelector("input");
+    window.rect = i.getBoundingClientRect();
+    i.type = "text";
+  }
+</script>

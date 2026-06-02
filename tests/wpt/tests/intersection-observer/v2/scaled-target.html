@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#iframe {
+  width: 100px;
+  height: 100px;
+  border: 0;
+  margin-bottom: 10px;
+}
+#occluder {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  position: relative;
+}
+</style>
+
+<iframe id="iframe" src="../resources/scaled-target-subframe.html"></iframe>
+<div id="occluder"></div>
+
+<script>
+async_test(function(t) {
+  let iframe = document.getElementById("iframe");
+
+  function step0(event) {
+    assert_equals(event.data, "");
+  }
+
+  function step1(event) {
+    iframe.style.transform = "scale(2)";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  function step2(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([false]));
+  }
+
+  let steps = [step0, step1, step2];
+
+  window.addEventListener("message", event => {
+    if (steps.length) {
+      t.step(steps.shift(), t, event);
+      waitForFrame(t, () => {
+        iframe.contentWindow.postMessage("", "*")
+      });
+    } else {
+      t.done();
+    }
+  });
+
+}, "IntersectionObserver V2 test with scale applied to target.");
+</script>

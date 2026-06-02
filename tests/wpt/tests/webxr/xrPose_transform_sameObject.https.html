@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRPose.transform meets [SameObject] requirement";
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      gripOrigin: VALID_GRIP_TRANSFORM,
+      profiles: []
+    });
+
+    session.requestReferenceSpace('local').then((referenceSpace) => {
+      requestSkipAnimationFrame(session, (time, xrFrame) => {
+        let source = session.inputSources[0];
+        let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
+
+        // Make sure that the transform attribute is the same object each time
+        // we access it. This verifies that the XRPose does *not* do something
+        // spec-noncompliant such as creating and returning a new
+        // XRRigidTransform object each time the attribute is accessed.
+        let transform = input_pose.transform;
+        t.step(() => {
+          assert_equals(transform, input_pose.transform,
+            "XRPose.transform returns the same object.");
+        });
+        resolve();
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>

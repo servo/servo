@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sync request denied at preflight because of non-CORS-safelisted header</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/common/utils.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+const uuid = token();
+const url = get_host_info().HTTP_REMOTE_ORIGIN +
+    "/xhr/resources/access-control-preflight-denied.py?token=" + uuid;
+
+test(() => {
+  let xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=reset", false);
+  xhr.send();
+
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=header", false);
+  xhr.setRequestHeader("x-test", "foo");
+
+  assert_throws_dom("NetworkError", () => xhr.send());
+
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=complete", false);
+  xhr.send();
+  assert_equals(xhr.responseText, "Request successfully blocked.");
+}, "Sync request denied at preflight");
+    </script>
+  </body>
+</html>

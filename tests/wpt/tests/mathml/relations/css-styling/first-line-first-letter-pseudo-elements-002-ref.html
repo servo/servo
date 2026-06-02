@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML and ::first-line/::first-letter pseudo-elements (reference)</title>
+<style>
+  .firstline > span { background: lime; }
+  .firstletter > span { background: lime; }
+</style>
+<p>PASS if the first line or letter is green.</p>
+<ol>
+  <li>
+    <div style="display: inline math" class="firstline">
+      <span>Hello,</span><br/>World!
+    </div>
+  </li>
+  <li>
+    <div style="display: inline math" class="firstletter">
+      <span>H</span>ello, World!
+    </div>
+  </li>
+  <li>
+    <div style="display: block math" class="firstline">
+      <span>Hello,</span><br/>World!
+    </div>
+  </li>
+  <li>
+    <div style="display: block math" class="firstletter">
+      <span>H</span>ello, World!
+    </div>
+  </li>
+</ol>

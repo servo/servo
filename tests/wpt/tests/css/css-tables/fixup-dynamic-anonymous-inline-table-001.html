@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Test: CSS Tables fixup merge anonymous inline table siblings (row-group + row-group)</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#fixup-algorithm">
+<style>
+  .group {
+    display: table-row-group;
+  }
+  .cell {
+    display: table-cell;
+  }
+  .filler {
+    width: 100px;
+    height: 50px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<span>
+  <span class="group">
+    <span class="cell">
+      <div class="filler"></div>
+    </span>
+  </span>
+  <span id="rm">Remove me</span>
+  <span class="group">
+    <span class="cell">
+      <div class="filler"></div>
+    </span>
+  </span>
+</span>
+<script>
+  rm.offsetTop;
+  rm.remove();
+</script>

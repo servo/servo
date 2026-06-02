@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="manifest" href="resources/file_handlers-member.webmanifest" />
+    <title>File Handling Web Platform Test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/file_handlers-member.js" type="module"></script>
+    <style>
+      body {
+        margin: 2em;
+      }
+
+      ol {
+        line-height: 200%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      File Handling Test
+    </h1>
+    <div class="section">
+      <h2>
+        Instructions (details may be OS-dependent)
+      </h2>
+      <ol>
+        <li>Install this site as a PWA</li>
+        <li>Download <a href="resources/file_handlers-sample-file.txt" download>this file</a></li>
+        <li>
+          In your file browser, right click the downloaded file (<code>file_handlers-sample-file.txt</code>)
+        </li>
+        <li>Select <b>"Open with"</b> &gt; <b>"File Handling WPT"</b></li>
+        <li>
+          If your browser prompts you to allow <b>File Handling WPT</b> to open
+          the file, choose allow
+        </li>
+        <li>The app window that opens should indicate success of this test.</li>
+      </ol>
+    </div>
+  </body>
+</html>

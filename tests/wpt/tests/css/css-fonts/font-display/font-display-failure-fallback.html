@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-display-timeline">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: 'TestFace';
+  src: url('/fonts/Ahem.ttf?pipe=trickle(d0.5)'),
+       url('/fonts/Ahem.ttf?fallback-src');
+  font-display: optional;
+}
+
+@font-face {
+  font-family: 'FallbackFace';
+  src: url('/fonts/Ahem.ttf?fallback-face');
+}
+
+.test {
+  font-family: 'TestFace','FallbackFace';
+}
+</style>
+<div class="test">hello</div>
+<script>
+function numberOfDownloads(url) {
+    assert_true(!!window.PerformanceResourceTiming, "ResourceTiming not supported");
+    var absoluteURL = new URL(url, location.href).href;
+    return performance.getEntriesByName(absoluteURL).length;
+}
+
+promise_test(function() {
+    return document.fonts.ready.then(function() {
+        assert_equals(numberOfDownloads('/fonts/Ahem.ttf?pipe=trickle(d0.5)'), 1, 'first source should be loaded');
+        assert_equals(numberOfDownloads('/fonts/Ahem.ttf?fallback-src'), 0, 'fallback source should not be loaded');
+        assert_equals(numberOfDownloads('/fonts/Ahem.ttf?fallback-face'), 1, 'fallback font face should be loaded');
+    });
+}, "Fallback for font failure period");
+</script>

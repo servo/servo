@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Imperative Slot API: fallback should be cleared after slot assignment</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1292292">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <div id="host1"><span></span></div>
+  <div id="host2"><span></span></div>
+</div>
+
+<script>
+test(() => {
+  const host = document.getElementById('host1');
+  const shadow = host.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  shadow.innerHTML = '<slot>fallback</slot>';
+  host.offsetHeight; // Force layout
+  const slot = shadow.firstChild;
+  slot.assign(host.firstChild);
+  assert_array_equals(slot.assignedNodes(), [host.firstChild]);
+  assert_equals(host.offsetHeight, 0, 'Fallback content should not be rendered');
+}, 'Text node fallback should be cleared in a subsequently layout');
+
+test(() => {
+  const host = document.getElementById('host2');
+  const shadow = host.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  shadow.innerHTML = '<slot><span>fallback</span></slot>';
+  host.offsetHeight; // Force layout
+  const slot = shadow.firstChild;
+  slot.assign(host.firstChild);
+  assert_array_equals(slot.assignedNodes(), [host.firstChild]);
+  assert_equals(host.offsetHeight, 0, 'Fallback content should not be rendered');
+}, 'Element fallback should be cleared in a subsequent layout');
+</script>

@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: non-opaque scrollbar-color should work on the root</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color-properties">
+<link rel="match" href="transparent-on-root-ref.html">
+<style>
+:root {
+  overflow: scroll;
+  scrollbar-color: transparent transparent;
+  background-color: black;
+}
+</style>

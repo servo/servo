@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  promise_test(async () => {
+    const target = document.getElementById("target");
+    let mouseEvents = [];
+    target.addEventListener("mousedown", event => {
+      const length = mouseEvents.push(event);
+      mouseEvents[length - 1].dispatchingValues = {
+        offsetX: event.offsetX,
+        offsetY: event.offsetY,
+        pageX: event.pageX,
+        pageY: event.pageY,
+      };
+    }, {once: true});
+    target.addEventListener("mouseup", event => {
+      const length = mouseEvents.push(event);
+      mouseEvents[length - 1].dispatchingValues = {
+        offsetX: event.offsetX,
+        offsetY: event.offsetY,
+        pageX: event.pageX,
+        pageY: event.pageY,
+      };
+    }, {once: true});
+    // Click on the target without moving the mouse cursor.
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove(0, 0, {origin: target})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+    assert_equals(
+      mouseEvents[0]?.type,
+      "mousedown",
+      "mousedown should've been received"
+    );
+    assert_equals(
+      mouseEvents[1]?.type,
+      "mouseup",
+      "mouseup should've been received"
+    );
+
+    // Then, both mousedown and mouseup events should be fired at the same
+    // position.  So, both events should have same offset values and page
+    // values.
+    test(() => {
+      assert_true(
+        mouseEvents[0].offsetX == mouseEvents[1].offsetX &&
+          mouseEvents[0].offsetY == mouseEvents[1].offsetY,
+        `mousedown: offset: {${mouseEvents[0].offsetX}, ${
+          mouseEvents[0].offsetY}
+        } should equal mouseup offset: {${mouseEvents[1].offsetX}, ${
+          mouseEvents[1].offsetY
+        }}`
+      );
+    }, "mousedown offset point should equal mouseup offset point");
+    test(() => {
+      assert_true(
+        mouseEvents[0].pageX == mouseEvents[1].pageX &&
+          mouseEvents[0].pageY == mouseEvents[1].pageY,
+        `mousedown: offset: {${mouseEvents[0].pageX}, ${
+          mouseEvents[0].pageY}
+        } should equal mouseup offset: {${mouseEvents[1].pageX}, ${
+          mouseEvents[1].pageY
+        }}`
+      );
+    }, "mousedown page point should equal mouseup page point");
+
+    // And the target element has margin.  Therefore, offset point and page
+    // point should not match.  However, this is invalid from the CSSOM spec.
+    // CSSOM defines that offsetX and offsetY should be same as pageX and pageY
+    // while the event is not being dispatched.  That does not match with
+    // current browser implementations.
+    test(() => {
+      assert_true(
+        mouseEvents[0].offsetX != mouseEvents[0].pageX &&
+          mouseEvents[0].offsetY != mouseEvents[0].pageY,
+        `mousedown: offset: {${mouseEvents[0].offsetX}, ${
+          mouseEvents[0].offsetY}
+        } should not equal page: {${mouseEvents[0].pageX}, ${
+          mouseEvents[0].pageY
+        }}`
+      );
+    }, "mousedown: offset point should not equal its page point");
+    test(() => {
+      assert_true(
+        mouseEvents[1].offsetX != mouseEvents[1].pageX &&
+          mouseEvents[1].offsetY != mouseEvents[1].pageY,
+        `mouseup: offset: {${mouseEvents[1].offsetX}, ${
+          mouseEvents[1].offsetY}
+        } should not equal page: {${mouseEvents[1].pageX}, ${mouseEvents[1].pageY}}`
+      );
+    }, "mouseup: offset point should not equal its page point");
+
+    // The values after dispatching should match with the values at dispatching.
+    test(() => {
+      assert_true(
+        mouseEvents[0].offsetX == mouseEvents[0].dispatchingValues.offsetX &&
+          mouseEvents[0].offsetY == mouseEvents[0].dispatchingValues.offsetY &&
+          mouseEvents[0].pageX == mouseEvents[0].dispatchingValues.pageX &&
+          mouseEvents[0].pageY == mouseEvents[0].dispatchingValues.pageY,
+        `mousedown: offset: {${mouseEvents[0].offsetX}, ${
+          mouseEvents[0].offsetY
+        }, page: {${mouseEvents[0].pageX}, ${
+          mouseEvents[0].pageY
+        }} should equal same attributes at dispatching: offset: {${
+          mouseEvents[0].dispatchingValues.offsetX
+        }, ${mouseEvents[0].dispatchingValues.offsetY}}, page: {${
+          mouseEvents[0].dispatchingValues.pageX
+        }, ${mouseEvents[0].dispatchingValues.pageY}}`
+      );
+    }, "mousedown: offset and page points should not be changed after dispatch");
+    test(() => {
+      assert_true(
+        mouseEvents[1].offsetX == mouseEvents[1].dispatchingValues.offsetX &&
+          mouseEvents[1].offsetY == mouseEvents[1].dispatchingValues.offsetY &&
+          mouseEvents[1].pageX == mouseEvents[1].dispatchingValues.pageX &&
+          mouseEvents[1].pageY == mouseEvents[1].dispatchingValues.pageY,
+        `mousedown: offset: {${mouseEvents[1].offsetX}, ${
+          mouseEvents[1].offsetY
+        }, page: {${mouseEvents[1].pageX}, ${
+          mouseEvents[1].pageY
+        }} should equal same attributes at dispatching: offset: {${
+          mouseEvents[1].dispatchingValues.offsetX
+        }, ${mouseEvents[1].dispatchingValues.offsetY}}, page: {${
+          mouseEvents[1].dispatchingValues.pageX
+        }, ${mouseEvents[1].dispatchingValues.pageY}}`
+      );
+    }, "mouseup: offset and page points should not be changed after dispatch");
+  }, "Click on the target without moving the mouse cursor");
+}, {once: true});
+</script>
+<style>
+#target {
+  height: 100px;
+  width: 100px;
+  margin: 50px;
+  background-color: lightpink;
+}
+</style>
+</head>
+<body>
+  <div id="target"></div>
+</body>
+</html>

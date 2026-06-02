@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: test unhandled promise rejection</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  ::view-transition-group(*) {
+    animation-duration: 0s;
+  }
+</style>
+<script>
+"use strict";
+
+// This is required to prevent the test harness from failing the test
+// when the unhandled promise rejection occurs.
+setup({ allow_uncaught_exception: true });
+
+function unhandledRejectionPromise(test, view_transition, promise_name) {
+  return new Promise(resolve => {
+    const event_type = 'unhandledrejection';
+    const listener = e => {
+      if (e.promise == view_transition[promise_name]) {
+        // Suppress console warning.
+        e.preventDefault();
+        window.removeEventListener(event_type, listener);
+        resolve(e.reason);
+      }
+    };
+    window.addEventListener(event_type, listener);
+    test.add_cleanup(() => {
+      window.removeEventListener(event_type, listener);
+    });
+  });
+}
+
+promise_test(async t => {
+  const vt1 = document.startViewTransition({});
+  const vt2 = document.startViewTransition({});
+  await promise_rejects_dom(t, "AbortError", vt1.ready);
+  await vt1.finished;
+  await vt2.finished;
+}, 'Reject ready promise due to skipping a view-transition with an AbortError');
+
+promise_test(async t => {
+  const vt1 = document.startViewTransition({});
+  const unhandled_rejection = unhandledRejectionPromise(t, vt1, 'ready');
+  const vt2 = document.startViewTransition({});
+  const reason = await unhandled_rejection;
+  assert_true(reason instanceof DOMException,
+              'expect unhandled rejection to throw a DOMException');
+  await vt1.finished;
+  await vt2.finished;
+}, 'Unhandled rejection of ready promise due to skipping a view-transition ' +
+   'throws an DOMException');
+
+promise_test(async t => {
+  const vt = document.startViewTransition(() => {
+    return Promise.reject("callback_rejection");
+  });
+
+  const unhandled_callback_rejection =
+      unhandledRejectionPromise(t, vt, 'updateCallbackDone');
+  const unhandled_ready_rejection =
+      unhandledRejectionPromise(t, vt, 'ready');
+  const unhandled_finished_rejection =
+      unhandledRejectionPromise(t, vt, 'finished');
+
+  const results = await Promise.all([
+    unhandled_callback_rejection,
+    unhandled_ready_rejection,
+    unhandled_finished_rejection
+  ]);
+
+  assert_array_equals(
+      results,
+      [
+        "callback_rejection",
+        "callback_rejection",
+        "callback_rejection"
+      ]);
+}, 'If the promise returned by updateCallback rejects, the transition is ' +
+   'skipped.');
+
+
+promise_test(async t => {
+  const vt = document.startViewTransition(() => { foo.bar = baz; });
+
+  const unhandled_callback_rejection =
+      unhandledRejectionPromise(t, vt, 'updateCallbackDone');
+  const unhandled_ready_rejection =
+      unhandledRejectionPromise(t, vt, 'ready');
+  const unhandled_finished_rejection =
+      unhandledRejectionPromise(t, vt, 'finished');
+
+  const results = await Promise.all([
+    unhandled_callback_rejection,
+    unhandled_ready_rejection,
+    unhandled_finished_rejection
+  ]);
+
+  for (let i = 0; i < 2; i++) {
+    assert_true(results[i] instanceof ReferenceError);
+  }
+}, 'Reference error in callback triggers rejection of view-transition ' +
+   'promises');
+</script>
+</html>

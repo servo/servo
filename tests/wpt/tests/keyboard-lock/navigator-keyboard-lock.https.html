@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+test(function() {
+  assert_true(navigator.keyboard instanceof Keyboard);
+}, "navigator.keyboard instanceof Keyboard");
+
+test(function() {
+  assert_equals(navigator.keyboard, navigator.keyboard);
+}, "navigator.keyboard SameObject");
+
+test(function() {
+  assert_true(navigator.keyboard.lock instanceof Function);
+}, "navigator.keyboard.lock instanceof Function");
+
+test(function() {
+  assert_true(navigator.keyboard.unlock instanceof Function);
+}, "navigator.keyboard.unlock instanceof Function");
+
+promise_test(() => {
+  const p = navigator.keyboard.lock(["KeyA", "KeyB"]);
+  assert_true(p instanceof Promise);
+  return p;
+}, '[Keyboard Lock] keyboard.lock');
+
+</script>

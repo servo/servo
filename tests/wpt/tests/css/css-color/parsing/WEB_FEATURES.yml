@@ -1,0 +1,26 @@
+features:
+- name: color-mix
+  files:
+  - "*-color-mix-*"
+  - color-mix-out-of-gamut.html
+- name: relative-color
+  files:
+  - "relative-*"
+  - "*-relative-*"
+- name: system-color
+  files:
+  - color-valid-system-color.html
+- name: contrast-color
+  files:
+  - color-*-contrast-color-function.html
+- name: hsl
+  files:
+  - color-computed-hsl.html
+  - color-invalid-hsl.html
+  - color-valid-hsl.html
+- name: opacity
+  files:
+  - opacity-*.html
+- name: named-color
+  files:
+  - "*-named-color.html"

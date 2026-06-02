@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// We attempted to write this test using `RemoteContextHelper`. See
+// https://github.com/web-platform-tests/wpt/blob/23ed0c7015082f21dd29dd09a545e2979dc3e08c/speculation-rules/prerender/prerender-while-prerender.html.
+//
+// However, that ended up being flaky in Chromium. See
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1517319.
+//
+// We're unsure yet if that flakiness was due to a test bug or an implementation
+// bug. In case it is due to a test bug, we are currently trying the following
+// uglier `PrerenderChannel` version. If it is still flaky, then probably it is
+// an implementation bug, and we can revert to the prettier
+// `RemoteContextHelper` version.
+
+promise_test(async t => {
+  const uid = token();
+  const channel = new PrerenderChannel("result", uid);
+  const result = new Promise(r => channel.addEventListener("message", e => r(e.data)));
+
+  window.open(
+    `resources/prerender-while-prerender-initiator.html?uid=${uid}`,
+    "_blank",
+    "noopener"
+  );
+
+  assert_equals(
+    await result,
+    false,
+    "document.prerendering in the inner page must be false"
+  );
+
+  channel.close();
+}, "Prerendering inside a prerender doesn't work, and navigating inside prerenderingchange is fine");
+</script>

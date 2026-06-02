@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createAnswer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  await promise_rejects_dom(t, 'InvalidStateError', pc.createAnswer());
+}, 'createAnswer() with null remoteDescription should reject with InvalidStateError');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const offer = await pc.createOffer();
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  assert_equals(typeof answer, 'object',
+    'Expect answer to be plain object (dictionary RTCSessionDescriptionInit)');
+  assert_false(answer instanceof RTCSessionDescription,
+    'Expect answer to not be instance of RTCSessionDescription');
+}, 'createAnswer() returns RTCSessionDescriptionInit');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  // generateDataChannelOffer() is defined in RTCPeerConnection-helper.js.
+  const offer = await generateDataChannelOffer(pc);
+  await pc.setRemoteDescription(offer);
+  pc.close();
+  await promise_rejects_dom(t, 'InvalidStateError', pc.createAnswer());
+}, 'createAnswer() when connection is closed should reject with InvalidStateError');
+
+</script>

@@ -1,0 +1,15 @@
+<svg width="300" height="200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Rectangle coordinates and sizes specified using calc</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match"  href="rect-ref.svg" />
+  <style>
+    rect {
+      fill: blue;
+      font-size: 40px;
+    }
+  </style>
+  <rect x="calc(80px + 10% - 2em)" y="calc(80px + 30% - 2em)"
+    width="calc(8 * 5%)" height="calc(10 * 5%)" />
+</svg>

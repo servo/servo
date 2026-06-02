@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSS3 text-decoration-color</title>
+        <style>
+            .underline {
+                text-decoration: underline;
+            }
+            .overline {
+                text-decoration: overline;
+            }
+            .line-through {
+                text-decoration: line-through;
+            }
+            .black-fill {
+                -webkit-text-fill-color: black;
+            }
+            .transparent-fill {
+                -webkit-text-fill-color: transparent;
+                -webkit-text-stroke-width: 1px;
+                -webkit-text-stroke-color: black;
+            }
+            .sys-color {
+                -webkit-text-stroke-width: thin;
+                -webkit-text-stroke-color: LinkText;
+            }
+        </style>
+    </head>
+    <body>
+        <h3>Each line of this test should match its text decoration color description:</h3>
+        <div class="underline" style="color: blue;"><span style="-webkit-text-fill-color: gray;">Gray text with blue underline</span></div><br/>
+        <div class="overline" style="color: black;"><span style="-webkit-text-fill-color: green;">Green text with black overline</span></div><br/>
+        <div class="line-through" style="color: gold;"><span style="-webkit-text-fill-color: black;">Black text with gold line-through</span></div><br/>
+        <div class="underline" style="color: blue;">
+            <span class="overline" style="color: gray;">
+                <span class="line-through" style="color: green;">
+                    <span class="black-fill">Black text with blue underline, gray overline and green line-through</span>
+                </span>
+            </span>
+        </div><br/>
+        <div class="line-through" style="color: green;">
+            <sub class="overline" style="color: gray;"><span class="black-fill">subscript text</span></sub>
+            <sup class="underline" style="color: blue;"><span class="black-fill">superscript text</span></sup>
+        </div><br/>
+        <div class="underline" style="color: green;"><span class="transparent-fill">Transparent fill with black stroke text and green underline</span></div><br/>
+        <div class="underline" style="text-decoration-color: LinkText;"><span class="sys-color">LinkText stroke and underline with black fill</span></div><br/>
+    </body>
+</html>

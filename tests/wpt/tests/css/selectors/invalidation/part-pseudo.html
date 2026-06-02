@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Selectors Invalidation: ::part()</title>
+  <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-shadow-parts/">
+  <link rel="match" href="part-pseudo-ref.html">
+  <style id="sheet">#host::part(green) { color: red; }</style>
+  </head>
+<body>
+  <div id="host">
+    <template shadowrootmode="open">
+      <div>
+        <div part="green">Should be green</div>
+      </div>
+    </template>
+  </div>
+  <script>
+    document.body.offsetTop;
+    sheet.innerText = "#host::part(green) { color: green; }";
+  </script>
+</body>

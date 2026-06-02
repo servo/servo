@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <link rel=match href=position_fixed_simple_b.html>
+    <style>
+      html, body {
+      margin: 0px;
+      }
+      .box {
+      width: 100px;
+      height: 100px;
+      }
+      #rel-cont {
+      position: relative;
+      }
+      #first {
+      background: red;
+      }
+      #normal {
+      background: blue;
+      }
+      #fixed {
+      position: fixed;
+      left: 0px;
+      top: 0px;
+      background: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="first" class="box">
+    </div>
+    <div id="normal" class="box"></div>
+    <!-- This should become empty -->
+    <div id="rel-cont">
+      <div id="fixed" class="box">
+      </div>
+    </div>
+  </body>
+</html>

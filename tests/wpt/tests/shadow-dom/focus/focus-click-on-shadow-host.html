@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: click on shadow host with delegatesFocus</title>
+<link rel="author" href="mailto:dizhangg@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1327136">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <div id="host"></div>
+</body>
+
+<script>
+const host = document.getElementById("host");
+
+const shadowRoot = host.attachShadow({ mode: "open", delegatesFocus: true });
+// Add an unfocusable spacer, because test_driver.click will click on the
+// center point of #host, and we don't want the click to land on focusableDiv
+const spacer = document.createElement("div");
+spacer.style = "height: 1000px;";
+shadowRoot.appendChild(spacer);
+
+const focusableDiv = document.createElement("div");
+focusableDiv.tabIndex = 0;
+shadowRoot.appendChild(focusableDiv);
+
+promise_test(async () => {
+  assert_equals(document.activeElement, document.body);
+  // Mouse click
+  await test_driver.click(host);
+  assert_equals(document.activeElement, host);
+  assert_equals(shadowRoot.activeElement, focusableDiv);
+  assert_true(host.matches(':focus'));
+  assert_true(focusableDiv.matches(':focus'));
+  assert_false(focusableDiv.matches(':focus-visible'));
+}, ":focus should be applied to the host and the child node when the focus is moved by mouse click");
+
+</script>

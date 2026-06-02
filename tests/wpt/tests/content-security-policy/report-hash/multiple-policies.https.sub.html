@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="timeout" content="long">
+  <title>Test that reports for same-origin subresources are sent with hashes</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/reporting/resources/report-helper.js'></script>
+</head>
+<body>
+  <!-- Actually run the tests. -->
+  <script src='resources/report-hash-test-runner.sub.js'></script>
+  <script>
+    run_tests();
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel='match' href='only_of_type_pseudo_b.html'>
+    <title>:only-of-type test</title>
+    <style type="text/css">
+      html { background: red; }
+      /* Should match according to Selectors Level 4 (changed from Level 3) */
+      html:only-of-type { background: white; }
+
+      div > p,
+      div > div,
+      div > address {
+          float: left;
+          width: 20px;
+          height: 20px;
+          margin: 0px;
+          margin-right: 10px;
+          padding: 0px;
+      }
+      div > div,
+      div > p {
+          background: black;
+      }
+      body > div { clear: both; margin-bottom: 10px; }
+
+      #d1 > .ok { background: red; }
+      #d1 > *:only-of-type { background: green }
+
+    </style>
+  </head>
+  <body>
+    <div id="d1">
+      <p> </p>
+      <div> </div>
+      <div> </div>
+      <p> </p>
+      <address class="ok"> </address>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+      <p> </p>
+      <div> </div>
+      <p> </p>
+      <p> </p>
+    </div>
+  </body>
+</html>

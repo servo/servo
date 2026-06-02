@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: status/statusText - various responses</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="following::ol/li[1] following::ol/li[3]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-statustext-attribute" data-tested-assertations="following::ol/li[1] following::ol/li[3]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-getresponseheader()-method" data-tested-assertations="following::ol/li[5]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetext-attribute" data-tested-assertations="following::ol/li[4]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var counter=0
+      function statusRequest(method, code, text, content, type) {
+        counter++
+        var test = async_test(document.title +' '+ counter+" (" + method + " " + code + ")")
+        test.step(function() {
+          var client = new XMLHttpRequest()
+          client.onreadystatechange = function(e) {
+            test.step(function() {
+              if(client.readyState > 1) {
+                assert_equals(client.status, code)
+                assert_equals(client.statusText, text)
+                assert_equals(client.getResponseHeader("X-Request-Method"), method)
+                if(client.readyState == 4) {
+                  if(method != "HEAD") {
+                    if(type == "text/xml") {
+                      assert_equals(client.responseXML.documentElement.localName, "x")
+                    }
+                    assert_equals(client.responseText, content)
+                  }
+                  test.done()
+                }
+              }else{
+                assert_equals(client.status, 0)
+                assert_equals(client.statusText, "")
+              }
+            }, this)
+          }
+          client.open(method, "resources/status.py?code=" + encodeURIComponent(code) + "&text=" + text + "&content=" + encodeURIComponent(content) + "&type=" + encodeURIComponent(type))
+          client.send(null)
+        })
+      }
+      function status(code, text, content, type) {
+        statusRequest("GET", code, text, content, type)
+        statusRequest("HEAD", code, text, content, type)
+        statusRequest("CHICKEN", code, text, content, type)
+      }
+      status(204, "UNICORNSWIN", "", "")
+      status(401, "OH HELLO", "Not today.", "")
+      status(402, "FIVE BUCKS", "<x>402<\/x>", "text/xml")
+      status(402, "FREE", "Nice!", "text/doesnotmatter")
+      status(402, "402 TEH AWESOME", "", "")
+      status(502, "YO", "", "")
+      status(502, "lowercase", "SWEET POTATO", "text/plain")
+      status(503, "HOUSTON WE HAVE A", "503", "text/plain")
+      status(699, "WAY OUTTA RANGE", "699", "text/plain")
+    </script>
+  </body>
+</html>

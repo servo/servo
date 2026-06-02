@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Longdesc test: Reflection when longdesc changes</title>
+ </head>
+ <body>
+  <img src="picture.png" alt="the image" longdesc="fail.html">
+  <script>
+    var failingResult = document.querySelector('img[longdesc]').longDesc;
+    var newValue = '<img src="picture.png" alt="the image" longdesc="pass.html">';
+
+    document.querySelector('img').outerHTML = newValue;
+    document.location.href = document.querySelector('img[longdesc]').longDesc;
+  </script>
+ </body>
+</html>

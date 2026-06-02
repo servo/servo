@@ -1,0 +1,42 @@
+<!doctype html>
+<title>WebSockets: sending non-strings</title>
+<meta name="timeout" content="long">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(outer) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  var stuffToSend = [null, undefined, 1, window, document.body, {}, [], ws, function(){}, new Error()]
+  var tests = [];
+
+  for (var i=0; i<stuffToSend.length; i++) {
+    tests.push(async_test(document.title + " (" + stuffToSend[i] + ")"));
+  }
+
+  i = 0;
+  function sendNext() {
+    if (i === stuffToSend.length) {
+      outer.done()
+      ws.close();
+    } else {
+      var t = tests[i];
+      ws.onmessage = t.step_func(function(e) {
+         assert_equals(e.data, String(stuffToSend[i]));
+         i++;
+         sendNext();
+         t.done();
+       });
+       ws.onclose = ws.onerror = t.step_func(function() {assert_unreached()});
+       ws.send(stuffToSend[i]);
+    }
+  }
+  ws.onopen = outer.step_func(function(e) {
+    sendNext();
+  });
+}, "Constructor succeeds");
+</script>

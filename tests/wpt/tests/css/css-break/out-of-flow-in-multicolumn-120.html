@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test that dynamically prepending content in nested multicol with absolutely positioned element renders correctly.">
+
+<style>
+.column {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 0;
+}
+#abscb {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  background: red;
+}
+#abscb > div {
+  width: 100%;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="column" style="width: 200px; height: 100px;">
+  <div class="column">
+    <div id="abscb">
+      <div style="height: 50px"></div>
+      <div style="position: absolute; height: 90px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Force a layout before inserting a new element.
+document.body.offsetHeight;
+
+const newDiv = document.createElement('div');
+newDiv.style.height = '60px';
+document.getElementById('abscb').prepend(newDiv);
+</script>

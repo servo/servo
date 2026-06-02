@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#bounding-box-assignment">
+<link rel="bookmark" href="https://crbug.com/613753" />
+<meta name="assert" content="border-spacing occurring outside rows and sections is not included in their height and width" />
+
+<style>
+  #theTable td {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    padding: 0px;
+  }
+
+  #theTable {
+    border-spacing: 10px;
+  }
+
+  .outline {
+    outline: 2px solid black;
+  }
+</style>
+
+<table id=theTable>
+  <tbody class="outline" data-expected-height=100>
+    <tr>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+  <tbody class="outline" data-expected-height=150>
+    <tr></tr>
+    <tr></tr>
+    <tr></tr>
+    <tr>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr></tr>
+    <tr></tr>
+  </tbody>
+  <tbody class="outline" data-expected-height=100>
+    <tr>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr style="outline: 2px dashed black" data-expected-width=210 data-expected-height=100>
+      <td></td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+<script>
+checkLayout('tbody');
+checkLayout('tfoot tr');
+</script>

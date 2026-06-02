@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: align-self - baseline</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" title="8.3. Cross-axis Alignment: the 'align-items' and 'align-self' properties">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" />
+<meta name="assert" content="The 'align-self' property set 'baseline' aligns the flex items to the baseline of content">
+<style>
+  #test {
+    border: 1px solid black;
+    display: flex;
+  }
+  #test div {
+    align-self: baseline;
+  }
+  #div1 {
+    height: 90px;
+    font-size: 20px;
+    width: 30px;
+  }
+  #div2 {
+    height: 50px;
+    font-size: 10px;
+    width: 30px;
+  }
+  #div3 {
+    height: 100px;
+    font-size: 30px;
+    width: 30px;
+  }
+  #div4 {
+    height: 80px;
+    font-size: 15px;
+    width: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if the underline of all 'a' characters within black border box is horizontal and no breaking.</p>
+  <div id="test">
+    <div id="div1"><a href="#">aaa</a></div>
+    <div id="div2"><a href="#">aaaaa</a></div>
+    <div id="div3"><a href="#">aa</a></div>
+    <div id="div4"><a href="#">aaa</a></div>
+  </div>
+</body>

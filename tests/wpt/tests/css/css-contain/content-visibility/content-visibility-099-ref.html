@@ -1,0 +1,37 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: auto, make unskipped, then skipped while also toggling visibility (Reference)</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+#child {
+  width: 100px;
+  height: 0px;
+  background: green;
+  position: relative
+}
+#target {
+  width: 10px;
+  height: 10px;
+}
+
+</style>
+
+<div>
+  <div id=child></div>
+</div>
+<div class=spacer></div>
+<div id=target></div>
+
+<script>
+  document.getElementById("target").scrollIntoView(true /* alignToTop */);
+  requestAnimationFrame(takeScreenshot);
+</script>
+
+</html>

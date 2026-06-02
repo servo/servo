@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+"use strict";
+promise_test(async t => {
+  const sentinelIframe = await setupSentinelIframe(t);
+  const startingHistoryLength = history.length;
+
+  const startURL = "resources/code-injector.html?pipe=sub(none)&code=" + encodeURIComponent("window.open(`/common/blank.html?thereplacement`, `_self`);");
+  const afterReplacementURL = "/common/blank.html?thereplacement";
+  const iframe = insertIframe(t, startURL);
+
+  assert_equals(history.length, startingHistoryLength, "Inserting the under-test iframe must not change history.length");
+
+  await waitForLoad(t, iframe, afterReplacementURL);
+  assert_equals(history.length, startingHistoryLength + 1, "history.length must increase");
+}, "No replace before load, triggered by window.open(_self) on an iframe");
+</script>

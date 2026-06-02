@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: Brotli response was correctly inflated</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://dvcs.w3.org/hg/xhr/raw-file/tip/Overview.html#the-send()-method" data-tested-assertations="following::p[contains(text(),'content-encodings')]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      async_test(function(test) {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/brotli.py?raw", false);
+        client.onerror = test.unreached_func();
+        client.onload = test.step_func(function () {
+          var input = client.responseText;
+          var client2 = new XMLHttpRequest()
+          client2.open("GET", "resources/brotli.py?pipe=trickle(1:d1)", false);
+          client2.onload = test.step_func_done(function() {
+            var len = parseInt(client2.getResponseHeader('content-length'), 10);
+            assert_equals(client2.getResponseHeader('content-encoding'), 'br');
+            assert_true(len < input.length);
+            assert_equals(client2.responseText, input);
+          });
+          client2.onerror = test.unreached_func();
+          client2.send();
+        });
+
+        client.send();
+      });
+    </script>
+  </body>
+</html>

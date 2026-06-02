@@ -1,0 +1,64 @@
+#data
+test
+#document-fragment
+script
+#document
+
+#data
+<p>Hello</p>
+#document-fragment
+script
+#document
+
+#data
+<div>Hello<script>World</script>xxx
+#document
+| <div>
+|   "Hello"
+|   "xxx"
+
+#data
+<div>Hello<script>World</script>xxx
+#config
+{ "elements": ["div", "script"] }
+#document
+| <div>
+|   "Hello"
+|   "xxx"
+
+#data
+<svg>Hello<script>World</script>xxx
+#document
+| <svg svg>
+|   "Hello"
+|   "xxx"
+
+#data
+<a href="https://{{host}}/" onclick="2+2" one="two">
+#document
+| <a>
+|   href="https://{{host}}/"
+
+#data
+<a href="https://{{host}}/" onclick="2+2" one="two">
+#config
+{ "elements": ["a"], "attributes": ["href", "onclick", "one"]}
+#document
+| <a>
+|   href="https://{{host}}/"
+|   one="two"
+
+#data
+<img src="https://{{host}}/test-image" onclick="2+2" one="two">
+#config
+{ "elements": ["img"], "attributes": ["src", "onclick", "one"]}
+#document
+| <img>
+|   one="two"
+|   src="https://{{host}}/test-image"
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#document
+| <p>
+

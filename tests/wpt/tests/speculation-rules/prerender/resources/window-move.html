@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-window-move.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+function tryRun(func) {
+  try {
+    func();
+  } catch (e) {
+    const testChannel = new PrerenderChannel('test-channel');
+    testChannel.postMessage({status: 'FAIL: ' + e});
+  }
+}
+
+if (!isPrerendering) {
+  // Ensure that the primary page can move this window.
+  tryRun(() => {
+    const expectedPosition = {x: screen.availLeft + 1, y: screen.availTop + 1};
+    window.moveTo(expectedPosition.x, expectedPosition.y);
+    assert_equals(window.screenX, expectedPosition.x, 'x position for primary');
+    assert_equals(window.screenY, expectedPosition.y, 'y position for primary');
+  });
+  // Start prerendering a page which tries to move this window.
+  loadInitiatorPage();
+} else {
+  const prevPosition = {x: window.screenX, y: window.screenY};
+  tryRun(
+      () => {
+        // Try to move this window, and should not succeed.
+        const moveToOrMoveBy = params.get('move');
+        switch (moveToOrMoveBy) {
+          case 'moveTo':
+            window.moveTo(screen.availLeft + 10, screen.availTop + 10);
+            break;
+          case 'moveBy':
+            window.moveBy(screen.availLeft + 10 - window.screenX,
+                          screen.availTop + 10 - window.screenY);
+            break;
+          default:
+            assert_unreached(`wrong parameter: ${moveToOrMoveBy}`);
+        }
+      }
+  );
+
+  const bc = new PrerenderChannel('test-channel');
+  bc.postMessage({
+    'status': 'PASS',
+    'prevPosition': prevPosition,
+    'newPosition': {x: window.screenX, y: window.screenY}
+  });
+  bc.close();
+}
+
+</script>

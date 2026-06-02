@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const params = new URLSearchParams(window.location.search);
+    const preload_url = params.get("preload-url");
+    await fetchScript(preload_url);
+    assert_true(isPreloadedByEarlyHints(preload_url));
+}, "Redirect to the same origin keeps early hints preload");
+</script>
+</body>

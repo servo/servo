@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src=/common/get-host-info.sub.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<title>Page that embeds an iframe that navigates its top</title>
+<script>
+function addIframe() {
+  const iframe = document.createElement('iframe');
+  const path = new URL("top-navigating-page.html", window.location).pathname;
+  iframe.src = get_host_info().HTTP_NOTSAMESITE_ORIGIN + path;
+  document.body.appendChild(iframe);
+}
+
+addEventListener('load', () => {
+  const urlParams = new URLSearchParams(location.search);
+  const parentUserGesture = urlParams.get('parent_user_gesture') === 'true';
+  if (parentUserGesture)
+    test_driver.bless("Giving parent frame user activation").then(addIframe);
+  else
+    addIframe();
+});
+</script>
+

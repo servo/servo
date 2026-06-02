@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Tests animation on 'currentColor'.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("width", "100px");
+rect.setAttribute("height", "100px");
+rect.setAttribute("fill", "currentColor");
+rect.setAttribute("color", "#d00000");
+rect.setAttribute("onclick", "executeTest()");
+
+var animateColor = createSVGElement("animate");
+animateColor.setAttribute("id", "animateColor");
+animateColor.setAttribute("attributeName", "color");
+animateColor.setAttribute("from", "#d00000");
+animateColor.setAttribute("by", "#0000d0");
+animateColor.setAttribute("dur", "3s");
+animateColor.setAttribute("begin", "0s");
+animateColor.setAttribute("fill", "freeze");
+rect.appendChild(animateColor);
+rootSVGElement.appendChild(rect);
+
+// Setup animation test
+function sample1() {
+
+    expectFillColor(rect, 208, 0, 0);
+}
+
+function sample2() {
+
+    expectFillColor(rect, 208, 0, 104);
+}
+
+function sample3() {
+
+    expectFillColor(rect, 208, 0, 208);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animateColor", 0.0, sample1],
+        ["animateColor", 1.5, sample2],
+        ["animateColor", 3.0, sample3]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

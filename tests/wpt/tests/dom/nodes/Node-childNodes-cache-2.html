@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node.childNodes caching bug with replaceChild</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-childnodes">
+<link rel=author title="Xiaocheng Hu" href="mailto:xiaochengh.work@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"><div id="first"></div><div id="second"></div><div id="third"></div><div id="last"></div></div>
+<script>
+test(function() {
+  let target = document.getElementById("target");
+  assert_array_equals(Array.from(target.childNodes).map(node => node.id), ["first", "second", "third", "last"]);
+  target.replaceChild(target.childNodes[2], target.childNodes[1]);
+  assert_array_equals(Array.from(target.childNodes).map(node => node.id), ["first", "third", "last"]);
+});
+</script>

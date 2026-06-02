@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#space { height: 4000px; }
+#ancestor { position: relative; }
+#before, #anchor { height: 100px; }
+#anchor { background-color: green; }
+
+.layout1 { padding-top: 20px; }
+.layout2 { margin-right: 20px; }
+.layout3 { max-width: 100px; }
+.layout4 { min-height: 400px; }
+.layout5 { position: static !important; }
+.layout6 { left: 20px; }
+.layout7 { transform: matrix(1, 0, 0, 1, 50, 50); }
+.nonLayout1 { color: red; }
+.nonLayout2 { font-size: 200%; }
+.nonLayout3 { box-shadow: 10px 10px 10px gray; }
+.nonLayout4 { opacity: 0.5; }
+.nonLayout5 { z-index: -1; }
+
+.scroller {
+  overflow: scroll;
+  width: 600px;
+  height: 600px;
+}
+
+</style>
+<div id="maybeScroller">
+  <div id="space">
+    <div id="ancestor">
+      <div id="before"></div>
+      <div id="anchor"></div>
+    </div>
+  </div>
+</div>
+<script>
+
+// Tests that scroll anchoring is suppressed when one of the "layout-affecting"
+// properties is modified on an ancestor of the anchor node.
+
+var scroller;
+var ancestor = document.querySelector("#ancestor");
+var before = document.querySelector("#before");
+
+function runCase(classToApply, expectSuppression) {
+  // Reset.
+  scroller.scrollTop = 0;
+  ancestor.className = "";
+  before.style.height = "";
+  scroller.scrollTop = 150;
+
+  ancestor.className = classToApply;
+  before.style.height = "150px";
+
+  var expectedTop = expectSuppression ? 150 : 200;
+  assert_equals(scroller.scrollTop, expectedTop);
+}
+
+function runAll() {
+  for (var i = 1; i <= 7; i++)
+    runCase("layout" + i, true);
+  for (var i = 1; i <= 5; i++)
+    runCase("nonLayout" + i, false);
+}
+
+test(() => {
+  document.querySelector("#maybeScroller").className = "";
+  scroller = document.scrollingElement;
+  runAll();
+}, "Ancestor changes in document scroller.");
+
+test(() => {
+  scroller = document.querySelector("#maybeScroller");
+  scroller.className = "scroller";
+  runAll();
+}, "Ancestor changes in scrollable <div>.");
+
+</script>

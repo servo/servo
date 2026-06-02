@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: block-container-inline-001</title>
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="block should not trim inline margins for block-level children">
+<style>
+.container {
+    width: 100px;
+    margin-trim: inline;
+}
+
+.child {
+    background-color: green;
+    width: 100px;
+    height: 50px;
+    margin-inline: 50px;
+    position: relative;
+    left: -50px;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="container">
+        <div class="child"></div>
+        <div class="child"></div>
+    </div>
+</body>
+</html>

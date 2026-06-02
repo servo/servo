@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Layout Instability: fully clipped by contain:paint</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div style="contain: paint; height: 0; position: relative">
+  <div id="target" style="position: absolute; top: 0; width: 400px; height: 400px; background: blue"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Shift target, for which no shift should be reported because it's hidden.
+  document.querySelector("#target").style.top = '200px';
+
+  await waitForAnimationFrames(2);
+  // No shift should be reported.
+  assert_equals(watcher.score, 0);
+}, 'fully clipped by contain:paint');
+
+</script>

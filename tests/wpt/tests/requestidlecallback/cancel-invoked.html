@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>cancelling idle requests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+  test(function (t) {
+    window.cancelIdleCallback(42);
+    assert_true(true);
+  }, "cancelIdleCallback does nothing if there is no callback with the given handle");
+
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    var neverCalled = true;
+    var handle = window.requestIdleCallback(function () {
+      neverCalled = false;
+    });
+    window.cancelIdleCallback(handle);
+
+    t.step_timeout(function() {
+      assert_true(neverCalled);
+      t.done();
+    }, 2000);
+  }, "A cancelled callback is never invoked");
+
+  async_test(function (t) {
+    var handle = requestIdleCallback(t.step_func_done(function () {
+      cancelIdleCallback(handle);
+    }));
+  }, "Cancelling the currently executing idle callback should be allowed");
+</script>

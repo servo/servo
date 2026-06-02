@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-columns</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(3, 150px);
+    grid-template-areas: "d b b"
+                          "c c a";
+  reading-flow: grid-columns;
+}
+
+.a { grid-area: a; }
+.b { grid-area: b; }
+.c { grid-area: c; }
+.d { grid-area: d; }
+
+</style>
+
+<div class="test-case" data-expect="d1,c1,b1,a1"
+      data-description="Grid items in grid template columns should follow grid-columns reading flow">
+  <div class="wrapper">
+    <button class="a" id="a1">Item A</button>
+    <button class="b" id="b1">Item B</button>
+    <button class="c" id="c1">Item C</button>
+    <button class="d" id="d1">Item D</button>
+  </div>
+</div>
+
+
+<script>
+runFocusTestCases();
+</script>

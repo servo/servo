@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :nth-last-child(... of :has(...))</title>
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="nth-last-child-of-has-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<style>
+  p:nth-last-child(even of :has(.c)) {
+    color: green;
+  }
+</style>
+<div>
+  <p>Ignored</p>
+  <p>Not <span class="c">ignored</span></p>
+  <p>Not <span class="c">ignored</span></p>
+  <p>Not <span class="c">ignored</span></p>
+  <p>Selectively <span><span><span class="c" id="toggler"></span></span></span>ignored</p>
+  <p>Not <span class="c">ignored</span></p>
+  <p>Ignored</p>
+  <p>Ignored</p>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  toggler.classList.toggle("c");
+</script>

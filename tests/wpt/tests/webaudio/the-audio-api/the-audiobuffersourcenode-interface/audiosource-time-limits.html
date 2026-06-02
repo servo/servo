@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Scheduled Sources with Huge Time Limits
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audioparam-testing.js"></script>
+  </head>
+  <body>
+    <script>
+      const sampleRate = 48000;
+      const renderFrames = 1000;
+
+      promise_test(async () => {
+        // We only need to generate a small number of frames for this test.
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        // Constant source of amplitude 1, looping.
+        const src = new AudioBufferSourceNode(context, {
+          buffer: createConstantBuffer(context, 1, 1),
+          loop: true,
+        });
+
+        // Create the graph and go!
+        const endTime = 1e300;
+        src.connect(context.destination);
+        src.start();
+        src.stop(endTime);
+
+        const resultBuffer = await context.startRendering();
+        const result = resultBuffer.getChannelData(0);
+        assert_array_equals(
+            result,
+            new Float32Array(result.length).fill(1),
+            `Output from AudioBufferSource.stop(${endTime})`);
+      }, 'buffersource: huge stop time');
+
+      promise_test(async () => {
+        // We only need to generate a small number of frames for this test.
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        const src = new OscillatorNode(context);
+
+        // Create the graph and go!
+        const endTime = 1e300;
+        src.connect(context.destination);
+        src.start();
+        src.stop(endTime);
+
+        const resultBuffer = await context.startRendering();
+        const result = resultBuffer.getChannelData(0);
+        // The buffer should not be empty.  Just find the max and verify
+        // that it's not zero.
+        const max = Math.max(...result);
+        assert_greater_than(
+            max, 0, `Peak amplitude from oscillator.stop(${endTime})`);
+      }, 'oscillator: huge stop time');
+    </script>
+  </body>
+</html>

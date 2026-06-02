@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-bottom</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-bottom"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   td { text-align: center; }
+   td, span, .three { border-bottom: blue 2px solid; }
+   .skip { border-bottom: none; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p>There should be a solid blue line directly under every occurrence of the word "<span>HERE &#x21E9;</span>". (So there should be 7 blue lines on this page.)</p>
+  <table>
+   <tr>
+    <td colspan="2">
+     HERE &#x21E9;
+    </td>
+   </tr>
+   <tr>
+    <td>
+     HERE &#x21E9;
+    </td>
+    <td class="skip">
+     <table>
+      <tr>
+       <td>
+        HERE &#x21E9;
+       </td>
+      </tr>
+     </table>
+     dummy text
+    </td>
+   </tr>
+  </table>
+  <ul>
+   <li class="three">
+    <ul>
+     <li>dummy text</li>
+     <li>dummy text</li>
+     <li>dummy text</li>
+    </ul>
+    HERE &#x21E9;
+   </li>
+   <li class="three">HERE &#x21E9;</li>
+   <li class="three">HERE &#x21E9;</li>
+  </ul>
+ </body>
+</html>

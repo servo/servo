@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-synthesis-small-caps with font that supports small-caps</title>
+<!--Exo-DemiBold has small caps in the font-->
+<style>
+    @font-face {
+        font-family: "exo";
+        src: url(support/fonts/Exo-DemiBold.otf);
+    }
+    .test {
+        font-family: "exo";
+        font-size: 3em;
+        font-variant: small-caps;
+    }
+</style>
+
+<p>Test passes if the two lines below are identical and there is no red.</p>
+<section class="test">
+    <p>Filler text</p>
+    <p>Filler text</p>
+</section>

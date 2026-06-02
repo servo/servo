@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Soft Navigation Detection: Task Attribution.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script>
+      // Appends a new div with a greeting to the document body.
+      function updateUI() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+      }
+
+      // Basic soft navigation (see basic.html) which directly does its work
+      // in the click handler. This is our baseline - the methods below
+      // differ in that they require propagating the soft navigation attribution
+      // to a different task.
+      function noSchedulingHop() {
+        updateUI();
+        history.pushState({}, "", "/no-scheduling-hop");
+      }
+
+      // A soft navigation where the click handler schedules its work with
+      // setTimeout, 0ms delay.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
+      function withSetTimeout0() {
+        setTimeout(() => {
+          updateUI();
+          history.pushState({}, "", "/with-set-timeout-0");
+        }, 0);
+      }
+
+      // A soft navigation where the click handler schedules its work with
+      // setTimeout, 10ms delay.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
+      function withSetTimeout10() {
+        setTimeout(() => {
+          updateUI();
+          history.pushState({}, "", "/with-set-timeout-10");
+        }, 10);
+      }
+
+      // A soft navigation where the click handler schedules its work with
+      // two setTimeouts.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
+      function twoSetTimeouts() {
+        setTimeout(updateUI, 20);
+        setTimeout(() => {
+          history.pushState({}, "", "/two-set-timeouts");
+        }, 10);
+      }
+
+      // A soft navigation where the click handler schedules its UI work with
+      // setTimeout and the URL update with a sync history.pushState call.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
+      function setTimeoutAndSyncUrlUpdate() {
+        setTimeout(updateUI, 10);
+        history.pushState({}, "", "/set-timeout-and-sync-url-update");
+      }
+
+      // A soft navigation where the click handler schedules its work with
+      // scheduler.postTask.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/postTask
+      function withSchedulerPostTask() {
+        scheduler.postTask(() => {
+          updateUI();
+          history.pushState({}, "", "/with-scheduler-post-task");
+        });
+      }
+
+      // A soft navigation where the click handler yields
+      // (using scheduler.yield) between URL and UI update.
+      async function withSchedulerYield() {
+        history.pushState({}, "", "/with-scheduler-yield");
+        await scheduler.yield();
+        updateUI();
+      }
+
+      // A soft navigation where the click handler schedules its work with
+      // requestAnimationFrame.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
+      function withRequestAnimationFrame() {
+        requestAnimationFrame(() => {
+          updateUI();
+          history.pushState({}, "", "/with-request-animation-frame");
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="no-scheduling-hop" onclick="noSchedulingHop()">Click here!</div>
+    <div id="with-set-timeout-0" onclick="withSetTimeout0()">Click here!</div>
+    <div id="with-set-timeout-10" onclick="withSetTimeout10()">Click here!</div>
+    <div id="two-set-timeouts" onclick="twoSetTimeouts()">Click here!</div>
+    <div id="set-timeout-and-sync-url-update" onclick="setTimeoutAndSyncUrlUpdate()">
+      Click here!
+    </div>
+    <div id="with-scheduler-post-task" onclick="withSchedulerPostTask()">Click here!</div>
+    <div id="with-scheduler-yield" onclick="withSchedulerYield()">Click here!</div>
+    <div id="with-request-animation-frame" onclick="withRequestAnimationFrame()">Click here!</div>
+
+    <script>
+      function test_template(test_id, description) {
+        promise_test(async (t) => {
+          let entries;
+          new PerformanceObserver((list, observer) => {
+            entries = list.getEntries();
+            observer.disconnect();
+          }).observe({ type: "soft-navigation" });
+          if (test_driver) {
+            test_driver.click(document.getElementById(test_id));
+          }
+          await t.step_wait(() => entries !== undefined, "Soft navigation event not fired.");
+
+          assert_equals(entries.length, 1, "Expected exactly one soft navigation.");
+          assert_equals(
+            entries[0].name.replace(/.*\//, ""),
+            test_id,
+            "URL should end with the test ID.",
+          );
+        }, description);
+      }
+
+      test_template("no-scheduling-hop", "No scheduling hop.");
+      test_template("with-set-timeout-0", "With set_timeout, 0ms delay.");
+      test_template("with-set-timeout-10", "With set_timeout, 10ms delay.");
+      test_template("two-set-timeouts", "With two set_timeouts.");
+      test_template("set-timeout-and-sync-url-update", "With set_timeout and sync URL update.");
+      if (scheduler.postTask) {
+        // Skip test if scheduler.postTask is not supported.
+        test_template("with-scheduler-post-task", "With scheduler.postTask.");
+      }
+      if (scheduler.yield) {
+        // Skip test if scheduler.yield is not supported.
+        test_template("with-scheduler-yield", "With scheduler.yield.");
+      }
+      test_template("with-request-animation-frame", "With requestAnimationFrame.");
+    </script>
+  </body>
+</html>

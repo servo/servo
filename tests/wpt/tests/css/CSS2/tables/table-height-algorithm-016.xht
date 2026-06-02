@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align set to 'bottom' with a spanning cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="assert" content="A spanning cell with Vertical-align set to 'bottom' aligns the cell's content to the bottom of the last row it spans." />
+        <style type="text/css">
+            table
+            {
+                height: 100px;
+            }
+            td
+            {
+                border: 1px solid black;
+                vertical-align: bottom;
+            }
+            #small
+            {
+                font-size: small;
+            }
+            #large
+            {
+                font-size: large;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" is vertically aligned to the bottom of their boxes.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td rowspan="2">
+                    <div id="small">Filler Text</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div id="large">Filler Text</div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

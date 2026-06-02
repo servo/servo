@@ -1,0 +1,6 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1914106">
+<style></style>
+<script>
+document.querySelector("style").sheet.insertRule("@import url('data:text/css,:root{background:red}');html,body{/* random garbage */}");
+</script>

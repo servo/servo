@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: descendant inline with a different 'writing-mode' value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="This test checks that if an inline box has a different block flow direction than its containing block then its display computes to 'inline-block' in which case its specified width and specified height are not ignored and have to be rendered." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  span#outer
+  {
+  vertical-align: top;
+  writing-mode: vertical-rl;
+  }
+
+  span#inner
+  {
+  background-color: green;
+  color: green;
+  height: 6.25em;
+  vertical-align: top;
+  width: 6.25em;
+  writing-mode: horizontal-tb;
+  }
+
+  div#reference-overlapped-red
+  {
+  background-color: red;
+  bottom: 6.25em;
+  height: 6.25em;
+  position: relative;
+  width: 6.25em;
+  z-index: -1;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="test-overlapping-green">
+    <span id="outer"><span id="inner">I</span></span>
+  </div>
+
+  <div id="reference-overlapped-red"></div>
+
+ </body>
+</html>

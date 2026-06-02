@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Reftest Reference</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <style type="text/css">
+            body {
+                background: lightgray;
+            }
+            .parent {
+                position: absolute;
+                z-index: 1;
+                width: 100px;
+                height: 100px;
+                background: #FF0;
+            }
+            .blended {
+                background: #0F0;
+                width: 100px;
+                height: 100px;
+                border-radius: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a green circle is drawn on top of a yellow square, over a lightgray background.</p>
+        <div class="parent">
+            <div class="blended"></div>
+        </div>
+    </body>
+</html>

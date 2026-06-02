@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property">
+<style>
+.test {
+    font-size: 100px;
+    text-shadow: 300px 300px 0 green;
+}
+.hide-text {
+    background-color: white;
+    position: absolute;
+    width: 300px;
+    height: 200px;
+    z-index: 1;
+    left: 0;
+}
+</style>
+</head>
+<body>
+    <span class="test">A&#x1F44D;B</span>
+    <span class="hide-text"></span>
+</body>

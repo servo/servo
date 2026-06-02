@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://crbug.com/1240783">
+
+<p>This test passes if it does not crash.</p>
+
+<slot id=slot>
+<object id=object>
+<script>
+onload = () => {
+  const nonSlotable = document.createProcessingInstruction(undefined, undefined);
+  document.getElementById('slot').assign(nonSlotable);
+  document.getElementById('object').appendChild(nonSlotable);
+}
+</script>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reference File</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    </head>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+        body {
+            margin: 0;
+        }
+        .container {
+            position: relative;
+            font: 15px Ahem, sans-serif;
+            line-height: 20px;
+            width: 200px;
+            height: 200px;
+            color: green;
+        }
+        .ellipse {
+            z-index: -1;
+            width: 160px;
+            height: 80px;
+            border-radius: 80px;
+            background-color: blue;
+            overflow: hidden;
+        }
+        #left-ellipse-outline {
+            position: absolute;
+            top: 20px;
+            left: 0px;
+        }
+        .left-ellipse-float-line {
+            float: left;
+            clear: left;
+            height: 20px;
+        }
+    </style>
+    <body>
+        <p>The test passes if all of the squares are green. There should be no red.</p>
+        <div class="container">
+        X<br/>
+            <div id="left-ellipse-outline"></div>
+            <!--  generated left-rounded-rect-float-line divs will be inserted here  -->
+        X<br/>
+        X<br/>
+        X<br/>
+        X<br/>
+        X
+        </div>
+
+        <script src="../../support/rounded-rectangle.js"></script>
+        <script src="../../support/subpixel-utils.js"></script>
+        <script>
+        genLeftRoundedRectFloatShapeOutsideRefTest({
+            roundedRect: {x: 0, y: 20, width: 160, height: 80, rx: 80, ry: 40},
+            containerWidth: 200,
+            containerHeight: 200,
+            lineHeight: 20,
+            floatElementClassSuffix: "ellipse-float-line",
+            insertElementIdSuffix: "ellipse-outline"
+        });
+        </script>
+    </body>
+</html>
+

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor on border images extending out of the border-box</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The cursor property is not applied outside of the border box, even if border images do extend further out.">
+<style>
+#container {
+  position: absolute;
+  padding: 50px;
+  cursor: crosshair;
+}
+#test{
+  border-image: linear-gradient(blue, blue);
+  border-image-outset: 50px;
+  border-image-width: 50px;
+  border-style: solid;
+  border-width: 5px;
+  border-color: white;
+  cursor: url("support/cursors/fail.png"), help;
+}
+</style>
+<body>
+  <p>The test passes if, when moved over the blue boxes, the cursor looks like a crosshair (e.g. short line segments resembling a "+" sign).
+  The shape of the cursor when it is over white areas is not part of this test.</p>
+  <div id=container><div id=test></div></div>
+</body>

@@ -1,0 +1,44 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: switching to block stop painting</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="content-visibility has no effect on non-atomic inlines, but switching to block stop painting">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  content-visibility: hidden;
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+.inline {
+  display: inline;
+}
+#child {
+  width: 50px;
+  height: 50px;
+  background: red;
+}
+</style>
+
+<div id=container class=inline>
+  Test fails if you see this text or a red box.
+  <div id=child></div>
+  <span>Fail.</span>
+</div>
+
+<script>
+function runTest() {
+  const container = document.getElementById("container");
+  container.classList.remove("inline");
+  takeScreenshot();
+}
+
+window.onload = () => requestAnimationFrame(runTest);
+</script>
+</html>

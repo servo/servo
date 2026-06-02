@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: :target-before and :target-after on ::scroll-marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11600">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  .scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+    scroll-marker-group: after;
+  }
+
+  .scroller div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  .scroller::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+  }
+
+  .scroller div::scroll-marker {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+  }
+
+  .scroller div::scroll-marker:target-current {
+    background-color: green;
+  }
+
+  .scroller div::scroll-marker:target-before {
+    background-color: red;
+  }
+
+  .scroller div::scroll-marker:target-after {
+    background-color: yellow;
+  }
+</style>
+<div class="scroller">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+<script>
+  function checkScrollMarkers(markerTargets, targetCurrentIndex) {
+    for (let i = 0; i < markerTargets.length; ++i) {
+      if (i < targetCurrentIndex) {
+        assert_equals(getComputedStyle(markerTargets[i], "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "::scroll-marker before the :target-current one should be red as :target-before");
+      } else if (i === targetCurrentIndex) {
+        assert_equals(getComputedStyle(markerTargets[i], "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "the :target-current ::scroll-marker should be green");
+      } else {
+        assert_equals(getComputedStyle(markerTargets[i], "::scroll-marker").backgroundColor, "rgb(255, 255, 0)", "::scroll-marker before the :target-current one should be yellow as :target-after");
+      }
+    }
+  }
+  const scroller = document.querySelector(".scroller");
+  const markerTargets = scroller.querySelectorAll("div");
+  for (let i = 0; i < markerTargets.length; ++i) {
+    promise_test(async t => {
+      // Make i-th scroll marker :target-current.
+      markerTargets[i].scrollIntoView();
+      await waitForAnimationFrames(2);
+      // Check the :target-before/:target-after relations on all scroll markers.
+      checkScrollMarkers(markerTargets, i);
+    }, i + "th scroll marker test");
+  }
+</script>

@@ -1,0 +1,6 @@
+features:
+- name: ua-client-hints
+  # Note: if any permissions-policy tests are added that do not
+  # depend on ua-client-hints, `files` below should be updated
+  # accordingly.
+  files: "**"

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>
+  Suppress row grid gaps: row gaps should be suppressed if it's split across
+  fragmentainer breaks or is the last content before a break. Tests a row gap
+  that takes up multiple fragmentainers.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-rows: repeat(3, 100px);
+    row-gap: 200px;
+    background: red;
+    row-rule: solid;
+  }
+  .grid-item {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+ </div>
+</div>

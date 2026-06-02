@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, fallback keyword</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact image">
+<meta charset="UTF-8">
+<meta name="assert" content="If the user agent cannot handle any user-defined cursor, it must use the cursor keyword at the end of the list.">
+
+<style>
+div.test{
+  background: #D2B48C; border: 2px solid #555;
+  cursor: url("support/cursors/not-an-image.foo"), crosshair;
+  width: 128px; height: 128px;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the colored rectangle, the cursor looks like
+  a crosshair (i.e. short line segments resembling a "+" sign).</p>
+  <p>If inside the rectangle the cursor does not change, the test fails.</p>
+  <div class="test"> </div>
+</body>

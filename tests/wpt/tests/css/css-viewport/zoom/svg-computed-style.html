@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<svg id="svg">
+  <rect id="target" width="200" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>
+
+<script>
+  const target = document.getElementById("target");
+  const properties = {
+    "border-spacing": {
+      "value": "10px 20px",
+      "otherValues": ["1px", "1px 2px"]
+    },
+    "border-width": {
+      "value": "1px",
+      "otherValues": ["5px 10px", "2px 4px 6px 8px"],
+      "requiredProperties": { "border-style": "solid" }
+    },
+    "box-shadow": {
+      "value": "rgb(0, 0, 0) 5px 5px 5px 0px",
+      "otherValues": ["rgb(0, 0, 0) 10px 10px 10px 0px"]
+    },
+    "filter": {
+      "value": "drop-shadow(rgb(0, 0, 0) 5px 5px 5px)",
+      "otherValues": ["drop-shadow(rgb(0, 0, 0) 10px 10px 10px)"]
+    },
+    "height": {
+      "value": "9px",
+      "otherValues": ["18px"]
+    },
+    "inset": {
+      "value": "2px 4px 6px 8px",
+      "otherValues": ["-20px 40px 60px -80px"],
+      "requiredProperties": { "position": "absolute" }
+    },
+    "line-height" : {
+      "value": "7px",
+      "otherValues": ["13px"]
+    },
+    "margin" : {
+      "value": "-10px 20px 30px -40px",
+      "otherValues": ["-20px 40px 60px -80px"]
+    },
+    "max-height" : {
+      "value": "9px",
+      "otherValues": ["18px"]
+    },
+    "max-width" : {
+      "value": "9px",
+      "otherValues": ["18px"]
+    },
+    "min-height" : {
+      "value": "9px",
+      "otherValues": ["18px"]
+    },
+    "min-width" : {
+      "value": "9px",
+      "otherValues": ["18px"]
+    },
+    "padding": {
+      "value": "10px 20px 30px 40px",
+      "otherValues": ["20px 40px 60px 80px"]
+    },
+    "text-decoration-thickness": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    },
+    "text-shadow": {
+      "value": "rgb(0, 0, 0) 5px 5px 0px",
+      "otherValues": ["rgb(0, 0, 0) 10px 10px 0px"]
+    },
+    "text-underline-offset": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    },
+    "-webkit-text-stroke-width": {
+      "value": "2px",
+      "otherValues": ["4px"]
+    },
+    "width": {
+      "value": "9px",
+      "otherValues": ["19px"]
+    },
+
+  };
+
+  for (const [property, {value, otherValues, requiredProperties}] of Object.entries(properties)) {
+    // setup
+    if (requiredProperties) {
+      for (const [prop, reqValue] of Object.entries(requiredProperties)) {
+        svg.style[prop] = reqValue;
+        target.style[prop] = reqValue;
+      }
+    }
+
+    svg.style[property] = value;
+
+    for (const otherValue of otherValues) {
+      test_computed_value(property, otherValue, otherValue, "no zoom");
+    }
+    test_computed_value(property, "inherit", value, "no zoom");
+
+    target.style.zoom = 2;
+
+    for (const otherValue of otherValues) {
+      test_computed_value(property, otherValue, otherValue, "zoom: 2");
+    }
+    test_computed_value(property, "inherit", value, "zoom: 2");
+
+    // cleanup
+    svg.style.removeProperty(property);
+    target.style.removeProperty('zoom');
+    if (requiredProperties) {
+      for (const [prop, reqValue] of Object.entries(requiredProperties)) {
+        svg.style.removeProperty(reqValue);
+        target.style.removeProperty(reqValue);
+      }
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1124195">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #iframe {
+      display: block;
+      border: none;
+      width: 300px;
+      height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<iframe id="iframe" src="support/flexbox-scrolling-vertical-rl.html"></iframe>
+<script>
+  onload = function() {
+      document.body.offsetTop;
+      iframe.style.width = "100px";
+  }
+</script>

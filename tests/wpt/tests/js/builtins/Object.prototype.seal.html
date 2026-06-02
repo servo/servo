@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Object.seal</title>
+<link rel="author" title="Masaya Iseki" href="mailto:iseki.m.aa@gmail.com">
+<link rel="help" href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.seal">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  [{}, []].forEach(function(that) {
+    assert_false(Object.isSealed(that));
+    that.prop = 'exist';
+
+    Object.seal(that);
+    assert_false(Object.isExtensible(that));
+    assert_true(Object.isSealed(that));
+    assert_false(Object.isFrozen(that));
+
+    that.extension = 'This property should not be added';
+    assert_equals(undefined, that.extension, 'Confirm to prevent adding property.');
+
+    that.prop = 'changed';
+    assert_equals('changed', that.prop,
+          'Confirm to be able to change a property value.');
+
+    delete that.prop;
+    assert_equals('changed', that.prop, 'Confirm to prevent deleting a property.');
+  });
+});
+</script>
+
+</body>
+</html>

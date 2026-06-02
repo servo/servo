@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>
+    CSS Test: Testing auto-sized flex containers
+    with various 'writing-mode' values
+    and various padding amounts on flex items.
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#propdef-writing-mode">
+  <link rel="match" href="flexbox-writing-mode-016-ref.html">
+  <style>
+  .container {
+    display: flex;
+    flex-direction: row;
+    border: 2px solid purple;
+    margin: 3px;
+    /* This red should't be visible, because each container should shrinkwrap
+       its sole child (and the child should cover up this background). */
+    background: red;
+    /* Float the containers, to test in "rows", with 1 row per writing-mode. */
+    float: left;
+  }
+  br { clear: both; }
+
+  .container > * {
+    width: 10px;
+    height: 10px;
+    background: teal;
+    border: 1px solid yellow;
+  }
+  .container > * > * {
+    background: pink;
+    height: 4px;
+    width: 4px;
+    border: 1px solid black;
+  }
+
+  .pad_top    { padding-top:    3px; }
+  .pad_right  { padding-right:  4px; }
+  .pad_bottom { padding-bottom: 5px; }
+  .pad_left   { padding-left:   6px; }
+
+  .hl  { writing-mode: horizontal-tb;  direction: ltr; }
+  .hr  { writing-mode: horizontal-tb;  direction: rtl; }
+  .vl  { writing-mode: vertical-lr;    direction: ltr; }
+  .vr  { writing-mode: vertical-rl;    direction: ltr; }
+  .vl_rtl { writing-mode: vertical-lr; direction: rtl; }
+  .vr_rtl { writing-mode: vertical-rl; direction: rtl; }
+  </style>
+</head>
+<body>
+  <!-- Here, we test padding on each side of a flex item, across 6 different
+       writing-mode combinations (writing-mode X direction). -->
+  <div class="container hl">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container hl">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container hl">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container hl">
+    <div class="pad_left"><div></div></div>
+  </div>
+  <br>
+
+  <div class="container hr">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container hr">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container hr">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container hr">
+    <div class="pad_left"><div></div></div>
+  </div>
+  <br>
+
+  <div class="container vl">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container vl">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container vl">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container vl">
+    <div class="pad_left"><div></div></div>
+  </div>
+  <br>
+
+  <div class="container vr">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container vr">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container vr">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container vr">
+    <div class="pad_left"><div></div></div>
+  </div>
+  <br>
+
+  <div class="container vl_rtl">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container vl_rtl">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container vl_rtl">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container vl_rtl">
+    <div class="pad_left"><div></div></div>
+  </div>
+  <br>
+
+  <div class="container vr_rtl">
+    <div class="pad_top"><div></div></div>
+  </div>
+  <div class="container vr_rtl">
+    <div class="pad_right"><div></div></div>
+  </div>
+  <div class="container vr_rtl">
+    <div class="pad_bottom"><div></div></div>
+  </div>
+  <div class="container vr_rtl">
+    <div class="pad_left"><div></div></div>
+  </div>
+</body>
+</html>

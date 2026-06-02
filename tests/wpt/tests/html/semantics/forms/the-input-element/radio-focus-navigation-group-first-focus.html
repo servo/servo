@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Focus Navigation for the radio group</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://issues.chromium.org/issues/421837104">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<input type="text" id="start">
+<form>
+  <input type="radio" name="radio" id="a">
+  <input type="radio" name="radio" id="b">
+  <input type="radio" name="radio" id="c">
+</form>
+<input type="text" id="end">
+
+<script>
+promise_test(async () => {
+  start.focus();
+  assert_equals(document.activeElement, start);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, a);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start);
+}, 'Both forward and backward focus navigation target the radio group first element.');
+</script>

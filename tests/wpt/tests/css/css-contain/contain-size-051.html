@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: size' does not apply to table-cell element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+  <link rel="match" href="reference/contain-size-051-ref.html">
+
+
+  <style>
+  td
+    {
+      contain: size;
+      font-size: 50px;
+    }
+  </style>
+
+  <p>Test passes if "5678" (without quotes) is readable and if the digits do not overlap each other.
+
+  <table>
+    <tr>
+      <td>5<td>6<td>7<td>8
+  </table>

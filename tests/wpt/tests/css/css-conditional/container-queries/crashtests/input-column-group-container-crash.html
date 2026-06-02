@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Container Queries Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="help" href="https://crbug.com/1282782">
+<p>Pass if this test does not crash</p>
+<span style="column-count: 1">
+  <span style="display:table-column-group"></span>
+  <input id="inp">
+</span>
+<script>
+  document.body.offsetTop;
+  document.body.style.setProperty("container", "inline-size");
+  inp.setAttribute("type", "image");
+</script>

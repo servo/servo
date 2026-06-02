@@ -1,0 +1,4 @@
+features:
+- name: smil-svg-animations
+  files: "**"
+

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: Unicode 15 kana and text-transform: full-size-kana</title>
+<link rel="author" title="Elika Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-text-transform-full-size-kana">
+<link rel="match" href="reference/text-transform-full-size-kana-008-ref.html">
+<meta name="assert" content="small kana added in Unicode 15 are transformed to normal kana by text-tranform:full-size-kana">
+<style>
+td:nth-of-type(2) {
+  text-transform: full-size-kana
+}
+</style>
+
+<p>Test passes if the characters in the second column are
+the same shape and size as those in the rightmost column,
+not small as those in the leftmost column.<br>
+Any missing glyph should be ignored as long as it is missing in both the second and the rightmost column.
+
+<table>
+  <tr><td>&#x1B132;<td>&#x1B132;<td>&#x3053;
+  <tr><td>&#x1B150;<td>&#x1B150;<td>&#x3090;
+  <tr><td>&#x1B151;<td>&#x1B151;<td>&#x3091;
+  <tr><td>&#x1B152;<td>&#x1B152;<td>&#x3092;
+  <tr><td>&#x1B155;<td>&#x1B155;<td>&#x30B3;
+  <tr><td>&#x1B164;<td>&#x1B164;<td>&#x30F0;
+  <tr><td>&#x1B165;<td>&#x1B165;<td>&#x30F1;
+  <tr><td>&#x1B166;<td>&#x1B166;<td>&#x30F2;
+  <tr><td>&#x1B167;<td>&#x1B167;<td>&#x30F3;
+</table>

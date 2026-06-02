@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history_go_plus</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var t = async_test("history go plus");
+
+    var fired = false;
+    t.step(function () {
+      window.history.pushState(1, document.title, '?x=1');
+      window.history.pushState(2, document.title, '?x=2');
+
+      window.history.back();
+    });
+
+    window.addEventListener('popstate', t.step_func(function(e) {
+      if(fired) {
+        assert_equals(e.state, 2, "history state");
+
+        t.done();
+      }
+      fired = true;
+      window.history.go(1);
+
+    }), false);
+    </script>
+  </body>
+</html>

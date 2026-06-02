@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Requesting Permissions (https://wicg.github.io/permissions-request/)
+
+partial interface Permissions {
+  Promise<PermissionStatus> request(object permissionDesc);
+};

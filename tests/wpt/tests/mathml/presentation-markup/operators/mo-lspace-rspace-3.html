@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>mo-lspace-rspace-3</title>
+    <link rel="match" href="mo-lspace-rspace-3-ref.html">
+  </head>
+  <body>
+    <p>
+      <math>
+        <mo id="mo1">*</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="mo2" lspace="3em">*</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="mo3">*</mo>
+        <mo>*</mo>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mo id="mo4" lspace="3em">*</mo>
+        <mo >*</mo>
+      </math>
+    </p>
+    <p>
+      <math id="math1">
+        <mo>*</mo>
+      </math>
+    </p>
+    <p>
+      <math id="math2">
+        <mo>*</mo>
+        <mo id="mo5">*</mo>
+      </math>
+    </p>
+    <script type="text/javascript">
+      function doTest() {
+        // Add and remove lspace
+        document.getElementById("mo1").setAttribute("lspace", "3em");
+        document.getElementById("mo2").removeAttribute("lspace");
+        // and again but with an inferred mrow
+        document.getElementById("mo3").setAttribute("lspace", "3em");
+        document.getElementById("mo4").removeAttribute("lspace");
+
+        // Change to/from inferred mrow
+        var mo1 = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mo");
+        mo1.innerHTML = "*";
+        document.getElementById("math1").appendChild(mo1);
+        document.getElementById("math2").removeChild(document.getElementById("mo5"));
+
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("load", doTest);
+  </script>
+  </body>
+</html>

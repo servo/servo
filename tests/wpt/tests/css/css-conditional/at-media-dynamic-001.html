@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test (Conditional Rules): Rule application is immediate on condition change</title>
+<meta name="assert"
+    content="Test passes if rules within @media are applied when its condition changes to match.">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#processing">
+<link rel="match" href="at-supports-001-ref.html">
+
+<style>
+iframe {
+  border: none;
+  width: 200px;
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+<iframe id=frame src="support/at-media-dynamic-001-inner.html"></iframe>
+
+<script>
+  var handler = function () {
+    document.getElementById("frame").style.width = "100px";
+    document.documentElement.classList = "";
+  };
+  document.addEventListener("TestRendered", handler);
+</script>

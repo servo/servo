@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/SVG2/embedded.html#InterfaceSVGForeignObjectElement"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://svgwg.org/svg2-draft/changes.html#extend"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="foreignObject is a graphics element"/>
+  </metadata>
+  <foreignObject id="target" />
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script><![CDATA[
+  test(function() {
+    var target = document.getElementById('target');
+    assert_equals(Object.getPrototypeOf(Object.getPrototypeOf(target)), SVGGraphicsElement.prototype);
+  });
+  ]]></h:script>
+</svg>

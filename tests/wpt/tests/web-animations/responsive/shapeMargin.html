@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    element.style.width = '200px';
+    var player = element.animate([{shapeMargin: '3em'}, {shapeMargin: '80%'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    element.style.width = '100px';
+    assert_equals(getComputedStyle(element).shapeMargin, 'calc(40% + 30px)');
+}, 'shapeMargin responsive to style changes');
+
+</script>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Confirm activeElement return null</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Masaya Iseki" href="mailto:iseki.m.aa@gmail.com">
+<link rel="help" href="http://w3c.github.io/webcomponents/spec/shadow/#attributes">
+<meta name="assert" content="ShadowRoot Object: confirm activeElement return null">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element');
+
+}), 'confirm activeElement return null');
+
+
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var inp = d.createElement('input');
+    d.body.appendChild(inp);
+
+    inp.focus();
+
+    assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element in the shadow tree');
+
+}), 'confirm activeElement return null when there is other element in body');
+
+
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var inp = d.createElement('input');
+    d.body.appendChild(inp);
+
+    var inp2 = d.createElement('input');
+    s.appendChild(inp2);
+
+    inp.focus();
+
+    assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element in the shadow tree');
+
+}), 'confirm activeElement return null when focus on the element in the outer shadow tree');
+</script>
+</body>
+</html>

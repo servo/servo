@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: An Empty Text Node Should Not Generate a Baseline</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#intro">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9606">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1855583">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+
+.ahem {
+  font-family: Ahem;
+}
+
+.with-pseudo::before, .with-pseudo::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border: 2px solid;
+  background: orange;
+  display: inline-block;
+}
+
+.font-size::before, .font-size::after {
+  font-size: 100px;
+}
+
+.line-height::before, .line-height::after {
+  line-height: 10;
+}
+
+.empty-concat::before, .empty-concat::after {
+  content: "" "" "" "" "";
+}
+
+</style>
+<div id="reference" class="ahem">x</div>
+<div id="fs" class="ahem with-pseudo font-size">x</div>
+<div id="ba" class="ahem with-pseudo line-height">x</div>
+<div id="ec" class="ahem with-pseudo font-size empty-concat">x</div>
+<script>
+test(function() {
+  assert_equals(fs.offsetHeight, reference.offsetHeight);
+  assert_equals(ba.offsetHeight, reference.offsetHeight);
+  assert_equals(ec.offsetHeight, reference.offsetHeight);
+}, "Empty content pseudo-element does not generate baseline");
+
+test(function() {
+  const divs = [fs, ba, ec];
+  for (let d of divs) {
+    d.style = "white-space: pre";
+  }
+  assert_equals(fs.offsetHeight, reference.offsetHeight);
+  assert_equals(ba.offsetHeight, reference.offsetHeight);
+  assert_equals(ec.offsetHeight, reference.offsetHeight);
+}, "Empty content pseudo-element does not generate baseline with white-space: pre");
+</script>

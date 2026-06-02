@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Positioned Layout Module Test: 'overlay' rendering on top after transition finished</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#overlay">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="match" href="green-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #transition-in, #red {
+    /* Force display:block both popover open or closed to not rely on
+       @starting-style or display transitions. */
+    display: block;
+    border: none;
+    width: 100vw;
+    height: 100vh;
+  }
+  #red {
+    position: fixed;
+    background-color: red;
+  }
+  #transition-in {
+    transition: overlay 0.1s step-end;
+    transition-behavior: allow-discrete;
+    background-color: green;
+  }
+</style>
+<div id="transition-in" popover></div>
+<div id="red"></div>
+<script>
+  let transition_in = document.querySelector("#transition-in");
+  transition_in.addEventListener("transitionend", () => takeScreenshot());
+  // Force style update to have before-change style for overlay transition.
+  transition_in.offsetTop;
+  transition_in.showPopover();
+  if (getComputedStyle(transition_in).overlay != "none") {
+    // Transition didn't start, force a fail condition.
+    transition_in.style.backgroundColor = "pink";
+    takeScreenshot();
+  }
+</script>

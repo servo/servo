@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+<meta charset="utf-8">
+<title>shaping: test for Chromium bug 1304876</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1304876">
+<link rel="match" href="reference/shaping_lig-001-ref.html">
+<style type="text/css">
+@font-face {
+    font-family: GentiumPlus;
+    src: url('/fonts/GentiumPlus-R.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+.test {
+    font-family: GentiumPlus;
+    font-size: 18pt;
+    width: 300px;
+    border: 1px solid black;
+    margin: 1em;
+}
+/* the CSS above is not part of the test */
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the word "office" is rendered without repeated letters.</p>
+<div class="test">Sanitary measures in the office ought be adequately <b>maintained</b>.</div>
+<div class="test">Sanitary measures in the<br>office ought be adequately <b>maintained</b>.</div>
+</body>
+</html>

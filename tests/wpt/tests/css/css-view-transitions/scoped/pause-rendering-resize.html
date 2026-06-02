@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="pause-rendering-resize-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+body { margin: 20px; }
+#scope {
+  width: 200px;
+  height: 100px;
+  border: 20px solid #acf;
+  padding: 20px;
+  outline: 5px solid green;
+  font: 18pt monospace;
+  contain: layout;
+}
+#scope.changed {
+  width: 180px;
+  height: 120px;
+  outline-width: 10px;
+}
+
+</style>
+</head>
+<body>
+<div id=scope>SCOPE</div>
+<script>
+
+const scope = document.querySelector("#scope");
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function raf() {
+  await new Promise(r => { requestAnimationFrame(r); });
+}
+
+async function runTest() {
+  await waitForCompositorReady();
+  await new Promise(finish => {
+    scope.startViewTransition(async () => {
+      scope.className = "changed";
+
+      await raf();
+      takeScreenshot();
+
+      // Finish test, transition never starts.
+      finish();
+      await new Promise(r => {});
+    });
+  });
+}
+
+onload = () => runTest();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+    <title>SVG use blocked as img</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      async_test(t => {
+        window.addEventListener('securitypolicyviolation',
+                                t.step_func_done(e => {
+          assert_equals(e.effectiveDirective, "img-src");
+          assert_true(e.blockedURI.endsWith("use.svg"));
+        }));
+      }, "Blocked SVG <use> element");
+    </script>
+    <link rel="stylesheet" href="resources/blue.css">
+</head>
+<body>
+  <svg>
+    <use href="use.svg#bar"></use>
+  </svg>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>test reference</title>
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the left-hand character in each pair matches the right-hand one.</p>
+
+
+<div class="test">
+<div>ա ա</div>
+<div>բ բ</div>
+<div>գ գ</div>
+<div>դ դ</div>
+<div>ե ե</div>
+<div>զ զ</div>
+<div>է է</div>
+<div>ը ը</div>
+<div>թ թ</div>
+<div>ժ ժ</div>
+<div>ի ի</div>
+<div>լ լ</div>
+<div>խ խ</div>
+<div>ծ ծ</div>
+<div>կ կ</div>
+<div>հ հ</div>
+<div>ձ ձ</div>
+<div>ղ ղ</div>
+<div>ճ ճ</div>
+<div>մ մ</div>
+<div>յ յ</div>
+<div>ն ն</div>
+<div>շ շ</div>
+<div>ո ո</div>
+<div>չ չ</div>
+<div>պ պ</div>
+<div>ջ ջ</div>
+<div>ռ ռ</div>
+<div>ս ս</div>
+<div>վ վ</div>
+<div>տ տ</div>
+<div>ր ր</div>
+<div>ց ց</div>
+<div>ւ ւ</div>
+<div>փ փ</div>
+<div>ք ք</div>
+<div>օ օ</div>
+<div>ֆ ֆ</div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

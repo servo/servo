@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <link rel="author" title="Mozilla" href="https://mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+  <title>CSSPageDescriptors properties tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+@page {
+    size: a3;
+    page-orientation: rotate-right;
+    margin: 1em 24px 2in 101.5mm;
+}
+@page {
+    size: jis-b5 landscape;
+}
+@page {
+    size: 216mm;
+}
+  </style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+let element = document.getElementById("target");
+let computedStyle = window.getComputedStyle(element);
+let style = element.style;
+let styleSheet = document.styleSheets[0];
+let marginNames = ["left", "right", "top", "bottom"];
+let pageDescriptors = ["margin", "page-orientation", "size"];
+marginNames.forEach(function(n){
+    pageDescriptors.push("margin-" + n);
+    pageDescriptors.push("margin" + n[0].toUpperCase() + n.slice(1));
+});
+
+test(t => {
+    // Check that size isn't exposed on all CSS style declarations.
+    assert_equals(computedStyle.size, undefined,
+        "computed style should not have size property");
+    assert_equals(computedStyle.getPropertyValue("size"), "",
+        "computed style getPropertyValue(\"size\") should be empty");
+
+    assert_equals(style.size, undefined,
+        "style should not have size property");
+    assert_equals(style.getPropertyValue("size"), "",
+        "style getPropertyValue(\"size\") should be empty");
+    for(const val of ["initial", "auto", "100px"]){
+        style.setProperty("size", val);
+        assert_false(CSS.supports("size", val));
+        assert_equals(style.size, undefined,
+            "style should not have size property after assigning size=" + val);
+        assert_equals(style.getPropertyValue("size"), "",
+            "style getPropertyValue(\"size\") should be empty after assigning size=" + val);
+    }
+    pageDescriptors.forEach(function(prop){
+        assert_own_property(styleSheet.cssRules[0].style.__proto__, prop,
+            "CSSPageDescriptors should have property " + prop);
+    });
+    assert_equals(styleSheet.cssRules[0].style.size, "a3");
+    assert_equals(styleSheet.cssRules[0].style.pageOrientation, "rotate-right");
+    assert_equals(styleSheet.cssRules[0].style.getPropertyValue("page-orientation"), "rotate-right",
+        'Value of page-orientation should match pageOrientation from CSS');
+    assert_equals(styleSheet.cssRules[1].style.size, "jis-b5 landscape");
+    assert_equals(styleSheet.cssRules[2].style.size, "216mm");
+
+    // Ensure we can set the size property to a valid value.
+    styleSheet.cssRules[2].style.size = "portrait";
+    assert_equals(styleSheet.cssRules[2].style.size, "portrait",
+        'Should have been able to set size property to "portrait" on CSSPageDescriptors');
+    // Ensure we cannot set the size property to an invalid property.
+    styleSheet.cssRules[2].style.size = "notarealsize";
+    assert_equals(styleSheet.cssRules[2].style.size, "portrait",
+        'Should not have been able to set size property to "notarealsize" on CSSPageDescriptors');
+
+    // Ensure we can set the orientation property to a valid value.
+    styleSheet.cssRules[2].style.pageOrientation = "rotate-left";
+    assert_equals(styleSheet.cssRules[2].style.pageOrientation, "rotate-left",
+        'Should have been able to set pageOrientation property to "rotate-left" on CSSPageDescriptors');
+    assert_equals(styleSheet.cssRules[2].style.getPropertyValue("page-orientation"), "rotate-left",
+        'Value of page-orientation should match pageOrientation after setting from script');
+    // Ensure we cannot set the orientation property to an invalid property.
+    styleSheet.cssRules[2].style.pageOrientation = "schmotate-schmeft";
+    assert_equals(styleSheet.cssRules[2].style.pageOrientation, "rotate-left",
+        'Should not have been able to set pageOrientation property to "schmotate-schmeft" on CSSPageDescriptors');
+
+    // Ensure we cannot set invalid page properties.
+    styleSheet.cssRules[2].style.setProperty("float", "left");
+    assert_equals(styleSheet.cssRules[2].style.cssFloat, undefined);
+
+    assert_equals(styleSheet.cssRules[0].style.marginLeft, "101.5mm");
+    assert_equals(styleSheet.cssRules[0].style.marginRight, "24px");
+    assert_equals(styleSheet.cssRules[0].style.marginTop, "1em");
+    assert_equals(styleSheet.cssRules[0].style.marginBottom, "2in");
+    marginNames.forEach(function(name){
+        let name1 = "margin-" + name;
+        let name2 = "margin" + name[0].toUpperCase() + name.slice(1);
+        assert_equals(styleSheet.cssRules[0].style[name1],
+            styleSheet.cssRules[0].style[name2],
+            "CSSPageDescriptors " + name1 + " and " + name2 + " should be the same.");
+        // Attempt setting through each name and ensure it is represented in the other.
+        styleSheet.cssRules[0].style[name1] = "99px";
+        assert_equals(styleSheet.cssRules[0].style[name1], "99px",
+            "Should have been able to set " + name1 + " property on CSSPageDescriptors");
+        assert_equals(styleSheet.cssRules[0].style[name2], "99px",
+            "Setting " + name1 + " on CSSPageDescriptors should also set " + name2);
+        styleSheet.cssRules[0].style[name2] = "216px";
+        assert_equals(styleSheet.cssRules[0].style[name2], "216px",
+            "Should have been able to set " + name2 + " property on CSSPageDescriptors");
+        assert_equals(styleSheet.cssRules[0].style[name1], "216px",
+            "Setting " + name2 + " on CSSPageDescriptors should also set " + name1);
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/419501749">
+<style>
+  #crash {
+    position: absolute;
+    left: anchor(right);
+    --grad: linear-gradient(black, blue);
+    content: var(--grad);
+  }
+</style>
+<p>Pass if no crash</p>
+<div id="crash"></div>

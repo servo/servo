@@ -1,0 +1,24 @@
+features:
+- name: page-breaks
+  files:
+  - page-container-003.xht
+  - page-selectors-001.xht
+- name: page-setup
+  files:
+  - 'at-page-rule*'
+  - 'first-page-selectors*'
+  - 'page-box-000.xht'
+  - 'page-container-000.xht'
+  - 'page-container-001.xht'
+  - 'page-container-008.xht'
+  - 'page-container-009.xht'
+  - 'page-grammar-*'
+  - 'page-margin-*'
+  - 'page-props-*'
+  - 'page-selectors-*'
+- name: width-height
+  files:
+  - page-container-000.xht
+  - page-container-002.xht
+  - page-container-004.xht
+  - page-container-010.xht

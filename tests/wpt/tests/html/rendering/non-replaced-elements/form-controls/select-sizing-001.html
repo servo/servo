@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for sizing of select elements, with wide vs. empty option selected</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#list-box">
+  <link rel="match" href="select-sizing-001-ref.html">
+  <style>
+    select {
+      color: transparent;
+      margin: 1px;
+    }
+    div.customBorder > select {
+      /* This class is to let us test select elements *without* native theming
+         (for browsers that have both native and non-native controls): */
+      border: 3px solid black;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <!-- Wide thing is 2nd, and not selected: -->
+    <select>
+      <option></option>
+      <option>some wide option</option>
+    </select>
+    <br>
+    <!-- Wide thing is 2nd, and selected: -->
+    <select>
+      <option></option>
+      <option selected>some wide option</option>
+    </select>
+    <br>
+    <!-- Wide thing is 1st, and selected (implicitly): -->
+    <select>
+      <option>some wide option</option>
+      <option></option>
+    </select>
+    <br>
+    <!-- Wide thing is 1st, and not selected: -->
+    <select>
+      <option>some wide option</option>
+      <option selected></option>
+    </select>
+  </div>
+
+  <!-- This is the same as above, but now with a custom border on the
+       select elements: -->
+  <div class="customBorder">
+    <!-- Wide thing is 2nd, and not selected: -->
+    <select>
+      <option></option>
+      <option>some wide option</option>
+    </select>
+    <br>
+    <!-- Wide thing is 2nd, and selected: -->
+    <select>
+      <option></option>
+      <option selected>some wide option</option>
+    </select>
+    <br>
+    <!-- Wide thing is 1st, and selected (implicitly): -->
+    <select>
+      <option>some wide option</option>
+      <option></option>
+    </select>
+    <br>
+    <!-- Wide thing is 1st, and not selected: -->
+    <select>
+      <option>some wide option</option>
+      <option selected></option>
+    </select>
+  </div>
+
+</body>
+</html>

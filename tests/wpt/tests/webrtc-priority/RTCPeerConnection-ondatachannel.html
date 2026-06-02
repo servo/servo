@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.ondatachannel</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const dc1 = pc1.createDataChannel('test', {
+    ordered: false,
+    maxRetransmits: 1,
+    protocol: 'custom',
+    priority: 'high'
+  });
+
+  assert_equals(dc1.priority, 'high');
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+
+    assert_equals(dc2.priority, 'high');
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'In-band negotiated channel created on remote peer should match the same configuration as local ' +
+  'peer');
+
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const dc1 = pc1.createDataChannel('');
+
+  assert_equals(dc1.priority, 'low');
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+    assert_equals(dc2.priority, 'low');
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'In-band negotiated channel created on remote peer should match the same (default) ' +
+  'configuration as local peer');
+
+</script>

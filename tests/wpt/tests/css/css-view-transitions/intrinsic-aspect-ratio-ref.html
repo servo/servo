@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: different width container should keep aspect ratio (by default)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.spacer {
+  /* 10px - border from above and below */
+  height: 6px;
+}
+.smallbox {
+  width: 50px;
+  height: 50px;
+  background: blue;
+}
+.bigbox {
+  width: 200px;
+  height: 200px;
+  background: blue;
+}
+
+body { background: lightpink; }
+</style>
+
+<div style="width: 50px; height: 100px; border: 2px solid black">
+  <div style="height: 50px; background: blue"></div>
+</div>
+<div class=spacer></div>
+<div style="width: 200px; height: 100px; border: 2px solid black">
+  <div style="height: 200px; background: blue"></div>
+</div>

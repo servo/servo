@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Verify effect of font-size-adjust: 0 on a SVG Font</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-5/#font-size-adjust-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  pre { font-size-adjust: 0; font-family: CustomMonospace }
+</style>
+<svg>
+  <font>
+    <font-face font-family="CustomMonospace"/>
+    <glyph unicode="e" glyph-name="e" horiz-adv-x="530" d="M500 192V227Q500 296 480 346T428 427T354 474T271 489Q221 489 178 470T101 418T49 340T30 243Q30 204 43 161T87 83T171 24T303 0H482V94H298Q250 94 217 108T165 144T137 192T128 244Q128 276 139 303T171 351T218 383T275 395Q301 395 322 386T360 362T386 327T402 286H277Q253 286 240 272T226 239Q226 223 237 208T277 192H500Z"/>
+  </font>
+</svg>
+<pre id="pre">Text
+</pre>
+<script>
+  test((t) => {
+    assert_equals(pre.getBoundingClientRect().height, 0);
+  }, "Verify effect of font-size-adjust: 0 on normal size SVG Font");
+</script>

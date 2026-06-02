@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Transform animation under large scale</title>
+<link rel="author" title="Kevin Ellis" href="mailto:kevers@chromium.org">
+<link rel="help" href="https://crbug.com/1221622">
+<link rel="match" href="flip-running-animation-via-variable-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@keyframes spin {
+  0%   { transform: scaleX(var(--scale)) rotate(0deg); }
+  100% { transform: scaleX(var(--scale)) rotate(180deg); }
+}
+
+html {
+  --scale:  1;
+}
+
+html.tweaked {
+  --scale:  -1;
+}
+
+#container {
+  display: inline-block;
+  margin-left:  150px;
+  padding:  0;
+  /* Force animation to be effectively frozen at 50% progress. */
+  animation: spin 1000000s cubic-bezier(0, 1, 1, 0)  -500000s;
+}
+
+#block-1 {
+  background: blue;
+  height: 200px;
+  width:  100px;
+}
+
+#block-2 {
+  background: green;
+  height: 100px;
+  width: 100px;
+}
+</style>
+
+<body>
+  <div id="container">
+    <div id="block-1"></div>
+    <div id="block-2"></div>
+  </div>
+</body>
+
+<script>
+window.onload = () => {
+  const anim = document.getAnimations()[0];
+  anim.ready.then(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector('html').classList.add('tweaked');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            takeScreenshot();
+          });
+        });
+      });
+    });
+  });
+};
+</script>
+</html>

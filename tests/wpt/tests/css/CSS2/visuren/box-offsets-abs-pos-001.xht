@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: box offsets - containing block for absolute positioned boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <meta content="image" name="flags" />
+  <meta content="Box offsets (bottom, left, right, top) for an absolutely positioned box refers to the padding box of its nearest positioned ancestor; such padding box forms and acts as the containing block of the absolutely positioned box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  #nearest-positioned-ancestor
+  {
+  background-color: yellow; /* padding box will be yellow */
+  border: orange solid 50px; /* border box will be orange */
+  height: 100px; /* a bright green square 100px by 100px image will serve as content box */
+  margin-left: 100px;
+  padding: 50px;
+  position: relative;
+  top: auto;
+  width: 100px;
+  }
+
+  div > div
+  {
+  background-color: blue;
+  color: white;
+  height: 25px;
+  position: absolute;
+  width: 25px;
+  }
+
+  div#top-left
+  {
+  left: 0px;
+  top: 0px;
+  }
+
+  div#top-right
+  {
+  right: 0px;
+  top: 0px;
+  }
+
+  div#bottom-left
+  {
+  bottom: 0px;
+  left: 0px;
+  }
+
+  div#bottom-right
+  {
+  bottom: 0px;
+  right: 0px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue square at each corner of the yellow square.</p>
+
+  <div id="nearest-positioned-ancestor"><img src="support/100x100-lime.png" alt="Image download support must be enabled" />
+    <div id="top-left">TL</div>
+    <div id="top-right">TR</div>
+    <div id="bottom-left">BL</div>
+    <div id="bottom-right">BR</div>
+  </div>
+
+ </body>
+</html>

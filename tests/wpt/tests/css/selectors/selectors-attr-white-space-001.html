@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selectors: White space in attribute selectors</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au"/>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#w3cselgrammar"/>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#grammar"/>
+<link rel="match" href="selectors-attr-white-space-001-ref.html"/>
+<style>
+body { color: red; }
+[ data-test-1] { color: green; }
+[data-test-2 ] { color: green; }
+[data-test-3 = x] { color: green; }
+[ |data-test-4] { color: green; }
+[ | data-test-4] { color: red; }
+</style>
+<p data-test-1="">This text should be green.</p>
+<p data-test-2="">This text should be green.</p>
+<p data-test-3="x">This text should be green.</p>
+<p data-test-4="">This text should be green.</p>

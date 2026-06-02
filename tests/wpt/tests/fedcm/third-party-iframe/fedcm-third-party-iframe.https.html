@@ -1,0 +1,44 @@
+<!doctype html>
+<link rel="help" href="https://wicg.github.io/FedCM">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log>
+<script type="module">
+'use strict';
+
+import {fedcm_test,
+        request_options_with_mediation_required,
+        select_manifest} from '../support/fedcm-helper.sub.js';
+
+const host = get_host_info();
+// This regex removes the filename from the path so that we just get
+// the directory.
+const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+const remoteBaseURL = host.HTTPS_NOTSAMESITE_ORIGIN + basePath;
+
+async function createIframeAndWaitForMessage(test, iframeUrl) {
+    const messageWatcher = new EventWatcher(test, window, "message");
+    let iframe = document.createElement("iframe");
+    iframe.src = iframeUrl;
+    iframe.allow = "identity-credentials-get";
+    document.body.appendChild(iframe);
+    let message = null;
+    // Ignore internal "testdriver-complete" messages.
+    do {
+        message = await messageWatcher.wait_for("message");
+    } while (!("result" in message.data));
+    return message.data;
+}
+
+fedcm_test(async t => {
+  await select_manifest(t, request_options_with_mediation_required("manifest_iframe.py"));
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "../support/fedcm-third-party-iframe.sub.html");
+  assert_equals(message.result, "Pass");
+}, "FedCM in third-party iframe shows both origins");
+
+</script>

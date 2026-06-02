@@ -1,0 +1,901 @@
+group valid "Valid scoping and name redeclaration cases"
+
+	case local_variable_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = -1;
+
+			void main()
+			{
+				${SETUP}
+				int a = in0;
+
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case block_variable_hides_local_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				${SETUP}
+				int a = in0;
+				{
+					int a = -1;
+				}
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case block_variable_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = -1;
+
+			void main()
+			{
+				${SETUP}
+				{
+					int a = in0;
+
+					out0 = a;
+				}
+				${OUTPUT}
+			}
+		""
+	end
+
+	case for_init_statement_variable_hides_local_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				${SETUP}
+				int a = in0;
+				for (int a = 0; a < 10; a++)
+				{
+				}
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case while_condition_variable_hides_local_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				${SETUP}
+				int a = in0;
+				int i = 0;
+				while (bool a = (i < 1))
+				{
+					i++;
+				}
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case for_init_statement_variable_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = 5;
+
+			void main()
+			{
+				${SETUP}
+				for (int a = 0; a < 10; a++)
+				{
+				}
+				out0 = in0 + a - 5;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case while_condition_variable_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = 5;
+
+			void main()
+			{
+				${SETUP}
+				int i = 0;
+				while (bool a = (i < 1))
+				{
+					i++;
+				}
+				out0 = in0 + a - 5;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case variable_in_if_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = 1;
+
+			void main()
+			{
+				${SETUP}
+				if (true)
+					int a = 42;
+				out0 = a*in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case variable_from_outer_scope_visible_in_initializer
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				${SETUP}
+				int a = in0;
+				{
+					int a = a+5, b = a-5;
+					out0 = b;
+					a = 42;
+				}
+				out0 = out0 + a - in0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case local_int_variable_hides_struct_type
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct S { int val; };
+
+			void main()
+			{
+				${SETUP}
+				int S = S(in0).val;
+				out0 = S;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case local_struct_variable_hides_struct_type
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct S { int val; };
+
+			void main()
+			{
+				${SETUP}
+				S S = S(in0);
+				out0 = S.val;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case local_variable_hides_function
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int foo (int x) { return x; }
+
+			void main()
+			{
+				${SETUP}
+				int foo = in0;
+				out0 = foo;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_parameter_hides_global_variable
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a = -1;
+
+			int func (int a) { return a; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_parameter_hides_struct_type
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			struct S { int x; };
+
+			int func (int S) { return S; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case function_parameter_hides_function
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int func (int func) { return func; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case local_variable_in_inner_scope_hides_function_parameter
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			int func (int inp, int x) { { int x = 5; return inp + x - 5; } }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0, 42);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case redeclare_function
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 2 | 3 ];
+			output int out0 = [ 1 | 2 | 3 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int func (int x);
+			int func (int);
+			int func (int inp) { return inp; }
+
+			void main()
+			{
+				${SETUP}
+				out0 = func(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+end
+
+group invalid "Invalid scoping behavior"
+
+	case redeclare_global_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			int a;
+			float a;
+
+			void main()
+			{
+				a = 1.0;
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case redeclare_local_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				int a;
+				float a;
+				a = 1.0;
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case redeclare_for_init_statement_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				for (int i = 0; i < 10; i++)
+				{
+					int i = 11;
+				}
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case redeclare_for_condition_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				for (int i = 0; int a = (i < 10); i++)
+				{
+					int a = 0;
+				}
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case redeclare_for_init_statement_variable_in_for_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float a;
+				for (int i = 0; int i = (i < 10); i++)
+				{
+					a = sin(i);
+				}
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case redeclare_while_condition_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				int a = 0;
+				while (int i = (a < 5))
+				{
+					int i = 11;
+					a += i;
+				}
+				${POSITION_FRAG_COLOR} = vec4(0.0);
+			}
+		""
+	end
+
+	case redefine_function
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func(float x);
+
+			float func(float x) { return x + 1.0; }
+			float func(float x) { return x + 2.0; }
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1.0));
+			}
+		""
+	end
+
+	case redeclare_builtin
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float sin(float x);
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(sin(1.0));
+			}
+		""
+	end
+
+	case redefine_builtin
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float sin(float x) { return x + 1.0; }
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(sin(1.0));
+			}
+		""
+	end
+
+	case conflict_function_struct
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void f(int x);
+			struct f { int x; };
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(1);
+			}
+		""
+	end
+
+	case conflict_function_variable
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void f(int x);
+			float f;
+
+			void main()
+			{
+				f = 1.0;
+				${POSITION_FRAG_COLOR} = vec4(f);
+			}
+		""
+	end
+
+	case use_global_variable_before_declaration
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void func()
+			{
+				a = 2.0;
+			}
+
+			float a;
+
+			void main()
+			{
+				func();
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case use_local_variable_before_declaration
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float a = 1.0;
+				a = b;
+				float b = 2.0;
+
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case use_struct_type_before_declaration
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float x) { return S(x).val; }
+			struct S { float val; };
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1.0));
+			}
+		""
+	end
+
+	case use_function_before_declaration
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func (float x) { return bar(x); }
+			float bar (float x) { return x; }
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1.0));
+			}
+		""
+	end
+
+	case use_variable_from_block_in_outer_scope
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				{
+					float a = 1.0;
+				}
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case use_variable_from_if_in_outer_scope
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				if (true)
+					float a = 1.0;
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case use_variable_from_else_in_outer_scope
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				if (false)
+					float a = 1.0;
+				else
+					float b = 2.0;
+				${POSITION_FRAG_COLOR} = vec4(b);
+			}
+		""
+	end
+
+	case use_variable_from_if_in_else
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float a = 1.0;
+				if (true)
+				{
+					float b = 2.0;
+				}
+				else
+				{
+					a = b;
+				}
+				${POSITION_FRAG_COLOR} = vec4(a);
+			}
+		""
+	end
+
+	case use_variable_from_for_init_statement_in_outer_scope
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float x = 0.0;
+				for (int i = 0; i < 10; i++)
+				{
+					x += sin(i);
+				}
+				${POSITION_FRAG_COLOR} = vec4(float(i));
+			}
+		""
+	end
+
+	case use_variable_from_while_condition_in_outer_scope
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				int a = 1;
+				while (bool b = (a == 1))
+				{
+					a++;
+				}
+				${POSITION_FRAG_COLOR} = vec4(float(b));
+			}
+		""
+	end
+
+	case use_parameter_names_from_function_declaration
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			float func(float a, float b);
+
+			float func(float x, float y) { return a+b; }
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1.0, 2.0));
+			}
+		""
+	end
+
+	case variable_not_visible_in_own_initializer
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float x = x;
+				${POSITION_FRAG_COLOR} = vec4(x);
+			}
+		""
+	end
+
+	case local_variable_hides_function_parameter
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			float func (float inp, float x) { int x = 5.0; return inp + x - 5.0; }
+
+			void main()
+			{
+				${POSITION_FRAG_COLOR} = vec4(func(1.0, 2.0));
+			}
+		""
+	end
+
+end # invalid

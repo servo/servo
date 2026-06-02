@@ -1,0 +1,11 @@
+features:
+- name: shared-workers
+  files:
+  - 003.html
+  - 004.html
+  - 006.html
+- name: dedicated-workers
+  files:
+  - 001.html
+  - 002.html
+  - 005.html

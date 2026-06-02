@@ -1,0 +1,6 @@
+features:
+- name: customized-built-in-elements
+  files: "**"
+- name: base
+  files:
+  - HTMLBaseElement.html

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: #rrggbb colors</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgb-color" />
+		<link rel="match" href="t422-rgba-func-int-a-ref.html" />
+		<meta name="assert" content="Test that #rrggbb values produce correct colors." />
+		<style type="text/css"><![CDATA[
+		#one { color: #000000; background: #ffffff; }
+		#two { color: #ffffff; background: #000000; }
+		#three { color: #ff0000; }
+		#four { color: #00ff00; }
+		#five { color: #0000ff; }
+		]]></style>
+	</head>
+	<body>
+		<p id="one">This should be black text on a white background.</p>
+		<p id="two">This should be white text on a black background.</p>
+		<p id="three">This text should be red.</p>
+		<p id="four">This text should be green.</p>
+		<p id="five">This text should be blue.</p>
+	</body>
+</html>

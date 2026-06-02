@@ -1,0 +1,113 @@
+<!doctype html>
+<title>Event coalescing under load</title>
+<!--
+  This test is optional because event coalescing under load is an optional
+  spec requirement: https://w3c.github.io/pointerevents/#coalesced-events
+-->
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    touch-action: none;
+  }
+</style>
+<div id="target"></div>
+
+<script>
+  "use strict";
+  const pointer_type = location.search.substring(1);
+  const target = document.getElementById("target");
+
+  // Busy-loop load parameters:
+  const load_initial_ms = 5;
+  const load_multiplier = 4;
+  const load_max_ms = 500;
+  // Max total delay = 5+20+80+320 = 425ms
+
+  // https://w3c.github.io/pointerevents/#coalesced-events
+  function checkCoalescedMoveEventAttributes(event) {
+    let coalesced_events = event.getCoalescedEvents();
+    assert_greater_than_equal(coalesced_events.length, 1,
+        "pointermove.getCoalescedEvents() has at least 1 entry");
+
+    for (let i = 0; i < coalesced_events.length; i++) {
+      let coalesced_event = coalesced_events[i];
+
+      assert_equals(coalesced_event.isTrusted, true,
+        "coalesced_event.isTrusted is true");
+      assert_equals(coalesced_event.bubbles, false,
+        "coalesced_event.bubbles is false");
+      assert_equals(coalesced_event.cancelable, false,
+        "coalesced_event.cancelable is false");
+
+      assert_equals(coalesced_event.pointerId, event.pointerId,
+        "coalesced_event.pointerId matches the same in the container event");
+      assert_equals(coalesced_event.pointerType, event.pointerType,
+        "coalesced_event.pointerType matches the same in the container event");
+      assert_equals(coalesced_event.isPrimary, event.isPrimary,
+        "coalesced_event.isPrimary matches the same in the container event");
+      assert_equals(coalesced_event.target, event.target,
+        "coalesced_event.target matches the same in the container event");
+
+      if (i > 0) {
+        assert_greater_than_equal(coalesced_event.timeStamp,
+            coalesced_events[i-1].timeStamp,
+            "coalesced_event.timeStamp must be ascending");
+      }
+    }
+  }
+
+  let coalesced_event_received = false;
+
+  promise_test(async t => {
+    let current_busyloop_ms = load_initial_ms;
+
+    target.addEventListener("pointerdown", event => {
+      // Every pointerdown blocks the main thread for a certain time limit,
+      // and then increases the time limit for next round in case the
+      // current limit fails to cause event coalescing.
+      let start = performance.now();
+      while (performance.now() < start + current_busyloop_ms)
+        continue;
+      current_busyloop_ms *= load_multiplier;
+    });
+
+    target.addEventListener("pointermove", t.step_func(event => {
+      checkCoalescedMoveEventAttributes(event);
+      if (event.getCoalescedEvents().length > 1)
+        coalesced_event_received = true;
+    }));
+
+    // Repeatedly send a long action sequence until either a coalesced event is
+    // encountered or the busyloop becomes too long.
+    while (!coalesced_event_received && current_busyloop_ms < load_max_ms) {
+      let pointerup_promise = getEvent("pointerup", target);
+
+      let actions = new test_driver.Actions()
+          .addPointer("TestPointer", pointer_type)
+          .pointerMove(0, 0, { origin: target })
+          .pointerDown();
+      for (let i = 0; i < 5; i++) {
+        actions = actions.pointerMove(20, 20, { origin: target })
+            .pointerMove(0, 0, { origin: target });
+      }
+      actions = actions.pointerUp();
+
+      await actions.send();
+      await pointerup_promise;
+    }
+
+    assert_true(coalesced_event_received, "Coalesed pointermoves received");
+  }, "Coalesced pointermoves under load");
+</script>

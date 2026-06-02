@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  .control, .control2
+  {
+  background-color: yellow;
+  border: black solid 2px;
+  height: 60px;
+  position: absolute;
+  width: 200px;
+  }
+
+  .control {top: 75px;}
+
+  .control2 {top: 175px;}
+
+  .a, .b
+  {
+  background-color: orange;
+  height: 50px;
+  position: absolute;
+  width: 50px;
+  }
+
+  .b {left: 150px;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The following two blocks should be identical.</p>
+
+  <div class="control">
+    <div class="a"></div>
+    <div class="b"></div>
+  </div>
+
+  <div class="control2">
+    <div class="a"></div>
+    <div class="b"></div>
+  </div>
+
+ </body>
+</html>

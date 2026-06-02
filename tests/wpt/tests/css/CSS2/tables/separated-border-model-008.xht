@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Border-spacing - contiguous table-row-groups (tbody and tfoot)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" title="17.6.1 The separated borders model" />
+  <link rel="match" href="separated-border-model-007-ref.xht" />
+
+  <meta content="When a table element has 2 contiguous table-row-groups (thead, tbody, tfoot or more than 1 tbody elements), then border-spacing between such table-row-groups - tbody and tfoot in this testcase - must merge, must collapse into one." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  font: 1em/2 serif;
+  margin: 1em;
+  }
+
+  div#expected-results {top: 1em;}
+
+  div
+  {
+  background-color: white;
+  height: 3em;
+  left: 1em;
+  position: absolute;
+  width: 600px;
+  }
+
+  table
+  {
+  background-color: red;
+  border-collapse: separate;
+  border-spacing: 0em 3em;
+  margin-top: 0px;
+  table-layout: fixed;
+  }
+
+  td
+  {
+  background-color: white;
+  height: 2em;
+  padding: 0px;
+  width: 600px;
+  }
+
+  div#between-tbody-and-tfoot {top: 6em;}
+
+  div#after-tfoot {top: 11em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <table>
+
+   <tfoot>
+    <tr>
+     <td></td>
+    </tr>
+   </tfoot>
+
+   <tbody>
+    <tr>
+     <td></td>
+    </tr>
+   </tbody>
+
+  </table>
+
+  <div id="expected-results">Test passes if there is <strong>no red</strong>.</div>
+
+  <div id="between-tbody-and-tfoot"></div>
+
+  <div id="after-tfoot"></div>
+
+<!--
+
+  The vertical positioning of the (overlapped) table, sub-table
+  components and border-spacing areas between table-row-groups
+
+                                                 0px
+               <body>'s margin-top
+         ===================================    16px (1em)
+         |                                 |
+         |     border=spacing 48px (3em)   |
+         |     with red background=color   |
+         ===================================    64px (4em)
+         |            <tbody>              |
+         |        should be 32px (2em)     |
+         ===================================    96px (6em)
+         |                                 |
+         |     border=spacing 48px (3em)   |
+         |     with red background=color   |
+         ===================================   144px (9em)
+         |            <tfoot>              |
+         |        should be 32px (2em)     |
+         ===================================   176px (11em)
+         |                                 |
+         |     border=spacing 48px (3em)   |
+         |     with red background=color   |
+         ===================================   224px (14em)
+
+
+    ********************************************
+
+
+  The vertical positioning of the absolutely positioned overlapping white <div>s
+
+                                                 0px
+               <body>'s margin=top
+         ===================================    16px (1em)
+         |                                 |
+         | div#expected=results 48px (3em) |
+         |  with white background=color    |
+         ===================================    64px (4em)
+         |                                 |
+         |                                 |
+         ===================================    96px (6em)
+         |                                 |
+         | div#between=tbody=and=tfoot 48px|
+         |   with white background=color   |
+         ===================================   144px (9em)
+         |                                 |
+         |                                 |
+         ===================================   176px (11em)
+         |                                 |
+         |     div#after=tfoot 48px (3em)  |
+         |   with white background=color   |
+         ===================================   224px (14em)
+
+-->
+
+ </body>
+</html>

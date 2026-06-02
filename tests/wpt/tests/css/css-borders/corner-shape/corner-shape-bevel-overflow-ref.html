@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Borders and Box Decorations 4: 'corner-shape' rendering with overflow</title>
+<style>
+    .bevel {
+        width: 100px;
+        height: 100px;
+        border-radius: 50px;
+        border: 0px solid black;
+        clip-path: polygon(0px 50px, 50px 100px, 100px 50px, 50px 0px);
+        overflow: clip;
+    }
+
+    .green {
+        width: 200px;
+        height: 200px;
+        background: green;
+    }
+</style>
+<div class=bevel>
+    <div class="green"></div>
+</div>

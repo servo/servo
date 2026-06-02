@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration on ancestors</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="assert" content="Text-decoration on a child does not affect the parent element's 'text-decoration'." />
+        <style type="text/css">
+            span
+            {
+                color: blue;
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black text below does not have an underline, and the blue text below has an underline.</p>
+        <div>Filler Text
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

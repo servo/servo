@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Fixed indefinite heights</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://crbug.com/1255340">
+<meta name="assert" content="Flex items don't get definite heights just because their specified main sizes are definite." />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; flex-direction: column;">
+  <!-- Remove min-height:auto so we don't have to think about whether it matters. -->
+  <div style="flex: 1 1 content; height: 100px; min-height: 0px;">
+    <div style="height: 100px; width: 100px; background: green;"></div>
+    <div style="height: 100%; width: 100px; background: red;"></div>
+  </div>
+</div>

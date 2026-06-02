@@ -1,0 +1,29 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<a id="link" href="/common/blank.html?foo" target="windowname">Click me</a>
+<iframe id="i" name="windowname" src="/common/blank.html"></iframe>
+
+<script>
+async_test(t => {
+  navigation.onnavigate = t.unreached_func("onnavigate must not fire in the source window");
+  window.onload = t.step_func(() => {
+    i.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+      assert_equals(e.navigationType, "push", "navigationType");
+      assert_true(e.cancelable, "cancelable");
+      assert_true(e.canIntercept, "canIntercept");
+      assert_false(e.userInitiated, "userInitiated");
+      assert_false(e.hashChange, "hashChange");
+      assert_equals(e.formData, null, "formData");
+      assert_equals(e.destination.url, link.href, "destination.url");
+      assert_false(e.destination.sameDocument, "destination.sameDocument");
+      assert_equals(e.destination.key, "", "destination.key");
+      assert_equals(e.destination.id, "", "destination.id");
+      assert_equals(e.destination.index, -1, "destination.index");
+    });
+
+    link.click();
+  });
+}, "clicking on an <a> element that navigates cross-document targeting a same-origin window");
+</script>

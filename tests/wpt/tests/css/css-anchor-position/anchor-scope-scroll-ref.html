@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: scroll transforms respect anchor-scope (ref)</title>
+<style>
+#scroller {
+  width: 200px;
+  height: 200px;
+  border: 1px solid black;
+  position: relative;
+}
+
+#item {
+  height: 50px;
+  background: lightgray;
+}
+
+#anchored {
+  position: absolute;
+  background: skyblue;
+  right: 0px;
+  width: 50px;
+  height: 50px;
+}
+
+.spacer {
+  height: 100px;
+}
+</style>
+<div id=scroller>
+  <div class=spacer></div>
+  <div id=item>
+    <b id=anchored></b>
+  </div>
+</div>

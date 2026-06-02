@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<script src="resources/webxr_math_utils.js"></script>
+<script>
+
+let matrix_tests_name = "XRRigidTransform matrix works";
+
+let matrix_tests = function() {
+  // Matrix tests for XRRigidTransform.
+
+  // Test 1. Check if matrix rotates the vector the same way as quaternion
+  // used to construct it. This does not perform a translation.
+  {
+    // point
+    const originDict = {x : 0, y : 0, z : 0, w : 1};
+    // quaternion - should be normalized
+    const orientationDict = {x : 0, y : 0.3805356, z : 0.7610712, w : 0.525322 }
+
+    let rigidTransform = new XRRigidTransform(
+        DOMPoint.fromPoint(originDict),
+        DOMPoint.fromPoint(orientationDict));
+
+    const point_0 = {x : 10, y : 11, z : 12, w : 1};
+
+    // transform the point by matrix from rigid transform
+    const point_transformed_0 = normalize_perspective(transform_point_by_matrix(rigidTransform.matrix, point_0));
+    const point_transformed_1 = transform_point_by_quaternion(orientationDict, point_0);
+    const point_transformed_2 = transform_point_by_quaternion(rigidTransform.orientation, point_0);
+
+    assert_point_approx_equals(
+      point_transformed_1, point_transformed_0,
+      FLOAT_EPSILON, "by-initial-quaternion-and-matrix:");
+
+    assert_point_approx_equals(
+      point_transformed_2, point_transformed_0,
+      FLOAT_EPSILON, "by-transform's-quaternion-and-matrix:");
+  }
+};
+
+test(matrix_tests, matrix_tests_name);
+
+</script>

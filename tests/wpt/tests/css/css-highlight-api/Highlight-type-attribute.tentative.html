@@ -1,0 +1,20 @@
+<!doctype html>
+<title> Highlight type attribute tests </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    let customHighlight = new Highlight();
+    assert_equals(customHighlight.type, "highlight", 'Highlight uses \"highlight\" as default type.');
+
+    customHighlight.type = "type-not-listed-in-HighlightType-enum";
+    assert_equals(customHighlight.type, "highlight", 'Highlight type doesn\'t change after assigning an invalid value.');
+
+    customHighlight.type = "spelling-error";
+    assert_equals(customHighlight.type, "spelling-error", 'Highlight type changes to the assigned value if it\'s part of the HighlightType enum (\"spelling-error\"").');
+
+    customHighlight.type = "grammar-error";
+    assert_equals(customHighlight.type, "grammar-error", 'Highlight type changes to the assigned value if it\'s part of the HighlightType enum (\"grammar-error\").');
+  }, 'Highlight has a mutable \'type\' attribute that is a HighlightType enum.');
+</script>

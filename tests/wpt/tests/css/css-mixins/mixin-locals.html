@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: Local variables</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#defining-mixins">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+  <style>
+    @mixin --m1() {
+      --my-color: green;
+      font-size: 200px;  /* Will be ignored. */
+      @result {
+        color: var(--my-color);
+      }
+    }
+    #e1 {
+      color: red;
+      @apply --m1;
+    }
+  </style>
+  <div><div id="e1">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e1 = document.getElementById('e1');
+      assert_equals(getComputedStyle(e1).color, 'rgb(0, 128, 0)');
+      assert_not_equals(getComputedStyle(e1).fontSize, '200px');
+    }, 'Basic local support');
+  </script>
+
+
+  <style>
+    @mixin --m1b() {
+      --my-color: blue;
+      @result {
+        color: var(--my-color);
+      }
+    }
+    #e1b {
+      color: red;
+      @apply --m1b;
+    }
+  </style>
+  <div><div id="e1b">This text should be blue (not green).</div></div>
+  <script>
+    test(() => {
+      let e1b = document.getElementById('e1b');
+      assert_equals(getComputedStyle(e1b).color, 'rgb(0, 0, 255)');
+    }, 'Mixin is not cached if locals are different');
+  </script>
+
+
+  <style>
+    @mixin --m2() {
+      --my-color: var(--real-color);
+      --real-color: green;
+      @result {
+        color: var(--my-color);
+      }
+    }
+    #e2 {
+      color: red;
+      @apply --m2;
+    }
+  </style>
+  <div><div id="e2">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e2 = document.getElementById('e2');
+      assert_equals(getComputedStyle(e2).color, 'rgb(0, 128, 0)');
+    }, 'Locals resolve against each other');
+  </script>
+
+
+  <style>
+    @mixin --m3(--real-color) {
+      --my-color: var(--real-color);
+      @result {
+        color: var(--my-color);
+      }
+    }
+    #e3 {
+      color: red;
+      @apply --m3(green);
+    }
+  </style>
+  <div><div id="e3">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e3 = document.getElementById('e3');
+      assert_equals(getComputedStyle(e3).color, 'rgb(0, 128, 0)');
+    }, 'Locals resolve against parameters');
+  </script>
+
+
+  <style>
+    @mixin --m4(--should-fail: var(--parameter-does-not-see-inner)) {
+      --parameter-does-not-see-inner: red;
+      @result {
+        color: var(--should-fail);
+      }
+    }
+    #e4 {
+      --parameter-does-not-see-inner: green;
+      @apply --m4;
+    }
+  </style>
+  <div><div id="e4">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e4 = document.getElementById('e4');
+      assert_equals(getComputedStyle(e4).color, 'rgb(0, 128, 0)');
+    }, 'Parameters do not resolve against locals');
+  </script>
+
+
+  <style>
+    @mixin --m5() {
+      --declared-before-result: unused;
+      @result {
+        color: var(--declared-after-result);
+      }
+      --declared-after-result: green;
+    }
+    #e5 {
+      @apply --m5;
+    }
+  </style>
+  <div><div id="e5">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e5 = document.getElementById('e5');
+      assert_equals(getComputedStyle(e5).color, 'rgb(0, 128, 0)');
+    }, 'Locals after @result are seen');
+  </script>
+
+  </body>
+</html>

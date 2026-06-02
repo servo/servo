@@ -1,0 +1,18 @@
+// META: script=/resources/testdriver.js?feature=bidi
+// META: script=/resources/testdriver-vendor.js
+// META: script=/bluetooth/resources/bluetooth-test.js
+// META: script=/bluetooth/resources/bluetooth-fake-devices.js
+// META: timeout=long
+'use strict';
+const test_desc = 'A unicode device name of 248 bytes is valid.';
+// \u00A1's UTF-8 representation is 2 bytes long.
+// 124 chars * 2 bytes/char = 248 bytes
+const DEVICE_NAME = '\u00A1'.repeat(124);
+
+bluetooth_bidi_test(async () => {
+  let {device} = await setUpPreconnectedFakeDevice({
+    fakeDeviceOptions: {name: DEVICE_NAME},
+    requestDeviceOptions: {filters: [{name: DEVICE_NAME}]}
+  });
+  device => assert_equals(device.name, DEVICE_NAME)
+}, test_desc);

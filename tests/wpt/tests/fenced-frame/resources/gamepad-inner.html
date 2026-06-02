@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>getGamepads should throw an error in a fenced frame</title>
+<script>
+const [key] = parseKeylist();
+try {
+  navigator.getGamepads();
+  writeValueToServer(key, 'Expected exception but successed');
+} catch (e) {
+  writeValueToServer(key, e.name);
+}
+</script>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS border-radius Test</title>
+    <link rel="author" title="tmd" href="mailto:weisong4413@126.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius">
+    <link rel="match" href="reference/css-border-radius-001-ref.html">
+    <!-- Allow differences of antialised pixels along rounded edges -->
+    <meta name="fuzzy" content="maxDifference=0-116; totalPixels=0-8035">
+    <style type="text/css">
+		.blueSquare{
+            position: absolute;
+			top:50px;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			background-color:rgba(0, 0, 255, 1);
+		}
+        .greenSquare {
+            position: absolute;
+			top:50px;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			border-radius: 50%;
+			background-color:rgba(0, 255, 0, 1);
+        }
+        .container {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if the green circle is inscribed in the blue square.</p>
+    <div class="container">
+        <!-- This is the square that has a inscribed circle if the test passes -->
+		<div id="blue" class="blueSquare"></div>
+        <!-- This is the square being tested with the radius-->
+		<div id="green" class="greenSquare"></div>
+    </div>
+</body>
+</html>

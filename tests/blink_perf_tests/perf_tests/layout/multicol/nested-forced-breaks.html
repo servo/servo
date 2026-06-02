@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<pre id="log"></pre>
+<div style="overflow:hidden; width:0; height:0;">
+  <div id="target" style="columns:3; column-fill:auto; height:10em;">
+    <br>
+    <div style="break-before:column">
+      <br>
+      <div style="break-before:column">
+        <br>
+        <div style="break-before:column">
+          <br>
+          <div style="break-before:column">
+            <br>
+            <div style="break-before:column">
+              <br>
+              <div style="break-before:column">
+                <br>
+                <div style="break-before:column">
+                  <br>
+                  <div style="break-before:column">
+                    <br>
+                    <div style="break-before:column">
+                      <br>
+                      <div style="break-before:column">
+                        <br>
+                        <div style="break-before:column">
+                          <br>
+                          <div style="break-before:column">
+                            <br>
+                            <div style="break-before:column">
+                              <br>
+                              <div style="break-before:column">
+                                <br>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+    var target = document.getElementById("target");
+    var style = target.style;
+
+    function test() {
+        style.display = "block";
+        PerfTestRunner.forceLayout();
+        style.display = "none";
+        PerfTestRunner.forceLayout();
+    }
+
+    PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of block fragmentation with deeply nested forced breaks.",
+        run: test
+    });
+</script>

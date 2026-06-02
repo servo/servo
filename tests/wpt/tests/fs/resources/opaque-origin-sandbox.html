@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script>
+  'use strict'
+
+  // Sends a message containing the result of navigator.storage.getDirectory()
+  // to its creator.
+
+  function post_message(data) {
+    if (window.parent !== null) {
+      window.parent.postMessage(data, { targetOrigin: '*' });
+    }
+    if (window.opener !== null) {
+      window.opener.postMessage(data, { targetOrigin: '*' });
+    }
+  }
+
+  try {
+    navigator.storage.getDirectory()
+      .then(() => {
+        post_message('navigator.storage.getDirectory(): FULFILLED');
+      }).catch(error => {
+        post_message(`navigator.storage.getDirectory(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`navigator.storage.getDirectory(): EXCEPTION: ${error.name}`);
+  }
+</script>

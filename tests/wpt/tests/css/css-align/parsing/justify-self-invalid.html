@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing justify-self with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self">
+<meta name="assert" content="justify-self supports only the grammar 'auto | normal | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("justify-self", "baseline last");
+test_invalid_value("justify-self", "center baseline");
+test_invalid_value("justify-self", "first");
+test_invalid_value("justify-self", "flex-start flex-end");
+test_invalid_value("justify-self", "last");
+test_invalid_value("justify-self", "legacy center");
+test_invalid_value("justify-self", "legacy left");
+test_invalid_value("justify-self", "legacy");
+test_invalid_value("justify-self", "normal baseline");
+test_invalid_value("justify-self", "right legacy");
+test_invalid_value("justify-self", "safe");
+test_invalid_value("justify-self", "self-end unsafe");
+test_invalid_value("justify-self", "space-around");
+test_invalid_value("justify-self", "space-between");
+test_invalid_value("justify-self", "space-evenly");
+test_invalid_value("justify-self", "start safe");
+test_invalid_value("justify-self", "unsafe");
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?touch">
+<meta name="variant" content="?pen">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Simple test for getCoalescedEvents() of `pointerrawupdate`</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const target = document.getElementById("target");
+    const compAttrs = [
+      "target",
+      "screenX", "screenY",
+      "clientX", "clientY",
+      "button", "buttons",
+      "pointerId", "pointerType",
+      "shiftKey", "ctrlKey", "altKey", "metaKey",
+    ];
+    const waitForAssert = new Promise(resolve => {
+      target.addEventListener("pointerrawupdate", pointerRawUpdateEvent => {
+        const coalescedEvents = pointerRawUpdateEvent.getCoalescedEvents();
+        test(() => {
+          assert_equals(coalescedEvents.length, 1);
+        }, "getCoalescedEvents() of pointerrawupdate should return one event");
+        const coalescedRawEvent = coalescedEvents[0];
+        test(() => {
+          assert_equals(coalescedRawEvent.type, "pointerrawupdate");
+        }, 'type should be "pointerrawupdate"');
+        test(() => {
+          assert_true(coalescedRawEvent.isTrusted);
+        }, "isTrusted should be true");
+        test(() => {
+          assert_false(coalescedRawEvent.bubbles);
+        }, "bubbles should be false");
+        test(() => {
+          assert_false(coalescedRawEvent.cancelable);
+        }, "cancelable should be false");
+        for (const attr of compAttrs) {
+          test(() => {
+            assert_equals(coalescedRawEvent[attr], pointerRawUpdateEvent[attr]);
+          }, `${attr} should be same as the pointerrawupdate event`);
+        }
+        target.addEventListener("pointermove", pointerMoveEvent => {
+          const firstCoalescedMoveEvent = pointerMoveEvent.getCoalescedEvents()[0];
+          for (const attr of compAttrs) {
+            test(() => {
+              assert_equals(coalescedRawEvent[attr], firstCoalescedMoveEvent[attr]);
+            }, `${attr} should be same as the corresponding pointermove event`);
+          }
+          resolve();
+        }, {once: true});
+      }, {once: true});
+    });
+    const shiftKey = "\uE008";
+    await new test_driver.Actions()
+        .addPointer("TestPointer", location.search.substring(1))
+        .pointerMove(0, 0, {origin: document.getElementById("init")})
+        .keyDown(shiftKey)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(1, 1, {origin: target})
+        .pointerUp()
+        .keyUp(shiftKey)
+        .send();
+    await waitForAssert;
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+<div id="init">start</div>
+<div id="target"></div>
+</body>
+</html>

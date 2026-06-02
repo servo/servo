@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>AnimationPlaybackEvent constructor</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations/#dom-animationplaybackevent-animationplaybackevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const evt = new AnimationPlaybackEvent('finish');
+  assert_equals(evt.type, 'finish');
+  assert_equals(evt.currentTime, null);
+  assert_equals(evt.timelineTime, null);
+}, 'Event created without an event parameter has null time values');
+
+test(t => {
+  const evt =
+    new AnimationPlaybackEvent('cancel', {
+      currentTime: -100,
+      timelineTime: 100,
+    });
+  assert_equals(evt.type, 'cancel');
+  assert_equals(evt.currentTime, -100);
+  assert_equals(evt.timelineTime, 100);
+}, 'Created event reflects times specified in constructor');
+
+</script>

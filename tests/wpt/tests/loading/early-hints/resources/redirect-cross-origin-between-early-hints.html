@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const params = new URLSearchParams(window.location.search);
+
+    const preload_before_redirect = params.get("preload-before-redirect");
+    await fetchScript(preload_before_redirect);
+    assert_false(isPreloadedByEarlyHints(preload_before_redirect),
+        "Early hints before cross origin redirect should not appear.");
+
+    const preload_after_redirect = params.get("preload-after-redirect");
+    await fetchScript(preload_after_redirect);
+    assert_true(isPreloadedByEarlyHints(preload_after_redirect),
+        "Early hints after cross origin redirect should preload.");
+}, "Early hints -> cross origin redirect -> early hints -> final response.");
+</script>
+</body>

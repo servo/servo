@@ -1,0 +1,78 @@
+<!doctype html>
+
+<img
+data-desc="img (no src)"
+data-narrow=""
+data-wide=""
+data-no-change>
+
+<img src=""
+data-desc="img (empty src)"
+data-narrow=""
+data-wide=""
+data-no-change>
+
+<img src="/images/broken.png?30-{{GET[id]}}"
+data-desc="img (src only) broken image"
+data-narrow="/images/broken.png?30-{{GET[id]}}"
+data-wide="/images/broken.png?30-{{GET[id]}}"
+data-no-change>
+
+<img src="/images/green-1x1.png?40-{{GET[id]}}"
+data-desc="img (src only) valid image"
+data-narrow="/images/green-1x1.png?40-{{GET[id]}}"
+data-wide="/images/green-1x1.png?40-{{GET[id]}}"
+data-no-change>
+
+<img srcset="/images/broken.png?50-{{GET[id]}}"
+data-desc="img (srcset 1 cand) broken image"
+data-narrow="/images/broken.png?50-{{GET[id]}}"
+data-wide="/images/broken.png?50-{{GET[id]}}"
+data-no-change>
+
+<img srcset="/images/green-1x1.png?60-{{GET[id]}}"
+data-desc="img (srcset 1 cand) valid image"
+data-narrow="/images/green-1x1.png?60-{{GET[id]}}"
+data-wide="/images/green-1x1.png?60-{{GET[id]}}"
+data-no-change>
+
+<picture>
+<source media="(max-width:500px)" srcset="/images/broken.png?70-{{GET[id]}}">
+<img src="/images/broken.png?71-{{GET[id]}}"
+data-desc="picture: source (max-width:500px) broken image, img broken image"
+data-narrow="/images/broken.png?70-{{GET[id]}}"
+data-wide="/images/broken.png?71-{{GET[id]}}">
+</picture>
+
+<picture>
+<source media="(max-width:500px)" srcset="/images/broken.png?80-{{GET[id]}}">
+<img src="/images/green-2x2.png?81-{{GET[id]}}"
+data-desc="picture: source (max-width:500px) broken image, img valid image"
+data-narrow="/images/broken.png?80-{{GET[id]}}"
+data-wide="/images/green-2x2.png?81-{{GET[id]}}">
+</picture>
+
+<picture>
+<source media="(max-width:500px)" srcset="/images/green-1x1.png?90-{{GET[id]}}">
+<img src="/images/broken.png?91-{{GET[id]}}"
+data-desc="picture: source (max-width:500px) valid image, img broken image"
+data-narrow="/images/green-1x1.png?90-{{GET[id]}}"
+data-wide="/images/broken.png?91-{{GET[id]}}">
+</picture>
+
+<picture>
+<source media="(max-width:500px)" srcset="/images/green-1x1.png?100-{{GET[id]}}">
+<img src="/images/green-2x2.png?101-{{GET[id]}}"
+data-desc="picture: source (max-width:500px) valid image, img valid image"
+data-narrow="/images/green-1x1.png?100-{{GET[id]}}"
+data-wide="/images/green-2x2.png?101-{{GET[id]}}">
+</picture>
+
+<picture>
+<source media="(max-width:500px)" srcset="/images/green-1x1.png?110-{{GET[id]}}">
+<img src="/images/green-1x1.png?110-{{GET[id]}}"
+data-desc="picture: same URL in source (max-width:500px) and img"
+data-narrow="/images/green-1x1.png?110-{{GET[id]}}"
+data-wide="/images/green-1x1.png?110-{{GET[id]}}"
+data-no-change>
+</picture>

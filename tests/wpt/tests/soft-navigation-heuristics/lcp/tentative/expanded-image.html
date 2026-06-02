@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+The soft navigation version of the identically named test in
+/largest-contentful-paint/expanded-image.html
+Notes:
+ - Triggers trivial soft navigation with same page contents as original test.
+-->
+<meta charset="utf-8" />
+<title>
+  Largest Contentful Paint after soft navigation: expanded image bounded by intrinsic size.
+</title>
+<style type="text/css">
+  #image_id {
+    width: 300px;
+    height: 300px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `<img src='/images/black-rectangle.png' id='image_id'/>`;
+    history.pushState({}, "", "/test");
+  }
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  setup({ hide_test_state: true });
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries =
+        await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+    const beforeLoad = performance.now();
+    const promise = Promise.all([
+      SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint"),
+      SoftNavigationTestHelper.getPerformanceEntries("soft-navigation"),
+    ]);
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    const [softLcpEntries, softNavigationEntries] = await promise;
+    assert_equals(softLcpEntries.length, 1);
+    const entry = softLcpEntries[0];
+    const url = window.location.origin + "/images/black-rectangle.png";
+    // black-rectangle.png is 100 x 50. It occupies 300 x 300 so size will be bounded by the intrinsic size.
+    const size = 100 * 50;
+    checkImage(entry, url, "image_id", size, beforeLoad);
+  }, "Largest Contentful Paint after soft navigation: |size| attribute is bounded by intrinsic size.");
+</script>

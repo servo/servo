@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<!-- Used when testing access of a closed/detached window's properties -->
+<html>
+<body onpagehide="opener.postMessage('closed', '*');">
+<script>
+opener.postMessage("opened", "*");
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Float applied to element with 'display' set to 'table-column-group'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-14 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-float" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" />
+        <link rel="match" href="../reference/float-applies-to-001-ref.xht" />
+
+        <meta name="assert" content="The 'float' property applies to elements with a display of 'table-column-group' in which case the box is floated and its computed 'display' value is set to 'block'." />
+        <style type="text/css">
+            #test
+            {
+                background: blue;
+                display: table-column-group;
+                float: right;
+                height: 1in;
+                width: 1in;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+                width: 100%;
+            }
+
+            #col
+            {
+                display: table-column;
+            }
+
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled blue square on the right side of the page.</p>
+
+        <div id="table">
+
+            <div id="test"><div id="col"></div></div>
+
+                <div id="row">
+                    <div id="cell"></div>
+                </div>
+
+        </div>
+
+    </body>
+</html>

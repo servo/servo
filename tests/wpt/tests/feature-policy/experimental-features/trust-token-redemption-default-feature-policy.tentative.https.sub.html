@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Test that trust token redemption is enabled/disabled according to the feature policy</title>
+
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script>
+    'use strict';
+    const same_origin_src = '/feature-policy/experimental-features/resources/feature-policy-trust-token-redemption.html';
+    const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    const header = 'Default "trust-token-redemption" feature policy ["self"]';
+
+    test(() => {
+      try {
+        // The feature policy gates redemption and signing via both the Fetch
+        // and XHR interfaces.
+        new Request("https://issuer.example/", {
+          trustToken: {
+            type: "token-redemption"
+          }
+        });
+        new Request("https://destination.example/", {
+          trustToken: {
+            type: "send-redemption-record", // signing
+            issuers: ["https://issuer.example/"]
+          }
+        });
+
+        const redemption_xhr = new XMLHttpRequest();
+        redemption_xhr.open("GET", "https://issuer.example/");
+        redemption_xhr.setTrustToken({
+          type: "token-redemption"
+        });
+
+        const signing_xhr = new XMLHttpRequest();
+        signing_xhr.open("GET", "https://destination.example/");
+        signing_xhr.setTrustToken({
+          type: "send-redemption-record", // signing
+          issuers: ["https://issuer.example/"]
+        });
+      } catch (e) {
+        assert_unreached();
+      }
+    }, header + ' allows the top-level document.');
+
+    async_test(t => {
+      test_feature_availability('Trust token redemption', t, same_origin_src,
+        (data, desc) => {
+          assert_equals(data.num_operations_enabled, 4, desc);
+        });
+    }, header + ' allows same-origin iframes.');
+
+    async_test(t => {
+      test_feature_availability('Trust token redemption', t, cross_origin_src,
+        (data, desc) => {
+          assert_equals(data.num_operations_enabled, 0, desc);
+        });
+    }, header + ' disallows cross-origin iframes.');
+  </script>
+</body>

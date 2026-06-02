@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- This testcase checks that we honor "justify-content" on a vertical
+     flex container that has "overflow:hidden".  We use a large flex item,
+     large enough that it overflows the container, to be sure that
+     "overflow: hidden" is actually applying. -->
+<html>
+<head>
+  <title>CSS Test: Testing 'overflow' property on a vertical flex container, with 'justify-content: space-around'</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-containers">
+  <link rel="match" href="flexbox-overflow-vert-003-ref.html">
+  <style>
+    .flexContainer {
+      background: purple;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 70px;
+      height: 70px;
+      margin-bottom: 5px;
+    }
+    .bigItem {
+      background: blue;
+      width: 200px;
+      height: 20px;
+    }
+    .smallItem {
+      background: teal;
+      width: 20px;
+      height: 20px;
+    }
+    .hidden { overflow: hidden }
+  </style>
+</head>
+<body>
+  <div class="flexContainer"><!-- (overflow un-set) -->
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer hidden">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+</body>
+</html>

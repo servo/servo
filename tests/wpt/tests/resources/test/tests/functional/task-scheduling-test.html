@@ -1,0 +1,141 @@
+<!doctype html>
+<title>testharness.js - task scheduling</title>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+<script>
+var sameMicrotask = null;
+var expectedError = new Error('This error is expected');
+
+// Derived from `immediate`
+// https://github.com/calvinmetcalf/immediate/blob/c353bd2106648cee1d525bfda22cfc4456e69c0e/lib/mutation.js
+function microTask(callback) {
+  var observer = new MutationObserver(callback);
+  var element = document.createTextNode('');
+  observer.observe(element, {
+    characterData: true
+  });
+
+  element.data = true;
+};
+
+async_test(function(t) {
+  var microtask_ran = false;
+
+  t.step_timeout(t.step_func(function() {
+    assert_true(microtask_ran, 'function registered as a microtask was executed before task');
+    t.done();
+  }), 0);
+
+  microTask(function() {
+    microtask_ran = true;
+  });
+}, 'precondition: microtask creation logic functions as expected');
+
+test(function() {
+  sameMicrotask = true;
+  microTask(function() { sameMicrotask = false; });
+}, 'synchronous test without cleanup');
+
+test(function() {
+  assert_true(sameMicrotask);
+}, 'sub-test with 0 cleanup functions executes in the same microtask as a passing sub-test');
+
+test(function() {
+  sameMicrotask = true;
+  microTask(function() { sameMicrotask = false; });
+  throw expectedError;
+}, 'failing synchronous test without cleanup');
+
+test(function() {
+  assert_true(sameMicrotask);
+}, 'sub-test with 0 cleanup functions executes in the same microtask as a failing sub-test');
+
+test(function(t) {
+  t.add_cleanup(function() {});
+
+  sameMicrotask = true;
+  microTask(function() { sameMicrotask = false; });
+}, 'synchronous test with cleanup');
+
+test(function() {
+  assert_true(sameMicrotask);
+}, 'sub-test with some cleanup functions executes in the same microtask as a passing sub-test');
+
+test(function(t) {
+  t.add_cleanup(function() {});
+
+  sameMicrotask = true;
+  microTask(function() { sameMicrotask = false; });
+  throw expectedError;
+}, 'failing synchronous test with cleanup');
+
+test(function() {
+  assert_true(sameMicrotask);
+}, 'sub-test with some cleanup functions executes in the same microtask as a failing sub-test');
+</script>
+
+<script type="text/json" id="expected">
+{
+    "summarized_status": {
+        "message": null,
+        "status_string": "OK"
+    },
+    "summarized_tests": [
+        {
+            "message": "This error is expected",
+            "name": "failing synchronous test with cleanup",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": "This error is expected",
+            "name": "failing synchronous test without cleanup",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": null,
+            "name": "precondition: microtask creation logic functions as expected",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in the same microtask as a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in the same microtask as a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in the same microtask as a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in the same microtask as a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "synchronous test with cleanup",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "synchronous test without cleanup",
+            "properties": {},
+            "status_string": "PASS"
+        }
+    ],
+    "type": "complete"
+}
+</script>

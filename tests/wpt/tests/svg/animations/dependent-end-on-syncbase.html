@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Dependent timed element end on syncbase</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="10" height="10" fill="blue">
+    <set attributeName="fill" to="yellow" end="other.end" id="dependent"/>
+  </rect>
+  <rect x="10" width="10" height="10" fill="blue">
+    <animate attributeName="fill" from="yellow" to="red"
+             begin="indefinite" dur="10ms" id="other"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    let count = 0;
+    let dependent = document.getElementById('dependent');
+    dependent.addEventListener('endEvent', t.step_func(() => count++));
+    let other = document.getElementById('other');
+    // Wait for #other to end and check animation values.
+    other.addEventListener('endEvent', t.step_func(() => {
+      t.step_timeout(() => {
+        assert_equals(count, 1);
+        assert_equals(getComputedStyle(dependent, null).fill, 'rgb(0, 0, 255)');
+        assert_equals(getComputedStyle(other, null).fill, 'rgb(0, 0, 255)');
+        t.done();
+      });
+    }));
+    let svg = other.ownerSVGElement;
+    // Check initial values.
+    window.onload = t.step_func(() => {
+      window.requestAnimationFrame(t.step_func(() => {
+        assert_equals(count, 0);
+        assert_equals(getComputedStyle(dependent, null).fill, 'rgb(255, 255, 0)');
+        assert_equals(getComputedStyle(other, null).fill, 'rgb(0, 0, 255)');
+        svg.unpauseAnimations();
+      }));
+    });
+    svg.pauseAnimations();
+    other.beginElementAt(0.01);
+  });
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1305890">
+<link rel="match" href="fieldset-baseline-ref.html">
+<style>
+fieldset {
+  border: solid 2px;
+  padding: 10px;
+  margin: 5px;
+}
+</style>
+<div>
+  text <fieldset style="display: inline-block;">line1<br>line2</fieldset>
+</div>
+<div>
+  text <fieldset style="display: inline-flex;">line1<br>line2</fieldset>
+</div>

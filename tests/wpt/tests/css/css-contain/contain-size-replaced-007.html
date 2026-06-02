@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment replaced elements intrinsic size</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=assert content="This test checks that an aspect ratio computed from width and height attributes is used even with contain: size.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<img src="support/60x60-green.png" width="60" height="60" style="width: 100px; height: auto; contain: size;">

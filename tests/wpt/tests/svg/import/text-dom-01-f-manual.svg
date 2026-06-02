@@ -1,0 +1,230 @@
+<svg version="1.1" baseProfile="full" onload="testSVGTextContentElement()" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="AN" status="created"
+    version="$Revision: 1.4 $" testname="$RCSfile: text-dom-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#DOMInterfaces">
+        <p>
+          This tests the methods and properties of the SVGTextContentElement interface on the text element with the id 'testText'
+          and the content 'This is a test of the interface SVGTextContentElement'. The word 'is' has two glyphs with different
+          rotation values defined with a &lt;tspan/&gt; element. There are 12 subtests testing the 9 methods and 2 properties.
+          Note that the numeric results of some methods may vary. The additional instructions state where the result may vary
+          and where it should have an exact value.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[
+        Describe how to use the here. The instructions should specify any
+        steps requied to run the test or any manual operation that need
+        to be performed to run the test.
+        ]]
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first subtest is testing the method .getCharNumAtPosition(svgPt), where svgPt has an x value of 240 and y value of 25.
+        The result of this subtest must be "30".
+      </p>
+      <p>
+        The second subtest is testing the method .getComputedTextLength(). The rounded result may vary in the implementations but should be around 364.
+        A red line below the testText is visually indicating the result of the method .getComputedTextLength() and must look like a red underline
+        with a length that spans the whole text length from 'T' to '.'.
+      </p>
+      <p>
+        The third subtest is testing the method .getEndPositionOfChar() at the 11th character ('e').
+        The rounded result may vary in the implementations but should be around 131 for the 'x' value and must be 30 for the 'y' value.
+        Additionally, a red vertical line is indicating the end position of the character 'e'. Its lower 'y' value must be at 30
+        and the 'x' values must match the end position of the 11th character 'e'.
+      </p>
+      <p>
+        The fourth subtest is testing the method .getExtentOfChar() at the 11th character ('e').
+        The rounded result may vary in the implementations but should be around '123,16,8,17' for the 'x,y,width,height' values.
+        A lightblue rectangle below the character 'e' must fully enclose the 11th glyph.
+      </p>
+      <p>
+        The fifth subtest is testing the method .getNumberOfChars(). The result must be 54.
+      </p>
+      <p>
+        The sixth subtest is testing the method .getRotationOfChar() for the fifth character. The result must be 45.
+        Additionally, a lightblue rectangle below the text indicates the extent of the fifth glyph 'i'.
+        It must fully enclose the diagonally rotated fifth glyph 'i'.
+      </p>
+      <p>
+        The seventh subtest is testing the method .getStartPositionOfChar() at the 11th character ('e').
+        The rounded result may vary in the implementations but should be around 123 for the 'x' value and must be 30 for the 'y' value.
+        Additionally, a red vertical line is indicating the start position of the character 'e'. Its lower 'y' value must be at 30
+        and the 'x' values must match the end position of the 11th character 'e'.
+      </p>
+      <p>
+        The eighth subtest is testing the method .getSubStringLength(), starting at character 22 and including the 9 following characters.
+        The result may vary in the implementations but should be around 58. Additionally, a green (lime) line visually indicates
+        the result of the method. The word 'interface' must be fully underlined with the green line.
+      </p>
+      <p>
+        The ninth subtest is testing the method .selectSubString(). After loading the file, the word "the" must be selected.
+      </p>
+      <p>
+        The tenth subtest is testing the property .textLength. The rounded result of .textLength.baseVal.value may vary in
+        the implementations but should be around 364.
+        It must match the value calculated in the second subtest (.getComputedTextLength()).
+      </p>
+      <p>
+        The eleventh subtest is again testing the property .textLength. The rounded result of .textLength.animVal.value may vary in
+        the implementations but should be around 364.
+        It must match the value calculated in the second subtest (.getComputedTextLength()).
+      </p>
+      <p>
+        The twelfth subtest is again testing the property .lengthAdjust. The results of .lengthAdjust.baseVal and
+        .lengthAdjust.animVal must be 1 and 1.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-dom-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script type="text/ecmascript"><![CDATA[
+      function testSVGTextContentElement() {
+      var svgNS = "http://www.w3.org/2000/svg";
+      var tContentEl = document.getElementById("testText");
+      var textGroup = document.getElementById("textGroup");
+      var svgPt = document.documentElement.createSVGPoint();
+      svgPt.x = 240;
+      svgPt.y = 25;
+
+      //1: testing .getCharNumAtPosition()
+      var charNumresult = tContentEl.getCharNumAtPosition(svgPt);
+      document.getElementById("text1").firstChild.data = ".getCharNumAtPosition() result: "+charNumresult;
+
+      //2: testing .getCharNumAtPosition()
+      var compTextLength = tContentEl.getComputedTextLength();
+      document.getElementById("text2").firstChild.data = ".getComputedTextLength() result: "+Math.round(compTextLength);
+      var baseLine = document.createElementNS(svgNS,"line");
+      baseLine.setAttributeNS(null,"stroke","red");
+      baseLine.setAttributeNS(null,"x1",(240 - compTextLength * 0.5));
+      baseLine.setAttributeNS(null,"x2",(240 + compTextLength * 0.5));
+      baseLine.setAttributeNS(null,"y1",30);
+      baseLine.setAttributeNS(null,"y2",30);
+      textGroup.insertBefore(baseLine,tContentEl);
+
+      //3: testing .getEndPositionOfChar(), end of character
+      var endPosChar = tContentEl.getEndPositionOfChar(11);
+      document.getElementById("text3").firstChild.data = ".getEndPositionOfChar(11) result ('e'): "+Math.round(endPosChar.x)+","+Math.round(endPosChar.y);
+      var endPosLine = document.createElementNS(svgNS,"line");
+      endPosLine.setAttributeNS(null,"stroke","red");
+      endPosLine.setAttributeNS(null,"x1",endPosChar.x);
+      endPosLine.setAttributeNS(null,"x2",endPosChar.x);
+      endPosLine.setAttributeNS(null,"y1",endPosChar.y);
+      endPosLine.setAttributeNS(null,"y2",endPosChar.y-15);
+      textGroup.insertBefore(endPosLine,tContentEl);
+
+      //4: testing getExtentOfChar
+      var charExtent = tContentEl.getExtentOfChar(11);
+      document.getElementById("text4").firstChild.data = ".getExtentOfChar(11) result ('e'): "+Math.round(charExtent.x)+","+Math.round(charExtent.y)+","+Math.round(charExtent.width)+","+Math.round(charExtent.height);
+      var extentRect = document.createElementNS(svgNS,"rect");
+      extentRect.setAttributeNS(null,"fill","lightblue");
+      extentRect.setAttributeNS(null,"x",charExtent.x);
+      extentRect.setAttributeNS(null,"y",charExtent.y);
+      extentRect.setAttributeNS(null,"width",charExtent.width);
+      extentRect.setAttributeNS(null,"height",charExtent.height);
+      textGroup.insertBefore(extentRect,baseLine);
+
+      //5: testing getNumberOfChars
+      var numChars = tContentEl.getNumberOfChars();
+      document.getElementById("text5").firstChild.data = ".getNumberOfChars() result: "+numChars;
+
+      //6: testing getRotationOfChar
+      var charRot = tContentEl.getRotationOfChar(5);
+      document.getElementById("text6").firstChild.data = ".getRotationOfChar(5) result: "+charRot;
+      var rotCharExtent = tContentEl.getExtentOfChar(5);
+      var rotExtentRect = document.createElementNS(svgNS,"rect");
+      rotExtentRect.setAttributeNS(null,"fill","lightblue");
+      rotExtentRect.setAttributeNS(null,"x",rotCharExtent.x);
+      rotExtentRect.setAttributeNS(null,"y",rotCharExtent.y);
+      rotExtentRect.setAttributeNS(null,"width",rotCharExtent.width);
+      rotExtentRect.setAttributeNS(null,"height",rotCharExtent.height);
+      textGroup.insertBefore(rotExtentRect,baseLine);
+
+      //7: testing .getStartPositionOfChar(), end of character
+      var startPosChar = tContentEl.getStartPositionOfChar(11);
+      document.getElementById("text7").firstChild.data = ".getStartPositionOfChar(11) result ('e'): "+Math.round(startPosChar.x)+","+Math.round(startPosChar.y);
+      var startPosLine = document.createElementNS(svgNS,"line");
+      startPosLine.setAttributeNS(null,"stroke","red");
+      startPosLine.setAttributeNS(null,"x1",startPosChar.x);
+      startPosLine.setAttributeNS(null,"x2",startPosChar.x);
+      startPosLine.setAttributeNS(null,"y1",startPosChar.y);
+      startPosLine.setAttributeNS(null,"y2",startPosChar.y-15);
+      textGroup.insertBefore(startPosLine,tContentEl);
+
+      //8: testing .getSubStringLength()
+      var startPosInterface = tContentEl.getStartPositionOfChar(22);
+      var subStrLength = tContentEl.getSubStringLength(22,9);
+      document.getElementById("text8").firstChild.data = ".getSubStringLength(22,9) result ('interface'): "+Math.round(subStrLength);
+      var subStrLine = document.createElementNS(svgNS,"line");
+      subStrLine.setAttributeNS(null,"stroke","lime");
+      subStrLine.setAttributeNS(null,"x1",startPosInterface.x);
+      subStrLine.setAttributeNS(null,"x2",(startPosInterface.x+subStrLength));
+      subStrLine.setAttributeNS(null,"y1",startPosInterface.y);
+      subStrLine.setAttributeNS(null,"y2",startPosInterface.y);
+      textGroup.insertBefore(subStrLine,tContentEl);
+
+      //9: testing .selectSubString()
+      tContentEl.selectSubString(18,3);
+
+      //10: testing textLength.baseVal.value
+      var tlbaseval = tContentEl.textLength.baseVal.value;
+      document.getElementById("text10").firstChild.data = ".textLength.baseVal.value result: "+Math.round(tlbaseval);
+
+      //11: testing textLength.baseVal.value
+      var tlanimval = tContentEl.textLength.animVal.value;
+      document.getElementById("text11").firstChild.data = ".textLength.animVal.value result: "+Math.round(tlanimval);
+
+      //12: testing lengthAdjust baseVal and animVal
+      document.getElementById("text12").firstChild.data = ".lengthAdjust.baseVal and .lengthAdjust.animVal result: "+tContentEl.lengthAdjust.baseVal+","+tContentEl.lengthAdjust.animVal;;
+      }
+    ]]></script>
+    <g id="textGroup" font-family="Arial" font-size="15">
+      <text x="240" y="30" text-anchor="middle" id="testText">
+        This <tspan rotate="45,90">is</tspan> a test of the interface SVGTextContentElement.
+      </text>
+      <text id="text1" x="30" y="60">.getCharNumAtPosition() result: </text>
+      <text id="text2" x="30" y="80">.getComputedTextLength() result: </text>
+      <text id="text3" x="30" y="100">.getEndPositionOfChar(11) result ('e'): </text>
+      <text id="text4" x="30" y="120">.getExtentOfChar(11) result ('e'): </text>
+      <text id="text5" x="30" y="140">.getNumberOfChars() result: </text>
+      <text id="text6" x="30" y="160">.getRotationOfChar(5) result: </text>
+      <text id="text7" x="30" y="180">.getStartPositionOfChar(11) result: </text>
+      <text id="text8" x="30" y="200">.getSubStringLength(22,9) result ('interface'): </text>
+      <text id="text9" x="30" y="220">.selectSubString(18,3) result: the word 'the' should be selected</text>
+      <text id="text10" x="30" y="240">.textLength.baseVal.value result:</text>
+      <text id="text11" x="30" y="260">.textLength.animVal.value result:</text>
+      <text id="text12" x="30" y="280">.lengthAdjust.baseVal and .lengthAdjust.animVal result:</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

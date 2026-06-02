@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>legend position: relative</title>
+<link ref=help href="http://crbug.com/1151295">
+<link rel=match href=legend-position-relative-2-ref.html>
+<style>
+#fieldset2 {
+  background: lime;
+  border: 2px solid lime;
+  width: 200px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+#legend2 {
+  position: relative;
+  overflow: hidden;
+  background: #00ffff;
+}
+</style>
+<p>"Legend" should be shown.</p>
+<fieldset id="fieldset2"><legend id="legend2">Legend</legend></fieldset>

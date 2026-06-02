@@ -1,0 +1,90 @@
+import importlib
+keys = importlib.import_module("fedcm.support.keys")
+
+def main(request, response):
+  namespace = "/.well-known/web-identity"
+
+  well_known_format = request.server.stash.take(keys.WELL_KNOWN_FORMAT_KEY, namespace)
+
+  port = request.server.config.ports["https"][0]
+  hostname = request.url_parts.hostname
+  base_url = "https://{0}:{1}".format(hostname, str(port))
+
+  manifest_url = request.server.stash.take(keys.MANIFEST_URL_IN_MANIFEST_LIST_KEY, namespace)
+
+  if manifest_url is None or not len(manifest_url):
+    manifest_url = "{0}/fedcm/support/manifest.py".format(base_url)
+  else:
+    try:
+      manifest_url = manifest_url.decode()
+    except (UnicodeDecodeError, AttributeError):
+      pass
+
+  if len(request.cookies) > 0:
+    return (530, [], "Cookie should not be sent to manifest list endpoint")
+  if request.headers.get(b"Accept") != b"application/json":
+    return (531, [], "Wrong Accept")
+  if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
+    return (532, [], "Wrong Sec-Fetch-Dest header")
+  if request.headers.get(b"Referer"):
+    return (533, [], "Should not have Referer")
+  if request.headers.get(b"Origin"):
+    return (534, [], "Should not have Origin")
+  if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
+    return (535, [], "Wrong Sec-Fetch-Mode header")
+  if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":
+    return (536, [], "Wrong Sec-Fetch-Site header")
+
+  response.headers.set(b"Content-Type", b"application/json")
+
+  # Handle different well-known formats
+  if well_known_format:
+    try:
+      format_type = well_known_format.decode()
+    except (UnicodeDecodeError, AttributeError):
+      format_type = str(well_known_format)
+
+    if format_type == "direct":
+      # Direct endpoints format with abs URLs
+      return """
+{{
+  "accounts_endpoint": "{0}/fedcm/support/accounts.py",
+  "login_url": "{0}/fedcm/support/login.html"
+}}
+""".format(base_url)
+    elif format_type == "empty":
+      # Empty endpoints (keep as empty strings)
+      return """
+{
+  "accounts_endpoint": "",
+  "login_url": ""
+}
+"""
+    elif format_type == "missing":
+      # Missing required endpoints
+      return """
+{
+}
+"""
+    elif format_type == "partial_accounts":
+      # Only accounts_endpoint with abs URL
+      return """
+{{
+  "accounts_endpoint": "{0}/fedcm/support/accounts.py"
+}}
+""".format(base_url)
+    elif format_type == "partial_login":
+      # Only login_url with abs URL
+      return """
+{{
+  "login_url": "{0}/fedcm/support/login.html"
+}}
+""".format(base_url)
+  # Default: provider_urls
+  return """
+{{
+  "provider_urls": [
+    "{0}"
+  ]
+}}
+""".format(manifest_url)

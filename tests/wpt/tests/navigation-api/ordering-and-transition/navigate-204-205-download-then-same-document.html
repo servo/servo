@@ -1,0 +1,66 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { Recorder } from "./resources/helpers.mjs";
+
+const tests = [
+  ["204s", "/common/blank.html?pipe=status(204)"],
+  ["205s", "/common/blank.html?pipe=status(205)"],
+  ["Content-Disposition: attachment responses", "/common/blank.html?pipe=header(Content-Disposition,attachment)"]
+];
+
+for (const [description, url] of tests) {
+  promise_test(async t => {
+    const i = document.createElement("iframe");
+    i.src = "/common/blank.html";
+    document.body.append(i);
+    await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+    const fromStart = i.contentWindow.navigation.currentEntry;
+
+    const recorder = new Recorder({
+      window: i.contentWindow,
+      finalExpectedEvent: "finished fulfilled 2"
+    });
+
+    recorder.setUpNavigationAPIListeners();
+
+    const result1 = i.contentWindow.navigation.navigate(url);
+    recorder.setUpResultListeners(result1, " 1");
+
+    // Give the server time to send the response. This is not strictly
+    // necessary (the expectations are the same either way) but it's better
+    // coverage if the server is done responding by this time; it guarantees
+    // we're hitting the code path for "got a 204/etc. and ignored it" instead
+    // of "didn't get a response yet".
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+
+    const result2 = i.contentWindow.navigation.navigate("#1");
+    recorder.setUpResultListeners(result2, " 2");
+
+    Promise.resolve().then(() => recorder.record("promise microtask"));
+
+    await recorder.readyToAssert;
+
+    recorder.assert([
+      /* event name, location.hash value, navigation.transition properties */
+      ["navigate", "", null],
+      ["AbortSignal abort", "", null],
+      ["navigateerror", "", null],
+
+      ["navigate", "", null],
+      ["currententrychange", "#1", null],
+      ["committed rejected 1", "#1", null],
+      ["finished rejected 1", "#1", null],
+      ["committed fulfilled 2", "#1", null],
+      ["promise microtask", "#1", null],
+      ["navigatesuccess", "#1", null],
+      ["finished fulfilled 2", "#1", null]
+    ]);
+
+    recorder.assertErrorsAreAbortErrors();
+  }, `event and promise ordering when navigate() is to a ${description} and then to a same-document navigation`);
+}
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: dynamic changes to 'counter-increment'</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <meta name="flags" content="dom"/>
+  <meta http-equiv="Content-Script-Type" content="text/javascript"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  #test, .reset { counter-reset: c; }
+  .increment:before { content: counters(c, ".") "-"; }
+  .increment { counter-increment: c; }
+
+  </style>
+  <script type="text/javascript">
+
+  function run() {
+	var t = document.getElementById("test");
+	t.removeChild(t.childNodes.item(1));
+  }
+
+  </script>
+ </head>
+ <body onload="setTimeout('run()', 0)">
+
+ <p>The following two lines should be the same:</p>
+
+ <div id="test"><span class="increment"></span><span class="increment">FAIL-</span><span class="increment"></span><span class="increment"></span></div>
+
+ <div id="reference">1-2-3-</div>
+
+ </body>
+</html>

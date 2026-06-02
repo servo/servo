@@ -1,0 +1,83 @@
+<!--
+  This file cannot be upstreamed to WPT until:
+  * Cross-origin iframe loading is specified. The test expects that cross-origin
+  iframe loading is deferred.
+-->
+<!DOCTYPE html>
+<title>WindowClient.navigate() to cross-origin url in a prerendered iframe</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const PAGE_URL = 'resources/windowclient-navigate-on-iframe.html';
+const WORKER_URL = 'resources/windowclient-navigate-worker.js';
+const SCOPE = 'resources/';
+const CROSS_ORIGIN_DESTINATION =
+    get_host_info()['HTTPS_REMOTE_ORIGIN'] +
+    base_path() + 'resources/empty.html';
+
+promise_test(async t => {
+  const uid = token();
+
+  const registration = await service_worker_unregister_and_register(
+      t, `${WORKER_URL}?uid=${uid}`, SCOPE);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  const bc = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  // PAGE_URL starts a prerender of a page that makes an iframe, then asks the
+  // service worker to navigate the iframe to `navigationUrl` via
+  // `WindowClient.navigate(url)`. The cross-origin url triggers
+  // PrerenderEventCollector to wait to navigate to `navigationUrl` on an iframe
+  // until the prerendered iframe is activated.
+  window.open(
+      `${PAGE_URL}?navigationUrl=${CROSS_ORIGIN_DESTINATION}&uid=${uid}`,
+      '_blank',
+      'noopener');
+
+  const navigationResult = await gotMessage;
+  const expected = [
+    {
+      event: 'started waiting navigation on iframe',
+      prerendering: true
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting navigation on iframe',
+      prerendering: false
+    },
+  ];
+  assert_equals(navigationResult.length, expected.length);
+  for (let i = 0; i < navigationResult.length; i++) {
+    assert_equals(navigationResult[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(navigationResult[i].prerendering, expected[i].prerendering,
+        `prerendering[${i}]`);
+  }
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, 'WindowClient.navigate() to a cross-origin URL on a prerendered iframe ' +
+   'should be deferred');
+</script>

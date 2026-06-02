@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Scroll Snap Reference</title>
+<style>
+html, body { margin: 0; padding: 0; }
+
+:root {
+  overflow: hidden; /* hide scrollbars for reftest analysis */
+}
+
+#target {
+  position: absolute;
+  top: 25%;
+  width: 100%;
+  margin: 25vh 0;
+  border-top: solid blue;
+}
+</style>
+
+<div id="target">
+  <div>Test passes if the blue line above is centered in the viewport.</div>
+</div>

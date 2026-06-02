@@ -1,0 +1,13 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://html.spec.whatwg.org/#dom-dialog-requestclose" />
+
+<!-- This test passes if it does not crash. -->
+
+<script>
+  const doc = document.implementation.createHTMLDocument("");
+  const dialog = doc.createElement("dialog");
+  doc.body.append(dialog);
+  dialog.setAttribute("open", "");
+  dialog.requestClose();
+</script>

@@ -1,0 +1,26 @@
+<!doctype html>
+<title>VTTRegion.width</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-width">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var region = new VTTRegion();
+    assert_true('width' in region, 'width is not supported');
+
+    for (var i = 0; i <= 100; i++) {
+        region.width = i;
+        assert_equals(region.width, i);
+    }
+
+    region.width = 1.5;
+    assert_equals(region.width, 1.5);
+
+    [-1, -100, -150, 101, 200, 250].forEach(function (invalid) {
+        assert_throws_dom('IndexSizeError', function() {
+            region.width = invalid;
+        });
+    });
+}, document.title + ' script-created region');
+</script>

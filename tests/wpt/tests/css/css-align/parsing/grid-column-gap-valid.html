@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing grid-column-gap with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align/#grid-gap-legacy">
+<link rel="author" title="Takuya Kurimoto" href="mailto:takuya004869@gmail.com">
+<meta name="assert" content="grid-column-gap supports the full grammar '<length-percentage> | normal'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("grid-column-gap", "normal");
+
+test_valid_value("grid-column-gap", "0", "0px");
+test_valid_value("grid-column-gap", "1px");
+test_valid_value("grid-column-gap", "calc(2em + 3ex)");
+test_valid_value("grid-column-gap", "4%");
+test_valid_value("grid-column-gap", "5vmin");
+</script>
+</body>
+</html>

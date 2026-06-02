@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Z-index applied to element with 'display' set to 'table-row'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-z-index" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="The 'z-index' property can apply to elements with a display of 'table-row'." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                background: green;
+                display: table-row;
+                z-index: 1;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+            #zindex
+            {
+                background: yellow;
+                top: -1in;
+            }
+            #row, #zindex
+            {
+                position: relative;
+            }
+            #cell, #zindex
+            {
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a green or yellow box below.</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+        <div id="zindex"></div>
+    </body>
+</html>

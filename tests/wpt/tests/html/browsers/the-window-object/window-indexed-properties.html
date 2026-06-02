@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Indexed properties of the window object (non-strict mode)</title>
+<link rel="author" title="Ms2ger" href="ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-item">
+<link rel="help" href="https://webidl.spec.whatwg.org/#getownproperty">
+<link rel="help" href="https://webidl.spec.whatwg.org/#defineownproperty">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe></iframe>
+<script>
+test(function() {
+  assert_false("-1" in window, "-1 not in window");
+  assert_equals(window[-1], undefined);
+  window[-1] = "foo";
+  assert_equals(window[-1], "foo");
+});
+test(() => {
+  const desc = Object.getOwnPropertyDescriptor(window, "0");
+  assert_true(desc.configurable);
+  assert_true(desc.enumerable);
+  assert_false(desc.writable);
+}, "Ensure indexed properties have the correct configuration");
+test(function() {
+  window[0] = "foo";
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { value: "bar" }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { get() { return "baz" } }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { set() { return "quz" } }))
+  assert_equals(window[0],
+                document.getElementsByTagName("iframe")[0].contentWindow);
+  assert_equals(delete window[0], false);
+});
+test(function() {
+  window[1] = "foo";
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { value: "bar" }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { get() { return "baz" } }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { set(v) { return "quz" } }))
+  assert_equals(window[1], undefined);
+  assert_equals(Object.getOwnPropertyDescriptor(window, 1), undefined);
+  assert_equals(delete window[1], true);
+});
+test(function() {
+  window[4294967294] = 1;
+  assert_false(Reflect.set(window, 4294967294, 2));
+  assert_false(Reflect.defineProperty(window, 4294967294, { value: 3 }));
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 4294967294, { get: () => 4 }));
+  assert_equals(window[4294967294], undefined);
+  assert_false(4294967294 in window);
+  assert_true(delete window[4294967294]);
+}, "Borderline numeric key: 2 ** 32 - 2 is an index");
+test(function() {
+  window[4294967295] = 1;
+  assert_equals(window[4294967295], 1);
+  assert_true(Reflect.set(window, 4294967295, 2));
+  assert_equals(window[4294967295], 2);
+  assert_true(Reflect.defineProperty(window, 4294967295, { value: 3 }));
+  assert_equals(window[4294967295], 3);
+  Object.defineProperty(window, 4294967295, { get: () => 4 });
+  assert_equals(window[4294967295], 4);
+  assert_true(delete window[4294967295]);
+  assert_false(4294967295 in window);
+}, "Borderline numeric key: 2 ** 32 - 1 is not an index");
+test(function() {
+  var proto = Window.prototype;
+  [-1, 0, 1].forEach(function(idx) {
+    assert_false(idx in proto, idx + " in proto");
+  });
+});
+</script>

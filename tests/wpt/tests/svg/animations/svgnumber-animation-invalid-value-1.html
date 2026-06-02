@@ -1,0 +1,36 @@
+<!doctype html>
+<title>Test SVGNumber animation with invalid values: String values in from and to attributes.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#FromAttribute">
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <defs>
+        <filter id="effect">
+            <feComposite id="composite" in="SourceGraphic" in2="SourceAlpha" operator="arithmetic" k1="1">
+                <animate attributeName="k1" begin="0s" dur="4s" from="ERROR" to="ERROR" />
+            </feComposite>
+        </filter>
+    </defs>
+    <rect id="rect" x="0" y="0" width="100" height="100" fill="green" filter="url(#effect)" />
+</svg>
+
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const composite = document.getElementById("composite");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(composite.k1.baseVal, 1);
+          assert_equals(composite.k1.animVal, composite.k1.baseVal);
+        }));
+    }));
+  });
+
+</script>

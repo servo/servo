@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getDisplayMedia</title>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  'use strict';
+
+const stopTracks = stream => stream.getTracks().forEach(track => track.stop());
+
+async function getDisplayMedia(constraints) {
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+  return navigator.mediaDevices.getDisplayMedia(constraints);
+}
+
+test(() => {
+  const supportedConstraints =
+    navigator.mediaDevices.getSupportedConstraints();
+  assert_true(supportedConstraints.restrictOwnAudio);
+}, "restrictOwnAudio is supported");
+
+{
+  const restrictOwnAudio = [true, false];
+  restrictOwnAudio.forEach((restrictOwnAudio) => {
+    promise_test(async (t) => {
+      const stream = await getDisplayMedia({
+        audio: { restrictOwnAudio },
+      });
+      t.add_cleanup(() => stopTracks(stream));
+      const [videoTrack] = stream.getVideoTracks();
+      assert_false("restrictOwnAudio" in videoTrack.getSettings());
+      const [audioTrack] = stream.getAudioTracks();
+      const audioTrackSettings = audioTrack.getSettings();
+      assert_true("restrictOwnAudio" in audioTrackSettings);
+      assert_equals(
+        audioTrackSettings.restrictOwnAudio,
+        restrictOwnAudio
+      );
+      await audioTrack.applyConstraints();
+      // Removing constraints does not change the restrictOwnAudio setting.
+      assert_true("restrictOwnAudio" in audioTrackSettings);
+      assert_equals(
+        audioTrackSettings.restrictOwnAudio,
+        restrictOwnAudio
+      );
+    }, `getDisplayMedia({"audio":{"restrictOwnAudio":${restrictOwnAudio}}}) with getSettings`);
+  });
+}
+
+</script>

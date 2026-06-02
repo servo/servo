@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that linear gradient lengths work. -->
+<style>
+section {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+    background-clip: content-box;
+}
+#a {
+    background-image: linear-gradient(to right, white, white 30%, black 30%, black);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+</body>
+</html>
+

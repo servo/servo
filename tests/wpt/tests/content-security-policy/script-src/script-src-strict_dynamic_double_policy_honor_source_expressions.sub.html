@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Source expressions in a separate policy are honored with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served:
+    1) Content-Security-Policy: script-src 'strict-dynamic' 'nonce-dummy'
+    2) Content-Security-Policy: script-src 'self' 'nonce-dummy'
+    -->
+</head>
+
+<body>
+    <h1>Source expressions in a separate policy are honored with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'allowed-appendChild') {
+                    t.done();
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI.split('?')[1] !== 'allowed-appendChild') {
+                    return;
+                }
+                assert_unreached('Script injected via `appendChild` is permitted with `strict-dynamic` + a nonce+allowed double policy.');
+            }));
+
+            var e = document.createElement('script');
+            e.id = 'allowed-appendChild';
+            e.src = 'simpleSourcedScript.js?' + e.id;
+            e.onerror = t.unreached_func('Error should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Script injected via `appendChild` is permitted with `strict-dynamic` + a nonce+allowed double policy.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI.split('?')[1] !== 'nonAllowed-appendChild') {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                assert_equals(violation.originalPolicy, "script-src 'self' 'nonce-dummy'");
+                t.done();
+            }));
+
+            var e = document.createElement('script');
+            e.id = 'nonAllowed-appendChild';
+            e.src = '{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/nonexisting.js?' + e.id;
+            e.onload = t.unreached_func('OnLoad should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Non-allowed script injected via `appendChild` is not permitted with `strict-dynamic` + a nonce+allowed double policy.');
+    </script>
+</body>
+
+</html>

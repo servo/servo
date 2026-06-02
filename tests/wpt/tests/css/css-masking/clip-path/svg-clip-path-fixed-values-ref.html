@@ -1,0 +1,49 @@
+<!doctype html>
+<style>
+svg {
+  width: 300px;
+  height: 300px;
+}
+.container {
+  width: 300px;
+  height: 300px;
+  position: relative;
+}
+.bg1 {
+  background: green;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+.noclip {
+  top: 100px;
+  left: 100px;
+}
+.cp1 {
+  clip-path: polygon(0px 0px, 100px 0px, 0px 100px);
+  top: 0;
+  left: 0;
+}
+.cp2 {
+  clip-path: circle(50px);
+  top: 200px;
+  left: 0;
+}
+.cp3 {
+  clip-path: ellipse(50px 30px);
+  top: 200px;
+  left: 200px;
+}
+.cp4 {
+  clip-path: inset(10px 20px 30px 40px);
+  top: 0;
+  left: 200px;
+}
+</style>
+<div class=container>
+  <div class="bg1 noclip"></div>
+  <div class="bg1 cp1"></div>
+  <div class="bg1 cp2"></div>
+  <div class="bg1 cp3"></div>
+  <div class="bg1 cp4"></div>
+</div>

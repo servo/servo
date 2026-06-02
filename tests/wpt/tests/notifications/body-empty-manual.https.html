@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.body (empty string)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<div id=passfail></div>
+<script>
+setup({ explicit_timeout: true })
+if (hasNotificationPermission()) {
+    async_test(function (t) {
+        t.step(function () {
+            var notification = null,
+                notifications = [],
+                text = "This is the title: New e-mail received"
+            createPassFail("If a notification appears containing the text "
+                + "\"" + text + "\""
+                + " but containing no body text other than any boilerplate"
+                + " content the browser may automatically add to all"
+                + " notifications (for example, some browsers show the origin"
+                + " in the notification)", t, closeNotifications, notifications)
+           notification = new Notification(text, {
+              body: ""
+           })
+           notifications.push(notification)
+        })
+    })
+}
+</script>

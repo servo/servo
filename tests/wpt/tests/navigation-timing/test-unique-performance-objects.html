@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Each window object has a unique performance object</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute" />
+        <meta name="assert" content="Each browsing context must have a unique window.performance.timing attribute."/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that each window has a unique window.performance object.</p>
+        <iframe id="frameContext" src="resources/blank_page_green.html" style="display:none;";></iframe>
+        <div id="log"></div>
+        <script>
+            test_namespace('timing');
+
+            if (performanceNamespace !== undefined)
+            {
+                test_not_equals(performanceNamespace.timing,
+                                document.getElementById("frameContext").contentWindow.performance.timing,
+                                "Different window objects have unique performance objects");
+            }
+        </script>
+    </body>
+</html>

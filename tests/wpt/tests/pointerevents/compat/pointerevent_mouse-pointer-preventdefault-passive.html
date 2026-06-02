@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+<title>Canceling passive pointerevents does not affect compat mouseevents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../pointerevent_support.js"></script>
+<style>
+  div {
+    margin: 20px;
+    padding: 20px;
+    background-color: green;
+    user-select: none; // Prevents text selection on drag.
+  }
+</style>
+<div id="logger" draggable="false"></div>
+<div id="done"></div>
+
+<script>
+  'use strict';
+
+  const logger = document.getElementById("logger");
+  const done = document.getElementById("done");
+
+  let received_events = [];
+
+  const logged_pointer_events = ["pointerdown", "pointermove", "pointerup",
+    "pointerenter", "pointerleave", "pointerover", "pointerout"];
+  const logged_mouse_events = ["mousedown", "mousemove", "mouseup",
+    "mouseenter", "mouseleave", "mouseover", "mouseout"];
+
+  const expected_pointer_events = [
+    "pointerover", "pointerenter",
+    "pointermove", "pointerdown", "pointermove", "pointerup",
+    "pointerout", "pointerleave"
+  ];
+
+  const expected_mouse_events = [
+    "mouseover", "mouseenter",
+    "mousemove", "mousedown", "mousemove", "mouseup",
+    "mouseout", "mouseleave"
+  ];
+
+  logged_pointer_events.forEach(ename => logger.addEventListener(ename, e => {
+    received_events.push(e.type);
+    e.preventDefault();
+  }, { passive: true }));
+
+  logged_mouse_events.forEach(ename => logger.addEventListener(ename, e =>
+    received_events.push(e.type)));
+
+  promise_test(async () => {
+    received_events = [];
+
+    let click_on_done = getEvent("click", done);
+
+    let actions = new test_driver.Actions()
+      // Start outside all event listeners
+      .pointerMove(0, 0)
+      .pointerDown()
+      .pointerUp()
+      // Drag within "logger"
+      .pointerMove(0, 0, { origin: logger })
+      .pointerDown()
+      .pointerMove(15, 15, { origin: logger })
+      .pointerUp()
+      // Click "done"
+      .pointerMove(0, 0, { origin: done })
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    await actions;
+    await click_on_done;
+
+    assert_array_equals(received_events.filter(isPointerEvent),
+      expected_pointer_events, "expected pointer events");
+    assert_array_equals(received_events.filter(isMouseEvent),
+      expected_mouse_events, "expected mouse events");
+    assert_true(arePointerEventsBeforeCompatMouseEvents(received_events),
+      "pairing of pointer/mouse events");
+  }, "Canceling passive pointerevents does not affect compat mouseevents");
+</script>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that each window has a unique nav timing 2 instance.</p>
+        <iframe id="frameContext" src="resources/blank_page_green.html" style="display:none;";></iframe>
+        <script>
+
+            var navTiming2Attributes = [
+                'connectEnd',
+                'connectStart',
+                'decodedBodySize',
+                'domComplete',
+                'domContentLoadedEventEnd',
+                'domContentLoadedEventStart',
+                'domInteractive',
+                'domainLookupEnd',
+                'domainLookupStart',
+                'duration',
+                'encodedBodySize',
+                'entryType',
+                'fetchStart',
+                'initiatorType',
+                'loadEventEnd',
+                'loadEventStart',
+                'name',
+                'redirectCount',
+                'redirectEnd',
+                'redirectStart',
+                'requestStart',
+                'responseEnd',
+                'responseStart',
+                'secureConnectionStart',
+                'transferSize',
+                'type',
+                'unloadEventEnd',
+                'unloadEventStart',
+                'workerStart'
+            ];
+
+            function not_same_instance(instance1, instance2, attributes) {
+                for (var i in attributes) {
+                    if (instance1[attributes[i]] != instance2[attributes[i]])
+                        return true;
+                }
+                return false;
+            }
+
+            async_test(function (t) {
+                var observer = new PerformanceObserver(
+                    t.step_func(function (entryList) {
+                        assert_equals(entryList.getEntriesByType("navigation").length, 1, "Only one nav timing instance exists.");
+                        assert_equals(document.getElementById("frameContext").contentWindow.performance.getEntriesByType("navigation").length, 1,
+                            "Only one nav timing instance exists.");
+                        var main_frame_instance = entryList.getEntriesByType("navigation")[0];
+                        var iframe_instance = document.getElementById("frameContext").contentWindow.performance.getEntriesByType("navigation")[0];
+                        assert_true(not_same_instance(main_frame_instance, iframe_instance, navTiming2Attributes),
+                            "Two nav timing instances are not the same instance.");
+                        observer.disconnect();
+                        t.done();
+                    })
+                );
+                observer.observe({entryTypes: ["navigation"]});
+
+            }, "Each window has a unique nav timing 2 instance.");
+        </script>
+    </body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<title>Tests position fallback with initially out-of-viewport anchor</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-apply">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+  width: 200vw;
+  height: 200vh;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 100px;
+  height: 100px;
+  margin-block-start: 100vb;
+  margin-inline-start: 100vi;
+  background: orange;
+}
+
+#anchored {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: green;
+  position-anchor: --a;
+  position-try: --pf1, --pf2, --pf3;
+  inset-block-start: anchor(end);
+  inset-inline-start: anchor(end);
+}
+
+@position-try --pf1 {
+  inset: auto;
+  inset-block-end: anchor(start);
+  inset-inline-start: anchor(end);
+}
+@position-try --pf2 {
+  inset: auto;
+  inset-block-start: anchor(end);
+  inset-inline-end: anchor(start);
+}
+@position-try --pf3 {
+  inset: auto;
+  inset-block-end: anchor(start);
+  inset-inline-end: anchor(start);
+}
+</style>
+
+<div id="anchor"></div>
+<div id="anchored"></div>
+
+<script>
+let vw = window.innerWidth;
+let vh = window.innerHeight;
+
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should use the last (fourth) position option initially');
+
+promise_test(async () => {
+  // Scroll down to have enough space below the anchor, but not enough right.
+  await waitUntilNextAnimationFrame();
+  document.documentElement.scrollTop = 250;
+  document.documentElement.scrollLeft = 150;
+  await waitUntilNextAnimationFrame();
+  // Since the current option also still fits, we'll stay there, though.
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should still use the last position option as long as it fits.');
+
+promise_test(async () => {
+  // Scroll down to have enough space below the anchor, but not enough
+  // right. And not enough above.
+  document.documentElement.scrollTop = vh - 99;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'bottom');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should use the third position option with enough space below, and not enough above');
+
+promise_test(async () => {
+  // Scroll right to have enough space right to the anchor, but not enough below.
+  document.documentElement.scrollTop = 150;
+  document.documentElement.scrollLeft = 250;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should use the second position option with enough space right');
+
+promise_test(async () => {
+  // Scroll down and right to have enough space on both axes. Since the second
+  // option still fits, stay there, though.
+  document.documentElement.scrollTop = 250;
+  document.documentElement.scrollLeft = 250;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should still use the second position option as long as it fits');
+
+promise_test(async () => {
+  // Scroll down and right to have enough space on both axes.
+  document.documentElement.scrollTop = vh - 99;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'bottom');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should use the first position option with enough space below and right');
+</script>

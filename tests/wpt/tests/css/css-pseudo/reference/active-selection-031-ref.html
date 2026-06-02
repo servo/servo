@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <link rel="stylesheet" href="../support/highlights.css">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+  .highlight_reftest {
+    overflow: hidden;
+    width: 300px;
+    height: 325px;
+  }
+  div > div
+    {
+      color: green;
+      float: left;
+      font: 25px/1 Ahem;
+      margin-left: 16px;
+    }
+
+  div.vrl
+    {
+      writing-mode: vertical-rl;
+    }
+
+  div.vlr
+    {
+      writing-mode: vertical-lr;
+    }
+
+  div.mixed
+    {
+      background-color: yellow;
+      text-orientation: mixed;
+    }
+
+  div.sideways
+    {
+      background-color: yellow;
+      text-orientation: sideways;
+    }
+
+  div.upright
+    {
+      text-orientation: upright;
+    }
+
+  div.upright > span
+    {
+      background-color: yellow;
+    }
+  </style>
+
+  <p>Test passes if each glyph of the 6 "Selected Text" is green and if there is <strong>no red</strong>.
+
+  <div class="highlight_reftest">
+
+    <div class="vrl mixed">Selected Text</div>
+
+    <div class="vrl sideways">Selected Text</div>
+
+    <div class="vrl upright"><span>Selected Text</span></div>
+
+    <div class="vlr mixed">Selected Text</div>
+
+    <div class="vlr sideways">Selected Text</div>
+
+    <div class="vlr upright"><span>Selected Text</span></div>
+
+  </div>

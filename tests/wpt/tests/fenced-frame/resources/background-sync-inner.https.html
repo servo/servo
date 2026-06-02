@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of background sync's register</title>
+
+<body>
+<script type="module">
+  import {getOneShotSyncPromise, getPeriodicSyncPromise} from './background-sync-helper.js';
+
+  const [background_sync_register_key] = parseKeylist();
+  const searchParams = new URL(location.href).searchParams;
+  const method = searchParams.get('method');
+  const periodic = searchParams.get('periodic');
+
+  navigator.serviceWorker.register("empty-worker.js", { scope: location.href });
+  const registration = await navigator.serviceWorker.ready;
+
+  try {
+    if (periodic) {
+      await getPeriodicSyncPromise(registration, method);
+    } else {
+      await getOneShotSyncPromise(registration, method);
+    }
+    writeValueToServer(background_sync_register_key, "unexpectedly registered");
+  } catch (e) {
+    writeValueToServer(background_sync_register_key, e.message);
+  } finally {
+    registration.unregister();
+  }
+</script>
+</body>

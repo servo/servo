@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.iceGatheringState</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio', { direction: 'recvonly' });
+  await initialOfferAnswerWithIceGatheringStateTransitions(pc1, pc2);
+  await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+  await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  expectNoMoreGatheringStateChanges(t, pc1);
+  await pc1.setLocalDescription({type: 'rollback'});
+  await new Promise(r => t.step_timeout(r, 1000));
+}, 'rolling back an ICE restart when gathering is complete should not result in iceGatheringState changes');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('test');
+  await initialOfferAnswerWithIceGatheringStateTransitions(pc1, pc2);
+  await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+  await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  expectNoMoreGatheringStateChanges(t, pc1);
+  await pc1.setLocalDescription({type: 'rollback'});
+  await new Promise(r => t.step_timeout(r, 1000));
+}, 'rolling back an ICE restart when gathering is complete should not result in iceGatheringState changes (DataChannel case)');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio', { direction: 'recvonly' });
+  await pc.setLocalDescription();
+  await iceGatheringStateTransitions(pc, 'gathering', 'complete');
+  const backToNew = iceGatheringStateTransitions(pc, 'new');
+  await pc.setLocalDescription({type: 'rollback'});
+  await backToNew;
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "complete"');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  await pc.setLocalDescription();
+  await iceGatheringStateTransitions(pc, 'gathering', 'complete');
+  const backToNew = iceGatheringStateTransitions(pc, 'new');
+  await pc.setLocalDescription({type: 'rollback'});
+  await backToNew;
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "complete" (DataChannel case)');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio', { direction: 'recvonly' });
+  await pc.setLocalDescription();
+  await iceGatheringStateTransitions(pc, 'gathering');
+  const backToNew = Promise.allSettled([
+    iceGatheringStateTransitions(pc, 'new'),
+    iceGatheringStateTransitions(pc, 'complete', 'new')]);
+  await pc.setLocalDescription({type: 'rollback'});
+  // We might go directly to 'new', or we might go to 'complete' first,
+  // depending on timing. Allow either.
+  const results = await backToNew;
+  assert_true(results.some(result => result.status == 'fulfilled'),
+    'ICE gathering state should go back to "new", possibly through "complete"');
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "gathering"');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  await pc.setLocalDescription();
+  await iceGatheringStateTransitions(pc, 'gathering');
+  const backToNew = Promise.allSettled([
+    iceGatheringStateTransitions(pc, 'new'),
+    iceGatheringStateTransitions(pc, 'complete', 'new')]);
+  await pc.setLocalDescription({type: 'rollback'});
+  // We might go directly to 'new', or we might go to 'complete' first,
+  // depending on timing. Allow either.
+  const results = await backToNew;
+  assert_true(results.some(result => result.status == 'fulfilled'),
+    'ICE gathering state should go back to "new", possibly through "complete"');
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "gathering" (DataChannel case)');
+
+</script>

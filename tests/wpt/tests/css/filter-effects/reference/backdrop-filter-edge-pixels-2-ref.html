@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="author" href="mailto:flackr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<script src="../support/simulate-backdrop-blur.js"></script>
+<div class="red_square"></div>
+<div class="filter"></div>
+
+<style>
+div {
+  width: 100px;
+  position: absolute;
+}
+body { overflow: hidden; margin: 0;}
+.red_square {
+  height: 100px;
+  left:30px;
+  top: 20px;
+  background: red;
+  transform: rotate(30deg);
+}
+.filter {
+  height: 200px;
+  background: transparent;
+}
+</style>
+<script>
+simulateBackdropBlur(document.querySelector('.filter'), [document.querySelector('.red_square')], 20);
+</script>

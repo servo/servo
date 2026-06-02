@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>shape-outside with corner-shape: notch</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shapes-from-box-values">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  direction: rtl;
+  width: 200px;
+  line-height: 0;
+}
+
+.shape {
+  float: right;
+  shape-outside: border-box;
+  border-radius: 50%;
+  box-sizing: content-box;
+  height: 40px;
+  width: 40px;
+  padding: 20px;
+  border: 20px solid lightgreen;
+  margin: 20px;
+  background-color: orange;
+}
+
+.box {
+  display: inline-block;
+  width: 60px;
+  background-color: blue;
+}
+
+.longbox {
+  display: inline-block;
+  width: 200px;
+  height: 20px;
+  background-color: blue;
+}
+</style>
+
+<main class="container">
+  <div class="shape"></div>
+  <div class="longbox"></div> <!-- Saturate the margin space -->
+  <div class="box" style="height: 24px;"></div> <!-- Box at corner -->
+  <div class="box" style="height: 36px;"></div>
+  <div class="box" style="height: 36px;"></div>
+  <div class="box" style="height: 24px;"></div> <!-- Box at corner -->
+  <div class="longbox"></div> <!-- Saturate the margin space -->
+</main>
+
+<script>
+  function shape_outside_corner_shape_test(corner_shape, expected) {
+    test(() => {
+      const shape = document.querySelector(".shape");
+      shape.style.setProperty("corner-shape", corner_shape);
+      const actual = Array.from(document.querySelectorAll(".container .box")).map(b => b.getBoundingClientRect().right);
+      assert_array_approx_equals(actual, expected, 2);
+    }, `corner-shape: ${corner_shape} with shape-outside`);
+  }
+  shape_outside_corner_shape_test("notch", [120, 60, 60, 120]);
+  shape_outside_corner_shape_test("bevel", [96, 60, 60, 96]);
+  shape_outside_corner_shape_test("notch bevel", [120, 60, 60, 96]);
+  shape_outside_corner_shape_test("round", [72, 60, 60, 72]);
+  shape_outside_corner_shape_test("square", [60, 60, 60, 60]);
+  shape_outside_corner_shape_test("scoop", [114, 60, 60, 114]);
+  shape_outside_corner_shape_test("superellipse(1.5)", [65, 60, 60, 65]);
+  shape_outside_corner_shape_test("superellipse(-.8)", [112, 60, 60, 112]);
+</script>

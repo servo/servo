@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of Notification.requestPermission</title>
+
+<body>
+<script>
+(async () => {
+  const [permission_notification_key] = parseKeylist();
+  const result = await Notification.requestPermission();
+  writeValueToServer(permission_notification_key, `result: ${result}`);
+})();
+</script>
+</body>

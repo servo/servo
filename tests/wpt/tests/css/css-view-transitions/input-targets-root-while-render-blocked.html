@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: ensure input targets document root while rendering is suppressed</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7797">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+:root {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  view-transition-name: none;
+}
+
+::view-transition {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+::view-transition-group(*) {
+  animation-duration: 30s;
+}
+
+#clicktarget {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+#transition {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: transitionElement;
+}
+</style>
+
+<div id="clicktarget"></div>
+<div id="transition"></div>
+
+<script>
+const target = document.getElementById("clicktarget");
+
+async function sendAndWaitForClick() {
+  return new Promise(async (resolve) => {
+
+    function eventHandler(ev) {
+      resolve(ev);
+    }
+
+    document.documentElement.addEventListener("click", eventHandler);
+
+    await new test_driver.Actions()
+             .setContext(window)
+             .addPointer("mousePointer1", "mouse")
+             .pointerMove(10, 10, {origin: 'viewport', sourceName: "mousePointer1"})
+             .pointerDown({sourceName: "mousePointer1"})
+             .pointerUp({sourceName: "mousePointer1"})
+             .send();
+
+    document.documentElement.removeEventListener("click", eventHandler);
+  });
+}
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  assert_not_equals(target, null, "PRECONDITION: target element is valid");
+
+  // Ensure input is initialized before blocking rendering.
+  await new test_driver.Actions()
+               .setContext(window)
+               .addPointer("mousePointer1", "mouse")
+               .pointerMove(0, 0, {origin: "viewport", sourceName: "mousePointer1"})
+               .send();
+
+  let clickEvent = null;
+
+  let transition = document.startViewTransition(async () => {
+    clickEvent = await sendAndWaitForClick();
+  });
+
+  await transition.ready;
+
+  assert_equals(clickEvent.target, document.documentElement,
+      "Events must target the transition root while render blocked");
+  clickEvent = null;
+
+  clickEvent = await sendAndWaitForClick();
+
+  // This just ensures we're not passing the above check by accident.
+  assert_equals(clickEvent.target, target,
+      "During transition, event should hit real DOM");
+
+}, "Input when rendering suppressed targets root");
+</script>

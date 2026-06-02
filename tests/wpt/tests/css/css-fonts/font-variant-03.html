@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant: normal; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-03-ref.html">
+<meta name="assert" content="The value ‘normal’ resets all subproperties of ‘font-variant’ to their inital value. It does not reset the values of either ‘font-language-override’ or ‘font-feature-settings’">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 2.4em;
+	  line-height: 1.1;
+    color: purple;
+  }
+  .inner {
+	  font-variant: normal;
+  }
+  .outer {
+    font-feature-settings: "liga" on, "clig" on, "calt" on, "hlig" on, "dlig" on, "onum" on, "smcp" on, "jp90" on;
+  }
+  .child {
+    color: green;
+  }
+</style>
+
+<body>
+<p>Test passes if the two lines below are identical, with (in purple) eight check marks (✓),
+and then (in green) eight check marks (✓). </p>
+<section class="test">
+	<p class="outer">CDGFEJQa<span class="inner child">CDGFEJQa</span></p>
+	<p class="ref">AAAAAAAA<span class="child">AAAAAAAA</span></p>
+</section>

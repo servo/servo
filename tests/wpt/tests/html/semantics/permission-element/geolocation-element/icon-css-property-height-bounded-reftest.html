@@ -1,0 +1,17 @@
+<!doctype html>
+<title>
+  The icon is set to the exact maximum height in the reference.
+  Increasing it further should have no effect.
+</title>
+<!-- TODO: Update the link to the permission icon spec -->
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md" />
+<link rel="match" href="icon-css-property-height-bounded-reftest-ref.html" />
+<style>
+  geolocation {
+    font-size: 10px;
+  }
+  ::permission-icon {
+    height: 100px;
+  }
+</style>
+<geolocation id="geolocation"></geolocation>

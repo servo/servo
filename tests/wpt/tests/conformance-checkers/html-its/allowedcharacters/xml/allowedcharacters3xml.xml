@@ -1,0 +1,10 @@
+<myRes xmlns:its="http://www.w3.org/2005/11/its">
+  <head>
+      <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:type="simple" xlink:href="allowedcharacters3xmlrules.xml"/>
+  </head>
+  <body>
+    <content>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+      nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed
+      diam voluptua.</content>
+  </body>
+</myRes>

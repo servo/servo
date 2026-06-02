@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection BUNDLE</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const calleeAudio = new RTCPeerConnection();
+  t.add_cleanup(() => calleeAudio.close());
+  const calleeVideo  = new RTCPeerConnection();
+  t.add_cleanup(() => calleeVideo.close());
+
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+  let metadataToBeLoaded;
+  calleeVideo.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+  };
+
+  caller.addEventListener('icecandidate', (e) => {
+    // route depending on sdpMlineIndex
+    if (e.candidate) {
+      const target = e.candidate.sdpMLineIndex === 0 ? calleeAudio : calleeVideo;
+      target.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    } else {
+      calleeAudio.addIceCandidate();
+      calleeVideo.addIceCandidate();
+    }
+  });
+  calleeAudio.addEventListener('icecandidate', (e) => {
+    if (e.candidate) {
+      caller.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    }
+    // Note: caller.addIceCandidate is only called for video to avoid calling it twice.
+  });
+  calleeVideo.addEventListener('icecandidate', (e) => {
+    if (e.candidate) {
+      caller.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    } else {
+      caller.addIceCandidate();
+    }
+  });
+
+  const offer = await caller.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  // Remove the a=group:BUNDLE from the SDP when signaling.
+  const bundle = SDPUtils.matchPrefix(sections[0], 'a=group:BUNDLE')[0];
+  sections[0] = sections[0].replace(bundle + '\r\n', '');
+
+  const audioSdp = sections[0] + sections[1];
+  const videoSdp = sections[0] + sections[2];
+
+  await calleeAudio.setRemoteDescription({type: 'offer', sdp: audioSdp});
+  await calleeVideo.setRemoteDescription({type: 'offer', sdp: videoSdp});
+  await caller.setLocalDescription(offer);
+
+  const answerAudio = await calleeAudio.createAnswer();
+  const answerVideo = await calleeVideo.createAnswer();
+  const audioSections = SDPUtils.splitSections(answerAudio.sdp);
+  const videoSections = SDPUtils.splitSections(answerVideo.sdp);
+
+  // Remove the fingerprint from the session part of the SDP if present
+  // and move it to the media section.
+  SDPUtils.matchPrefix(audioSections[0], 'a=fingerprint:').forEach(line => {
+    audioSections[0] = audioSections[0].replace(line + '\r\n', '');
+    audioSections[1] += line + '\r\n';
+  });
+  SDPUtils.matchPrefix(videoSections[0], 'a=fingerprint:').forEach(line => {
+    videoSections[0] = videoSections[0].replace(line + '\r\n', '');
+    videoSections[1] += line + '\r\n';
+  });
+
+  const sdp = audioSections[0] + audioSections[1] + videoSections[1];
+  await caller.setRemoteDescription({type: 'answer', sdp});
+  await calleeAudio.setLocalDescription(answerAudio);
+  await calleeVideo.setLocalDescription(answerVideo);
+
+  await metadataToBeLoaded;
+  assert_equals(calleeAudio.connectionState, 'connected');
+  assert_equals(calleeVideo.connectionState, 'connected');
+}, 'Connect audio and video to two independent PeerConnections');
+</script>

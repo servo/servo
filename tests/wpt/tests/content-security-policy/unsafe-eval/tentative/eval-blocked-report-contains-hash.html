@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>eval-blocked-and-sends-report</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../../support/logTest.sub.js?logs=["PASS: eval() blocked"]'></script>
+    <script src="../../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+    try {
+      eval("alert_assert('FAIL')");
+    } catch (e) {
+      log('PASS: eval() blocked');
+    }
+    </script>
+    <script async defer src='../../support/checkReport.sub.js?reportField=eval-hash&reportValue=eval-sha256-59RYbtpsgpNknZwNEVJ55z9MzqclgnRZLLIunfpEiL4='></script>
+    <div id="log"></div>
+</body>
+
+</html>

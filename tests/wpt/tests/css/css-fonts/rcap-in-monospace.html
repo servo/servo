@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="rcap-in-monospace-ref.html">
+
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+  :root {
+    font-family: Ahem;
+    font-size: 16px;
+  }
+</style>
+
+<p style="font-family: sans-serif">The following two lines should look exactly the same.</p>
+
+<div style="font-family: monospace; font-size: 1.5em">
+  <div style="font-family: sans-serif; font-size: 1rcap">
+    Text.
+  </div>
+</div>
+
+<div style="font-family: sans-serif; font-size: 1rcap">
+  Text.
+</div>

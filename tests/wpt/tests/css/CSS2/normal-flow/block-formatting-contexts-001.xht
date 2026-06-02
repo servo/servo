@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical layout of boxes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-formatting" />
+		<link rel="match" href="block-formatting-contexts-001-ref.xht" />
+
+        <meta name="assert" content="Boxes are vertically laid out one after the other beginning at the top of a containing block." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid 1px black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are 3 lines of "Filler Text".</p>
+        <div id="div1">
+            <div>Filler Text</div>
+            <div>Filler Text</div>
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

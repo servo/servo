@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>&lt;mo&gt; movablelimits and embellished operator (reference)</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#embellished-operators">
+    <meta name="assert" content="Verifies effect of movablelimits on the core operator of an embellished operator, in both displaystyle modes.">
+    <link rel="match" href="mo-movablelimits-and-embellished-operator-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math { font: 25px/1 Ahem; }
+    </style>
+  </head>
+  <body>
+    <math>
+      <munder>
+        <mrow><mo lspace="0px" rspace="0px" movablelimits="true">A</mo></mrow>
+        <mn>2</mn>
+      </munder>
+      <munder>
+        <mrow><mo lspace="0px" rspace="0px" movablelimits="false">A</mo></mrow>
+        <mn>2</mn>
+      </munder>
+    </math>
+    <math displaystyle="true">
+      <munder>
+        <mrow><mo lspace="0px" rspace="0px" movablelimits="true">A</mo></mrow>
+        <mn>2</mn>
+      </munder>
+      <munder>
+        <mrow><mo lspace="0px" rspace="0px" movablelimits="false">A</mo></mrow>
+        <mn>2</mn>
+      </munder>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_munderover");</script>
+  </body>
+</html>

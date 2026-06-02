@@ -1,0 +1,29 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: MediaStreamTrack Insertable Media Processing using Streams (https://w3c.github.io/mediacapture-transform/)
+
+[Exposed=(Window,DedicatedWorker), Transferable]
+interface MediaStreamTrackHandle {
+   constructor(MediaStreamTrack track);
+};
+
+[Exposed=DedicatedWorker]
+interface MediaStreamTrackProcessor {
+    constructor(MediaStreamTrackProcessorInit init);
+    readonly attribute ReadableStream readable;
+};
+
+typedef (MediaStreamTrack or MediaStreamTrackHandle) MediaStreamTrackOrHandle;
+dictionary MediaStreamTrackProcessorInit {
+  required MediaStreamTrackOrHandle track;
+  [EnforceRange] unsigned short maxBufferSize;
+};
+
+[Exposed=DedicatedWorker]
+interface VideoTrackGenerator {
+  constructor();
+  readonly attribute WritableStream writable;
+  attribute boolean muted;
+  readonly attribute MediaStreamTrack track;
+};

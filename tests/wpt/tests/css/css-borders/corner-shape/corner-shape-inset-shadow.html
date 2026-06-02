@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-inset-shadow-ref.html">
+<meta name="fuzzy" content="maxDifference=0-255;totalPixels=0-360">
+<style>
+    .target {
+        width: 200px;
+        height: 200px;
+        box-sizing: border-box;
+        corner-shape: bevel notch squircle scoop;
+        border-radius: 20%;
+        background: green;
+        border: 20px solid purple;
+        box-shadow: -5px 5px 0 10px blue inset;
+    }
+</style>
+</head>
+<body>
+    <div class="target"></div>
+</body>

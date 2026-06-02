@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Make sure frame-src does path matching -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src data: https://{{hosts[][www1]}}:{{ports[https][0]}}/content-security-policy/support/;">
+    <title>frame-src-blocked-path-matching</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+      async_test(t => {
+        let frame = document.createElement("iframe");
+        frame.src = "https://{{hosts[][www1]}}:{{ports[https][0]}}/content-security-policy/support/postmessage-pass.html";
+
+        window.addEventListener('message', t.step_func(e => {
+          if (e.source === frame.contentWindow) {
+            assert_equals(e.data, "PASS");
+            t.done();
+          }
+        }));
+
+        document.body.append(frame);
+      }, "Cross-origin frame with allowed path loads");
+
+      async_test(t => {
+        let frame = document.createElement("iframe");
+        frame.src = "https://{{hosts[][www1]}}:{{ports[https][0]}}/content-security-policy/resource/";
+
+        window.addEventListener('securitypolicyviolation', t.step_func_done(e => {
+          assert_equals(e.blockedURI, "https://{{hosts[][www1]}}:{{ports[https][0]}}");
+          assert_equals(e.effectiveDirective, "frame-src");
+        }), { once: true });
+
+        document.body.append(frame);
+      }, "Cross-origin frame with other path is blocked");
+
+      async_test(t => {
+        let frame = document.createElement("iframe");
+        frame.src = "data:text/html,<h1>Hello World</h1>"
+        frame.onload = t.step_func(() => {
+          frame.src = "https://{{hosts[][www1]}}:{{ports[https][0]}}/content-security-policy/resource/";
+
+          window.addEventListener('securitypolicyviolation', t.step_func_done(e => {
+            assert_equals(e.blockedURI, "https://{{hosts[][www1]}}:{{ports[https][0]}}");
+            assert_equals(e.effectiveDirective, "frame-src");
+          }), { once: true });
+        });
+        document.body.append(frame);
+      }, "Cross-origin frame with other path is blocked even after replacing the already loaded URL");
+    </script>
+  </body>
+</html>

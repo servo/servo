@@ -1,0 +1,99 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL smoothstep-float function test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
+
+function smoothstep(edge0, edge1, value) {
+  var t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+GLSLGenerator.runReferenceImageTest({
+  feature: "smoothstep",
+  args: "float edge0, float edge1, $(type) value",
+  testFunc: "$(func)(float, float, $(type))",
+  gridRes: 8,
+  tolerance: 4,
+  tests: [
+    {
+      source: ["$(output) = vec4(",
+              "    $(func)(0.3, 0.7, $(input).x),",
+              "    $(func)(0.2, 0.8, $(input).y),",
+              "    0,",
+              "    1);"].join("\n"),
+      generator: function(x, y, z, w) {
+        return [ smoothstep(0.3, 0.7, x),
+                 smoothstep(0.2, 0.8, y),
+                 0,
+                 1 ];
+      },
+    },
+    {
+      source: [ "$(output) = vec4(",
+                "    $(func)(0.4, 0.8, $(input).xy),",
+                "    0, 1);"].join("\n"),
+      generator: function(x, y, z, w) {
+        return [ smoothstep(0.4, 0.8, x),
+                 smoothstep(0.4, 0.8, y),
+                 0,
+                 1 ];
+      },
+    },
+    {
+      // FIXME: this test seems to need a higher tolerance when run in a vertex shader.
+      source: [ "$(output) = vec4(",
+                "    $(func)(0.3, 0.7, $(input).xyz),",
+                "    1);"].join("\n"),
+      generator: function(x, y, z, w) {
+        return [ smoothstep(0.3, 0.7, x),
+                 smoothstep(0.3, 0.7, y),
+                 smoothstep(0.3, 0.7, z),
+                 1 ];
+      },
+      tolerance: 12,
+      fragmentTolerance: 3,
+    },
+    {
+      // FIXME: this test seems to need a higher tolerance when run in a vertex shader.
+      source: ["$(output) = ",
+               "    $(func)(0.3, 0.9, $(input));"].join("\n"),
+      generator: function(x, y, z, w) {
+        return [ smoothstep(0.3, 0.9, x),
+                 smoothstep(0.3, 0.9, y),
+                 smoothstep(0.3, 0.9, z),
+                 smoothstep(0.3, 0.9, w) ];
+      },
+      tolerance: 7,
+      fragmentTolerance: 3,
+    },
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

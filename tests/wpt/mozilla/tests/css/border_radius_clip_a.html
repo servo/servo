@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `border-radius` causes the background to be clipped around the corners. -->
+<link rel=match href=border_radius_clip_ref.html>
+<style>
+main {
+    display: block;
+    width: 16px;
+    height: 16px;
+    background: green;
+    overflow: hidden;
+}
+section {
+    display: block;
+    width: 256px;
+    height: 256px;
+    background: red;
+    border-radius: 50%;
+}
+</style>
+</head>
+<body>
+<main><section></section></main>
+</body>
+</html>
+

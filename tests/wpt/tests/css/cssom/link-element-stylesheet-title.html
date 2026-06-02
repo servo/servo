@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Link Element StyleSheet's title attribute</title>
+<link rel="author" title="Takuya Kurimoto" href="mailto:takuya004869@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-stylesheet-title">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<link id="set_title" rel="stylesheet" href="null.css" type="text/css">
+<link id="set_title" rel="stylesheet" title="" href="empty.css" type="text/css">
+<link id="set_title" rel="stylesheet" title="title" href="set.css" type="text/css">
+<link id="change_title_to_empty_string" rel="stylesheet" title="title" href="set.css" type="text/css">
+
+<script>
+test(function() {
+  const sheetCount = 3;
+  const sheets = Array.from(document.styleSheets).filter(sheet => sheet.ownerNode.id == 'set_title');
+  const linkStylesheets = Array.from(document.querySelectorAll('#set_title'));
+  assert_equals(sheets.length, sheetCount);
+  assert_equals(linkStylesheets.length, sheetCount);
+  for (let i = 0; i < sheets.length; ++i) {
+    let titleAttr = linkStylesheets[i].getAttribute("title");
+    if (titleAttr === null || titleAttr === "")
+      assert_equals(sheets[i].title, null, "Empty title returns null");
+    else
+      assert_equals(sheets[i].title, titleAttr, "Selected title is properly reflected");
+  }
+}, "StyleSheet.title");
+
+test(() => {
+  const linkStylesheet = document.getElementById('change_title_to_empty_string');
+  linkStylesheet.setAttribute("title", "")
+  const sheet = Array.from(document.styleSheets).find(sheet => sheet.ownerNode.id == 'change_title_to_empty_string');
+  assert_equals(sheet.title, null);
+}, "Executing setAttribute('title', '') results in the title being set to null");
+
+</script>

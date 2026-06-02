@@ -1,0 +1,22 @@
+features:
+- name: background-image
+  files:
+  - table-background*
+  - table-layer-transparency-003.xht
+  - table-layer-transparency-005.xht
+  - table-layer-transparency-008.xht
+- name: background-position
+  files:
+  - table-backgrounds-*
+- name: background-repeat
+  files:
+  - background-table-*
+- name: borders
+  files:
+  - border-conflict-*
+  - border-style-*
+  - column-border-*
+- name: margin
+  files:
+  - table-margin-*
+  - tables-101.xht

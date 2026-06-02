@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Filter Test: Test opacity shorthand with value 0</title>
+    <link rel="author" title="Naohiro Nakajima" href="mailto:nakajima.jmg@gmail.com">
+    <link rel="reviewer" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://www.w3.org/TR/filter-effects-1/#funcdef-filter-opacity">
+    <link rel="match" href="reference/filters-opacity-002-ref.html">
+    <meta name="assert" content="CSS opacity filter will apply a transparency to the div element.
+    Since opacity is 0, it has affect on the div to be transparent.">
+    <style type="text/css">
+
+        .box1{
+            width:200px;
+            height: 200px;
+            background: green;
+        }
+       .box2{
+            width: 200px;
+            height: 200px;
+            background: red;
+            filter: opacity(0);
+        }
+
+    </style>
+</head>
+<body>
+<p>Test filter opacity CSS shorthand. You should see a green box.</p>
+<!-- PAGE CONTENT -->
+    <div class="box1"></div>
+    <div class="box2"></div>
+
+</body>
+</html>

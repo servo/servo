@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.createElement("div");
+for (var i = 0; i < 1000; i++) {
+    var key = "key_" + i;
+    var value = "value_" + i;
+    div.dataset[key] = value;
+}
+function assertEquals(a, b) {
+    if (a !== b) console.log("assertion failed: not equal", a, b);
+}
+var i = 0;
+for (var key in div.dataset) {
+    var ref_key = "key_" + i;
+    var ref_value = "value_" + i;
+    assertEquals(key, ref_key);
+    assertEquals(div.dataset[key], ref_value);
+    i++;
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers enumerator of named properties",
+    run: function() {
+        for (var key in div.dataset);
+}});
+</script>
+</body>
+</html>

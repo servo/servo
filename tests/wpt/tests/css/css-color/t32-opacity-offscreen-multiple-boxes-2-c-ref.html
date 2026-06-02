@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<style>
+  body { background: white; }
+  div.test { margin: 1em; line-height: 0; font-family: monospace; }
+  div.test span a { background: rgb(153, 153, 255); color: blue; }
+  div.ref { height: 1em; width: 5em; background: rgb(153, 153, 255); }
+</style>
+<body>
+  <p>The following two boxes should be the same color:</p>
+  <div class="test"><span><a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></span></div>
+  <div class="ref"></div>
+</body>

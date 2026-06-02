@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/helper.js"></script>
+<body>
+<script>
+
+  var tests = [
+    `
+      <form action="/resource-timing/resources/document-navigated.html" method="post">
+        <input type="submit">
+        <textarea name="dangling">
+    `,
+    `
+      <div>
+        <form action="/resource-timing/resources/document-navigated.html" method="post">
+          <input type="submit">
+          <textarea name="dangling">
+    `,
+    `
+      <form action="/resource-timing/resources/document-navigated.html" method="post" id="form">
+        <input type="submit">
+      </form>
+      <textarea name="dangling" form="form">
+    `
+  ];
+
+  tests.forEach(markup => {
+    async_test(t => {
+      var i = createFrame(`${markup}sekrit<element attribute></element>`);
+      assert_no_submission(t, i);
+    }, markup.replace(/[\n\r]/g, ''));
+  });
+</script>

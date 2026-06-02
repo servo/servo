@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-items">
+<link rel="match" href="anonymous-grid-items-002-ref.html">
+<p>Test passes if there are two lines below:</p>
+<hr>
+<div style="display: grid; grid-auto-flow: row;">
+  line one <span id="target" style="position: absolute; display: none;"></span> line two
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.display = 'inline';
+</script>

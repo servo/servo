@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that break precedence for a grid row is correctly calculated.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid; grid-template-rows: 50px 100px;">
+    <div style="background: green; break-after: avoid; display: grid; grid-template-columns: auto auto;">
+      <div style="break-after: column;"></div> <!-- This break-after should be propagated to the outermost grid row. -->
+      <div></div>
+    </div>
+    <div style="background: green;"></div>
+  </div>
+  <div style="background: green; position: absolute; width: 50px; height: 50px; left: 0; bottom: 0;"></div>
+</div>

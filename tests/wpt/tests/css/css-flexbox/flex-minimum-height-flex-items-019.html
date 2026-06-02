@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: min-height: auto with flex items containing percentage-sized children</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1003556" />
+
+<style>
+.flex {
+    display: flex;
+}
+.column {
+    flex-direction: column;
+}
+
+.bigger-than-parent {
+    height: 100%;
+    min-height: 100px;
+    background-color: red;
+}
+
+#reference-overlapped-green {
+    position: absolute;
+    background-color: green;
+    width: 100px;
+    height: 100px;
+    z-index: 1;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-green"></div>
+
+<div id="outer" style="width: 100px; height: 300px;" class="flex">
+  <div style="height: 100px; width: 100px; background: blue;" class="flex column">
+      <div style="flex: 0 1 100%"></div>
+
+      <div style="flex: 1 0 30px;">
+          <div class="bigger-than-parent">
+          </div>
+      </div>
+  </div>
+</div>
+
+<script>
+onload = function() {
+  var outer = document.getElementById("outer");
+  outer.offsetWidth;
+  outer.style.height = "200px";
+};
+</script>

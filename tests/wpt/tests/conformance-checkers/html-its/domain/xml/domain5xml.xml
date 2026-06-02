@@ -1,0 +1,17 @@
+<text>
+<head>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:type="simple" xlink:href="domain5xmlrules.xml"/>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:domainRule selector="/text/body/span" domainPointer="/text/head/meta[@name='DC.type']/@content" domainMapping="'sports law' amateur"/>
+</its:rules>
+<meta name="DC.subject" content="sports law"/>
+<meta name="DC.type" content="sports law"/>
+</head>
+<body>
+<p>
+Sports law is an umbrella term used to describe the legal issues at work in the world of both amateur and professional sports.
+Sports law overlaps substantially with labor law, contract law, competition or antitrust law, and tort law.
+</p>
+<span id="amateursports">Unlike intercollegiate sports, international amateur sports are run by a variety of organizations. </span>
+</body>
+</text>

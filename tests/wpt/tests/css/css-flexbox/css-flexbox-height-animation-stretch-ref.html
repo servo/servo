@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>CSS Flexbox Test: Items stretch correctly while content is animating</title>
+	<link rel="author" title="Micky Brunetti" href="mailto:micky2be@gmail.com">
+    <style>
+		@keyframes resize {
+			0%   {height: 100px;}
+			100% {height: 50px;}
+		}
+        .test {
+            height: 100px;
+            width: 200px;
+            background-color: green;
+			animation: resize 500ms infinite alternate;
+        }
+    </style>
+</head>
+<body>
+	<p>The test passes if you keep seeing a green rectangle and no red.</p>
+    <div class="test"></div>
+</body>
+</html>

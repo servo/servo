@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:bar="bar">
+  <head>
+    <title>Test for Shadow DOM innerHTML setter in XML</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      <![CDATA[
+        // We define our custom elements lazily so we don't mess
+        // with the DOM during parsing.
+        customElements.define("custom-el-1",
+          class extends HTMLElement {
+            constructor() {
+              super();
+              this.attachShadow({ mode: "open" });
+              try { this.shadowRoot.innerHTML = "<span/>"; } catch (e) {}
+            }
+          });
+        function defineElements() {
+          // We define our custom elements whose behavior involves
+          // ancestors of our parent lazily, because otherwise the
+          // constructor runs before the element is in the DOM and has
+          // the ancestors set up.
+          customElements.define("custom-el-2",
+            class extends HTMLElement {
+              constructor() {
+                super();
+                this.attachShadow({ mode: "open" });
+                try { this.shadowRoot.innerHTML = "<span/>"; } catch (e) {}
+              }
+            });
+          customElements.define("custom-el-with-prefix",
+            class extends HTMLElement {
+              constructor() {
+                super();
+                this.attachShadow({ mode: "open" });
+                try {
+                  this.shadowRoot.innerHTML = "<bar:span/>";
+                } catch (e) {
+                  // Test will fail due to us not having the kid
+                }
+              }
+            });
+        }
+      ]]>
+    </script>
+  </head>
+  <body>
+    <custom-el-1 id="htmlDefault"/>
+    <span xmlns="foo" xmlns:html="http://www.w3.org/1999/xhtml">
+      <html:custom-el-2 id="fooDefault"/>
+    </span>
+    <custom-el-with-prefix id="prefixTest"/>
+    <script>
+      <![CDATA[
+        const htmlNS = "http://www.w3.org/1999/xhtml";
+        test(() => {
+          var el = document.getElementById("htmlDefault");
+          var kid = el.shadowRoot.firstChild;
+          assert_equals(kid.namespaceURI, htmlNS,
+                        "Kid's namespace should be our default");
+        }, "InnerHTML behavior on custom element in default XHTML namespace");
+
+        test(defineElements, "Setting up the custom elements");
+        test(() => {
+          var el = document.getElementById("fooDefault");
+          var kid = el.shadowRoot.firstChild;
+          assert_equals(kid.namespaceURI, "foo",
+                        "Kid's namespace should be our default");
+        }, "InnerHTML behavior on custom element in default 'foo' namespace");
+
+        test(() => {
+          var el = document.getElementById("prefixTest");
+          var kid = el.shadowRoot.firstChild;
+          assert_equals(kid.namespaceURI, "bar",
+                        "Kid's namespace should be based on ancestor prefix");
+        }, "InnerHTML behavior with prefixes on custom element");
+      ]]>
+    </script>
+  </body>
+</html>

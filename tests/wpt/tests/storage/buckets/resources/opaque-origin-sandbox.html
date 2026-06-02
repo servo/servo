@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script>
+  'use strict'
+
+  // Sends the result of navigator.storageBuckets.open('bucket').
+
+  function post_message(data) {
+    if (window.parent !== null) {
+      window.parent.postMessage(data, { targetOrigin: '*' });
+    }
+    if (window.opener !== null) {
+      window.opener.postMessage(data, { targetOrigin: '*' });
+    }
+  }
+
+  try {
+    navigator.storageBuckets.open('opaque-origin-bucket')
+      .then(() => {
+        post_message('navigator.storageBuckets.open(): FULFILLED');
+      }).catch(error => {
+        post_message(
+          `navigator.storageBuckets.open(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`navigator.storageBuckets.open(): EXCEPTION: ${error.name}`);
+  }
+
+  try {
+    navigator.storageBuckets.keys()
+      .then(() => {
+        post_message('navigator.storageBuckets.keys(): FULFILLED');
+      }).catch(error => {
+        post_message(
+          `navigator.storageBuckets.keys(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`navigator.storageBuckets.keys(): EXCEPTION: ${error.name}`);
+  }
+
+  try {
+    navigator.storageBuckets.delete('opaque-origin-bucket')
+      .then(() => {
+        post_message('navigator.storageBuckets.delete(): FULFILLED');
+      }).catch(error => {
+        post_message(
+          `navigator.storageBuckets.delete(): REJECTED: ${error.name}`);
+      });
+  } catch (error) {
+    post_message(`navigator.storageBuckets.delete(): EXCEPTION: ${error.name}`);
+  }
+</script>
+

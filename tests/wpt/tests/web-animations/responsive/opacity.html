@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+'use strict';
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+var properties = [
+    'fillOpacity',
+    'floodOpacity',
+    'opacity',
+    'shapeImageThreshold',
+    'stopOpacity',
+    'strokeOpacity',
+];
+
+for (var property of properties) {
+    test(function() {
+        var initialKeyframe = {};
+        initialKeyframe[property] = 'inherit';
+        var finalKeyframe = {};
+        finalKeyframe[property] = '0.5';
+        var keyframes = [ initialKeyframe, finalKeyframe ];
+
+        container.style[property] = 1;
+        var player = element.animate(keyframes, 10);
+
+        player.pause();
+        player.currentTime = 5;
+        assert_equals(getComputedStyle(element)[property], '0.75');
+
+        container.style[property] = 0.25;
+        assert_equals(getComputedStyle(element)[property], '0.375');
+
+        container.style[property] = -0.5; // clamps to 0
+        assert_equals(getComputedStyle(element)[property], '0.25');
+
+        container.style[property] = 2; // clamps to 1
+        assert_equals(getComputedStyle(element)[property], '0.75');
+    }, property + ' responsive to inherited changes');
+}
+
+</script>

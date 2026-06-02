@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script>
+
+async function main() {
+  // Start loading a sandbox iframe, which is treated as cross-origin iframe.
+  // The iframe messages us with the value of its document.prerendering,
+  // which should be false since load is delayed until after activation.
+  const sandboxIframe = document.createElement('iframe');
+  sandboxIframe.sandbox = 'allow-scripts';
+
+  const gotMessage = new Promise((resolve, reject) => {
+    window.addEventListener('message', (e) => {
+     if (e.data === 'document.prerendering: false')
+       resolve();
+     else
+       reject('bad message: ' + e.data);
+    });
+  });
+
+  sandboxIframe.src = 'post-message-prerendering-completion-notification.html';
+  document.body.appendChild(sandboxIframe);
+
+  // To give the test a chance to fail by giving enough time if it loads the
+  // cross-origin iframe instead of deferring, wait for a same-origin iframe to
+  // load before proceeding with the test.
+  await createFrame('empty.html');
+
+  // Start the event collector to trigger activation.
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.start(gotMessage, 'iframe loaded');
+}
+
+// The main test page (prerender/sandbox-iframe.html) loads the initiator
+// page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const params = new URLSearchParams(location.search);
+if (!params.has('prerendering')) {
+  loadInitiatorPage();
+} else {
+  main();
+}
+</script>
+</body>

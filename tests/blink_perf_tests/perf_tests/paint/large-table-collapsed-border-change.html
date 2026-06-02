@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+  table {
+    border: 2px solid green;
+    border-collapse: collapse;
+    font-size: 3px;
+    will-change: transform;
+  }
+  td {
+    border: 1px solid blue;
+  }
+  table.text td::before {
+    content: "ABC";
+  }
+  table.background td {
+    background: green;
+  }
+</style>
+<script>
+function createTable(rows, columns) {
+  var table = document.createElement("TABLE");
+  for (var i = 0; i < rows; ++i) {
+    var tr = document.createElement("TR");
+    for (var j = 0; j < columns; ++j) {
+      var td = document.createElement("TD");
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
+var table1 = createTable(100, 100);
+document.body.appendChild(table1);
+
+var table2= createTable(150, 150);
+table2.className = 'text';
+document.body.appendChild(table2);
+
+var table3 = createTable(150, 150);
+table3.className = 'background';
+document.body.appendChild(table3);
+
+var count = 0;
+var ix = 30;
+var iy = 30;
+
+measurePaint({
+  iterationCount: 40,
+  run: function() {
+    if (count % 4 == 0) {
+      table1.style.borderColor = table1.style.borderColor == 'green' ?
+          'yellow' : 'green';
+    } else {
+      var table = [table1, table2, table3][count % 3];
+      table.childNodes[iy].childNodes[ix].style.borderColor = "red";
+      ix++;
+      iy++;
+    }
+    count++;
+  },
+});
+</script>
+</body>

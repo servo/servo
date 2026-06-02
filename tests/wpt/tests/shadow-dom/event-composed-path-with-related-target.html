@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Event path and Event.composedPath() (with related target)</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+
+<div id="test1">
+  <div id="target"></div>
+  <div id="related"></div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test1);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related }));
+  let path = ['target', 'test1'];
+  assert_event_path_equals(log, [['target', 'target', 'related', path],
+                                 ['test1', 'target', 'related', path]]);
+}, 'Event path for an event with a relatedTarget. relatedTarget != target.');
+</script>
+
+<script>
+test(() => {
+  let n = createTestTree(test1);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.target }));
+  let path = ['target', 'test1'];
+  assert_event_path_equals(log, [['target', 'target', 'target', path],
+                                 ['test1', 'target', 'target', path]]);
+}, 'Event path for an event with a relatedTarget. Event should be dispatched even when target and relatedTarget are same.');
+</script>
+
+<div id="test2">
+  <div id="host">
+    <template id="sr" data-mode="open">
+      <div id="target"></div>
+      <div id="related"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test2);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related }));
+  let path = ['target', 'sr'];
+  assert_event_path_equals(log, [['target', 'target', 'related', path],
+                                 ['sr', 'target', 'related', path]]);
+}, 'Event path for an event with a relatedTarget. Event should stop at the shadow root');
+
+test(() => {
+  let n = createTestTree(test2);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.target }));
+  let path = ['target', 'sr'];
+  assert_event_path_equals(log, [['target', 'target', 'target', path],
+                                 ['sr', 'target', 'target', path]]);
+}, 'Event path for an event with a relatedTarget which is identical to target. Event should be dispatched and should stop at the shadow root.');
+</script>
+
+<div id="test3_1">
+  <div id="host1">
+    <template id="sr1" data-mode="open">
+      <div id="target1"></div>
+    </template>
+  </div>
+</div>
+
+<div id="test3_2">
+  <div id="host2">
+    <template id="sr2" data-mode="open">
+      <div id="target2"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n1 = createTestTree(test3_1);
+  let n2 = createTestTree(test3_2);
+  let log = dispatchEventWithLog(n1, n1.target1, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n2.target2 }));
+  let path = ['target1', 'sr1', 'host1', 'test3_1'];
+  assert_event_path_equals(log, [['target1', 'target1', 'host2', path],
+                                 ['sr1',     'target1', 'host2', path],
+                                 ['host1',   'host1',   'host2', path],
+                                 ['test3_1', 'host1',   'host2', path]]);
+}, 'Event path for an event with a relatedTarget. target and relaterTarget do not share any shadow-including ancestor. target is in a shadow tree.');
+
+test(() => {
+  let n1 = createTestTree(test3_1);
+  let n2 = createTestTree(test3_2);
+  let log = dispatchEventWithLog(n1, n1.host1, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n2.target2 }));
+  let path = ['host1', 'test3_1'];
+  assert_event_path_equals(log, [['host1',   'host1',   'host2', path],
+                                 ['test3_1', 'host1',   'host2', path]]);
+}, 'Event path for an event with a relatedTarget. target and relaterTarget do not share any shadow-including ancestor. target is not in a shadow tree');
+</script>
+
+<div id="test4">
+  <div id="host1">
+    <template id="sr1" data-mode="open">
+      <div id="host2">
+        <template id="sr2" data-mode="open">
+          <div id="target"></div>
+        </template>
+      </div>
+      <div id="host3">
+        <template id="sr3" data-mode="open">
+          <div id="related"></div>
+        </template>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test4);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related }));
+  let path = ['target', 'sr2', 'host2', 'sr1'];
+  assert_event_path_equals(log, [['target', 'target', 'host3', path],
+                                 ['sr2', 'target', 'host3', path],
+                                 ['host2', 'host2', 'host3', path],
+                                 ['sr1', 'host2', 'host3', path]]);
+}, 'Event path for an event with a relatedTarget. target and relaterTarget share the same shadow-including ancestor. Both are in shadow trees.');
+
+test(() => {
+  let n = createTestTree(test4);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.host1 }));
+  let path = ['target', 'sr2', 'host2', 'sr1'];
+  assert_event_path_equals(log, [['target', 'target', 'host1', path],
+                                 ['sr2', 'target', 'host1', path],
+                                 ['host2', 'host2', 'host1', path],
+                                 ['sr1', 'host2', 'host1', path]]);
+}, 'Event path for an event with a relatedTarget. relatedTarget is a shadow-including ancestor of target.');
+
+test(() => {
+  let n = createTestTree(test4);
+  let log = dispatchEventWithLog(n, n.host1, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.target }));
+  assert_event_path_equals(log, []);
+}, 'Event path for an event with a relatedTarget. target is a shadow-including ancestor of relatedTarget.');
+</script>
+
+<div id="test5">
+  <div id="host">
+    <template id="sr" data-mode="open">
+      <slot id="slot"></slot>
+      <div id="related"></div>
+    </template>
+    <div id="target"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test5);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related }));
+  let path = ['target', 'slot', 'sr', 'host', 'test5'];
+  assert_event_path_equals(log, [['target', 'target', 'host', path],
+                                 ['slot', 'target', 'related', path],
+                                 ['sr', 'target', 'related', path],
+                                 ['host', 'target', 'host', path],
+                                 ['test5', 'target', 'host', path]]);
+}, 'Event path for an event with a relatedTarget. target is assigned to a slot.');
+
+test(() => {
+  let n = createTestTree(test5);
+  let log = dispatchEventWithLog(n, n.related, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.target }));
+  let path = ['related', 'sr', 'host', 'test5'];
+  assert_event_path_equals(log, [['related', 'related', 'target', path],
+                                 ['sr', 'related', 'target', path],
+                                 ['host', 'host', 'target', path],
+                                 ['test5', 'host', 'target', path]]);
+}, 'Event path for an event with a relatedTarget. relatedTarget is assigned to a slot.');
+</script>
+
+<div id="test6">
+  <div id="host0">
+    <template id="sr0" data-mode="open">
+      <div id="host1">
+        <template id="sr1" data-mode="open">
+          <div id="host2">
+            <template id="sr2" data-mode="open">
+              <slot id="slot2"></slot>
+              <div id="related2"></div>
+            </template>
+            <div id="related1"></div>
+            <div id="d1">
+              <slot id="slot1"></slot>
+            </div>
+          </div>
+        </template>
+        <div id="host3">
+          <template id="sr3" data-mode="open">
+            <div id="host4">
+              <template id="sr4" data-mode="open">
+                <div id="host5">
+                  <template id="sr5" data-mode="open">
+                    <slot id="slot5"></slot>
+                  </template>
+                  <slot id="slot4"></slot>
+                </div>
+              </template>
+              <div id="target"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let n = createTestTree(test6);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related1 }));
+  let path = ['target', 'slot4', 'slot5', 'sr5', 'host5', 'sr4', 'host4', 'sr3', 'host3', 'slot1', 'd1', 'slot2', 'sr2', 'host2', 'sr1', 'host1', 'sr0'];
+  assert_event_path_equals(log, [['target',  'target', 'host1',    path],
+                                 ['slot4',   'target', 'host1',    path],
+                                 ['slot5',   'target', 'host1',    path],
+                                 ['sr5',     'target', 'host1',    path],
+                                 ['host5',   'target', 'host1',    path],
+                                 ['sr4',     'target', 'host1',    path],
+                                 ['host4',   'target', 'host1',    path],
+                                 ['sr3',     'target', 'host1',    path],
+                                 ['host3',   'host3',  'host1',    path],
+                                 ['slot1',   'host3',  'related1', path],
+                                 ['d1'   ,   'host3',  'related1', path],
+                                 ['slot2',   'host3',  'related1', path],
+                                 ['sr2',     'host3',  'related1', path],
+                                 ['host2',   'host3',  'related1', path],
+                                 ['sr1',     'host3',  'related1', path],
+                                 ['host1',   'host3',  'host1',    path],
+                                 ['sr0',     'host3',  'host1'   , path]]);
+}, 'Event path for an event with a relatedTarget. Event should be dispatched at every slots.');
+
+test(() => {
+  let n = createTestTree(test6);
+  let log = dispatchEventWithLog(n, n.target, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.related2 }));
+  let path = ['target', 'slot4', 'slot5', 'sr5', 'host5', 'sr4', 'host4', 'sr3', 'host3', 'slot1', 'd1', 'slot2', 'sr2', 'host2', 'sr1', 'host1', 'sr0'];
+  assert_event_path_equals(log, [['target',  'target', 'host1',    path],
+                                 ['slot4',   'target', 'host1',    path],
+                                 ['slot5',   'target', 'host1',    path],
+                                 ['sr5',     'target', 'host1',    path],
+                                 ['host5',   'target', 'host1',    path],
+                                 ['sr4',     'target', 'host1',    path],
+                                 ['host4',   'target', 'host1',    path],
+                                 ['sr3',     'target', 'host1',    path],
+                                 ['host3',   'host3',  'host1',    path],
+                                 ['slot1',   'host3',  'host2',    path],
+                                 ['d1'   ,   'host3',  'host2',    path],
+                                 ['slot2',   'host3',  'related2', path],
+                                 ['sr2',     'host3',  'related2', path],
+                                 ['host2',   'host3',  'host2',    path],
+                                 ['sr1',     'host3',  'host2',    path],
+                                 ['host1',   'host3',  'host1',    path],
+                                 ['sr0',     'host3',  'host1'   , path]]);
+}, 'Event path for an event with a relatedTarget. Event should be dispatched at every slots. relatedTarget should be correctly retargeted.');
+</script>

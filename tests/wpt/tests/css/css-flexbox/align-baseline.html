@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link href="support/flexbox.css" rel="stylesheet">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#valdef-align-items-baseline">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#valdef-flex-direction-column">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#valdef-flex-wrap-wrap-reverse">
+<link rel="match" href="reference/align-baseline-ref.html">
+<style>
+body {
+    margin: 0;
+}
+</style>
+
+<body>
+<div class='flexbox column align-items-baseline'>
+    <h1>This text</h1>
+    <p>should be left aligned.</p>
+</div>
+
+<div class='flexbox column align-items-baseline wrap-reverse'>
+    <h1>This text</h1>
+    <p>should be right aligned.</p>
+</div>
+</body>
+
+</html>

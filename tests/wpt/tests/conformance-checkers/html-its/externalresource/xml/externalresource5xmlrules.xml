@@ -1,0 +1,5 @@
+<its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its"
+ xmlns:dbk="http://docbook.org/ns/docbook">
+   <its:param name="externalResourceParam">movie-frame.gif</its:param>
+  <its:externalResourceRefRule selector="//dbk:imagedata[@fileref=$externalResourceParam]" externalResourceRefPointer="@fileref"/>
+ </its:rules>

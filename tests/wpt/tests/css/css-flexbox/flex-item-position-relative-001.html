@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Flex items and `position: relative`</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
+<meta name="assert"
+  content="Flex items can be positioned with `position: relative` and establish containing blocks for absolutely-positioned descendants." />
+<link rel="match" href="flex-item-position-relative-001-ref.html">
+
+<style>
+    body {
+        margin: 0;
+    }
+    #flex {
+        display: flex;
+        width: 100px;
+        height: 100px;
+    }
+
+    #flex > div {
+        width: 50px;
+        height: 50px;
+        background: green;
+        position: relative;
+        top: 50px;
+        left: 50px;
+    }
+    #flex > div > div {
+        width: 50px;
+        height: 50px;
+        background: green;
+        position: absolute;
+        left: 100%;
+        top: 100%;
+    }
+</style>
+
+<div style="position: absolute; background: red; width: 50px; height: 50px; left: 50px; top: 50px"></div>
+
+<div style="position: absolute; background: red; width: 50px; height:50px; left: 100px; top: 100px"></div>
+<div id="flex">
+    <div><div style="background: green"></div></div>
+</div>

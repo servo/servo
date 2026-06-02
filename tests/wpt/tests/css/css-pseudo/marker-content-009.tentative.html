@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="marker-content-009-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+body { margin-left: 40px; }
+li::marker { content: 'AB'; }
+.v > li::marker { writing-mode: vertical-lr; }
+.lr { writing-mode: vertical-lr; }
+.big { font-size:xx-large; }
+.big-marker > li::marker { font-size:xx-large; }
+f { float: left; margin-right: 20px; }
+</style>
+</head><body>
+<ol>
+  <li><div class="big">C<br>D</div></li>
+  <li><div></div><div class="big">C<br>D</div>
+  </li>
+</ol>
+<ol class="big-marker">
+  <li><div>C<br>D</div></li>
+  <li><div></div><div>C<br>D</div></li>
+</ol>
+<ol class=v>
+  <li><div>C<br>D</div></li>
+  <li><div></div><div>C<br>D</div></li>
+  <li><div class="big">C<br>D</div></li>
+</ol>
+<ol class="v big-marker">
+  <li><div>C<br>D</div></li>
+</ol>
+</body></html>

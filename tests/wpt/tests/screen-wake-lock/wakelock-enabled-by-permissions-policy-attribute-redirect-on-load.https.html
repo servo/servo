@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+  "use strict";
+
+  const relative_path = "/permissions-policy/resources/permissions-policy-screen-wakelock.html";
+  const base_src = "/permissions-policy/resources/redirect-on-load.html#";
+  const same_origin_src = base_src + relative_path;
+  const cross_origin_src =
+    base_src + get_host_info().HTTPS_REMOTE_ORIGIN + relative_path;
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      same_origin_src,
+      expect_feature_available_default,
+      "screen-wake-lock"
+    );
+  }, 'Permissions-Policy allow="screen-wake-lock" allows same-origin relocation');
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      cross_origin_src,
+      expect_feature_unavailable_default,
+      "screen-wake-lock"
+    );
+  }, 'Permissions-Policy allow="screen-wake-lock" disallows cross-origin relocation');
+
+</script>
+</body>

@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A flex container with 'justify-content' property set to 'center'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#justify-content-property" />
+        <link rel="match" href="reference/justify-content-001-ref.html">
+        <meta name="flags" content="image">
+        <meta name="assert" content="This test checks that the flex container with 'justify-content: center' centers flex items in the main axis of each line." />
+        <meta name="fuzzy" content="maxDifference=1; totalPixels=0-5841" />
+        <style type="text/css">
+            #flexbox
+            {
+                background: linear-gradient(to right, blue 0, blue 75px, red 75px, red 225px, orange 225px, orange 300px);
+                display: flex;
+                justify-content: center;
+                height: 100px;
+                width: 300px;
+            }
+            div div
+            {
+                background-color: orange;
+                width: 76px;
+            }
+            .blue
+            {
+                background-color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single blue rectangle on the left, a single orange rectangle directly to its right, and there is no red visible on the page.</p>
+        <div id="flexbox">
+            <div class="blue"></div>
+            <div></div>
+        </div>
+    </body>
+</html>

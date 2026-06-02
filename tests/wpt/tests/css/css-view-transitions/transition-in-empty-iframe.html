@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+  <title>View transitions: Transition from an empty iframe</title>
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+  <link rel="author" href="mailto:bokan@chromium.org">
+  <link rel="match" href="transition-in-empty-iframe-ref.html">
+  <meta name=fuzzy content="maxDifference=0-80; totalPixels=0-1000">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    iframe {
+      position: absolute;
+      left: 25px;
+      top: 25px;
+      width: 50vw;
+      height: 50vh;
+    }
+    /* This div overlaps with the iframe, because the iframe is empty it should
+     * be visible behind the iframe. */
+    div {
+      background-color: skyblue;
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+  <script>
+    failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+    onload = () => {
+      requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+        frames[0].window.startTransition();
+        frames[0].window.transition.ready.then(() => {
+          requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+            takeScreenshot();
+          })});
+        });
+      })});
+    }
+  </script>
+</head>
+
+<body>
+  <iframe src="support/transition-in-empty-iframe-child.html">
+  </iframe>
+  <div></div>
+</body>
+</html>

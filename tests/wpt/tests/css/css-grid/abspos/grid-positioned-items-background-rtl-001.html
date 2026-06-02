@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned items background RTL</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="grid-positioned-items-background-rtl-001-ref.html">
+<meta name="assert" content="This test checks that the background of positioned items is painted in the right position using RTL direction.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+
+.grid {
+  grid-template-columns: 100px 200px;
+  grid-template-rows: 50px 150px;
+  width: 500px;
+  height: 300px;
+  border: 5px solid black;
+  margin: 30px;
+  padding: 15px;
+  /* Ensures that the grid container is the containing block of the absolutely positioned grid children. */
+  position: relative;
+  background-color: transparent;
+}
+
+.container {
+  position: relative;
+  float: left;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.grid > div {
+  background-color: green;
+}
+
+.lengthSize {
+  width: 50px;
+  height: 20px;
+}
+
+.percentageSize {
+  width: 50%;
+  height: 20%;
+}
+
+.offsetsSize {
+  left: 25px;
+  right: 30px;
+  top: 35px;
+  bottom: 40px;
+}
+
+.red {
+  background-color: red;
+}
+</style>
+
+<p>The test passes if you see 4 green boxes and no red.</p>
+
+<div class="container">
+  <div class="absolute red" style="left: 455px; top: 50px; width: 100px; height: 50px"></div>
+  <div class="absolute red" style="left: 390px; top: 50px; width: 50px; height: 20px"></div>
+  <div class="absolute red" style="left: 500px; top: 115px; width: 50px; height: 30px"></div>
+  <div class="absolute red" style="left: 275px; top: 135px; width: 145px; height: 75px"></div>
+  <div class="grid directionRTL">
+    <div class="absolute onlyFirstRowOnlyFirstColumn sizedToGridArea"
+      style="left: 5px;">
+    </div>
+    <div class="absolute onlyFirstRowOnlySecondColumn lengthSize"
+      style="right: 10px;">
+    </div>
+    <div class="absolute onlySecondRowOnlyFirstColumn percentageSize"
+      style="top: 15px;">
+    </div>
+    <div class="absolute onlySecondRowOnlySecondColumn offsetsSize"></div>
+  </div>
+</div>

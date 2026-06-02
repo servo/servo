@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+
+<div id="container"></div>
+
+<script>
+const formCount = 1000;
+const forms = {}
+const container = document.getElementById("container")
+for (let i = 0; i < formCount; i++) {
+  container.insertAdjacentHTML("beforeend",
+                               `<form id="form-${i}"></form>`)
+  const form = document.getElementById(`form-${i}`)
+  forms[form.id] = form;
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measure the speed of cloning body containing form elements inserted into a collection',
+  run: () => {
+    document.body.cloneNode(true);
+  }
+});
+</script>

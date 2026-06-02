@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<title>CSS Fonts 4: Font matching algorithm</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-style-matching">
+<link rel=match href="font-weight-search-direction-ref.html">
+<meta name="assert" content="If the desired weight is greater than 500,
+     weights greater than or equal to the desired weight are checked in ascending order
+     followed by weights below the desired weight in descending order
+     until a match is found.">
+
+<style>
+@font-face {
+    font-family: "simple";
+    font-weight: normal;
+    src: url("/fonts/Lato-Medium.ttf");
+}
+@font-face {
+    font-family: "simple";
+    font-weight: bold;
+    src: url("/fonts/Lato-Bold.ttf");
+}
+</style>
+
+<!-- The "simple" family has just normal and bold weights; check that various
+     font-weight values select the expected face. -->
+<div style='font: 100 24px "simple"'>This should be normal weight</div>
+<div style='font: 400 24px "simple"'>This should be normal weight</div>
+<div style='font: 499 24px "simple"'>This should be normal weight</div>
+<div style='font: 500 24px "simple"'>This should be normal weight</div>
+<div style='font: 501 24px "simple"'>This should be bold weight</div>
+<div style='font: 600 24px "simple"'>This should be bold weight</div>
+<div style='font: 700 24px "simple"'>This should be bold weight</div>
+<div style='font: 900 24px "simple"'>This should be bold weight</div>
+
+<br>
+
+<!-- If the Times New Roman family is present, it normally has the "standard 4" faces,
+     so should behave similarly. -->
+<div style='font: 100 24px "Times New Roman", "simple"'>This should be normal weight</div>
+<div style='font: 400 24px "Times New Roman", "simple"'>This should be normal weight</div>
+<div style='font: 499 24px "Times New Roman", "simple"'>This should be normal weight</div>
+<div style='font: 500 24px "Times New Roman", "simple"'>This should be normal weight</div>
+<div style='font: 501 24px "Times New Roman", "simple"'>This should be bold weight</div>
+<div style='font: 600 24px "Times New Roman", "simple"'>This should be bold weight</div>
+<div style='font: 700 24px "Times New Roman", "simple"'>This should be bold weight</div>
+<div style='font: 900 24px "Times New Roman", "simple"'>This should be bold weight</div>

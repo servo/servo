@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sample on last keyframe</title>
+  <link rel="help" href="https://www.w3.org/TR/css-animations-1/#animation-direction">
+  <style type="text/css" media="screen">
+    #test {
+      animation:  test 1s reverse paused;
+    }
+    @keyframes test {
+      from { opacity: 0; }
+      to { opacity: 0.5; }
+    }
+  </style>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.id = 'test';
+  const anim = div.getAnimations()[0];
+  await anim.ready;
+  const opacity = parseFloat(getComputedStyle(div).opacity);
+  assert_equals(opacity, 0.5);
+}, 'Opacity at start of reverse running animation');
+
+</script>
+</body>
+</html>

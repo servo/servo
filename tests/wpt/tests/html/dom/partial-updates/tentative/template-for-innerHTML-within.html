@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching via innerHTML</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+test(() => {
+    const container = document.getElementById("container");
+    container.innerHTML = `
+        <div id="placeholder" marker="p"><?start name="p">Old content in innerHTML<?end name="p"></div>
+        <template for="p">New content</template>`;
+    const placeholder = container.querySelector("div");
+    assert_equals(placeholder.id, "placeholder");
+    assert_equals(placeholder.textContent, "New content");
+    assert_equals(container.querySelector("template"), null);
+}, "<template for> in innerHTML patching inner element");
+</script>

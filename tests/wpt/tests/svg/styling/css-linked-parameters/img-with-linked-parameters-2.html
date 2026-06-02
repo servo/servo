@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Link Parameters - img element with multiple link-parameters</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#link-param-prop">
+<link rel="match" href="circle-green-with-stroke-ref.html"/>
+<style>
+  img {
+  link-parameters: param(--color, green), param(--stroke, blue);
+  }
+</style>
+
+<img src="circle-with-parameters.svg">

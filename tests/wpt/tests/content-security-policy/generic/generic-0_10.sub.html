@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test implicit port number matching (requires port 80)</title>
+    <meta http-equiv="Content-Security-Policy content="script-src 'self' {{domains[www]}} 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script>
+      var t = async_test("Test that script does not fire violation event");
+      window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired a violation event"));
+
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://{{domains[www]}}/content-security-policy/generic/positiveTest.js";
+      head.appendChild(script);
+    </script>
+
+    <script>
+        t.done();
+    </script>
+</head>
+<body>
+    <h1>test implicit port number matching (requires port 80)</h1>
+    <div id='log'></div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  // `document.cookie` is set using the `Set-Cookie` HTTP header in
+  // cross-origin-client-redirect-with-cookie-header.sub.https.html.headers.
+  assert_equals(document.cookie, 'example=test');
+
+  const url = new URL('redirect-chain-end.sub.https.html',
+                      window.location.href);
+  url.hostname = '{{host}}';
+
+  window.location = url;
+</script>

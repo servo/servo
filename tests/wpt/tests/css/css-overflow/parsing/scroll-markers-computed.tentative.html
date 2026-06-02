@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: scroll-marker-group with tabs/links mode computed values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12122">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value('scroll-marker-group', 'before tabs');
+  test_computed_value('scroll-marker-group', 'before links');
+  test_computed_value('scroll-marker-group', 'after links');
+  test_computed_value('scroll-marker-group', 'after tabs');
+</script>

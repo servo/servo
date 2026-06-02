@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with exactly the content's height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-001-ref.html">
+<meta name="assert" content="line-clamp: auto should not clamp on an element whose max-height exactly matches its size">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 5lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

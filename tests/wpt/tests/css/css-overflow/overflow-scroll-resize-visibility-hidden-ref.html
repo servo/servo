@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<style>
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  /* to make the scroller a white mask over the content */
+  filter: brightness(0) invert(1);
+  position: relative;
+  top: -200px;
+}
+.content {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<div class="content"></div>
+<div class="content"></div>
+<div class="scroller"></div>
+<div class="scroller"></div>

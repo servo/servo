@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Label sibling</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common/accesskey.js></script>
+<p>Press the access key combination for "a". <kbd></kbd></p>
+<input id=x onfocus="fail('input associated with the label was focused')">
+<fieldset>
+ <legend accesskey=a>legend</legend>
+ <label for=x onclick="fail('label received a click event')">label</label>
+</fieldset>
+<script>
+ onkeyup = e => {
+   if (e.keyCode === 65) {
+     pass();
+   }
+ }
+</script>

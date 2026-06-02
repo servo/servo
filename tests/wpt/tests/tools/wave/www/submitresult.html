@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Web Platform Tests</title>
+    <style>
+      #console {
+        font-family: monospace;
+      }
+    </style>
+    <script src="lib/wave-service.js"></script>
+  </head>
+  <body>
+    <div id="console"></div>
+    <script>
+      var screenConsole = document.getElementById("console");
+      var log = function() {
+        var text = "";
+        for (var i = 0; i < arguments.length; i++) {
+          text += arguments[i] + " ";
+        }
+        text = text.replace(/ /gm, "&nbsp;");
+        text = text.replace(/\n/gm, "<br/>");
+        screenConsole.innerHTML += "<br/>" + text;
+      };
+
+      window.onerror = function(error) {
+        log(error);
+      };
+
+      var HOSTNAME = location.hostname;
+      var PORT = location.port;
+      var PROTOCOL = location.protocol.replace(/:/, "");
+      var QUERY = (location.search.replace(/\?/, ""));
+      var match = QUERY.match(/token=([^&]+)/);
+      var TOKEN = match ? match[1] : null;
+      QUERY += /[\?&]path=/.test(location.search) ? "" : "&resume=1";
+      match = QUERY.match(/data=([^&]+)/);
+
+      var parsedQuery = {};
+
+      var parts = QUERY.split("&");
+      for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
+        var key = part.split("=")[0];
+        var value = part.split("=")[1];
+        parsedQuery[key] = value;
+      }
+
+      var resultData;
+      var rawResult = parsedQuery.result;
+      if (rawResult) {
+        resultData = JSON.parse(decodeURIComponent(rawResult));
+      }
+
+      WaveService.createResult(TOKEN, resultData, function() {
+        WaveService.readNextTest(TOKEN, function(url) {
+          location.href = url;
+        });
+      });
+    </script>
+  </body>
+</html>

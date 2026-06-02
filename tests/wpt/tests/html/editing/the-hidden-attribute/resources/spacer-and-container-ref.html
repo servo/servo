@@ -1,0 +1,22 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Spacer and a container (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+
+<style>
+.spacer {
+  width: 150px;
+  height: 3000px;
+  background: lightblue;
+}
+#container {
+  contain: style layout;
+  width: 150px;
+  height: 150px;
+}
+</style>
+
+<div class="spacer"></div>
+<div id="container"></div>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: cascade mechanism has precedence over inheritance - font boldness</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specified-value" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#specified" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#specified" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#inheritance" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inheriting" />
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inheriting" />
+  <meta content="When determining the specified value of a property, the cascade mechanism of (user agent, author, user) style sheets has precedence. If no value results from such mechanism, then the property may inherit from its parent. In this testcase, it is presumed that b elements are specified in the user agents style sheets to embold their text content." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {font-weight: normal;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the sentence below is bold.</p>
+
+  <div><b>This text should be bold.</b></div>
+
+ </body>
+</html>

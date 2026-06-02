@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Test cross-origin and same-origin use of setAppBadge</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+  function callMethodThroughIframe(iframe, data) {
+    return new Promise((resolve) => {
+      window.addEventListener("message", function listener(event) {
+        if (event.data.method !== data.method) return;
+        window.removeEventListener("message", listener);
+        resolve(event);
+      });
+      iframe.postMessage(data, "*");
+    });
+  }
+
+  function loadIframe(src) {
+    const iframe = document.createElement("iframe");
+    return new Promise((resolve) => {
+      window.addEventListener("message", function readyListener(ev) {
+        if (ev.data === "ready") {
+          window.removeEventListener("message", readyListener);
+          resolve(iframe);
+        }
+      });
+      iframe.src = src;
+      document.body.appendChild(iframe);
+    });
+  }
+
+  promise_test(async () => {
+    const iframe = await loadIframe(
+      `https://{{hosts[][]}}:{{ports[https][1]}}/badging/resources/badge_iframe.html`
+    );
+
+    const event = await callMethodThroughIframe(iframe, {
+      method: "setAppBadge",
+      value: 1,
+    });
+
+    const { exceptionType } = event.data;
+
+    assert_equals(
+      exceptionType,
+      "SecurityError",
+      "setAppBadge should throw a SecurityError when called in a cross-origin iframe"
+    );
+    iframe.remove();
+  }, "Test that calling setAppBadge in a cross-origin iframe throws a SecurityError");
+
+  promise_test(async () => {
+    const iframe = await loadIframe(
+      `https://{{hosts[][]}}:{{ports[https][1]}}/badging/resources/badge_iframe.html`
+    );
+
+    const event = await callMethodThroughIframe(iframe, {
+      method: "clearAppBadge",
+    });
+
+    assert_equals(
+      event.data.exceptionType,
+      "SecurityError",
+      "clearAppBadge should throw a SecurityError when called in a cross-origin iframe"
+    );
+    iframe.remove();
+  }, "Test that calling clearAppBadge in a cross-origin iframe throws a SecurityError");
+
+  promise_test(async () => {
+    const iframe = await loadIframe("./resources/badge_iframe.html");
+    const event = await callMethodThroughIframe(iframe, {
+      method: "setAppBadge",
+      value: 1,
+    });
+
+    assert_equals(
+      event.data.status,
+      "success",
+      "setAppBadge should succeed when called in a same-origin iframe"
+    );
+    iframe.remove();
+  }, "Test that calling setAppBadge in a same-origin iframe succeeds");
+
+  promise_test(async () => {
+    const iframe = await loadIframe("./resources/badge_iframe.html");
+    const event = await callMethodThroughIframe(iframe, {
+      method: "clearAppBadge",
+    });
+
+    assert_equals(
+      event.data.status,
+      "success",
+      "clearAppBadge should succeed when called in a same-origin iframe"
+    );
+    iframe.remove();
+  }, "Test that calling clearAppBadge in a same-origin iframe succeeds");
+
+  promise_test(async () => {
+    // Set badge on top level frame
+    await navigator.setAppBadge(1);
+
+    // Load same-origin iframe
+    const iframe = await loadIframe("./resources/badge_iframe.html");
+
+    // Set badge in iframe
+    let event = await callMethodThroughIframe(iframe, {
+      method: "setAppBadge",
+      value: 1,
+    });
+    assert_equals(
+      event.data.status,
+      "success",
+      "setAppBadge should succeed when called in a same-origin iframe"
+    );
+
+    // Clear badge in iframe
+    event = await callMethodThroughIframe(iframe, {
+      method: "clearAppBadge",
+    });
+    assert_equals(
+      event.data.status,
+      "success",
+      "clearAppBadge should succeed when called in a same-origin iframe"
+    );
+    iframe.remove();
+  }, "Test calling setAppBadge and clearAppBadge in a same-origin iframe after setting badge on the top level frame");
+
+  promise_test(async () => {
+    // Load two same-origin iframes
+    const iframe1 = await loadIframe("./resources/badge_iframe.html");
+    const iframe2 = await loadIframe("./resources/badge_iframe.html");
+
+    // Set badge in the first iframe
+    let event1 = await callMethodThroughIframe(iframe1, {
+      method: "setAppBadge",
+      value: 1,
+    });
+    assert_equals(
+      event1.data.status,
+      "success",
+      "setAppBadge should succeed when called in the first same-origin iframe"
+    );
+
+    // Set badge in the second iframe
+    let event2 = await callMethodThroughIframe(iframe2, {
+      method: "setAppBadge",
+      value: 2,
+    });
+    assert_equals(
+      event2.data.status,
+      "success",
+      "setAppBadge should succeed when called in the second same-origin iframe"
+    );
+
+    // Clear badge in the first iframe
+    event1 = await callMethodThroughIframe(iframe1, {
+      method: "clearAppBadge",
+    });
+    assert_equals(
+      event1.data.status,
+      "success",
+      "clearAppBadge should succeed when called in the first same-origin iframe"
+    );
+    iframe1.remove();
+    iframe2.remove();
+  }, "Test badge behavior in multiple same-origin iframes");
+</script>

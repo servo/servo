@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Selection range in an editing host after the host is removed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const container = document.querySelector("div");
+  test(() => {
+    const editingHost = document.createElement("div");
+    editingHost.contentEditable = true;
+    editingHost.innerHTML = "ABC<br>";
+    container.appendChild(editingHost);
+    editingHost.focus();
+    getSelection().collapse(editingHost, 0);
+    editingHost.remove();
+    assert_equals(getSelection().focusNode, container, "focusNode should be the container");
+    assert_equals(getSelection().focusOffset, 0, "focusOffset should be 0");
+  }, "Selection range in an editing host should be collapsed where the host was after it's removed");
+
+  test(() => {
+    const wrapper = document.createElement("div");
+    wrapper.id = "wrapper";
+    const editingHost = document.createElement("div");
+    editingHost.contentEditable = true;
+    editingHost.innerHTML = "ABC<br>";
+    wrapper.appendChild(editingHost);
+    container.appendChild(wrapper);
+    editingHost.focus();
+    getSelection().collapse(editingHost, 0);
+    wrapper.remove();
+    assert_equals(getSelection().focusNode, container, "focusNode should be the container");
+    assert_equals(getSelection().focusOffset, 0, "focusOffset should be 0");
+  }, "Selection range in an editing host should be collapsed where the host was after its parent is removed");
+
+  test(() => {
+    const editingHost = document.createElement("div");
+    editingHost.contentEditable = true;
+    editingHost.innerHTML = "ABC<br>";
+    container.appendChild(editingHost);
+    editingHost.focus();
+    getSelection().collapse(editingHost, 0);
+    editingHost.replaceWith(editingHost);
+    assert_equals(getSelection().focusNode, container, "focusNode should be the container");
+    assert_equals(getSelection().focusOffset, 0, "focusOffset should be 0");
+    editingHost.remove();
+  }, "Selection range in an editing host should be collapsed where the host was after it's replaced with itself (.replaceWith)");
+
+  test(() => {
+    const editingHost = document.createElement("div");
+    editingHost.contentEditable = true;
+    editingHost.innerHTML = "ABC<br>";
+    container.appendChild(editingHost);
+    editingHost.focus();
+    getSelection().collapse(editingHost, 0);
+    container.replaceChild(editingHost, editingHost);
+    assert_equals(getSelection().focusNode, container, "focusNode should be the container");
+    assert_equals(getSelection().focusOffset, 0, "focusOffset should be 0");
+    editingHost.remove();
+  }, "Selection range in an editing host should be collapsed where the host was after it's replaced with itself (.replaceChild)");
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

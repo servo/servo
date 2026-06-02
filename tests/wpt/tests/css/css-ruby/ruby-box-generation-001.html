@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for pseudo ruby box generation</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="stylesheet" href="support/ruby-common.css">
+<link rel="match" href="ruby-box-generation-001-ref.html">
+<body class="large">
+
+  <!--
+    The tests are written in this way:
+    there are five different elements may appear in a ruby container: rb, rt,
+    rbc, rtc, and inline content.
+
+    In each test file, there are two parts: all elements are wrapped inside a
+    <ruby> in one part, they are directly contained by a <p> in the other part.
+
+    In each part, all permutations of pairs of two adjacent elements are
+    presented, so there are 5*5+1=26 elements.
+
+    The five test files share the same structure, but with different element
+    type order.
+  -->
+
+  <p>|<ruby>
+      <rb>a</rb> <rb>b</rb>
+      <rt>c</rt> <rt>d</rt>
+      <rb>e</rb> <rbc><rb>f</rb></rbc>
+      <rb>g</rb> <rtc><rt>h</rt></rtc>
+      <rb>i</rb> <span>j</span>
+      <rt>k</rt> <span>l</span>
+      <rbc><rb>m</rb></rbc> <rbc><rb>n</rb></rbc>
+      <rtc><rt>o</rt></rtc> <rtc><rt>p</rt></rtc>
+      <rbc><rb>q</rb></rbc> <rt>r</rt>
+      <rtc><rt>s</rt></rtc> <rt>t</rt>
+      <rbc><rb>u</rb></rbc> <span>v</span>
+      <span>w</span> <rtc><rt>x</rt></rtc>
+      <span>y</span> <rb>z</rb>
+  </ruby>|</p>
+
+  <p>| <rb>a</rb> <rb>b</rb>
+       <rt>c</rt> <rt>d</rt>
+       <rb>e</rb> <rbc><rb>f</rb></rbc>
+       <rb>g</rb> <rtc><rt>h</rt></rtc>
+       <rb>i</rb> <span>j</span>
+       <rt>k</rt> <span>l</span>
+       <rbc><rb>m</rb></rbc> <rbc><rb>n</rb></rbc>
+       <rtc><rt>o</rt></rtc> <rtc><rt>p</rt></rtc>
+       <rbc><rb>q</rb></rbc> <rt>r</rt>
+       <rtc><rt>s</rt></rtc> <rt>t</rt>
+       <rbc><rb>u</rb></rbc> <span>v</span>
+       <span>w</span> <rtc><rt>x</rt></rtc>
+       <span>y</span> <rb>z</rb> |</p>
+
+</body>

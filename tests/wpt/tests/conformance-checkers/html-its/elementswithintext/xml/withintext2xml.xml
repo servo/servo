@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<myDocument xmlns="http://my.DocumentURI/" xml:lang="en">
+ <prolog>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0"
+ xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="withintext2xmlrules.xml"
+ xmlns:d="http://my.DocumentURI/">
+ <its:withinTextRule selector="//d:keywords/d:kw" withinText="no"/>
+</its:rules>
+  <author>Zebulon Fairfield</author>
+  <version>version 12, revision 2 - 2006-08-14</version>
+  <keywords><kw>horse</kw><kw>appaloosa</kw></keywords>
+  <storageKey>articles-6D272BA9-3B89CAD8</storageKey>
+ </prolog>
+ <content>
+  <section>
+   <title>Appaloosa</title>
+   <p>The Appaloosa<fnote>The name comes from "Palouse horse" in reference
+    to the Palouse River in Northern Idaho.</fnote> are rugged horses 
+    originally breed by the <kw>Nez-Perce</kw> tribe in the US Northwest.</p>
+   <p>They are often characterized by their spotted coats, as shown 
+    here: <img src="appaloosa.png" alt="Appaloosa horses"/></p>
+  </section>
+  <footer><p>Copyright: <em>Zebulon Inc.</em></p></footer>
+ </content>
+</myDocument>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<div>
+    <object id="svg-content" data="resources/Cowboy.svg" width="400px" height="400px" type="image/svg+xml">
+    </object>
+</div>
+<script src="../resources/runner.js"></script>
+<script>
+var svgContent;
+var startTime;
+var loop_iterations = 5;
+var ANIMATION_ITERATIONS = 5;
+var animation_loop;
+var offset;
+var state;
+var delta;
+var results = [];
+var now = function(){
+    return window.performance ? performance.now() : Date.now();
+};
+var init = function(){
+    animation_loop = ANIMATION_ITERATIONS;
+    offset = 0;
+    state = 'zoomin';
+    delta = 1;
+    startTime = now();
+    requestAnimationFrame(step);
+};
+var step = function(){
+    animation_loop--;
+    if (animation_loop==0){
+        animation_loop = ANIMATION_ITERATIONS;
+        switch(state){
+            case 'zoomin':
+                state='scroll';
+                delta = 0;
+                break;
+            case 'scroll':
+                state='zoomout';
+                delta = 2;
+                break;
+            case 'zoomout':
+                loop_iterations--;
+                results.push(now()-startTime);
+                if (loop_iterations>0)
+                    init();
+                else{
+                    PerfTestRunner.logStatistics(results, 'ms', "Time:");
+                    if (testRunner) testRunner.notifyDone();
+                }
+                return;
+        }
+    }
+    switch(state){
+        case 'zoomin':
+            delta += 0.2;
+            svgContent.style.transform='matrix('+delta+',0,0,'+delta+',0,0)';
+            break;
+        case 'scroll':
+            if (animation_loop>ANIMATION_ITERATIONS/2) delta += 80;
+            else delta -= 80;
+            svgContent.style.transform='matrix(2,0,0,2,'+delta+',0)';
+            break;
+        case 'zoomout':
+            delta -= 0.2;
+            svgContent.style.transform='matrix('+delta+',0,0,'+delta+',0,0)';
+            break;
+    }
+    requestAnimationFrame(step);
+};
+window.onload = function(){
+    svgContent = document.getElementById('svg-content').contentDocument.documentElement;
+    init();
+}
+</script>

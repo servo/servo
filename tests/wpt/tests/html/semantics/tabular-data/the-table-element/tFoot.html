@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>tFoot tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<table id="t">
+<caption id="tcaption"></caption><thead id="thead"></thead><tbody id="tbody1"></tbody><tbody id="tbody2"></tbody><tfoot id="tfoot1"></tfoot><tfoot id="tfoot2"></tfoot><tfoot id="tfoot3"></tfoot></table>
+<script>
+test(function() {
+    var t = document.getElementById("t");
+    var tfoot1 = document.getElementById("tfoot1");
+
+    assert_equals(t.tFoot, tfoot1);
+
+    var tfoot2 = document.getElementById("tfoot2");
+    t.tFoot = null;
+
+    assert_equals(t.tFoot, tfoot2);
+
+    var tfoot3 = document.getElementById("tfoot3");
+    t.deleteTFoot();
+
+    assert_equals(t.tFoot, tfoot3);
+
+    var tfoot = t.createTFoot();
+    assert_equals(t.tFoot, tfoot);
+    assert_equals(tfoot, tfoot3);
+
+    t.deleteTFoot();
+    assert_equals(t.tFoot, null);
+
+    var tbody2 = document.getElementById("tbody2");
+
+    tfoot = t.createTFoot();
+    assert_equals(t.tFoot, tfoot);
+
+    assert_equals(t.tFoot.previousSibling, tbody2);
+    assert_equals(t.tFoot.nextSibling, null);
+
+    t.deleteTFoot();
+    assert_equals(t.tFoot, null);
+
+    t.tFoot = tfoot;
+    assert_equals(t.tFoot, tfoot);
+
+    assert_equals(t.tFoot.previousSibling, tbody2);
+    assert_equals(t.tFoot.nextSibling, null);
+
+    assert_throws_js(TypeError, function(){
+        t.tFoot = document.createElement("div");
+    });
+
+    assert_throws_dom("HierarchyRequestError", function(){
+        t.tFoot = document.createElement("thead");
+    });
+})
+
+test(function () {
+    var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
+    var tfoot = table.createTFoot();
+
+    assert_equals(table.tFoot, tfoot);
+    assert_equals(tfoot.prefix, null);
+});
+</script>

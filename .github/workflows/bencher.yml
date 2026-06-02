@@ -1,0 +1,168 @@
+name: Bencher
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: false
+        default: "linux"
+        type: string
+      profile:
+        required: false
+        default: "release"
+        type: string
+      compressed-file-path:
+        required: false
+        default: ""
+        type: string
+      binary-path:
+        required: false
+        default: ""
+        type: string
+      file-size:
+        required: false
+        default: false
+        type: boolean
+      stripped-file-size:
+        required: false
+        default: false
+        type: boolean
+      speedometer:
+        required: false
+        default: false
+        type: boolean
+      dromaeo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  # allows overriding bencher project for pushes
+  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+
+jobs:
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    runs-on: ubuntu-24.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Runner select
+        id: select
+        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          github-hosted-runner-label: ubuntu-22.04
+          self-hosted-image-name: servo-ubuntu2204-bench
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          # No need to use self-hosted runners if we’re only measuring binary size.
+          force-github-hosted-runner: ${{ !(inputs.speedometer || inputs.dromaeo) || inputs.force-github-hosted-runner }}
+
+  bencher:
+    needs:
+      - runner-select
+    name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    steps:
+      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-${{ inputs.target }}
+          path: ${{ inputs.profile }}-binary-${{ inputs.target }}
+      # Linux and macOS uploads compressed binary, need to extract first
+      - name: unPackage binary (tar)
+        if: ${{ inputs.compressed-file-path != '' && contains(inputs.compressed-file-path, '.tar.gz') }}
+        run: tar -xzf ${{ inputs.compressed-file-path }}
+      - name: unPackage binary (unzip)
+        if: ${{ inputs.compressed-file-path != '' && !contains(inputs.compressed-file-path, '.tar.gz') }}
+        run: unzip ${{ inputs.compressed-file-path }}
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' && (inputs.speedometer || inputs.dromaeo) }}
+        timeout-minutes: 30
+        run: |
+          sudo apt update
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
+          ./mach bootstrap --yes --skip-lints --skip-nextest
+      - uses: bencherdev/bencher@main
+      - name: File size
+        if: ${{ inputs.file-size == true }}
+        run: |
+            ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }} --bmf-output size.json
+            echo "SERVO_FILE_SIZE_RESULT=size.json" >> "$GITHUB_ENV"
+      # We'll additionally strip and measure the size of the binary when using production profile
+      - name: Install LLVM
+        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17"
+      - name: Install llvm-strip dependency
+        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        run: sudo apt install libncurses5
+      - name: File size (llvm stripped)
+        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        run: |
+            llvm-strip ${{ inputs.binary-path }}
+            ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }}-stripped --bmf-output size-stripped.json
+            echo "SERVO_STRIPPED_FILE_SIZE_RESULT=size-stripped.json" >> "$GITHUB_ENV"
+      - name: Speedometer
+        if: ${{ inputs.speedometer == true }}
+        run: |
+            ./mach test-speedometer --bin ${{ inputs.binary-path }} --profile ${{ inputs.profile }} --bmf-output speedometer.json
+            echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> "$GITHUB_ENV"
+      - name: Dromaeo
+        if: ${{ inputs.dromaeo == true }}
+        run: |
+            ./mach test-dromaeo --bin ${{ inputs.binary-path }} --profile ${{ inputs.profile }} dom --bmf-output dromaeo.json
+            echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> "$GITHUB_ENV"
+      # set options
+      - name: Set bencher opts for PRs (label try run)
+        if: github.event_name == 'pull_request_target'
+        run: |
+            echo "RUN_BENCHER_OPTIONS=--branch ${{ github.event.number }}/PR \
+            --start-point ${{ github.base_ref }} \
+            --start-point-hash ${{ github.event.pull_request.base.sha }} \
+            --start-point-reset \
+            --start-point-clone-thresholds \
+            --github-actions ${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
+      - name: Set bencher opts for main
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: |
+            echo "RUN_BENCHER_OPTIONS=--branch main \
+            --github-actions ${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
+      - name: Set bencher opts for try branch
+        if: ${{ github.event_name == 'push' && github.ref_name == 'try' }}
+        run: |
+            git remote add upstream https://github.com/servo/servo
+            git fetch --unshallow upstream main
+            echo "RUN_BENCHER_OPTIONS=--branch try \
+            --github-actions ${{ secrets.GITHUB_TOKEN }} \
+            --hash $(git rev-parse HEAD~1) \
+            --start-point main \
+            --start-point-hash $(git merge-base upstream/main HEAD) \
+            --start-point-clone-thresholds \
+            --branch-reset" >> "$GITHUB_ENV"
+      # we join results and send all data once to have it all in one report
+      - name: Send results
+        continue-on-error: true
+        run: |
+          ./etc/ci/bencher.py merge ${{ env.SERVO_FILE_SIZE_RESULT }} ${{ env.SERVO_STRIPPED_FILE_SIZE_RESULT }} ${{ env.SERVO_SPEEDOMETER_RESULT }} ${{ env.SERVO_DROMAEO_RESULT }} --bmf-output b.json
+          testbed='${{ needs.runner-select.outputs.runner-type-label }}'
+          bencher run --adapter json --file b.json \
+            --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed "$testbed" \
+            $RUN_BENCHER_OPTIONS

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#animation-timeline">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<style>
+  @keyframes test {
+    from { width: 100px; animation-timeline: --foo; }
+    to { width: 100px; animation-timeline: --foo; }
+  }
+  #target {
+    width: 50px;
+    animation-name: test;
+    animation-duration: 1s;
+    animation-play-state: paused;
+  }
+</style>
+<div id="target"></div>
+<script>
+test(() => {
+  let style = getComputedStyle(document.getElementById('target'));
+  // Checking 'width' verifies that the animation is applied at all.
+  assert_equals(style.width, '100px');
+  assert_equals(style.animationTimeline, 'auto');
+}, 'The animation-timeline property may not be used in keyframes');
+</script>

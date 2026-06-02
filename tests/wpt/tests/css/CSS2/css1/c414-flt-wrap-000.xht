@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Text Not Fitting Beside Non-Replaced Float</title>
+
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+
+  <meta name="assert" content="If a shortened line box is too small to contain any further content, then it is shifted downward until either it fits or there are no more floats present." />
+  <style type="text/css"><![CDATA[
+   p { color: navy; }
+   .test { width: 15em; margin: 1em; padding: 0; background: white; color: white; }
+   .test p { margin: 0; padding: 0.01em; }
+   .test p.left { float: left; }
+   .test p.right { float: right; width: 14.98em; background: teal; color: aqua; text-align: center; }
+  ]]></style>
+ </head>
+ <body>
+  <p>Test passes if the word "fail" does not appear.</p>
+  <div class="test">
+   <p class="left"> TEST: </p>
+   <p class="right"> PASS </p>
+   fail fail fail fail fail fail fail fail fail fail
+   fail fail fail fail fail fail fail fail fail fail
+   fail fail fail fail fail fail fail fail fail fail
+   fail fail fail fail fail fail fail fail fail fail
+   fail fail fail fail fail fail fail fail fail fail
+  </div>
+  <!-- this test actually failed in Mozilla once -->
+ </body>
+</html>

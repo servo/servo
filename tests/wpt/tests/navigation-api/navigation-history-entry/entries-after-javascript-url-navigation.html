@@ -1,0 +1,38 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let start_key = i.contentWindow.navigation.currentEntry.key;
+    let start_url = i.contentWindow.navigation.currentEntry.url;
+    let start_id = i.contentWindow.navigation.currentEntry.id;
+    let did_js_url_nav = false;
+    i.onload = t.step_func(() => {
+      if (!did_js_url_nav) {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        before_js_nav_key = i.contentWindow.navigation.currentEntry.key;
+        before_js_nav_url = i.contentWindow.navigation.currentEntry.url;
+        before_js_nav_id = i.contentWindow.navigation.currentEntry.id;
+        i.src = "javascript:'new content'";
+        did_js_url_nav = true;
+      } else {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        let first_entry = i.contentWindow.navigation.entries()[0];
+        let js_url_entry = i.contentWindow.navigation.entries()[1];
+        assert_equals(first_entry.key, start_key);
+        assert_equals(first_entry.url, start_url);
+        assert_equals(first_entry.id, start_id);
+
+        assert_equals(js_url_entry, i.contentWindow.navigation.currentEntry);
+        assert_equals(js_url_entry.key, before_js_nav_key);
+        assert_equals(js_url_entry.url, before_js_nav_url);
+        assert_not_equals(js_url_entry.id, before_js_nav_id);
+        t.done();
+      }
+    });
+    i.contentWindow.navigation.navigate("?1");
+  });
+}, "entries() after navigation to a javascript: URL");
+</script>

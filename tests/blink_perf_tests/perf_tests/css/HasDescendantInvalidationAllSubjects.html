@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+  div { color: grey }
+  .a:has(.b) { color: green }
+</style>
+</head>
+<body>
+<div id=container class=a></div>
+<script>
+
+function makeTree(depth) {
+  var parent = container;
+  for (var i = 0; i < depth; i++) {
+      var child = document.createElement("div");
+      child.classList.add("a");
+      child.id = "child" + i;
+      parent.appendChild(child);
+      parent = child;
+  }
+}
+
+makeTree(100);
+container.offsetHeight; // force recalc style
+
+var runFunction = function()
+{
+  child0.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+  child0.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+
+  child99.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+  child99.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of the '.a:has(.b)' invalidation with multiple subject elements in extream case.",
+  run: runFunction
+});
+
+</script>
+</body>
+</html>

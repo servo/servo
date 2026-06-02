@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// These tests verify that a Detector's detect() works on an HTMLCanvasElement
+// and on an OffscreenCanvas.
+const canvasElementTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "uint8",
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(HTMLCanvasElement)"
+      },
+      {
+        createDetector: () => { return new FaceDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "float16",
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(HTMLCanvasElementF16Format)"
+      },
+      {
+        createDetector: () => { return new FaceDetector(); },
+        createCanvas: () => { return new OffscreenCanvas(300, 150); },
+        pixelFormat: "uint8",
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(OffscreenCanvas)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "uint8",
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(HTMLCanvasElement)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "float16",
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(HTMLCanvasElementF16Format)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        createCanvas: () => { return new OffscreenCanvas(300, 150); },
+        pixelFormat: "uint8",
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(OffscreenCanvas)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "uint8",
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - detect(HTMLCanvasElement)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        createCanvas: () => { return document.createElement("canvas"); },
+        pixelFormat: "float16",
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - detect(HTMLCanvasElementF16Format)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        createCanvas: () => { return new OffscreenCanvas(300, 150); },
+        pixelFormat: "uint8",
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - detect(OffscreenCanvas)"
+      }
+    ];
+
+for (let canvasElementTest of canvasElementTests) {
+  detection_test(canvasElementTest.mockTestName, async (t, detectionTest) => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "/images/green-16x16.png";
+    await imgWatcher.wait_for("load");
+    const canvas = canvasElementTest.createCanvas();
+    canvas.getContext(
+      "2d", { pixelFormat: canvasElementTest.pixelFormat }).drawImage(
+        img, 0, 0);
+
+    const detector = canvasElementTest.createDetector();
+    const detectionResult = await detector.detect(canvas);
+    canvasElementTest.detectionResultTest(detectionResult, detectionTest);
+  }, canvasElementTest.name);
+}
+
+function FaceDetectorDetectionResultTest(detectionResult, mockTest) {
+  const imageReceivedByMock =
+      mockTest.MockFaceDetectionProvider().getFrameData();
+  assert_equals(imageReceivedByMock.byteLength, 180000, "Image length");
+  const GREEN_PIXEL = 0xFF00FF00;
+  assert_equals(imageReceivedByMock[0], GREEN_PIXEL, "Pixel color");
+  assert_equals(detectionResult.length, 3, "Number of faces");
+}
+
+function BarcodeDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of barcodes");
+  assert_equals(detectionResult[0].rawValue, "cats", "barcode 1");
+  assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
+  assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
+  assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+function TextDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of textBlocks");
+  assert_equals(detectionResult[0].rawValue, "cats", "textBlock 1");
+  assert_equals(detectionResult[1].rawValue, "dogs", "textBlock 2");
+}
+
+</script>

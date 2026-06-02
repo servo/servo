@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+Tests for cross-origin iframes `document.prerendering` state.
+
+This file cannot be upstreamed to WPT until:
+* The specification describes the loading of cross-origin iframes. The test
+  expects that they are not loaded during prerendering.
+-->
+<title>Load a cross-origin document in a prerendered iframe</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/cross-origin-iframe.html?uid=${uid}&target_hint=${getTargetHint()}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  const expected = [
+    {
+      event: 'started waiting iframe loaded',
+      prerendering: true
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting iframe loaded',
+      prerendering: false
+    },
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+       `prerendering[${i}]`);
+  }
+  bc.close();
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, `cross-origin iframes should not load until activation`);
+</script>

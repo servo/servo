@@ -1,0 +1,16 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>unclosed canvas tag in body</title>
+        <link rel="match" href="unclosed-canvas-3-expected.htm">
+        <meta name="assert" content="Test what if canvas tag is unclosed in unclosed div" />
+        <script type="text/javascript"></script>
+    </head>
+    <body>
+        <p>There should be no text below this, because the text is inside a canvas element
+        and the &lt;/div&gt; that's also inside the canvas element does not close an open element.
+        The canvas is never closed, and the rest of the body ends up inside it.
+        There's nothing special about div; we get the same results with other types of elements.</p>
+        <canvas></div>This text should NOT be visible if JavaScript is enabled.
+    </body>
+</html>

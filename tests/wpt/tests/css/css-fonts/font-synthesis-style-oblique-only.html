@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS font-synthesis-style:oblique-only test</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-synthesis-style">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9390#issuecomment-2625297188">
+<meta name="assert" content="font-synthesis-style: oblique-only blocks italic-to-oblique fallback">
+
+<link rel="match" href="font-synthesis-style-oblique-only-ref.html">
+
+<style>
+@font-face {
+  font-family: test;
+  font-style: normal;
+  src: url("resources/markA.ttf");
+}
+@font-face {
+  font-family: test;
+  font-style: oblique;
+  src: url("resources/markB.ttf");
+}
+div {
+  font: 50px test;
+}
+</style>
+
+<!-- normal: this should use markA -->
+<div style="font-style: normal">A</div>
+
+<!-- oblique: should use markB -->
+<div style="font-style: oblique">B</div>
+
+<!-- italic: should use markB (oblique) as fallback for italic -->
+<div style="font-style: italic">B</div>
+
+<!-- italic with synthesis:none: should use markB, as oblique fallback (not synthesis!) is allowed -->
+<div style="font-style: italic; font-synthesis-style: none">B</div>
+
+<!-- italic with synthesis:oblique-only: should use markA, as oblique fallback is disabled -->
+<div style="font-style: italic; font-synthesis-style: oblique-only">A</div>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: CSS background position: animated</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/position/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <meta content="dom animated" name="flags" />
+  <style type="text/css">
+   #test {
+     background: url(support/diamond.png) no-repeat;
+     background-position: 0% 100%;
+     position: relative;
+     height: 20em; width: 20em;
+     margin: 2em;
+   }
+   #ring {
+     position: absolute; left: 0; top: 20em;
+     margin: -20px 0 0 -20px;
+   }
+   #control {
+     border: blue solid;
+     width: 24em;
+   }
+  </style>
+  <script type="text/javascript">
+   var position = 0; /* 0 .. 2*PI */
+   function test() {
+     with (Math) {
+       position += PI / 1000;
+       if (position &gt;= 2 * PI) {
+         position = 0;
+       }
+       document.styleSheets[0].cssRules[0].style.backgroundPosition = (sin(position) + 1) * 50 + '% ' + (cos(position) + 1) * 50 + '%';
+       document.styleSheets[0].cssRules[1].style.left = (sin(position) + 1) * 10 + 'em';
+       document.styleSheets[0].cssRules[1].style.top = (cos(position) + 1) * 10 + 'em';
+       // document.getElementById('status').firstChild.data = document.styleSheets[0].cssRules[0].style.backgroundPosition;
+     }
+   }
+  </script>
+ </head>
+ <body onload="var query = location.search; if (query) { query = query.substring(1, query.length); } else { query = 10 } setInterval(test, query)">
+  <p>There should be a circle with a diamond inside the blue box below.
+    The diamond and the orange circle should appear to be moving in
+    a circle, around a common center point. The radius of motion of the
+    diamond should be slightly shorter than that of the orange circle
+    (measuring the radius to the center of each shape), so that the
+    diamond is always near the side of the circle closer to the center
+    of motion.</p>
+  <div id="control"><div id="test"><img src="support/ring.png" alt="O" id="ring" /></div></div>
+  <!-- <p>Position: <span id="status">0% 0%</span></p> -->
+
+
+</body>
+</html>

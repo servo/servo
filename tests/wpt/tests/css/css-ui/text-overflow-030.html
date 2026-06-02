@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis should render under other positioned content</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-030-ref.html">
+<style>
+.positioned {
+  background-color: green;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+.ellipsis {
+  color: red;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+  width: 100px;
+  font: 50px sans-serif;
+}
+</style>
+<p>Test passes if there is a green rectangle and no red.</p>
+<div class="positioned"></div>
+<div class="ellipsis">         </div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Magical Margins should not be magical in strict mode</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/051.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   .test { border: solid 0.5em; background: yellow; float: left; margin: 1em; font-size: 2em; }
+   .test p { background: teal; color: white; }
+   .control { border-width: 0.25em 0.5em; }
+   .control div { border-top: solid 0.25em; }
+  </style>
+ </head>
+ <body>
+  <p>The next two blocks should be identical.</p>
+  <div class="test"><p>TEST</p></div>
+  <div class="test control"><div></div><p>TEST</p><div></div></div>
+
+
+</body>
+</html>

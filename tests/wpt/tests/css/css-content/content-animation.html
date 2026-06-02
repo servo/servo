@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>content animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property">
+<meta name="test" content="box-shadow supports animation">
+<link rel="author" href="mailto:graouts@apple.com" title="Antoine Quint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+.target::after {
+  content: "default";
+}
+
+@keyframes content-animation {
+  from { content: "from" }
+  to   { content: "to" }
+}
+
+.target.animated::after {
+  animation: content-animation 1s paused linear forwards;
+}
+
+</style>
+<body>
+<div class="target"></div>
+<script>
+
+test(function() {
+  const target = document.querySelector(".target");
+  const style = getComputedStyle(target, "::after");
+
+  assert_equals(style.content, '"default"', "Before the animation is applied.");
+
+  target.classList.add("animated");
+  const animation = target.getAnimations({ subtree: true })[0];
+
+  const testContentAtTime = (time, expected) => {
+    animation.currentTime = time;
+    assert_equals(style.content, `"${expected}"`, `Check the animated value at time = ${time}ms`);
+  };
+
+  testContentAtTime(0, 'from');
+  testContentAtTime(499, 'from');
+  testContentAtTime(500, 'to');
+  testContentAtTime(999, 'to');
+  testContentAtTime(1000, 'to');
+}, "The content property can be animated with a discrete animation type.");
+
+</script>
+</body>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+const SEARCH_PARAMS = new URLSearchParams(window.location.search);
+const REFERRER_POLICY = SEARCH_PARAMS.get("referrer-policy");
+
+async function get_fetch_timing_and_headers(url_string) {
+    const url = new URL(url_string);
+    const id = url.searchParams.get("id");
+    if (id === null) {
+        throw new Error(`"${url.href}" does not contain id parameter`);
+    }
+    const response = await fetch(`${url.origin}/loading/early-hints/resources/get-fetch-timing-and-headers.h2.py?id=${id}`);
+    const json = await response.json();
+    return json;
+}
+
+function get_expected_referrer(is_same_origin) {
+    const full = window.location.href;
+    const origin = self.origin + "/";
+    // There is no support for security level related policies such as
+    // "no-referrer-when-downgrade" since the test is available only on HTTP/2.
+    switch (REFERRER_POLICY) {
+        case "no-referrer":
+            return undefined;
+        case "origin":
+            return origin;
+        case "origin-when-cross-origin":
+            return is_same_origin ? full : origin;
+        case "same-origin":
+            return is_same_origin ? full : undefined;
+        case "unsafe-url":
+            return full;
+        default:
+            throw new Error(`Unsupported referrer policy: ${REFERRER_POLICY}`);
+    }
+}
+
+async function check_referrer(url, expected_referrer) {
+    await fetchScript(url);
+
+    const { headers } = await get_fetch_timing_and_headers(url);
+    assert_equals(headers["referer"], expected_referrer);
+
+    const name = new URL(url, window.location);
+    assert_true(isPreloadedByEarlyHints(name));
+}
+
+promise_test(async (t) => {
+    const same_origin_preload_url = SEARCH_PARAMS.get("same-origin-preload-url");
+    const same_origin_expected = get_expected_referrer(true);
+    await check_referrer(same_origin_preload_url, same_origin_expected);
+
+    const cross_origin_preload_url = SEARCH_PARAMS.get("cross-origin-preload-url");
+    const cross_origin_expected = get_expected_referrer(false);
+    await check_referrer(cross_origin_preload_url, cross_origin_expected);
+}, `Referrer policy: ${REFERRER_POLICY}`);
+</script>
+</body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#line-layout">
+<link rel="match" href="empty-span-height-ref.html">
+<style>
+.red { background: red }
+</style>
+<span>Test passes if no red</span>
+<div class="red">
+  <span id="empty" style="border: 1px solid black"></span>
+</div>
+<script>
+  document.body.offsetTop;
+  empty.style = '';
+  document.documentElement.className = "";
+</script>

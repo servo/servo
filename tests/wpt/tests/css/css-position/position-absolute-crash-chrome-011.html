@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/977930">
+<style>
+body {
+  margin: 20px;
+}
+.container {
+  position: relative;
+}
+#inline-container-absolute {
+  position: relative;
+  background: rgba(0,255,0,0.3);
+}
+#inline-container-fixed {
+  filter:  blur(2px);
+  background: rgba(0,255,0,0.3);
+}
+.outofflow {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: green;
+  top:0;
+  left:0;
+}
+.splitter {
+  width: 100px;
+  height: 20px;
+  background: gray;
+}
+</style>
+<div class="container">
+ <div>
+    absolute
+    <span id="inline-container-absolute" >
+      container
+        <div class="outofflow" style="position:absolute">A</div>
+      container
+      <div class="splitter">splitter</div>
+      container
+    </span>
+  </div>
+</div>
+<div class="container">
+ <div>
+    fixed
+    <span id="inline-container-fixed" >
+      container
+        <div class="outofflow" style="position:fixed">F</div>
+      container
+      <div class="splitter">splitter</div>
+      container
+    </span>
+  </div>
+</div>
+<script>
+test(_ => {
+  document.body.offsetTop;
+  document.querySelector("#inline-container-absolute").style.position = 'static';
+}, 'test passes if changing abspos inline container to static does not crash');
+test(_ => {
+  document.body.offsetTop;
+  document.querySelector("#inline-container-fixed").style.filter = 'none';
+}, 'test passes if changing fixed inline container to static does not crash');
+</script>

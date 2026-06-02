@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reference case for text-underline-offset</title>
+    <link rel="author" title="Zak Ridouh" href="mailto:zakr@apple.com">
+    <link rel="author" title="Apple" href="https://www.apple.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#underline-offset">
+    <style>
+        #main {
+            border-bottom: 2px solid purple;
+            display: flex;
+        }
+        #text, #norm {
+            text-decoration-color: green;
+            text-decoration-line: underline;
+            text-decoration-thickness: 15px;
+            font: 20px/2 Arial;
+            color: transparent;
+            position: relative;
+            margin-right: 10px;
+        }
+        #text {
+            text-underline-offset: 5px;
+        }
+        #norm {
+            text-underline-offset: 5px;
+        }
+    </style>
+</head>
+<body >
+    <p class="instructions">Test passes if the lines are at the same level</p>
+    <div id="main">
+        <div>
+            <p>left<span id="text">XXXX</span></p>
+        </div>
+        <div>
+            <p><span id="norm">XXXX</span>right</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<script>
+"use strict";
+
+window.addEventListener("beforeunload", () => {
+  history.back();
+});
+
+location.href = "message-opener.sub.html?id=destination";
+</script>

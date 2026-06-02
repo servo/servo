@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hanja-informal, 10-9999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<link rel='match' href='css3-counter-styles-058-ref.html'>
+<meta name="assert" content="Setting list-style-type to korean-hanja-informal will produce list numbering after 9 as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol { list-style-type: korean-hanja-informal; list-style-position: inside; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='10'><li title='10'>十,</li></ol>
+<ol start='11'><li title='11'>十一,</li></ol>
+<ol start='12'><li title='12'>十二,</li></ol>
+<ol start='43'><li title='43'>四十三,</li></ol>
+<ol start='77'><li title='77'>七十七,</li></ol>
+<ol start='80'><li title='80'>八十,</li></ol>
+<ol start='99'><li title='99'>九十九,</li></ol>
+<ol start='100'><li title='100'>百,</li></ol>
+<ol start='101'><li title='101'>百一,</li></ol>
+<ol start='222'><li title='222'>二百二十二,</li></ol>
+<ol start='540'><li title='540'>五百四十,</li></ol>
+<ol start='999'><li title='999'>九百九十九,</li></ol>
+<ol start='1000'><li title='1000'>千,</li></ol>
+<ol start='1005'><li title='1005'>千五,</li></ol>
+<ol start='1060'><li title='1060'>千六十,</li></ol>
+<ol start='1065'><li title='1065'>千六十五,</li></ol>
+<ol start='1800'><li title='1800'>千八百,</li></ol>
+<ol start='1860'><li title='1860'>千八百六十,</li></ol>
+<ol start='1865'><li title='1865'>千八百六十五,</li></ol>
+<ol start='5865'><li title='5865'>五千八百六十五,</li></ol>
+<ol start='7005'><li title='7005'>七千五,</li></ol>
+<ol start='7800'><li title='7800'>七千八百,</li></ol>
+<ol start='7865'><li title='7865'>七千八百六十五,</li></ol>
+<ol start='9999'><li title='9999'>九千九百九十九,</li></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

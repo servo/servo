@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1289408">
+<div style="display:table; border-collapse:collapse;">
+  <div style="display:table-row-group; border:solid; background:pink;">
+    <div style="display:table-row; border:solid; background:pink;">
+      <div style="position:relative;">
+        <div id="elm" style="top:0; position:absolute;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  elm.style.top = "10px";
+</script>

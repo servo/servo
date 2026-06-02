@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- Tests that <select> marker is end-aligned -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="select-marker-end-aligned-ref.tentative.html">
+
+<div>
+  <select>
+    <option></option>
+  </select>
+</div>
+
+<style>
+/* This is the only difference between the test and the reference: */
+select {
+  width:200px;
+}
+
+div {
+  width:300px;
+  display:flex;
+  justify-content:flex-end;
+}
+select {
+  border-style:none;
+  background-color:rgba(0,0,0,0)
+}
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>

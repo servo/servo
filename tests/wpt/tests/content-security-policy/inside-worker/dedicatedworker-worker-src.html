@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'worker-src' directive on nested dedicated workers -->
+<script>
+  const w = new Worker(
+      `./support/worker-src-none.sub.js?` +
+        `pipe=sub|header(Content-Security-Policy,` +
+        `worker-src 'none')`);
+  // Forward 'securitypolicyviolation' events from the document into the
+  // worker (we shouldn't actually see any, so the worker will assert that
+  // none are fired).
+  document.addEventListener('securitypolicyviolation', _ => {
+    w.postMessage("SecurityPolicyViolation from Document");
+  });
+  // Nested workers are disallowed and don't send violations to document
+  fetch_tests_from_worker(w);
+</script>

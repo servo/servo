@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="foo-1" class="foo"></div>
+        <div id="foo-2" class="baz"></div>
+        <script>
+          test(function() {
+            var foo1 = document.getElementById("foo-1");
+            var foo2 = document.getElementById("foo-2");
+
+            foo1.className += " bar";
+            assert_equals(foo1.className, "foo bar");
+
+            var foo3 = document.createElement("div");
+            foo3.id = "foo-3";
+            foo3.className = "foo";
+            document.body.appendChild(foo3);
+            assert_equals(foo3, document.getElementById("foo-3"));
+
+            var collection = document.getElementsByClassName("foo");
+            assert_equals(collection.length, 2);
+            assert_equals(collection[0].id, foo1.id);
+            assert_equals(collection[1].id, foo3.id);
+
+            collection = document.getElementsByClassName("bar");
+            assert_equals(collection.length, 1);
+            assert_equals(collection[0].id, foo1.id);
+
+            collection = document.getElementsByClassName("baz");
+            assert_equals(collection.length, 1);
+            assert_equals(collection[0].id, foo2.id);
+          });
+        </script>
+    </body>
+</html>

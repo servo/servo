@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><title>Document</title></head>
+<body>
+<h1>Document</h1>
+<script>
+onload = function() {
+  document.addEventListener("visibilitychange", onVisibilityChange, false);
+  opener.postMessage("close", "*");
+}
+
+function onVisibilityChange() {
+  opener.postMessage(document.visibilityState, "*");
+}
+</script>
+</body>
+</html>

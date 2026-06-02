@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Highlights using container sizes update on container changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-styling">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-lengths">
+<link rel="match" href="custom-highlight-dynamic-container-metrics-001-ref.html">
+<meta name="assert" value="lengths depending on containers take the correct values in a universal highlight with no container when the container size changes">
+<script src="/common/reftest-wait.js"></script>
+<head>
+  <style>
+    iframe {
+      width: 200px;
+      height: 100px;
+    }
+
+    iframe.resize {
+      width: 400px;
+      height: 200px;
+    }
+</style>
+</head>
+<iframe id="iframe" src="resources/iframe-container.html"></iframe>
+<script>
+  function runtest() {
+    iframe.classList.add('resize');
+    requestAnimationFrame(() => takeScreenshot());
+  }
+  iframe.onload = runtest;
+</script>
+</html>

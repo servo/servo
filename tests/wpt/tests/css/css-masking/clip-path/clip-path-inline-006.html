@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>clip-path on inline with padding-box</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-padding-box">
+<link rel="match" href="clip-path-inline-006-ref.html">
+<meta content="ahem" name="flags">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .container {
+    font: 100px/1 Ahem;
+    line-height: 100px;
+  }
+  .container > span {
+    border: 50px solid red;
+    clip-path: circle(50%) padding-box;
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green circle with radius 50px.
+<div class="container">
+  <span>X</span>
+</div>

@@ -1,0 +1,7 @@
+"""Endpoint to receive and return aggregatable reports."""
+from importlib import import_module
+
+reports = import_module('private-aggregation.resources.reports')
+
+def main(request, response):
+  return reports.handle_request(request)

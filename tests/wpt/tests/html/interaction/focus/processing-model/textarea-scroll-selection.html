@@ -1,0 +1,46 @@
+<!doctype html>
+<title>programatic focus() scrolls selection into view including ancestors</title>
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1644366">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div style="overflow: auto; height: 100px">
+  <textarea style="overflow: hidden; height: 200px">
+    Some text
+    That is surely more
+    Than 100px tall
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+    For sure.
+  </textarea>
+</div>
+<script>
+promise_test(async function(t) {
+  await new Promise(resolve => window.addEventListener("load", resolve));
+  let textarea = document.querySelector("textarea");
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  textarea.focus();
+
+  await new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  assert_not_equals(textarea.parentNode.scrollTop, 0, "Should've scrolled ancestor to show the selection");
+});
+</script>

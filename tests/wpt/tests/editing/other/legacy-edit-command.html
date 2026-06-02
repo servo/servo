@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<meta name="variant" content="?command=increaseFontSize">
+<meta name="variant" content="?command=decreaseFontSize">
+<meta name="variant" content="?command=getHTML">
+<meta name="variant" content="?command=insertBrOrReturn&param=true">
+<meta name="variant" content="?command=insertBrOrReturn&param=false">
+<meta name="variant" content="?command=heading&param=h1">
+<meta name="variant" content="?command=heading&param=h2">
+<meta name="variant" content="?command=heading&param=h3">
+<meta name="variant" content="?command=heading&param=h4">
+<meta name="variant" content="?command=heading&param=h5">
+<meta name="variant" content="?command=heading&param=h6">
+<meta name="variant" content="?command=contentReadOnly&param=true">
+<meta name="variant" content="?command=contentReadOnly&param=false">
+<meta name="variant" content="?command=readonly&param=true">
+<meta name="variant" content="?command=readonly&param=false">
+<title>Test legacy commands won't work</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body contenteditable></body>
+<script>
+"use strict";
+
+const testParams = new URLSearchParams(location.search.substring(1));
+const command = testParams.get("command");
+const param = testParams.has("param") ? testParams.get("param") : undefined;
+
+const editor = document.body;
+
+promise_test(async () => {
+  await new Promise(resolve => addEventListener("load", resolve, {once: true}));
+}, "Wait for load...");
+
+promise_test(async () => {
+  function reset() {
+    editor.innerHTML = "<p>abc</p>";
+    editor.focus();
+    getSelection().setBaseAndExtent(
+      editor.querySelector("p").firstChild,
+      1,
+      editor.querySelector("p").firstChild,
+      2
+    );
+  }
+  test(() => {
+    reset();
+    let inputEvents = [];
+    function onInput(event) {
+      inputEvents.push(event);
+    }
+    editor.addEventListener("input", onInput);
+    try {
+      assert_equals(
+        document.execCommand(command, false, param),
+        false,
+        "result should be false"
+      );
+      assert_equals(
+        editor.outerHTML,
+        "<body contenteditable=\"\"><p>abc</p></body>",
+        "editable content shouldn't be modified"
+      );
+      assert_equals(
+        inputEvents.length,
+        0,
+        "no input events should be fired"
+      );
+    } finally {
+      editor.removeEventListener("input", onInput);
+    }
+  }, `execCommand("${command}", false, ${param === undefined ? "undefined" : `"${param}"`})`);
+  test(() => {
+    reset();
+    assert_equals(
+      document.queryCommandState(command),
+      false,
+      "result should be false"
+    );
+  }, `queryCommandState("${command}")`);
+  test(() => {
+    reset();
+    assert_equals(
+      document.queryCommandEnabled(command),
+      false,
+      "result should be false"
+    );
+  }, `queryCommandEnabled("${command}")`);
+  test(() => {
+    reset();
+    assert_equals(
+      document.queryCommandIndeterm(command),
+      false,
+      "result should be false"
+    );
+  }, `queryCommandIndeterm("${command}")`);
+  test(() => {
+    reset();
+    assert_equals(
+      document.queryCommandValue(command),
+      "",
+      "result should be empty string"
+    );
+  }, `queryCommandValue("${command}")`);
+  test(() => {
+    reset();
+    assert_equals(
+      document.queryCommandSupported(command),
+      false,
+      "result should be false"
+    );
+  }, `queryCommandSupported("${command}")`);
+}, `command: "${command}", param: "${param}"`);
+</script>
+</html>

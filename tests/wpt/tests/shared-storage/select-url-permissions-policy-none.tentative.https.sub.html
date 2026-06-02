@@ -1,0 +1,50 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script src="/shared-storage/resources/util.js"></script>
+  <script>
+    'use strict';
+    const same_origin_src = '/shared-storage/resources/select-url-permissions-policy-helper.html';
+    const same_origin_script = '/shared-storage/resources/simple-module.js';
+    const cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+    const cross_origin_src = cross_origin + same_origin_src;
+    const cross_origin_script = cross_origin + same_origin_script;
+    const header = 'permissions policy header shared-storage-select-url=()';
+
+    promise_test(async t => {
+      await sharedStorage.worklet.addModule('/shared-storage/resources/simple-module.js');
+      const allowed = await IsSharedStorageSelectUrlAllowed();
+      assert_false(allowed);
+    }, header + ' disallows sharedStorage.selectURL() in the current page.');
+
+    promise_test(async t => {
+      const worklet = await sharedStorage.createWorklet(
+        same_origin_script,
+        { credentials: "omit" });
+
+      return promise_rejects_dom(t, "InvalidAccessError",
+        worklet.selectURL("operation", [{url: "1.html"}]));
+    }, header + ' disallows selectURL() on a same-origin worklet');
+
+    promise_test(async t => {
+      const worklet = await sharedStorage.createWorklet(
+        cross_origin_script,
+        { credentials: "omit", dataOrigin: "script-origin" });
+
+      return promise_rejects_dom(t, "InvalidAccessError",
+        worklet.selectURL("operation", [{url: "1.html"}]));
+    }, header + ' disallows selectURL() on a cross-origin worklet');
+
+    async_test(t => {
+      test_feature_availability('shared-storage-select-url', t, same_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows sharedStorage.selectURL() in same-origin iframes.');
+
+    async_test(t => {
+      test_feature_availability('shared-storage-select-url', t, cross_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows sharedStorage.selectURL() in cross-origin iframes.');
+  </script>
+</body>

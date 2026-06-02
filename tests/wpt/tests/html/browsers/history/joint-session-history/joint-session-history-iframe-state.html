@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Joint session history should not override parent's state.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="frame" src="about:blank"></iframe>
+<script>
+async_test(function(t) {
+    // Setup.
+    var initialState = {foo: 'bar'};
+    var newStateFromChild = {foo: 'baz'};
+    var child = document.getElementById("frame");
+
+    // Child's initial state should be a default empty state.
+    assert_equals(child.contentWindow.history.state, null);
+
+    // Perform navigation in the top-level container to set the state.
+    window.history.pushState(initialState, 'title');
+
+    // Validate initial state was properly set.
+    assert_object_equals(window.history.state, initialState);
+
+    child.onload = t.step_func_done(() => {
+        // Child's initial state should be `null`.
+        assert_equals(child.contentWindow.history.state, null);
+
+        // Navigate in the child.
+        child.contentWindow.history.pushState(newStateFromChild, 'title');
+
+        // Child's state should now equal the new state.
+        assert_object_equals(child.contentWindow.history.state, newStateFromChild);
+        // Parent's state should still be preserved, having exactly the same state as it
+        // had before parent navigated.
+        assert_object_equals(window.history.state, initialState);
+    })
+    child.src = "joint-session-history-filler.html";
+});
+</script>
+</body>

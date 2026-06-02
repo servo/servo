@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <title>Assure that different writing modes do not crash background building in Servo</title>
+    <link rel=match href=background_border_padding_crash-ref.html>
+    <style>
+        #span1 {
+            background-clip: content-box;
+        }
+        #span2
+        {
+            direction: rtl;
+        }
+    </style>
+    <span id="span1">Filler Text <span id="span2">txeT relliF</span></span>
+</html>

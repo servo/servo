@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>Header Inheritance Inner Page</title>
+<body>
+<script>
+// This file is embedded in a fenced frame by ancestor-throttle.https.html.
+// This is an intermediate step that embeds another page in an iframe to check
+// that the child page only checks up to this page's origin when deciding
+// if it should load.
+async function init() {
+  const [ancestor_key, embed_url, cross_origin_iframe] =
+      parseKeylist();
+  // The URL will be ancestor-throttle-iframe-*.https.html
+  let iframe_url;
+  if (cross_origin_iframe == "true") {
+    iframe_url = generateURL(new URL(embed_url,
+        get_host_info().HTTPS_REMOTE_ORIGIN), parseKeylist());
+  } else {
+    iframe_url = generateURL(new URL(embed_url,
+        get_host_info().HTTPS_ORIGIN), parseKeylist());
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.src = iframe_url;
+  document.body.append(iframe);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test: Basic cases of block-size with max-content and min-content in a table</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing/#sizing-values">
+  <link rel="match" href="block-size-with-min-or-max-content-table-1-ref.html">
+  <link rel="stylesheet" type="text/css" href="support/min-content-max-content.css">
+  <style>
+    html,body {
+      margin: 0;
+    }
+
+    table {
+      border: 2px solid black;
+    }
+
+    td {
+      border: 2px solid lime;
+    }
+
+    .item {
+      height: 50px;
+      width: 50px;
+      border: 1px solid blue;
+    }
+
+    .container {
+      writing-mode: vertical-lr;
+    }
+
+    .small { block-size: 1px; }
+    .big { block-size: 150px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <table class="big max-block-min-content">
+      <td><div class="item"></div></td>
+    </table>
+    <table class="big max-block-max-content">
+      <td><div class="item"></div></td>
+    </table>
+
+    <table class="small min-block-min-content">
+      <td><div class="item"></div></td>
+    </table>
+    <table class="small min-block-max-content">
+      <td><div class="item"></div></td>
+    </table>
+  </div>
+
+  <table class="big max-block-min-content">
+    <td><div class="item"></div></td>
+  </table>
+  <table class="big max-block-max-content">
+    <td><div class="item"></div></td>
+  </table>
+
+  <table class="small min-block-min-content">
+    <td><div class="item"></div></td>
+  </table>
+  <table class="small min-block-max-content">
+    <td><div class="item"></div></td>
+  </table>
+</body>
+</html>

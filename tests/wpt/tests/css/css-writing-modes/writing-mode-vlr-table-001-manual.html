@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-lr, vertical lines</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-lr will display a line of text vertically within a table cell."/>
+<style type="text/css">
+@font-face {
+    font-family: 'webfont';
+    src: 	url('/fonts/noto/NotoSansMongolian-regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+	}
+.test, .ref { font-family: webfont, serif; font-size: 14px; height: 300px; width: 300px; }
+.test span { background-color:orange; color:orange;  }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-lr; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if you see 4 tall, thin orange rectangles.</p>
+<div class="test">
+<table><tbody>
+<tr><th><span lang="mn">ᠮᠤᠩᠭᠤᠯ</span></th><td><span lang="mn">ᠮᠤᠩᠭᠤᠯ</span></td></tr>
+<tr><th><span lang="mn">ᠮᠤᠩᠭᠤᠯ</span></th><td><span lang="mn">ᠮᠤᠩᠭᠤᠯ</span></td></tr>
+</tbody></table>
+</div>
+</body>
+</html>

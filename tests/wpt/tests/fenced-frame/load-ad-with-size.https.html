@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Fenced frames loading a winning ad from FLEDGE auction with size</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      var frame = await attachFencedFrameContext({
+        generator_api: "fledge",
+        resolve_to_config: true,
+        ad_with_size: true
+      });
+
+      const assert_dimensions =
+        (expected_width, expected_height) => {
+          getComputedStyle(document.documentElement).width; // Force layout.
+          assert_equals(window.innerWidth, expected_width, "width");
+          assert_equals(window.innerHeight, expected_height, "height");
+        }
+      await frame.execute(assert_dimensions, [100, 50]);
+    }, "Fenced frame loading an ad with size.");
+  </script>
+</body>
+
+</html>

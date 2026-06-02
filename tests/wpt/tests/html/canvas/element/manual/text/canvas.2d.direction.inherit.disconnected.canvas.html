@@ -1,0 +1,31 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test: The direction attribute inherits from a disconnected canvas element</title>
+<link rel="match" href="canvas.2d.direction-ref.html"/>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<link rel="help"
+  href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+<meta name="assert" content="Verify that a disconnected canvas with no style uses the canvas direction."/>
+<style>
+  canvas {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+</style>
+<canvas id="canvas1" width="300" height="150">
+  Browser does not support HTML5 Canvas.
+</canvas>
+<script type="text/javascript">
+  var canvas = document.createElement("canvas");
+  canvas.setAttribute("dir", "rtl");
+  canvas.setAttribute("width", "300");
+  canvas.setAttribute("height", "150");
+  var ctx = canvas.getContext("2d");
+
+  // The default for direction is inherit.
+  ctx.font = "25px serif";
+  ctx.fillText("ABC!", 60, 50);
+
+  document.body.appendChild(canvas);
+</script>

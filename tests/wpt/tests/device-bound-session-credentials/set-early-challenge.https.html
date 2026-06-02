@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const earlyChallengeString = "early_challenge";
+    addCookieAndSessionCleanup(t);
+
+    // Configure server for sending back a challenge early on refresh.
+    await configureServer({ earlyChallengeForNextRegisteredSession: earlyChallengeString });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Set up a challenge in advance.
+    const challengeResponse = await fetch('request_early_challenge.py', {
+      method: 'POST',
+      body: JSON.stringify({ useSingleHeader: true })
+    });
+    assert_equals(challengeResponse.status, 200);
+
+    // Trigger a refresh. The server will confirm the early challenge matches.
+    expireCookie(expectedCookieAndAttributes);
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
+  }, "A challenge can be set ahead of time");
+
+  async function runMultipleChallengesTest(t, useSingleHeader) {
+    await setupShardedServerState();
+    const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const earlyChallenge1 = "early_challenge1";
+    const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
+    const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const earlyChallenge2 = "early_challenge2";
+    addCookieAndSessionCleanup(t);
+
+    // Configure server for sending back a challenge early. Also configure the session's cookie
+    // for test clarity (not strictly needed).
+    await configureServer({
+      earlyChallengeForNextRegisteredSession: earlyChallenge1,
+      cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue1 }]]
+    });
+
+    // Prompt starting one session, and wait until registration completes.
+    const loginResponse1 = await fetch('login.py');
+    assert_equals(loginResponse1.status, 200);
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
+
+    // Configure server for sending back a challenge early, and configure the second session's
+    // cookie.
+    await configureServer({
+      earlyChallengeForNextRegisteredSession: earlyChallenge2,
+      cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue2 }]]
+    });
+
+    // Prompt starting second session, and wait until registration completes.
+    const loginResponse2 = await fetch('login.py');
+    assert_equals(loginResponse2.status, 200);
+    await waitForCookie(expectedCookieAndValue2, /*expectCookie=*/true);
+
+    // Set up a challenge in advance.
+    const challengeResponse = await fetch('request_early_challenge.py', {
+      method: 'POST',
+      body: JSON.stringify({ useSingleHeader })
+    });
+    assert_equals(challengeResponse.status, 200);
+
+    // Trigger a refresh. The server will confirm the early challenge matches.
+    expireCookie(expectedCookieAndAttributes1);
+    const authResponse1 = await fetch('verify_authenticated.py');
+    assert_equals(authResponse1.status, 200);
+
+    expireCookie(expectedCookieAndAttributes2);
+    const alternateAuthResponse = await fetch('verify_authenticated.py', {
+      method: 'POST',
+      body: expectedCookieAndValue2
+    });
+    assert_equals(alternateAuthResponse.status, 200);
+  }
+
+  promise_test(async t => {
+    await runMultipleChallengesTest(t, /*useSingleHeader=*/true);
+  }, "A challenge can be set for multiple sessions ahead of time (single header)");
+
+  promise_test(async t => {
+    await runMultipleChallengesTest(t, /*useSingleHeader=*/false);
+  }, "A challenge can be set for multiple sessions ahead of time (multiple headers)");
+</script>

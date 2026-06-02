@@ -1,0 +1,6 @@
+Custom-Header: PASS
+Another-Header: {{$id:uuid()}}
+Same-Value-Header: {{$id}}
+Double-Header: PA
+Double-Header: SS
+Content-Type: text/html

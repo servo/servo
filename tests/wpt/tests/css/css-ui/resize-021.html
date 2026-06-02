@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resizing min-height/width constraints</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#resize">
+<meta name="flags" content="interact">
+<meta name="assert" content="max-width and max-height constraints are honored.">
+<style>
+#test {
+  position: absolute;
+  background: linear-gradient(to right, transparent 200px, red 200px) no-repeat,
+              linear-gradient(to bottom, transparent 200px, red 200px) no-repeat,
+              orange;
+  max-height: 200px;
+  max-width: 200px;
+  height: 100px;
+  width: 100px;
+  overflow: auto;
+  resize: both;
+}
+#ref {
+  position: absolute;
+  background: blue;
+  height: 300px;
+  width: 300px;
+}
+</style>
+
+<p>Attempt to resize the orange box below so that it is large enough to fully cover the blue one.</p>
+<p>If you cannot enlarge the orange box, the test fails.<br>
+If you can fully cover the blue box, the test fails.<br>
+Even if the blue box is not fully covered, if you see any red, the test fails.<br>
+Otherwise, the test passes.</p>
+
+<div id=ref></div>
+<div id=test></div>

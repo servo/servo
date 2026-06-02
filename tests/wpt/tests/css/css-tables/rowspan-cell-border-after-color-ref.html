@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<link rel="author" title="Karl Dubost" href="https://otsukare.info/">
+<style>
+  table {
+    border-collapse: collapse;
+  }
+
+  td {
+    width: 100px;
+    height: 50px;
+    border: 1px solid black;
+  }
+
+  /* Row borders */
+  #ref tr:nth-child(1) {
+    border-bottom: 5px solid blue;
+  }
+
+  #ref tr:nth-child(2) {
+    border-bottom: 5px solid green;
+  }
+
+  #ref tr:nth-child(3) {
+    border-bottom: 5px solid red;
+  }
+
+  /* The rowspan cell should have red bottom border */
+  #ref .rowspan-cell {
+    border-bottom: 5px solid red;
+  }
+</style>
+<p>The cell with rowspan=3 should have a red bottom border (from row 3), not blue (from row 1).</p>
+<table id="ref">
+  <tr>
+    <td class="rowspan-cell" rowspan="3">Rowspan 3</td>
+    <td>Cell B</td>
+  </tr>
+  <tr>
+    <td>Cell C</td>
+  </tr>
+  <tr>
+    <td>Cell D</td>
+  </tr>
+</table>
+</html>

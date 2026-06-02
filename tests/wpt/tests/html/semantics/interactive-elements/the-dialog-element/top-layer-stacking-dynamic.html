@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="top-layer-stacking-dynamic-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dialog-element">
+<style>
+dialog {
+    height: 150px;
+    width: 150px;
+    outline: none;
+}
+
+::backdrop {
+    display: none;
+}
+
+.red {
+    background-color: red;
+    top: 200px;
+}
+
+#bottomDialog {
+    background-color: blue;
+    top: 50px;
+}
+
+#topDialog {
+    background-color: green;
+    top: 100px;
+    left: 50px;
+}
+</style>
+</head>
+<body>
+This tests top layer element stacking order after dynamically calling show/close and removal from the DOM tree.
+The test passes if you see a green rectangle stacked on top of a blue rectangle, and see no red rectangles.
+
+<dialog id="topDialog"></dialog>
+<dialog id="bottomDialog"></dialog>
+<dialog id="removedDialog" class="red">
+    <dialog id="removedDialogChild" class="red"></dialog>
+</dialog>
+<script>
+document.getElementById('topDialog').showModal();
+var removedDialog = document.getElementById('removedDialog');
+removedDialog.showModal();
+document.getElementById('bottomDialog').showModal();
+document.getElementById('removedDialogChild').showModal();
+removedDialog.parentNode.removeChild(removedDialog);
+document.getElementById('topDialog').close();
+document.getElementById('topDialog').showModal();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.requestClose();
+
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+}, "requestClose() with no user activation");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.destroy();
+  watcher.requestClose();
+
+  assert_array_equals(events, []);
+}, "destroy() then requestClose()");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.close();
+  assert_array_equals(events, ["close"]);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["close"]);
+}, "close() then requestClose()");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.requestClose();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+
+  watcher.destroy();
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
+}, "requestClose() then destroy()");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.close();
+  assert_array_equals(events, ["close"]);
+
+  watcher.destroy();
+  assert_array_equals(events, ["close"]);
+}, "close() then destroy()");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  watcher.destroy();
+  await sendCloseRequest();
+
+  assert_array_equals(events, []);
+}, "destroy() then close request");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  await sendCloseRequest();
+  watcher.destroy();
+
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+}, "Close request then destroy()");
+</script>

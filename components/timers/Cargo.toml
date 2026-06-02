@@ -1,0 +1,17 @@
+[package]
+name = "timers"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "timers"
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }

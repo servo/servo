@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+  body { writing-mode: vertical-rl; }
+  .container {
+    background: green;
+    inline-size: 80px;
+    block-size: 120px;
+  }
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    block-size: 60px;
+    inline-size: 160px;
+  }
+</style>
+
+There should be no red.
+<div class="multicol">
+  <div class="container"></div>
+</div>
+
+<div class="multicol">
+  <div class="container"></div>
+</div>
+
+<div class="multicol">
+  <div class="container"></div>
+</div>
+
+<div class="multicol">
+  <div class="container"></div>
+</div>
+
+<div class="multicol">
+  <div class="container"></div>
+</div>
+
+<div class="multicol">
+  <div class="container"></div>
+</div>

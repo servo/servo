@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Video is paused after cues having pause-on-exit flag are processed</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/simple-captions.vtt" default>
+    <script>
+    async_test(function(t) {
+        var video = document.querySelector("video");
+        var track = document.querySelector("track");
+        track.onload = t.step_func(function() {
+            assert_equals(track.track.cues.length, 4);
+            for (var i = 0; i < track.track.cues.length; ++i) {
+                var cue = track.track.cues[i];
+                if (i % 2 == 0) {
+                    cue.pauseOnExit = true;
+                    cue.onexit = t.step_func(function(event) {
+                        assert_true(video.paused);
+
+                        video.play();
+
+                        if (event.target.id == 2)
+                            t.done();
+                    });
+                }
+            }
+            video.src = getVideoURI("/media/test");
+            video.currentTime = 4.00;
+            video.play();
+            assert_false(video.paused);
+        });
+    });
+    </script>
+</video>

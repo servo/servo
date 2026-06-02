@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Helper functions invoked by a nested browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#monitoring-incoming-presentation-connections">
+
+<script>
+  window.addEventListener('message', event => {
+    const data = event.data;
+
+    if (!data.type)
+      return;
+    else if (data.type === 'connect') {
+      const request = new PresentationRequest(data.url);
+      request.reconnect(data.id).then(c => {
+        c.onterminate = () => {
+          window.parent.postMessage({ type: 'terminated' }, '*');
+        };
+      });
+    }
+  });
+</script>

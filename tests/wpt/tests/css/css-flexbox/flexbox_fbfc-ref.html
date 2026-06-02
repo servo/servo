@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>flexbox | flex formatting context :: float intrusion</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+* {margin: 0;}
+body {width: 600px;}
+#float {
+	background: #3366cc;
+	width: 25%;
+	float: left;
+}
+#flex {
+	background: #ffcc00;
+	padding: 2em 0;
+	width: 80%;
+	clear: both;
+}
+div div {
+	background: pink;
+	margin: 0 2em;
+	height: 4em;
+	display: inline-block;
+}
+</style>
+
+<div id="float">filler</div>
+
+<div id="flex">
+	<div>Yellow box should be below the blue box</div>
+</div>

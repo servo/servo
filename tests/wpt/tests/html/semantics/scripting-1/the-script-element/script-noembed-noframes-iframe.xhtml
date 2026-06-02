@@ -1,0 +1,36 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Script inside noembed, noframes and iframe</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var run = [];
+</script>
+<div id="test">
+<noembed>
+<script>
+run.push("noembed");
+</script>
+</noembed>
+<noframes>
+<script>
+run.push("noframes");
+</script>
+</noframes>
+<iframe>
+<script>
+run.push("iframe");
+</script>
+</iframe>
+</div>
+<script>
+test(function() {
+  assert_array_equals(run, ["noembed", "noframes", "iframe"], "Haven't run.");
+});
+</script>
+</body>
+</html>

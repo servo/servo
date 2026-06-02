@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<meta charset="utf-8">
+<title>SVG reftest: Thai locale should not disrupt font sizing</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1914190">
+<link rel="match" href="font-size-scaling-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+svg {
+  display: block;
+  margin: 10px;
+  border: 2px solid gray;
+  font: 2px Ahem;
+}
+svg.ref {
+  font: 20px Ahem;
+}
+</style>
+
+<p>All three rectangles should contain similar small black bars:</p>
+
+<svg class="ref">
+  <g>
+    <text x="50" y="100">abc</text>
+  </g>
+</svg>
+
+<svg>
+  <g transform="scale(10)">
+    <text x="5" y="10">abc</text>
+  </g>
+</svg>
+
+<svg lang="th-TH">
+  <g transform="scale(10)">
+    <text x="5" y="10">abc</text>
+  </g>
+</svg>

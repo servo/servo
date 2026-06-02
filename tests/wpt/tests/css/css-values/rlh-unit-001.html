@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: using rlh in calc</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The rlh unit resolves against the root when used in calc.">
+<style>
+  :root {
+    line-height: 50px;
+  }
+
+  p {
+    line-height: normal;
+  }
+
+  .container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+
+  .contents {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .div1 {
+    background-color: green;
+    width: 100px;
+    height: 100px;
+  }
+
+  .div2 {
+    line-height: 10px;
+    block-size: 100px;
+    background-color: red;
+    inline-size: calc(1rlh - 1rlh);
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="container">
+  <div class="div1 contents"></div>
+  <div class="div2 contents"></div>
+</div>

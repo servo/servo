@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Merge timeline offset keyframes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+</head>
+<style>
+  @keyframes anim-1 {
+    entry 0% { opacity: 0 }
+    entry 100% { opacity:  1 }
+    contain 0% { opacity:  0.8 }
+    entry 100% { opacity:  0.5 }
+  }
+  @keyframes anim-2 {
+    entry 0% { opacity: 0 }
+    entry 100% { opacity:  1 }
+    contain 0% { opacity:  0.8 }
+    entry 100% { opacity:  0.5; animation-timing-function: ease }
+  }
+
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-top:  800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation-duration:  auto;
+    animation-fill-mode:  both;
+    animation-timing-function: linear;
+    view-timeline:  --target;
+    animation-timeline: --target;
+  }
+  #target.anim-1 {
+    animation-name: anim-1;
+  }
+  #target.anim-2 {
+    animation-name: anim-2;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script>
+  async function runTests() {
+    promise_test(async t => {
+      target.classList.add('anim-1');
+      const anim = target.getAnimations()[0];
+      await anim.ready;
+      t.add_cleanup(() => {
+        target.classList.remove('anim-1');
+      });
+      const keyframes = anim.effect.getKeyframes();
+      const expected = [
+        {
+          offset: 1, easing: "linear", composite: "replace", opacity: "1",
+          computedOffset: 1
+        },
+        {
+          offset: { rangeName: "entry", offset: CSS.percent(0) },
+          easing: "linear", composite: "auto", opacity: "0",
+          computedOffset: 0
+        },
+        {
+          offset: { rangeName: "contain", offset: CSS.percent(0) },
+          easing: "linear", composite: "auto", opacity: "0.8",
+          computedOffset: 1/3
+        },
+        {
+          offset: { rangeName: "entry", offset: CSS.percent(100) },
+          easing: "linear", composite: "auto", opacity: "0.5",
+          computedOffset : 1/3
+        }];
+      assert_frame_lists_equal(keyframes, expected);
+    }, 'Keyframes with same easing and timeline offset are merged.');
+
+    promise_test(async t => {
+      target.classList.add('anim-2');
+      const anim = target.getAnimations()[0];
+      await anim.ready;
+
+      t.add_cleanup(() => {
+        target.classList.remove('anim-2');
+      });
+
+      const keyframes = anim.effect.getKeyframes();
+      const expected = [
+        {
+          offset: 1, easing: "linear", composite: "replace", opacity: "1",
+          computedOffset: 1
+        },
+        {
+          offset: { rangeName: "entry", offset: CSS.percent(0) },
+          easing: "linear", composite: "auto", opacity: "0",
+          computedOffset: 0
+        },
+        {
+          offset: { rangeName: "entry", offset: CSS.percent(100) },
+          easing: "linear", composite: "auto", opacity: "1",
+          computedOffset: 1/3
+        },
+        {
+          offset: { rangeName: "contain", offset: CSS.percent(0) },
+          easing: "linear", composite: "auto", opacity: "0.8",
+          computedOffset: 1/3
+        },
+        {
+          offset: { rangeName: "entry", offset: CSS.percent(100) },
+          easing: "ease", composite: "auto", opacity: "0.5",
+          computedOffset : 1/3
+        }];
+      assert_frame_lists_equal(keyframes, expected);
+    }, 'Keyframes with same timeline offset but different easing function ' +
+       'are not merged.');
+  }
+
+  window.onload = runTests();
+</script>
+</html>

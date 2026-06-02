@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Calculating specificity - Specificity 0001 vs. 0000</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" />
+        <link rel="help" href="http://www.w3.org/TR/css3-selectors/#specificity" />
+        <link rel="help" href="http://www.w3.org/TR/selectors4/#specificity" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="assert" content="The element selector has a higher specificity over the universal selector - specificity 0001 takes precedence over 0000." />
+        <style type="text/css">
+            div /* a=0 b=0 c=0 d=1 -> specificity = 0,0,0,1 */
+            {
+                color: green;
+            }
+            * /* a=0 b=0 c=0 d=0 -> specificity = 0,0,0,0 */
+            {
+                color: red;
+            }
+            p
+            {
+                color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

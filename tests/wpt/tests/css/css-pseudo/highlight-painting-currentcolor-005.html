@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: Custom Highlights currentcolor on visited</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-text">
+<meta name="assert" content="Checks that color currentcolor is properly resolved when painting highlight pseudos on a visited link.">
+<link rel="match" href="highlight-painting-currentcolor-005-ref.html">
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+a {
+  color: green;
+  text-decoration: none;
+}
+a:visited {
+  color: blue;
+}
+a::highlight(example) {
+  color: currentcolor;
+}
+a:visited::highlight(example) {
+  color: currentcolor;
+}
+</style>
+<a href="" class="highlight_reftest">visited</a>
+<a href="unvisited" class="highlight_reftest">unvisited</a>
+
+<script>
+  function range(node, start, end) {
+    let range = new Range();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    return range;
+  }
+
+  const links = document.getElementsByTagName("a");
+  let ranges = [];
+  for (let link of links) {
+    ranges.push(range(link, 0, 1));
+  }
+  CSS.highlights.set("example", new Highlight(...ranges));
+</script>
+

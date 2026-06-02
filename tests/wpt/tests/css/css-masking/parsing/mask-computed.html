@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Masking Module Level 1: getComputedStyle().mask</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask">
+<meta name="assert" content="mask computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target" style="display:none"></div>
+<script>
+// value: <mask-layer>#
+// <mask-layer> =
+//   <mask-reference> ||
+//   <position> [ / <bg-size> ]? ||
+//   <repeat-style> ||
+//   <geometry-box> ||
+//   [ <geometry-box> | no-clip ] ||
+//   <compositing-operator> ||
+//   <masking-mode>
+
+// <mask-reference> = none | <image> | <mask-source>
+test_computed_value('mask', 'none');
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue)',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue) luminance',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) luminance');
+test_computed_value('mask',
+   'linear-gradient(calc(90deg - 45deg), rgb(0, 128, 0), rgb(0, 0, 255)',
+   'linear-gradient(45deg, rgb(0, 128, 0), rgb(0, 0, 255))');
+test_computed_value('mask',
+   'radial-gradient(circle calc(-0.5em + 10px) at calc(-1em + 10px) calc(-2em + 10px), rgb(255, 0, 0), rgb(0, 0, 255))',
+   'radial-gradient(2px at -6px -22px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('mask',
+   'radial-gradient(ellipse calc(-0.5em + 10px) calc(0.5em + 10px) at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))',
+   'radial-gradient(2px 18px at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('mask',
+   'conic-gradient(gold calc(100% / 2), #f06 calc(360deg * 4 / 5))',
+   'conic-gradient(rgb(255, 215, 0) 50%, rgb(255, 0, 102) 288deg)');
+test_computed_value('mask',
+   'conic-gradient(black 1turn, white',
+   'conic-gradient(rgb(0, 0, 0) 360deg, rgb(255, 255, 255))');
+test_computed_value('mask', 'url("https://example.com/")');
+
+// <position> [ / <bg-size> ]?
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue) 1px 2px',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) 1px 2px');
+test_computed_value('mask', 'url("https://example.com/") 1px 2px / contain');
+
+// <repeat-style> = repeat-x | repeat-y | [repeat | space | round | no-repeat]{1,2}
+test_computed_value('mask', 'repeat-y');
+
+// <geometry-box> = <shape-box> | fill-box | stroke-box | view-box
+// <shape-box> = <box>
+// <box> = border-box | padding-box | content-box
+test_computed_value('mask', 'border-box', 'none');
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue) padding-box',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) padding-box');
+test_computed_value('mask', 'content-box');
+test_computed_value('mask', 'url("https://example.com/") fill-box');
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue) stroke-box',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) stroke-box');
+test_computed_value('mask', 'view-box');
+
+// [ <geometry-box> | no-clip ]
+test_computed_value('mask', 'no-clip');
+
+// <compositing-operator> = add | subtract | intersect | exclude
+test_computed_value('mask',
+    'url("https://example.com/") add',
+    'url("https://example.com/")');
+test_computed_value('mask', 'subtract');
+test_computed_value('mask', 'url("https://example.com/") intersect');
+test_computed_value('mask',
+    'linear-gradient(to left bottom, red, blue) exclude',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) exclude');
+
+// <masking-mode> = alpha | luminance | auto
+test_computed_value('mask', 'alpha');
+test_computed_value('mask', 'url("https://example.com/") alpha');
+
+// Test the combination of mask-origin and mask-clip.
+test_computed_value('mask', 'border-box border-box', 'none');
+test_computed_value('mask', 'content-box content-box', 'content-box');
+test_computed_value('mask', 'border-box content-box', 'border-box content-box');
+test_computed_value('mask', 'border-box no-clip', 'no-clip');
+
+// <mask-layer> = <mask-reference> || <position> [ / <bg-size> ]? || <repeat-style> ||
+// <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator> || <masking-mode>
+test_computed_value('mask',
+    'intersect no-clip space round 1px 2px / contain stroke-box linear-gradient(to left bottom, red, blue) luminance',
+    'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) 1px 2px / contain space round stroke-box no-clip intersect luminance');
+test_computed_value('mask',
+    'intersect no-clip space round 1px 2px / contain view-box, stroke-box linear-gradient(to left bottom, red, blue) luminance',
+    '1px 2px / contain space round view-box no-clip intersect, linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255)) stroke-box luminance');
+
+test_computed_value('mask', 'none alpha', 'alpha');
+
+</script>
+</body>
+</html>

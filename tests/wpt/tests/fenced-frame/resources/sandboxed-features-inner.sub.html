@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<script src="sandboxed-features.js"></script>
+<body>
+<script>
+(async () => {
+  try {
+    await {{GET[test_func]}}();
+  } catch (e) {
+    writeValueToServer('{{GET[key]}}', e.message);
+    return;
+  }
+  writeValueToServer('{{GET[key]}}', 'done');
+})()
+</script>
+</body>

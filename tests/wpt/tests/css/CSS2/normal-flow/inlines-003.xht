@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Wrapping Borders</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-20 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/003.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   div { font: 2em/2 sans-serif; }
+   span { border: thick solid blue; padding: 0 1em; }
+  </style>
+ </head>
+ <body>
+  <p>Slowly resize the window, causing the text below to wrap into multiple
+   lines at different points in the text. At all points in time, each word
+   should be enclosed in an hollow blue rectangle and there should be no stray
+   pieces of blue rectangle anywhere else on the page.</p>
+  <div> <span>Resize</span> <span>the</span> <span>window</span> <span>so</span> <span>that</span> <span>this</span> <span>wraps</span> </div>
+ </body>
+</html>

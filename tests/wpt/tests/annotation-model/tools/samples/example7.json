@@ -1,0 +1,11 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno7",
+  "type":"Annotation",
+  "body": {
+    "type": "TextualBody",
+    "value": "Comment text",
+    "format": "text/plain"
+  },
+  "target": "http://example.org/target1"
+}

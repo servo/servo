@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<meta name="flags" content="paged">
+<html>
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+html,body {
+  color:black; background-color:white; font:20px/1 monospace; padding:0; margin:0;
+  writing-mode: vertical-lr;
+}
+html { margin-block-start: 80vw; }
+* { box-sizing: border-box; }
+
+.b {
+  inline-size: 50vh;
+  border: 5px solid black;
+  border-block-start-color: blue;
+  border-inline-start-color: lime;
+  margin-inline-start: 20px;
+}
+.b1 {
+  block-size: 20vw;
+  border-block-end-style: none;
+}
+
+.b2 {
+  block-size: 100vw;
+  border-block-start-style: none;
+  border-block-end-style: none;
+}
+
+.b3 {
+  block-size: 10vw;
+  border-block-start-style: none;
+}
+
+.b > div {
+  inline-size: 50vh;
+  block-size: 100vw;
+  border: 5px solid grey;
+  margin-inline-start: 20px;
+}
+.b1 > div {
+  border-block-end-style: none;
+  margin-block-start: -5px;
+}
+.b2 > div {
+  border-block-start-style: none;
+  border-block-end-style: none;
+}
+.b3 > div {
+  block-size: 30vw;
+  border-block-start-style: none;
+}
+
+.after {
+  inline-size: 60vh;
+  block-size: 30vw;
+  margin-block-start: 5vw;
+  border: 5px solid blue;
+}
+</style>
+<body>
+  <div class="b b1"><div></div></div>
+  <div class="b b2"><div></div></div>
+  <div class="b b3"><div></div></div>
+  <div class="after"></div>
+</body>
+</html>

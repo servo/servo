@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+Regression test for https://crbug.com/990810:
+Functions with the same source code shouldn't be cached if their referencing
+scripts and host defined options are different.
+
+Each Function in the following three scripts should have different base URLs
+respectively, but in https://crbug.com/990810 the Function in
+`gamma/code-cache.js` reuses the Function in `beta/code-cache.js`, resulting in
+wrong base URL.
+-->
+
+<script src="alpha/code-cache.js"></script>
+<script src="beta/code-cache.js"></script>
+<script src="gamma/code-cache.js"></script>

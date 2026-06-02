@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<style>
+    @font-face {
+    font-family: variabletest_box;
+    src: url(resources/variabletest_box.ttf);
+    }
+
+    body {
+    font-family: variabletest_box, sans-serif;
+    sans-serif;
+    font-size: 100px;
+    }
+</style>
+r R
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>text-underline-position test case</title>
+    <meta name="assert" content="text-underline-position:left has no effect in horizontal typographic mode">
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#underline-left">
+    <link rel="match" href="reference/text-underline-position-001-ref.html">
+    <style>
+        .outer {
+            margin: 1em;
+            clear: left;
+        }
+        .outer > div {
+            margin: .25em;
+            padding: .25em;
+            float: left;
+            border: 1px dotted gray;
+        }
+        u {
+            text-decoration: 2px green underline;
+            text-underline-offset: .25em;
+        }
+        .test1 > div {
+            writing-mode: initial;
+        }
+        .test2 > div {
+            writing-mode: sideways-rl;
+        }
+        .test3 > div {
+            writing-mode: sideways-lr;
+        }
+        .test4 > div {
+            writing-mode: vertical-rl;
+            text-orientation: sideways;
+        }
+        .test5 > div {
+            writing-mode: vertical-lr;
+            text-orientation: sideways;
+        }
+        .test {
+            text-underline-position: left;
+        }
+    </style>
+</head>
+<body>
+    <p class="instructions">Test passes if the left and right boxes match in each case:</p>
+    <div class="outer test1">
+        <div>
+            <p><u class="test">underlined</u></p>
+        </div>
+        <div>
+            <p><u>underlined</u></p>
+        </div>
+    </div>
+    <div class="outer test2">
+        <div>
+            <p><u class="test">underlined</u></p>
+        </div>
+        <div>
+            <p><u>underlined</u></p>
+        </div>
+    </div>
+    <div class="outer test3">
+        <div>
+            <p><u class="test">underlined</u></p>
+        </div>
+        <div>
+            <p><u>underlined</u></p>
+        </div>
+    </div>
+    <div class="outer test4">
+        <div>
+            <p><u class="test">underlined</u></p>
+        </div>
+        <div>
+            <p><u>underlined</u></p>
+        </div>
+    </div>
+    <div class="outer test5">
+        <div>
+            <p><u class="test">underlined</u></p>
+        </div>
+        <div>
+            <p><u>underlined</u></p>
+        </div>
+    </div>
+</body>
+</html>

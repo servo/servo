@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float right, ellipse(0% 0%)</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#supported-basic-shapes">
+  <link rel="match" href="reference/shape-outside-ellipse-042-ref.html">
+  <meta name="assert" content="Test the right float shape defines an empty float area by the basic shape ellipse(0% 0%) value.">
+  <style>
+  .container {
+    direction: rtl;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: ellipse(0% 0%);
+    clip-path: ellipse(0% 0%);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px 10px;
+    border: solid lightgreen;
+    border-width: 20px 10px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 160px;
+    background-color: blue;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="box" style="height: 24px;"></div>
+    <div class="box" style="height: 36px;"></div>
+    <div class="box" style="height: 36px;"></div>
+    <div class="box" style="height: 24px;"></div>
+  </main>
+</html>

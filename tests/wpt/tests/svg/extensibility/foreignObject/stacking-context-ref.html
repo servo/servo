@@ -1,0 +1,18 @@
+<!doctype HTML>
+<style>
+  * {
+    margin: 0;
+  }
+  .el {
+    width: 50px;
+    height: 60px;
+  }
+
+</style>
+<div style="isolation: isolate">
+  <div class="el"
+      style="position: absolute; z-index: 1; top: 40px; left: 10px; border: 1px solid black; background: lightblue"></div>
+  <div class="el"
+      style="position: absolute; z-index: 2; top: 5px; left: 5px; border: 1px solid black; background: lightgreen"></div>
+</div>
+<div id=top class="el" style="position: relative; background: lightgray; top: 50px"></div>

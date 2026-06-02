@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Link element load event doesn't block the parser.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let NUM_LOADS = 0;
+</script>
+<link rel="stylesheet" href="data:text/css,*{}" onload="++NUM_LOADS">
+<script>
+let t = async_test(document.title);
+window.addEventListener("load", t.step_func_done(() => {
+  assert_equals(NUM_LOADS, 2, "Load event should've fired for all links");
+}));
+t.step(function() {
+  assert_equals(document.styleSheets.length, 1, "Should expose the sheet to the OM before running script");
+  // We can't quite assert that NUM_LOADS is zero (even though it almost-always
+  // should be the case), in case the parser yields just before executing the
+  // script but after parsing the link load.
+  let loadsBefore = NUM_LOADS;
+  // Intentionally the same href as above, to test caching behavior.
+  document.write(`
+    <link rel="stylesheet" href="data:text/css,*{}" onload="++NUM_LOADS">
+  `);
+  assert_equals(document.styleSheets.length, 2, "Should expose both sheets to the OM before running second script");
+  assert_equals(NUM_LOADS, loadsBefore, "Shouldn't fire the load event sync");
+  assert_not_equals(document.styleSheets[0], document.styleSheets[1], "Should be different sheets");
+});
+</script>

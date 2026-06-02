@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<style>
+    body {
+        margin: 0;
+    }
+    svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 220px;
+        height: 220px;
+        overflow: visible;
+    }
+    .outer-shadow {
+        fill: blue;
+        stroke: blue;
+        stroke-width: 10px;
+        transform: translate(10px, 10px);
+    }
+    .outer-border {
+        fill: yellow;
+    }
+    .inner-fill {
+        fill: green;
+    }
+    .inset-shadow {
+        fill: none;
+        stroke: purple;
+        stroke-width: 10px;
+    }
+</style>
+
+<svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <clipPath id="inner-clip">
+            <circle cx="100" cy="100" r="50" />
+        </clipPath>
+    </defs>
+    <circle cx="100" cy="100" r="100" class="outer-shadow" />
+    <circle cx="100" cy="100" r="100" class="outer-border" />
+    <circle cx="100" cy="100" r="50" class="inner-fill" />
+    <circle cx="100" cy="100" r="50" class="inset-shadow" clip-path="url(#inner-clip)" />
+</svg>

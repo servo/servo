@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+// Create a 2D canvas filled in solid gray.
+var size = 4;
+var sourceCanvas = document.createElement('canvas');
+sourceCanvas.width = sourceCanvas.height = size;
+var ctx = sourceCanvas.getContext('2d');
+ctx.fillStyle = "gray";
+ctx.fillRect(0, 0, size, size);
+const expectedPixels = "{\"0\":128,\"1\":128,\"2\":128,\"3\":255,\"4\":128,\"5\":128,\"6\":128,\"7\":255,\"8\":128,\"9\":128,\"10\":128,\"11\":255,\"12\":128,\"13\":128,\"14\":128,\"15\":255,\"16\":128,\"17\":128,\"18\":128,\"19\":255,\"20\":128,\"21\":128,\"22\":128,\"23\":255,\"24\":128,\"25\":128,\"26\":128,\"27\":255,\"28\":128,\"29\":128,\"30\":128,\"31\":255,\"32\":128,\"33\":128,\"34\":128,\"35\":255,\"36\":128,\"37\":128,\"38\":128,\"39\":255,\"40\":128,\"41\":128,\"42\":128,\"43\":255,\"44\":128,\"45\":128,\"46\":128,\"47\":255,\"48\":128,\"49\":128,\"50\":128,\"51\":255,\"52\":128,\"53\":128,\"54\":128,\"55\":255,\"56\":128,\"57\":128,\"58\":128,\"59\":255,\"60\":128,\"61\":128,\"62\":128,\"63\":255}";
+
+const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = get_host_info();
+for (let origin of [ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN]) {
+  promise_test(async t => {
+    let imageBitmap = await createImageBitmap(sourceCanvas);
+
+    let frame = document.createElement('iframe');
+    frame.src = origin + '/webmessaging/support/cross-domain-image-receive.htm';
+    document.body.appendChild(frame);
+    await new Promise(resolve => { frame.onload = e => resolve(); });
+
+    frame.contentWindow.postMessage({image: imageBitmap}, "*", [imageBitmap]);
+    let reply = await new Promise(resolve => {
+      window.addEventListener('message', e => resolve(e.data), {once: true});
+    });
+    assert_equals(reply, expectedPixels);
+  }, `sending 2D canvas ImageBitmap to ${origin}`);
+}
+</script>
+</body>

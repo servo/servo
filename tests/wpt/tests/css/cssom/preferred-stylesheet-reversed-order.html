@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom/#add-a-css-style-sheet">
+<link rel="help" href="https://drafts.csswg.org/cssom/#create-a-css-style-sheet">
+<link rel="help" href="https://html.spec.whatwg.org/#update-a-style-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="t1">This text should be green</div>
+<script>
+function createStyleElement(text, title) {
+    var elm = document.createElement("style");
+    elm.setAttribute("title", title);
+    elm.appendChild(document.createTextNode(text));
+    return elm;
+}
+
+test(function() {
+    document.head.insertBefore(createStyleElement("#t1 {color:green}", "preferred"), document.head.firstChild);
+    document.head.insertBefore(createStyleElement("#t1 {color:red}", "notpreferred"), document.head.firstChild);
+
+    assert_equals(getComputedStyle(t1).color, "rgb(0, 128, 0)");
+}, "Preferred stylesheet where insertion order is tree order");
+</script>

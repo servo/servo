@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+<head>
+  <title>Testcase for Mozilla bug 414123</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=414123"/>
+  <link rel="match" href="dynamic-mi-mozilla-414123-ref.xhtml"/>
+<script>
+function doTest() {
+  var t = document.createTextNode('M')
+  document.getElementById('mi1').appendChild(t);
+
+  var mi = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mi");
+  var mn = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mn");
+  var msup = document.createElementNS("http://www.w3.org/1998/Math/MathML", "msup");
+  mi.appendChild(document.createTextNode('M'));
+  mn.appendChild(document.createTextNode('2'));
+  msup.appendChild(mi);
+  msup.appendChild(mn);
+  document.getElementById('m').appendChild(msup);
+  document.documentElement.removeAttribute("class");
+}
+document.documentElement.addEventListener("TestRendered", doTest);
+</script>
+</head>
+<body>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+     <msup>
+      <mi id="mi1"></mi>
+      <mn>2</mn>
+     </msup>
+</math>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+     <msup>
+      <mi>M</mi>
+      <mn>2</mn>
+     </msup>
+</math>
+
+<math id="m" xmlns="http://www.w3.org/1998/Math/MathML"></math>
+
+</body>
+</html>

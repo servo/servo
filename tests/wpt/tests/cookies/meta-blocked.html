@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="set-cookie" content="meta-set-cookie=1">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    test(t => {
+      assert_equals(document.cookie.indexOf('meta-set-cookie'), -1);
+    }, "Cookie is not set from `<meta>`.");
+  </script>
+</body>

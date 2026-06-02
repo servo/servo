@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Overflow: -webkit-line-clamp creates an IFC</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-047-ref.html">
+<meta name="assert" content="-webkit-line-clamp always creates an independent formatting context, even without overflow: hidden, which causes the height to grow to the clearance of floats.">
+<style>
+  .clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    /* no overflow: hidden */
+    background-color: yellow;
+    padding: 0.5em;
+    font: 16px / 32px serif;
+    white-space: pre;
+  }
+  .float {
+    /* Floats create a parallel fragmentation context, and even if
+     * -webkit-line-clamp caused a forced break in the main context, that should
+     * not cause the float to fragment. */
+    float: left;
+    background-color: orange;
+    padding: 0.5em;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+
+<div class="clamp"><div>Line 1
+Line 2
+Line 3
+Line 4
+<div class="float"></div>Line 5</div>
+Line 6
+Line 7</div>

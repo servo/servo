@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: computed styke of gradients focusing on the position values</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#radial-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-position">
+<meta name="assert" content="gradient positions computed style is correctly serialized.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("background-image", "radial-gradient(at 10%, red, blue)", "radial-gradient(at 10% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at 20% 30px, red, blue)", "radial-gradient(at 20% 30px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at 30px center, red, blue)", "radial-gradient(at 30px 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at 40px top, red, blue)", "radial-gradient(at 40px 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at bottom 10% right 20%, red, blue)", "radial-gradient(at 80% 90%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at bottom right, red, blue)", "radial-gradient(at 100% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at center, red, blue)", "radial-gradient(rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at center 50px, red, blue)", "radial-gradient(at 50% 50px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at center bottom, red, blue)", "radial-gradient(at 50% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at center center, red, blue)", "radial-gradient(rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at center left, red, blue)", "radial-gradient(at 0% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at left, red, blue)", "radial-gradient(at 0% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at left bottom, red, blue)", "radial-gradient(at 0% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at left center, red, blue)", "radial-gradient(at 0% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at right 40%, red, blue)", "radial-gradient(at 100% 40%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at right 30% top 60px, red, blue)", "radial-gradient(at 70% 60px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at top, red, blue)", "radial-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(at top center, red, blue)", "radial-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Single keyword positions
+test_computed_value("background-image", "conic-gradient(at top, red, blue)", "conic-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at bottom, red, blue)", "conic-gradient(at 50% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at left, red, blue)", "conic-gradient(at 0% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at right, red, blue)", "conic-gradient(at 100% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at center, red, blue)", "conic-gradient(rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Two keyword combinations
+test_computed_value("background-image", "conic-gradient(at top left, red, blue)", "conic-gradient(at 0% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at left top, red, blue)", "conic-gradient(at 0% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at bottom right, red, blue)", "conic-gradient(at 100% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at right bottom, red, blue)", "conic-gradient(at 100% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at left center, red, blue)", "conic-gradient(at 0% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at center right, red, blue)", "conic-gradient(at 100% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Two offsets (lengths or percentages)
+test_computed_value("background-image", "conic-gradient(at 10% 20%, red, blue)", "conic-gradient(at 10% 20%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 0% 100%, red, blue)", "conic-gradient(at 0% 100%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 50% 50%, red, blue)", "conic-gradient(rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 20px 40px, red, blue)", "conic-gradient(at 20px 40px, rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Mixed keyword + offset
+test_computed_value("background-image", "conic-gradient(at right 10px top 20px, red, blue)", "conic-gradient(at calc(100% - 10px) 20px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at left 5% bottom 10px, red, blue)", "conic-gradient(at 5% calc(100% - 10px), rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at top 5px right 10px, red, blue)", "conic-gradient(at calc(100% - 10px) 5px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at bottom 20px left 30px, red, blue)", "conic-gradient(at 30px calc(100% - 20px), rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Single offset (interpreted as x position)
+test_computed_value("background-image", "conic-gradient(at 30%, red, blue)", "conic-gradient(at 30% 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 70px, red, blue)", "conic-gradient(at 70px 50%, rgb(255, 0, 0), rgb(0, 0, 255))");
+
+// Out-of-range or negative offsets (still valid syntax)
+test_computed_value("background-image", "conic-gradient(at -10% -20%, red, blue)", "conic-gradient(at -10% -20%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 150% 200%, red, blue)", "conic-gradient(at 150% 200%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at -10px 50px, red, blue)", "conic-gradient(at -10px 50px, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "conic-gradient(at 1000% 1000%, red, blue)", "conic-gradient(at 1000% 1000%, rgb(255, 0, 0), rgb(0, 0, 255))");
+
+</script>

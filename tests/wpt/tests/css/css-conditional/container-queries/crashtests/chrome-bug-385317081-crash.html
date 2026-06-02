@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/385317081">
+<div style="position: absolute;">
+  <div id="target" style="container-type: inline-size;">
+    <div style="position: fixed;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+
+const target = document.getElementById('target');
+target.children[0].remove();
+
+const fixed = document.createElement('div');
+fixed.style.position = 'fixed';
+target.append(fixed);
+</script>

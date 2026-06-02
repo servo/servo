@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[PreventExtensions]] on a Location object should return false</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/history.html#location-preventextensions">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    Object.preventExtensions(location);
+  });
+}, "Object.preventExtensions throws a TypeError");
+
+test(() => {
+  assert_false(Reflect.preventExtensions(location));
+}, "Reflect.preventExtensions returns false");
+</script>

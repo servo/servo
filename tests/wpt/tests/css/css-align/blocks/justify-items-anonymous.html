@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11461">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+  <div style="width: 200px; justify-items: right;">
+    <span style="display: inline-block; width: 100px; height: 100px; background: green;"></span>
+    <div></div> <!-- Forces an anonymous block around <span> in most browsers. -->
+  </div>
+</div>

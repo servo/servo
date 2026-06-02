@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>cloning a SVGGraphicsElement</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGraphicsElement"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <rect id="r" x="10">
+    <set id="set" begin="indefinite" attributeName="x" to="20" dur="15ms" fill="freeze"/>
+  </rect>
+
+  <script><![CDATA[
+    let el = document.getElementById("r");
+    let set = document.getElementById("set");
+
+    test(function() {
+      let clone = el.cloneNode();
+      assert_equals(clone.x.animVal.value, clone.x.baseVal.value);
+    }, 'check animVal equals baseVal by default');
+
+    async_test(t => {
+      set.beginElement();
+      set.addEventListener("beginEvent", t.step_func_done(function () {
+        assert_approx_equals(el.x.animVal.value, 20, 0.001);
+        let clone = el.cloneNode();
+        assert_approx_equals(clone.x.animVal.value, 10, 0.001);
+      }));
+    }, 'check clone does not copy the animated value');
+  ]]></script>
+</svg>

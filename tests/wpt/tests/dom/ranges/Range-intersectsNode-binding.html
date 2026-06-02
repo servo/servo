@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Range.intersectsNode</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var r = document.createRange();
+  assert_throws_js(TypeError, function() { r.intersectsNode(); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(null); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(undefined); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(42); });
+  assert_throws_js(TypeError, function() { r.intersectsNode("foo"); });
+  assert_throws_js(TypeError, function() { r.intersectsNode({}); });
+  r.detach();
+  assert_throws_js(TypeError, function() { r.intersectsNode(); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(null); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(undefined); });
+  assert_throws_js(TypeError, function() { r.intersectsNode(42); });
+  assert_throws_js(TypeError, function() { r.intersectsNode("foo"); });
+  assert_throws_js(TypeError, function() { r.intersectsNode({}); });
+}, "Calling intersectsNode without an argument or with an invalid argument should throw a TypeError.")
+</script>

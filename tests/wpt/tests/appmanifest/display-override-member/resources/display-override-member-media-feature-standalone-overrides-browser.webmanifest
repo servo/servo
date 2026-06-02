@@ -1,0 +1,12 @@
+{
+    "name": "Display override member media feature WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../display-override-member-media-feature-browser-manual.tentative.html",
+    "display": "browser",
+    "display_override": [ "standalone" ]
+}

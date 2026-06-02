@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>Block with over-contrained margins+borders+padding+width = containing block width</title>
+    <style>
+      body { width: 300px; margin: 0; }
+      p { background: green; width: 200px; height: 100px; margin: 0; position: absolute }
+    </style>
+  </head>
+  <body>
+    <p style="top: 20px; left: 470px"></p>
+    <p style="top: 140px; left: 430px"></p>
+    <p style="top: 260px; left: 520px"></p>
+    <!-- https://github.com/servo/servo/issues/8721: should be left: 380px -->
+    <p style="top: 380px; left: 360px"></p>
+  </body>
+</html>

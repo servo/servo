@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:host combined with :not</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+my-host {
+  display: block;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<my-host id="host"></my-host>
+<script>
+  host.attachShadow({mode: "open"}).innerHTML = `
+    <style>
+      :host > div {
+        background-color: red;
+        width: 100%;
+        height: 100%;
+      }
+      :host > :not(span) {
+        background-color: green;
+      }
+    </style>
+    <div></div>
+  `;
+
+</script>

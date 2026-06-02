@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>An anchor in nested fixedpos should be acceptable for an anchor-positioned element on the outside</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/428354426">
+<style>
+  #overlay {
+    position: fixed;
+    position-anchor: --a;
+    width: anchor-size(width);
+    height: anchor-size(height);
+    background: green;
+  }
+</style>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:fixed;">
+  <div style="position:fixed;">
+    <div style="anchor-name:--a; width:100px; height:100px; background:red;"></div>
+  </div>
+</div>
+<div id="overlay"></div>

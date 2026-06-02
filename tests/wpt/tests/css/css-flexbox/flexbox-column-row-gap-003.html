@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<html>
+<head>
+  <title>CSS Test: Testing cross size computation with row and column gaps in horizontal multi-line flex containers</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align/#gap-flex">
+  <link rel="match" href="flexbox-column-row-gap-003-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      border: 1px solid black;
+      column-gap: 20px;
+      row-gap: 40px;
+      align-content: space-around;
+      justify-content: space-around;
+    }
+    .rowWrap {
+      flex-flow: row wrap;
+    }
+    .item {
+      border: 1px solid blue;
+      background: lightblue;
+      width: 28px;
+      height: 28px;
+    }
+    .autoLBMargins {
+      margin-left: auto;
+      margin-bottom: auto;
+    }
+    .w200 {
+      width: 200px;
+    }
+    .hclamp {
+      max-height: 90px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer rowWrap w200">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item autoLBMargins"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer rowWrap w200 hclamp">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item autoLBMargins"></div>
+    <div class="item"></div>
+  </div>
+</body>
+</html>

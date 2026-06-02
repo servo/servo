@@ -1,0 +1,21 @@
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1935785">
+<style>
+*:has([e]),
+:nth-last-child(n of:read-only[d=""][b=""] d){}
+</style>
+<script>
+const func_1 = (e) => {
+  e.originalTarget.scrollTop = 2147483647
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.documentElement.setAttribute("contenteditable", true)
+  let a = document.createElementNS("http://www.w3.org/1999/xhtml", "a")
+  document.documentElement.appendChild(a)
+  document.documentElement.hidden = true
+  a.addEventListener("DOMAttrModified", func_1, true)
+  a.draggable = true
+  document.documentElement.removeAttribute("contenteditable")
+  a.setHTML("", { })
+})
+</script>
+<marquee>

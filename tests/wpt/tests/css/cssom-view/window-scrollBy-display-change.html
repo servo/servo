@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Verify that scrolling the root does actually do a visual scroll</title>
+        <link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-window-scrollby">
+        <link rel="match" href="window-scrollBy-display-change-ref.html">
+    </head>
+    <body style="overflow: hidden" onload="window.scrollBy(0, 2000);">
+        <div style="height: 2000px"></div>
+        <div style="width: 100px; height: 100px; background: green;"></div>
+        <div style="height: 2000px"></div>
+    </body>
+</html>
+

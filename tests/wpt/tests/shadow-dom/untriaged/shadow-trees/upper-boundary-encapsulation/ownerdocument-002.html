@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Upper-boundary encapsuration on ownerDocument: with all HTML5 elements</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The ownerDocument property of all nodes in shadow tree refers to the document of the shadow host.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+function testElement(elementName) {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var element = doc.createElement(elementName);
+    doc.body.appendChild(element);
+    var shadowRoot = element.attachShadow({mode: 'open'});
+    HTML5_SHADOW_ALLOWED_ELEMENTS.forEach(function (name) {
+        shadowRoot.appendChild(doc.createElement(name));
+    });
+
+    var iterator = doc.createNodeIterator(shadowRoot, 0xFFFFFFFF, null);
+    var node;
+    while (node = iterator.nextNode()) {
+        assert_equals(node.ownerDocument, doc);
+    }
+}
+
+var testParameters = HTML5_SHADOW_ALLOWED_ELEMENTS.map(function (name) {
+    return [
+        'ownerDocument property of any elements in a shadow tree should ' +
+        'match the document of the shadow host, when the host is a "' +
+        name + '" element.',
+        name
+    ];
+});
+
+generate_tests(testElement, testParameters);
+</script>
+</body>
+</html>

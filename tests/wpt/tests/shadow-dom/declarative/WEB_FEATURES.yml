@@ -1,0 +1,6 @@
+features:
+- name: declarative-shadow-dom
+  files: "**"
+- name: gethtml
+  files:
+  - gethtml*

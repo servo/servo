@@ -1,0 +1,49 @@
+<!doctype html>
+<style>
+  div {
+    color: orange;
+  }
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+  var listSize = 100;
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measures performance of creating and rendering elements with shadow roots from templates (contains class descendant selector styles).",
+      run: function() {
+        var list = document.querySelector('#list');
+        var tmpl = document.querySelector("#tmpl");
+        list.innerHTML = '';
+        var start = PerfTestRunner.now();
+        var i = 0;
+        do {
+          var host = document.createElement('div');
+          var root = host.attachShadow({mode:'open'});
+          root.appendChild(tmpl.content.cloneNode(true));
+          var light = document.createElement('div');
+          list.appendChild(host);
+        } while (++i < listSize);
+
+        PerfTestRunner.forceLayout();
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>
+<template id="tmpl">
+  <style>
+    .foo .bar .foo.bar.baz {
+      color: blue;
+    }
+    .bar.baz {
+      color: red;
+    }
+  </style>
+  <div class="foo">
+    <div class="bar">
+      <div class="foo bar baz">item</div>
+    </div>
+  </div>
+  <content></content>
+</template>
+<section id="list"></section>

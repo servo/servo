@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Verify dir attribute on various containers</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <meta name="assert" content="Verify dir attribute on various mmultiscripts.">
+    <link rel="match" href="direction-overall-003-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math {
+          /* Ensure the space after script is 30px */
+          font: 10px spaceafterscript3000;
+      }
+      @font-face {
+          font-family: spaceafterscript3000;
+          src: url("/fonts/math/scripts-spaceafterscript3000.woff");
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- mmultiscripts. The formulas
+
+         1 3                 3 1
+          X  in dir=ltr  and  X  in dir=rtl
+         2 4                 4 2
+
+         do not match perfectly, so we use an alternative == reftest here
+         which is less strict. -->
+
+    <!-- five vertical bands: red, green, magenta, blue and yellow -->
+    <div style="position: absolute;
+                top: 5px; left: 5px; width: 200px; height: 200px;">
+      <div style="position: absolute; width: 70px; height: 200px;
+                  left: 0px; background: red;"></div>
+      <div style="position: absolute; width: 70px; height: 200px;
+                  left: 70px; background: green;"></div>
+      <div style="position: absolute; width: 70px; height: 200px;
+                  left: 140px; background: magenta;"></div>
+      <div style="position: absolute; width: 70px; height: 200px;
+                  left: 210px; background: blue;"></div>
+      <div style="position: absolute; width: 70px; height: 200px;
+                  left: 280px; background: yellow;"></div>-->
+    </div>
+
+    <!-- a mmultiscripts element whose children are squares of different
+         colors. In dir=rtl, the color of each square should match the one of
+         the band over which the square is positioned. Hence, this
+         mmultiscripts should not be visible. -->
+    <div style="position: absolute;
+                top: 5px; left: 5px; width: 200px; height: 200px;">
+      <math dir="rtl">
+        <mmultiscripts>
+          <mspace width="40px" height="40px" mathbackground="magenta"/>
+
+          <mspace width="40px" height="40px" mathbackground="green"/>
+          <mspace width="40px" height="40px" mathbackground="green"/>
+
+          <mspace width="40px" height="40px" mathbackground="red"/>
+          <mspace width="40px" height="40px" mathbackground="red"/>
+
+           <mprescripts/>
+
+          <mspace width="40px" height="40px" mathbackground="yellow"/>
+          <mspace width="40px" height="40px" mathbackground="yellow"/>
+
+          <mspace width="40px" height="40px" mathbackground="blue"/>
+          <mspace width="40px" height="40px" mathbackground="blue"/>
+        </mmultiscripts>
+      </math>
+    </div>
+
+    <!-- We add black vertical bands to cover spaces between the children of
+         mmultiscripts. -->
+    <div style="position: absolute;
+                top: 5px; left: 5px; width: 200px; height: 200px;">
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: -5px; background: black;"></div>
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: 65px; background: black;"></div>
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: 135px; background: black;"></div>
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: 205px; background: black;"></div>
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: 275px; background: black;"></div>
+      <div style="position: absolute; width: 10px; height: 200px;
+                  left: 345px; background: black;"></div>
+    </div>
+
+  </body>
+</html>

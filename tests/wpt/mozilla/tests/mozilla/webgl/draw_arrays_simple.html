@@ -1,0 +1,75 @@
+<!doctype html>
+<link rel="match" href="draw_arrays_simple_ref.html"></link>
+<meta charset="utf-8">
+<title>WebGL drawArrays test</title>
+<!--
+  This test should generate a 256x256 green square
+  on a 512x512 canvas
+-->
+<style>
+  html, body { margin: 0 }
+</style>
+<canvas id="c" width="512" height="512"></canvas>
+<script id="vertex_shader" type="x-shader/x-vertex">
+precision mediump float;
+
+attribute vec2 a_position;
+
+void main() {
+  gl_Position = vec4(a_position, 0, 1);
+}
+</script>
+
+<script id="fragment_shader" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  gl_FragColor = vec4(0, 1, 0, 1);  // green
+}
+</script>
+<script>
+  var gl = document.getElementById('c').getContext('webgl');
+
+  // Clear white
+  gl.clearColor(1, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Create the program
+  var vertex_shader = gl.createShader(gl.VERTEX_SHADER),
+      fragment_shader = gl.createShader(gl.FRAGMENT_SHADER),
+      program = gl.createProgram();
+
+  gl.shaderSource(vertex_shader,
+                  document.getElementById('vertex_shader').textContent);
+  gl.shaderSource(fragment_shader,
+                  document.getElementById('fragment_shader').textContent);
+  gl.compileShader(vertex_shader);
+  gl.compileShader(fragment_shader);
+  gl.attachShader(program, vertex_shader);
+  gl.attachShader(program, fragment_shader);
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  // Get the position from the fragment shader
+  var position = gl.getAttribLocation(program, "a_position");
+
+  // Square as two triangles
+  var square_data = new Float32Array([
+    -0.5,  0.5, // top left
+     0.5,  0.5, // top right
+    -0.5, -0.5, // bottom left
+    -0.5, -0.5, // bottom left
+     0.5,  0.5, // top right
+     0.5, -0.5  // bottom right
+  ]);
+
+  // Create a buffer for the square with the square
+  // vertex data
+  var square_buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, square_data, gl.STATIC_DRAW);
+
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, square_data.length / 2);
+</script>

@@ -1,0 +1,96 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>WebGL gl calls Conformance Tests</title>
+<link rel='stylesheet' href='../../resources/js-test-style.css'/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src='../../js/js-test-pre.js'></script>
+<script src='../../js/webgl-test-utils.js'></script>
+</head>
+<body>
+<div id='description'></div>
+<div id='console'></div>
+<canvas id='canvas' width='2' height='2'> </canvas>
+<script>
+'use strict';
+description('Test implicit target assignment during FB attachment');
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext('canvas');
+let fb, rb, tex;
+
+(() => {
+    if (!gl) {
+        testFailed('context does not exist');
+        return;
+    }
+
+    fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    wtu.glErrorShouldBe(gl, 0, 'No errors');
+
+    // -
+
+    debug('');
+    debug('framebufferRenderbuffer');
+
+    rb = gl.createRenderbuffer();
+    shouldBe('gl.isRenderbuffer(rb)', 'false');
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    shouldBe('gl.isRenderbuffer(rb)', 'true');
+
+    rb = gl.createRenderbuffer();
+    shouldBe('gl.isRenderbuffer(rb)', 'false');
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, 'framebufferRenderbuffer must be preceeded by some bindRenderbuffer');
+    shouldBe('gl.isRenderbuffer(rb)', 'false');
+
+    wtu.glErrorShouldBe(gl, 0, 'No errors');
+
+    // -
+
+    debug('');
+    debug('framebufferTexture2D');
+
+    tex = gl.createTexture();
+    shouldBe('gl.isTexture(tex)', 'false');
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    shouldBe('gl.isTexture(tex)', 'true');
+
+    tex = gl.createTexture();
+    shouldBe('gl.isTexture(tex)', 'false');
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1636524 :
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, 'framebufferTexture2D must be preceeded by some bindTexture');
+    shouldBe('gl.isTexture(tex)', 'false');
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+    wtu.glErrorShouldBe(gl, 0, 'No errors after bindTexture');
+
+    tex = gl.createTexture();
+    shouldBe('gl.isTexture(tex)', 'false');
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X, tex, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, 'framebufferTexture2D must be preceeded by some bindTexture');
+    shouldBe('gl.isTexture(tex)', 'false');
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    wtu.glErrorShouldBe(gl, 0, 'No errors after bindTexture');
+})();
+
+debug('');
+var successfullyParsed = true;
+
+</script>
+<script src='../../js/js-test-post.js'></script>
+
+</body>
+</html>

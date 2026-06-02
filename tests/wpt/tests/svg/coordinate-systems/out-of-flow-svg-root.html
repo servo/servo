@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://www.w3.org/TR/SVG2/coords.html">
+<link rel="match"  href="out-of-flow-svg-root-ref.html">
+<style>
+    section { margin-bottom: 10px; }
+    div { background: rgba(255, 0, 0, 0.15) }
+    svg { background: rgba(0, 0, 255, 0.15) }
+</style>
+<body>
+    <section>
+        <div style="position: relative; width: 200px; height: 300px; padding: 20px">
+            <svg style="position: absolute; top: 0; left: 0; right: 0" viewBox="0 0 1 1"
+                xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+    </section>
+    <section>
+        <div style="position: relative; width: 300px; height: 200px">
+            <div style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; padding: 20px;">
+                <svg style="position: absolute; top: 0; left: 0; height: 100%" viewBox="0 0 1 1"
+                    xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

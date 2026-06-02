@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Markers: markerUnits=userSpaceOnUse with vector-effect=non-scaling-stroke</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#MarkerUnitsAttribute"/>
+  <h:link rel="match" href="../../embedded/reference/green-rect-100x100.svg"/>
+
+  <marker id="m" orient="0" refY="5" markerUnits="userSpaceOnUse"
+          markerWidth="10" markerHeight="10">
+    <rect width="10" height="10" fill="green"/>
+  </marker>
+  <line x2="10" y1="5" y2="5" vector-effect="non-scaling-stroke"
+        stroke="red" stroke-width="10" marker-start="url(#m)"
+        transform="scale(10)"/>
+</svg>

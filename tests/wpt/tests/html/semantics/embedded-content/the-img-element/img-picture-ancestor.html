@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>img should only look at a parent picture element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<picture>
+  <source media="not all" srcset="data:,a">
+  <source media="all" srcset="data:,b">
+  <img src="data:,c">
+  <picture>
+    <source media="not all" srcset="data:,e">
+    <source media="all" srcset="data:,f">
+    <img src="data:,g">
+  </picture>
+</picture>
+<script>
+const picture1 = document.querySelector("picture");
+const picture2 = document.querySelector("picture > picture");
+const img1 = document.querySelector("picture > img");
+const img2 = document.querySelector("picture > picture > img");
+
+const div = document.createElement("div");
+
+const imgInsideDiv = document.createElement("img");
+imgInsideDiv.src = "data:,d";
+div.append(imgInsideDiv);
+
+test(function() {
+  assert_equals(img1.currentSrc, "data:,b");
+}, "currentSrc of img in normally parented picture is correct");
+
+test(function() {
+  assert_equals(img2.currentSrc, "data:,f");
+}, "currentSrc of img in nested picture element is correct");
+
+async_test(function(t) {
+  picture1.append(div);
+  queueMicrotask(t.step_func(function() {
+    assert_equals(imgInsideDiv.currentSrc, "data:,d");
+    t.done();
+  }));
+}, "currentSrc of img with picture ancestor but non-picture parent is correct");
+
+async_test(function(t) {
+  picture2.remove();
+  queueMicrotask(t.step_func(function() {
+    assert_equals(img2.currentSrc, "data:,f");
+    t.done();
+  }));
+}, "currentSrc of img in nested picture element remains correct when the inner picture is removed from the document");
+</script>

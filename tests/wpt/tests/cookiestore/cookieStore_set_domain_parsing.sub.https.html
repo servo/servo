@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=IDNA", document.location);
+      childUrl.host = "{{hosts[][élève]}}";
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with domain on IDNA host");
+
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=uppercase", document.location);
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with mixed casing domain");
+    </script>
+  </body>
+</html>

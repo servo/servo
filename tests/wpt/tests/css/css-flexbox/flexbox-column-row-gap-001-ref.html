@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<!--
+     Reference for the correctness of gaps in horizontal and vertical multi-line
+     flex containers.
+-->
+<html>
+<head>
+  <title>Reference: Testing row and column gaps in horizontal and vertical multi-line flex containers with the space-around property and auto margins</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .outerBox {
+      width: 200px;
+      height: 220px;
+      border: 1px solid black;
+      float: left;
+    }
+    .flexContainer {
+      display: flex;
+      align-content: space-around;
+      justify-content: space-around;
+    }
+    .rowNoWrap {
+      flex-flow: row nowrap;
+    }
+    .columnNoWrap {
+      flex-flow: column nowrap;
+    }
+    .item {
+      border: 1px solid blue;
+      background: lightblue;
+      width: 28px;
+      height: 28px;
+    }
+    .autoLBMargins {
+      margin-left: auto;
+      margin-bottom: auto;
+    }
+    .autoBMargin {
+      margin-bottom: auto;
+    }
+    .right20 {
+      margin-right: 20px;
+    }
+    .bottom40 {
+      margin-bottom: 40px;
+    }
+    .tb30100 {
+      margin-top: 30px;
+      margin-bottom: 100px;
+    }
+    .lr3080 {
+      margin-left: 30px;
+      margin-right: 80px;
+    }
+    .w200 {
+      width: 200px;
+    }
+    .h220 {
+      height: 220px;
+    }
+    .fleft {
+      float: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="outerBox">
+    <div class="flexContainer w200 rowNoWrap tb30100">
+      <div class="item right20"></div>
+      <div class="item right20"></div>
+      <div class="item right20"></div>
+      <div class="item"></div>
+    </div>
+    <div class="flexContainer w200 rowNoWrap">
+      <div class="item autoLBMargins right20"></div>
+      <div class="item"></div>
+    </div>
+  </div>
+  <div class="outerBox">
+    <div class="flexContainer fleft h220 columnNoWrap lr3080">
+      <div class="item bottom40"></div>
+      <div class="item bottom40"></div>
+      <div class="item"></div>
+    </div>
+    <div class="flexContainer fleft  h220 columnNoWrap">
+      <div class="item bottom40"></div>
+      <div class="item bottom40"></div>
+      <div class="item autoBMargin"></div>
+    </div>
+  </div>
+</body>
+</html>

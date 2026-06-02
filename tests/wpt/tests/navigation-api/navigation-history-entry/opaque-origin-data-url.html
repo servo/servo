@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    window.onmessage = t.step_func_done(e => {
+      assert_equals(e.data.length, 0);
+      assert_true(e.data.currentIsNull);
+    });
+    i.src = "data:text/html,<script>top.postMessage({ length: navigation.entries().length, " +
+        "currentIsNull: navigation.currentEntry === null}, '*')</sc" +
+        "ript>";
+  });
+}, "entries() and currentEntry after navigation to a data: URL (which has an opaque origin)");
+</script>

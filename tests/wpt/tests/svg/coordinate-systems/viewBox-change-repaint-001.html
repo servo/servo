@@ -1,0 +1,23 @@
+<!doctype HTML>
+<head>
+  <meta charset="utf-8">
+  <title>Testcase for dynamic viewBox change</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/SVG/coords.html#ViewBoxAttribute">
+  <link rel="match" href="support/viewBox-change-repaint-001-ref.html">
+  <script>
+    function go() {
+      var mySVG = document.getElementById("mySVG");
+      mySVG.setAttribute("viewBox", "0 0 10 10");
+    }
+  </script>
+</head>
+<body onload="go()">
+  <!-- After we dynamically add viewBox="0 0 10 10", the lime area should
+       stretch to fill the 200x200 SVG viewport, and no red should be visible.
+    -->
+  <svg id="mySVG" style="height: 200px; width: 200px;">
+    <rect width="200" height="200" fill="red"></rect>
+    <rect width="10" height="10" fill="lime"></rect>
+  </svg>
+</body>

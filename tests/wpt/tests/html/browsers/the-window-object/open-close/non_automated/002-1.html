@@ -1,0 +1,8 @@
+<!doctype html>
+<p>Now open a new tab and navigate to <a></a></p>
+<script>
+href = window.location.href.replace("http://", "http://www.").replace("002-1.html", "002-2.html");
+var a = document.getElementsByTagName("a")[0];
+a.href = href;
+a.textContent = href;
+</script>

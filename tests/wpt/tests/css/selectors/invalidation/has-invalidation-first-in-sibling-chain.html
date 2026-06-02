@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selector Invalidation: Invalidate :has() as a result of first DOM element mutation in sibling chain</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1974022">
+<style>
+div, main { color: grey }
+#subject1:has(.item ~ .item + .item) { color: red; }
+#subject2:has(.item + .item + .item) { color: orangered; }
+#subject3:has(.item .item ~ .item + .item) { color: green; }
+#subject4:has(.item .item + .item + .item) { color: lightgreen; }
+</style>
+
+<main id=main>
+  <div id=subject1>
+    <div class=item></div>
+    <div class=item></div>
+  </div>
+  <div id=subject2>
+    <div class=item></div>
+    <div class=item></div>
+  </div>
+  <div id=subject3>
+    <div class=item>
+      <div class=item></div>
+      <div class=item></div>
+    </div>
+  </div>
+  <div id=subject4>
+    <div class=item>
+      <div class=item></div>
+      <div class=item></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const grey = 'rgb(128, 128, 128)';
+const red = 'rgb(255, 0, 0)';
+const orangered = 'rgb(255, 69, 0)';
+const green = 'rgb(0, 128, 0)';
+const lightgreen = 'rgb(144, 238, 144)';
+
+function newItem() {
+  const d = document.createElement('div');
+  d.classList.add('item');
+  return d;
+}
+
+function testColors(test_name, subject, subject_color) {
+    test(function() {
+        assert_equals(getComputedStyle(subject).color, subject_color);
+    }, test_name);
+}
+
+const tests = [
+  { subject: subject1, prependAt: subject1, color: red },
+  { subject: subject2, prependAt: subject2, color: orangered },
+  { subject: subject3, prependAt: subject3.firstElementChild, color: green },
+  { subject: subject4, prependAt: subject4.firstElementChild, color: lightgreen },
+]
+
+
+for (t of tests) {
+  const id = t.subject.id;
+  testColors(`${id} Initial color`, t.subject, grey);
+  const item = newItem();
+  t.prependAt.prepend(item);
+  testColors(`#${id} invalidated after adding first sibling`, t.subject, t.color);
+  item.remove();
+  testColors(`#${id} invalidated after removing first sibling`, t.subject, grey);
+}
+</script>
+

@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching a shadow root directly</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <template shadowrootmode="open" marker="a b c"
+    ><?marker name=a>b<?start name=c><?end><template for="a">a</template
+    ><template for="c">c</template></template
+  >
+</div>
+<script>
+  test(() => {
+    const { shadowRoot } = document.querySelector("#container");
+    assert_array_equals(shadowRoot.marker, ["a", "b", "c"]);
+    assert_equals(shadowRoot.textContent, "abc");
+  }, "markers are respected in declarative shadow root");
+
+  promise_test(async (t) => {
+    const element = document.createElement("div");
+    const shadow = element.attachShadow({ mode: "open", marker: ["a", "b"] });
+    assert_array_equals(shadow.marker, ["a", "b"]);
+    shadow.innerHTML = "<?marker name=a>X<?marker name=b>";
+    const writer = shadow.streamAppendHTMLUnsafe().getWriter();
+    await writer.write("<template for=a>a</template>");
+    await writer.write("<template for=b>b</template>");
+    await writer.close();
+    assert_equals(shadow.textContent, "aXb");
+  }, "markers are respected in imperative shadow root with streaming");
+</script>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  getSelection().collapse(document.querySelector("header"), 1);
+  getSelection().modify("move", "backward", "line");
+  const ruby = document.querySelector("ruby");
+  ruby.parentElement.replaceChild(document.createElement("h3"), ruby);
+  getSelection().modify("extend", "backward", "character");
+});
+</script>
+</head>
+<body>
+<textarea>
+</textarea>
+<abbr>
+<header>
+<select autofocus='false'>
+<input/>
+<sup>
+<ruby id='a'>
+</body>
+</html>

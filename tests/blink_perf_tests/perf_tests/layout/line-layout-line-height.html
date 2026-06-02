@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line height calculation performance test</title>
+    <script src="../resources/runner.js"></script>
+</head>
+<body>
+    <pre id="log"></pre>
+    <div id="target" style="width: 300px; display: none;">
+    </div>
+    <script>
+        var target = document.getElementById("target");
+        var style = target.style;
+        var rows = 10000;
+        var el = document.createElement('p');
+        el.innerHTML = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris ut elit lacus, non convallis odio. Integer facilisis, dolor quis porttitor auctor\n';
+        for (var i = 0; i < rows; ++i) {
+            var e  = el.cloneNode(true);
+            target.appendChild(e);
+        }
+        function test() {
+            style.display = "block";
+            style.width = "280px";
+            PerfTestRunner.forceLayout();
+            style.width = "300px";
+            PerfTestRunner.forceLayout();
+            style.width = "290px";
+            PerfTestRunner.forceLayout();
+            style.display = "none";
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures performance of line-height calculation in layout.",
+            run: test
+        });
+    </script>
+</body>
+</html>

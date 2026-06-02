@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<div id="divTarget">Initial Text</div>
+<div><input type="button" value="Initial Input Text" id="inputTarget" style="width: 300px"></input></div>
+<div><button id="navigateButton">Navigate!</button></div>
+
+<script>
+  const textNode = divTarget.childNodes[0];
+
+  async function runTest(t, url, modifyText, targetId) {
+    navigateButton.addEventListener('click', () => {
+      modifyText();
+      history.pushState({}, '', url);
+    }, {once: true});
+
+    // Set up the PerformanceObservers before clicking to avoid races.
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('soft-navigation');
+    const icpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('interaction-contentful-paint');
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, 'Soft navigation not detected.', /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith(url),
+      `Unexpected Soft Navigation URL. Expected url to end with ${url} but got ${softNavs[0].name}`);
+
+    const icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
+    assert_equals(icps[0].id, targetId, `Expected ICP candidate to be "${targetId}"`);
+  }
+
+  promise_test(t => {
+    const url = '/nodeValue';
+    const modifyText = () => {
+      textNode.nodeValue = "New text set via .nodeValue";
+    };
+    return runTest(t, url, modifyText, 'divTarget');
+  }, 'Soft Navigation Detection supports replacing node text via .nodeValue');
+
+  promise_test(t => {
+    const url = '/data';
+    const modifyText = () => {
+      textNode.data= 'New text set via .data';
+    };
+    return runTest(t, url, modifyText, 'divTarget');
+  }, 'Soft Navigation Detection supports replacing node text via .data');
+
+  promise_test(t => {
+    const url = '/textContent';
+    const modifyText = () => {
+      textNode.textContent = 'New text set via .textContent';
+    };
+    return runTest(t, url, modifyText, 'divTarget');
+  }, 'Soft Navigation Detection supports replacing node text via .textContent');
+
+  promise_test(t => {
+    const url = '/value';
+    const modifyText = () => {
+      inputTarget.value = 'Input text set via .value';
+    };
+    return runTest(t, url, modifyText, 'inputTarget');
+  }, 'Soft Navigation Detection supports replacing input text via .input');
+
+  promise_test(t => {
+    const url = '/value-attribute';
+    const modifyText = () => {
+      inputTarget.setAttribute('value', 'Input text set via .value (attr)');
+    };
+    return runTest(t, url, modifyText, 'inputTarget');
+  }, 'Soft Navigation Detection supports replacing input text via setAttribute(value)');
+</script>

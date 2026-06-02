@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/namespaces.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<script src="support/script-messages.js"></script>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts"/>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';"/>
+</head>
+<body>
+  <!--- See script-enforcement-002.html an explanation of this test.
+      The HTML parser won't create a child element for the span child of
+      scriptForOuterHTMLTest below, so we instead rely on the XHTML parser.  -->
+<div>
+  <script id="scriptForOuterHTMLTest" type="unknown"><span></span></script>
+</div>
+<div id="container"></div>
+<script>
+  trustedTypes.createPolicy("default", {
+    createHTML: (value, _, sink) => {
+      window.log_message("CREATE_HTML");
+      window.log_message(sink);
+      return value.replace("RUN", "RUN_TRUSTED_HTML");
+    },
+    createScript: (value, _, sink) => {
+      window.log_message("CREATE_SCRIPT");
+      window.log_message(sink);
+      return value.replace("RUN", "RUN_TRUSTED_SCRIPT");
+    },
+  });
+
+  promise_test(async t => {
+    let messages = await script_messages_for(_ => {
+      let script = document.getElementById("scriptForOuterHTMLTest");
+      script.remove();
+      script.removeAttribute("type");
+      window.log_message("SET");
+      script.firstElementChild.outerHTML = LOG_RUN_MESSAGE;
+      window.log_message("APPEND");
+      document.getElementById("container").appendChild(script);
+    });
+    assert_array_equals(messages, ["SET", "CREATE_HTML", "Element outerHTML", "APPEND", "CREATE_SCRIPT", "HTMLScriptElement text", "RUN_TRUSTED_SCRIPT_TRUSTED_HTML"]);
+  }, "Default policy's calls when setting script source via Element.outerHTML.");
+</script>
+</body>
+</html>

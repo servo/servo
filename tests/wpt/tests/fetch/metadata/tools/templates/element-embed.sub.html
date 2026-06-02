@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTML "embed" element source</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  const params = {
+    body: `
+      <svg xmlns="http://www.w3.org/2000/svg" width="123" height="123">
+        <rect fill="lime" width="123" height="123"/>
+      </svg>
+    `,
+    mime: 'image/svg+xml'
+  };
+
+  function induceRequest(t, url) {
+    const embed = document.createElement('embed');
+    embed.setAttribute('src', url);
+    document.body.appendChild(embed);
+
+    t.add_cleanup(() => embed.remove());
+
+    return new Promise((resolve) => embed.addEventListener('load', resolve));
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(t, makeRequestURL(key, [% subtest.origins %], params))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+      });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

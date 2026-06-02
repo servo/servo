@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<meta name="assert" content="Checks that the %-padding accessed from script, for an OOF descendant resolves correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#target')">
+  <div style="display: inline-grid; position: relative; grid-template: 50px 20px / 50px 20px;">
+    <div style="grid-area: 2/2/2/2;">
+      <div id="target" style="position: absolute; top: 0; left: 0; grid-area: 1/1/1/1; padding: 100%; background: green;" data-expected-padding-left="50" data-expected-padding-top="50"></div>
+    </div>
+  </div>
+</div>

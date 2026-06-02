@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<video width="200"></video>
+<script>
+function createSource(src, media) {
+  var source = document.createElement('source');
+  source.src = src;
+  if (media) {
+    source.media = media;
+  }
+  return source;
+}
+const rAF = () => new Promise(resolve => requestAnimationFrame(resolve));
+const hash = str => str.substr(str.lastIndexOf('#'));
+(async () => {
+  const v = document.querySelector('video');
+  v.getBoundingClientRect(); // force layout flush. ensure viewport dimensions are up-to-date
+  v.append(createSource('/media-source/mp4/test.mp4#a', '(min-width: 200px)'));
+  v.append(createSource('/media-source/mp4/test.mp4#b'));
+  await rAF();
+  await rAF();
+  window.resolveBeforeEnvChange(hash(v.currentSrc));
+  window.frameElement.width = '150';
+  await rAF();
+  await rAF();
+  window.resolveAfterEnvChange(hash(v.currentSrc));
+  v.load()
+  await rAF();
+  await rAF();
+  window.resolveAfterLoadCalled(hash(v.currentSrc));
+})();
+</script>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Text selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#treelike">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#user-interaction">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that text in a ::before or ::marker pseudo-element can't be selected." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test {
+  font: 10px/1 Ahem;
+  margin-left: 200px;
+}
+#before::before {
+  content: "::before";
+  display: inline-block;
+  margin-left: -80px;
+}
+#marker {
+  display: list-item;
+  list-style-type: "::marker";
+}
+#before-marker::before {
+  content: "";
+  display: list-item;
+  list-style-type: "::marker";
+  height: 0;
+}
+</style>
+<div class="test" id="before"><span>helloworld</span></div>
+<div class="test" id="marker"><span>helloworld</span></div>
+<div class="test" id="before-marker"><span>helloworld</span></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+function createSelection(element, start, end, step) {
+  getSelection().empty();
+  step = Math.abs(step);
+  const actions = new test_driver.Actions();
+  actions.pointerMove(start, 0, {origin: element});
+  actions.pointerDown();
+  if (start < end) {
+    for (let x = start + step; x < end; x += step)
+      actions.pointerMove(x, 0, {origin: element});
+  } else {
+    for (let x = start - step; x > end; x -= step)
+      actions.pointerMove(x, 0, {origin: element});
+  }
+  actions.pointerMove(end, 0, {origin: element});
+  actions.pointerUp();
+  return actions.send();
+}
+(async function() {
+  setup({ explicit_done: true });
+  for (let target of document.querySelectorAll(".test")) {
+    const contents = target.querySelector("span");
+    const text = contents.firstChild;
+    const s = getSelection();
+
+    // Create a selection that starts in the middle of the element contents
+    // and ends in the middle of the pseudo-element
+    await createSelection(contents, 0, -90, 10);
+    test(function(t) {
+      assert_equals(s.toString(), "hello", "toString");
+      assert_equals(s.anchorNode, text, "anchorNode");
+      assert_equals(s.anchorOffset, 5, "anchorOffset");
+      assert_equals(s.focusNode, text, "focusNode");
+      assert_equals(s.focusOffset, 0, "focusOffset");
+    }, "Selection ending in ::" + target.id);
+
+    // Create a selection that starts and ends inside the pseudo-element.
+    await createSelection(contents, -80, -110, 10);
+    test(function(t) {
+      assert_equals(s.toString(), "", "toString");
+      assert_in_array(s.anchorNode, [text, null], "anchorNode");
+      assert_equals(s.anchorOffset, 0, "anchorOffset");
+      assert_in_array(s.focusNode, [text, null], "focusNode");
+      assert_equals(s.focusOffset, 0, "focusOffset");
+    }, "Selection contained in ::" + target.id);
+  }
+  done();
+})();
+</script>
+

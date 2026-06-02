@@ -1,0 +1,63 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Ancestor's activeElement should be cleared when child loses focus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<input placeholder="input in top level"/>
+<iframe></iframe>
+<script>
+const outerIFrame = document.querySelector('iframe');
+setup({ explicit_done: true });
+function runTest() {
+  test(() => {
+    assert_equals(outerIFrame.contentDocument.activeElement, outerIFrame.contentDocument.body,
+      "Initially, the activeElement of the outer iframe should be <body>");
+
+    const innerIFrame = outerIFrame.contentDocument.createElement("iframe");
+
+    window.onmessage = function(event) {
+      if (event.data != "ready") {
+        return;
+      }
+
+      // We receive an message when the innerIFrame is ready and its input is focused.
+      // outerIframe is the ancestor of inner iframe, so the activeElement of
+      // it should be the inner iframe.
+      assert_equals(outerIFrame.contentDocument.activeElement, innerIFrame,
+        "The activeElement of the outer iframe should be the inner iframe");
+
+      // Now we focus the input in the top level
+      document.querySelector("input").focus();
+
+      // Wait for a bit to let whatever the code that might change the focus to run
+      window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(function() {
+          window.requestAnimationFrame(function() {
+            // Since inner iframe lost its focus, the activeElement of outer iframe
+            // should be cleared as well, hence <body> should be focused.
+            assert_equals(outerIFrame.contentDocument.activeElement, outerIFrame.contentDocument.body,
+              "The activeElement of the outer iframe should be reverted back to <body>");
+            assert_equals(document.activeElement, document.querySelector("input"),
+              "The activeElement of the top-level document should the input");
+            done();
+          })
+        });
+      });
+    }
+
+    // Opens the cross-origin inner iframe with a page that contains an input element.
+    innerIFrame.src = "http://{{domains[www1]}}:{{ports[http][0]}}/focus/support/cross-origin-ancestor-activeelement-after-child-lose-focus-helper.html";
+    outerIFrame.contentDocument.body.appendChild(innerIFrame);
+  });
+}
+
+window.onload = function() {
+  runTest();
+}
+</script>
+</body>

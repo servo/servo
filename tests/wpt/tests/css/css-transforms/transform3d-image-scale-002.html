@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale3d() on an SVG</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#three-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#funcdef-scale3d">
+    <meta name="assert" content="This is the same as
+    transform3d-image-scale-001.html, but using an SVG image instead of a
+    bitmap.">
+    <link rel="match" href="transform-lime-square-ref.html">
+  </head>
+  <body>
+    <img src="support/transform-lime-square.svg" height="50" width="50"
+    style="transform: scale3d(2, 2, 2); transform-origin: 0 0">
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>the p element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-p-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        "use strict";
+
+        // check that prototype matches spec's DOM interface
+        test(function () {
+            var testElement = document.createElement("p");
+            assert_equals(Object.getPrototypeOf(testElement), HTMLParagraphElement.prototype, "HTMLParagraphElement.prototype should be used for p");
+        }, "The prototype for p is HTMLParagraphElement.prototype");
+
+    </script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This test validates the p element.</p>
+
+    <div id="log"></div>
+
+</body>
+</html>

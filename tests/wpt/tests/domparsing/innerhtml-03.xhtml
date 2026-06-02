@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>innerHTML in XHTML</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com"/>
+<link rel="help" href="http://html5.org/specs/dom-parsing.html#dom-innerhtml"/>
+<link rel="help" href="http://www.whatwg.org/html5/#xml-fragment-serialization-algorithm"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script><![CDATA[
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createElement("xmp"))
+    .appendChild(document.createElement("span"))
+    .appendChild(document.createTextNode("<"));
+  assert_equals(el.innerHTML, "<xmp xmlns=\"http://www.w3.org/1999/xhtml\"><span>&lt;<\/span><\/xmp>");
+})
+test(function() {
+  var el = document.createElement("xmp");
+  el.appendChild(document.createElement("span"))
+    .appendChild(document.createTextNode("<"));
+  assert_equals(el.innerHTML, "<span xmlns=\"http://www.w3.org/1999/xhtml\">&lt;<\/span>");
+})
+test(function() {
+  var el = document.createElement("xmp");
+  el.appendChild(document.createTextNode("<"));
+  assert_equals(el.innerHTML, "&lt;");
+})
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createElement("br"));
+  assert_equals(el.innerHTML, "<br xmlns=\"http://www.w3.org/1999/xhtml\" />");
+})
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "html:br"));
+  assert_equals(el.innerHTML, "<html:br xmlns:html=\"http://www.w3.org/1999/xhtml\" />");
+})
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createTextNode("<>\"'&"));
+  assert_equals(el.innerHTML, "&lt;&gt;\"'&amp;");
+})
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createTextNode("&lt;&gt;&quot;&apos;&amp;"));
+  assert_equals(el.innerHTML, "&amp;lt;&amp;gt;&amp;quot;&amp;apos;&amp;amp;");
+})
+test(function() {
+  var el = document.createElement("div");
+  el.appendChild(document.createTextNode("à×•…\u00A0"));
+  assert_equals(el.innerHTML, "à×•…\u00A0");
+})
+]]></script>
+</body>
+</html>

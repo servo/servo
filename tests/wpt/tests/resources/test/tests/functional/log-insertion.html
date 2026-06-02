@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<title>Log insertion</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function(t) {
+  assert_equals(document.body, null);
+}, "Log insertion before load");
+test(function(t) {
+  assert_equals(document.body, null);
+}, "Log insertion before load (again)");
+async_test(function(t) {
+  window.onload = t.step_func_done(function() {
+    var body = document.body;
+    assert_not_equals(body, null);
+
+    var log = document.getElementById("log");
+    assert_equals(log.parentNode, body);
+  });
+}, "Log insertion after load");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [{
+    "status_string": "PASS",
+    "name": "Log insertion before load",
+    "message": null,
+    "properties": {}
+  }, {
+    "status_string": "PASS",
+    "name": "Log insertion before load (again)",
+    "message": null,
+    "properties": {}
+  }, {
+    "status_string": "PASS",
+    "name": "Log insertion after load",
+    "message": null,
+    "properties": {}
+  }],
+  "type": "complete"
+}
+</script>

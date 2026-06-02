@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Test baseline alignment of radio buttons in vertical-rl writing mode.</title>
+<meta charset="utf-8">
+<style>
+
+label {
+    color: red;
+    background-color: red;
+    margin-top: -30px;
+}
+
+input {
+    visibility: hidden;
+}
+
+</style>
+<p>The radio button should be center-aligned with the label text since it is non-alphabetic.</p>
+<div style="writing-mode: vertical-rl">
+    <input type="radio" id="radio" checked>
+    <label for="radio">こんにちわ</label>
+</div>
+
+<br>
+
+<p>The radio button should be left-aligned with the label text since it has text-orientation sideways.</p>
+<div style="writing-mode: vertical-rl; text-orientation: sideways;">
+  <input type="radio" id="radio" checked>
+  <label for="radio">Baseline</label>
+</div>

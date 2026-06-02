@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name=timeout content=long>
+<title>NodeList (static collection) "length" getter tampered (Array.prototype.indexOf)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script src="support/NodeList-static-length-tampered.js"></script>
+<script>
+test(() => {
+    const nodeList = makeStaticNodeList(100);
+
+    for (var i = 0; i < 50; i++) {
+        if (i === 25)
+            Object.setPrototypeOf(nodeList, { get length() { return 10; } });
+
+        assert_equals(arrayIndexOfNodeList(nodeList), i >= 25 ? -1 : 50);
+    }
+});
+</script>

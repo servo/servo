@@ -1,0 +1,29 @@
+<!doctype html>
+<title>TextTrack.label</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles', 'foo');
+    window.track = document.createElement('track');
+    track.setAttribute('label', 'bar');
+    video.appendChild(track);
+    window.t2 = track.track;
+});
+test(function(){
+    assert_equals(t1.label, 'foo');
+    assert_equals(t2.label, 'bar');
+    track.label = 'baz';
+    assert_equals(t2.label, 'baz');
+    track.removeAttribute('label');
+    assert_equals(t2.label, '');
+});
+test(function(){
+    track.label = '\u0000a';
+    assert_equals(t2.label, '\u0000a');
+    track.setAttribute('label', '\u0000b', 'IDL attribute');
+    assert_equals(t2.label, '\u0000b', 'content attribute');
+}, document.title+', \\u0000');
+</script>

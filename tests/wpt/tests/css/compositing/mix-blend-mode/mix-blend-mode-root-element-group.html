@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: mix-blend-mode in the Root Element Group should have a transparent backdrop</title>
+        <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that the Root Element Group has a transparent backdrop">
+        <link rel="match" href="mix-blend-mode-root-element-group-ref.html">
+        <style type="text/css">
+            div {
+                width: 200px;
+                height: 200px;
+            }
+            .green {
+                background: rgba(0,160,0,0.5);
+                mix-blend-mode: soft-light;
+            }
+            .blue {
+                position: absolute;
+                top: 75px;
+                left: 75px;
+                background: rgba(0,0,160,0.5)
+            }
+        </style>
+    </head>
+    <body>
+        <div class="blue"></div>
+        <div class="green"></div>
+    </body>
+</html>

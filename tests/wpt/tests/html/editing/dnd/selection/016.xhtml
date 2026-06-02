@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from number input to textarea</title>
+<style type="text/css">
+textarea
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>Drag selected number to the textarea. Copy of selection should end up in the textarea once you drop it there.</p>
+<p><input type="number" value="123456789"/></p>
+<p><textarea placeholder="Drop selection here"/></p>
+</body>
+</html>

@@ -1,0 +1,324 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Device API (https://immersive-web.github.io/webxr/)
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute XRSystem xr;
+};
+
+[SecureContext, Exposed=Window] interface XRSystem : EventTarget {
+  // Methods
+  Promise<boolean> isSessionSupported(XRSessionMode mode);
+  [NewObject] Promise<XRSession> requestSession(XRSessionMode mode, optional XRSessionInit options = {});
+
+  // Events
+  attribute EventHandler ondevicechange;
+};
+
+enum XRSessionMode {
+  "inline",
+  "immersive-vr",
+  "immersive-ar"
+};
+
+dictionary XRSessionInit {
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
+};
+
+enum XRVisibilityState {
+  "visible",
+  "visible-blurred",
+  "hidden",
+};
+
+[SecureContext, Exposed=Window] interface XRSession : EventTarget {
+  // Attributes
+  readonly attribute XRVisibilityState visibilityState;
+  readonly attribute float? frameRate;
+  readonly attribute Float32Array? supportedFrameRates;
+  [SameObject] readonly attribute XRRenderState renderState;
+  [SameObject] readonly attribute XRInputSourceArray inputSources;
+  [SameObject] readonly attribute XRInputSourceArray trackedSources;
+  readonly attribute FrozenArray<DOMString> enabledFeatures;
+  readonly attribute boolean isSystemKeyboardSupported;
+
+  // Methods
+  undefined updateRenderState(optional XRRenderStateInit state = {});
+  Promise<undefined> updateTargetFrameRate(float rate);
+  [NewObject] Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
+
+  unsigned long requestAnimationFrame(XRFrameRequestCallback callback);
+  undefined cancelAnimationFrame(unsigned long handle);
+
+  Promise<undefined> end();
+
+  // Events
+  attribute EventHandler onend;
+  attribute EventHandler oninputsourceschange;
+  attribute EventHandler onselect;
+  attribute EventHandler onselectstart;
+  attribute EventHandler onselectend;
+  attribute EventHandler onsqueeze;
+  attribute EventHandler onsqueezestart;
+  attribute EventHandler onsqueezeend;
+  attribute EventHandler onvisibilitychange;
+  attribute EventHandler onframeratechange;
+};
+
+dictionary XRRenderStateInit {
+  double depthNear;
+  double depthFar;
+  boolean passthroughFullyObscured;
+  double inlineVerticalFieldOfView;
+  XRWebGLLayer? baseLayer;
+  sequence<XRLayer>? layers;
+};
+
+[SecureContext, Exposed=Window] interface XRRenderState {
+  readonly attribute double depthNear;
+  readonly attribute double depthFar;
+  readonly attribute boolean? passthroughFullyObscured;
+  readonly attribute double? inlineVerticalFieldOfView;
+  readonly attribute XRWebGLLayer? baseLayer;
+};
+
+callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame frame);
+
+[SecureContext, Exposed=Window] interface XRFrame {
+  [SameObject] readonly attribute XRSession session;
+  readonly attribute DOMHighResTimeStamp predictedDisplayTime;
+
+  XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
+  XRPose? getPose(XRSpace space, XRSpace baseSpace);
+};
+
+[SecureContext, Exposed=Window] interface XRSpace : EventTarget {
+
+};
+
+enum XRReferenceSpaceType {
+  "viewer",
+  "local",
+  "local-floor",
+  "bounded-floor",
+  "unbounded"
+};
+
+[SecureContext, Exposed=Window]
+interface XRReferenceSpace : XRSpace {
+  [NewObject] XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
+
+  attribute EventHandler onreset;
+};
+
+[SecureContext, Exposed=Window]
+interface XRBoundedReferenceSpace : XRReferenceSpace {
+  readonly attribute FrozenArray<DOMPointReadOnly> boundsGeometry;
+};
+
+[SecureContext, Exposed=Window] interface mixin XRViewGeometry {
+  readonly attribute Float32Array projectionMatrix;
+  [SameObject] readonly attribute XRRigidTransform transform;
+};
+
+enum XREye {
+  "none",
+  "left",
+  "right"
+};
+
+[SecureContext, Exposed=Window] interface XRView {
+  readonly attribute XREye eye;
+  readonly attribute unsigned long index;
+  readonly attribute double? recommendedViewportScale;
+
+  undefined requestViewportScale(double? scale);
+};
+
+XRView includes XRViewGeometry;
+
+[SecureContext, Exposed=Window] interface XRViewport {
+  readonly attribute long x;
+  readonly attribute long y;
+  readonly attribute long width;
+  readonly attribute long height;
+};
+
+[SecureContext, Exposed=Window]
+interface XRRigidTransform {
+  constructor(optional DOMPointInit position = {}, optional DOMPointInit orientation = {});
+  [SameObject] readonly attribute DOMPointReadOnly position;
+  [SameObject] readonly attribute DOMPointReadOnly orientation;
+  readonly attribute Float32Array matrix;
+  [SameObject] readonly attribute XRRigidTransform inverse;
+};
+
+[SecureContext, Exposed=Window] interface XRPose {
+  [SameObject] readonly attribute XRRigidTransform transform;
+  [SameObject] readonly attribute DOMPointReadOnly? linearVelocity;
+  [SameObject] readonly attribute DOMPointReadOnly? angularVelocity;
+
+  readonly attribute boolean emulatedPosition;
+};
+
+[SecureContext, Exposed=Window] interface XRViewerPose : XRPose {
+  [SameObject] readonly attribute FrozenArray<XRView> views;
+};
+
+enum XRHandedness {
+  "none",
+  "left",
+  "right"
+};
+
+enum XRTargetRayMode {
+  "gaze",
+  "tracked-pointer",
+  "screen",
+  "transient-pointer"
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputSource {
+  readonly attribute XRHandedness handedness;
+  readonly attribute XRTargetRayMode targetRayMode;
+  [SameObject] readonly attribute XRSpace targetRaySpace;
+  [SameObject] readonly attribute XRSpace? gripSpace;
+  [SameObject] readonly attribute FrozenArray<DOMString> profiles;
+  readonly attribute boolean skipRendering;
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputSourceArray {
+  iterable<XRInputSource>;
+  readonly attribute unsigned long length;
+  getter XRInputSource(unsigned long index);
+};
+
+[SecureContext, Exposed=Window]
+interface XRLayer : EventTarget {};
+
+typedef (WebGLRenderingContext or
+         WebGL2RenderingContext) XRWebGLRenderingContext;
+
+dictionary XRWebGLLayerInit {
+  boolean antialias = true;
+  boolean depth = true;
+  boolean stencil = false;
+  boolean alpha = true;
+  boolean ignoreDepthValues = false;
+  double framebufferScaleFactor = 1.0;
+};
+
+[SecureContext, Exposed=Window]
+interface XRWebGLLayer: XRLayer {
+  constructor(XRSession session,
+             XRWebGLRenderingContext context,
+             optional XRWebGLLayerInit layerInit = {});
+  // Attributes
+  readonly attribute boolean antialias;
+  readonly attribute boolean ignoreDepthValues;
+  attribute float? fixedFoveation;
+
+  [SameObject] readonly attribute WebGLFramebuffer? framebuffer;
+  readonly attribute unsigned long framebufferWidth;
+  readonly attribute unsigned long framebufferHeight;
+
+  // Methods
+  XRViewport? getViewport(XRView view);
+
+  // Static Methods
+  static double getNativeFramebufferScaleFactor(XRSession session);
+};
+
+partial dictionary WebGLContextAttributes {
+    boolean xrCompatible = false;
+};
+
+partial interface mixin WebGLRenderingContextBase {
+    [NewObject] Promise<undefined> makeXRCompatible();
+};
+
+[SecureContext, Exposed=Window]
+interface XRSessionEvent : Event {
+  constructor(DOMString type, XRSessionEventInit eventInitDict);
+  [SameObject] readonly attribute XRSession session;
+};
+
+dictionary XRSessionEventInit : EventInit {
+  required XRSession session;
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputSourceEvent : Event {
+  constructor(DOMString type, XRInputSourceEventInit eventInitDict);
+  [SameObject] readonly attribute XRFrame frame;
+  [SameObject] readonly attribute XRInputSource inputSource;
+};
+
+dictionary XRInputSourceEventInit : EventInit {
+  required XRFrame frame;
+  required XRInputSource inputSource;
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputSourcesChangeEvent : Event {
+  constructor(DOMString type, XRInputSourcesChangeEventInit eventInitDict);
+  [SameObject] readonly attribute XRSession session;
+  [SameObject] readonly attribute FrozenArray<XRInputSource> added;
+  [SameObject] readonly attribute FrozenArray<XRInputSource> removed;
+};
+
+dictionary XRInputSourcesChangeEventInit : EventInit {
+  required XRSession session;
+  required sequence<XRInputSource> added;
+  required sequence<XRInputSource> removed;
+
+};
+
+[SecureContext, Exposed=Window]
+interface XRReferenceSpaceEvent : Event {
+  constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict);
+  [SameObject] readonly attribute XRReferenceSpace referenceSpace;
+  [SameObject] readonly attribute XRRigidTransform? transform;
+};
+
+dictionary XRReferenceSpaceEventInit : EventInit {
+  required XRReferenceSpace referenceSpace;
+  XRRigidTransform? transform = null;
+};
+
+[SecureContext, Exposed=Window]
+interface XRVisibilityMaskChangeEvent : Event {
+  constructor(DOMString type, XRVisibilityMaskChangeEventInit eventInitDict);
+  [SameObject] readonly attribute XRSession session;
+  readonly attribute XREye eye;
+  readonly attribute unsigned long index;
+  [SameObject] readonly attribute Float32Array vertices;
+  [SameObject] readonly attribute Uint32Array indices;
+};
+
+dictionary XRVisibilityMaskChangeEventInit : EventInit {
+  required XRSession session;
+  required XREye eye;
+  required unsigned long index;
+  required Float32Array vertices;
+  required Uint32Array indices;
+};
+
+dictionary XRSessionSupportedPermissionDescriptor: PermissionDescriptor {
+  XRSessionMode mode;
+};
+
+dictionary XRPermissionDescriptor: PermissionDescriptor {
+  XRSessionMode mode;
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
+};
+
+[Exposed=Window]
+interface XRPermissionStatus: PermissionStatus {
+  attribute FrozenArray<DOMString> granted;
+};

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+var id = (new URLSearchParams(window.location.search)).get('id');
+window.onmessage = m => {
+  navigator.mediaDevices.getUserMedia({video: true})
+    .then(() => 'ok')
+    .catch(e => e.name)
+    .then(r => {
+      window.parent.postMessage({id: id, result: r}, '*');
+    });
+}
+window.parent.postMessage({id: id, result: 'ready'}, '*');
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>'self' fails with a different host (including sub-host e.g. foo.com as self with content from bar.foo.com)</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='negativeTests.js'></script>
+    <script>
+      var t_spv = async_test("Should fire violation events for every failed violation");
+      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+          assert_equals(e.violatedDirective, "script-src-elem");
+      }));
+
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + ":" + location.port + "/content-security-policy/generic/unreached.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>'self' fails with a different host (including sub-host e.g. foo.com as self with content from bar.foo.com)</h1>
+    <div id='log'></div>
+</body>
+</html>

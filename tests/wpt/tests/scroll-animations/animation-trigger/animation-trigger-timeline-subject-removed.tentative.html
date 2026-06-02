@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="support/support.js"></script>
+</head>
+
+<body>
+  <style>
+    .scroller {
+      overflow-y: scroll;
+      border: solid 1px;
+      justify-self: center;
+      height: 100%;
+      width: 100%;
+      display: inline-block;
+    }
+
+    .subject {
+      height: 100px;
+      width: 100%;
+      background-color: black;
+    }
+
+    .space {
+      height: 300px;
+      width: 90%;
+      justify-self: center;
+    }
+
+    #triggergrid {
+      timeline-scope: --viewtimeline;
+      height: 85vh;
+      width: 90vw;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      .target {
+        align-self: center;
+        justify-self: center;
+        height: 100px;
+        width: 100px;
+        background-color: blue;
+      }
+
+      .space {
+        height: 130vh;
+      }
+    }
+  </style>
+  <div id="triggergrid">
+    <div id="target" class="target"></div>
+    <div id="scroller" class="scroller">
+      <div class="space"></div>
+      <div class="space"></div>
+      <div id="subjectanchor"></div>
+      <div id="subject" class="subject"></div>
+      <div class="space"></div>
+      <div class="space"></div>
+    </div>
+  </div>
+  <script>
+    const scroller = document.getElementById("scroller");
+    const target = document.getElementById("target");
+    const subject = document.getElementById("subject");
+    const subjectanchor = document.getElementById("subjectanchor");
+    const ANIMATION_DURATION_MS = 1;
+
+    promise_test(async () => {
+      waitForAnimationFrames(2);
+      setupAnimationAndTrigger(target, document.getElementById("subject"),
+        ANIMATION_DURATION_MS);
+      const animation = target.getAnimations()[0];
+
+      const initial_transform = getComputedStyle(target).transform;
+      // Sanity check that the trigger works: scroll into the trigger range,
+      // observe animation's effect.
+      const contain_0_offset = computeContainOffset(scroller,
+        document.getElementById("subject"), 0);
+      let animation_promise = waitForAnimation(
+        /*targetCurrentTime=*/ANIMATION_DURATION_MS, animation);
+      await waitForScrollReset(test, scroller, 0, contain_0_offset);
+
+      await animation_promise;
+      assert_not_equals(getComputedStyle(target).transform, initial_transform,
+        "entry triggers animation");
+
+      // Remove the trigger's timeline's subject from the DOM.
+      subject.remove();
+
+      const transform_after_removal = getComputedStyle(target).transform;
+
+      // Scroll outside the range.
+      await waitForScrollReset(test, scroller, 0, contain_0_offset - 100);
+      assert_equals(getComputedStyle(target).transform, transform_after_removal,
+        "exit does not trigger");
+
+      // Scroll into the range once again.
+      await waitForScrollReset(test, scroller, 0, contain_0_offset);
+      assert_equals(getComputedStyle(target).transform, transform_after_removal,
+        "re-entry does not trigger");
+
+      // Put the timeline trigger's subject back into the DOM.
+      subjectanchor.after(subject);
+
+      animation_promise = waitForAnimation(/*targetCurrentTime=*/0, animation);
+      // Scroll outside the range; should reverse the animation.
+      await waitForScrollReset(test, scroller, 0, contain_0_offset - 100);
+      // Make sure the playbackRate is reflected before waiting on the promise.
+      await waitForAnimationFrames(3)
+      await animation_promise;
+
+      assert_equals(getComputedStyle(target).transform, initial_transform,
+        "triggering is happening again.");
+    }, "triggering stops when a trigger's timeline subject is removed and" +
+       " restarts when reattached.");
+  </script>
+  </body>
+
+</html>

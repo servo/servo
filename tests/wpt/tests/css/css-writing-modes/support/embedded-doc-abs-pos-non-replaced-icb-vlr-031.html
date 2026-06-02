@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+
+ <head>
+
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+  <title>Embedded HTML document for abs-pos-non-replaced-icb-vlr-031 in 'writing-mode: vertical-lr'</title>
+
+  <!--
+  position absolute and 'vertical-lr' - overconstrained values with 'direction: ltr' in initial containing block
+  -->
+
+  <style type="text/css">
+  html
+    {
+      direction: ltr;
+    }
+
+  div
+    {
+      background-color: green;
+      border-left: green none 0px;
+      border-right: green none 0px;
+      height: 100px;
+      left: 60%;
+      margin-left: 0px;
+      margin-right: 0px;
+      position: absolute;
+      right: 40%;
+      top: 0px;
+      width: 20%;
+      writing-mode: vertical-lr;
+    }
+
+  /*
+  "
+  If the values are over-constrained, ignore the value for 'left' (in case the 'direction' property of the containing block is 'rtl') or 'right' (in case 'direction' is 'ltr') and solve for that value.
+  "
+  10.3.7 Absolutely positioned, non-replaced elements
+  http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
+
+  So:
+
+            60% : left
+        +
+            0px : margin-left
+        +
+            0px : border-left-width
+        +
+            0px : padding-left
+        +
+            20% : width
+        +
+            0px : padding-right
+        +
+            0px : border-right-width
+        +
+            0px : margin-right
+        +
+           40% : right
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+  becomes
+
+          300px : left (60% of 500px)
+        +
+            0px : margin-left
+        +
+            0px : border-left-width
+        +
+            0px : padding-left
+        +
+          100px : width (20% of 500px == 100px)
+        +
+            0px : padding-right
+        +
+            0px : border-right-width
+        +
+            0px : margin-right
+        +
+ignore and solve : right
+        ====================
+          500px : width of containing block (width of Initial Containing Block)
+
+   so used right offset value must be 100px .
+
+  */
+  </style>
+ </head>
+
+ <body>
+
+  <div></div>
+
+ </body>
+</html>

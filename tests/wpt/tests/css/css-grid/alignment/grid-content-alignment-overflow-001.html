@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Grid Layout Test: content alignment and overflow alignment.</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#overflow-values">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#distribution-values">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=376823">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=249451">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<meta name="assert" content="Test that the overflow alignment mode is applied correctly for content alignment properties." />
+
+<style>
+body {
+  margin: 0;
+}
+
+.container {
+  position: relative;
+  float: left;
+}
+
+.grid {
+  grid-template-columns: 50px 50px;
+  grid-template-rows: 100px 100px;
+}
+
+.contentSizedTracks {
+  grid-template:  max-content 100px / max-content 50px;
+}
+
+.overflowWidth {
+  width: 60px;
+  height: 300px;
+}
+
+.overflowHeight {
+  width: 200px;
+  height: 150px;
+}
+
+.item1 {
+  width: 50px;
+  height: 150px;
+}
+
+.item2 {
+  width: 150px;
+  height: 100px;
+}
+
+.minSize {
+  min-width: 300px;
+  min-height: 400px;
+}
+
+.maxSize {
+  max-width: 100px;
+  max-height: 100px;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+
+<body onload="checkLayout('.grid')">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowWidth contentCenter" data-expected-width="60" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="-20" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="-20" data-offset-y="150" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="30" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="30" data-offset-y="150" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container width of 60px not enough for 2 column tracks of 50px.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>default</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowHeight contentCenterUnsafe" data-expected-width="200" data-expected-height="150">
+    <div class="firstRowFirstColumn" data-offset-x="50" data-offset-y="-25" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="50" data-offset-y="75" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="100" data-offset-y="-25" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="75" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container height of 150px not enough for 2 row tracks of 100px.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowWidth contentCenterSafe" data-expected-width="60" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="150" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="50" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="50" data-offset-y="150" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container width of 60px not enough for 2 column tracks of 50px.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>safe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 75px; margin-right: 25px;">
+  <div class="grid overflowHeight contentCenterSafe" data-expected-width="200" data-expected-height="150">
+    <div class="firstRowFirstColumn" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="50" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container height of 150px not enough for 2 row tracks of 100px.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>safe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowWidth contentEnd" data-expected-width="60" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="-40" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="-40" data-offset-y="200" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="10" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="10" data-offset-y="200" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container width of 60px not enough for 2 column tracks of 50px.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>default</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowHeight contentEndUnsafe" data-expected-width="200" data-expected-height="150">
+    <div class="firstRowFirstColumn" data-offset-x="100" data-offset-y="-50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="100" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="150" data-offset-y="-50" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="150" data-offset-y="50" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container height of 150px not enough for 2 row tracks of 100px.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid overflowWidth contentEndSafe" data-expected-width="60" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="50" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="50" data-offset-y="200" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container width of 60px not enough for 2 column tracks of 50px.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>safe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 75px; margin-right: 25px;">
+  <div class="grid overflowHeight contentEndSafe" data-expected-width="200" data-expected-height="150">
+    <div class="firstRowFirstColumn" data-offset-x="100" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="100" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="150" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="150" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container height of 150px not enough for 2 row tracks of 100px.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>safe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid fit-content contentEndUnsafe" data-expected-width="100" data-expected-height="200">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="50" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, hence no possible overflow.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 200px; margin-right: 25px;">
+  <div class="grid fit-content contentCenterUnsafe" data-expected-width="100" data-expected-height="200">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn" data-offset-x="50" data-offset-y="100" data-expected-width="50" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, hence no possible overflow.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 100px; margin-right: 25px;">
+  <div class="grid contentSizedTracks fit-content maxSize contentEndUnsafe" data-expected-width="100" data-expected-height="100">
+    <div class="item1 firstRowSecondColumn" data-offset-x="50" data-offset-y="-150" data-expected-width="50" data-expected-height="150"></div>
+    <div class="item2 secondRowFirstColumn" data-offset-x="-100" data-offset-y="0" data-expected-width="150" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, but max-size constraints implies that the content-sized tracks overflow.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 100px; margin-right: 75px;">
+  <div class="grid contentSizedTracks fit-content maxSize contentCenterUnsafe" data-expected-width="100" data-expected-height="100">
+    <div class="item1 firstRowSecondColumn" data-offset-x="100" data-offset-y="-75" data-expected-width="50" data-expected-height="150"></div>
+    <div class="item2 secondRowFirstColumn" data-offset-x="-50" data-offset-y="75" data-expected-width="150" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, but max-size constraints implies that the content-sized tracks overflow.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-bottom: 50px; margin-right: 25px;">
+  <div class="grid contentSizedTracks fit-content minSize contentEndUnsafe" data-expected-width="300" data-expected-height="400">
+    <div class="item1 firstRowSecondColumn" data-offset-x="250" data-offset-y="150" data-expected-width="50" data-expected-height="150"></div>
+    <div class="item2 secondRowFirstColumn" data-offset-x="100" data-offset-y="300" data-expected-width="150" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, but min-size constraints implies that the content-sized tracks don't overflow.<br> Content-Alignment: <b>end</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+<div class="container" style="margin-right: 25px;">
+  <div class="grid contentSizedTracks fit-content minSize contentCenterUnsafe" data-expected-width="300" data-expected-height="400">
+    <div class="item1 firstRowSecondColumn" data-offset-x="200" data-offset-y="75" data-expected-width="50" data-expected-height="150"></div>
+    <div class="item2 secondRowFirstColumn" data-offset-x="50" data-offset-y="225" data-expected-width="150" data-expected-height="100"></div>
+  </div>
+</div>
+<div>Grid container indefinite size using fit-content, but min-size constraints implies that the content-sized tracks don't overflow.<br> Content-Alignment: <b>center</b> and Overflow-Alignment: <b>unsafe</b></div>
+
+<br clear="all">
+
+</body>
+</html>

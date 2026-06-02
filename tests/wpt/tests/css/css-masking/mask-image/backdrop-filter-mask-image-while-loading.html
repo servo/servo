@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Backdrop-filter with mask image remains hidden while loading</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="about:blank">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<p id="target" style="backdrop-filter: invert(1); background-color: rgba(255, 255, 255, 0.5);">Backdrop-filter with
+  a loading mask-image</p>
+<script>
+  onload = () => {
+    const p = document.getElementById('target');
+    p.style.maskImage = `url("support/transparent-100x50-blue-100x50.svg?pipe=trickle(d10)")`;
+    waitForAtLeastOneFrame().then(takeScreenshot);
+  };
+</script>

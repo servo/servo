@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-style-property-010-tests.sh -->
+<title>CSS Test: text-emphasis, Zl</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-style-property">
+<meta name="assert" content="Emphasis marks should not be rendered for characters in general category Zl">
+<link rel="match" href="text-emphasis-style-property-010-ref.html">
+<p>Pass if there is nothing rendered below:</p>
+<div style="color: white; white-space: pre-wrap; text-emphasis: filled circle red">
+<script>
+  var codepoints = [
+    0x2028,
+  ];
+  document.write(codepoints.map(function (code) {
+    return String.fromCodePoint(code);
+  }).join(' '));
+</script>
+</div>

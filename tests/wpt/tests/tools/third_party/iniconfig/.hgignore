@@ -1,0 +1,16 @@
+
+# These lines are suggested according to the svn:ignore property
+# Feel free to enable them by uncommenting them
+syntax:glob
+*.pyc
+*.pyo
+*.swp
+*.html
+*.class
+
+.tox
+
+build
+dist
+*.egg-info
+

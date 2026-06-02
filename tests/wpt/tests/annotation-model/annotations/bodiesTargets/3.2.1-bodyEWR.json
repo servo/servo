@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-bodyEWR.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "An External Web Resource body may be used as an Annotation Body.",
+    "title": "Implements **External Web Resource** with **_id_ key** as a body of the Annotation  [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more External Web Resources as Annotation body(ies). (Section 3.2.1)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "anyOf": [
+                      { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"  },
+                      { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected" } } } },
+                      { "$ref": "bodyTarget.json#/definitions/sourceEwrDetected"  },
+                      { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/sourceEwrDetected" } } } },
+                      { "$ref": "bodyTarget.json#/definitions/itemEwrDetected"  },
+                      { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrDetected" } } } }
+                     ]
+         }
+     }
+}

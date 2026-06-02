@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Reference: table boxes inside inline list-items</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace;
+}
+
+.l1 { display: inline list-item; }
+.l2 { display: inline flow-root list-item; }
+
+span {
+  border: 1px solid;
+}
+
+div { background: blue; }
+  </style>
+</head>
+<body>
+
+A<span class="l1">B<div style="display:inline-table">T</div>C</span>
+A<span class="l1">B<div style="display:inline-table">T</div>C</span>
+A<span class="l1">B<div style="display:inline-table">T</div>C</span>
+A<span class="l1">B<x><div style="display:inline-table">T</div></x>C</span>
+A<span class="l1">B<x style="display:block"><div style="display:inline-table">T</div></x>C</span>
+
+A<span class="l2">B<div style="display:table">T</div>C</span>
+A<span class="l2">B<div style="display:table">T</div>C</span>
+A<span class="l2">B<div style="display:table">T</div>C</span>
+A<span class="l2">B<x><div style="display:inline-table">T</div></x>C</span>
+A<span class="l2">B<x style="display:block"><div style="display:table">T</div></x>C</span>
+
+</body>
+</html>

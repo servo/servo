@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Tests that scrolling doesn't crash renderer when anchor is in a scroller whose content doesn't overflow</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<style>
+#container {
+  position: relative;
+}
+
+#scroller {
+  overflow: scroll;
+  width: 400px;
+  height: 400px;
+}
+
+#anchor {
+  anchor-name: --a;
+  margin: 100px;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+#anchored {
+  position: absolute;
+  position-anchor: --a;
+  left: anchor(left);
+  bottom: anchor(top);
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+</style>
+
+<div id="container">
+  <div id="scroller">
+    <div id="anchor">anchor</div>
+  </div>
+  <div id="anchored">anchored</div>
+</div>

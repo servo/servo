@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>::before and ::after styles should apply inside ::first-line</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#generated-content">
+<link rel="match" href="first-line-with-before-after-ref.html">
+<style>
+  #target::first-line {
+    font-size: 150%;
+  }
+  #target::before, #child2::before {
+    content: "red ";
+    color: red;
+  }
+  #child1, #child2 {
+    color: green;
+  }
+  #child1::after, #target::after {
+    content: " blue";
+    color: blue;
+  }
+</style>
+
+<div id="target">
+  <span id='child1'>green</span>
+  <br />
+  <span id='child2'>green</span>
+</div>
+
+<p>Both lines above (inside and outside <code>::first-line</code>) should have the same colors.</p>

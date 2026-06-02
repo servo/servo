@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 6: Parsing and serialization of colors using invalid color-mix() function syntax</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color-6/#color-layers">
+<link rel="help" href="https://drafts.csswg.org/css-color-6/#resolving-layers">
+<meta name="assert" content="Invalid color-layers() values fail to parse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_invalid_value("color", `color-layers()`);
+    test_invalid_value("color", `color-layers(normal)`);
+    test_invalid_value("color", `color-layers(multiply)`);
+    test_invalid_value("color", `color-layers(red blue)`);
+    test_invalid_value("color", `color-layers(red, blue, )`);
+
+    for (let blendMode of [
+        "",
+        "plus-lighter",
+        "plus-darker",
+        "foo-bar",
+        "custom-ident",
+        "calc(12px + 100%)",
+        "50%",
+        "in srgb",
+        "display-p3",
+        "multiply, multiply",
+        "normal, normal"
+    ]) {
+        blendMode = blendMode + ", ";
+        test_invalid_value("color", `color-layers(${blendMode}red, blue)`);
+        test_invalid_value("color", `color-layers(${blendMode}red, blue, green)`);
+        test_invalid_value("color", `color-layers(${blendMode}rgba(0, 0, 0, 0.5), color(display-p3 1 0.5 0))`);
+        test_invalid_value("color", `color-layers(${blendMode}currentcolor, blue)`);
+        test_invalid_value("color", `color-layers(${blendMode}canvastext, green)`);
+        test_invalid_value("color", `color-layers(${blendMode}rgb(from black r g b / 0.5), green)`);
+        test_invalid_value("color", `color-layers(${blendMode}color-mix(in srgb, red, blue), blue)`);
+        test_invalid_value("color", `color-layers(${blendMode}color-layers(red, blue), green)`);
+    }
+</script>
+</body>
+</html>

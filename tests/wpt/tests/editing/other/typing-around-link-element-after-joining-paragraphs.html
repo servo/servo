@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?action=Backspace">
+<meta name="variant" content="?action=Delete">
+<title>Typing after joining paragraph shouldn't be inserted into the link</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const params = new URLSearchParams(location.search.substring(1));
+const backspace = params.get("action") == "Backspace";
+const bracketsForBackspace = backspace ? "[]" : "";
+const bracketsForDelete = backspace ? "" : "[]";
+
+const editingHost = document.querySelector("div[contenteditable]");
+const utils = new EditorTestUtils(editingHost);
+
+function addPromiseTest(aTest) {
+  promise_test(async () => {
+    editingHost.focus();
+    utils.setupEditingHost(aTest.innerHTML);
+    await (backspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+    utils.normalizeStyleAttributeValues();
+    if (Array.isArray(aTest.expectedResult)) {
+      assert_in_array(editingHost.innerHTML, aTest.expectedResult);
+    } else {
+      assert_equals(editingHost.innerHTML, aTest.expectedResult);
+    }
+  }, `${backspace ? "Backspace" : "Delete"} in "${aTest.innerHTML}"`);
+}
+
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a><br></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a><br></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span></p>`
+});
+addPromiseTest({
+  innerHTML: `<a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a><br><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+addPromiseTest({
+  innerHTML: `<a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY<span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+
+// Should clear only the link style.
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b></a></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b></a><br></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b><br></a></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b></a></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b></a><br></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b><br></a></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b></a><br><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+addPromiseTest({
+  innerHTML: `<a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo${
+    bracketsForDelete
+  }</b><br></a><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<a href="about:blank" style="color:rgb(0, 0, 255)"><b>foo</b></a><b>XY</b><span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></b></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></b><br></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a></b></p><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></b></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></b><br></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a></b></p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span>`,
+  expectedResult: `<p><b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span></p>`,
+});
+addPromiseTest({
+  innerHTML: `<b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }</a></b><br><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+addPromiseTest({
+  innerHTML: `<b><a href="about:blank" style="color:rgb(0, 0, 255)">foo${
+    bracketsForDelete
+  }<br></a></b><p><span style="color:rgb(255, 0, 0)">${bracketsForBackspace}bar</span></p>`,
+  expectedResult: `<b><a href="about:blank" style="color:rgb(0, 0, 255)">foo</a>XY</b><span style="color:rgb(255, 0, 0)">bar</span>`,
+});
+</script>
+</body>
+</html>

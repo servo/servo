@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<title>Adding a track to an inactive MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#widl-MediaStream-addTrack-void-MediaStreamTrack-track">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#widl-MediaStreamTrack-stop-void">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream, then
+your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that adding a track to an inactive
+MediaStream is allowed.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  await setMediaPermission();
+  const audio = await navigator.mediaDevices.getUserMedia({audio:true});
+  const video = await navigator.mediaDevices.getUserMedia({video:true});
+  audio.getAudioTracks()[0].stop();
+  assert_false(audio.active, "audio stream is inactive after stopping its only audio track");
+  assert_true(video.active, "video stream is active");
+  audio.addTrack(video.getVideoTracks()[0]);
+  audio.removeTrack(audio.getAudioTracks()[0]);
+}, "Tests that adding a track to an inactive MediaStream is allowed");
+</script>
+</body>
+</html>

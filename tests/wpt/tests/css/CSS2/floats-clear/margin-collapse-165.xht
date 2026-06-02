@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margins on cleared blocks that contain floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/065.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-165-ref.xht" />
+
+  <style type="text/css">
+   td { padding: 0; background: red; }
+   .border { border: solid; width: 7em; }
+   .box { margin: 0; background: yellow; }
+   .float { margin: 0; width: 4em; height: 1.5em; background: aqua; float: right; }
+   .clear { margin: 2em 0 0 0; background: orange; clear: both; }
+   .control { border: solid; width: 7em; background: yellow; }
+   .control .a { margin: 0 0 0 auto; width: 4em; height: 1.5em; background: aqua; }
+   .control .b { height: 0.5em; }
+   .control .c { background: orange; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there are <strong>4 identical rectangles</strong> and no red.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="outer">
+      <div class="box border">
+       <div class="float">TEST</div>
+       <div class="clear">TEST</div>
+      </div>
+     </div>
+    </td>
+    <td>
+     <div class="control">
+      <div class="a">TEST</div>
+      <div class="b"></div>
+      <div class="c">TEST</div>
+     </div>
+    </td>
+   </tr>
+   <tr>
+    <td>
+     <div class="control">
+      <div class="a">TEST</div>
+      <div class="b"></div>
+      <div class="c">TEST</div>
+     </div>
+    </td>
+    <td>
+     <div class="control">
+      <div class="a">TEST</div>
+      <div class="b"></div>
+      <div class="c">TEST</div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

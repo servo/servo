@@ -1,0 +1,56 @@
+name: Test
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/test.yml"
+      - "**.py"
+  push:
+    paths:
+      - ".github/workflows/test.yml"
+      - "**.py"
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / ${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Ubuntu, Windows, macOS]
+        python_version:
+          ["3.6", "3.7", "3.8", "3.9", "3.10", "pypy-3.7"]
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v2
+        name: Install Python ${{ matrix.python_version }}
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+        shell: bash
+
+      - name: Run nox
+        run: |
+          python -m nox --error-on-missing-interpreters -s tests-${{ matrix.python_version }}
+        shell: bash
+        if: ${{ ! startsWith( matrix.python_version, 'pypy' ) }}
+
+      # Binary is named 'pypy', but setup-python specifies it as 'pypy2'.
+      - name: Run nox for pypy2
+        run: |
+          python -m nox --error-on-missing-interpreters -s tests-pypy
+        shell: bash
+        if: matrix.python_version == 'pypy2'
+
+      # Binary is named 'pypy3', but setup-python specifies it as 'pypy-3.7'.
+      - name: Run nox for pypy3
+        run: |
+          python -m nox --error-on-missing-interpreters -s tests-pypy3
+        shell: bash
+        if: matrix.python_version == 'pypy-3.7'

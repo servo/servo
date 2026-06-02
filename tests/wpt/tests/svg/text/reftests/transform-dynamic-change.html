@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1270713">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1271931">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414117">
+<link rel="match" href="transform-dynamic-change-ref.html">
+<body>
+
+<div id="moveme" style="position:absolute; transform-origin: 0px 0px; transform: matrix(0.3, 0, 0, 0.3, 136, 13);">
+  <svg width="2384" height="1684" style="position:absolute; left:0; top:0;">
+    <circle cx="475" cy="975" r="40" stroke="black" stroke-width="2" fill="none" />
+    <text id="txt" style="font-size: 40px;" transform="matrix(1, 0, 0, 1, 468, 988)">A</text>
+  </svg>
+  <svg width="2384" height="1684" style="position:absolute; left:0; top:200px;">
+    <circle cx="475" cy="975" r="40" stroke="black" stroke-width="2" fill="none" />
+    <text style="font-size: 40px;" transform="matrix(1, 0, 0, 1, 468, 988)"><tspan id="inline">B</tspan></text>
+  </svg>
+</div>
+
+<svg id="svg2" width="500" height="400" style="transform-origin: 0px 0px; transform: translate(-300px, -300px);">
+  <text x="300" y="350" id="text2" font-size="50">PASS</text>
+</svg>
+
+<div id="container3">
+  <svg width="200" height="100">
+    <text x="0" y="50" font-size="20">PASS</text>
+  </svg>
+</div>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.getElementById('moveme').style.transform = 'matrix(0.9, 0, 0, 0.9, -210, -777)';
+    document.getElementById('txt').style.fill = 'red';
+    document.getElementById('inline').style.fill = 'blue';
+
+    document.getElementById('svg2').style.transform = 'scale(2) translate(-300px, -300px)';
+    document.getElementById('text2').style.fill = 'green';
+
+    document.getElementById('container3').style.transformOrigin = "0px 0px";
+    document.getElementById('container3').style.transform = "scale(3)";
+
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</body>
+</html>

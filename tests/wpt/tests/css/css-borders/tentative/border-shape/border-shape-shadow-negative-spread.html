@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>border-shape with negative spread box-shadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-shadow-negative-spread-ref.html">
+<meta name="assert" content="box-shadow with negative spread should shrink the shadow smaller than the element with border-shape">
+<style>
+body {
+    margin: 0;
+}
+#target {
+    width: 100px;
+    height: 100px;
+    border-shape: inset(0px);
+    background: blue;
+    box-shadow: 20px 20px 0 -10px red;
+    margin: 40px;
+}
+</style>
+<div id="target">
+</div>

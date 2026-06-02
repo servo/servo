@@ -1,0 +1,206 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+  function createInputElement(value, append, suffix) {
+    var el = document.createElement("input");
+    el.type = "text";
+    el.value = value;
+    el.id = "input" + (append ? "-appended" : "-not-appended") + (suffix ? suffix : "");
+    if (append) {
+      document.body.appendChild(el);
+    }
+    return el;
+  };
+
+  function createTextareaElement(value, append, suffix) {
+    var el = document.createElement("textarea");
+    el.value = value;
+
+    el.id = "textarea" + (append ? "-appended" : "-not-appended") + (suffix ? suffix : "");
+    if (append) {
+      document.body.appendChild(el);
+    }
+    return el;
+  };
+
+  function createPrefocusedInputElement(value, append) {
+    var el = createInputElement(value, append, "-prefocused");
+    el.focus();
+    el.blur();
+    return el;
+  }
+
+  function createPrefocusedTextareaElement(value, append) {
+    var el = createTextareaElement(value, append, "-prefocused");
+    el.focus();
+    el.blur();
+    return el;
+  }
+
+  function createClonedTextareaWithNoDirtyValueFlag(text) {
+    const textarea = document.createElement("textarea");
+    textarea.textContent = text;
+    return textarea.cloneNode(true);
+  }
+
+  function createTestElements(value) {
+    return [ createInputElement(value, true),
+             createInputElement(value, false),
+             createPrefocusedInputElement(value, true),
+             createPrefocusedInputElement(value, false),
+             createTextareaElement(value, true),
+             createTextareaElement(value, false),
+             createPrefocusedTextareaElement(value, true),
+             createPrefocusedTextareaElement(value, false),
+             createClonedTextareaWithNoDirtyValueFlag(value)
+           ];
+  }
+
+  var testValue = "abcdefghij";
+
+  test(function() {
+    assert_equals(testValue.length, 10);
+  }, "Sanity check for testValue length; if this fails, variou absolute offsets in the test below need to be adjusted to be less than testValue.length");
+
+  for (let prop of ["selectionStart", "selectionEnd"]) {
+    for (let el of createTestElements(testValue)) {
+      if (el.defaultValue !== el.value) {
+        test(function() {
+          assert_equals(el[prop], testValue.length);
+        }, `Initial .value set on ${el.id} should set ${prop} to end of value`);
+      }
+    }
+  }
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      var t = async_test(`onselect should fire when selectionStart is changed on ${el.id}`);
+      el.onselect = t.step_func_done(function(e) {
+        assert_equals(e.type, "select");
+        el.remove();
+      });
+      el.selectionStart = 2;
+    }
+  }, "onselect should fire when selectionStart is changed");
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      var t = async_test(`onselect should fire when selectionEnd is changed on ${el.id}`);
+      el.onselect = t.step_func_done(function(e) {
+        assert_equals(e.type, "select");
+        el.remove();
+      });
+      el.selectionEnd = 2;
+    }
+  }, "onselect should fire when selectionEnd is changed");
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      el.selectionStart = 0;
+      el.selectionEnd = 5;
+      el.selectionStart = 8;
+      assert_equals(el.selectionStart, 8, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, 8, `selectionEnd on ${el.id}`);
+      el.remove();
+    }
+  }, "Setting selectionStart to a value larger than selectionEnd should increase selectionEnd");
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      el.selectionStart = 8;
+      el.selectionEnd = 5;
+      assert_equals(el.selectionStart, 5, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, 5, `selectionEnd on ${el.id}`);
+      el.remove();
+    }
+  }, "Setting selectionEnd to a value smaller than selectionStart should decrease selectionStart");
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      el.selectionStart = 0;
+      assert_equals(el.selectionStart, 0, `We just set it on ${el.id}`);
+      el.selectionStart = -1;
+      assert_equals(el.selectionStart, testValue.length,
+                    `selectionStart setter on ${el.id} should convert -1 to 2^32-1`);
+      el.selectionStart = Math.pow(2, 32);
+      assert_equals(el.selectionStart, 0,
+                    `selectionStart setter on ${el.id} should convert 2^32 to 0`);
+      el.selectionStart = Math.pow(2, 32) - 1;
+      assert_equals(el.selectionStart, testValue.length,
+                    `selectionStart setter on ${el.id} should leave 2^32-1 as-is`);
+      el.remove();
+    }
+  }, "selectionStart edge-case values");
+
+  test(function() {
+    for (let el of createTestElements(testValue)) {
+      el.selectionEnd = 0;
+      assert_equals(el.selectionEnd, 0, `We just set it on ${el.id}`);
+      el.selectionEnd = -1;
+      assert_equals(el.selectionEnd, testValue.length,
+                    `selectionEnd setter on ${el.id} should convert -1 to 2^32-1`);
+      el.selectionEnd = Math.pow(2, 32);
+      assert_equals(el.selectionEnd, 0,
+                    `selectionEnd setter on ${el.id} should convert 2^32 to 0`);
+      el.selectionEnd = Math.pow(2, 32) - 1;
+      assert_equals(el.selectionEnd, testValue.length,
+                    `selectionEnd setter on ${el.id} should leave 2^32-1 as-is`);
+      el.remove();
+    }
+  }, "selectionEnd edge-case values");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 200;
+      assert_equals(el.selectionStart, testValue.length);
+      el.remove();
+    }
+  }, "selectionStart should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 300;
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "selectionEnd should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.setSelectionRange(200, 300);
+      assert_equals(el.selectionStart, testValue.length);
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "setSelectionRange should be clamped by the current value length");
+
+  test(() => {
+    for (let el of createTestElements(testValue)) {
+      const start = 1;
+      const end = testValue.length - 1;
+
+      el.setSelectionRange(start, end);
+
+      assert_equals(el.selectionStart, start, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, end, `selectionEnd on ${el.id}`);
+
+      el.selectionDirection = "backward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "backward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "backward"`);
+
+      el.selectionDirection = "forward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "forward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "forward"`);
+    }
+  }, "selectionStart and selectionEnd should remain the same when selectionDirection is changed");
+</script>

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that the resize event is fired when the window is resized (in popup)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(function (t) {
+        var popup = window.open("about:blank", "_blank", "width=100,height=100");
+        assert_not_equals(popup, null, "Popup must be successfully opened");
+
+        popup.onload = function () {
+            popup.onresize = t.step_func(function () {
+                assert_approx_equals(popup.outerWidth, 200, 10, "Popup width should be ~200");
+                assert_approx_equals(popup.outerHeight, 200, 10, "Popup height should be ~200");
+                t.done();
+            });
+
+            popup.resizeTo(200, 200);
+        };
+    }, "Popup onresize event fires after resizeTo");
+</script>

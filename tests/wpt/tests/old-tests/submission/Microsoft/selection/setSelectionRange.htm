@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call setSelectionRange() on a text field</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var input1 = document.getElementById("input1");
+                var expectedResult = "input";
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, 0);
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                // only calling setSelectionRange() doesn't affect getSelection()
+
+                input1.setSelectionRange(16, 21);
+
+                assert_equals(input1.selectionStart, 16);
+                assert_equals(input1.selectionEnd, 21);
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                // select() changes selectionStart/End and getSelection()
+
+                input1.select();
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, input1.value.length);
+                checkSelectionAttributes(document.body, 1, document.body, 1, true, 1);
+                assert_equals(selection.toString(), input1.value);
+
+                // now calling setSelectionRange() does affect getSelection()
+
+                input1.setSelectionRange(16, 21);
+
+                assert_equals(input1.selectionStart, 16);
+                assert_equals(input1.selectionEnd, 21);
+                checkSelectionAttributes(document.body, 1, document.body, 1, true, 1);
+                assert_equals(selection.toString(), "input");
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <input style="WIDTH: 500px" id="input1" value="Some text in an input control" type="text" />
+        <p>Call setSelectionRange() on the input element to select some of the text</p>
+    </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- TODO: update link -->
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoped view transform with transform and clip.</title>
+</head>
+<style>
+  #clipper {
+    background-color: hotpink;
+    overflow: clip;
+    height: 100px;
+    width: 100px;
+    border-radius: 50px;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+.item {
+  position: relative;
+  top: 25px;
+  height: 50px;
+  background-color: forestgreen;
+}
+
+</style>
+<body>
+  <div id=clipper>
+    <div id=target class=item></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: malformed declaration missing value, part 2</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <meta name="flags" content="invalid"/>
+  <style type="text/css">
+    p { color:red; color:; color:green }
+  </style>
+ </head>
+ <body>
+   <p>This text should be green.</p>
+ </body>
+</html>

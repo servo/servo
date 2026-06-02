@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>CSS Flexbox Test: flex direction: row, writing mode vertical</title>
+    <link rel="author" title="Tsutomu ogaoga Ogasawara" href="mailto:info@ogaoga.org" />
+    <link rel="reviewer" title="Elika J Etemad" href="http://fantasai.inkedblade.net/contact" />
+    <!-- You must have at least one spec link, but may have as many as are covered in the test. -->
+    <!-- Be sure to make the main testing area first in the order -->
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-flow-property">
+    <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow">
+    <!-- The match link is only required if this is a reftest -->
+    <link rel="match" href="css-flexbox-row-ref.html">
+    <meta name="assert" content="Test checks that when writing mode is vertical and flex-flow: row, the flex container is vertical.">
+    <style type="text/css">
+        .container {
+            display: flex;
+            flex-flow: row;
+            writing-mode: vertical-rl;
+            border: 2px solid black;
+            height: 90px;
+        }
+        .item {
+            line-height: 0;
+
+            /* make sure UA that doesn't support writing mode and flexbox fails. */
+            float: right;
+        }
+        .color-block {
+          display: inline-block;
+          width: 15px;
+          height: 45px;
+        }
+    </style>
+</head>
+<body>
+  <p>Pass condition: 4 rectangles, with colors in clockwise order starting from top-left: grey, orange, blue, yellow.
+  <div class="container">
+    <div class="item">
+      <span class=color-block style="background: orange;"></span>
+      <br />
+      <span class=color-block style="background: grey;"></span>
+    </div>
+    <div class="item">
+      <span class=color-block style="background: blue;"></span>
+      <br />
+      <span class=color-block style="background: yellow;"></span>
+    </div>
+  </div>
+</body>
+</html>

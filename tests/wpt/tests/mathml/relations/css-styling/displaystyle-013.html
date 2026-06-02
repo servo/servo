@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#table-or-matrix-mtable">
+    <link rel="match" href="displaystyle-013-ref.html"/>
+    <meta name="assert" content="Test dynamic change of displaystyle">
+    <script src="/mathml/support/fonts.js"></script>
+    <script type="text/javascript">
+      function doTest() {
+        document.body.offsetTop; // Update layout
+        document.getElementById("m1").setAttribute("displaystyle", "true");
+        document.getElementById("m2").setAttribute("displaystyle", "true");
+        document.getElementById("m3").setAttribute("displaystyle", "true");
+        document.getElementById("m4").removeAttribute("displaystyle");
+        document.getElementById("m5").removeAttribute("displaystyle");
+        document.getElementById("m6").removeAttribute("displaystyle");
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("load", () => { loadAllFonts().then(doTest); });
+    </script>
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <math id="m1">
+      <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      <mfrac><mn>1</mn><mn>2</mn></mfrac>
+    </math>
+    <math>
+      <mstyle id="m2">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+        <mfrac><mn>1</mn><mn>2</mn></mfrac>
+      </mstyle>
+    </math>
+    <math>
+      <mtable id="m3">
+        <mtr>
+          <mtd>
+            <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+            <mfrac><mn>1</mn><mn>2</mn></mfrac>
+          </mtd>
+        </mtr>
+      </mtable>
+    </math>
+    <math id="m4" displaystyle="true">
+      <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+      <mfrac><mn>1</mn><mn>2</mn></mfrac>
+    </math>
+    <math>
+      <mstyle id="m5" displaystyle="true">
+        <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+        <mfrac><mn>1</mn><mn>2</mn></mfrac>
+      </mstyle>
+    </math>
+    <math>
+      <mtable id="m6" displaystyle="true">
+        <mtr>
+          <mtd>
+            <munder><mo movablelimits="true">O</mo><mo>O</mo></munder>
+            <mfrac><mn>1</mn><mn>2</mn></mfrac>
+          </mtd>
+        </mtr>
+      </mtable>
+    </math>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_movablelimits");</script>
+  </body>
+</html>

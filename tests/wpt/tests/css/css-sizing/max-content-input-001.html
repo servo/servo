@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test: max-content sizes of INPUT and TEXTAREA</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="max-content-input-001-ref.html">
+<style>
+  input, textarea { font: 20px monospace; white-space: pre; }
+</style>
+
+<p><input style="height: max-content" value="sample text">
+
+<p><textarea style="height: max-content" rows=3 cols=12>sample text 1 sample text 1
+sample text 2 sample text 2
+sample text 3 sample text 3
+sample text 4 sample text 4
+sample text 5 sample text 5
+sample text 6 sample text 6
+sample text 7 sample text 7</textarea>
+
+<p><input value="sample text" style="width: max-content">
+
+<p><textarea class="h" rows=3 cols=12 style="width: max-content">sample text 1 sample text 1
+sample text 2 sample text 2
+sample text 3 sample text 3</textarea>

@@ -1,0 +1,77 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Tim Thompson" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-group-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#Groups">
+      <p>
+        The test checks to see that graphics elements (g) can be nested and that the like attributes can be passed to the children.
+        All the g elements for this test are in the g element whose id=allGs.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test uses the 'rect' element, as well as basic fill (solid primary colors),
+        stroke (black 1-pixel lines), font-family and font-size properties.
+      </p>
+      <p>
+        The two blue rectangles and the yellow are in the g labeled rects.
+        The blue rectangles inherit a fill color the green rect has a fill specified and it should not be overwritten.
+        The two yellow rectangles should inherit the fill color and the transform attribute, they should be
+        yellow and rotated at -20 degrees. These two rectangles are in g "yellowNrotate", that g is nested
+        inside g "gratuitiousG".  The black rectangle in the upper right, has no attributes inherited from its parent.
+        The focus is nesting of g elements and passing on of attributes.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except for possible
+        variations in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-group-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="rects" fill="blue">
+      <rect x="0" y="0" width="240" height="180"/>
+      <rect x="60" y="45" width="120" height="90" fill="green"/>
+      <rect x="240" y="180" width="240" height="180"/>
+    </g>
+    <g id="singleG">
+      <rect x="240" y="0" width="240" height="180" fill="black"/>
+    </g>
+    <g id="gratuitiousG">
+      <g id="yellowNrotate" fill="yellow" transform="rotate(-20)">
+        <rect x="0" y="224" width="40" height="40"/>
+        <rect x="0" y="280" width="40" height="40"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

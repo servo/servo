@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html class="a">
+<head>
+<title>Connecting to MediaStreamAudioSourceNode from nodes in different rates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body class="a">
+<script>
+function createSineWaveInput(rate, frequency = 440) {
+  const ctx = new AudioContext({ sampleRate: rate });
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = frequency;
+  const dest = new MediaStreamAudioDestinationNode(ctx);
+  osc.connect(dest);
+  return { ctx, osc, dest };
+}
+
+async function waitForMessage(detectorNode, eventChecker = null) {
+  assert_not_equals(
+    detectorNode.context.state,
+    "closed",
+    `state of detector at rate ${detectorNode.context.sampleRate} should not be closed`
+  );
+  assert_equals(
+    detectorNode.port.onmessage,
+    null,
+    "port.onmessage should be null before calling waitForMessage."
+  );
+
+  return new Promise((resolve, reject) => {
+    let appendix = [];
+    detectorNode.port.onmessage = (event) => {
+      if (eventChecker && !eventChecker(event.data)) {
+        appendix.push(event.data);
+        return;
+      }
+      // Clear the handler after receiving a message.
+      detectorNode.port.onmessage = null;
+      resolve({ data: event.data, appendix });
+    };
+  });
+}
+
+async function createAudioSource(rate, stream, usage) {
+  const ctx = new AudioContext({ sampleRate: rate });
+  const stm =
+    usage === TRACK_USAGES.CLONED
+      ? new MediaStream(stream.getTracks().map((track) => track.clone()))
+      : stream;
+  const sourceNode = ctx.createMediaStreamSource(stm);
+  sourceNode.connect(ctx.destination);
+  return sourceNode;
+}
+
+async function createDetectorNode(ctx) {
+  await ctx.audioWorklet.addModule("silence-detector.js");
+  const detectorNode = new AudioWorkletNode(ctx, "silence-detector");
+  return detectorNode;
+}
+
+// Helper functions to wait for a message, satisfying eventChecker() if provided,
+// on each detector node, after performing an action.
+async function waitForMessagesAfterAction(
+  detectorNodes,
+  action,
+  eventChecker = null
+) {
+  const msgPromises = detectorNodes.map((node) =>
+    waitForMessage(node, eventChecker)
+  );
+  await action();
+  return await Promise.all(msgPromises);
+}
+
+// Helper function to create test pairs and wait for them to become non-silent.
+async function createAndStartTestPairs(input, dstRates, usage) {
+  // Create multiple MediaStreamAudioSourceNodes with different AudioContext sample rates.
+  const pairs = [];
+  for (const rate of dstRates) {
+    const sourceNode = await createAudioSource(
+      rate,
+      input.dest.stream,
+      usage
+    );
+    const detectorNode = await createDetectorNode(sourceNode.context);
+    sourceNode.connect(detectorNode);
+
+    pairs.push({ sourceNode, detectorNode });
+  }
+
+  // Make sure all detectors are not silent after starting the oscillator.
+  const msgs = await waitForMessagesAfterAction(
+    pairs.map((p) => p.detectorNode),
+    () => input.osc.start(),
+    (data) => data.isSilentChanged
+  );
+  msgs.forEach((msg, i) => {
+    assert_false(
+      msg.data.isSilent,
+      `Detector in context with rate ${pairs[i].detectorNode.context.sampleRate} should not be silent after oscillator starts.`
+    );
+  });
+
+  return pairs;
+}
+
+async function ensureAudioSourceIsNotSilent(sourceNode) {
+  const detectorNode = await createDetectorNode(sourceNode.context);
+
+  const msg = (
+    await waitForMessagesAfterAction(
+      [detectorNode],
+      () => {
+        sourceNode.connect(detectorNode);
+      },
+      (data) => data.isSilentChanged
+    )
+  )[0];
+
+  assert_false(
+    msg.data.isSilent,
+    `Audio source in context with rate ${sourceNode.context.sampleRate} should not be silent.`
+  );
+  detectorNode.disconnect();
+}
+
+// Test template that handles setup, execution, and cleanup
+async function setupAndRunTest(tone, srcRate, dstRates, usage, testFn) {
+  assert_false(
+    dstRates.includes(srcRate),
+    "dstRates should not include srcRate."
+  );
+
+  const input = createSineWaveInput(srcRate, tone);
+  const pairs = await createAndStartTestPairs(input, dstRates, usage);
+
+  try {
+    await testFn(input, pairs);
+  } finally {
+    // Clean up AudioContexts
+    for (const { sourceNode } of pairs) {
+      if (sourceNode.context.state !== "closed") {
+        await sourceNode.context.close();
+      }
+    }
+    if (input.ctx.state !== "closed") {
+      await input.ctx.close();
+    }
+  }
+}
+
+// Test that closing a single AudioContext stops only that sourceNode, leaving others unaffected.
+async function testClosingOneContextStopsOnlyIt(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const pairToClose = pairs[0];
+      const pairsToCheck = pairs.slice(1);
+
+      for (const { sourceNode } of pairsToCheck) {
+        await ensureAudioSourceIsNotSilent(sourceNode);
+      }
+    }
+  );
+}
+
+// Test that suspending a single AudioContext silences only that detector, leaving others unaffected.
+async function testSuspendingOneContextSilencesOnlyIt(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const pairToSuspend = pairs[0];
+      const pairsToCheck = pairs.slice(1);
+
+      await pairToSuspend.sourceNode.context.suspend();
+
+      for (const { sourceNode } of pairsToCheck) {
+        await ensureAudioSourceIsNotSilent(sourceNode);
+      }
+    }
+  );
+}
+
+// Test that disconnecting a single source node silences only its detector, leaving others unaffected.
+async function testDisconnectingOneSourceSilencesOnlyIt(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const pairToDisconnect = pairs[0];
+      const pairsToCheck = pairs.slice(1);
+
+      pairToDisconnect.sourceNode.disconnect();
+
+      for (const { sourceNode } of pairsToCheck) {
+        await ensureAudioSourceIsNotSilent(sourceNode);
+      }
+    }
+  );
+}
+
+// Test template for operations that silence one MediaStream.
+async function testSilencingOneMediaStream(
+  tone,
+  srcRate,
+  dstRates,
+  usage,
+  stmOp,
+  silenceChecker = null
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const pairToOperate = pairs[0];
+
+      // Determine which pairs should become silent based on track usage
+      const pairsToBecomeSilent =
+        usage === TRACK_USAGES.CLONED ? [pairToOperate] : pairs;
+      const pairsToRemainActive =
+        usage === TRACK_USAGES.CLONED ? pairs.slice(1) : [];
+
+      // Perform the operation and wait for expected detectors to become silent
+      const msgs = await waitForMessagesAfterAction(
+        pairsToBecomeSilent.map((p) => p.detectorNode),
+        async () => {
+          await stmOp(pairToOperate.sourceNode.mediaStream);
+        }
+      );
+
+      // Verify detectors lost their input
+      msgs.forEach((msg, i) => {
+        const detectorNode = pairsToBecomeSilent[i].detectorNode;
+        silenceChecker
+          ? silenceChecker(msg, detectorNode)
+          : assert_true(
+              !msg.data.hasInput,
+              `Detector in context with rate ${detectorNode.context.sampleRate} should have no input after operation.`
+            );
+      });
+
+      // Verify remaining detectors are still active
+      for (const { sourceNode } of pairsToRemainActive) {
+        await ensureAudioSourceIsNotSilent(sourceNode);
+      }
+    }
+  );
+}
+
+// Test the effect of stopping MediaStreamTracks on detectors.
+// With cloned tracks: stopping one stream affects only its corresponding detector.
+// With shared tracks: stopping makes all detectors lose their inputs.
+async function testStoppingOneMediaStream(tone, srcRate, dstRates, usage) {
+  await testSilencingOneMediaStream(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (stream) => {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+  );
+}
+
+// Test that disabling a MediaStream's tracks affects either just its own detector or all detectors.
+// With cloned tracks: disabling affects only its corresponding detector.
+// With shared tracks: disabling affects all detectors.
+async function testDisablingOneMediaStream(tone, srcRate, dstRates, usage) {
+  await testSilencingOneMediaStream(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (stream) => {
+      stream.getTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    },
+    // Disabling tracks should make detectors lose input:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=2005070
+    async (msg, detectorNode) => {
+      assert_true(
+        msg.data.isSilent,
+        `Detector in context with rate ${detectorNode.context.sampleRate} should be silent after disabling tracks.`
+      );
+    }
+  );
+}
+
+// Test that removing tracks from a single MediaStream affects only that detector, leaving others unaffected.
+async function testRemovingTracksInOneMediaStream(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const pairToModify = pairs[0];
+      const pairsToCheck = pairs.slice(1);
+
+      const tracks = pairToModify.sourceNode.mediaStream.getTracks();
+      tracks.forEach((track) => {
+        pairToModify.sourceNode.mediaStream.removeTrack(track);
+      });
+
+      for (const { sourceNode } of pairsToCheck) {
+        await ensureAudioSourceIsNotSilent(sourceNode);
+      }
+    }
+  );
+}
+
+// Test the impact of stopping the original input stream on detectors.
+// When tracks are cloned: detectors continue to receive audio.
+// When tracks are shared: detectors lose their input or become silent after stopping the source stream.
+async function testStoppingInputStream(tone, srcRate, dstRates, usage) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const stopInputStream = () => {
+        input.dest.stream.getTracks().forEach((track) => track.stop());
+      };
+
+      if (usage === TRACK_USAGES.CLONED) {
+        stopInputStream();
+        for (const { sourceNode } of pairs) {
+          await ensureAudioSourceIsNotSilent(sourceNode);
+        }
+      } else {
+        const msgs = await waitForMessagesAfterAction(
+          pairs.map((p) => p.detectorNode),
+          stopInputStream
+        );
+        msgs.forEach((msg, i) => {
+          assert_true(
+            msg.data.isSilent || !msg.data.hasInput,
+            `Detector in context with rate ${pairs[i].detectorNode.context.sampleRate} should be silent or have no input after stopping the shared input stream.`
+          );
+        });
+      }
+    }
+  );
+}
+
+// Test that suspending the input AudioContext silences all detectors.
+async function testSuspendingInputContextSilencesAll(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const msgs = await waitForMessagesAfterAction(
+        pairs.map((p) => p.detectorNode),
+        async () => {
+          await input.ctx.suspend();
+        }
+      );
+      msgs.forEach((msg, i) => {
+        assert_true(
+          msg.data.isSilent,
+          `Detector in context with rate ${pairs[i].detectorNode.context.sampleRate} should be silent after suspending the input context.`
+        );
+      });
+    }
+  );
+}
+
+// Test that closing the input AudioContext silences all detectors.
+async function testClosingInputContextSilencesAll(
+  tone,
+  srcRate,
+  dstRates,
+  usage
+) {
+  await setupAndRunTest(
+    tone,
+    srcRate,
+    dstRates,
+    usage,
+    async (input, pairs) => {
+      const msgs = await waitForMessagesAfterAction(
+        pairs.map((p) => p.detectorNode),
+        async () => {
+          await input.ctx.close();
+        }
+      );
+      msgs.forEach((msg, i) => {
+        assert_true(
+          msg.data.isSilent,
+          `Detector in context with rate ${pairs[i].detectorNode.context.sampleRate} should be silent after closing the input context.`
+        );
+      });
+    }
+  );
+}
+
+const SOURCE_CONTEXT_RATE = 48000;
+const DEST_CONTEXT_RATES = [32000, 44100, 96000];
+
+const TRACK_USAGES = {
+  CLONED: "cloned",
+  SHARED: "shared",
+};
+const SCENARIOS = [
+  { trackUsage: TRACK_USAGES.CLONED, description: "cloned tracks" },
+  { trackUsage: TRACK_USAGES.SHARED, description: "shared tracks" },
+];
+
+const NOTE_FREQUENCIES = {
+  C4: 261.63,
+  D4: 293.66,
+  E4: 329.63,
+  F4: 349.23,
+  G4: 392.00,
+  A4: 440.00,
+  B4: 493.88,
+  C5: 523.25,
+  D5: 587.33,
+  E5: 659.25,
+};
+
+for (const { trackUsage, description } of SCENARIOS) {
+  // Tests for connection from one source context to multiple destination contexts with different sample rates.
+
+  promise_test(async t => {
+    await testClosingOneContextStopsOnlyIt(NOTE_FREQUENCIES.C4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test closing one AudioContext stops only it (${description})`);
+
+  promise_test(async t => {
+    await testSuspendingOneContextSilencesOnlyIt(NOTE_FREQUENCIES.D4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test suspending one AudioContext silences only it (${description})`);
+
+  promise_test(async t => {
+    await testDisconnectingOneSourceSilencesOnlyIt(NOTE_FREQUENCIES.E4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test disconnecting one MediaStreamAudioSourceNode silences only it (${description})`);
+
+  promise_test(async t => {
+    await testStoppingOneMediaStream(NOTE_FREQUENCIES.F4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test stopping one MediaStream's tracks silences ${trackUsage === TRACK_USAGES.CLONED ? "only its detector" : "all detectors"} (${description})`);
+
+  promise_test(async t => {
+    await testDisablingOneMediaStream(NOTE_FREQUENCIES.G4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test disabling one MediaStream's tracks silences ${trackUsage === TRACK_USAGES.CLONED ? "only its detector" : "all detectors"} (${description})`);
+
+  promise_test(async t => {
+    await testRemovingTracksInOneMediaStream(NOTE_FREQUENCIES.A4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test removing tracks from one MediaStream silences only it} (${description})`);
+
+  promise_test(async t => {
+    await testStoppingInputStream(NOTE_FREQUENCIES.B4, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test stopping the input MediaStream's tracks silences ${trackUsage === TRACK_USAGES.CLONED ? "nothing" : "all detectors"} (${description})`);
+
+  promise_test(async t => {
+    await testSuspendingInputContextSilencesAll(NOTE_FREQUENCIES.C5, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test suspending the input AudioContext silences all detectors (${description})`);
+
+  promise_test(async t => {
+    await testClosingInputContextSilencesAll(NOTE_FREQUENCIES.D5, SOURCE_CONTEXT_RATE, DEST_CONTEXT_RATES, trackUsage);
+  }, `Test closing the input AudioContext silences all detectors (${description})`);
+
+  // Tests for one source context to multiple destination contexts with identical sample rates.
+
+  const dstRates = [DEST_CONTEXT_RATES[0], DEST_CONTEXT_RATES[0]];
+  promise_test(async t => {
+    await testRemovingTracksInOneMediaStream(NOTE_FREQUENCIES.E5, SOURCE_CONTEXT_RATE, dstRates, trackUsage);
+  }, `Test removing tracks from one MediaStream silences only its detector when destination rates are the same (${description}, ${SOURCE_CONTEXT_RATE}->${dstRates[0]})`);
+}
+
+</script>
+</body>
+</html>

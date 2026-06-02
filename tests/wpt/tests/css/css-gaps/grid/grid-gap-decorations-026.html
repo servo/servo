@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Grid gaps are painted properly when currentColor is used.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-026-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+    color: green;
+  }
+  .grid-container {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: 100px 100px 100px;
+    height: 320px;
+
+    column-rule-color: currentColor;
+    column-rule-style: solid;
+    column-rule-width: 5px;
+
+    row-rule-color: currentColor;
+    row-rule-style: solid;
+    row-rule-width: 5px;
+
+  }
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+<div class="grid-container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

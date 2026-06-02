@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: CSS display:contents in multicolumn layout</title>
+<!-- Imported from: https://bugzilla.mozilla.org/show_bug.cgi?id=907396 -->
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-multicol-001-ref.html">
+<link rel="stylesheet" href="support/acid.css">
+<script src="support/util.js"></script>
+<div style="color: red">
+  <div class="columns">
+  <div class="contents c1"><div class="contents c2"><div>1<span class="b">1</span></div></div></div>
+  <div class="contents c2"><div>2</div></div>
+  <div class="contents c3"><div>3</div></div>
+  </div>
+
+  <div class="columns">
+  <div class="columns contents">
+  <div class="contents c1"><div class="contents c2"><div>1<span class="b">1</span></div></div></div>
+  <div class="contents c2"><div>2</div></div>
+  <div class="contents c3"><div>3</div></div>
+  </div>
+  </div>
+</div>
+<script>
+window.onload = function() {
+  eachDisplayContentsElementIn(document, window,
+      function(e) { e.style.display = 'none'; },
+      function(e) { e.style.display = ''; })
+}
+</script>

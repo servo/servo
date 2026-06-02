@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Blob Perf (Shared Memory)</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script>
+// Note: This test requires setting the command line flag
+// '--blob-transport-shared-memory-max-size=30720' to exercise the shared memory
+// data pipe transfer work.
+let runnerParams = { size: 300 * 1024, numBlobs: 10 };
+let test = {
+  description:
+    'Benchmark for creating blobs using Shared Memory transport then reading both synchronously and in parallel.',
+  unit: 'ms',
+  iterationCount: 20,
+  tracingCategories: 'Blob',
+  traceEventsToMeasure: [
+    'BlobReader::ReadBytesItem', 'Registry::RegisterBlob'
+  ],
+  path: 'resources/blob-perf-runner.html',
+  params: runnerParams
+}
+PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+</script>

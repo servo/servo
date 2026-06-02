@@ -1,0 +1,45 @@
+<!doctype html>
+<title>SVG path 'd' attribute by animation with additive='sum'</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty"/>
+<link rel="help" href="https://svgwg.org/specs/animations/#AdditionAttributes"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="M10,10 L30,10 L30,30 L10,30 Z">
+    <animate id="animation" attributeName="d"
+             by="M20,20 L40,20 L40,40 L20,40 Z"
+             additive="sum"
+             begin="0s" dur="2s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+function sample1() {
+  // t=0s: base value
+  assert_animated_path_equals(path, "M10,10 L30,10 L30,30 L10,30 Z");
+}
+
+function sample2() {
+  // t=1s: base + 0.5*by = M20,20 L50,20 L50,50 L20,50 Z
+  assert_animated_path_equals(path, "M20,20 L50,20 L50,50 L20,50 Z");
+}
+
+function sample3() {
+  // t=2s: base + by = M30,30 L70,30 L70,70 L30,70 Z (frozen)
+  assert_animated_path_equals(path, "M30,30 L70,30 L70,70 L30,70 Z");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample2],
+    ["animation", 2.0,   sample3],
+    ["animation", 2.001, sample3]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Animate multiple effects on different targets via main thread</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  #target2 {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    box-shadow: 4px 4px 25px blue;
+  }
+</style>
+
+<div id="target"></div>
+<div id="target2"></div>
+
+<script id="simple_animate" type="text/worklet">
+  registerAnimator("test_animator", class {
+    animate(currentTime, effect) {
+      let effects = effect.getChildren();
+      effects[0].localTime = 1000;
+      effects[1].localTime = 1000;
+    }
+  });
+</script>
+
+<script>
+  promise_test(async t => {
+    await runInAnimationWorklet(document.getElementById('simple_animate').textContent);
+
+    const effect = new KeyframeEffect(
+        document.getElementById("target"),
+        [
+          { background: 'green' },
+          { background: 'blue' },
+        ],
+        { duration: 2000 }
+    );
+    const effect2 = new KeyframeEffect(
+        document.getElementById("target2"),
+        [
+          { boxShadow: '4px 4px 25px blue' },
+          { boxShadow: '4px 4px 25px green' }
+        ],
+        { duration: 2000 }
+    );
+
+    const animation = new WorkletAnimation('test_animator', [effect, effect2]);
+    animation.play();
+    await waitForAsyncAnimationFrames(1);
+
+    assert_equals(getComputedStyle(document.getElementById('target')).backgroundColor, "rgb(0, 64, 128)");
+    assert_equals(getComputedStyle(document.getElementById('target2')).boxShadow, "rgb(0, 64, 128) 4px 4px 25px 0px");
+  }, 'Animating multiple effects on different targets via main thread should produce new output values accordingly');
+</script>

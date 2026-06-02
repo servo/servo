@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: aria-labeledby (non-standard)</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests that the non-standard (misspelled) attribute name <code>aria-labeledby</code> is not supported.</p>
+
+<h2>Tests for <code>aria-labeledby</code></h2>
+
+<div role="group" aria-labeledby="h" class="ex" data-expectedlabel="" data-testname="div group with aria-labeledby">
+  <h2 id="h">first heading</h2>
+  <p>text inside div group</p>
+</div>
+
+<div role="group" aria-label="self label" id="g2" aria-labeledby="g2 h2" class="ex" data-expectedlabel="self label" data-testname="div group with aria-label and aria-labeledby">
+  <h2 id="h2">+ first heading</h2>
+  <p>text inside div group</p>
+</div>
+
+<div role="group" aria-labeledby="h2" aria-labelledby="p3" class="ex" data-expectedlabel="text inside div group" data-testname="div group with aria-labeledby and aria-labelledby">
+  <h2 id="h3">+ first heading</h2>
+  <p id="p3">text inside div group</p>
+</div>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

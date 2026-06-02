@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>
+  Media Playback State: the :playing, :paused, and :seeking pseudo-classes
+</title>
+<link
+  rel="help"
+  href="https://drafts.csswg.org/selectors/#video-state"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<body>
+  <video width="300" height="300" muted loop></video>
+  <script>
+    test((t) => {
+      for (const pseudo of [":playing", ":paused", ":seeking"]) {
+        try {
+          document.querySelector(`.not-a-thing${pseudo}`);
+        } catch (e) {
+          assert_unreached(`${pseudo} is not supported`);
+        }
+      }
+    }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      video.muted = true; // allows us to play the video
+      assert_true(video.muted, "video is muted");
+      assert_true(video.paused, "video is paused");
+      await new Promise((r) => {
+        video.addEventListener("playing", r, { once: true });
+        video.play();
+      });
+      assert_false(video.paused, "video is playing");
+      assert_equals(document.querySelector("video:playing"), video);
+      assert_equals(document.querySelector("video:not(:playing)"), null);
+      assert_equals(document.querySelector("video:paused"), null);
+      assert_equals(document.querySelector("video:not(:paused)"), video);
+    }, "Test :playing pseudo-class");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:paused)"), ":paused is not supported");
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      assert_equals(video.paused, true);
+      assert_equals(document.querySelector("video:playing"), null);
+      assert_equals(document.querySelector("video:not(:playing)"), video);
+      assert_equals(document.querySelector("video:paused"), video);
+      assert_equals(document.querySelector("video:not(:paused)"), null);
+    }, "Test :paused pseudo-class");
+
+    promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:seeking)"), ":seeking is not supported");
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = getVideoURI("/media/counting");
+      });
+      assert_equals(document.querySelector("video:seeking"), null);
+      assert_equals(document.querySelector("video:not(:seeking)"), video);
+      await new Promise((r) => {
+        video.addEventListener("seeking", r, { once: true });
+        video.currentTime = 10;
+      });
+      assert_equals(document.querySelector("video:seeking"), video);
+      assert_equals(document.querySelector("video:not(:seeking)"), null);
+    }, "Test :seeking pseudo-class");
+
+    test((t) => {
+      const pseudoClasses = [":playing", ":paused", ":seeking"];
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      t.add_cleanup(() => div.remove());
+      for (const pseudo of pseudoClasses) {
+        assert_implements(CSS.supports(`selector(${pseudo})`), `${pseudo} is not supported`);
+        assert_false(div.matches(pseudo));
+        assert_true(div.matches(`:not(${pseudo})`));
+      }
+     }, "Test that non-media elements do not match :playing, :paused, or :seeking");
+  </script>
+</body>

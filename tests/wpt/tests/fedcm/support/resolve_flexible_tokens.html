@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script>
+async function doResolve() {
+  let urlParams = new URLSearchParams(document.location.search);
+  let options = {};
+
+  const paramsStr = urlParams.get("params");
+  const params = JSON.parse(decodeURIComponent(paramsStr));
+
+  // Extract values from params
+  const accountId = params.accountId;
+  const tokenType = params.tokenType;
+  const tokenValue = params.tokenValue;
+
+  // Set accountId option if present
+  if (accountId) {
+    options.accountId = accountId;
+  }
+
+  let token;
+
+  // Process token based on tokenType
+  switch (tokenType) {
+    case "number":
+      token = parseFloat(tokenValue);
+      break;
+
+    case "boolean":
+      token = tokenValue === true || tokenValue === "true";
+      break;
+
+    case "null":
+      token = null;
+      break;
+
+    case "object":
+      if (typeof tokenValue === "object") {
+        token = tokenValue;
+      } else {
+        try {
+          token = JSON.parse(tokenValue);
+        } catch (e) {
+          token = { value: tokenValue };
+        }
+      }
+      break;
+
+    case "array":
+      if (Array.isArray(tokenValue)) {
+        token = tokenValue;
+      } else {
+        try {
+          token = JSON.parse(tokenValue);
+        } catch (e) {
+          token = [tokenValue];
+        }
+      }
+      break;
+
+    case "string":
+    default:
+      token = String(tokenValue);
+      break;
+  }
+
+  IdentityProvider.resolve(token, options);
+}
+
+window.onload = doResolve;
+</script>

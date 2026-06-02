@@ -1,0 +1,65 @@
+<!doctype html>
+<title>Firing of pointerrawupdate in secure contexts</title>
+<link rel="help"
+  href="https://w3c.github.io/pointerevents/#the-pointerrawupdate-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<div id="target"></div>
+<script>
+  "use strict";
+
+  let event_log = [];
+  const eventLogger = e => event_log.push(e.type);
+
+  const target = document.getElementById("target");
+  ["pointerrawupdate", "pointerdown", "pointermove", "pointerup"].forEach(
+      ename => target.addEventListener(ename, eventLogger));
+
+  promise_test(async test => {
+    let pointerup_promise = getEvent("pointerup", target, test);
+
+    var actions = new test_driver.Actions();
+    actions = actions.pointerMove(0, 0, {origin: target})
+        .pointerDown({button: actions.ButtonType.LEFT})
+        .pointerDown({button: actions.ButtonType.MIDDLE})
+        .pointerUp({button: actions.ButtonType.MIDDLE})
+        .pointerUp({button: actions.ButtonType.LEFT});
+
+    await actions.send();
+    await pointerup_promise;
+
+    // Main assertion for this test. Note that non-secure contexts are covered
+    // in pointerevent_pointerrawupdate.html.
+    assert_true(event_log.includes("pointerrawupdate"),
+        "pointerrawupdate received");
+
+    // Assert the order of pointerrawupdate with respect to other events. Note
+    // that chorded buttons fire pointermoves.
+    const expected_events = [
+      "pointerrawupdate", "pointermove", "pointerdown",
+      "pointerrawupdate", "pointermove", "pointerrawupdate", "pointermove",
+      "pointerup"
+    ];
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "events received");
+  }, "pointerrawupdate event is fired");
+
+  promise_test(async test => {
+    assert_true("onpointerrawupdate" in window,
+        "Window should have event handler onpointerrawupdate");
+    assert_true("onpointerrawupdate" in window.document,
+        "Document should have event handler onpointerrawupdate");
+    assert_true("onpointerrawupdate" in window.document.documentElement,
+        "Element should have event handler onpointerrawupdate");
+  }, "onpointerrawupdate is exposed");
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSS Gaps: *-rule-edge-*-outset getComputedStyle()</title>
+    <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/computed-testcommon.js"></script>
+    <script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+    <div id="target"></div>
+    <style>
+        #target {
+            font-size: 40px;
+        }
+    </style>
+    <script>
+        // TODO(javiercon): Add shorthand support and test here.
+        const properties = ["column-rule-edge-inset-start", "row-rule-edge-inset-start", "column-rule-edge-inset-end", "row-rule-edge-inset-end"];
+        for (const property of properties) {
+            test_computed_value(property, "10px");
+            test_computed_value(property, "-20px");
+            test_computed_value(property, "0.5em", "20px");
+            test_computed_value(property, "calc(10px + 0.5em)", "30px");
+            test_computed_value(property, "calc(10px - 0.5em)", "-10px");
+            test_computed_value(property, "30%");
+            test_computed_value(property, "calc(25% + 10px)");
+        }
+    </script>
+</body>
+</html>

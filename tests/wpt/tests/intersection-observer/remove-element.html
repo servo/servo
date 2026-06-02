@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#root {
+  display: inline-block;
+  overflow-y: scroll;
+  height: 200px;
+  border: 3px solid black;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+.spacer {
+  height: 300px;
+}
+</style>
+
+<div id="root">
+  <div id="leading-space" class="spacer"></div>
+  <div id="target"></div>
+  <div id="trailing-space" class="spacer"</div>
+</div>
+
+<script>
+var entries = [];
+var root, target, trailingSpace;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  assert_true(!!target, "Target exists");
+  trailingSpace = document.getElementById("trailing-space");
+  assert_true(!!trailingSpace, "TrailingSpace exists");
+  root = document.getElementById("root");
+  assert_true(!!root, "Root exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {root: root});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF");
+}, "Verify that not-intersecting notifications are sent when a target is removed from the DOM tree.");
+
+function step0() {
+  root.scrollTop = 150;
+  runTestCycle(step1, "root.scrollTop = 150");
+  checkLastEntry(entries, 0, [11, 111, 311, 411, 0, 0, 0, 0, 11, 111, 11, 211, false]);
+}
+
+function step1() {
+  root.removeChild(target);
+  runTestCycle(step2, "root.removeChild(target).");
+  checkLastEntry(entries, 1, [11, 111, 161, 261, 11, 111, 161, 211, 11, 111, 11, 211, true]);
+}
+
+function step2() {
+  root.scrollTop = 0;
+  root.insertBefore(target, trailingSpace);
+  runTestCycle(step3, "root.insertBefore(target, trailingSpace).");
+  checkLastEntry(entries, 2, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false]);
+}
+
+function step3() {
+  root.scrollTop = 150;
+  runTestCycle(step4, "root.scrollTop = 150 after reinserting target.");
+  checkLastEntry(entries, 2);
+}
+
+function step4() {
+  checkLastEntry(entries, 3, [11, 111, 161, 261, 11, 111, 161, 211, 11, 111, 11, 211, true]);
+}
+</script>

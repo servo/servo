@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: worker scripts, origin and referrer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+fetch_tests_from_worker(new Worker("resources/workerxhr-origin-referrer.js"));
+</script>

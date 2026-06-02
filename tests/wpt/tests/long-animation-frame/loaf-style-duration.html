@@ -1,0 +1,272 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: styleDuration</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: styleDuration</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    busy_wait(very_long_frame_duration);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_true("styleDuration" in entry,
+      "styleDuration should be present on PerformanceLongAnimationFrameTiming");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be non-negative");
+}, "styleDuration attribute exists on PerformanceLongAnimationFrameTiming");
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    t.step_timeout(() => {
+      // Just do a busy wait with no rendering
+      busy_wait(very_long_frame_duration);
+    }, 0);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // If no rendering occurred, styleDuration should be 0
+  if (entry.renderStart === 0) {
+    assert_equals(entry.styleDuration, 0,
+        "styleDuration should be 0 when no rendering occurred");
+  }
+}, "styleDuration is 0 when no rendering phase occurs");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.id = "test-element";
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    // Use requestAnimationFrame to trigger render-phase style
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Modify styles that will need recalculation during render
+        element.style.backgroundColor = "green";
+        element.style.height = "50px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be non-negative");
+  // If there's a styleAndLayoutStart, rendering occurred
+  if (entry.styleAndLayoutStart > 0) {
+    // styleDuration captures render-phase style work
+    assert_greater_than_equal(entry.styleDuration, 0,
+        "styleDuration should capture render-phase style work");
+  }
+}, "styleDuration captures render-phase style recalculation");
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    busy_wait(very_long_frame_duration);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_less_than_equal(entry.styleDuration, entry.duration,
+      "styleDuration should not exceed total frame duration");
+}, "styleDuration does not exceed frame duration");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 2);
+      // Force style and layout recalculation by changing dimensions
+      // and reading a layout-dependent property
+      element.style.width = "200px";
+      void element.offsetHeight;
+      busy_wait(very_long_frame_duration / 2);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  // styleDuration is render-phase only, so it should NOT include forced style
+  // The forced style is tracked in script.forcedStyleDuration instead
+  // On very fast machines, style/layout may complete in < 1ms and report as 0
+  // due to millisecond truncation, so we only assert >= 0
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration, 0,
+      "Script's forcedStyleAndLayoutDuration should be >= 0");
+  assert_greater_than_equal(script.forcedStyleDuration, 0,
+      "Script's forcedStyleDuration should be >= 0");
+  assert_less_than_equal(script.forcedStyleDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedStyleDuration should be <= forcedStyleAndLayoutDuration");
+  // entry.styleDuration only includes render-phase style, not forced style
+}, "styleDuration does not include forced style from scripts (tracked separately)");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.id = "render-test";
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    // Trigger a render with style changes
+    element.className = "new-class";
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // When rendering occurs, styleDuration captures the style recalc time
+  if (entry.renderStart > 0 && entry.styleAndLayoutStart > 0) {
+    assert_greater_than_equal(entry.styleDuration, 0,
+        "styleDuration should be >= 0 during render phase");
+  }
+}, "styleDuration is measured during the render phase");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.style.width = "100px";
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      const observer = new ResizeObserver(entries => {
+        // Do work in the resize observer callback but don't trigger
+        // additional resizes to avoid the "undelivered notifications" error
+        busy_wait(very_long_frame_duration / 2);
+      });
+      observer.observe(container);
+
+      // Trigger resize
+      requestAnimationFrame(() => {
+        container.style.width = "200px";
+        requestAnimationFrame(() => {
+          observer.disconnect();
+          resolve();
+        });
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // styleDuration should capture style recalculations from ResizeObserver
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 during ResizeObserver callback");
+  // The styleAndLayoutStart should be set since rendering occurred
+  assert_greater_than(entry.styleAndLayoutStart, 0,
+      "styleAndLayoutStart should be > 0 when rendering occurred");
+}, "styleDuration captures style recalculations during ResizeObserver callbacks");
+
+promise_test(async t => {
+  // Create a container query scenario
+  const style = document.createElement("style");
+  style.textContent = `
+    .cq-container {
+      container-type: inline-size;
+      width: 200px;
+    }
+    @container (min-width: 150px) {
+      .cq-child {
+        background-color: red;
+        padding: 10px;
+      }
+    }
+    @container (min-width: 250px) {
+      .cq-child {
+        background-color: blue;
+        padding: 20px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+
+  const container = document.createElement("div");
+  container.className = "cq-container";
+  const child = document.createElement("div");
+  child.className = "cq-child";
+  child.textContent = "Container query test";
+  container.appendChild(child);
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Change container size to trigger container query recalculation
+        container.style.width = "300px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // styleDuration should capture container query style recalculations
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should be >= 0 during container query recalculation");
+}, "styleDuration captures style recalculations from container queries");
+
+promise_test(async t => {
+  // Create multiple elements with ResizeObservers
+  const elements = [];
+  for (let i = 0; i < 3; i++) {
+    const el = document.createElement("div");
+    el.style.width = "100px";
+    el.style.height = "100px";
+    el.style.display = "inline-block";
+    document.body.appendChild(el);
+    elements.push(el);
+  }
+  t.add_cleanup(() => elements.forEach(el => el.remove()));
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      const observers = elements.map((el, idx) => {
+        const observer = new ResizeObserver(entries => {
+          // Just do work, don't trigger more resizes
+          busy_wait(very_long_frame_duration / 4);
+        });
+        observer.observe(el);
+        return observer;
+      });
+
+      requestAnimationFrame(() => {
+        // Resize all elements at once
+        elements.forEach((el, i) => {
+          el.style.width = (150 + i * 10) + "px";
+        });
+        requestAnimationFrame(() => {
+          observers.forEach(o => o.disconnect());
+          resolve();
+        });
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // styleDuration should capture style work from multiple ResizeObservers
+  assert_greater_than_equal(entry.styleDuration, 0,
+      "styleDuration should capture style work from multiple ResizeObservers");
+}, "styleDuration captures style recalculations from multiple ResizeObservers");
+
+</script>
+</body>
+

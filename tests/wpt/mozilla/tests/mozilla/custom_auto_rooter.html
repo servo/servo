@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Types using Custom Auto Rooter work correctly</title>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+test(function() {
+  var t = new TestBinding;
+
+  var seq = [5, "str", { key: "val" }, undefined];
+  assert_array_equals(seq, t.anySequencePassthrough(seq), "Returned simple array is the same");
+
+  var seq = new Array(null, {'inner': 1, 'a': 'as'}, {'inner': 2}, null, undefined);
+  assert_array_equals(seq, t.anySequencePassthrough(seq), "Returned array using new Array is the same");
+
+  var seq = new Array(null, {'inner': 1, 'a': 'as', 'toString': function() { seq = null; return Object.prototype.toString(this); }}, {'inner': 2}, null, undefined);
+  assert_array_equals(seq, t.anySequencePassthrough(seq), "Returned array with closure member is the same");
+}, "sequence<any> conversion did not lose any values");
+</script>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DocumentType.remove</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-childnode-remove">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="ChildNode-remove.js"></script>
+<div id=log></div>
+<script>
+var node, parentNode;
+setup(function() {
+  node = document.implementation.createDocumentType("html", "", "");
+  parentNode = document.implementation.createDocument(null, "", null);
+});
+testRemove(node, parentNode, "doctype");
+</script>

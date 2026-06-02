@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>mprescripts should render as an mrow</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
+    <meta name="assert" content="Verify that mprescripts uses mrow layout">
+    <link rel="match" href="mprescripts-001-ref.html">
+  </head>
+  <body>
+    <math>
+      <mprescripts>
+        <mspace width="10px" height="20px" style="background: cyan;"></mspace>
+        <mspace width="30px" height="10px" depth="5px" style="background: blue;"></mspace>
+        <mspace width="20px" height="15px" depth="30px" style="background: lightblue;"></mspace>
+        <mspace width="25px" depth="20px" style="background: cyan;"></mspace>
+        <mspace width="40px" height="5px" depth="15px" style="background: blue;"></mspace>
+        <mspace width="20px" height="35px" depth="5px" style="background: lightblue;"></mspace>
+      </mprescripts>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");
+    </script>
+  </body>
+</html>

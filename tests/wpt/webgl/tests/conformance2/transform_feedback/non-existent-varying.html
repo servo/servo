@@ -1,0 +1,72 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Transform Feedback Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec3 position;
+void main()
+{
+    gl_Position = vec4(position, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+void main()
+{
+    color = vec4(0);
+}
+</script>
+<script>
+"use strict";
+description("Test that specifying non-existent varyings for transform feedback causes the program to fail to link. This test covers an ANGLE bug.");
+
+// Spec: GLES 3.0.5 section 2.12.8:
+// "A program will fail to link if:"
+// "any variable name specified in the varyings array is not declared as an output in the vertex shader;"
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    runTest("bogus");
+    runTest("gl_Bogus");
+}
+
+function runTest(nonExistentVaryingName) {
+    var program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        [nonExistentVaryingName], gl.INTERLEAVED_ATTRIBS,
+        ["position"]);
+    var msg = "Program should fail to link when a nonexistent varying '" + nonExistentVaryingName + "' is specified for transform feedback.";
+    if (program) {
+        testFailed(msg);
+    } else {
+        testPassed(msg);
+    }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

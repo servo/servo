@@ -1,0 +1,12 @@
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'"/>
+<script>
+  const js_payload = `
+    <div>
+      <img src="${window.origin}/content-security-policy/support/fail.png"
+           onload="opener.postMessage(\\\'img loaded\\\', \\\'*\\\');"
+           onerror="opener.postMessage(\\\'img blocked\\\', \\\'*\\\');"
+      >
+    </div>
+  `;
+  open(`javascript:'${js_payload}'`,"_self");
+</script>

@@ -1,0 +1,10 @@
+WEBVTT FILE
+Different encodings (iconv) should not be recognized as WebVTT a file.
+
+1
+00:00:00.000 --> 00:00:30.500
+景気判断
+
+2
+00:00:31.000 --> 00:20:00.500
+電力不足

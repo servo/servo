@@ -1,0 +1,27 @@
+<html class="test-wait">
+<head>
+<script>
+window.onload = function() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector('svg').remove();
+      document.documentElement.className = '';
+    });
+  });
+};
+</script>
+</head>
+<body>
+<div role="group" class="group">
+  <div style="display:none" class="ignored1">
+    <div class="ignored2">
+      <div class="ignored3">
+        <svg>   <!-- Ignored -->
+          <g id="foo"></g>  <!-- Ignored but included in tree -->
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

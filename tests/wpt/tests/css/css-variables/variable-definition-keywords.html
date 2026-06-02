@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variable definitions and keywords</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        /* Specify a value in a rule hitting keyword targets so that the keywords
+           have something to override in the cascade. */
+        div > div
+        {
+            --var: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="inheritParent" style="--var: 20px;">
+        <div id="inheritTest" style="--var: inherit;"></div>
+    </div>
+
+    <div id="initialParent" style="--var: 20px;">
+        <div id="initialTest" style="--var: initial;"></div>
+    </div>
+
+    <div id="unsetParent" style="--var: 20px;">
+        <div id="unsetTest" style="--var: unset;"></div>
+    </div>
+
+    <div id="revertParent" style="--var: 20px;">
+        <div id="revertTest" style="--var: revert;"></div>
+    </div>
+
+    <script type="text/javascript">
+        "use strict";
+
+        let computedStyle = [
+            { elementId: "inheritTest", property: "--var", expectedValue: "20px", testName: "computed style inherit" },
+            { elementId: "initialTest", property: "--var", expectedValue: "", testName: "computed style initial" },
+            { elementId: "unsetTest", property: "--var", expectedValue: "20px", testName: "computed style unset" },
+            { elementId: "revertTest", property: "--var", expectedValue: "20px", testName: "computed style revert" }
+        ];
+
+        let specifiedStyle = [
+            { elementId: "inheritTest", property: "--var", expectedValue: "inherit", testName: "specified style inherit" },
+            { elementId: "initialTest", property: "--var", expectedValue: "initial", testName: "specified style initial" },
+            { elementId: "unsetTest", property: "--var", expectedValue: "unset", testName: "specified style unset" },
+            { elementId: "revertTest", property: "--var", expectedValue: "revert", testName: "specified style revert" }
+        ];
+
+        computedStyle.forEach(function (csTest) {
+            test( function () {
+                var elem = document.getElementById(csTest.elementId);
+                var actualValue = window.getComputedStyle(elem).getPropertyValue(csTest.property).trim();
+                assert_equals(csTest.expectedValue, actualValue);
+            }, csTest.testName);
+        });
+
+        specifiedStyle.forEach(function (ssTest) {
+            test( function () {
+                var elem = document.getElementById(ssTest.elementId);
+                var actualValue = elem.style.getPropertyValue(ssTest.property);
+                assert_equals(ssTest.expectedValue, actualValue);
+            }, ssTest.testName);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+    "name": "start_url member WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../pass.html",
+    "display": "fullscreen"
+}

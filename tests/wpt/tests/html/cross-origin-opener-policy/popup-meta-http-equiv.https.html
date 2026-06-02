@@ -1,0 +1,24 @@
+<!doctype html>
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin"><!-- should not be supported -->
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script src="resources/popup-test.js"></script>
+<script>
+
+[
+  {
+    "title": "popup without coop",
+    "coop": "",
+    "same_origin_opener": "preserved",
+  }
+].forEach(variant => {
+  popup_test(`Same-origin ${variant.title}`, SAME_ORIGIN, variant.coop, variant.same_origin_opener);
+});
+
+</script>

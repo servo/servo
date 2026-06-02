@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src='../resources/focus-utils.js'></script>
+
+<button id="start">START</button>
+<div id="scroller" style="overflow:scroll; width:50px; height:50px;">
+  <div style="height:100px"></div>
+  <button id="submit" disabled>submit</button>
+</div>
+<button id="end">END</button>
+
+<script>
+promise_test(async () => {
+  const start = document.getElementById('start');
+  const scroller = document.getElementById('scroller');
+  const submit = document.getElementById('submit');
+  const end = document.getElementById('end');
+
+  start.focus();
+  assert_equals(document.activeElement, start);
+  await navigateFocusForward();
+
+  assert_equals(document.activeElement, scroller, 'scroller should be keyboard focusable');
+  assert_true(submit.disabled, 'button should be disabled');
+  submit.disabled = false;
+  assert_false(submit.disabled, 'button should be enabled');
+  assert_equals(document.activeElement, scroller, 'focus should stay on scroller');
+
+  await navigateFocusForward();
+  assert_equals(document.activeElement, submit);
+  await navigateFocusForward();
+  assert_equals(document.activeElement, end);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, submit);
+  await navigateFocusBackward();
+  assert_equals(document.activeElement, start,'After focus leaves the scroller, it should no longer be focusable');
+}, 'While focusing a keyboard-focusable scroller, adding interactive content should not cancel focusability');
+</script>

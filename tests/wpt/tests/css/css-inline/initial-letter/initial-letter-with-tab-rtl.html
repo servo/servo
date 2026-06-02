@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests initial letter should handle tabular character</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-styling">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<link rel="match" href="initial-letter-with-tab-rtl-ref.html">
+<style>
+    .sample {
+        direction: rtl;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+    }
+
+    .initial-letter::first-letter {
+        initial-letter: 3 drop;
+        color: lime;
+        font-size: 100px;   /* should be ignored in rendering */
+        line-height: 50px;  /* should be ignored in rendering */
+    }
+
+    .sample { white-space: pre; }
+    .initial-letter::first-letter { background: yellow; }
+</style>
+</head>
+<body>
+<div class="sample initial-letter">&#9;Abc
+def
+ghi
+jkl
+mno</div>
+</body>
+</html>

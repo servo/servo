@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Values Test: percentage without context is not allowed in resolution type</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-context">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+div {
+  background-color: green;
+  width: 100px;
+  height: 100px;
+}
+
+@media (resolution <= calc(sign(50%) * 1dpi)) {
+  div {
+    background-color: red;
+  }
+}
+
+@media (resolution >= calc(sign(50%) * 1dpi)) {
+  div {
+    background-color: red;
+  }
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div></div>

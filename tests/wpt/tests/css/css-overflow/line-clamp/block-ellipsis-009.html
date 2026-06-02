@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and ::first-line</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-009-ref.html">
+<meta name="assert" content="The block overflow ellipsis must not be included in the ::first-line pseudoelement of a child of the line-clamp container.">
+<style>
+.clamp {
+  line-clamp: 3;
+  color: teal;
+}
+.inner::first-line {
+  color: purple;
+  font-weight: bold;
+  font-style: italic;
+  font-size: 1.5em;
+}
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2
+  <div class="inner">
+    Line 3<br>
+    Line 4
+  </div>
+</div>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      border: transparent solid 50px;
+      border-image-source: url("../support/9-colored-areas.png");
+      border-image-slice: 5% 10% 15% 20%;
+      margin-bottom: 8px;
+      width: 0px;
+    }
+
+  div#sub-test1
+    {
+      border-image-width: 50px;
+    }
+
+  div#sub-test2
+    {
+      border-image-width: 50px 30px;
+    }
+
+  div#sub-test3
+    {
+      border-image-width: 70px 0px 30px 0px;
+    }
+
+  div#sub-test4
+    {
+      border-image-width: 0px 70px 0px 30px;
+    }
+  </style>
+
+  <div id="sub-test1"></div>
+
+  <div id="sub-test2"></div>
+
+  <div id="sub-test3"></div>
+
+  <div id="sub-test4"></div>

@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: EyeDropper API (https://wicg.github.io/eyedropper-api/)
+
+dictionary ColorSelectionResult {
+  DOMString sRGBHex;
+};
+
+dictionary ColorSelectionOptions {
+  AbortSignal signal;
+};
+
+[Exposed=Window, SecureContext]
+interface EyeDropper {
+    constructor();
+    Promise<ColorSelectionResult> open(optional ColorSelectionOptions options = {});
+};

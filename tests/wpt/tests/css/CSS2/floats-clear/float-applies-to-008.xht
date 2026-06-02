@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Float applied to element with 'display' set to inline</title>
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-14 -->
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-float" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" />
+    <link rel="match" href="float-applies-to-008-ref.xht" />
+
+    <meta name="assert" content="The 'float' property applies to elements with a display of inline." />
+    <style type="text/css">
+      div
+      {
+        display: inline;
+        float: right;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if Filler Text can be seen on the right side of the page.</p>
+    <div>Filler Text</div>
+  </body>
+</html>

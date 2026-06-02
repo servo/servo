@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Check Trusted Type violation reports (DedicatedWorker, sink mismatch)</title>
+
+<!-- We assume these HTTP headers are set on the request:
+
+  Set-Cookie: trusted-types-reporting-check-report-DedicatedWorker-sink-mismatch={{$id:uuid()}}; Path=/trusted-types/
+  Content-Security-Policy-Report-Only: \
+     require-trusted-type-for 'script'; \
+     report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+  <script>
+    // Make sure checkReport.sub.js tests are executed after the worker tests,
+    // otherwise the violation reports may not have been sent yet.
+    setup({explicit_done: true});
+    fetch_tests_from_worker(new Worker(
+      "support/trusted-types-reporting-check-report-sink-mismatch-worker.js"
+    )).then(() => {
+      let script = document.createElement("script");
+      script.src='../content-security-policy/support/checkReport.sub.js?reportField=violated-directive&reportValue=require-trusted-types-for&testName=Test report-uri works with require-trusted-types-for violation.&reportCount=3';
+      script.onload = done;
+      document.body.appendChild(script);
+    });
+  </script>
+</body>
+</html>

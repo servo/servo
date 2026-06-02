@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: letter spacing on element with single character</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="match" href="reference/letter-spacing-nesting-002-ref.html">
+<meta name="assert" content="Applying letter-spacing to an element containing only a single character has no effect on the rendered result">
+<style>
+div {
+  font-family: monospace;
+  font-size: 3em;
+}
+span {
+  letter-spacing: 1ch;
+}
+</style>
+
+<p>Test passes if the rightmost character of the line that starts with “a” is under the number 3.
+<div>12345</div>
+<div>a<span>a</span>a</div>

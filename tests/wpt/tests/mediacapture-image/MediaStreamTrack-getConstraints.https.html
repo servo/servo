@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<script>
+
+const constraints = { whiteBalanceMode     : "single-shot",
+                      exposureMode         : "manual",
+                      focusMode            : "single-shot",
+
+                      exposureCompensation : 133.77,
+                      exposureTime         : 10000, // in nano-seconds.
+                      colorTemperature     : 6000,
+                      iso                  : 120.0,
+
+                      brightness           : 3,
+                      contrast             : 4,
+                      saturation           : 5,
+                      sharpness            : 6,
+                      focusDistance        : 7,
+
+                      pan                  : 8,
+                      tilt                 : 9,
+                      zoom                 : 3.141592
+                      // TODO: torch https://crbug.com/700607.
+                    };
+
+// These tests verify that MediaStreamTrack.getConstraints() exists and that,
+// returns the constraints passed beforehand with applyConstraints.
+function makePromiseTest(constraint) {
+  image_capture_test(async function(t) {
+    await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted');
+
+    let stream = await navigator.mediaDevices.getUserMedia({video: true});
+    let videoTrack = stream.getVideoTracks()[0];
+
+    let constraintsIn = {advanced : [ constraint ]};
+    await videoTrack.applyConstraints(constraintsIn);
+    assert_object_equals(videoTrack.getConstraints(), constraintsIn, "constraints");
+
+    // Clear constraints by sending an empty constraint set.
+    await videoTrack.applyConstraints({});
+    assert_object_equals(videoTrack.getConstraints(), {}, "constraints");
+  });
+};
+
+// Send each line of |constraints| in turn and then the whole dictionary.
+for (key in constraints) {
+  let one_constraint = {};
+  one_constraint[key] = constraints[key];
+  generate_tests(
+      makePromiseTest,
+      [[ 'MediaStreamTrack.getConstraints(), key: ' + key, one_constraint ]]);
+}
+
+generate_tests(makePromiseTest, [
+  ["MediaStreamTrack.getConstraints(), complete ", constraints],
+]);
+
+</script>

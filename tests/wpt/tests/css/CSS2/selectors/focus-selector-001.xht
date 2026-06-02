@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Focus selector on controls</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Focus pseudo-class matches any element which has input focus." />
+        <style type="text/css">
+            textarea:focus
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below turns green when the element containing the text has focus.</p>
+        <div>
+            <textarea cols="80" rows="3">Filler Text</textarea>
+        </div>
+    </body>
+</html>

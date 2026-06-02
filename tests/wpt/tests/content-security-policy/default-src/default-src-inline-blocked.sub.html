@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+    </script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self';">
+    <title>default-src-inline-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=script-src-elem","violated-directive=script-src-elem"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+    <p>This test passes if the inline scripts don't create failing tests and a CSP report is sent.</p>
+    <script>
+        test(function() {
+            assert_unreached('FAIL inline script ran')
+        });
+
+    </script>
+    <script src="../support/document-write-alert-fail.js"></script>
+    <div id="log"></div>
+</body>
+
+</html>

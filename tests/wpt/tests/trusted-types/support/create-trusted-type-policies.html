@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="./csp-violations.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const maxPolicyCount = 10;
+let results = [];
+async function tryCreatePolicy(name) {
+  let {violations, exception} = await trusted_type_violations_and_exception_for(_ => {
+    window.trustedTypes.createPolicy(name)
+  });
+  return {
+    name: name,
+    exception: exception,
+    violatedPolicies: violations.map(v => {
+      return { policy: v.originalPolicy, disposition: v.disposition};
+    }),
+  };
+}
+(async function () {
+  for (name of params.get("policyNames").split(",", maxPolicyCount)) {
+    results.push(await tryCreatePolicy(name));
+  }
+  parent.postMessage(results);
+})();
+</script>

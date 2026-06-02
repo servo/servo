@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name=help href="https://privacycg.github.io/storage-partitioning/">
+<title>Helper frame</title>
+
+<!-- This resource file is used in the WPT at:
+     wpt/storage/partitioned-estimate-usage-details-caches.tentative.https.sub.html
+     A full list of the test steps referenced here are defined in that WPT -->
+
+<script>
+  // Helper function to obtain cache usage details for both the same-partition
+  // iframe and cross-partition iframe.
+  const usageDetails = async () =>
+    (await navigator.storage.estimate()).usageDetails.caches || 0;
+
+  // Define test variables.
+  let details = {};
+
+  // Step 5: Our same-partition iframe intercepts the "get-details" postMessage,
+  // obtains the cache usage details available to the iframe, and postMessages
+  // the usage back to the test window.
+  window.addEventListener("message", async event => {
+    if (event.data === "get-details") {
+      details.source = "same-site";
+      details.init = await usageDetails();
+      event.source.postMessage(details, event.source.origin);
+    }
+  });
+
+  // Step 8: Once created and loaded, our cross-partition iframe has an on-load
+  // listener that is triggered. To check that our script is executing in
+  // the cross-partition iframe (and not the same-partition iframe), we check
+  // that our parent has a valid opener value.
+  window.addEventListener("load", async () => {
+    if (parent.opener) {
+      // Step 9: Then, our cross-partition iframe obtains the cache usage
+      // details available to it and postMessages the usage back to the test
+      // window.
+      details.source = "cross-site";
+      details.init = await usageDetails();
+      parent.opener.postMessage(details, parent.opener.origin);
+    }
+  });
+
+  // Step 1: Notify our parent test window that the same-partition iframe
+  // has been created. (Note: this script is shared between both the same-
+  // partition iframe and the cross-partition iframe, but is only intercepted
+  // by the test window in the case of the same-partition iframe). This
+  // postMessage alerts our test window that it can begin recording
+  // cache usage.
+  window.parent.postMessage("iframe-is-ready", window.parent.origin);
+</script>

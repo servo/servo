@@ -1,0 +1,2 @@
+six>=1.9
+webencodings

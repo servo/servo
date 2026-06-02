@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.timing.redirect attributes on a cross-origin server redirected navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+        <script src="/common/utils.js"></script>
+        <script>
+            setup({explicit_done: true});
+
+            //
+            // Test configuration
+            //
+
+            var subdomain = "www";
+
+            //
+            // Tests
+            //
+            function onload_test()
+            {
+                test_namespace('navigation');
+                if (performanceNamespace === undefined)
+                {
+                    // avoid script errors
+                    done();
+                    return;
+                }
+
+                performanceNamespace = document.getElementById("frameContext").contentWindow.performance;
+                test_equals(performanceNamespace.navigation.type,
+                        performanceNamespace.navigation.TYPE_NAVIGATE,
+                        'timing.navigation.type is TYPE_NAVIGATE');
+                test_equals(performanceNamespace.navigation.redirectCount, 0, 'navigation.redirectCount == 0 on a cross-origin server redirected navigation');
+
+                test_timing_greater_than('navigationStart', 0);
+
+                test_equals(performanceNamespace.timing.redirectStart, 0, 'timing.redirectStart == 0 on a server redirected navigation from another domain');
+                test_equals(performanceNamespace.timing.redirectEnd, 0, 'timing.redirectEnd == 0 on a server redirected navigation from another domain');
+
+                done();
+            }
+        </script>
+
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates the values of the window.performance.redirectCount and the
+           window.performance.timing.redirectStart/End times for a cross-origin server side redirect navigation.</p>
+
+        <div id="log"></div>
+        <br />
+        <iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
+        <script>
+            // combine the page origin and redirect origin into the IFRAME's src URL
+            var destUrl = make_absolute_url({subdomain: subdomain,
+                                             path: "/common/redirect.py",
+                                             query: "location=" + make_absolute_url(
+                                                         {path: "/navigation-timing/resources/blank_page_green.html"})
+                                             });
+            var frameContext = document.getElementById("frameContext");
+            frameContext.onload = onload_test;
+            frameContext.src = destUrl;
+        </script>
+    </body>
+</html>

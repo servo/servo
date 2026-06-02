@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script>
+
+async function main() {
+  const iframe_uid = token();
+  const iFrameChannel = new PrerenderChannel('iframe-channel',iframe_uid);
+  const crossOriginUrl =
+      new URL(`cross-origin-iframe-src-prerender.html?uid=${iframe_uid}`,
+              get_host_info()['HTTPS_REMOTE_ORIGIN'] +
+                  window.location.pathname);
+
+  // Send the observed events back to the main test page.
+  const testChannel = new PrerenderChannel('test-channel');
+
+  // Start loading a cross-origin iframe. The iframe messages us with the
+  // value of its document.prerendering, which should be true on load and
+  // then get to false.
+  const crossOriginIframe = document.createElement('iframe');
+  crossOriginIframe.src = crossOriginUrl.href;
+  document.body.appendChild(crossOriginIframe);
+  // Wait iframe load to confirm prerenderingchange listener registration.
+  await new Promise((resolve, reject) => {
+    //window.addEventListener('message', (e) => {
+    iFrameChannel.addEventListener('message', (e) => {
+      if (e.data == 'onload')
+        resolve();
+      else
+        reject('bad message: ' + e.data);
+    }, {once: true});
+  }).catch( (error)=> {
+    testChannel.postMessage(error);
+  });
+
+  // Async wait finishing prerendering in the iframe and report it.
+  new Promise((resolve, reject) => {
+    iFrameChannel.addEventListener('message', (e) => {
+     if (e.data == 'document.prerendering changes to false from true')
+       resolve();
+     else
+       reject('bad message: ' + e.data);
+    }, {once:true});
+  }).then(()=>{
+    message = 'iframe prerender finished correctly.';
+  }, (error)=>{
+    message = error;
+  }).finally(()=>{
+    iFrameChannel.close();
+    testChannel.postMessage(message);
+    testChannel.close();
+  });
+
+  // Activate this page to activate the iframe too.
+  const prerenderChannel = new PrerenderChannel('prerender-channel');
+  prerenderChannel.postMessage('readyToActivate');
+  prerenderChannel.close();
+
+  new PrerenderChannel('close').addEventListener('message', () => {
+      window.close();
+  });
+}
+
+// The main test page (cross-origin-iframe-prerender.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const params = new URLSearchParams(location.search);
+if (!params.has('prerendering')) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
+} else {
+  main();
+}
+</script>
+</body>

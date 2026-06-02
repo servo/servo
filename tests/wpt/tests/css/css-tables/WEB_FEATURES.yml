@@ -1,0 +1,15 @@
+features:
+- name: display-table
+  files:
+  - "*"
+  # keep exclusions synced with mappings below
+  - "!box-shadow-*"
+  - "!table-cell-inline-size-box-sizing-quirks.html"
+  - "!table-has-box-sizing-border-box-*"
+- name: box-shadow
+  files:
+  - box-shadow-*
+- name: box-sizing
+  files:
+  - table-cell-inline-size-box-sizing-quirks.html
+  - table-has-box-sizing-border-box-*

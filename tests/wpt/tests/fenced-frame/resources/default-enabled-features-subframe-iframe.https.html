@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+// This page is loaded into an iframe that is nested within a fenced frame tree.
+// This is used to tell the test whether policies that are restricted by a
+// fenced frame's document policies also are restricted in subframes.
+const [key] = parseKeylist();
+
+const allows_shared_storage =
+    document.featurePolicy.allowsFeature('shared-storage');
+const allows_select_url =
+    document.featurePolicy.allowsFeature('shared-storage-select-url');
+
+writeValueToServer(key, allows_shared_storage + "," + allows_select_url);
+</script>
+</body>

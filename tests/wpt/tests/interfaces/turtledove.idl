@@ -1,0 +1,414 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Protected Audience (formerly FLEDGE) (https://wicg.github.io/turtledove/)
+
+[SecureContext]
+partial interface Navigator {
+  Promise<undefined> joinAdInterestGroup(AuctionAdInterestGroup group);
+};
+
+dictionary AuctionAd {
+  required USVString renderURL;
+  USVString sizeGroup;
+  any metadata;
+
+  USVString buyerReportingId;
+  USVString buyerAndSellerReportingId;
+  sequence<USVString> selectableBuyerAndSellerReportingIds;
+  sequence<USVString> allowedReportingOrigins;
+  DOMString adRenderId;
+  USVString creativeScanningMetadata;
+};
+
+dictionary AuctionAdInterestGroupSize {
+  required USVString width;
+  required USVString height;
+};
+
+dictionary GenerateBidInterestGroup {
+  required USVString owner;
+  required USVString name;
+
+  boolean enableBiddingSignalsPrioritization = false;
+  record<DOMString, double> priorityVector;
+
+  record<USVString, sequence<DOMString>> sellerCapabilities;
+  DOMString executionMode = "compatibility";
+  USVString biddingLogicURL;
+  USVString biddingWasmHelperURL;
+  USVString updateURL;
+  USVString trustedBiddingSignalsURL;
+  sequence<USVString> trustedBiddingSignalsKeys;
+  DOMString trustedBiddingSignalsSlotSizeMode = "none";
+  long maxTrustedBiddingSignalsURLLength;
+  USVString trustedBiddingSignalsCoordinator;
+  any userBiddingSignals;
+  sequence<AuctionAd> ads;
+  sequence<AuctionAd> adComponents;
+  record<DOMString, AuctionAdInterestGroupSize> adSizes;
+  record<DOMString, sequence<DOMString>> sizeGroups;
+};
+
+dictionary ProtectedAudiencePrivateAggregationConfig {
+  USVString aggregationCoordinatorOrigin;
+};
+
+dictionary AuctionAdInterestGroup : GenerateBidInterestGroup {
+  double priority = 0.0;
+  record<DOMString, double> prioritySignalsOverrides;
+  required double lifetimeMs;
+  DOMString additionalBidKey;
+  ProtectedAudiencePrivateAggregationConfig privateAggregationConfig;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<undefined> leaveAdInterestGroup(optional AuctionAdInterestGroupKey group = {});
+};
+
+dictionary AuctionAdInterestGroupKey {
+  required USVString owner;
+  required USVString name;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<undefined> clearOriginJoinedAdInterestGroups(
+      USVString owner, optional sequence<USVString> interestGroupsToKeep = []);
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<(USVString or FencedFrameConfig)?> runAdAuction(AuctionAdConfig config);
+  readonly attribute boolean deprecatedRunAdAuctionEnforcesKAnonymity;
+};
+
+dictionary AuctionReportBuyersConfig {
+  required bigint bucket;
+  required double scale;
+};
+
+dictionary AuctionReportBuyerDebugModeConfig {
+  boolean enabled = false;
+
+  // Must only be provided if `enabled` is true.
+  bigint? debugKey;
+};
+
+dictionary AuctionRealTimeReportingConfig {
+  required DOMString type;
+};
+
+dictionary AuctionAdConfig {
+  required USVString seller;
+  required USVString decisionLogicURL;
+
+  USVString trustedScoringSignalsURL;
+  long maxTrustedScoringSignalsURLLength;
+  USVString trustedScoringSignalsCoordinator;
+  boolean sendCreativeScanningMetadata;
+  sequence<USVString> interestGroupBuyers;
+  Promise<any> auctionSignals;
+  Promise<any> sellerSignals;
+  Promise<DOMString?> directFromSellerSignalsHeaderAdSlot;
+  Promise<record<USVString, USVString>?> deprecatedRenderURLReplacements;
+  unsigned long long sellerTimeout;
+  unsigned short sellerExperimentGroupId;
+  Promise<record<USVString, any>?> perBuyerSignals;
+  Promise<record<USVString, unsigned long long>?> perBuyerTimeouts;
+  Promise<record<USVString, unsigned long long>?> perBuyerCumulativeTimeouts;
+  unsigned long long reportingTimeout;
+  USVString sellerCurrency;
+  Promise<record<USVString, USVString>?> perBuyerCurrencies;
+  record<USVString, unsigned short> perBuyerMultiBidLimits;
+  record<USVString, unsigned short> perBuyerGroupLimits;
+  record<USVString, unsigned short> perBuyerExperimentGroupIds;
+  record<USVString, record<USVString, double>> perBuyerPrioritySignals;
+
+  sequence<bigint> auctionReportBuyerKeys;
+  record<DOMString, AuctionReportBuyersConfig> auctionReportBuyers;
+  AuctionReportBuyerDebugModeConfig auctionReportBuyerDebugModeConfig;
+  sequence<DOMString> requiredSellerCapabilities;
+  ProtectedAudiencePrivateAggregationConfig privateAggregationConfig;
+
+  record<DOMString, DOMString> requestedSize;
+  sequence<record<DOMString, DOMString>> allSlotsRequestedSizes;
+  Promise<undefined> additionalBids;
+  DOMString auctionNonce;
+  AuctionRealTimeReportingConfig sellerRealTimeReportingConfig;
+  record<USVString, AuctionRealTimeReportingConfig> perBuyerRealTimeReportingConfig;
+  sequence<AuctionAdConfig> componentAuctions = [];
+  AbortSignal? signal;
+  Promise<boolean> resolveToConfig;
+
+  Promise<Uint8Array> serverResponse;
+  USVString requestId;
+};
+
+[SecureContext]
+partial interface Navigator {
+  boolean canLoadAdAuctionFencedFrame();
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<AdAuctionData> getInterestGroupAdAuctionData(optional AdAuctionDataConfig config = {});
+};
+
+dictionary AdAuctionPerSellerData {
+  required USVString seller;
+  Uint8Array request;
+  DOMString error;
+};
+
+dictionary AdAuctionData {
+  required USVString requestId;
+  Uint8Array request;
+  sequence<AdAuctionPerSellerData> requests;
+};
+
+dictionary AdAuctionOneSeller {
+  required USVString seller;
+  USVString coordinatorOrigin;
+};
+
+dictionary AdAuctionDataConfig {
+  USVString seller;
+  USVString coordinatorOrigin;
+  sequence<AdAuctionOneSeller> sellers;
+
+  unsigned long requestSize;
+  record<USVString, AdAuctionDataBuyerConfig> perBuyerConfig;
+};
+
+dictionary AdAuctionDataBuyerConfig {
+  unsigned long targetSize;
+};
+
+dictionary StorageInterestGroup : AuctionAdInterestGroup {
+  unsigned long long joinCount;
+  unsigned long long bidCount;
+  sequence<PreviousWin> prevWinsMs;
+  USVString joiningOrigin;
+  long long timeSinceGroupJoinedMs;
+  long long lifetimeRemainingMs;
+  long long timeSinceLastUpdateMs;
+  long long timeUntilNextUpdateMs;
+  unsigned long long estimatedSize;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<DOMString> createAuctionNonce();
+};
+
+[Exposed=InterestGroupScriptRunnerGlobalScope]
+interface InterestGroupScriptRunnerGlobalScope {
+  readonly attribute PrivateAggregation? privateAggregation;
+  readonly attribute ProtectedAudienceUtilities protectedAudience;
+};
+
+dictionary PASignalValue {
+  required DOMString baseValue;
+  double scale;
+  (bigint or long) offset;
+};
+
+dictionary PAExtendedHistogramContribution {
+  required (PASignalValue or bigint) bucket;
+  required (PASignalValue or long) value;
+  bigint filteringId = 0;
+};
+
+[Exposed=InterestGroupScriptRunnerGlobalScope]
+interface ProtectedAudienceUtilities {
+  Uint8Array encodeUtf8(USVString input);
+  USVString decodeUtf8(Uint8Array bytes);
+};
+
+[Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
+interface ForDebuggingOnly {
+  undefined reportAdAuctionWin(USVString url);
+  undefined reportAdAuctionLoss(USVString url);
+};
+
+[Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
+interface RealTimeReporting {
+  undefined contributeToHistogram(RealTimeContribution contribution);
+};
+
+dictionary RealTimeContribution {
+  required long bucket;
+  required double priorityWeight;
+  long latencyThreshold;
+};
+
+[Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope,
+ Global=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
+interface InterestGroupBiddingAndScoringScriptRunnerGlobalScope : InterestGroupScriptRunnerGlobalScope {
+  readonly attribute ForDebuggingOnly forDebuggingOnly;
+  readonly attribute RealTimeReporting realTimeReporting;
+};
+
+[Exposed=InterestGroupBiddingScriptRunnerGlobalScope,
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupBiddingScriptRunnerGlobalScope)]
+interface InterestGroupBiddingScriptRunnerGlobalScope
+        : InterestGroupBiddingAndScoringScriptRunnerGlobalScope {
+  boolean setBid(optional (GenerateBidOutput or sequence<GenerateBidOutput>) oneOrManyBids = []);
+  undefined setPriority(double priority);
+  undefined setPrioritySignalsOverride(DOMString key, optional double? priority);
+};
+
+dictionary AdRender {
+  required DOMString url;
+  DOMString width;
+  DOMString height;
+};
+
+dictionary GenerateBidOutput {
+  double bid = -1;
+  DOMString bidCurrency;
+  (DOMString or AdRender) render;
+  any ad;
+  USVString selectedBuyerAndSellerReportingId;
+  sequence<(DOMString or AdRender)> adComponents;
+  double adCost;
+  unrestricted double modelingSignals;
+  boolean allowComponentAuction = false;
+  unsigned long targetNumAdComponents;
+  unsigned long numMandatoryAdComponents = 0;
+};
+
+[Exposed=InterestGroupScoringScriptRunnerGlobalScope,
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupScoringScriptRunnerGlobalScope)]
+interface InterestGroupScoringScriptRunnerGlobalScope
+        : InterestGroupBiddingAndScoringScriptRunnerGlobalScope {
+};
+
+[Exposed=InterestGroupReportingScriptRunnerGlobalScope,
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupReportingScriptRunnerGlobalScope)]
+interface InterestGroupReportingScriptRunnerGlobalScope
+        : InterestGroupScriptRunnerGlobalScope {
+  undefined sendReportTo(DOMString url);
+  undefined registerAdBeacon(record<DOMString, USVString> map);
+  undefined registerAdMacro(DOMString name, USVString value);
+};
+
+[SecureContext]
+partial interface Navigator {
+  undefined updateAdInterestGroups();
+};
+
+[SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute ProtectedAudience protectedAudience;
+};
+
+[SecureContext, Exposed=Window]
+interface ProtectedAudience {
+  any queryFeatureSupport(DOMString feature);
+};
+
+partial dictionary RequestInit {
+  boolean adAuctionHeaders;
+};
+
+partial interface HTMLIFrameElement {
+  [CEReactions] attribute boolean adAuctionHeaders;
+};
+
+typedef (long long or AuctionAd) PreviousWinElement;
+typedef sequence<PreviousWinElement> PreviousWin;
+
+dictionary BiddingBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString seller;
+  required long joinCount;
+  required long bidCount;
+  required long recency;
+  required long adComponentsLimit;
+  required unsigned short multiBidLimit;
+
+  record<DOMString, DOMString> requestedSize;
+  USVString topLevelSeller;
+  sequence<PreviousWin> prevWinsMs;
+  object wasmHelper;
+  unsigned long dataVersion;
+  unsigned long crossOriginDataVersion;
+  boolean forDebuggingOnlyInCooldownOrLockout = false;
+};
+
+dictionary ScoringBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString interestGroupOwner;
+  required USVString renderURL;
+  required unsigned long biddingDurationMsec;
+  required DOMString bidCurrency;
+
+  record<DOMString, DOMString> renderSize;
+  unsigned long dataVersion;
+  unsigned long crossOriginDataVersion;
+  sequence<USVString> adComponents;
+  boolean forDebuggingOnlyInCooldownOrLockout = false;
+  USVString creativeScanningMetadata;
+  sequence<USVString?> adComponentsCreativeScanningMetadata;
+};
+
+dictionary ReportingBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString interestGroupOwner;
+  required USVString renderURL;
+  required double bid;
+  required double highestScoringOtherBid;
+
+  DOMString bidCurrency;
+  DOMString highestScoringOtherBidCurrency;
+  USVString topLevelSeller;
+  USVString componentSeller;
+
+  USVString buyerAndSellerReportingId;
+  USVString selectedBuyerAndSellerReportingId;
+};
+
+dictionary ReportResultBrowserSignals : ReportingBrowserSignals {
+  required double desirability;
+
+  DOMString topLevelSellerSignals;
+  double modifiedBid;
+  unsigned long dataVersion;
+};
+
+dictionary ReportWinBrowserSignals : ReportingBrowserSignals {
+  double adCost;
+  USVString seller;
+  boolean madeHighestScoringOtherBid;
+  DOMString interestGroupName;
+  DOMString buyerReportingId;
+  unsigned short modelingSignals;
+  unsigned long dataVersion;
+  KAnonStatus kAnonStatus;
+};
+
+enum KAnonStatus { "passedAndEnforced", "passedNotEnforced", "belowThreshold", "notCalculated" };
+
+dictionary DirectFromSellerSignalsForBuyer {
+  any auctionSignals = null;
+  any perBuyerSignals = null;
+};
+
+dictionary DirectFromSellerSignalsForSeller {
+  any auctionSignals = null;
+  any sellerSignals = null;
+};
+
+dictionary ScoreAdOutput {
+  required double desirability;
+  double bid;
+  DOMString bidCurrency;
+  double incomingBidInSellerCurrency;
+  boolean allowComponentAuction = false;
+};

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned children writing modes reference test</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+
+.grid {
+  display: block;
+  margin: 5px;
+  width: 100px;
+  height: 75px;
+  padding: 5px 10px 15px 20px;
+  border-style: solid;
+  border-width: 5px 10px 15px 20px;
+  float: left;
+}
+
+.green {
+  background-color: green;
+  width: 30px;
+  height: 20px;
+  font: 10px/1 Ahem;
+}
+
+.verticalSize {
+  width: 20px;
+  height: 30px;
+}
+
+</style>
+
+<p>For the test to pass you should see no red and only green boxes. The black box will be positioned depending on the writing mode and text direction values.</p>
+
+<div class="grid">
+  <div class="green">XX</div>
+</div>
+
+<div class="grid verticalRL">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid verticalLR">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="green">XX</div>
+</div>
+
+<div class="grid verticalRL directionRTL">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid verticalLR directionRTL">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid">
+  <div class="green">XX</div>
+</div>
+
+<div class="grid verticalRL">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid verticalLR">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="green">XX</div>
+</div>
+
+<div class="grid verticalRL directionRTL">
+  <div class="green verticalSize">XX</div>
+</div>
+
+<div class="grid verticalLR directionRTL">
+  <div class="green verticalSize">XX</div>
+</div>

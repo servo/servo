@@ -1,0 +1,1 @@
+Reporting-Endpoints: endpoint="https://{{host}}:{{ports[https][0]}}//html/cross-origin-embedder-policy/resources/report.py?key=4d8b6d86-c9a8-47c1-871b-111169a8f79c", report-only-endpoint="/html/cross-origin-embedder-policy/resources/report.py?key=5d7c1e33-ef88-43c2-9ca3-c67ff300b8c2"

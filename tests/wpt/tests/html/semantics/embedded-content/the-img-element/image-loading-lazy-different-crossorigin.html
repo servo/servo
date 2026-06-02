@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<title>Lazyload images cannot load immediately from the list of available images if their tuple doesn't match other images in that list</title>
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="author" title="Przemyslaw Gorszkowski" href="mailto:pgorszkowski@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#cors-settings-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- A `loading=lazy` image will be placed below this div so that it is below
+     the viewport -->
+<div id="img-container"></div>
+<div style="height: 1000vh;"></div>
+<div id="below-viewport-img-container"></div>
+
+<script>
+const image_path = 'resources/image.png?image-lazy-loading-lazy-different-crossorigin-' + Math.random();
+
+promise_test(async t => {
+  await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = e => { reject(new Error("The img should not fail to load")) };
+    document.querySelector('#img-container').append(img);
+    img.src = image_path;
+  });
+
+
+  // At this point, the image fetched eagerly above exists in the "list of
+  // available images". As per the spec's #updating-the-image-data algorithm [1]
+  // step 6, the "list of avalable images" is consulted before we take any
+  // lazyload-specific action. This means that lazyload images can load eagerly
+  // if they target a resource in the list of available images (includes cors
+  // settings attribute matching [2]). The image from "img-container" does not
+  // have "crossorigin" attribute and the lazyload image has crossorigin="anonymous".
+  // This means that lazyload image cannot be loaded eagerly from the list of available images.
+  // [1]: https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data
+  // [2]: https://html.spec.whatwg.org/multipage/urls-and-fetching.html#cors-settings-attribute
+  const lazyload_image_promise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.loading = 'lazy';
+    img.crossOrigin = "anonymous";
+    img.onload = e => {
+      reject("The img should not be loaded from the list of available images because of different 'crossorigin'") };
+    img.onerror = e => { reject("The img should not fail to load") };
+
+    document.querySelector('#below-viewport-img-container').append(img);
+    img.src = image_path;
+  });
+  const timeout_promise = new Promise((resolve, reject) => {
+    t.step_timeout(() => {
+      resolve("The `loading=lazy` image should not load immediately from " +
+              "the list of available images because of different 'crossorigin'");
+    }, 2000);
+  });
+
+  // The `timeout_promise` should resolve first because lazyload image is not
+  // able to eagerly use resource from the "list of available images" if there
+  // is a difference in 'crossorigin'.
+  await Promise.race([lazyload_image_promise, timeout_promise]);
+}, "Lazyload images cannot load immediately from the list of available images if their tuple doesn't match other images in that list");
+</script>

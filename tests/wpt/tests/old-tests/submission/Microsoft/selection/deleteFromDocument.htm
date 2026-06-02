@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Delete some text from the document while it is part of a selection</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var p2 = document.getElementById("p2");
+
+                var range = document.createRange();
+                range.setStart(p2.firstChild, 5);
+                range.setEnd(p2.firstChild, 20);
+                selection.addRange(range);
+
+                checkSelectionAttributes(p2.firstChild, 5, p2.firstChild, 20, false, 1);
+                assert_equals(p2.firstChild.data, p2.textContent)
+
+                selection.deleteFromDocument();
+
+                checkSelectionAttributes(p2.firstChild, 5, p2.firstChild, 5, true, 1);
+                assert_equals(p2.firstChild.data, "abcdeuvwxyz")
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <p id="p1">Delete some text from the document while it is part of a selection</p>
+        <p id="p2">abcdefghijklmnopqrstuvwxyz</p>
+    </body>
+</html>

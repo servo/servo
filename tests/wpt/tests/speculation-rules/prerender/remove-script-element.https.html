@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<iframe id="iframe"></iframe>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+async_test(t => {
+  const doc = iframe.contentDocument;
+  const script = doc.createElement('script');
+  script.type = 'speculationrules';
+  script.text = `{"prerender": [{"source": "list", "urls": [] }] }`;
+  doc.head.appendChild(script);
+  iframe.remove();
+  t.step_timeout(() => {
+    document.head.appendChild(script);
+    t.done();
+  }, 0);
+}, 'Removing speculationrules script from detached document should not crash');
+</script>

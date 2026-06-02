@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shouldn't panic when setting src attribute on img asynchronously before window.onload.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id="image" src="#">
+<script>
+  async_test(function(t) {
+    image = document.getElementById('image');
+
+    setTimeout(t.step_func_done(function() {
+      image.src = 'test.png';
+    }), 0);
+  }, "Setting src attribute asynchronously on image before window.onload doesn't panic.");
+</script>

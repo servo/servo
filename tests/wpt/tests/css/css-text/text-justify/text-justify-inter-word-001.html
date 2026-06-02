@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 7.4. Justification Method: text-justify: inter-word</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-justify-property">
+<link rel='match' href='text-justify-inter-word-001-ref.html'>
+<meta name="assert" content="text-justify:inter-word means justification adjusts spacing at word separators only.">
+<style type='text/css'>
+p {
+  font-size: 1.5em;
+  border: 1px solid black;
+  padding: 10px;
+  margin-right: 310px;
+}
+.test {
+  text-align-last: justify;
+  text-justify: inter-word;
+}
+</style>
+</head>
+<body>
+<p lang="en" class="test">Latin text</p>
+<p lang="ja" class="test">日本 文字</p>
+<p lang="th" class="test">อักษรไทย อักษรไทย</p>
+</body>
+</html>

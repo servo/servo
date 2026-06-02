@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #multicol {
+    columns: 2;
+    width: 100px;
+    height: 100px;
+    column-fill: auto;
+    column-gap: 0px;
+    background-color: red;
+  }
+  .rel {
+    height: 100px;
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    width: 50px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div class="rel">
+    <div class="abs" style="top: 0px; height: 160px;"></div>
+  </div>
+  <div style="column-span:all; height: 20px; background: green;"></div>
+</div>

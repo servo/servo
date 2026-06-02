@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Crash test: asynchronously applying image content to image input</title>
+<link rel="author" href="mailto:yuzhehan@chromium.org" title="Yu Han">
+<link rel="help" href="https://crbug.com/1096002">
+<style>
+  .content { content: url(data:text/plain,aaa); }
+</style>
+<input id="input" type="image" class=content>
+<script>
+  onload = ()=> {
+    document.body.offsetTop;
+    input.setAttribute('class', '');
+    document.body.offsetTop;
+  }
+</script>

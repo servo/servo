@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: reading-flow with value grid-order on iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<div class="test-case" data-expect="start,frame2/B,frame1/A,end"
+      data-description="Grid items are iframes.">
+  <button id="start">Item Start</button>
+  <div class="wrapper">
+    <iframe id="frame1" style="order: 2" srcdoc="<button id=A>A</button>"></iframe>
+    <iframe id="frame2" style="order: 1" srcdoc="<button id=B>B</button>"></iframe>
+  </div>
+  <button id="end">Item End</button>
+</div>
+
+<script>
+window.onload = runFocusTestCases;
+</script>

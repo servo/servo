@@ -1,0 +1,256 @@
+<!doctype html>
+<title>Evaluation of style queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @property --length {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 3px;
+  }
+  @property --length-inherited {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 3px;
+  }
+  @property --percentage {
+    syntax: "<percentage>";
+    inherits: true;
+    initial-value: 30%;
+  }
+  @property --number {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 3;
+  }
+  @property --angle {
+    syntax: "<angle>";
+    inherits: true;
+    initial-value: 3deg;
+  }
+  @property --time {
+    syntax: "<time>";
+    inherits: true;
+    initial-value: 3s;
+  }
+  @property --resolution {
+    syntax: "<resolution>";
+    inherits: true;
+    initial-value: 3dpi;
+  }
+  #container {
+    --applied: false;
+    --foo: bar;
+  }
+</style>
+<div id=container>
+  <div id=inner data-foo="3px"></div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  function test_query(query, expected) {
+    test((t) => {
+      let style = document.createElement('style');
+      t.add_cleanup(() => { style.remove(); });
+      style.innerText = `@container ${query} { #inner { --applied:true; } }`;
+      let cs = getComputedStyle(inner);
+      assert_equals(cs.getPropertyValue('--applied'), 'false');
+      document.head.append(style);
+      assert_equals(cs.getPropertyValue('--applied'), expected.toString());
+    }, query);
+  };
+
+  function test_query_with_custom_properties(query, customPropertiesData, expected) {
+    customPropertiesData.forEach(entry => {
+      const [customPropertyName, customPropertyValue] = entry;
+      document.getElementById("container").style.setProperty(customPropertyName, customPropertyValue);
+    });
+
+    test_query(query, expected);
+
+    customPropertiesData.forEach(entry => {
+      const [customPropertyName, customPropertyValue] = entry;
+      document.getElementById("container").style.removeProperty(customPropertyName);
+    });
+  }
+
+  // Note that the following assumes that elements are style containers by
+  // default [1], and that:
+  //
+  // - style(--foo: bar) is a query that returns 'true', and
+  // - style(--baz: qux) is a query that returns 'false'.
+  //
+  // [1] https://github.com/w3c/csswg-drafts/issues/7066
+
+  // Nesting in <style-query>:
+  test_query('style((--foo: bar))', true);
+  test_query('style((--baz: qux))', false);
+  test_query('style((unknown))', false);
+  test_query('unknown((--foo: bar))', false);
+
+  // "not" in <style-query>:
+  test_query('style(not (--foo: bar))', false);
+  test_query('style(not (--baz: qux))', true);
+  test_query('style(not (unknown))', false);
+
+  // "and" in <style-query>:
+  test_query('style((--foo: bar) and (--foo: bar))', true);
+  test_query('style((--foo: bar) and (--foo: bar) and (--foo: bar))', true);
+  test_query('style((--baz: qux) and (--baz: qux))', false);
+  test_query('style((--baz: qux) and (--foo: bar) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--baz: qux) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--foo: bar) and (--baz: qux))', false);
+  test_query('style((unknown) and (--foo: bar) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (unknown) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--foo: bar) and (unknown))', false);
+
+  // "or" in <style-query>:
+  test_query('style((--foo: bar) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--foo: bar) or (--foo: bar))', true);
+  test_query('style((--baz: qux) or (--baz: qux))', false);
+  test_query('style((--baz: qux) or (--foo: bar) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--baz: qux) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--foo: bar) or (--baz: qux))', true);
+  test_query('style((unknown) or (--foo: bar) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (unknown) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (--foo: bar) or (unknown))', false);
+  test_query('style((unknown) or (--baz: qux) or (--foo: bar))', false);
+
+  // Combinations, <style-query>:
+  test_query('style(not ((--foo: bar) and (--foo: bar)))', false);
+  test_query('style(not ((--foo: bar) and (--baz: qux)))', true);
+  test_query('style((--foo: bar) and (not ((--baz: qux) or (--foo: bar))))', false);
+  test_query('style((--baz: qux) or (not ((--baz: qux) and (--foo: bar))))', true);
+  test_query('style((--baz: qux) or ((--baz: qux) and (--foo: bar)))', false);
+
+  // Range style() querirs:
+  test_query('style(5 >= calc(3 + 1))', true);
+  test_query('style(1px <= 1em)', true);
+  test_query('style(5 >= 3)', true);
+  test_query('style(0 = 0px)', true);
+  test_query('style(0 = 0deg)', false);
+  test_query('style(0 >= 0px)', true);
+  test_query('style(0 < 3px)', true);
+  test_query('style(3px >= 3px)', true);
+  test_query('style(3px > 3px)', false);
+  test_query('style(1em > 1px)', true);
+  test_query('style(1em <= 1px)', false);
+  test_query('style(3turn > 3deg)', true);
+  test_query('style(3% >= 3%)', true);
+  test_query('style(3s > 3ms)', true);
+  test_query('style(3dppx > 96dpi)', true);
+
+  test_query_with_custom_properties('style(3 <= --x)',
+                                  [['--x', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--x >= 3)',
+                                  [['--x', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--x <= --x)',
+                                  [['--x', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--x >= --y)',
+                                  [['--x', '3'], ['--y', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--length > 3px)',
+                                  [['--length', '11px']],
+                                  true);
+  test_query_with_custom_properties('style(--x > 3px)',
+                                  [['--x', '11px']],
+                                  true);
+  test_query_with_custom_properties('style(--number >= 3)',
+                                  [['--number', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--x >= 1)',
+                                  [['--x', '1']],
+                                  true);
+  test_query_with_custom_properties('style(--percentage > 3%)',
+                                  [['--percentage', '5%']],
+                                  true);
+  test_query_with_custom_properties('style(--x > 3%)',
+                                  [['--x', '5%']],
+                                  true);
+  test_query_with_custom_properties('style(--angle < 1turn)',
+                                  [['--angle', '1deg']],
+                                  true);
+  test_query_with_custom_properties('style(--x < 1turn)',
+                                  [['--x', '1deg']],
+                                  true);
+  test_query_with_custom_properties('style(--time <= 1000ms)',
+                                  [['--time', '1s']],
+                                  true);
+  test_query_with_custom_properties('style(--x <= 1000ms)',
+                                  [['--x', '1s']],
+                                  true);
+  test_query_with_custom_properties('style(3dppx > --resolution)',
+                                  [['--resolution', '96dpi']],
+                                  true);
+  test_query_with_custom_properties('style(3dppx > --x)',
+                                  [['--x', '96dpi']],
+                                  true);
+
+  test_query_with_custom_properties('style(--x >= calc(3px + 3px))',
+                                  [['--x', '7px']],
+                                  true);
+  test_query_with_custom_properties('style(--x <= var(--x))',
+                                  [['--x', '3']],
+                                  true);
+  test_query_with_custom_properties('style(calc(var(--x) + 1) >= var(--y))',
+                                  [['--x', '5'], ['--y', '3']],
+                                  true);
+  test_query_with_custom_properties('style(var(--x) >= --x)',
+                                  [['--x', '3']],
+                                  true);
+  test_query_with_custom_properties('style(--x <= 10em)',
+                                  [['--x', '10px']],
+                                  true);
+
+  test_query_with_custom_properties('style(--x + 1 >= --y)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  false);
+  test_query_with_custom_properties('style(--x >= --y + 1)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  false);
+  test_query_with_custom_properties('style(calc(--x + 1) >= --y)',
+                                  [['--x', '5'], ['--y', '3']],
+                                  false);
+  test_query_with_custom_properties('style(--x >= calc(--y + 1))',
+                                  [['--x', '5'], ['--y', '3']],
+                                  false);
+
+  test_query_with_custom_properties('style(3px > 3)',
+                                  [],
+                                  false);
+  test_query_with_custom_properties('style(3em > 3deg)',
+                                  [],
+                                  false);
+  test_query_with_custom_properties('style(1px >= 1%) or style(1px <= 1%)',
+                                  [],
+                                  false);
+  test_query_with_custom_properties('style(--length > 3)',
+                                  [['--length', '11em']],
+                                  false);
+  test_query_with_custom_properties('style(--number > 3px)',
+                                  [['--number', '11']],
+                                  false);
+  test_query_with_custom_properties('style(--x >= 3ms)',
+                                  [['--x', '3px']],
+                                  false);
+  test_query_with_custom_properties(`style(--length <= 30px)`,
+                                  [['--length', 'attr(data-foo type(<length>))']],
+                                  true);
+
+  test_query('style(10px <= 10px < 11px)', true);
+  test_query_with_custom_properties(
+    'style(3 < --x <= 5)',
+    [['--x', '5']],
+    true);
+  test_query_with_custom_properties(
+    'style(--x >= --y > --z)',
+    [['--x', '3'], ['--y', '3'], ['--z', '1']],
+    true);
+
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>caret-shape block in textarea</title>
+<link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel=match href="caret-shape-block-001-ref.html">
+<meta name="assert" content="Test checks that caret-shape block works as expected in a textarea">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    all: unset;
+    font-size: 3em;
+    caret-color: lime;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<p>Test passes if, when the text below is focused for editing, the text insertion caret is a lime block.</p>
+<textarea id="target" spellcheck="false">test</textarea>
+<script>
+  document.getElementById("target").focus();
+  takeScreenshot();
+</script>

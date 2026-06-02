@@ -1,0 +1,15 @@
+<html class=test-wait>
+  <body>
+    <iframe id="if"></iframe>
+    <script>
+          const frame = document.getElementById('if').contentWindow;
+          for (const i of Object.getOwnPropertyNames(frame)) {
+            try {
+              frame[i]['foo'];
+            } catch (e) {
+            }
+          }
+          document.documentElement.classList.remove("test-wait");
+    </script>
+  </body>
+</html>

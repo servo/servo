@@ -1,0 +1,13 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1998438">
+<style>
+* {
+    anchor-name: --anchor-name_0;
+}
+</style>
+<script>
+window.addEventListener("load", async () => {
+  const iframe = document.createElementNS("http://www.w3.org/1999/xhtml", "iframe")
+  document.documentElement.appendChild(iframe)
+})
+</script>

@@ -1,0 +1,31 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: The Capture-Handle Actions Mechanism (https://w3c.github.io/mediacapture-handle/actions/)
+
+partial interface MediaDevices {
+  undefined setSupportedCaptureActions(sequence<DOMString> actions);
+  attribute EventHandler oncaptureaction;
+};
+
+enum CaptureAction {
+  "next",
+  "previous",
+  "first",
+  "last"
+};
+
+[Exposed=Window]
+interface CaptureActionEvent : Event {
+  constructor(optional CaptureActionEventInit init = {});
+  readonly attribute CaptureAction action;
+};
+
+dictionary CaptureActionEventInit : EventInit {
+  DOMString action;
+};
+
+partial interface MediaStreamTrack {
+  sequence<DOMString> getSupportedCaptureActions();
+  Promise<undefined> sendCaptureAction(CaptureAction action);
+};

@@ -1,0 +1,31 @@
+<!doctype HTML>
+<link rel=author href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://crbug.com/1276488">
+
+<style>
+.first + .second {}
+</style>
+
+<script>
+const details = document.createElement('details');
+const ol = document.createElement('ol');
+const text = document.createTextNode('abcdefghijklmnopqrstuvxyz');
+
+function step3() {
+  ol.setAttribute('class', 'first');
+}
+
+function step2() {
+  details.appendChild(text);
+  requestAnimationFrame(step3);
+}
+
+function runTest() {
+  document.documentElement.appendChild(details);
+  details.appendChild(ol);
+
+  requestAnimationFrame(step2);
+}
+
+onload = runTest;
+</script>

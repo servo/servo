@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Ref: vertical-scroll test for scrollbar</title>
+<iframe src="/permissions-policy/experimental-features/resources/vertical-scroll-scrollable-content.html"></iframe>
+<script>
+  let iframe = document.querySelector("iframe");
+  let overflow_y = "visible";
+  if (window.location.search.indexOf("no-vertical-scrollbar") !== -1)
+    overflow_y = "hidden"
+  iframe.addEventListener("load", () => {
+    iframe.contentDocument.body.style.overflowY = overflow_y;
+  });
+</script>
+

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>background-position with 'right' edge keywords when painting background for body in offset document root</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-position">
+<link rel="match" href="../../filter-effects/reference/green-100x100.html">
+<style>
+  html {
+    margin: 8px;
+  }
+  body {
+    background-image: linear-gradient(green, green), linear-gradient(red, red);
+    background-size: 100px 100px, 100px 100px;
+    background-position: right 100% top 0%, left 0% top 0%;
+    background-repeat: no-repeat;
+  }
+</style>
+<body></body>

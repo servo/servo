@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+</body>
+    <script>
+        createRegularDOMTree();
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < allElements.length; ++i) {
+            if (i % 2 == 0)
+              allElements[i].dataset.a = "foo";
+            else
+              allElements[i].dataset.b = "bar";
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of an qualified data attribute selector with a value.",
+            run: function() {
+                var rule = applyCSSRule("div[data-a=\"foo\"] div[data-b=\"bar\"] { cursor: crosshair; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>letter-spacing composition</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<meta name="test" content="text-indent supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body></body>
+<script>
+test_composition({
+  property: 'text-indent',
+  underlying: '100%',
+  addFrom: '50px',
+  addTo: '150px',
+}, [
+  {at: -0.3, expect: 'calc(100% + 20px)'},
+  {at: 0, expect: 'calc(100% + 50px)'},
+  {at: 0.3, expect: 'calc(100% + 80px)'},
+  {at: 0.6, expect: 'calc(100% + 110px)'},
+  {at: 1, expect: 'calc(100% + 150px)'},
+  {at: 1.5, expect: 'calc(100% + 200px)'},
+]);
+
+test_composition({
+  property: 'text-indent',
+  underlying: '250px',
+  addFrom: '50px',
+  replaceTo: '100px',
+}, [
+  {at: -0.3, expect: '360px'},
+  {at: 0, expect: '300px'},
+  {at: 0.3, expect: '240px'},
+  {at: 0.6, expect: '180px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '0px'},
+]);
+
+test_composition({
+  property: 'text-indent',
+  underlying: '50%',
+  replaceFrom: '-100%',
+  addTo: '50%',
+}, [
+  {at: -0.3, expect: '-160%'},
+  {at: 0, expect: '-100%'},
+  {at: 0.3, expect: '-40%'},
+  {at: 0.5, expect: '0%'},
+  {at: 0.6, expect: '20%'},
+  {at: 1, expect: '100%'},
+  {at: 1.5, expect: '200%'},
+]);
+
+test_composition({
+  property: 'text-indent',
+  underlying: '250px',
+  addFrom: '50px each-line hanging',
+  replaceTo: '150px hanging each-line',
+}, [
+  {at: -0.3, expect: '20px hanging each-line'},
+  {at: 0, expect: '50px hanging each-line'},
+  {at: 0.3, expect: '80px hanging each-line'},
+  {at: 0.6, expect: '110px hanging each-line'},
+  {at: 1, expect: '150px hanging each-line'},
+  {at: 1.5, expect: '200px hanging each-line'},
+]);
+
+test_composition({
+  property: 'text-indent',
+  underlying: '250px each-line',
+  addFrom: '50px each-line',
+  replaceTo: '150px hanging',
+}, [
+  {at: -0.3, expect: '300px each-line'},
+  {at: 0, expect: '300px each-line'},
+  {at: 0.3, expect: '300px each-line'},
+  {at: 0.6, expect: '150px hanging'},
+  {at: 1, expect: '150px hanging'},
+  {at: 1.5, expect: '150px hanging'},
+]);
+</script>
+</body>

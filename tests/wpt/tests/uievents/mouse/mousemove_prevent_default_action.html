@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>mousemove event: preventDefault()</title>
+<link rel="author" title="Mirko Brodesser" href="mailto:mbrodesser@mozilla.com">
+<link rel="help" href="https://github.com/w3c/uievents/issues/278">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/utils.js></script>
+
+<body>
+  <div id="a">div a</div>
+  <div id="b">div b</div>
+  <div id="c" draggable="true">div c</div>
+</body>
+
+<script>
+  'use strict';
+
+  let event_log = [];
+
+  function logEvents(e) {
+    event_log.push(e.type);
+  }
+
+  function initialize(test) {
+    // Deliberately avoiding mouseup here because the last selectionchange
+    // may be fired before or after the mouseup.
+    addTestScopedListener(document, "mousedown", logEvents, test);
+    addTestScopedListener(document, "mousemove", e => e.preventDefault(), test);
+    event_log = [];
+  }
+
+  promise_test(async test => {
+    initialize(test);
+    addTestScopedListener(document, "selectionchange", logEvents, test);
+
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
+
+    let mouseup_promise = getEvent("mouseup", document);
+
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: a})
+        .pointerDown()
+        .addTick()
+        .addTick()
+        .pointerMove(0, 0, {origin: b})
+        .addTick()
+        .addTick()
+        .pointerUp()
+        .send();
+
+    await mouseup_promise;
+
+    const expected_events = ["mousedown", "selectionchange", "selectionchange"];
+
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "received events");
+  }, "selectionchange event firing when mousemove event is prevented");
+
+  promise_test(async test => {
+    initialize(test);
+    addTestScopedListener(document, 'dragstart', (event) => {
+      // For this test, it is enough to see the dragstart event. The event is
+      // cancelled here to suppress the actual drag operation because Blink's
+      // implementation of test_driver doesn't seem to be able to dispatch any
+      // event once the dragging is active.
+      event.preventDefault();
+      logEvents(event);
+    }, test);
+
+    const b = document.getElementById("b");
+    const c = document.getElementById("c");
+
+    const mouseup_promise = getEvent('mouseup', document);
+
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: c})
+        .pointerDown()
+        .addTick()
+        .addTick()
+        .pointerMove(0, 0, {origin: b})
+        .addTick()
+        .addTick()
+        .pointerUp()
+        .send();
+
+    await mouseup_promise;
+
+    const expected_events = ["mousedown", "dragstart"];
+
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "received events");
+  }, "dragstart event firing when mousemove event is prevented");
+</script>

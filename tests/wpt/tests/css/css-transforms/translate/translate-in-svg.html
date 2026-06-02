@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: the CSS translate property applied to an SVG element</title>
+    <link rel="author" title="Antoine Quint" href="mailto:graouts@apple.com">
+    <link rel="help" href="https://www.w3.org/TR/css-transforms-2/#propdef-translate">
+    <link rel="match" href="reference/translate-in-svg-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The CSS translate property is applied to an SVG element.">
+    <style type="text/css">
+    svg {
+        width: 400px;
+        height: 400px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green rectangle and no red.</p>
+    <svg>
+        <rect x="101" y="101" width="98" height="98" fill="red"/>
+        <rect width="100" height="100" fill="green" style="translate: 100px 100px" />
+    </svg>
+</body>
+</html>

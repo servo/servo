@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Generates a CSP violation report and sends it to a same-origin endpoint</title>
+</head>
+<body>
+  <script>
+        const img = document.createElement('img');
+        img.src = "/reporting/resources/fail.png";
+        document.body.appendChild(img);
+        // Post back to the main frame that the report should have been queued.
+        top.postMessage("done", "*");
+  </script>
+</body>
+</html>

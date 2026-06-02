@@ -1,0 +1,17 @@
+<!doctype html>
+<title>SVG Filters: feColorMatrix filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feColorMatrixElement">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=90405">
+<link rel="match" href="reference/effect-reference-after-001-ref.html">
+<meta name="assert" content="Check that a reference filter with forward references work"/>
+<body>
+<img style="filter: url(#MyFilter);" src="support/color-palette.png">
+<svg width="0px" height="0px">
+  <defs>
+    <filter id="MyFilter">
+      <feColorMatrix type="hueRotate" values="180"/>
+    </filter>
+  </defs>
+</svg>
+</body>

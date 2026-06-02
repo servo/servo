@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test that using documentPictureInPicture's disallowReturnToOpener
+  parameter hides the return to opener button</title>
+<body>
+  <p>
+  This tests that a document picture-in-picture window opened with the `disallowReturnToOpener`
+  parameter set to `true` does not display a button to return to the opener.
+    <ol>
+      <li>Click on the "Open document picture-in-picture window" button below.</li>
+      <li>Check that it does not display that button.</li>
+    </ol>
+  </p>
+  <input type="button" id="btnOpenPip" value="Open document picture-in-picture window" />
+<script>
+const btnOpenPip = document.getElementById('btnOpenPip');
+btnOpenPip.addEventListener('click', async () => {
+  const pipWindow = await documentPictureInPicture.requestWindow({ disallowReturnToOpener: true });
+  pipWindow.document.body.innerText = 'This document picture-in-picture window should not display a button to return to the opener';
+});
+</script>
+</body>

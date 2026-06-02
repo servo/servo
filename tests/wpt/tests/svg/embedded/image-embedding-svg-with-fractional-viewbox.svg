@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>&lt;image&gt; embedding SVG image with fractional viewBox</title>
+  <h:link rel="help" href="https://crbug.com/1123047"/>
+  <h:link rel="match" href="reference/green-rect-100x100.svg"/>
+
+  <rect width="100" height="100" fill="red"/>
+  <svg viewBox="0 0 200 150" width="100" height="100" preserveAspectRatio="none">
+    <image preserveAspectRatio="none" y="-150" width="200" height="300"
+           href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1683.78 1190.55'&gt;&lt;rect width='1696' height='1199' fill='green'/&gt;&lt;/svg&gt;"/>
+  </svg>
+</svg>

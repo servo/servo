@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text reference: hyphenate-character</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style>
+div {
+  font: 32px sans-serif;
+  margin-left: 10ch;
+  width: 3ch;
+}
+</style>
+
+<p>Test passes if the word below is hyphenated
+using a right-to-left <i>space+kashida</i> sequence "<span dir=rtl>&nbsp;&#x0640;</span>",
+and shaping is <i>not</i> interrupted.
+
+<div dir=rtl lang=ug>
+قىل&#x200d;&nbsp;&#x640;<br>&#x200d;مىغانلىقى
+</div>

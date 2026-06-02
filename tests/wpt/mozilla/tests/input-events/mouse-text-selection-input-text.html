@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>Basic selection of text via the mouse in &lt;input type=text&gt;</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<input id="target" style="font: 50px/1 Ahem;" value="123456">
+
+<script>
+promise_test(async test => {
+    let targetRect = target.getBoundingClientRect();
+    let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 1, verticalCenterOfLine)
+      .pointerDown()
+      .pointerMove(targetRect.left + (50 * 5), verticalCenterOfLine)
+      .pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 5);
+    assert_equals(target.selectionDirection, "forward");
+    target.setSelectionRange(0, 0);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + (50 * 5), verticalCenterOfLine)
+      .pointerDown()
+      .pointerMove(targetRect.left + 1, verticalCenterOfLine)
+      .pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 5);
+    assert_equals(target.selectionDirection, "backward");
+    target.setSelectionRange(0, 0);
+});
+
+promise_test(async test => {
+    let targetRect = target.getBoundingClientRect();
+    let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    let actions = new test_driver.Actions();
+    let middleButtonOptions = { button: actions.ButtonType.MIDDLE };
+    await actions
+      .pointerMove(targetRect.left + 1, verticalCenterOfLine)
+      .pointerDown()
+      .pointerMove(targetRect.left + (50 * 3), verticalCenterOfLine)
+      .pointerDown(middleButtonOptions)
+      .pointerUp(middleButtonOptions)
+      .pointerMove(targetRect.left + (50 * 5), verticalCenterOfLine)
+      .pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 3);
+    target.setSelectionRange(0, 0);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+}, "Middle button click should cancel ongoing text selection via drag");
+</script>

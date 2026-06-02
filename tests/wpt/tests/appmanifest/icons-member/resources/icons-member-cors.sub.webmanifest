@@ -1,0 +1,10 @@
+{
+    "name": "Icons member (via CORS) WPT",
+    "icons": [{
+        "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/resources/pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }],
+    "start_url": "../icons-member-cors-manual.sub.html",
+    "display": "fullscreen"
+}

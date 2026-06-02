@@ -1,0 +1,8 @@
+features:
+- name: base
+  files:
+  - "*"
+  - "!base-data.html"
+- name: data-urls
+  files:
+  - base-data.html

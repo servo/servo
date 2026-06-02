@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: mask-repeat: repeated mask layer image, SVG content</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-repeat">
+<link rel="match" href="mask-repeat-1-ref.html">
+<meta name="assert" content="Test checks whether repeated mask layer works correctly or not.">
+<style type="text/css">
+  svg {
+    display: block;
+  }
+
+  rect.frame {
+    x: -0.5px;
+    y: -0.5px;
+    width: 116px;
+    height: 116px;
+    stroke: black;
+    fill: none;
+  }
+
+  rect.masked {
+    width: 115px;
+    height: 115px;
+    fill: purple;
+    mask-image: url(support/50x50-opaque-blue.svg);
+    mask-position: left top;
+  }
+
+  #no-repeat {
+    mask-repeat: no-repeat no-repeat;
+  }
+  #repeat {
+    mask-repeat: repeat repeat;
+  }
+  #repeat-x {
+    mask-repeat: repeat no-repeat;
+  }
+  #repeat-y {
+    mask-repeat: no-repeat repeat;
+  }
+</style>
+<svg height="585">
+  <g transform="translate(1 1)">
+    <rect class="masked"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 118)">
+    <rect class="masked" id="no-repeat"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 235)">
+    <rect class="masked" id="repeat"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 352)">
+    <rect class="masked" id="repeat-x"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 469)">
+    <rect class="masked" id="repeat-y"/>
+    <rect class="frame"/>
+  </g>
+</svg>

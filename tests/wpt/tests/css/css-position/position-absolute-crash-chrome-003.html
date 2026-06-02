@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: Chrome crash</title>
+<link rel="author" href="mailto:atotic@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=935805">
+<meta name="assert" content="Nested abs/fixed/flex do not crash">
+<style>
+  #flex {
+    display: flex;
+  }
+  .abs {
+    position: absolute;
+  }
+  #fixed {
+    position: fixed;
+  }
+</style>
+<div class="abs">
+  <div id="flex">
+    <div class="abs">
+      <div id="fixed"></div>
+    </div>
+  </div>
+</div>
+<script>
+test(() => {
+}, 'test passes if it does not crash');
+</script>

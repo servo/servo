@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Test serialization of CSS Align shorthand properties</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<script>
+
+var initial_values = {
+    alignContent: "normal",
+    alignItems: "normal",
+    alignSelf: "auto",
+    justifyContent: "normal",
+    justifyItems: "legacy",
+    justifySelf: "auto",
+};
+
+var place_content_test_cases = [
+    {
+        alignContent: "center",
+        shorthand: "center normal",
+    },
+    {
+        alignContent: "baseline safe right",
+        shorthand: "",
+    },
+    {
+        justifyContent: "safe start",
+        shorthand: "normal safe start",
+    },
+    {
+        justifyContent: "unsafe start",
+        shorthand: ["normal unsafe start"],
+    },
+    {
+        justifyContent: "space-evenly start",
+        shorthand: "",
+    },
+    {
+        alignContent: "start",
+        justifyContent: "end",
+        shorthand: "start end",
+    },
+];
+
+var place_items_test_cases = [
+    {
+        alignItems: "center",
+        shorthand: "center legacy",
+    },
+    {
+        alignItems: "baseline",
+        shorthand: "baseline legacy",
+    },
+    {
+        justifyItems: "safe start",
+        shorthand: "normal safe start",
+    },
+    {
+        justifyItems: "unsafe start",
+        shorthand: ["normal unsafe start"],
+    },
+    {
+        justifyItems: "stretch",
+        shorthand: "normal stretch",
+    },
+    {
+        justifyItems: "left legacy",
+        shorthand: "normal legacy left",
+    },
+    {
+        alignItems: "stretch",
+        justifyItems: "end",
+        shorthand: "stretch end",
+    },
+];
+
+var place_self_test_cases = [
+    {
+        alignSelf: "self-end safe",
+        shorthand: "",
+    },
+    {
+        justifySelf: "unsafe start",
+        shorthand: ["auto start", "auto unsafe start"],
+    },
+    {
+        justifySelf: "last baseline start",
+        shorthand: "",
+    },
+    {
+        alignSelf: "baseline",
+        justifySelf: "last baseline",
+        shorthand: "baseline last baseline",
+    },
+];
+
+function run_tests(test_cases, shorthand, subproperties) {
+    test_cases.forEach(function(test_case) {
+        test(function() {
+            var element = document.createElement('div');
+            document.body.appendChild(element);
+            subproperties.forEach(function(longhand) {
+                element.style[longhand] = test_case[longhand] ||
+                                          initial_values[longhand];
+            });
+            if (Array.isArray(test_case.shorthand)) {
+              assert_in_array(element.style[shorthand], test_case.shorthand);
+            } else {
+              assert_equals(element.style[shorthand], test_case.shorthand);
+            }
+        }, "test shorthand serialization " + JSON.stringify(test_case));
+    });
+}
+
+run_tests(place_content_test_cases, "placeContent", [
+    "alignContent", "justifyContent"]);
+run_tests(place_items_test_cases, "placeItems", [
+    "alignItems", "justifyItems"]);
+run_tests(place_self_test_cases, "placeSelf", [
+    "alignSelf", "justifySelf"]);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float left, circle(50% at right bottom) reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    position: absolute;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: left;
+    /* Omit shape-outside */
+    clip-path: circle(50% at right bottom);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    width: 60px;
+    background-color: blue;
+  }
+
+  .long {
+    width: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="long box" style="height: 60px; top: 0px; left: 0px;"></div> <!-- Fill the space above the first float -->
+    <div class="box" style="height: 36px; top: 60px; left: 120px;"></div>
+    <div class="box" style="height: 12px; top: 96px; left: 120px;"></div>
+    <div class="box" style="height: 12px; top: 108px; left: 120px;"></div>
+    <div class="long box" style="height: 60px; top: 120px; left: 0px;"></div> <!-- Fill the space between two floats -->
+    <div class="box" style="height: 36px; top: 180px; left: 120px;"></div>
+    <div class="box" style="height: 12px; top: 216px; left: 120px;"></div>
+    <div class="box" style="height: 12px; top: 228px; left: 120px;"></div>
+  </main>
+</html>

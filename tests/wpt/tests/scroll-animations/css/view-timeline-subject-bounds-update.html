@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update subject bounds refTest</title>
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/8694">
+<link rel="match"
+      href="./animation-update-ref.html?translate=100px&scroll=800">
+<script src="/web-animations/testcommon.js"></script>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { transform: translateX(100px) }
+    to { transform: translateX(0px) }
+  }
+  #scroller {
+    border: 1px solid black;
+    overflow: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-top: 700px;
+    margin-left: 10px;
+    margin-right: 10px;
+    width: 100px;
+    height: 200px;
+    z-index: -1;
+    background-color: green;
+    animation: anim auto both linear;
+    animation-timeline: --timeline;
+    view-timeline: --timeline;
+    animation-range: exit;
+  }
+  #target.bounds-update {
+    height: 100px;
+    /* Keep the scroll range the same. */
+    margin-top:  800px;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  document.documentElement.addEventListener('TestRendered', async () => {
+    runTest();
+  }, { once: true });
+
+  async function runTest() {
+    await waitForCompositorReady();
+
+    const anim = target.getAnimations()[0];
+
+    // Scroll to exit 50%.
+    scroller.scrollTop = 800;
+    await waitForNextFrame();
+
+    // After the update to the animation range, the positioning is exit 0%
+    target.classList.add('bounds-update');
+    await waitForNextFrame();
+
+    // Make sure change to animation range was properly picked up.
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>
+</body>
+</html>

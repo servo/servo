@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: horizontal-tb, float right, polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#supported-basic-shapes">
+  <link rel="match" href="reference/shape-outside-polygon-019-ref.html">
+  <meta name="assert" content="Test the boxes are wrapping around the right float shape defined by the polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box value under horizontal-tb writing-mode.">
+  <style>
+  .container {
+    writing-mode: horizontal-tb;
+    direction: rtl;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box;
+    clip-path: polygon(60px 20px, 100px 60px, 20px 60px, 60px 100px) border-box;
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    margin: 20px;
+    border: 20px solid lightgreen;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 80px;
+    background-color: blue;
+  }
+
+  .long {
+    width: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="long box" style="height: 30px;"></div> <!-- Fill the margin and partial border space -->
+    <div class="box" style="height: 30px;"></div>
+    <div class="box" style="height: 20px;"></div>
+    <div class="box" style="height: 20px;"></div>
+    <div class="box" style="height: 30px;"></div>
+    <div class="long box" style="height: 30px;"></div> <!-- Fill the margin and partial border space -->
+  </main>
+</html>

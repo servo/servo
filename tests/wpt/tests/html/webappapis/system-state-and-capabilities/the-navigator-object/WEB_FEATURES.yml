@@ -1,0 +1,24 @@
+features:
+- name: pdf-viewer
+  files:
+  - plugins-and-mimetypes.html
+- name: ua-client-hints
+  files:
+  - navigator_user_agent.tentative.html
+  - navigator_user_agent.https.tentative.html
+- name: registerprotocolhandler
+  files:
+  - protocol-*
+- name: window-controls-overlay
+  files:
+  - navigator-window-controls-overlay.tentative.html
+- name: user-agent-sniffing
+  files:
+  - navigator.any.js
+- name: language
+  files:
+  - get-navigatorlanguage-manual.html
+  - navigatorlanguage.html
+- name: cookie-enabled
+  files:
+  - navigatorcookies-cookieenabled-*

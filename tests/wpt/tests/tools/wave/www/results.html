@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en" style="overflow: auto;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session Results - Web Platform Test</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/fontawesome-5.7.2.min.css" />
+    <!-- <link rel="stylesheet" href="css/result.css" /> -->
+    <script src="lib/utils.js"></script>
+    <script src="lib/wave-service.js"></script>
+    <script src="lib/ui.js"></script>
+    <style>
+      .site-logo {
+        max-width: 300px;
+        margin: 0 0 30px -15px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let token = null;
+      window.onload = () => {
+        const query = utils.parseQuery(location.search);
+        token = query.token;
+        if (token) {
+          resultUi.render();
+          resultUi.refreshData();
+        } else {
+          location.href = WEB_ROOT + "overview.html" + location.search;
+        }
+        WaveService.addRecentSession(token);
+      };
+      const resultUi = {
+        state: {
+          details: null,
+          results: null,
+          referenceSessions: [],
+          lastCompletedTests: [],
+          malfunctioningTests: [],
+          addLabelVisible: false,
+        },
+        refreshData: (toUpdate) => {
+          WaveService.readStatus(function (config) {
+            resultUi.state.reportsEnabled = config.reportsEnabled;
+            resultUi.renderApiResults();
+          });
+          switch (toUpdate) {
+            case "test_completed":
+              resultUi.refreshSessionStatus(() => {
+                resultUi.refreshSessionResults(() => {
+                  resultUi.renderApiResults();
+                });
+              });
+              resultUi.refreshLastCompletedTests(() => {
+                resultUi.renderLastCompletedTests();
+              });
+              break;
+            case "status":
+              resultUi.refreshSessionStatus(() => {
+                resultUi.renderControls();
+                resultUi.renderSessionDetails();
+              });
+              break;
+            case "":
+            case null:
+            case undefined:
+              resultUi.refreshSessionConfiguration(() => {
+                resultUi.refreshSessionStatus(() => {
+                  resultUi.refreshSessionResults(() => {
+                    resultUi.refreshReferenceSessions(() =>
+                      resultUi.renderReferenceSessions()
+                    );
+                    resultUi.renderControls();
+                    resultUi.renderSessionDetails();
+                    resultUi.renderApiResults();
+                    resultUi.renderExportView();
+                    resultUi.refreshLastCompletedTests(() => {
+                      resultUi.renderLastCompletedTests();
+                    });
+                    resultUi.refreshMalfunctioningTests(() => {
+                      resultUi.renderMalfunctioningTests();
+                    });
+                  });
+                });
+              });
+              break;
+          }
+        },
+        refreshSessionConfiguration(callback = () => {}) {
+          WaveService.readSession(token, (configuration) => {
+            resultUi.state.configuration = configuration;
+            callback(configuration);
+          });
+        },
+        refreshSessionStatus(callback = () => {}) {
+          WaveService.readSessionStatus(token, (status) => {
+            resultUi.state.status = status;
+            if (status.status !== "completed" && status.status !== "aborted")
+              WaveService.addSessionEventListener(
+                token,
+                resultUi.handleSessionEvent
+              );
+            callback(status);
+          });
+        },
+        refreshReferenceSessions(callback = () => {}) {
+          const { configuration } = resultUi.state;
+          if (!configuration) return;
+          const { referenceTokens } = configuration;
+          if (!referenceTokens) return;
+          WaveService.readMultipleSessions(referenceTokens, (configuration) => {
+            resultUi.state.referenceSessions = configuration;
+            resultUi.renderReferenceSessions();
+            callback(configuration);
+          });
+        },
+        refreshSessionResults(callback = () => {}) {
+          WaveService.readResultsCompact(token, (results) => {
+            resultUi.state.results = results;
+            callback(results);
+          });
+        },
+        refreshLastCompletedTests(callback = () => {}) {
+          if (resultUi.state.configuration.isPublic) return;
+          WaveService.readLastCompletedTests(token, ["timeout"], (tests) => {
+            resultUi.state.lastCompletedTests = tests;
+            callback();
+          });
+        },
+        refreshMalfunctioningTests(callback = () => {}) {
+          WaveService.readMalfunctioningTests(token, (tests) => {
+            resultUi.state.malfunctioningTests = tests;
+            callback();
+          });
+        },
+        handleSessionEvent(message) {
+          resultUi.refreshData(message.type);
+        },
+        openResultsOverview() {
+          location.href = WEB_ROOT + "overview.html";
+        },
+        stopSession() {
+          WaveService.stopSession(token, resultUi.refreshData);
+        },
+        deleteSession() {
+          WaveService.deleteSession(token, () =>
+            resultUi.openResultsOverview()
+          );
+        },
+        showDeleteModal() {
+          const modal = UI.getElement("delete-modal");
+          const className = modal.getAttribute("class");
+          modal.setAttribute("class", className + " is-active");
+        },
+        hideDeleteModal() {
+          const modal = UI.getElement("delete-modal");
+          let className = modal.getAttribute("class");
+          className = className.replace(" is-active", "");
+          modal.setAttribute("class", className);
+        },
+        downloadApiResultJson(api) {
+          const { results } = resultUi.state;
+          WaveService.downloadApiResult(token, api);
+        },
+        openHtmlReport(api) {
+          const { results } = resultUi.state;
+          if (results[api].complete != results[api].total) return;
+          WaveService.readReportUri(token, api, function (uri) {
+            window.open(uri, "_blank");
+          });
+        },
+        downloadFinishedApiJsons() {
+          WaveService.downloadAllApiResults(token);
+        },
+        downloadHtmlZip() {
+          WaveService.downloadResultsOverview(token);
+        },
+        downloadResults() {
+          if (resultUi.state.status.status !== "completed") return;
+          WaveService.downloadResults(token);
+        },
+        addMalfunctioningTest(testPath) {
+          const { malfunctioningTests } = resultUi.state;
+          if (malfunctioningTests.indexOf(testPath) !== -1) return;
+          malfunctioningTests.push(testPath);
+          WaveService.updateMalfunctioningTests(
+            token,
+            malfunctioningTests,
+            () => {
+              resultUi.renderMalfunctioningTests();
+            }
+          );
+          resultUi.renderLastCompletedTests();
+        },
+        removeMalfunctioningTest(testPath) {
+          const { malfunctioningTests } = resultUi.state;
+          malfunctioningTests.splice(malfunctioningTests.indexOf(testPath), 1);
+          WaveService.updateMalfunctioningTests(
+            token,
+            malfunctioningTests,
+            () => {
+              resultUi.renderMalfunctioningTests();
+            }
+          );
+          resultUi.renderLastCompletedTests();
+        },
+        isTestOnMalfunctioningList(test) {
+          const { malfunctioningTests } = resultUi.state;
+          return malfunctioningTests.indexOf(test) !== -1;
+        },
+        showExcluded() {
+          resultUi.state.showExcluded = true;
+          resultUi.renderSessionDetails();
+        },
+        hideExcluded() {
+          resultUi.state.showExcluded = false;
+          resultUi.renderSessionDetails();
+        },
+        addLabel() {
+          const label = UI.getElement("session-label-input").value;
+          if (!label) return;
+          const { configuration } = resultUi.state;
+          configuration.labels.push(label);
+          WaveService.updateLabels(token, configuration.labels);
+          resultUi.renderSessionDetails();
+          UI.getElement("session-label-input").focus();
+        },
+        removeLabel(index) {
+          const { configuration } = resultUi.state;
+          configuration.labels.splice(index, 1);
+          WaveService.updateLabels(token, configuration.labels);
+          resultUi.renderSessionDetails();
+        },
+        showAddLabel() {
+          resultUi.state.addLabelVisible = true;
+          resultUi.renderSessionDetails();
+          UI.getElement("session-label-input").focus();
+        },
+        hideAddLabel() {
+          resultUi.state.addLabelVisible = false;
+          resultUi.renderSessionDetails();
+        },
+        render() {
+          const resultView = UI.createElement({
+            className: "section",
+            children: [
+              {
+                className: "container",
+                style: "margin-bottom: 2em",
+                children: [
+                  {
+                    className: "columns",
+                    children: [
+                      {
+                        className: "column",
+                        children: [
+                          {
+                            element: "img",
+                            src: "res/wavelogo_2016.jpg",
+                            className: "site-logo",
+                          },
+                        ],
+                      },
+                      {
+                        className: "column is-narrow",
+                        children: {
+                          className: "button is-dark is-outlined",
+                          onclick: resultUi.openResultsOverview,
+                          children: [
+                            {
+                              element: "span",
+                              className: "icon",
+                              children: [
+                                {
+                                  element: "i",
+                                  className: "fas fa-arrow-left",
+                                },
+                              ],
+                            },
+                            {
+                              text: "Results Overview",
+                              element: "span",
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    className: "container",
+                    children: {
+                      className: "columns",
+                      children: [
+                        {
+                          className: "column",
+                          children: { className: "title", text: "Result" },
+                        },
+                        {
+                          className: "column is-narrow",
+                          children: { id: "controls" },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+              {
+                id: "session-details",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+              {
+                id: "last-completed-tests",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+              {
+                id: "api-results",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+              {
+                id: "timeout-files",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+              {
+                id: "export",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+              {
+                id: "malfunctioning-tests",
+                className: "container",
+                style: "margin-bottom: 2em",
+              },
+            ],
+          });
+          const root = UI.getRoot();
+          root.innerHTML = "";
+          root.appendChild(resultView);
+          resultUi.renderControls();
+          resultUi.renderSessionDetails();
+          resultUi.renderApiResults();
+          resultUi.renderExportView();
+        },
+        renderControls() {
+          const { state } = resultUi;
+          if (!state.status) return;
+          const { status } = state.status;
+          const { isPublic } = state.configuration;
+          const controlsView = UI.createElement({
+            className: "field is-grouped is-grouped-multiline",
+          });
+          if (
+            status &&
+            status !== "aborted" &&
+            status !== "completed" &&
+            status !== "pending"
+          ) {
+            const pauseResumeButton = UI.createElement({
+              id: "pause-resume-button",
+              className: "control button is-dark is-outlined",
+              onclick: function () {
+                if (status === "running") {
+                  WaveService.pauseSession(token, resultUi.refreshData);
+                } else {
+                  WaveService.startSession(token, resultUi.refreshData);
+                }
+              },
+              children: [
+                {
+                  element: "span",
+                  className: "icon",
+                  children: [
+                    {
+                      element: "i",
+                      className:
+                        status === "running" ? "fas fa-pause" : "fas fa-play",
+                    },
+                  ],
+                },
+                {
+                  text: status === "running" ? "Pause" : "Resume",
+                  element: "span",
+                },
+              ],
+            });
+            controlsView.appendChild(pauseResumeButton);
+          }
+
+          if (status && status !== "aborted" && status !== "completed") {
+            const stopButton = UI.createElement({
+              id: "stop-button",
+              className: "control button is-dark is-outlined",
+              onclick: resultUi.stopSession,
+              children: [
+                {
+                  element: "span",
+                  className: "icon",
+                  children: [
+                    {
+                      element: "i",
+                      className: "fas fa-square",
+                    },
+                  ],
+                },
+                {
+                  text: "Stop",
+                  element: "span",
+                },
+              ],
+            });
+            controlsView.appendChild(stopButton);
+          }
+          if (!isPublic) {
+            const deleteButton = UI.createElement({
+              id: "delete-button",
+              className: "control button is-dark is-outlined",
+              onclick: resultUi.showDeleteModal,
+              children: [
+                {
+                  element: "span",
+                  className: "icon",
+                  children: [
+                    {
+                      element: "i",
+                      className: "fas fa-trash-alt",
+                    },
+                  ],
+                },
+                {
+                  text: "Delete",
+                  element: "span",
+                },
+              ],
+            });
+            controlsView.appendChild(deleteButton);
+          }
+
+          const deleteModal = UI.createElement({
+            id: "delete-modal",
+            className: "modal",
+            children: [
+              {
+                className: "modal-background",
+                onclick: resultUi.hideDeleteModal,
+              },
+              {
+                className: "modal-card",
+                children: [
+                  {
+                    className: "modal-card-head",
+                    children: [
+                      {
+                        element: "p",
+                        className: "modal-card-title",
+                        text: "Delete Session",
+                      },
+                    ],
+                  },
+                  {
+                    className: "modal-card-body",
+                    children: [
+                      {
+                        element: "p",
+                        text: "Are you sure you want to delete this session?",
+                      },
+                      { element: "p", text: "This action cannot be undone." },
+                    ],
+                  },
+                  {
+                    className: "modal-card-foot",
+                    children: [
+                      {
+                        className: "button is-danger",
+                        text: "Delete Session",
+                        onclick: resultUi.deleteSession,
+                      },
+                      {
+                        className: "button",
+                        text: "Cancel",
+                        onclick: resultUi.hideDeleteModal,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          });
+          controlsView.appendChild(deleteModal);
+
+          const controls = UI.getElement("controls");
+          controls.innerHTML = "";
+          controls.appendChild(controlsView);
+        },
+        renderSessionDetails() {
+          const { state } = resultUi;
+          const { configuration, status, results } = state;
+          if (!configuration || !status) return;
+          const sessionDetailsView = UI.createElement({
+            style: "margin-bottom: 20px",
+          });
+
+          const heading = UI.createElement({
+            text: "Session details",
+            className: "title is-4",
+          });
+          sessionDetailsView.appendChild(heading);
+
+          const getTagStyle = (status) => {
+            switch (status) {
+              case "completed":
+                return "is-success";
+              case "running":
+                return "is-info";
+              case "aborted":
+                return "is-danger";
+              case "paused":
+                return "is-warning";
+              case "pending":
+                return "is-primary";
+            }
+          };
+          if (status.dateFinished) {
+            if (state.durationInterval) clearInterval(state.durationInterval);
+          } else if (status.dateStarted) {
+            if (!state.durationInterval)
+              state.durationInterval = setInterval(() => {
+                UI.getElement("duration").innerHTML = utils.millisToTimeString(
+                  Date.now() - status.dateStarted.getTime()
+                );
+              }, 1000);
+          }
+
+          const { addLabelVisible } = state;
+          const { showExcluded } = state;
+
+          const tokenField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Token" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: configuration.token,
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(tokenField);
+
+          const userAgentField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "User Agent" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: configuration.userAgent || "",
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(userAgentField);
+
+          const testPathsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Test Paths" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: configuration.tests.include
+                      .reduce((text, test) => text + test + ", ", "")
+                      .slice(0, -2),
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(testPathsField);
+
+          const excludedTestsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Excluded Test Paths" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: [
+                      {
+                        element: "span",
+                        text: configuration.tests.exclude.length,
+                      },
+                      {
+                        element: "span",
+                        className: "button is-small is-rounded",
+                        style: "margin-left: 10px",
+                        text: showExcluded ? "hide" : "show",
+                        onClick: showExcluded
+                          ? resultUi.hideExcluded
+                          : resultUi.showExcluded,
+                      },
+                      showExcluded
+                        ? {
+                            style:
+                              "max-height: 250px; overflow: auto; margin-bottom: 10px",
+                            children: configuration.tests.exclude.map(
+                              (test) => ({
+                                text: test,
+                              })
+                            ),
+                          }
+                        : null,
+                    ],
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(excludedTestsField);
+
+          const referenceSessionField = UI.createElement({
+            style: "display: none",
+            id: "reference-session-field",
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Reference Sessions" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: { id: "reference-sessions" },
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(referenceSessionField);
+
+          const totalTestFilesField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Total Test Files" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: Object.keys(results).reduce(
+                      (sum, api) => (sum += results[api].total),
+                      0
+                    ),
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(totalTestFilesField);
+
+          const statusField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Status" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: `control tag ${getTagStyle(status.status)}`,
+                    text: status.status,
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(statusField);
+
+          const timeoutsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Test Timeouts" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: `control`,
+                    text: Object.keys(configuration.timeouts).reduce(
+                      (text, timeout) =>
+                        `${text}${timeout}: ${
+                          configuration.timeouts[timeout] / 1000
+                        }s\n`,
+                      ""
+                    ),
+                  },
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(timeoutsField);
+
+          if (status.dateStarted) {
+            const startedField = UI.createElement({
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Date Started" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: `control`,
+                      text: new Date(status.dateStarted).toLocaleString(),
+                    },
+                  },
+                },
+              ],
+            });
+            sessionDetailsView.appendChild(startedField);
+          }
+
+          if (status.dateFinished) {
+            const finishedField = UI.createElement({
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Date Finished" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: `control`,
+                      text: new Date(status.dateFinished).toLocaleString(),
+                    },
+                  },
+                },
+              ],
+            });
+            sessionDetailsView.appendChild(finishedField);
+          }
+
+          if (status.dateStarted) {
+            const durationField = UI.createElement({
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Duration" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: `control`,
+                      id: "duration",
+                      text: utils.millisToTimeString(
+                        status.dateFinished
+                          ? status.dateFinished.getTime() -
+                              status.dateStarted.getTime()
+                          : Date.now() - status.dateStarted.getTime()
+                      ),
+                    },
+                  },
+                },
+              ],
+            });
+            sessionDetailsView.appendChild(durationField);
+          }
+
+          const labelsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Labels" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field is-grouped is-grouped-multiline",
+                  children: configuration.labels
+                    .map((label, index) => ({
+                      className: "control",
+                      children: {
+                        className: "tags has-addons",
+                        children: [
+                          {
+                            element: "span",
+                            className: "tag is-info",
+                            text: label,
+                          },
+                          {
+                            element: "a",
+                            className: "tag is-delete",
+                            onClick: () => resultUi.removeLabel(index),
+                          },
+                        ],
+                      },
+                    }))
+                    .concat(
+                      resultUi.state.configuration.isPublic
+                        ? []
+                        : addLabelVisible
+                        ? [
+                            {
+                              className: "control field is-grouped",
+                              children: [
+                                {
+                                  element: "input",
+                                  className: "input is-small control",
+                                  style: "width: 10rem",
+                                  id: "session-label-input",
+                                  type: "text",
+                                  onKeyUp: (event) =>
+                                    event.keyCode === 13
+                                      ? resultUi.addLabel()
+                                      : null,
+                                },
+                                {
+                                  className:
+                                    "button is-dark is-outlined is-small is-rounded control",
+                                  text: "save",
+                                  onClick: resultUi.addLabel,
+                                },
+                                {
+                                  className:
+                                    "button is-dark is-outlined is-small is-rounded control",
+                                  text: "cancel",
+                                  onClick: resultUi.hideAddLabel,
+                                },
+                              ],
+                            },
+                          ]
+                        : [
+                            {
+                              className: "button is-rounded is-small",
+                              text: "Add",
+                              onClick: resultUi.showAddLabel,
+                            },
+                          ]
+                    ),
+                },
+              },
+            ],
+          });
+          sessionDetailsView.appendChild(labelsField);
+
+          const sessionDetails = UI.getElement("session-details");
+          sessionDetails.innerHTML = "";
+          sessionDetails.appendChild(sessionDetailsView);
+          resultUi.renderReferenceSessions();
+        },
+        renderReferenceSessions() {
+          const { referenceSessions } = resultUi.state;
+          if (!referenceSessions || referenceSessions.length === 0) return;
+          const referenceSessionsList = UI.createElement({
+            className: "field is-grouped is-grouped-multiline",
+          });
+          const getBrowserIcon = (browser) => {
+            switch (browser.toLowerCase()) {
+              case "firefox":
+                return "fab fa-firefox";
+              case "edge":
+                return "fab fa-edge";
+              case "chrome":
+              case "chromium":
+                return "fab fa-chrome";
+              case "safari":
+              case "webkit":
+                return "fab fa-safari";
+            }
+          };
+          referenceSessions.forEach((session) => {
+            const { token, browser } = session;
+            const referenceSessionItem = UI.createElement({
+              className:
+                "control button is-dark is-small is-rounded is-outlined",
+              onClick: () => WaveService.openSession(token),
+              children: [
+                {
+                  element: "span",
+                  className: "icon",
+                  children: {
+                    element: "i",
+                    className: getBrowserIcon(browser.name),
+                  },
+                },
+                {
+                  element: "span",
+                  text: token.split("-").shift(),
+                },
+              ],
+            });
+            referenceSessionsList.appendChild(referenceSessionItem);
+          });
+          const referenceSessionsTarget = UI.getElement("reference-sessions");
+          referenceSessionsTarget.innerHTML = "";
+          referenceSessionsTarget.appendChild(referenceSessionsList);
+          const field = UI.getElement("reference-session-field");
+          field.style["display"] = "flex";
+        },
+        renderLastCompletedTests() {
+          if (resultUi.state.configuration.isPublic) return;
+          const lastCompletedTestsView = UI.createElement({});
+
+          const heading = UI.createElement({
+            className: "title is-4",
+            children: [
+              { element: "span", text: "Last Timed-Out Test Files" },
+              {
+                element: "span",
+                className: "title is-7",
+                text: " (most recent first)",
+              },
+            ],
+          });
+          lastCompletedTestsView.appendChild(heading);
+
+          const { lastCompletedTests } = resultUi.state;
+          const testsTable = UI.createElement({
+            element: "table",
+            className: "table",
+            style: "min-width: 100%",
+            children: [
+              {
+                element: "thead",
+                children: [
+                  {
+                    element: "tr",
+                    children: [
+                      { element: "td", text: "Test File" },
+                      { element: "td", text: "Malfunctioning List" },
+                    ],
+                  },
+                ],
+              },
+              {
+                element: "tbody",
+                children: lastCompletedTests.map(({ path, status }) => ({
+                  element: "tr",
+                  children: [
+                    { element: "td", text: path },
+                    {
+                      element: "td",
+                      children: [
+                        {
+                          element: "button",
+                          className: "button is-dark is-outlined is-small",
+                          onClick: () => resultUi.addMalfunctioningTest(path),
+                          title: "Add to malfunctioning tests list.",
+                          children: [
+                            {
+                              element: "span",
+                              className: "icon",
+                              children: [
+                                {
+                                  element: "i",
+                                  className: resultUi.isTestOnMalfunctioningList(
+                                    path
+                                  )
+                                    ? "fas fa-check"
+                                    : "fas fa-plus",
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                })),
+              },
+            ],
+          });
+          if (lastCompletedTests.length > 0) {
+            lastCompletedTestsView.appendChild(
+              UI.createElement({
+                className: "container",
+                style: "overflow-x: auto;",
+                id: "last-completed-overflow",
+                children: testsTable,
+              })
+            );
+          } else {
+            const noTestsLabel = UI.createElement({
+              text: "- No Timed-Out Tests -",
+              style: "text-align: center",
+            });
+            lastCompletedTestsView.appendChild(noTestsLabel);
+          }
+
+          UI.saveScrollPosition("last-completed-overflow");
+
+          const lastCompletedTestsElement = UI.getElement(
+            "last-completed-tests"
+          );
+          lastCompletedTestsElement.innerHTML = "";
+          lastCompletedTestsElement.appendChild(lastCompletedTestsView);
+
+          UI.loadScrollPosition("last-completed-overflow");
+        },
+        renderApiResults() {
+          const { results, status } = resultUi.state;
+
+          const apiResultsView = UI.createElement({
+            style: "margin-bottom: 20px",
+          });
+
+          const heading = UI.createElement({
+            text: "API Results",
+            className: "title is-4",
+          });
+          apiResultsView.appendChild(heading);
+
+          if (!results) {
+            const loadingIndicator = UI.createElement({
+              className: "level",
+              children: {
+                element: "span",
+                className: "level-item",
+                children: [
+                  {
+                    element: "i",
+                    className: "fas fa-spinner fa-pulse",
+                  },
+                  {
+                    style: "margin-left: 0.4em;",
+                    text: "Loading results ...",
+                  },
+                ],
+              },
+            });
+            apiResultsView.appendChild(loadingIndicator);
+
+            const apiResults = UI.getElement("api-results");
+            apiResults.innerHTML = "";
+            apiResults.appendChild(apiResultsView);
+            return;
+          }
+
+          const width = status.status === "running" ? "7.5em" : "auto";
+          const header = UI.createElement({
+            element: "thead",
+            children: [
+              {
+                element: "tr",
+                children: [
+                  { element: "th", text: "API" },
+                  { element: "th", text: "Pass", style: `min-width: ${width}` },
+                  { element: "th", text: "Fail", style: `min-width: ${width}` },
+                  {
+                    element: "th",
+                    text: "Timeout",
+                    style: `min-width: ${width}`,
+                  },
+                  {
+                    element: "th",
+                    text: "Not Run",
+                    style: `min-width: ${width}`,
+                  },
+                  {
+                    element: "th",
+                    text: "Test Files Run",
+                    style: `min-width: ${width}`,
+                  },
+                  { element: "th", text: "Export" },
+                ],
+              },
+            ],
+          });
+
+          const apis = Object.keys(results).sort((apiA, apiB) =>
+            apiA.toLowerCase() > apiB.toLowerCase() ? 1 : -1
+          );
+
+          const rows = apis.map((api) => {
+            const {
+              complete = 0,
+              pass = 0,
+              fail = 0,
+              timeout = 0,
+              timeoutfiles = [],
+              not_run: notRun = 0,
+              total,
+            } = results[api];
+            isDone = results[api].complete == results[api].total;
+            const totalTestResults = pass + fail + timeout + notRun;
+            return UI.createElement({
+              element: "tr",
+              style: "white-space: nowrap",
+              children: [
+                { element: "td", text: api },
+                {
+                  element: "td",
+                  children: {
+                    style: `color: hsl(141, 71%, 38%); overflow: visible; white-space: nowrap; width: ${width}`,
+                    text: `${pass} (${utils.percent(pass, totalTestResults)}%)`,
+                  },
+                },
+                {
+                  element: "td",
+                  children: {
+                    className: "has-text-danger",
+                    style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                    text: `${fail} (${utils.percent(fail, totalTestResults)}%)`,
+                  },
+                },
+                {
+                  element: "td",
+                  children: {
+                    style: `color: hsl(48, 100%, 40%); overflow: visible; white-space: nowrap; width: ${width}`,
+                    text: `${timeout} (${utils.percent(
+                      timeout,
+                      totalTestResults
+                    )}%)`,
+                  },
+                },
+                {
+                  element: "td",
+                  children: {
+                    className: "has-text-info",
+                    style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                    text: `${notRun} (${utils.percent(
+                      notRun,
+                      totalTestResults
+                    )}%)`,
+                  },
+                },
+                {
+                  element: "td",
+                  children: {
+                    style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                    text: `${complete}/${total} (${utils.percent(
+                      complete,
+                      total
+                    )}%)`,
+                  },
+                },
+                {
+                  element: "td",
+                  children: {
+                    className: "field has-addons",
+                    children: [
+                      {
+                        className: "control",
+                        children: {
+                          className: "button is-dark is-outlined is-small",
+                          onclick: () => resultUi.downloadApiResultJson(api),
+                          text: "json",
+                          title: `Download results of ${api} API as JSON file.`,
+                        },
+                      },
+                      resultUi.state.reportsEnabled
+                        ? {
+                            className: "control",
+                            children: {
+                              className: "button is-dark is-outlined is-small",
+                              disabled: !isDone,
+                              onclick: () => resultUi.openHtmlReport(api),
+                              text: "report",
+                              title: `Show results of ${api} API in WPT Report format.`,
+                            },
+                          }
+                        : null,
+                    ],
+                  },
+                },
+              ],
+            });
+          });
+
+          const { pass, fail, timeout, not_run, complete, total } = apis.reduce(
+            (sum, api) => {
+              Object.keys(sum).forEach(
+                (key) => (sum[key] += results[api][key] ? results[api][key] : 0)
+              );
+              return sum;
+            },
+            { complete: 0, total: 0, pass: 0, fail: 0, timeout: 0, not_run: 0 }
+          );
+          const totalTestResults = pass + fail + timeout + not_run;
+
+          const footer = UI.createElement({
+            element: "tfoot",
+            children: [
+              {
+                element: "tr",
+                children: [
+                  { element: "th", text: "Total" },
+                  {
+                    element: "th",
+                    children: {
+                      style: `color: hsl(141, 71%, 38%); overflow: visible; white-space: nowrap; width: ${width}`,
+                      text: `${pass} (${utils.percent(
+                        pass,
+                        totalTestResults
+                      )}%)`,
+                    },
+                  },
+                  {
+                    element: "th",
+                    children: {
+                      style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                      className: "has-text-danger",
+                      text: `${fail} (${utils.percent(
+                        fail,
+                        totalTestResults
+                      )}%)`,
+                    },
+                  },
+                  {
+                    element: "th",
+                    children: {
+                      style: `color: hsl(48, 100%, 40%); overflow: visible; white-space: nowrap; width: ${width}`,
+                      text: `${timeout} (${utils.percent(
+                        timeout,
+                        totalTestResults
+                      )}%)`,
+                    },
+                  },
+                  {
+                    element: "th",
+                    children: {
+                      style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                      className: "has-text-info",
+                      text: `${not_run} (${utils.percent(
+                        not_run,
+                        totalTestResults
+                      )}%)`,
+                    },
+                  },
+                  {
+                    element: "th",
+                    children: {
+                      style: `overflow: visible; white-space: nowrap; width: ${width}`,
+                      text: `${complete}/${total} (${utils.percent(
+                        complete,
+                        total
+                      )}%)`,
+                    },
+                  },
+                  { element: "th" },
+                ],
+              },
+            ],
+          });
+
+          const resultsTable = UI.createElement({
+            className: "container",
+            style: "overflow-x: auto",
+            id: "results-overflow",
+            children: {
+              element: "table",
+              className: "table",
+              id: "results-table",
+              style:
+                "width: 100%; min-width: 30em; border-radius: 3px; border: 2px solid hsl(0, 0%, 86%);",
+              children: [header, { element: "tbody", children: rows }, footer],
+            },
+          });
+          apiResultsView.appendChild(resultsTable);
+
+          UI.saveScrollPosition("results-overflow");
+
+          const apiResults = UI.getElement("api-results");
+          apiResults.innerHTML = "";
+          apiResults.appendChild(apiResultsView);
+
+          UI.loadScrollPosition("results-overflow");
+        },
+        renderExportView() {
+          const { status } = resultUi.state;
+          if (!status) return;
+
+          const exportElement = UI.getElement("export");
+          exportElement.innerHTML = "";
+
+          const heading = UI.createElement({
+            className: "title is-4",
+            text: "Export",
+          });
+          exportElement.appendChild(heading);
+
+          const resultsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Results" },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "control columns",
+                  style: "width: 100%",
+                  children: [
+                    {
+                      className: "column is-9",
+                      text:
+                        "Download results for import into other WMAS Test Suite instances.",
+                    },
+                    {
+                      className: "column is-3",
+                      children: {
+                        className:
+                          "button is-dark is-outlined is-small is-fullwidth",
+                        onClick: resultUi.downloadResults,
+                        disabled: status.status !== "completed",
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: {
+                              element: "i",
+                              className: "fas fa-file-archive",
+                            },
+                          },
+                          { element: "span", text: "Download Zip" },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+          exportElement.appendChild(resultsField);
+
+          const jsonField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: {
+                  className: "label",
+                  text: "All JSON Files",
+                },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "control columns",
+                  style: "width: 100%",
+                  children: [
+                    {
+                      className: "column is-9",
+                      text:
+                        "Download JSON files containing results of completed test files.",
+                    },
+                    {
+                      className: "column is-3",
+                      children: {
+                        className:
+                          "button is-dark is-outlined is-small is-fullwidth",
+                        onclick: resultUi.downloadFinishedApiJsons,
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: {
+                              element: "i",
+                              className: "fas fa-file-archive",
+                            },
+                          },
+                          { element: "span", text: "Download Zip" },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+          exportElement.appendChild(jsonField);
+
+          const htmlField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: {
+                  className: "label",
+                  text: "Session result HTML",
+                },
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "control columns",
+                  style: "width: 100%",
+                  children: [
+                    {
+                      className: "column is-9",
+                      text:
+                        "Download this sessions result as standalone HTML page, similar to this page.",
+                    },
+                    {
+                      className: "column is-3",
+                      children: {
+                        className:
+                          "button is-dark is-outlined is-small is-fullwidth",
+                        onClick: resultUi.downloadHtmlZip,
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: {
+                              element: "i",
+                              className: "fas fa-code",
+                            },
+                          },
+                          { element: "span", text: "Download HTML" },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+          exportElement.appendChild(htmlField);
+        },
+        renderMalfunctioningTests() {
+          const malfunctioningTestsView = UI.createElement({});
+          const heading = UI.createElement({
+            className: "title is-4",
+            text: "Malfunctioning Tests",
+          });
+          malfunctioningTestsView.appendChild(heading);
+
+          const { malfunctioningTests } = resultUi.state;
+          const testsTable = UI.createElement({
+            element: "table",
+            className: "table",
+            style: "min-width: 100%",
+            children: [
+              {
+                element: "thead",
+                children: [
+                  {
+                    element: "tr",
+                    children: [
+                      { element: "td", text: "Test File" },
+                      { element: "td", text: "" },
+                    ],
+                  },
+                ],
+              },
+              {
+                element: "tbody",
+                children: malfunctioningTests.map((path) => ({
+                  element: "tr",
+                  children: [
+                    { element: "td", text: path },
+                    {
+                      element: "td",
+                      children: resultUi.state.configuration.isPublic
+                        ? null
+                        : {
+                            element: "button",
+                            className: "button is-dark is-outlined is-small",
+                            onClick: () =>
+                              resultUi.removeMalfunctioningTest(path),
+                            title: "Remove from malfunctioning tests list.",
+                            children: [
+                              {
+                                element: "span",
+                                className: "icon",
+                                children: [
+                                  {
+                                    element: "i",
+                                    className: "fas fa-trash-alt",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                    },
+                  ],
+                })),
+              },
+            ],
+          });
+          if (malfunctioningTests.length > 0) {
+            malfunctioningTestsView.appendChild(
+              UI.createElement({
+                className: "container",
+                style: "overflow-x: auto",
+                id: "malfunctioning-overflow",
+                children: testsTable,
+              })
+            );
+          } else {
+            const noTestsLabel = UI.createElement({
+              text: "- No Tests Available -",
+              style: "text-align: center",
+            });
+            malfunctioningTestsView.appendChild(noTestsLabel);
+          }
+
+          UI.saveScrollPosition("malfunctioning-overflow");
+
+          const malfunctioningTestsElement = UI.getElement(
+            "malfunctioning-tests"
+          );
+          malfunctioningTestsElement.innerHTML = "";
+          malfunctioningTestsElement.appendChild(malfunctioningTestsView);
+
+          UI.loadScrollPosition("malfunctioning-overflow");
+        },
+      };
+    </script>
+  </body>
+</html>

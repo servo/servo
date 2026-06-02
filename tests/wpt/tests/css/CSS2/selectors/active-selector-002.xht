@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: :active (basic test)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/active/002.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/active/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+
+   /* Make our document's head visible */
+   html { margin: 0; padding: 1em; }
+   head { display: block; }
+   title, style { display: none; }
+   link { display: inline; }
+   body { margin: 0; padding: 0; }
+   p { margin: 1em 0; }
+
+   /* Make the metadata links invisible */
+   [rel="author"], [rel="alternate"], [rel="help"] { display: none; }
+
+   /* The test */
+   link:before { content: '1. Link A'; }
+   /* Disabled due to http://www.w3.org/Bugs/Public/show_bug.cgi?id=11343
+      p:active, span:active { color: yellow; border: red solid thick; background: red; } */
+   .test { color: blue; }
+   a:active, link:active { color: white; background: green; border: green solid thick; }
+
+   /* Informative status message */
+   .msg { background: white; color: white; line-height: 1.2 }
+   .msg p { margin: 0; margin-bottom: -1.2em; position: relative; }
+   :target { font-style: italic; color: silver; z-index: 1; }
+  </style>
+  <link class="test" href="#targetA" rel="bookmark"/>
+ </head>
+ <body>
+  <div><a class="test" href="#targetB">2. Link B</a></div>
+  <div><a class="test" href="#targetC"><span>3. Link C</span></a></div>
+  <p>Clicking the links above, or activating them with the keyboard, should make them go green in exactly the same way.</p>
+  <div class="msg">
+    <p>If you can see this sentence, ignore the sentences below.</p>
+    <p id="targetA">Link A was successfully activated.</p>
+    <p id="targetB">Link B was successfully activated.</p>
+    <p id="targetC">Link C was successfully activated.</p>
+  </div>
+ </body>
+</html>

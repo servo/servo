@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-origin: mask positioning area</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div.outer {
+        border: 1px solid black;
+        width: 100px;
+        height: 100px;
+        position: relative;
+      }
+
+      div.inner {
+        width: 50px;
+        height: 50px;
+        background-color: purple;
+        position: absolute;
+      }
+
+      #border { left: 4px; top: 1px; }
+      #padding { left: 10px; top: 9px; }
+      #content { left: 13px; top: 15px; }
+    </style>
+  </head>
+  <body>
+    <div class="outer"><div class="inner" id="border"></div></div>
+    <div class="outer"><div class="inner" id="border"></div></div>
+    <div class="outer"><div class="inner" id="padding"></div></div>
+    <div class="outer"><div class="inner" id="content"></div></div>
+  </body>
+</html>

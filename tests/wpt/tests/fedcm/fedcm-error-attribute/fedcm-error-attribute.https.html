@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>FedCM IdentityCredentialError.error attribute</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account,
+        fedcm_error_dialog_click_button,
+        fedcm_error_dialog_dismiss} from '../support/fedcm-helper.sub.js';
+
+test(() => {
+  const errorInit = {
+    error: "invalid_request",
+    url: "https://example.com/error"
+  };
+
+  const error = new IdentityCredentialError("Test error", errorInit);
+
+  assert_equals(error.error, "invalid_request", "error attribute should work");
+  assert_equals(error.url, "https://example.com/error", "url should work");
+}, 'IdentityCredentialError.error attribute works');
+
+test(() => {
+  const errorInit = {
+    code: "unauthorized_client",
+    url: "https://example.com/error"
+  };
+
+  const error = new IdentityCredentialError("Test error", errorInit);
+
+  // error attribute should be empty because code was ignored
+  assert_equals(error.error, "", "error should be empty when only code is provided and flag is enabled");
+  assert_equals(error.url, "https://example.com/error", "url should work");
+}, 'Constructor ignores code field');
+
+// Error attribute in FedCM flow - dialog dismiss
+fedcm_test(async t => {
+  let test_options =
+    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error_format.json");
+  await select_manifest(t, test_options);
+
+  try {
+    const cred = fedcm_get_and_select_first_account(t, test_options);
+    fedcm_error_dialog_dismiss(t);
+    await cred;
+    assert_unreached("IdentityCredentialError should be thrown");
+  } catch (e) {
+    assert_equals(e.name, "IdentityCredentialError");
+    assert_equals(e.error, "unauthorized_client", "error attribute works in FedCM flow");
+  }
+}, 'error attribute works in dialog dismiss workflow');
+
+// Error attribute in FedCM flow - button click
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error_format.json");
+  await select_manifest(t, test_options);
+
+  try {
+    const cred = fedcm_get_and_select_first_account(t, test_options);
+    fedcm_error_dialog_click_button(t, "ErrorGotIt");
+    await cred;
+    assert_unreached("IdentityCredentialError should be thrown");
+  } catch (e) {
+    assert_equals(e.name, "IdentityCredentialError");
+    assert_equals(e.error, "unauthorized_client", "error attribute works when button clicked");
+  }
+}, 'error attribute works in button click flow');
+
+</script>

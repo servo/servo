@@ -1,0 +1,36 @@
+features:
+- name: conic-gradients
+  files:
+  - "*conic*"
+- name: object-view-box
+  files:
+  - object-view-box-*
+- name: crisp-edges
+  files:
+  - object-fit-*-png*
+  - "!object-fit-containcontainintrinsicsize-png-*"
+  - "!object-fit-containsize-png-*"
+- name: object-fit
+  files:
+  - image-fit-*
+  - object-fit-*
+  - "!object-fit-*-png*"
+- name: object-position
+  files:
+  - object-position-*
+- name: cross-fade
+  files:
+  - cross-fade-*
+- name: gradients
+  files:
+  - "*gradient*"
+  - "normalization-*"
+  - "!*conic*"
+  - "multiple-position-color-stop-*"
+  - color-stop-currentcolor.html
+- name: image-function
+  files:
+  - css-image-fallbacks-and-annotations*
+- name: image-rendering
+  files:
+  - image-rendering-*

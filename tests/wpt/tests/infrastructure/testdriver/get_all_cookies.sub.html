@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver get_all_cookies method in HTTP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  t.add_cleanup(test_driver.delete_all_cookies);
+  const kTenDaysFromNow = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+  document.cookie = "test0=0";
+  document.cookie = `test1=1; Expires=${kTenDaysFromNow.toUTCString()}`;
+  document.cookie = "test2=2; Path=/";
+  // document.cookie = "test3=3; HttpOnly"; This is set in the headers file.
+  document.cookie = "test4=4; Secure";
+  document.cookie = "test5=5; SameSite=Strict";
+  document.cookie = "test6=6; SameSite=None; Secure";
+  document.cookie = "test7=7; SameSite=Lax";
+  const cookies = await test_driver.get_all_cookies();
+  assert_equals(cookies.length, 6);
+  let cookieMap = new Map();
+  for (const cookie of cookies) {
+    cookieMap.set(cookie["name"], cookie);
+  }
+
+  // test0
+  assert_equals(cookieMap.get("test0")["name"], "test0");
+  assert_equals(cookieMap.get("test0")["value"], "0");
+  assert_equals(cookieMap.get("test0")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test0")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test0")["secure"], false);
+  assert_equals(cookieMap.get("test0")["httpOnly"], false);
+  assert_equals(cookieMap.get("test0")["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookieMap.get("test0")["sameSite"], "Lax");
+
+  // test1 [Expires in 10 days]
+  assert_equals(cookieMap.get("test1")["name"], "test1");
+  assert_equals(cookieMap.get("test1")["value"], "1");
+  assert_equals(cookieMap.get("test1")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test1")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test1")["secure"], false);
+  assert_equals(cookieMap.get("test1")["httpOnly"], false);
+  assert_equals(cookieMap.get("test1")["expiry"], Math.floor(kTenDaysFromNow.getTime()/1000));
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookieMap.get("test0")["sameSite"], "Lax");
+
+  // test2 [Path /]
+  assert_equals(cookieMap.get("test2")["name"], "test2");
+  assert_equals(cookieMap.get("test2")["value"], "2");
+  assert_equals(cookieMap.get("test2")["path"], "/");
+  assert_equals(cookieMap.get("test2")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test2")["secure"], false);
+  assert_equals(cookieMap.get("test2")["httpOnly"], false);
+  assert_equals(cookieMap.get("test2")["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookieMap.get("test0")["sameSite"], "Lax");
+
+  // test3 [HttpOnly]
+  assert_equals(cookieMap.get("test3")["name"], "test3");
+  assert_equals(cookieMap.get("test3")["value"], "3");
+  assert_equals(cookieMap.get("test3")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test3")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test3")["secure"], false);
+  assert_equals(cookieMap.get("test3")["httpOnly"], true);
+  assert_equals(cookieMap.get("test3")["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookieMap.get("test0")["sameSite"], "Lax");
+
+  // test4 [Secure] Omitted
+
+  // test5 [SameSite Strict]
+  assert_equals(cookieMap.get("test5")["name"], "test5");
+  assert_equals(cookieMap.get("test5")["value"], "5");
+  assert_equals(cookieMap.get("test5")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test5")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test5")["secure"], false);
+  assert_equals(cookieMap.get("test5")["httpOnly"], false);
+  assert_equals(cookieMap.get("test5")["expiry"], undefined);
+  assert_equals(cookieMap.get("test5")["sameSite"], "Strict");
+
+  // test6 [SameSite None] Omitted
+
+  // test7 [SameSite Lax]
+  assert_equals(cookieMap.get("test7")["name"], "test7");
+  assert_equals(cookieMap.get("test7")["value"], "7");
+  assert_equals(cookieMap.get("test7")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test7")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test7")["secure"], false);
+  assert_equals(cookieMap.get("test7")["httpOnly"], false);
+  assert_equals(cookieMap.get("test7")["expiry"], undefined);
+  assert_equals(cookieMap.get("test7")["sameSite"], "Lax");
+}, "Get all HTTP cookies");
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> adding several types of scripts through the DOM and removing some of them confuses scheduler (slow-loading scripts) </title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="testlib/testlib.js"></script>
+<script type="text/javascript">
+    setup({ explicit_done: true });
+    var head = document.getElementsByTagName('head')[0];
+    function createScript(url, contents) {
+        props = {};
+        if (url) {
+            props.src = url;
+        }
+        return testlib.addScript(contents, props, head, false);
+    }
+    var t = async_test()
+
+    function test() {
+        document.getElementById("log").textContent = "Please wait..."
+        var url = 'scripts/include-1.js?pipe=trickle(d1)';
+        var script = createScript(url);
+        var script2 = createScript('', 'log("Script #2 ran")');
+        head.removeChild(script2);
+        var url = 'scripts/include-2.js?pipe=trickle(d2)';
+        var script3 = createScript(url);
+        head.removeChild(script3);
+
+        setTimeout(t.step_func(function () {
+            done();
+            assert_array_equals(eventOrder, ['Script #2 ran', 'external script #1', 'external script #2']);
+            t.done();
+        }), 5500);
+
+    };
+    onload = t.step_func(test)
+</script>
+</head>
+<body>
+<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+</body>
+</html>

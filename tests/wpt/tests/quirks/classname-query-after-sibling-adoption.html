@@ -1,0 +1,32 @@
+<!-- quirks mode -->
+<html>
+  <head>
+    <title>Quirks mode elements with class names should remain queriable regardless of sibling adoption into standards mode documents</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div>
+      <button class="Foo"></button>
+      <button class="Foo"></button>
+    </div>
+    <template><div class="Bar"></div></template>
+    <script>
+    test(function () {
+      var templateDocument = document.querySelector("template").content.ownerDocument;
+      assert_equals(templateDocument.compatMode, "CSS1Compat");
+      assert_equals(document.compatMode, "BackCompat");
+      var container = document.querySelector("div");
+      var button1 = container.querySelector(".foo");
+      assert_true(button1 instanceof Element);
+      templateDocument.appendChild(button1);
+      assert_true(templateDocument.querySelector(".Foo") instanceof Element);
+      assert_false(templateDocument.querySelector(".foo") instanceof Element);
+      var button2byHierarchy = container.firstElementChild;
+      var button2bySelector = container.querySelector(".foo");
+      assert_true(button2bySelector instanceof Element);
+      assert_equals(button2bySelector, button2byHierarchy);
+    });
+    </script>
+  </body>
+</html>

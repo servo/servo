@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Start time compatibility</title>
+<link rel="help"
+      href="https://www.w3.org/TR/web-animations-1/#waiting-for-the-associated-effect">
+<!-- Strictly speaking, this test is asserting timing behavior that is more
+     strict than required by spec. It tests that the start time of animations
+     created during a page rendering update match that update's timeline time.
+     This behavior is now consistent across browsers.
+     See https://bugs.webkit.org/show_bug.cgi?id=290993 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/timing-override.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await waitForCompositorReady();
+
+  const timeout_promise = () => {
+    return new Promise(resolve => setTimeout(resolve));
+  };
+
+  const expected_start_this_frame = () => {
+    return document.timeline.currentTime;
+  }
+
+  const expected_start_next_frame = () => {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        resolve(document.timeline.currentTime);
+      })
+    });
+  }
+
+  const promises = [];
+
+  const make_animation = (description, expected_start_time) => {
+    const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+    promises.push(
+        new Promise(resolve => {
+          Promise.all([anim.ready, expected_start_time]).then(responses => {
+            assert_times_equal(anim.startTime, responses[1], description);
+            resolve();
+          });
+        }));
+  }
+
+  // rAF align the start of the test.
+  await waitForAnimationFrames(2);
+
+  // Create an animation during the page rendering update.
+  // This animation should be aligned with the rAF time.
+  make_animation('during the first page rendering update',
+                 expected_start_this_frame());
+
+  // Wait for a new JS call frame and start another animation. This animation
+  // should have its start time set to the timeline time of the next page
+  // rendering update.
+  await timeout_promise();
+  make_animation('after waiting for a new JS call frame',
+                 expected_start_next_frame());
+
+  // Wait for another new JS call frame and start another animation. This
+  // animation, like the previous one, should have its start time set to
+  // the timeline time of the next page rendering update.
+  await timeout_promise();
+  make_animation('after waiting for a another JS call frame',
+                 expected_start_next_frame());
+
+
+  // Now wait until the next page rendering update and ensure we are aligned
+  // with the rAF time.
+  await waitForAnimationFrames(1);
+  make_animation('during the second page rendering update',
+                 expected_start_this_frame());
+
+  await Promise.all(promises);
+}, `Checking the start time of animations started at various times between ` +
+   'two page rendering updates');
+</script>

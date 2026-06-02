@@ -1,0 +1,199 @@
+<!DOCTYPE HTML>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+<meta name="variant" content="?include=subframe-inline-end-block-end-behavior-auto"/>
+<meta name="variant" content="?include=subframe-inline-start-block-start-behavior-smooth"/>
+<meta name="variant" content="?include=root-inline-end-block-end-behavior-auto"/>
+<meta name="variant" content="?include=root-inline-start-block-start-behavior-smooth"/>
+<meta name="variant" content="?include=nested-scrollIntoView"/>
+<script src="scroll_support.js"></script>
+<style>
+html {
+  height: 3000px;
+  width: 3000px;
+}
+#targetDiv {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+}
+
+#innerDiv {
+  width: 400px;
+  height: 400px;
+}
+</style>
+
+<body style="margin:0" onload=runTest()>
+<div id="targetDiv">
+  <div id="innerDiv">
+  </div>
+</div>
+</body>
+<script>
+let element_scrollend_arrived = false;
+let document_scrollend_arrived = false;
+
+function onElementScrollEnd(event) {
+  assert_false(event.cancelable);
+  assert_false(event.bubbles);
+  element_scrollend_arrived = true;
+}
+
+function onDocumentScrollEnd(event) {
+  assert_false(event.cancelable);
+  // scrollend events are bubbled when the target node is document.
+  assert_true(event.bubbles);
+  document_scrollend_arrived = true;
+}
+
+let root_element = document.scrollingElement;
+let target_div = document.getElementById("targetDiv");
+let inner_div = document.getElementById("innerDiv");
+
+// Get expected position for root_element scrollIntoView.
+root_element.scrollTo(10000, 10000);
+let max_root_x = root_element.scrollLeft;
+let max_root_y = root_element.scrollTop;
+root_element.scrollTo(0, 0);
+
+target_div.scrollTo(10000, 10000);
+let max_element_x = target_div.scrollLeft;
+let max_element_y = target_div.scrollTop;
+target_div.scrollTo(0, 0);
+
+let test_cases = [
+  {
+    key: "subframe-inline-end-block-end-behavior-auto",
+    args: { inline: "end", block: "end", behavior: "smooth" },
+    target: target_div,
+    scroll_target: inner_div,
+    expected: {
+      pos: { x: max_element_x, y: max_element_y },
+    },
+    title: "Tests scrollend event for scrollIntoView with behavior 'auto' on subframe.",
+  },
+  {
+    key: "subframe-inline-start-block-start-behavior-smooth",
+    args: { inline: "start", block: "start", behavior: "auto" },
+    target: target_div,
+    scroll_target: inner_div,
+    expected: {
+      pos: { x: 0, y: 0 },
+    },
+    title: "Tests scrollend event for scrollIntoView with behavior 'smooth' on subframe.",
+  },
+  {
+    key: "root-inline-end-block-end-behavior-auto",
+    args: { inline: "end", block: "end", behavior: "smooth" },
+    target: document.scrollingElement,
+    scroll_target: document.scrollingElement,
+    expected: {
+      pos: { x: max_root_x, y: max_root_y },
+    },
+    title: "Tests scrollend event for scrollIntoView with behavior 'auto' on root.",
+  },
+  {
+    key: "root-inline-start-block-start-behavior-smooth",
+    args: { inline: "start", block: "start", behavior: "auto" },
+    target: document.scrollingElement,
+    scroll_target: document.scrollingElement,
+    expected: {
+      pos: { x: 0, y: 0 },
+    },
+    title: "Tests scrollend event for scrollIntoView with behavior 'smooth' on root.",
+  },
+];
+
+function runTest() {
+  async function testScrollIntoView(testInfo, t) {
+    let test_start = { x: 0, y: 0 };
+    if (testInfo.args.inline == "start") {
+      test_start.x = 10000;
+    }
+    if (testInfo.args.block == "start") {
+      test_start.y = 10000;
+    }
+
+    if (test_start.x != 0 || test_start.y != 0) {
+      testInfo.target.scrollTo(test_start.x, test_start.y);
+    }
+
+    await waitForCompositorCommit();
+
+    targetDiv.addEventListener("scrollend", onElementScrollEnd);
+    document.addEventListener("scrollend", onDocumentScrollEnd);
+
+    await waitForCompositorCommit();
+
+    testInfo.scroll_target.scrollIntoView({ inline: testInfo.args.inline,
+                                            block: testInfo.args.block,
+                                            behavior: testInfo.args.behavior });
+
+    await waitFor(
+      () => { return element_scrollend_arrived || document_scrollend_arrived; },
+      testInfo.target.tagName + ".scrollIntoView  did not receive scrollend event."
+    );
+
+    assert_equals(testInfo.target.scrollLeft, testInfo.expected.pos.x,
+                  testInfo.target.tagName + ".scrollIntoView scrollLeft");
+    assert_equals(testInfo.target.scrollTop, testInfo.expected.pos.y,
+                  testInfo.target.tagName + ".scrollIntoView scrollTop");
+
+    if (testInfo.target == root_element) {
+      assert_false(element_scrollend_arrived,
+                   "root element targetted, but element scrollend arrived");
+    } else {
+      assert_false(document_scrollend_arrived,
+                   "subframe targetted, but document scrollend arrived");
+    }
+  }
+
+  test_cases.forEach((test_info) => {
+    subsetTestByKey(test_info.key, promise_test,
+                    async (t) => testScrollIntoView(test_info, t), test_info.title);
+  });
+
+  subsetTestByKey(
+    "nested-scrollIntoView",
+    promise_test,
+    async (t) => {
+      await waitForCompositorCommit();
+
+      document.addEventListener("scrollend", onDocumentScrollEnd);
+      target_div.addEventListener("scrollend", onElementScrollEnd);
+
+      await waitForCompositorCommit();
+
+      document.body.removeChild(target_div);
+      let out_div = document.createElement("div");
+      out_div.style = "width: 100px; height:100px; overflow:scroll; scroll-behavior:smooth;";
+      out_div.appendChild(target_div);
+      document.body.appendChild(out_div);
+      await waitForCompositorCommit();
+
+      inner_div.scrollIntoView({ inline: "end", block: "end", behavior: "auto" });
+      const scrollend_events = [
+        waitForScrollendEventNoTimeout(out_div),
+        waitForScrollendEventNoTimeout(target_div)
+      ];
+      await Promise.all(scrollend_events);
+      assert_equals(root_element.scrollLeft, 0, "Nested scrollIntoView root_element scrollLeft");
+      assert_equals(root_element.scrollTop, 0, "Nested scrollIntoView root_element scrollTop");
+      assert_equals(out_div.scrollLeft, 100, "Nested scrollIntoView out_div scrollLeft");
+      assert_equals(out_div.scrollTop, 100, "Nested scrollIntoView out_div scrollTop");
+      assert_equals(target_div.scrollLeft, max_element_x, "Nested scrollIntoView target_div scrollLeft");
+      assert_equals(target_div.scrollTop, max_element_y, "Nested scrollIntoView target_div scrollTop");
+      assert_false(document_scrollend_arrived);
+    },
+    "Tests scrollend event for nested scrollIntoView.",
+  );
+}
+
+</script>

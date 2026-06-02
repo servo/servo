@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'box-shadow-spread' with valid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-spread">
+<meta name="assert" content="This test checks that 'box-shadow-spread' supports length values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("box-shadow-spread", "0");
+test_valid_value("box-shadow-spread", "1px");
+test_valid_value("box-shadow-spread", "1em");
+test_valid_value("box-shadow-spread", "-1px");
+test_valid_value("box-shadow-spread", "calc(1em + 2px)");
+</script>

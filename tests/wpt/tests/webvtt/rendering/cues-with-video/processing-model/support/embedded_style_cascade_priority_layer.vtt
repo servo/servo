@@ -1,0 +1,25 @@
+WEBVTT
+
+NOTE
+opacity: 0.5; should apply.
+color: green; should apply.
+background: green; should apply because multiple STYLE blocks are supported.
+
+STYLE
+::cue {
+    opacity: 0.5;
+}
+::cue {
+    color: green !important;
+}
+
+STYLE
+::cue {
+    background: green;
+}
+
+00:00:00.000 --> 00:00:05.000
+<v Voice1>This <i>is</i> a <b>test</b> subtitle
+
+00:00:00.000 --> 00:00:05.000
+<v Voice2>Here <i>is</i> a <b>second</b> subtitle

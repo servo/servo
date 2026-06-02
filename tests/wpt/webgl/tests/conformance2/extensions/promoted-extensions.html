@@ -1,0 +1,66 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+
+function checkExtensionNotAvailable(extension, extensions) {
+    if (extensions.indexOf(extension) >= 0) {
+        testFailed(extension + " was exposed in the WebGL 2.0 context but should not have been");
+    } else {
+        testPassed(extension + " was not exposed in the WebGL 2.0 context");
+    }
+}
+
+description("Promoted extensions from WebGL 1.0 should not be exposed in WebGL 2.0");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
+
+var exts = gl.getSupportedExtensions();
+
+var promotedExtensions = [
+    "ANGLE_instanced_arrays",
+    "EXT_blend_minmax",
+    "EXT_frag_depth",
+    "EXT_shader_texture_lod",
+    "EXT_sRGB",
+    "OES_element_index_uint",
+    "OES_standard_derivatives",
+    "OES_texture_float",
+    "OES_texture_half_float",
+    "OES_texture_half_float_linear",
+    "OES_vertex_array_object",
+    "WEBGL_depth_texture",
+    "WEBGL_draw_buffers",
+]
+
+for (var i = 0; i < promotedExtensions.length; ++i) {
+    checkExtensionNotAvailable(promotedExtensions[i], exts);
+}
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

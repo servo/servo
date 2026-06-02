@@ -1,0 +1,119 @@
+name: Dispatch Workflow
+on:
+  workflow_call:
+    inputs:
+      workflow:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+      build-args:
+        required: true
+        type: string
+      wpt-args:
+        required: true
+        type: string
+      wpt:
+        required: true
+        type: boolean
+      number-of-wpt-chunks:
+        required: true
+        type: number
+      unit-tests:
+        required: true
+        type: boolean
+      build-libservo:
+        required: true
+        type: boolean
+      bencher:
+        required: true
+        type: boolean
+      coverage:
+        required: true
+        type: boolean
+    outputs:
+      ohos_optional_job_status:
+        description: "The status of the optional jobs in the ohos workflow"
+        value: ${{ jobs.ohos.outputs.optional_job_status }}
+
+jobs:
+  win:
+    if: ${{ inputs.workflow == 'windows' }}
+    name: Windows
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      bencher: ${{ inputs.bencher }}
+
+  macos:
+    if: ${{ inputs.workflow == 'macos' }}
+    name: MacOS
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+
+  macos-arm64:
+    if: ${{ inputs.workflow == 'macos-arm64' }}
+    name: MacOS
+    uses: ./.github/workflows/mac-arm64.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+
+  linux:
+    if: ${{ inputs.workflow == 'linux' }}
+    name: Linux
+    uses: ./.github/workflows/linux.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+      coverage: ${{ inputs.coverage }}
+
+  lint:
+    if: ${{ inputs.workflow == 'lint' }}
+    name: Lint
+    # Note: The lint workflow does not need access to any secrets.
+    uses: ./.github/workflows/lint.yml
+
+  android:
+    if: ${{ inputs.workflow == 'android' }}
+    name: Android
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      bencher: ${{ inputs.bencher }}
+
+  ohos:
+    if: ${{ inputs.workflow == 'ohos' }}
+    name: OpenHarmony
+    uses: ./.github/workflows/ohos.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      bencher: ${{ inputs.bencher }}

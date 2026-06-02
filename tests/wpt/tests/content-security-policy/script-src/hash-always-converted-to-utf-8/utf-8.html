@@ -1,0 +1,36 @@
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc'
+          'sha256-c6TzhBw/snA+hlDMGOuKLWXIkb2sawA/S1wbSe6FeEM='
+          'sha256-ST0rpskqtEC0Q0hqbIAZFeE1KBMJeGZGyYaTcTkieG8='
+          'sha256-hbNM6T3uO5pu4o5YfNnUmwtq5VHHMr7V5ospXtx9bqU=';">
+          <!-- hashes matching the 3 script blocks below -->
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <script nonce="abc">
+      var t1 = async_test("Should convert the script contents to UTF-8 before hashing - latin micro sign");
+      window.addEventListener("securitypolicyviolation", t1.unreached_func("Should not have fired a spv"));
+      var t2 = async_test("Should convert the script contents to UTF-8 before hashing - greek small letter mu");
+      window.addEventListener("securitypolicyviolation", t2.unreached_func("Should not have fired a spv"));
+      var t3 = async_test("Should convert the script contents to UTF-8 before hashing - latin capital letter g with breve");
+      window.addEventListener("securitypolicyviolation", t3.unreached_func("Should not have fired a spv"));
+    </script>
+
+    <!-- the hash values of these script blocks should match the same values
+         of identical script blocks in documents with other encodings -->
+    <script>
+      // µ - latin micro sign
+      t1.done();
+    </script>
+    <script>
+      // μ - greek small letter mu
+      t2.done();
+    </script>
+    <script>
+      // Ğ - latin capital letter g with breve
+      t3.done();
+    </script>
+</body>
+</html>

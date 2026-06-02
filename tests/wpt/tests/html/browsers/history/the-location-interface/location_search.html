@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_search</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      window.history.pushState(1, document.title, '?x=1');
+      var search = location.search;
+
+      assert_equals(search, "?x=1", "search");
+
+    }, "location search");
+    </script>
+  </body>
+</html>

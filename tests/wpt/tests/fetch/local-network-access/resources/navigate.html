@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Navigate</title>
+<body></body>
+<script>
+  const window_url = new URL(window.location.href);
+  targetUrl = window_url.searchParams.get('url');
+  window.location.href = targetUrl;
+</script>

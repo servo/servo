@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html class="reftest-wait">
+<title>WebVTT rendering, set align start and the cue contains two lines with different writing directions</title>
+<script src="/common/reftest-wait.js"></script>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: start;
+    unicode-bidi: plaintext;
+}
+.cueText {
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<div class="video">
+    <video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+        <source src="/media/white.webm" type="video/webm">
+        <source src="/media/white.mp4" type="video/mp4">
+    </video>
+    <span class="cue">
+        <span class="cueText">Hello!</span><br>
+        <span class="cueText">שלום!</span>
+    </span>
+</div>
+</html>

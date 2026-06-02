@@ -1,0 +1,12 @@
+<div id="test" style="display: block; background-color: black; background-position: top left; font-style: italic">test text!</div>
+<script>
+var id = document.getElementById('test');
+alert(id.style.display);
+id.style.display = 'none';
+alert(id.style.display);
+alert(id.style.fontStyle + ' ' + id.style['font-style']);
+id.style.background = "black";
+alert(document.getElementById('test').style.background);
+alert(document.getElementById('test').style.backgroundColor);
+alert(document.getElementById('test').style.backgroundPosition);
+</script>

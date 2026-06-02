@@ -1,0 +1,27 @@
+<!doctype HTML>
+<meta charset="utf8">
+<title>CSS Content Visibility: content-visibility is animatable.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility is animatable">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+@keyframes cv {
+  from { content-visibility: auto }
+  to { content-visibility: hidden }
+}
+
+#container { animation: cv 1s; }
+</style>
+
+<div id=container></div>
+
+<script>
+test(() => {
+  const computedStyle = getComputedStyle(container);
+  assert_equals(computedStyle.contentVisibility, "auto");
+}, "Content-visibility is animatable");
+</script>

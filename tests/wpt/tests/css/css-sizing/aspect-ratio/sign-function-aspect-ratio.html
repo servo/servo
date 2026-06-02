@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Sizing test: aspect-ratio with CSS sign() function</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+:root {
+  font-size: 16px;
+}
+</style>
+<div id="target"></div>
+<script>
+  test_computed_value("aspect-ratio", "sign(1rem - 1px) / sign(1rem - 1px)", "1 / 1");
+</script>

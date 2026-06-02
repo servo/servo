@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#default-stylesheet">
+<link rel="match" href="text-autospace-preformatted-001-ref.html">
+<style>
+    .container {
+        font: 40px sans-serif;
+        text-autospace: normal;
+    }
+    .mono {
+        font-family: monospace;
+    }
+</style>
+
+<div class=container>
+    <!-- autospace should be applied -->
+    <p>A水Z</p>
+
+    <!-- autospace should be applied, even with a monospace font -->
+    <p class=mono>A水Z</p>
+
+    <!-- autospace should NOT be applied to known "preformatted" elements -->
+    <pre>A水Z</pre>
+
+    <div><code>A水Z</code></div>
+
+    <div><kbd>A水Z</kbd></div>
+
+    <div><samp>A水Z</samp></div>
+
+    <div><tt>A水Z</tt></div>
+</div>

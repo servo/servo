@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference File</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  ruby
+    {
+      background-color: lightblue;
+      font-size: 60px;
+    }
+  </style>
+
+  <ruby>
+
+    <rb>b</rb><rt>a</rt><rb>&nbsp;</rb><rt></rt><rb>c</rb><rt>a</rt><rb>d&nbsp;</rb><rt>a</rt><rb>e</rb><rt>a</rt>
+
+  </ruby>
+
+  <!--
+
+  |[ a ]|[  ]|[ a ]|  [ a ]  |[ a ]|
+  |[ b ]|[ws]|[ c ]|[ d ][ws]|[ e ]|
+
+  -->

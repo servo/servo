@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pagePrevValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has an invalid prev value.",
+  "title": "True when **Annotation Page has no _prev_ key** or has **_prev_ key** with valid value of string of format uri - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/prevValidIfPresent" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/prevValidIfPresent" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

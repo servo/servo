@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flexbox Test: display:table flex items with percent-width cells and content keywords for used flex-basis</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-flex-basis-content">
+<link rel="match" href="table-as-item-percent-width-cell-001-ref.html">
+<meta name="assert" content="If a table as a flex item has used 'flex-basis:content' (or another content-based keyword), and default flex factors, and plenty of space, then it should be sized similarly to a table with 'width:max-content' in a block formatting context.">
+<style>
+  .container {
+    display: flex;
+    width: 200px;
+    border: 1px solid black;
+  }
+  td {
+    background-color: cyan;
+    width: 100%;
+    border: 1px solid gray;
+  }
+
+</style>
+<body>
+  <div class="container">
+    <!-- The used value of flex-basis is 'content' here, due to the flex-basis
+         and the main-size property both having the value 'auto'. -->
+    <table><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table style="flex-basis: content"><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table style="flex-basis: min-content"><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table style="flex-basis: max-content"><tr><td>1</td><td>2</td></tr></table>
+  </div>
+</body>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>WebVTT rendering, cue position after navigation</title>
+<link rel="match" href="navigate_cue_position-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/utils.js"></script>
+<style>iframe {width:100%; height:500px}</style>
+<script>
+var uuid = token();
+onload = function() {
+    var frame = document.getElementsByTagName("iframe")[0].contentWindow;
+    if (sessionStorage[uuid]) {
+        document.body.appendChild(document.createTextNode('FAIL (page reloaded after navigation)'));
+        delete sessionStorage[uuid]
+        takeScreenshotDelayed(100);
+    } else {
+        setTimeout(function() {
+            frame.location.assign('data:text/html,<body onload="setTimeout(function(){history.back()}, 100); sessionStorage[\'' + uuid + '\'] = \'true\';">x');
+            setTimeout(function() {
+                delete sessionStorage[uuid];
+                takeScreenshot();
+            }, 500);
+        }, 100);
+    }
+}
+</script>
+<iframe src="navigate_cue_position-1.html"></iframe>

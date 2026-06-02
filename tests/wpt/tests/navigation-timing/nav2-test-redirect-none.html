@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the value of the window.performance.getEntriesByType("navigation")[0].redirectCount attribute, as well as the window.performance.getEntriesByType("navigation")[0].redirectStart and redirectEnd attributes on a non-redirected navigation.</p>
+
+        <script>
+
+        async_test(function (t) {
+            var observer = new PerformanceObserver(
+                t.step_func(function (entryList) {
+                    var navTiming = performance.getEntriesByType("navigation")[0];
+                    assert_equals(navTiming.redirectCount, 0, "Expected redirectCount to be 0.");
+                    assert_equals(navTiming.redirectStart, 0, "Expected redirectStart to be 0.");
+                    assert_equals(navTiming.redirectEnd, 0, "Expected redirectEnd to be 0.");
+                    observer.disconnect();
+                    t.done();
+                })
+            );
+            observer.observe({entryTypes: ["navigation"]});
+
+        }, "Naivation without redirects.");
+        </script>
+    </body>
+</html>

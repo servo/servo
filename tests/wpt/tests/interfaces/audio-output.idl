@@ -1,0 +1,17 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Audio Output Devices API (https://w3c.github.io/mediacapture-output/)
+
+partial interface HTMLMediaElement {
+  [SecureContext] readonly attribute DOMString sinkId;
+  [SecureContext] Promise<undefined> setSinkId (DOMString sinkId);
+};
+
+partial interface MediaDevices {
+  Promise<MediaDeviceInfo> selectAudioOutput(optional AudioOutputOptions options = {});
+};
+
+dictionary AudioOutputOptions {
+  DOMString deviceId = "";
+};

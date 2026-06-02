@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<h1>Heading!</h1>
+<div id="content" elementtiming="content-text">Initial Text</div>
+<div id="container"></div>
+
+<script>
+  async function waitForExactlyOneElementTimingEntry(id, buffered) {
+    let entries = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        resolve(list.getEntries());
+        observer.disconnect();
+      }).observe({type: 'element', buffered});
+    });
+    assert_equals(
+        entries.length, 1,
+        `Expected exactly one ElementTiming entry for "${id}"`);
+    assert_equals(
+        entries[0].identifier, id,
+        `Unexpected ElementTiming entry: expected "${id}"`);
+  }
+
+  async function runTest(t, url, text) {
+    navigateButton.addEventListener('click', async () => {
+      // We expect to get a timing entry for this, but not a soft nav ICP entry.
+      // This lets us check that we don't get more than the initial timing entry
+      // for `content`.
+      const div = document.createElement("div");
+      div.innerHTML = `<div id="additional" elementtiming="${url}">hi</div>`;
+      container.appendChild(div);
+
+      content.innerText = text;
+
+      history.pushState({}, '', url);
+    }, {once: true});
+
+    // Set up the PerformanceObservers before clicking to avoid races,
+    // and use unbuffered here so we don't get duplicate entries.
+    const elementTimingPromise =
+        waitForExactlyOneElementTimingEntry(url, /*buffered=*/false);
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+    const icpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+
+    // Check if we detected a soft nav.
+    const softNavs = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
+    assert_equals(softNavs.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+      softNavs[0].name.endsWith(url),
+      `Unexpected Soft Navigation URL. Expected url to end with ${url} but got ${softNavs[0].name}`);
+
+    // Check that we only get one ICP entry, and that it's for the node whose
+    // text we overwrote.
+    const icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
+    assert_equals(icps[0].id, 'content', 'Expected ICP candidate to be "content"');
+
+    // Finally, check to make sure we don't get an additional timing entry.
+    return elementTimingPromise;
+  }
+
+  // Wait for the initial text load and make its way through the text timing
+  // pipeline before changing its contents.
+  promise_setup(() => waitForExactlyOneElementTimingEntry('content-text', /*buffered=*/true));
+
+  promise_test(t => {
+    const url = 'soft-nav-1';
+    const text = 'The initial text has been replaced!';
+    return runTest(t, url, text);
+  }, 'Soft Navigation Detection supports replacing existing text');
+
+  promise_test(t => {
+    const url = 'soft-nav-2';
+    const text = 'The initial text has been replaced again!';
+    return runTest(t, url, text);
+  }, 'Soft Navigation Detection supports replacing existing text in multiple interactions');
+</script>

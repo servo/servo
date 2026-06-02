@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+  const namespace_url= {
+    "HTML": "http://www.w3.org/1999/xhtml",
+    "SVG": "http://www.w3.org/2000/svg",
+  }
+  const test_cases = [
+    ["meh"    , "HTML"],
+    ["div"    , "HTML"],
+    ["script" , "HTML"],
+    ["meh"    , "SVG"],
+    ["svg"    , "SVG"],
+    ["script" , "SVG"],
+    ["style"  , "HTML"],
+    ["link"   , "HTML"]
+  ];
+
+  test_cases.forEach(([localName, namespace]) => {
+    test(t => {
+      const element = document.createElementNS(namespace_url[namespace], localName);
+      t.add_cleanup(() => element.remove());
+      assert_equals(element.nonce, "", "Initial IDL attribute value");
+      assert_equals(element.getAttribute("nonce"), null, "Initial content attribute");
+
+      element.setAttribute("nonce", "x");
+      assert_equals(element.nonce, "x", "IDL attribute is modified after content attribute set");
+      assert_equals(element.getAttribute("nonce"), "x", "Content attribute is modified after content attribute set");
+
+      document.body.appendChild(element);
+      assert_equals(element.nonce, "x", "IDL attribute is unchanged after element insertion");
+      assert_equals(element.getAttribute("nonce"), "", "Content attribute is changed after element insertion");
+    }, `Basic nonce tests for ${localName} in ${namespace} namespace`);
+
+    test(t => {
+      const element = document.createElementNS(namespace_url[namespace], localName);
+      t.add_cleanup(() => element.remove());
+      element.setAttribute("nonce", "x");
+      assert_equals(element.nonce, "x", "IDL attribute is modified after content attribute set");
+
+      element.removeAttribute("nonce");
+      assert_equals(element.nonce, "", "IDL attribute is empty after content attribute removal");
+    }, `Ensure that removal of content attribute does not affect IDL attribute for ${localName} in ${namespace} namespace`);
+
+    test(t => {
+      const element = document.createElementNS(namespace_url[namespace], localName);
+      t.add_cleanup(() => element.remove());
+      assert_equals(element.nonce, "");
+      assert_equals(element.getAttribute("nonce"), null);
+
+      element.setAttribute("nonce", "");
+      assert_equals(element.nonce, "");
+      assert_equals(element.getAttribute("nonce"), "");
+
+      document.body.appendChild(element);
+      assert_equals(element.nonce, "");
+      assert_equals(element.getAttribute("nonce"), "");
+
+      element.removeAttribute("nonce");
+      assert_equals(element.nonce, "");
+      assert_equals(element.getAttribute("nonce"), null);
+    }, `Test empty nonces for ${localName} in ${namespace} namespace`);
+  });
+</script>

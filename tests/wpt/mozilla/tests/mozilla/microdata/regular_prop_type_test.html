@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Regular ItemProperty and ItemType test</title>
+</head>
+
+<body id="body" itemprop="hello world" itemtype="hello world">
+
+  <h1 id="h1" itemprop="hello world" itemtype="hello world">Header H1</h1>
+  <h2 id="h2" itemprop="hello world" itemtype="hello world">Header H2</h2>
+
+  <p id="p" itemprop="hello world" itemtype="hello world">Paragraph</p>
+
+  <form id="form" itemprop="hello world" itemtype="hello world">
+    <input id="input" itemprop="hello world" itemtype="hello world">Input Field in form</input>
+  </form>
+
+  <ul id="ul" itemprop="hello world" itemtype="hello world">
+    <li id="li" itemprop="hello world" itemtype="hello world">Unordered List Item</li>
+  </ul>
+
+  <meta id="meta" itemprop="hello world" itemtype="hello world">Meta Tag</meta>
+
+  <table id="table" itemprop="hello world" itemtype="hello world">Table</table>
+
+  <div id="div" itemprop="hello world" itemtype="hello world">Hi</div>
+
+  <a id="anchor" itemprop="hello world" itemtype="hello world"></a>
+
+</body>
+
+<script>
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_array_equals(elem.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+      assert_array_equals(elem.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+    }
+  });
+</script>
+
+</html>

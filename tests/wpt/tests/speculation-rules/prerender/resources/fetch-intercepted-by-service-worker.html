@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+async function startFetch() {
+  assert_true(document.prerendering);
+
+  const response = await fetch('cache.txt?should-intercept');
+  const body = await response.text();
+
+  const bc = new PrerenderChannel('prerender-channel', uid);
+  bc.postMessage(body);
+  bc.close();
+}
+
+startFetch();
+</script>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Calls to MediaSource.endOfStream() without error</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    mediasource_test(function(test, mediaElement, mediaSource)
+    {
+        mediaSource.duration = 2;
+        mediaSource.endOfStream();
+        assert_equals(mediaSource.duration, 0);
+        test.done();
+    }, 'MediaSource.endOfStream(): duration truncated to 0 when there are no buffered coded frames');
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        sourceBuffer.appendBuffer(mediaData);
+        test.expectEvent(sourceBuffer, 'updateend',
+          'Media buffer appended to SourceBuffer');
+        test.waitForExpectedEvents(function()
+        {
+            mediaSource.endOfStream();
+            test.expectEvent(mediaElement, 'canplaythrough',
+              'Media element may render the media content until the end');
+        });
+
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_ENOUGH_DATA,
+              'Media element has enough data to render the content');
+            test.done();
+        });
+    }, 'MediaSource.endOfStream(): media element notified that it now has all of the media data');
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        sourceBuffer.appendBuffer(mediaData);
+        test.expectEvent(sourceBuffer, 'updateend',
+          'Media buffer appended to SourceBuffer');
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(sourceBuffer.buffered.length, 1,
+              'Media data properly buffered');
+            var highestEndTime = sourceBuffer.buffered.end(0);
+
+            // Note that segmentInfo.duration is expected to also be the
+            // highest track buffer range end time. Therefore, endOfStream() should
+            // not change duration with this media.
+            assert_approx_equals(segmentInfo.duration, mediaSource.duration, 0.001,
+                'SegmentInfo duration should initially roughly match mediaSource duration');
+            assert_less_than_equal(highestEndTime, mediaSource.duration,
+                'Media duration may be slightly longer than intersected track buffered ranges');
+
+            // Set the duration even higher, then confirm that endOfStream() drops it back to be
+            // the highest track buffer range end time.
+            mediaSource.duration += 10;
+            mediaSource.endOfStream();
+
+            assert_equals(sourceBuffer.buffered.length, 1,
+              'Media data properly buffered after endOfStream');
+
+            assert_approx_equals(segmentInfo.duration, mediaSource.duration, 0.001,
+                'SegmentInfo duration should still roughly match mediaSource duration');
+            assert_less_than_equal(highestEndTime, mediaSource.duration,
+                'Media duration may be slightly longer than intersected track buffered ranges');
+            assert_equals(sourceBuffer.buffered.end(0), mediaSource.duration,
+                'After endOfStream(), highest buffered range end time must be the highest track buffer range end time');
+
+            test.done();
+        });
+    }, 'MediaSource.endOfStream(): duration and buffered range end time before and after endOfStream');
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>text-box-trim should only be applied on the first/last formatted line</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-formatted-line">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-box-trim-half-leading-block-box-003-ref.html">
+
+<style>
+.div-parent {
+  outline: 1px solid orange;
+  font: 20px/3 Ahem;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+}
+span {
+  border-block: solid red;
+}
+</style>
+
+<!-- The SPANs here will be wrapped inside anonymous blocks. #div-parent will
+     thus start with an anonymous block (for the first SPAN). When looking for a
+     first formatted line, it will have to be inside this anonymous block (or it
+     doesn't exist at all).
+
+     To quote the spec:
+
+     The first formatted line of a block container [...] that contains
+     block-level content [...] is the first formatted line of its first in-flow
+     block-level child. If no such line exists, it has no first formatted
+     line. -->
+<div class="div-parent">
+  <span>    </span>
+  <div>Testline1<br>Testline2<br>Testline3</div>
+  <span>	</span>
+</div>

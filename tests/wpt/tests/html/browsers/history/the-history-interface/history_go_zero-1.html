@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="history.js"></script>
+<script>
+  onunload = function() {}
+
+  onload = function() {
+    if (!opener.started) {
+      queue_next();
+    } else {
+      opener.pages.push(id);
+      if (!opener.gone) {
+          history.go(0);
+          opener.gone = true;
+      }
+    }
+  };
+</script>

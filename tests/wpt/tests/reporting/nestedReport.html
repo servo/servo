@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: Nested report</title>
+<link rel="author" title="Paul Meyer" href="paulmeyer@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  // Test that reports can be generated within a ReportingObserver
+  // callback. These reports should be received by the same observer.
+  async_test(function(test) {
+    var step = 0;
+    var observer = new ReportingObserver(async function(reports, observer) {
+      test.step(function() {
+        assert_equals(reports.length, 1);
+        assert_equals(reports[0].body.message, "" + step);
+      });
+
+      ++step;
+      if (step == 3)
+        test.done();
+
+      test_driver.generate_test_report("" + step);
+    });
+    observer.observe();
+
+    test_driver.generate_test_report("0");
+  }, "Nested report");
+</script>

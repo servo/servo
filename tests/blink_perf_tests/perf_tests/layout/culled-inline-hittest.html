@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Hit-testing culled inline</title>
+<script src="../resources/runner.js"></script>
+<body>
+<div id="container" style="width: 800px"></div>
+<script>
+let span_count = 0;
+
+function createTree(container, children_list) {
+  let children = children_list.shift();
+  for (let i = 0; i < children; ++i) {
+    const span = document.createElement('span');
+    span.appendChild(document.createTextNode('1234567'));
+    container.appendChild(span);
+    container.appendChild(document.createTextNode(' '));
+    ++span_count;
+  }
+
+  if (children_list.length) {
+    const span = document.createElement('span');
+    createTree(span, children_list);
+    container.appendChild(span);
+  }
+}
+
+function setup() {
+  container.textContent = '';
+  createTree(container, [1, 1, 1, 1, 3000]);
+}
+
+function test() {
+  let bounds = container.getBoundingClientRect();
+  for (let y = 0; y < 200; y += 10) {
+    for (let x = bounds.x + 5; x < bounds.x + 800; x += 100)
+      document.elementFromPoint(x, y);
+    document.elementFromPoint(bounds.right - 2, y);
+  }
+}
+
+function run() {
+  PerfTestRunner.measureTime({
+    description: `Measures performance of hit-testing ${span_count} culled inline.`,
+    run: test
+  });
+}
+
+setup();
+run();
+</script>
+</body>

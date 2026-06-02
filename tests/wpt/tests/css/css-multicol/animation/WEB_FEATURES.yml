@@ -1,0 +1,4 @@
+features:
+- name: column-fill
+  files:
+  - discrete-no-interpolation.html

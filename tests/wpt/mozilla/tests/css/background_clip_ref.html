@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#foo1 {
+    background: green;
+}
+#foo1, #foo2, #foo3 {
+    width: 200px;
+    height: 200px;
+    padding: 20px;
+    border-width: 10px 20px 30px 40px;
+    border-style: dotted;
+    border-color: red;
+}
+#foo2-color {
+    background: green;
+    width: 240px;
+    height: 240px;
+    position: relative;
+    left: -20px;
+    top: -20px;
+}
+#foo3-color {
+    background: green;
+    width: 200px;
+    height: 200px;
+}
+</style>
+</head>
+<body>
+<p>background-clip: border-box;</p>
+<div id=foo1></div>
+<p>background-clip: padding-box;</p>
+<div id=foo2><div id=foo2-color></div></div>
+<p>background-clip: content-box;</p>
+<div id=foo3><div id=foo3-color></div></div>
+</body>
+</html>
+

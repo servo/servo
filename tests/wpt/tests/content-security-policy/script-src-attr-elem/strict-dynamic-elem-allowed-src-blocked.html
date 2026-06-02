@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src-elem 'strict-dynamic' 'nonce-abc';
+    script-src 'nonce-abc';">
+    <script nonce='abc' src="/resources/testharness.js"></script>
+    <script nonce='abc' src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script nonce='abc'>
+      var t = async_test("Should not fire a security policy violation event");
+      window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have fired a spv event"));
+
+      var s = document.createElement('script');
+      s.src = 'support/t_done.js';
+      document.head.appendChild(s);
+    </script>
+</body>
+
+</html>

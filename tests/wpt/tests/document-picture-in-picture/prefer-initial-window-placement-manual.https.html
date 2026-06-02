@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test that using documentPictureInPicture's preferInitialWindowPlacement
+  parameter does not cache the window bounds</title>
+<body>
+  <p>
+  This tests that a document picture-in-picture window opened with the `preferInitialWindowPlacement`
+  parameter set to `true` does not cache the previous window bounds when it is closed and reopened.
+    <ol>
+      <li>Click on the "Open document picture-in-picture window" button below.</li>
+      <li>Note its approximate position and size.</li>
+      <li>Move and resize the window.</li>
+      <li>Close the window.</li>
+      <li>Click the "Open document picture-in-picture window" button again.</li>
+      <li>Check that it opens in its original position and size, not where you resized / moved it to.</li>
+    </ol>
+  </p>
+  <input type="button" id="btnOpenPip" value="Open document picture-in-picture window" />
+<script>
+const btnOpenPip = document.getElementById('btnOpenPip');
+btnOpenPip.addEventListener('click', async () => {
+  const pipWindow = await documentPictureInPicture.requestWindow({ preferInitialWindowPlacement: true });
+  pipWindow.document.body.innerText = 'Move and resize this window!';
+});
+</script>
+</body>

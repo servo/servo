@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+// Running from the onload callback just makes the UI nicer as it shows the logs before starting the test.
+window.onload = function() {
+    PerfTestRunner.measurePageLoadTime({
+        description: "Measures performance of a full HTML5 document load.",
+        path: "resources/html5.html",
+        // 6.09mb / 500k = approx 13 chunks (thus 13 forced layouts/style resolves).
+        chunkSize: 500000
+    });
+};
+
+</script>
+</body>

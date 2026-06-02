@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-delay - negative value</title>
+<link rel="author" title="Nokia Inc." href="http://www.nokia.com">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-03-18 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-delay">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-timing-function">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-delay is set to a negative time offset,
+                             animation will execute as soon as it is applied
+                             but act as if the animation had started the specified
+                             time in the past.">
+<style>
+  div {
+    animation-timing-function: linear;
+
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  #test-negative-delay {
+    animation-name: test-negative-delay;
+    animation-duration: 10s;
+    animation-delay: -5s;
+
+    background-color: blue;
+  }
+
+  #ref-no-delay {
+    animation-name: ref-no-delay;
+    animation-duration: 5s;
+
+    background-color: yellow;
+  }
+
+  @keyframes test-negative-delay {
+    from {
+      left: 150px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+
+  @keyframes ref-no-delay {
+    from {
+      left: 75px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there are a filled blue square with 'Filler Text'
+    and a filled yellow square with 'Filler Text', and if the two squares
+    start moving together from right to left as soon as the page loads.
+  </p>
+  <div id="test-negative-delay">Filler Text</div>
+  <div id="ref-no-delay">Filler Text</div>
+</body>
+

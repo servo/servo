@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>idlharness test_primary_interface_of_undefined</title>
+</head>
+
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+  <script>
+    'use strict';
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('interface A : B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but B is undefined.'), i => i.test());
+    }, 'A : B with B undeclared should throw IdlHarnessError');
+
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('interface A : B {};');
+      i.add_untested_idls('dictionary B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but B is not an interface.'), i => i.test());
+    }, 'interface A : B with B dictionary should throw IdlHarnessError');
+  </script>
+</body>
+
+</html>

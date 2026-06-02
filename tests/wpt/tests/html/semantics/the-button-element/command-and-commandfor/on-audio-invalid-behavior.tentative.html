@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<audio controls id="invokee" src="/media/sound_5.mp3"></audio>
+<button id="invokerbutton" commandfor="invokee"></button>
+
+<script>
+  // invalid actions on audio
+  [
+    "",
+    "foo-bar",
+    "playpause",
+    "show-popover",
+    "show-modal",
+    "show-picker",
+    "open",
+    "close",
+  ].forEach((action) => {
+    promise_test(async function (t) {
+      t.add_cleanup(() => invokerbutton.removeAttribute("command"));
+      invokerbutton.setAttribute("command", action);
+      assert_true(invokee.paused);
+      assert_false(invokee.muted);
+      await clickOn(invokerbutton);
+      await waitForRender();
+      assert_true(invokee.paused);
+      assert_false(invokee.muted);
+    }, `invoking (as ${action}) on audio does nothing`);
+  });
+</script>

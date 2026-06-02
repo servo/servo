@@ -1,0 +1,28 @@
+<!doctype html>
+<head>
+    <title>Reusing XPath iterator results</title>
+    <link rel="help" href="https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate">
+    <link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+test(function() {
+  var result = document.evaluate(".", // expression
+                                document.documentElement, // context node
+                                null, // resolver
+                                XPathResult.ANY_TYPE, // type
+                                null); // result
+  assert_equals(result.iterateNext(), document.documentElement);
+  assert_equals(result.iterateNext(), null);
+
+  // Evaluate again, but reuse result from previous evaluation.
+  result = document.evaluate(".", // expression
+                            document.documentElement, // context node
+                            null, // resolver
+                            XPathResult.ANY_TYPE, // type
+                            result); // result
+  assert_equals(result.iterateNext(), document.documentElement);
+  assert_equals(result.iterateNext(), null);
+}, "Reusing an iterator result should work and yield correct elements");
+</script>

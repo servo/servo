@@ -1,0 +1,32 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 400 300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: 'context-fill' and 'context-stroke' in 'use' with transform</title>
+    <html:link rel="author"
+          title="Stefan Zager"
+          href="mailto:szager@chromium.org"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint"/>
+    <html:link rel="match"  href="paint-context-007-ref.svg" />
+  </g>
+
+  <defs>
+    <linearGradient id="lg">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+
+    <g id="shapes">
+      <rect x="50" y="90" width="240" height="120" fill="context-fill"/>
+      <path d="M 170 -30 l -120 240 l 240 0 Z" fill="context-fill"
+            transform-origin="170 150" transform="rotate(90)"/>
+    </g>
+  </defs>
+
+  <g id="test-body-content">
+    <use x="0" y="0" fill="url(#lg)" xlink:href="#shapes"/>
+  </g>
+</svg>

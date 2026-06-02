@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Baseline of a cell might end up below its bottom border</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="ahem may" />
+        <meta name="assert" content="The baseline of a cell may end up below its bottom border (modified example from spec section 17.5.3)." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            table
+            {
+                height: 100px;
+            }
+            td
+            {
+                font: 20px/1em Ahem;
+                vertical-align: baseline;
+            }
+            #cell
+            {
+                color: blue;
+            }
+            div
+            {
+                height: 0;
+            }
+         </style>
+     </head>
+     <body>
+        <p>Test passes regardless if the black box is closer to the top of the page than the blue box, or it is not.</p>
+        <table>
+            <tr>
+                <td id="cell">
+                    <div>Test</div>
+                    XXXXXXXXXX
+                </td>
+                <td>XXXXXXXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

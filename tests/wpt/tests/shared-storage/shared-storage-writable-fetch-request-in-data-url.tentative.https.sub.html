@@ -1,0 +1,69 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+    const origin = window.location.origin;
+    const rawSetHeader = 'set;key=hello;value=world';
+    const setHeader = encodeURIComponent(rawSetHeader);
+
+    promise_test(async t => {
+      let frame = document.createElement('iframe');
+      const promise = new Promise((resolve, reject) => {
+        window.addEventListener('message', async function handler(evt) {
+          if (evt.source === frame.contentWindow &&
+              evt.data.sharedStorageFetchStatus) {
+            document.body.removeChild(frame);
+            window.removeEventListener('message', handler);
+            resolve(evt.data.sharedStorageFetchStatus);
+          }
+        });
+        window.addEventListener('error', (error) => {
+          reject(error);
+        });
+      });
+
+      const fetchUrl =
+        `${origin}\\/shared-storage\\/resources\\/shared-storage-write.py`
+        + `?write=${setHeader}`;
+      const fetchCode = `
+let parentOrOpener = window.opener || window.parent;
+let innerFrame = document.createElement('iframe');
+window.addEventListener('message', async (evt) => {
+  if (evt.source === innerFrame.contentWindow) {
+    parentOrOpener.postMessage({sharedStorageFetchStatus: "success"}, '*');
+  }
+});
+window.addEventListener('error', (error) => {
+  parentOrOpener.postMessage({sharedStorageFetchStatus: error.message}, '*');
+});
+fetch('${fetchUrl}', {sharedStorageWritable: true})
+  .then(response => response.text())
+  .then(htmlContent => {
+    innerFrame.srcdoc = htmlContent;
+    document.body.appendChild(innerFrame);
+  })
+  .catch(error => {
+    parentOrOpener.postMessage({sharedStorageFetchStatus: error.name},
+                                "*");
+  });
+`;
+
+      const dataURL = 'data:text/html;base64,'
+        + btoa(unescape('%3Chtml%3E%3Cbody%3E%3Cscript%3E'
+                        + encodeURIComponent(fetchCode) +
+                        '%3C%2Fscript%3E%3C%2Fbody%3E%3C%2Fhtml%3E'));
+      frame.src = dataURL;
+      document.body.appendChild(frame);
+
+      const result = await promise;
+      assert_equals(result, "TypeError");
+      await verifyKeyNotFoundForOrigin('hello', origin);
+
+    }, 'shared storage fetch request disallowed in opaque origin from data URL');
+  </script>
+</body>

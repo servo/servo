@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned item dynamic change.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#abspos">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test checks that positioned items can be dynamically assigned.">
+<style>
+.grid {
+  display: inline-grid;
+  grid: 100px / 100px;
+  background-color: red;
+}
+
+#item {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<body onload=updatePositionType()>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="grid">
+    <div id="item"></div>
+  </div>
+
+</body>
+
+<script>
+  function updatePositionType() {
+    document.body.offsetLeft;
+
+    var item = document.getElementById("item");
+    item.style.position= "absolute";
+
+    document.documentElement.classList.remove('reftest-wait');
+  }
+</script>
+
+</html>

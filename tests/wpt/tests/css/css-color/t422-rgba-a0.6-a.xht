@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: rgba() colors</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Chris Lilley" href="https://svgees.us" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgba-color" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgb-color" />
+		<link rel="match" href="t422-rgba-a0.6-a-ref.xht" />
+		<meta name="assert" content="Opacity of 0.6 makes background partially opaque.  Colors are in sRGB color space (may test)." />
+		<style type="text/css"><![CDATA[
+			html, body { background: white; color: black; }
+			#one, #two { width: 12em; height: 6em; }
+			#one { background-color: rgb(102, 102, 102); margin-bottom: 0 }
+			#two { background-color: rgba(0, 0, 0, 0.6); margin-top:0 }
+		]]></style>
+	</head>
+	<body>
+		<p>The test passes if you see a gray square:</p>
+		<p id="one"></p>
+		<p id="two"></p>
+	</body>
+</html>

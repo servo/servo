@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Test: border collapse dynamic change to rowgroup border color</title>
+    <link rel="author" title="Bernd Mielke" href="mailto:bmlk@gmx.de" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+    <link rel="match" href="border-collapse-dynamic-rowgroup-001-ref.xht"/>
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <meta name="flags" content="dom" />
+<script type="text/javascript">
+function doTest(){
+ var t1 =document.getElementById('target');
+ t1.style.borderColor="yellow";
+}
+</script>
+<style type="text/css"><![CDATA[
+td { border: 10px green solid;}
+table {margin: 30px; border-collapse:collapse}
+tbody#target {border:solid green 11px}
+]]></style>
+</head>
+<body onload="doTest();">
+
+<p>There should be a continuous solid yellow border around the middle row. All other borders should be a continuous solid green.</p>
+
+<table>
+
+<tbody><tr><td>c11</td><td>c12</td><td>c13</td></tr></tbody>
+ <tbody id="target">
+ <tr><td>c21</td><td>c22</td><td>c23</td></tr>
+ </tbody>
+ <tbody>
+ <tr><td>c31</td><td>c32</td><td>c33</td></tr>
+
+ </tbody>
+</table>
+
+</body></html>

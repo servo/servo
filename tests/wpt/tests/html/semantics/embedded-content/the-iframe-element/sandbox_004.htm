@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Sandbox: Block plugins inside iframe with sandbox attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  https://github.com/whatwg/html/issues/3958
+  https://github.com/whatwg/html/pull/6946
+-->
+
+<iframe sandbox="allow-same-origin" src="support/iframe_sandbox_004.htm" height="400" width ="600"></iframe>
+
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+window.onload = () => {
+  test(() => {
+    const object = document.querySelector("iframe").contentWindow.document.querySelector("object");
+    const rect = object.getBoundingClientRect();
+    assert_less_than(rect.width, 300);
+    assert_less_than(rect.height, 300);
+  }, "Fallback content is always displayed for sandboxed PDFs");
+  done();
+};
+</script>

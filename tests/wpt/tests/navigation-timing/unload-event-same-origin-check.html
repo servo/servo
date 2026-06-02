@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/get-host-info.sub.js"></script>
+    </head>
+    <body>
+        <script>
+
+            const start_page = "/navigation-timing/resources/blank_page_green.html";
+            const end_page = "/navigation-timing/resources/blank_page_yellow.html";
+            const host_info = get_host_info();
+            const redirect_chain_partial_tao = () => {
+                let url = host_info["HTTP_REMOTE_ORIGIN"];
+                url += "/common/redirect.py";
+                url += "?location=";
+                url += host_info["HTTP_REMOTE_ORIGIN"];
+                url += "/common/redirect-opt-in.py";
+                url += "?location=";
+                url += host_info["ORIGIN"];
+                url += end_page;
+                return url;
+            };
+            const redirect_chain_full_tao = () => {
+                let url = host_info["HTTP_REMOTE_ORIGIN"];
+                url += "/common/redirect-opt-in.py";
+                url += "?location=";
+                url += host_info["ORIGIN"];
+                url += end_page;
+                return url;
+            };
+            const redirect_chain_no_tao = () => {
+                let url = host_info["HTTP_REMOTE_ORIGIN"];
+                url += "/common/redirect.py";
+                url += "?location=";
+                url += host_info["ORIGIN"];
+                url += end_page;
+                return url;
+            };
+            const same_origin_redirect_chain = () => {
+                let url = host_info["ORIGIN"];
+                url += "/common/redirect.py";
+                url += "?location=";
+                url += host_info["ORIGIN"];
+                url += end_page;
+                return url;
+            };
+            const cross_origin_start = host_info["HTTP_REMOTE_ORIGIN"] + start_page;
+            const test_cases = [
+                { start_url : start_page, end_url: redirect_chain_partial_tao(), unload_exposed: false, redirects: 0, name: "Redirect chain with a partial TAO opt-in" },
+                { start_url : start_page, end_url: redirect_chain_full_tao(), unload_exposed: false, redirects: 0, name: "Redirect chain with full TAO opt-in" },
+                { start_url : start_page, end_url: redirect_chain_no_tao(), unload_exposed: false, redirects: 0, name: "Same-cross-same redirect chain with no TAO opt-in" },
+                { start_url : cross_origin_start, end_url: redirect_chain_no_tao(), unload_exposed: false, redirects: 0, name: "cross-cross-same Redirect chain with no TAO opt-in" },
+                { start_url : cross_origin_start, end_url: end_page, unload_exposed: false, redirects: 0, name: "Previous document cross origin" },
+                { start_url : start_page, end_url: end_page, unload_exposed: true, redirects: 0, name: "Previous document same origin" },
+                { start_url : start_page, end_url: null, unload_exposed: false, redirects: 0, name: "No previous document" },
+                { start_url : start_page, end_url: same_origin_redirect_chain(), unload_exposed: true, redirects: 1, name: "Same origin previous document with same origin redirect" },
+                { start_url : same_origin_redirect_chain(), end_url: null, unload_exposed: false, redirects: 1, name: "No previous document with same origin redirect" },
+                { start_url : redirect_chain_no_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect" },
+                { start_url : redirect_chain_full_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect with partial TAO" },
+                { start_url : redirect_chain_partial_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect with TAO" },
+            ];
+
+            const frame_id = "frameContext";
+            const create_frame = (start_url, end_url) => {
+                return new Promise(resolve => {
+                    let frame = document.getElementById("frameContext");
+                    if (frame) {
+                        document.body.removeChild(frame);
+                    }
+                    frame = document.createElement("iframe");
+                    frame.onload = () => {
+                        if (end_url) {
+                            frame.onload = resolve;
+                            step_timeout(() => {frame.contentWindow.location.href = end_url;}, 10);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    frame.id = "frameContext";
+                    frame.src = start_url;
+                    document.body.appendChild(frame);
+                });
+            };
+
+            const run_test = (unload_exposed, redirects) => {
+                const entry = document.getElementById("frameContext").contentWindow.performance.getEntriesByType("navigation")[0];
+                assert_equals(entry.type, "navigate", "Expected navigation type to be navigate.");
+                if (!unload_exposed) {
+                    assert_equals(entry.unloadEventStart, 0, "Expected unloadEventStart to be 0.");
+                    assert_equals(entry.unloadEventEnd, 0, "Expected unloadEventEnd to be 0.");
+                } else {
+                    assert_greater_than(entry.unloadEventStart, 0, "Expected unloadEventStart to not be 0.");
+                    assert_greater_than(entry.unloadEventEnd, 0, "Expected unloadEventEnd to not be 0.");
+                }
+                assert_equals(entry.redirectCount, redirects, "Expected redirectCount to be " + redirects);
+            };
+
+            const create_test = async test_case => {
+                return new Promise(async (resolve, reject) => {
+                    await create_frame(test_case.start_url, test_case.end_url);
+                    try {
+                        run_test(test_case.unload_exposed, test_case.redirects);
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            };
+
+            for (const test_case of test_cases) {
+                promise_test(() => { return create_test(test_case)}, test_case.name);
+            }
+
+
+        </script>
+        <h1>Description</h1>
+        <p>This test validates that the values of window.performance.getEntriesByType("navigation")[0].(type/unloadEventEnd/unloadEventStart) are only exposed when the same-origin test passes.</p>
+    </body>
+</html>

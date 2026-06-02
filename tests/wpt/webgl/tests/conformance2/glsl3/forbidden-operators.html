@@ -1,0 +1,126 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests - Unsupported variants of operators</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader-array-ternary-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+void main()
+{
+  float a[3];
+  float b[3];
+  float c[3] = true ? a : b;
+}
+</script>
+<script id="fshader-struct-array-ternary-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+struct MyStruct {
+    bool a[3];
+};
+
+void main()
+{
+  MyStruct b;
+  MyStruct c;
+  MyStruct d = true ? b : c;
+}
+</script>
+<script id="fshader-void-ternary-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+void foo() {}
+
+void main()
+{
+  true ? foo() : foo();
+}
+</script>
+<script id="fshader-array-sequence-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+void main()
+{
+  float a[3];
+  float b[3] = (true, a);
+}
+</script>
+<script id="fshader-struct-array-sequence-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+struct MyStruct {
+    bool a[3];
+};
+
+void main()
+{
+  MyStruct b;
+  MyStruct c = (true, b);
+}
+</script>
+<script id="fshader-void-sequence-operator" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+void foo() {}
+
+void main()
+{
+  (foo(), foo());
+}
+</script>
+<script>
+"use strict";
+description("Check unsupported variants of operators.");
+
+// WebGL 2.0 spec section "Unsupported variants of GLSL ES 3.00 operators"
+
+GLSLConformanceTester.runTests([
+{ fShaderId: 'fshader-array-ternary-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using ternary operators with arrays is not allowed",
+},
+{ fShaderId: 'fshader-struct-array-ternary-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using ternary operators with structs containing arrays is not allowed",
+},
+{ fShaderId: 'fshader-void-ternary-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using ternary operators with void is not allowed",
+},
+{ fShaderId: 'fshader-array-sequence-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using sequence operators with arrays is not allowed",
+},
+{ fShaderId: 'fshader-struct-array-sequence-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using sequence operators with structs containing arrays is not allowed",
+},
+{ fShaderId: 'fshader-void-sequence-operator',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Using sequence operators with void is not allowed",
+}
+], 2);
+
+debug("");
+var successfullyParsed = true;
+</script>
+</body>
+</html>

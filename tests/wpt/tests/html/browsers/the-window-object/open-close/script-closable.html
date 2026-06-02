@@ -1,0 +1,85 @@
+<!doctype html>
+<title>Test whether a window is script-closable</title>
+<link rel="help" href="https://html.spec.whatwg.org/#script-closable"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+let uid = 0;
+
+async function withChannel(createWindow) {
+    const channel_name = `channel_${++uid}`;
+    const channel = new BroadcastChannel(channel_name);
+
+    const closedPromise = new Promise(resolve => {
+        channel.addEventListener("message", ({data}) => {
+            if (data.name === 'load') {
+                assert_true(true, 'window was loaded');
+            } else {
+                assert_not_equals(data.history, 1, "If script-closable, then not due to history length");
+                resolve(data.closed);
+            }
+        });
+    });
+
+    await createWindow(channel_name);
+    return closedPromise;
+}
+
+const Actions = {
+    async form(noopener) {
+        return withChannel((channel_name) => {
+            const form = document.createElement("form");
+            form.action = "self-close.html";
+            form.target = '_blank';
+            if (noopener) {
+                form.rel = "noopener";
+            }
+            // ?navs=1
+            const inp1 = document.createElement("input");
+            inp1.name = "navs";
+            inp1.value = "1";
+            form.appendChild(inp1);
+            // ?channel=channel_name
+            const inp2 = document.createElement("input");
+            inp2.name = "channel";
+            inp2.value = channel_name;
+            form.appendChild(inp2);
+            document.body.appendChild(form);
+
+            form.submit();
+            form.remove();
+        });
+    },
+    async link(noopener) {
+        return withChannel((channel_name) => {
+            const anchor = document.createElement("a");
+            anchor.href = `self-close.html?navs=1&channel=${channel_name}`;
+            anchor.target = '_blank';
+            if (noopener) {
+                anchor.rel = "noopener";
+            }
+            document.body.appendChild(anchor);
+
+            anchor.click();
+
+            anchor.remove();
+        });
+    },
+    async script(noopener) {
+        return withChannel((channel_name) => {
+            const url = `self-close.html?navs=1&channel=${channel_name}`;
+            window.open(url, "_blank", noopener ? 'noopener' : '');
+        });
+    }
+}
+
+for (const action of [Actions.form, Actions.link, Actions.script]) {
+    for (const noopener of [false, true])
+    promise_test(async () => {
+        const closed = await action(noopener);
+        assert_true(closed, "window closed");
+    }, `Window created by ${action.name} with ${noopener ? 'noopener' : 'opener'} is script-closable`);
+}
+</script>

@@ -1,0 +1,36 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Capture Automation (https://w3c.github.io/mediacapture-automation/)
+
+enum MockCapturePromptResult {
+  "granted",
+  "denied"
+};
+
+dictionary MockCapturePromptResultConfiguration {
+  MockCapturePromptResult getUserMedia;
+  MockCapturePromptResult getDisplayMedia;
+};
+
+dictionary MockCaptureDeviceConfiguration {
+  DOMString label;
+  DOMString deviceId;
+  DOMString groupId;
+};
+
+dictionary MockCameraConfiguration : MockCaptureDeviceConfiguration {
+  double defaultFrameRate = 30;
+  DOMString facingMode = "user";
+  // TODO: Add more capabilities parameters like:
+  // ULongRange width;
+  // ULongRange height;
+  // DoubleRange frameRate;
+};
+
+dictionary MockMicrophoneConfiguration : MockCaptureDeviceConfiguration {
+  unsigned long defaultSampleRate = 44100;
+  // TODO: Add more capabilities parameters like:
+  // ULongRange sampleRate;
+  // sequence echoCancellation;
+};

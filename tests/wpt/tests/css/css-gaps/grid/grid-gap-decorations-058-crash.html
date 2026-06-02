@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Collapsed row tracks at the beginning of the grid should not crash.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .multi-col {
+    columns: 3;
+    column-fill: auto;
+    height: 150px;
+  }
+  .grid-container {
+    display: grid;
+    height: 200px;
+    grid-template-rows: repeat(auto-fit, 20px);
+    align-content: space-evenly;
+    row-rule: 4px solid green;
+  }
+</style>
+
+<div class="multi-col">
+  <div class="grid-container">
+    <div style="grid-row: 3/-1"> </div>
+  </div>
+</div>

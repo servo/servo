@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  getSelection().setBaseAndExtent(
+    document.querySelector("b"), 0,
+    document.querySelector("i").firstChild, 2
+  );
+  document.documentElement.contentEditable = true;
+  document.execCommand("insertHorizontalRule");
+});
+</script>
+</head>
+<body>
+<div>
+<b>
+</b>
+<i>X
+</i>
+<!-- COMMENT -->
+</div>
+</body>
+</html>

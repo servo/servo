@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation with items in the same row ending layout
+  in different fragmentainers.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+  }
+  #flex > div {
+    background: green;
+    width: 10px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div id="flex">
+    <div style="height: 200px;"></div>
+    <div style="position: relative; height: 100px;">
+      <div style="width: 10px; height: 100px;"></div>
+      <div style="position: absolute; width: 10px; height: 100px; background: green;"></div>
+    </div>
+    <div style="height: 200px;"></div>
+    <div style="position: relative; height: 80px;">
+      <div style="width: 10px; height: 80px;"></div>
+      <div style="position: absolute; width: 10px; height: 120px; background: green;"></div>
+    </div>
+    <div style="height: 200px;"></div>
+  </div>
+</div>

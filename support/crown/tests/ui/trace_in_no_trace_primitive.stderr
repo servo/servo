@@ -1,0 +1,10 @@
+warning: must_not_have_traceable marked wrapper is not needed for types that implements empty Traceable (like primitive types). Consider removing the wrapper.
+  --> $DIR/trace_in_no_trace_primitive.rs:16:12
+   |
+16 | struct Foo(NoTrace<i32>);
+   |            ^^^^^^^^^^^^
+   |
+   = note: `#[warn(crown::empty_trace_in_no_trace)]` on by default
+
+warning: 1 warning emitted
+

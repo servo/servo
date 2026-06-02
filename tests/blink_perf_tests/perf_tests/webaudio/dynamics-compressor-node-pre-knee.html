@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test performance of 100 DynamicsCompressorNodes (pre-knee).
+    </title>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/webaudio-perf-utils.js"></script>
+  </head>
+  <body>
+    <script>
+      function graphBuilder() {
+        const context = new OfflineAudioContext(1, 48000, 48000);
+        // Use 0 offset to ensure we are pre-knee
+        const source = new ConstantSourceNode(context, {offset: 0});
+        const testNodes = createNodes(
+	    context, 'DynamicsCompressorNode', 100,
+            {attack: .003, knee: 30, ratio: 12, release: .25, threshold: -24});
+        for (let i = 0; i < testNodes.length; ++i) {
+          source.connect(testNodes[i]);
+          testNodes[i].connect(context.destination);
+        }
+        source.start();
+        return context;
+      }
+
+      RunWebAudioPerfTest({
+        description: 'Test performance of 100 DynamicsCompressorNodes',
+        graphBuilder: graphBuilder,
+        tracingOptions: {
+          targetCategory: 'disabled-by-default-webaudio.audionode',
+          targetEvents: ['DynamicsCompressorHandler::Process'],
+        }
+      });
+    </script>
+  </body>
+</html>

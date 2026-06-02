@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:hover pseudo-class</title>
+  <style type="text/css"><![CDATA[p:hover { background-color : lime }
+a:hover { background-color : lime }
+
+tr:hover { background-color : green }
+td:hover { background-color : lime }
+
+table { border-spacing: 5px; }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+<p>The background color of this paragraph should turn to green when
+   the mouse pointer hovers either its text (<strong>here</strong>) or its whitespace background, <strong>here</strong>:</p>
+<address>The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should turn to green when the pointing device hovers over it.</address>
+<table>
+ <tbody>
+  <tr>
+   <td>The cells in</td>
+   <td>this table</td>
+   <td>should go</td>
+  </tr>
+  <tr>
+   <td>green when</td>
+   <td>you hover</td>
+   <td>the pointing</td>
+  </tr>
+  <tr>
+   <td>device over</td>
+   <td>them (<strong>here</strong>).</td>
+   <td></td>
+  </tr>
+  <tr>
+   <td>The rows in</td>
+   <td>this table</td>
+   <td>should go</td>
+  </tr>
+  <tr>
+   <td>dark green</td>
+   <td>when the</td>
+   <td>pointing device</td>
+  </tr>
+  <tr>
+   <td>is over the</td>
+   <td>cells <strong>there</strong>:</td>
+   <td></td> <!-- remove this cell to make an evil test; row should still go green, but cell should not -->
+  </tr>
+  <tr>
+   <td>And <strong>here</strong>:</td>
+   <td></td>
+   <td>(blank cells).</td>
+  </tr>
+ </tbody>
+</table>
+</body>
+</html>

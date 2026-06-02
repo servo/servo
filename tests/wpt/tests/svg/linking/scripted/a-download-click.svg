@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Clicking on an &lt;a> element with a download attribute must not throw an exception</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#InterfaceSVGAElement"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    "use strict";
+    async_test(t => {
+        const frame = document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+        const root = document.querySelector("svg");
+
+        frame.addEventListener("load", t.step_func(function () {
+            frame.contentWindow.addEventListener(
+                "beforeunload", t.unreached_func("Navigated instead of downloading"));
+            const string = "test";
+            const blob = new Blob([string], { type: "text/html" });
+
+            const link = frame.contentDocument.querySelector("#blob-url");
+            link.href.baseVal = URL.createObjectURL(blob);
+
+            link.dispatchEvent(new Event('click'));
+
+            t.step_timeout(() => t.done(), 1000);
+        }));
+        frame.src = "resources/a-download-click.svg";
+        root.appendChild(frame);
+    }, "Clicking on an <a> element with a download attribute must not throw an exception");
+  ]]></script>
+</svg>

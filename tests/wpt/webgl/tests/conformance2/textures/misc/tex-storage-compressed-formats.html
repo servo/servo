@@ -1,0 +1,138 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Conformance test for WebGL2 texStorage2D and texStorage3D with compressed format</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+
+
+<script>
+"use strict";
+description("This test verifies that texStorage2D and texStorage3D " +
+            "accept compressed internalformats.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+// Either of these extensions should be available on all WebGL 2.0 contexts
+const WEBGL_compressed_texture_etc = gl.getExtension("WEBGL_compressed_texture_etc");
+const WEBGL_compressed_texture_s3tc = gl.getExtension("WEBGL_compressed_texture_s3tc");
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    if (WEBGL_compressed_texture_etc) {
+        debug("Testing WEBGL_compressed_texture_etc formats");
+
+        // These compressed formats are in Table 3.19 from the OpenGL ES 3.0.4 spec.
+        runTexCompressedFormatsTest([
+            WEBGL_compressed_texture_etc.COMPRESSED_R11_EAC,
+            WEBGL_compressed_texture_etc.COMPRESSED_SIGNED_R11_EAC,
+            WEBGL_compressed_texture_etc.COMPRESSED_RG11_EAC,
+            WEBGL_compressed_texture_etc.COMPRESSED_SIGNED_RG11_EAC,
+            WEBGL_compressed_texture_etc.COMPRESSED_RGB8_ETC2,
+            WEBGL_compressed_texture_etc.COMPRESSED_SRGB8_ETC2,
+            WEBGL_compressed_texture_etc.COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+            WEBGL_compressed_texture_etc.COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+            WEBGL_compressed_texture_etc.COMPRESSED_RGBA8_ETC2_EAC,
+            WEBGL_compressed_texture_etc.COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
+        ]);
+    } else {
+        testPassed("No WEBGL_compressed_texture_etc support -- this is legal");
+    }
+
+    if (WEBGL_compressed_texture_s3tc) {
+        debug("Testing WEBGL_compressed_texture_s3tc formats");
+
+        runTexCompressedFormatsTest([
+            WEBGL_compressed_texture_s3tc.COMPRESSED_RGB_S3TC_DXT1_EXT,
+            WEBGL_compressed_texture_s3tc.COMPRESSED_RGBA_S3TC_DXT1_EXT,
+            WEBGL_compressed_texture_s3tc.COMPRESSED_RGBA_S3TC_DXT3_EXT,
+            WEBGL_compressed_texture_s3tc.COMPRESSED_RGBA_S3TC_DXT5_EXT,
+        ]);
+    } else {
+        testPassed("No WEBGL_compressed_texture_s3tc support -- this is legal");
+    }
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function enumToString(value) {
+  return wtu.glEnumToString(gl, value);
+}
+
+function runTexCompressedFormatsTest(texCompressedFormats)
+{
+    wtu.setupUnitQuad(gl);
+
+    gl.useProgram(wtu.setupSimpleTextureProgramESSL300(gl, undefined, undefined,
+           `#version 300 es
+            precision mediump float;
+            uniform mediump sampler2DArray tex;
+            in vec2 texCoord;
+            out vec4 out_color;
+            void main() {
+              out_color = texture(tex, vec3(texCoord, 0));
+            }`
+        ));
+
+    texCompressedFormats.forEach(function(internalformat){
+        // Test a 2D texture.
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, internalformat, 4, 4);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                            "texStorage2D should succeed for " + enumToString(internalformat));
+        gl.deleteTexture(tex);
+
+        // GLES 3.0.4 p147: + EXT_texture_compression_s3tc:
+        // If internalformat is an ETC2/EAC/DXT1/DXT3/DXT5
+        // format, CompressedTexImage3D will generate an INVALID_OPERATION error if
+        // target is not TEXTURE_2D_ARRAY.
+
+        // Test the 3D texture targets.
+        var tex3d = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_3D, tex3d);
+        gl.texStorage3D(gl.TEXTURE_3D, 1, internalformat, 4, 4, 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                            "texStorage3D(TEXTURE_3D) should fail for " + enumToString(internalformat));
+        gl.deleteTexture(tex3d);
+
+        var tex2dArr = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex2dArr);
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, internalformat, 4, 4, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                            "texStorage3D(TEXTURE_2D_ARRAY) should succeed for " + enumToString(internalformat));
+        wtu.clearAndDrawUnitQuad(gl);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad from empty texture");
+        gl.deleteTexture(tex2dArr);
+    });
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

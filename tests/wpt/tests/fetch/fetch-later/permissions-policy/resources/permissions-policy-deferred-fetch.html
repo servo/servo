@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onload = () => {
+  let enabled = true;
+  try {
+    fetchLater('/', {activateAfter: 0});
+  } catch (e) {
+    enabled = false;
+  }
+  parent.postMessage({ type: 'availability-result', enabled }, '*');
+}
+</script>

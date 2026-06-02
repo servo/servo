@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Contain update layer tree performance</title>
+<style>
+#wrapper {
+  position: relative;
+}
+.cell {
+  position: absolute;
+  box-sizing: border-box;
+  border: solid;
+  contain: strict;
+}
+.progressbar {
+  position: absolute;
+  left: 0px;
+  top: 5px;
+  height: 10px;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<pre id="log"></pre>
+<div id="wrapper"></div>
+<script>
+  const CELL_WIDTH = "50";
+  const CELL_HEIGHT = "25";
+  const NUM_ROWS = 120;
+  const NUM_COLUMNS = 120;
+  const DOM_DEPTH = 10;
+
+  function createContent(depth) {
+    let content = document.createElement("div");
+    content.appendChild(document.createElement("h1"));
+    content.appendChild(document.createElement("paragraph"));
+    if (depth > 0)
+      content.appendChild(createContent(depth - 1));
+    return content;
+  }
+
+  function setupTest() {
+    let wrapper = document.getElementById("wrapper");
+    for (let i = 0; i < NUM_ROWS; i++) {
+      for (let j = 0; j < NUM_COLUMNS; j++) {
+        let cell = document.createElement("div");
+        if (i == 0 && j == 0)
+          cell.id = "target";
+        cell.classList.add("cell");
+        cell.style.width = CELL_WIDTH + "px";
+        cell.style.height = CELL_HEIGHT + "px";
+        cell.style.left = (j * CELL_WIDTH) + "px";
+        cell.style.top = (i * CELL_HEIGHT) + "px";
+        cell.style.overflow = "visible";
+
+        cell.appendChild(createContent(DOM_DEPTH));
+
+        wrapper.appendChild(cell);
+      }
+    }
+  }
+
+  function runTest() {
+    let cell = document.getElementById("target");
+    // This causes a call to PaintLayer::SetNeedsCompositingInputsUpdate().
+    cell.style.overflow = cell.style.overflow == "hidden" ? "visible" : "hidden";
+  }
+
+  setupTest();
+
+  measurePaint({
+    run: runTest
+  });
+</script>

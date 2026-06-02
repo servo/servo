@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="UTF-8">
+  <title>CSS Containment Test: absolute positioned 'contain: size' element is monolithic</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+  <link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+  <meta  name="assert" content="This test checks that an absolute positioned element with size containment is monolithic.">
+
+  <style>
+  #multicol {
+    width: 300px;
+    column-count: 3;
+  }
+  #container {
+    position: relative;
+  }
+  #abs-size-contain {
+    position: absolute;
+    contain: size;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square.</p>
+  <div id="multicol">
+    <div id="container">
+      <div id="abs-size-contain"></div>
+    </div>
+  </div>
+</html>

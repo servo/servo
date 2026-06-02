@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+  // This policy allows document.write to work as that's not relevant to what's actually being tested here.
+  trustedTypes.createPolicy('default', {createHTML: s => s});
+  promise_test(t => {
+    document.write(`<script>window.postMessage("first script element executed", "*");`);
+    var manipulator = _ => {
+      let script = document.body.getElementsByTagName("script")[1];
+      if (script) {
+        script.appendChild(document.createTextNode('/*byapi*/'));
+        document.write('<\/script><script>window.parent.postMessage("second script element executed", "*");<\/script>');
+      } else {
+        t.step_timeout(manipulator, 50);
+      }
+    }
+    manipulator();
+
+    // Now we'll wait for the postMessages to arrive. We expect the iframe's
+    // first message to be blocked by Trusted Types, since the manipulator
+    // above should have manipulated it (while loading). The second one should
+    // pass.
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        if (e.data.includes("first")) {
+          reject("First message should have been blocked: " + e.data);
+        } else if (e.data.includes("second")) {
+          resolve();
+        } else {
+          reject("Unknown message: " + e.data);
+        }
+      });
+    });
+  }, "Test TT application when manipulating <script> elements during loading.");
+
+  // Test that a script set via textContent or innerTest actually executes
+  // (and not only doesn't throw an exception, which it wouldn't do due to the
+  // "internal slot" mechanism).
+  const policy = trustedTypes.createPolicy("testpolicy", {
+      createScript: x => x, createScriptURL: x => x});
+  promise_test(t => {
+    const s = document.createElement("script");
+    document.body.appendChild(s);
+    s.textContent = policy.createScript("window.postMessage('hello');");
+    return new Promise(resolve => {
+      window.addEventListener("message", e => {
+        if (e.data == "hello") resolve();
+      });
+    });
+  }, "Script set via .textContent executes on a connected HTMLScriptElement.");
+  promise_test(t => {
+    const s = document.createElement("script");
+    s.textContent = policy.createScript("window.postMessage('world');");
+    document.body.appendChild(s);
+    return new Promise(resolve => {
+      window.addEventListener("message", e => {
+        if (e.data == "world") resolve();
+      });
+    });
+  }, "Script set via .textContent executes on an unconnected HTMLScriptElement.");
+  promise_test(t => {
+    const s = document.createElement("script");
+    document.body.appendChild(s);
+    s.innerText = policy.createScript("window.postMessage('hello');");
+    return new Promise(resolve => {
+      window.addEventListener("message", e => {
+        if (e.data == "hello") resolve();
+      });
+    });
+  }, "Script set via .innerText executes on a connected HTMLScriptElement.");
+  promise_test(t => {
+    const s = document.createElement("script");
+    s.innerText= policy.createScript("window.postMessage('world');");
+    document.body.appendChild(s);
+    return new Promise(resolve => {
+      window.addEventListener("message", e => {
+        if (e.data == "world") resolve();
+      });
+    });
+  }, "Script set via .innerText executes on an unconnected HTMLScriptElement.");
+
+  // Test that interactions between the script content, the .src attribute, and
+  // exceptions still work correctly with TT and the "internal slot" thingy.
+  promise_test(t => {
+    const s = document.createElement("script");
+    s.textContent = policy.createScript("window.postMessage('script body');");
+    try {
+      s.src = "support/HTMLScriptElement-internal-slot-support.js";
+    } catch (e) {}
+    document.body.appendChild(s);
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        // .src was set with plain string => should not have been accepted.
+        if (e.data == "script body") resolve();
+        if (e.data == "script url") reject();
+      });
+    });
+  }, "Setting .src to a plain string should throw an exception and not modify the script state, on an unconnected script element.");
+
+  promise_test(t => {
+    const s = document.createElement("script");
+    s.textContent = policy.createScript("window.postMessage('script body');");
+    s.src = policy.createScriptURL("support/HTMLScriptElement-internal-slot-support.js");
+    document.body.appendChild(s);
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        // .src was set with a TrustedScriptURL => the .src should get executed.
+        if (e.data == "script body") reject();
+        if (e.data == "script url") resolve();
+      });
+    });
+  }, "Setting .src to a TrustedScriptURL should work and should execute the referenced script instead of the script body, on an unconnected script element.");
+
+  promise_test(t => {
+    const s = document.createElement("script");
+    document.body.appendChild(s);
+    s.textContent = policy.createScript("window.postMessage('script body');");
+    try {
+      s.src = "support/HTMLScriptElement-internal-slot-support.js";
+    } catch (e) {}
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        // .src was set with plain string => should not have been accepted.
+        if (e.data == "script body") resolve();
+        if (e.data == "script url") reject();
+      });
+    });
+  }, "Setting .src to a plain string should throw an exception and not modify the script state, on a connected script element.");
+
+  promise_test(t => {
+    const s = document.createElement("script");
+    s.textContent = policy.createScript("window.postMessage('script body');");
+    s.src = policy.createScriptURL("support/HTMLScriptElement-internal-slot-support.js");
+    document.body.appendChild(s);
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        // .src was set with a TrustedScriptURL => the .src should get executed.
+        if (e.data == "script body") reject();
+        if (e.data == "script url") resolve();
+      });
+    });
+  },  "Setting .src to a TrustedScriptURL should work and should execute the referenced script instead of the script body, on a onnected script element.");
+
+</script>
+</body>
+</html>

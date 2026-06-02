@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+function createDeepShadowTemplateContent(levels, slotted) {
+  const nestedContent = levels > 0 ? createDeepShadowTemplateContent(levels-1) : '<span>End</span>';
+  if (slotted) {
+    return `<div><template shadowrootmode=open serializable><slot></slot></template>${nestedContent}</div>`;
+  } else {
+    return `<div><template shadowrootmode=open serializable>${nestedContent}</template></div>`;
+  }
+}
+
+const hostChildren = 100;
+
+// Make sure the clone operation works
+function testClone(template) {
+  const wrapper = document.createElement('div');
+  document.body.appendChild(wrapper);
+  wrapper.appendChild(template.content.cloneNode(true));
+  const templateHtml = template.getHTML({serializableShadowRoots: true});
+  const clonedHtml = wrapper.getHTML({serializableShadowRoots: true});
+  if (templateHtml !== clonedHtml) {
+    PerfTestRunner.logFatalError('Cloned template does not match original!');
+  }
+  wrapper.remove();
+}
+
+function buildTemplate(slotted) {
+  const template = document.createElement('template');
+  document.body.appendChild(template);
+  const html = createDeepShadowTemplateContent(hostChildren, slotted);
+  template.content.setHTMLUnsafe(html);
+  testClone(template);
+  return template;
+}
+
+// Build templates once
+const templateSlotted = buildTemplate(true);
+const templateNested = buildTemplate(false);
+
+if (!templateSlotted.content.firstChild.shadowRoot) {
+  PerfTestRunner.logFatalError("Declarative Shadow DOM must be enabled for this test.");
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests cloning of templates containing declarative Shadow DOM",
+
+    setup: function() {
+        const wrapper = document.createElement('div');
+        wrapper.id = 'wrapper';
+        document.body.appendChild(wrapper);
+    },
+
+    run: function() {
+        const wrapper = document.querySelector('#wrapper');
+        for (var i = 0; i < 100; i++) {
+            wrapper.appendChild(templateSlotted.content.cloneNode(true));
+            wrapper.appendChild(templateNested.content.cloneNode(true));
+        }
+    },
+
+    teardown: function() {
+        wrapper.remove();
+    }});
+
+</script>
+</body>
+</html>

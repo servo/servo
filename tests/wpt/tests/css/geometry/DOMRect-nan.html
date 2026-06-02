@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DOMQuad's handling of NaN in getBounds()</title>
+<link rel=help href="https://drafts.fxtf.org/geometry/#dom-domquad-getbounds">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+const testCases = [
+  {
+    name: "x coordinate is NaN",
+    idx: 0,
+    exp: {
+      x: NaN,
+      y: 0,
+      width: 0,
+      height: 0,
+      top: 0,
+      bottom: 0,
+      left: NaN,
+      right: NaN
+    }
+  },
+  {
+    name: "y coordinate is NaN",
+    idx: 1,
+    exp: {
+      x: 0,
+      y: NaN,
+      width: 0,
+      height: 0,
+      top: NaN,
+      bottom: NaN,
+      left: 0,
+      right: 0
+    }
+  },
+  {
+    name: "width is NaN",
+    idx: 2,
+    exp: {
+      x: 0,
+      y: 0,
+      width: NaN,
+      height: 0,
+      top: 0,
+      bottom: 0,
+      left: NaN,
+      right: NaN
+    }
+  },
+  {
+    name: "height is NaN",
+    idx: 3,
+    exp: {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: NaN,
+      top: NaN,
+      bottom: NaN,
+      left: 0,
+      right: 0
+    }
+  },
+];
+
+for (const Rect of [DOMRect, DOMRectReadOnly]) {
+  for (const testCase of testCases) {
+    test(() => {
+      const args = [0, 0, 0, 0];
+      args[testCase.idx] = NaN;
+      const rect = new Rect(...args);
+      assert_object_equals(rect.toJSON(), testCase.exp);
+    }, `${Rect.name}'s ${testCase.name}`);
+  }
+}
+</script>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointermove</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script type="text/javascript" src="/resources/testharness.js"></script>
+        <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="/resources/testdriver.js"></script>
+        <script type="text/javascript" src="/resources/testdriver-actions.js"></script>
+        <script type="text/javascript" src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>pointerlock</h2>
+        <h4>Test Description: This test checks if pointermove is dispatched correctly while in pointerlock mode.
+            <ol>
+                <li>Click in the black box (and accept the pointerlock permission if asked).</li>
+                <li>Move your mouse.</li>
+                <li>Click in the purple box inside the iframe</li>
+                <li>Move your mouse.</li>
+            </ol>
+        </h4>
+        <div id="target0"></div>
+        <iframe id="innerframe" onload="iframe_loaded()" src="resources/pointerevent_pointermove_in_pointerlock-iframe.html"></iframe>
+        <script>
+            window.name="outerframe";
+            var test_pointermove = async_test("pointermove event received");
+            var test_pointermove_innerframe = async_test("pointermove event received inner frame");
+            var actions_promise1;
+            var actions_promise2;
+            var actions_promise3;
+            var actions_promise4;
+            PhaseEnum = {
+              Start:     0,
+              Lock1:     1,
+              Lock2:     2,
+              Done:      3,
+            };
+            var iframe_loaded_promise;
+            var iframe_loaded_resolve;
+
+            iframe_loaded_promise = new Promise((resolve, reject)=>{
+              iframe_loaded_resolve = resolve;
+            });
+
+            function iframe_loaded(){
+              iframe_loaded_resolve();
+            }
+
+            async function run() {
+                // wait for iframe to fully load
+                await iframe_loaded_promise;
+                var target0 = document.getElementById("target0");
+                var innerframe = document.getElementById('innerframe');
+                var target1 = innerframe.contentDocument.getElementById('target1');
+                innerframe.contentWindow.name = "innerframe";
+                phase = PhaseEnum.Start;
+
+                on_event(target0, "click", async (event)=>{
+                  if(phase === PhaseEnum.Start){
+                    target0.requestPointerLock();
+                  }else{
+                    await actions_promise2;
+                    document.exitPointerLock();
+                  }
+                });
+
+                on_event(target1, "click", async (event)=>{
+                  if(phase === PhaseEnum.Lock1){
+                    target1.requestPointerLock();
+                  }
+                  else{
+                    await actions_promise4;
+                    innerframe.contentDocument.exitPointerLock();
+                  }
+                });
+
+                on_event(target0, "pointermove", async (event)=> {
+                  if (phase === PhaseEnum.Lock1) {
+                    test_pointermove.step(()=> {
+                      assert_equals(document.pointerLockElement, target0);
+                      assert_equals(event.view.name, "outerframe", "View attribute of pointermove should be the target frame.");
+                    }, "View attribute of pointermove should be the target frame.");
+                  }
+                });
+
+                on_event(target1, "pointermove", async (event)=> {
+                  if (phase === PhaseEnum.Lock2) {
+                    test_pointermove_innerframe.step(()=> {
+                      assert_equals(innerframe.contentDocument.pointerLockElement, target1);
+                      assert_equals(event.view.name, "innerframe", "View attribute of pointermove should be the target frame.");
+                    }, "View attribute of pointermove should be the target frame.");
+                  }
+                });
+
+                on_event(document, "pointerlockchange", async (event)=> {
+                  await actions_promise1;
+                  if (phase === PhaseEnum.Start) {
+                    test_pointermove.step(()=>{
+                      assert_equals(document.pointerLockElement, target0);
+                    });
+                    phase++;
+                    // Send moves in main frame target and then click on target0
+                    actions_promise2 = new test_driver.Actions()
+                                            .pointerMove(10, 30, {origin: target0})
+                                            .pointerMove(0, 0, {origin: target0})
+                                            .pointerDown()
+                                            .pointerUp()
+                                            .send();
+                  }else{
+                    // when we exit pointerlock we are done
+                    test_pointermove.done();
+                    // user activate innerframe
+                    actions_promise3 = clickInTarget("mouse", target1);
+                  }
+                });
+
+                on_event(innerframe.contentDocument, "pointerlockchange", async (event)=> {
+                  await actions_promise3;
+                  if (phase === PhaseEnum.Lock1) {
+                    test_pointermove_innerframe.step(()=>
+                      assert_equals(innerframe.contentDocument.pointerLockElement, target1));
+                    phase++;
+                    // Send moves in inner frame target and then click anywhere in the inner frame
+                    await new test_driver.Actions()
+                                      .pointerMove(10, 30, {origin: target1})
+                                      .send();
+                    actions_promise4 = clickInTarget("mouse", target1);
+                  }
+                  else{
+                    // when we exit pointerlock we are done
+                    test_pointermove_innerframe.done();
+                  }
+                });
+
+                on_event(document, "pointerlockerror", test_pointermove.unreached_func("pointer lock request should not fail in document!"));
+                on_event(innerframe.contentDocument, "pointerlockerror", test_pointermove_innerframe.unreached_func("pointer lock request should not fail in innerframe.contentDocument!"));
+
+                // Click the outer frame target to lock.
+                actions_promise1 = clickInTarget("mouse", target0);
+            }
+        </script>
+        <div id="complete-notice">
+        </div>
+    </body>
+</html>

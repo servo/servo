@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Values: The ident() Function (computed values)</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  // Any property that accepts <custom-ident> will do.
+  let prop = 'view-transition-name';
+
+  test_computed_value(prop, 'ident(myident)', 'myident');
+  test_computed_value(prop, 'ident("myident")', 'myident');
+  test_computed_value(prop, 'ident("myident" 3)', 'myident3');
+  test_computed_value(prop, 'ident(3 "myident")', '\\33 myident');
+  test_computed_value(prop, 'ident("my" "ident")', 'myident');
+  test_computed_value(prop, 'ident(my "ident")', 'myident');
+  test_computed_value(prop, 'ident("my" ident)', 'myident');
+  test_computed_value(prop, 'ident(my ident)', 'myident');
+  test_computed_value(prop, 'ident(-- myident)', '--myident');
+  test_computed_value(prop, 'ident(my 3 3 3 3 ident)', 'my3333ident');
+
+  // Check for support in specific properties (WIP):
+  let actual_ident = 'ident("myident" 42)';
+  let expected_ident = 'myident42';
+
+  // https://drafts.csswg.org/css-view-transitions/#view-transition-name-prop
+  test_computed_value('view-transition-name', actual_ident, expected_ident);
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>PNG Third Edition: animated PNG, dispose ops and regions</title>
+<link rel="author" title="Philip Taylor" href="mailto:excors@gmail.com">
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/png-3/#apng-frame-based-animation">
+<link rel="help" href="https://www.w3.org/TR/png-3/#fcTL-chunk">
+
+<link rel="match" href="apng-lime-rectangle-ref.html">
+<meta name="assert" content="The frame must be rendered within the region defined by x_offset, y_offset, width, and height. ">
+<script>
+    const el = document.querySelector(".reftest-wait");
+    setTimeout(() => {
+        el.classList.remove('reftest-wait');
+        }, 1300);
+</script>
+<style>
+    .test {
+        width: 128px;
+        height: 64px;
+        background-color: white;
+        background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+</style>
+<body>
+    <p>Test passes if you see a lime green rectangle, and no red.</p>
+    <div class="test"><img src="support/013.png" alt=""></div>
+</body>
+</html>

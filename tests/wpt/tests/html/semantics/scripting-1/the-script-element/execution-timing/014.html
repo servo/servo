@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: SCRIPT elements that move themselves in DOM </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <script>log('inline script #1');
+    document.getElementsByTagName('head')[0].appendChild(document.getElementsByTagName('script')[2]);
+    log('end script #1');
+  </script>
+
+  <script type="text/javascript">
+  log('script #2');
+  var t = async_test()
+
+  function test() {
+    assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'script #2']);
+    t.done();
+  }
+  onload = t.step_func(test)
+  </script>
+
+</body></html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test of Node.isConnected in a shadow tree</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#connected">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+function testIsConnected(mode) {
+  test(() => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+
+    const root = host.attachShadow({ mode });
+
+    const node = document.createElement("div");
+    root.appendChild(node);
+
+    assert_true(node.isConnected);
+  }, `Node.isConnected in a ${mode} shadow tree`);
+}
+
+for (const mode of ["closed", "open"]) {
+  testIsConnected(mode);
+}
+</script>

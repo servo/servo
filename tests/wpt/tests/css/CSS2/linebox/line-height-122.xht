@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Images on baselines</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/line-height/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+
+  <meta content="image" name="flags" />
+
+  <style type="text/css">
+   p { font: 15px/1 serif; }
+   span { background: lime; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a bright green line below the orange square below.</p>
+  <p><span><img alt="Please enable images for this test." src="support/swatch-orange.png" /></span></p>
+ </body>
+</html>

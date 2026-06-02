@@ -1,0 +1,13 @@
+<!doctype html>
+<title>1 as ports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+   assert_throws_js(TypeError, function() {
+      postMessage('', '*', 1);
+   });
+});
+</script>
+

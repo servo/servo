@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Setup function in a service worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Setup function in a service worker</h1>
+<p>This test assumes that the browser supports <a href="http://www.w3.org/TR/service-workers/">ServiceWorkers</a>.
+<div id="log"></div>
+
+<script>
+test(function(t) {
+    assert_true("serviceWorker" in navigator,
+                "navigator.serviceWorker exists");
+}, "Browser supports ServiceWorker");
+
+promise_test(function() {
+    // Since the service worker registration could be in an indeterminate
+    // state (due to, for example, a previous test run failing), we start by
+    // unregstering our service worker and then registering it again.
+    var scope = "service-worker-scope";
+    var worker_url = "setup-function-worker.js";
+
+    return navigator.serviceWorker.register(worker_url, {scope: scope})
+        .then(function(registration) {
+            return registration.unregister();
+        }).then(function() {
+            return navigator.serviceWorker.register(worker_url, {scope: scope});
+        }).then(function(registration) {
+            add_completion_callback(function() {
+                registration.unregister();
+            });
+
+            return new Promise(function(resolve) {
+                registration.addEventListener("updatefound", function() {
+                    resolve(registration.installing);
+                });
+            });
+        }).then(function(worker) {
+            fetch_tests_from_worker(worker);
+        });
+}, "Register ServiceWorker");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Browser supports ServiceWorker",
+      "properties": {},
+      "message": null
+    },
+    {
+      "message": null,
+      "name": "Register ServiceWorker",
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "message": null,
+      "name": "Worker test",
+      "properties": {},
+      "status_string": "PASS"
+    }
+  ],
+  "summarized_asserts": [
+    {
+      "assert_name": "assert_true",
+      "test": "Browser supports ServiceWorker",
+      "args": [
+        "true",
+        "\"navigator.serviceWorker exists\""
+      ],
+      "status": 0
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>

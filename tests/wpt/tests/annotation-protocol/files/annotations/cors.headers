@@ -1,0 +1,4 @@
+Access-Control-Allow-Headers: Content-Type, Prefer
+Access-Control-Allow-Methods: GET,HEAD,OPTIONS,DELETE,PUT
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Allow, Vary, Link, Content-Type, Location, Content-Location, Prefer

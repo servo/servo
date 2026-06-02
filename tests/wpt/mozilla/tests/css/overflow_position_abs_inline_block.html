@@ -1,0 +1,24 @@
+<link rel='match' href='overflow_position_abs_inline_block_ref.html'>
+<style>
+  #d1 {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background: green;
+  }
+  #d2 {
+    display: inline-block;
+    width: 100px;
+    background: red;
+    height: 100px;
+    position: relative;
+    top: 20px;
+    left: 20px;
+  }
+</style>
+
+<div style="position:fixed"></div>
+<div id="d1">
+  <div id="d2"></div>
+</div>
+

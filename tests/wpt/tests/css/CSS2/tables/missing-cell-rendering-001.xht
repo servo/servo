@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Rendering of missing table cells</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layers" />
+        <meta name="assert" content="Missing table cells are rendered as if their grid position were occupied by an anonymous table-cell box." />
+        <style type="text/css">
+            #table
+            {
+                background: orange;
+                color: orange;
+                display: table;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                background: black;
+                border: 1px solid black;
+                color: black;
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a two-by-two table below and the top-left and bottom-right corners are orange.</p>
+        <div id="table">
+            <div class="tr">
+                XXXXX
+                <div class="td">XXXXX</div>
+            </div>
+            <div class="tr">
+                <div class="td">XXXXX</div>
+            </div>
+        </div>
+    </body>
+</html>

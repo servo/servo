@@ -1,0 +1,42 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<head>
+<title>Test dragging still occurs when pointerdown adds overflow:hidden to the dragged element</title>
+<style>
+.dragging {
+  overflow: hidden;
+}
+</style>
+</head>
+<body>
+<li id="item" draggable="true">
+  Item 1
+</li>
+<script>
+
+promise_test(function() {
+  return new Promise(r => {
+    item.addEventListener("pointerdown", function() {
+      item.classList.add("dragging");
+    });
+
+    item.addEventListener("dragstart", function(e) {
+      assert_equals(e.target, item);
+      r();
+    });
+
+    new test_driver.Actions()
+    .pointerMove(0, 0, {origin: item})
+    .pointerDown()
+    .pointerMove(10, 10, {origin: item})
+    .pointerUp()
+    .send();
+  });
+}, "dragstart should still fire when the dragged element gets overflow:hidden in its pointerdown");
+</script>
+</body>
+</html>

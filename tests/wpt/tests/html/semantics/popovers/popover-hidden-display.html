@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=match href="popover-hidden-display-ref.html">
+<meta name=fuzzy content="0-1;0-15">
+
+<div class=nottoplayer popover                           >This content should be visible and green</div>
+<div class=nottoplayer popover=invalid style="top:100px;">This content should be visible and green</div>
+<div class=toplayer    popover         style="top:200px;">This content should be visible and green</div>
+
+<style>
+  [popover] {
+    display: block; /* This should make the popover visible */
+    top: 0;
+    margin:10px;
+    width: 300px;
+    height: 50px;
+  }
+  [popover].nottoplayer {
+    background: green;
+  }
+  [popover].toplayer {
+    background: red;
+  }
+  [popover].toplayer:popover-open {
+    background: green;
+  }
+  [popover].nottoplayer:popover-open {
+    background: red;
+  }
+</style>
+<script>
+  const toplayer = document.querySelectorAll('[popover].toplayer');
+  if (toplayer.length !== 1)
+    document.write('FAIL');
+  toplayer[0].showPopover();
+</script>

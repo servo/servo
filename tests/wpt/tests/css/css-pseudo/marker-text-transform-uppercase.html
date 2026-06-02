@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker accepts 'text-transform: uppercase'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="match" href="marker-text-transform-uppercase-ref.html">
+<meta name="assert" content="Checks that the marker default 'text-transform: none' can be overridden with 'text-transform: uppercase'">
+<style>
+.outside { list-style-position: outside }
+.inside { list-style-position: inside }
+.type-roman { list-style-type: lower-roman }
+.type-string { list-style-type: "ii. " }
+.content-counter::marker { content: counter(list-item, lower-roman) ". " }
+.content-string::marker { content: "iv. " }
+::marker {
+  text-transform: uppercase;
+}
+</style>
+<ol class="outside">
+  <li class="type-roman">type-roman</li>
+  <li class="type-string">type-string</li>
+  <li class="content-counter">content-counter</li>
+  <li class="content-string">content-string</li>
+</ol>
+<ol class="inside">
+  <li class="type-roman">type-roman</li>
+  <li class="type-string">type-string</li>
+  <li class="content-counter">content-counter</li>
+  <li class="content-string">content-string</li>
+</ol>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<link rel="author" title="Andreu Botella" href="abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#drawing-cell-backgrounds">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4400">
+<meta name=assert content="Changing the span of a table column element will invalidate column backgrounds">
+<style>
+table {
+  width: 100px;
+  height: 100px;
+  border-spacing: 0;
+}
+.green {
+  background: green;
+}
+.red {
+  background: red;
+}
+</style>
+<title>CSS table column span invalidation</title>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  const changeSpanCol = document.getElementById("changeSpan");
+  changeSpanCol.setAttribute("span", "2");
+  takeScreenshot();
+});
+</script>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table>
+  <col id="changeSpan" class="green">
+  <col class="green">
+  <col class="red">
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
+</html>

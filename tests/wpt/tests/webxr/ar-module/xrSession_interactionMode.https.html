@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+  <canvas></canvas>
+  <script>
+    const VR_HMD_DEVICE = {
+      supportsImmersive: true,
+      supportedModes: [ "immersive-vr"],
+      views: VALID_VIEWS,
+      viewerOrigin: IDENTITY_TRANSFORM,
+      supportedFeatures: ALL_FEATURES,
+      environmentBlendMode: "opaque",
+      interactionMode: "world-space"
+    };
+    xr_session_promise_test(
+      "Tests interactionMode for an VR_HMD_DEVICE",
+      (session) => {
+        assert_equals(session.interactionMode, "world-space");
+      }, VR_HMD_DEVICE, 'immersive-vr', {});
+
+    const VR_SCREEN_DEVICE = {
+      supportsImmersive: true,
+      supportedModes: [ "immersive-vr"],
+      views: VALID_VIEWS,
+      viewerOrigin: IDENTITY_TRANSFORM,
+      supportedFeatures: ALL_FEATURES,
+      environmentBlendMode: "opaque",
+      interactionMode: "screen-space"
+    };
+    xr_session_promise_test(
+      "Tests interactionMode for an VR_SCREEN_DEVICE",
+      (session) => {
+        assert_equals(session.interactionMode, "screen-space");
+      }, VR_SCREEN_DEVICE, 'immersive-vr', {});
+
+    const AR_HMD_DEVICE = {
+      supportsImmersive: true,
+      supportedModes: [ "immersive-ar"],
+      views: VALID_VIEWS,
+      viewerOrigin: IDENTITY_TRANSFORM,
+      supportedFeatures: ALL_FEATURES,
+      environmentBlendMode: "additive",
+      interactionMode: "world-space"
+    };
+    xr_session_promise_test(
+      "Tests interactionMode for an AR_HMD_DEVICE",
+      (session) => {
+        assert_equals(session.interactionMode, "world-space");
+      }, AR_HMD_DEVICE, 'immersive-ar', {});
+
+    const AR_SCREEN_DEVICE = {
+      supportsImmersive: true,
+      supportedModes: [ "immersive-ar"],
+      views: VALID_VIEWS,
+      viewerOrigin: IDENTITY_TRANSFORM,
+      supportedFeatures: ALL_FEATURES,
+      environmentBlendMode: "opaque",
+      interactionMode: "screen-space"
+    };
+    xr_session_promise_test(
+      "Tests interactionMode for an AR_SCREEN_DEVICE",
+      (session) => {
+        assert_equals(session.interactionMode, "screen-space");
+      }, AR_SCREEN_DEVICE, 'immersive-ar', {});
+
+    const INLINE_SCREEN_DEVICE = {
+      supportsImmersive: true,
+      supportedModes: [ "inline"],
+      views: VALID_VIEWS,
+      viewerOrigin: IDENTITY_TRANSFORM,
+      supportedFeatures: ALL_FEATURES,
+      environmentBlendMode: "opaque",
+      interactionMode: "screen-space"
+    };
+    xr_session_promise_test(
+      "Tests interactionMode for a INLINE_SCREEN_DEVICE",
+      (session) => {
+        assert_equals(session.interactionMode, "screen-space");
+      }, INLINE_SCREEN_DEVICE, 'inline', {});
+</script>
+</body>

@@ -1,0 +1,4 @@
+HTTP/1.1 280 HELLO
+www-authenticate: 1
+www-authenticate: 2
+www-authenticate: 3, 4

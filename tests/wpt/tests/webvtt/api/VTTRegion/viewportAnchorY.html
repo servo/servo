@@ -1,0 +1,26 @@
+<!doctype html>
+<title>VTTRegion.viewportAnchorY</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-viewportanchory">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true('viewportAnchorY' in region, 'viewportAnchorY is not supported');
+
+    for (var i = 0; i <= 100; i++) {
+        region.viewportAnchorY = i;
+        assert_equals(region.viewportAnchorY, i);
+    }
+
+    region.viewportAnchorY = 1.5;
+    assert_equals(region.viewportAnchorY, 1.5);
+
+    [-1, -100, -150, 101, 200, 250].forEach(function (invalid) {
+        assert_throws_dom('IndexSizeError', function() {
+            region.viewportAnchorY = invalid;
+        });
+    });
+}, document.title + ' script-created region');
+</script>

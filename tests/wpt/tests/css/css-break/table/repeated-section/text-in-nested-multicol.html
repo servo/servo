@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/435811611">
+<link rel="match" href="text-in-nested-multicol-ref.html">
+<p>"hahaha" should be seen below.</p>
+<div style="columns:3; width:fit-content; column-fill:auto; height:100px; gap:0; line-height:20px; orphans:1; widows:1;">
+  <div style="display:table;">
+    <div style="display:table-header-group; break-inside:avoid;">
+      <div style="columns:2; gap:0; column-fill:auto; height:20px;">
+        h<br>a<br>
+      </div>
+    </div>
+    <div style="height:200px;"></div>
+  </div>
+</div>

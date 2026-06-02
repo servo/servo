@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+  position: relative;
+  text-spacing-trim: space-all;
+}
+#container > div {
+  position: absolute;
+}
+:root:not(.vrl) .col1 {
+  left: 6em;
+}
+:root:not(.vrl) .col2 {
+  left: 12em;
+}
+:root.vrl {
+  writing-mode: vertical-rl;
+}
+:root.vrl .col1 {
+  top: 6em;
+}
+:root.vrl div.col2 {
+  top: 12em;
+}
+halt {
+  font-feature-settings: 'halt' 1, 'vhal' 1;
+}
+</style>
+<div id="container">
+  <div lang="ja">
+    <!-- Dot + Open/Close/Middle -->
+    <div>国。<halt>（</halt>国</div>
+    <div>国<halt>。</halt>）国</div>
+    <div>国<halt>。</halt>・国</div>
+    <div>国<halt>。</halt>　国</div>
+    <!-- Open/Close/Middle + Dot -->
+    <div>国（。国</div>
+    <div>国<halt>）</halt>。国</div>
+    <div>国・。国</div>
+    <div>国　。国</div>
+  </div>
+
+  <!-- The same content with "zh-hans". -->
+  <div lang="zh-hans" class="col1">
+    <!-- Dot + Open/Close/Middle -->
+    <div>国。<halt>（</halt>国</div>
+    <div>国<halt>。</halt>）国</div>
+    <div>国<halt>。</halt>・国</div>
+    <div>国<halt>。</halt>　国</div>
+    <!-- Open/Close/Middle + Dot -->
+    <div>国（。国</div>
+    <div>国<halt>）</halt>。国</div>
+    <div>国・。国</div>
+    <div>国　。国</div>
+  </div>
+
+  <!-- The same content with "zh-hant". -->
+  <div lang="zh-hant" class="col2">
+    <!-- Dot + Open/Close/Middle -->
+    <div>国。<halt>（</halt>国</div>
+    <div>国。）国</div>
+    <div>国。・国</div>
+    <div>国。　国</div>
+    <!-- Open/Close/Middle + Dot -->
+    <div>国（。国</div>
+    <div>国<halt>）</halt>。国</div>
+    <div>国・。国</div>
+    <div>国　。国</div>
+  </div>
+</div>

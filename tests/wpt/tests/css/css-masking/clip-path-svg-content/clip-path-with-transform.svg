@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clipPath with transformed child</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The child of the clipPath element has a transform
+	that influences the size of the clipping path. You should see a green
+	square.</desc>
+</g>
+<clipPath id="clip1">
+	<rect width="10" height="10" transform="scale(10) translate(5, 5)"/>
+</clipPath>
+<rect width="400" height="400" fill="green" clip-path="url(#clip1)"/>
+</svg>
+

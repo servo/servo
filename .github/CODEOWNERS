@@ -1,0 +1,48 @@
+# Reviewers for the `script` crate
+/components/script/  @gterzian
+
+# Reviewers for OpenHarmony related code
+/support/openharmony/                       @jschwe
+/ports/servoshell/egl/                      @jschwe
+/components/fonts/platform/freetype/ohos/   @jschwe
+/.github/workflows/ohos.yml                 @jschwe
+
+# Reviewers for CI WebDriver scenario tests related code
+/etc/ci/scenario                            @jschwe @yezhizhen
+
+# Reviewers for compositing-related code
+/components/compositing @mrobinson
+
+# Reviewers for layout-related code
+/components/layout @mrobinson @Loirooriol
+/components/layout/taffy @nicoburns
+
+# Reviewers for font-related code
+/components/fonts @nicoburns
+/components/shared/fonts @nicoburns
+
+# Reviewers for servoshell related code
+/ports/servoshell/desktop @atbrakhi
+
+# Reviewers for 2D canvas related code
+/components/canvas @sagudev
+/components/shared/canvas @sagudev
+
+# Reviewers for WebGPU related code
+/components/webgpu @sagudev
+/components/script/dom/webgpu @sagudev
+
+# Reviewers for WebDriver related code
+/components/webdriver_server @yezhizhen
+/components/script/webdriver_handlers.rs @yezhizhen
+
+# Reviewers for XPath related code
+/components/xpath @simonwuelker
+
+# Reviewers for CI related code
+/.github/workflows @sagudev
+/.github/actions @sagudev
+/python/servo/try_parser.py @sagudev
+
+# Reviewers for crown
+/support/crown @sagudev

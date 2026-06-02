@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Tests that 'anchor-center' behaves as 'center' in non-OOF layout modes</title>
+
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background: orange;
+  margin-block: 5px;
+}
+
+.item {
+  width: 40px;
+  height: 40px;
+  background: lime;
+}
+
+.flex {
+  display: flex;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-auto-rows: 50px;
+  grid-template-areas:
+    "a a a a b b b b"
+    "a a a a b b b b";
+}
+</style>
+
+<div class="flex container" style="align-items: center">
+  <div class="item"></div>
+</div>
+
+<div class="flex container">
+  <div class="item" style="align-self: center"></div>
+</div>
+
+<div class="grid container"
+     style="align-items: center; justify-items: center">
+  <div class="item" style="grid-area: a"></div>
+  <div class="item" style="grid-area: b"></div>
+</div>
+
+<div class="grid container">
+  <div class="item" style="grid-area: a; align-self: center"></div>
+  <div class="item" style="grid-area: b; justify-self: center"></div>
+</div>

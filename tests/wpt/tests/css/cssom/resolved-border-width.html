@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#resolved-values">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<title>border-*-width returns computed rather than used values from getComputedStyle()</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<input type=checkbox style="border: 5px solid red">
+<input type=radio style="border: 5px solid red">
+<script>
+for (let input of document.querySelectorAll("input")) {
+  test(() => {
+    let cs = getComputedStyle(input);
+    for (let prop of ["border-width", "border-top-width", "border-right-width", "border-bottom-width", "border-left-width"]) {
+      assert_equals(cs.getPropertyValue(prop), "5px", prop);
+    }
+  }, input.type);
+}
+</script>

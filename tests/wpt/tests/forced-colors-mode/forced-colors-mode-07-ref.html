@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - transparent colors reference.</title>
+<style>
+  p {
+    color: CanvasText;
+    forced-color-adjust: none;
+  }
+  div {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <div style="background-color: Canvas;">
+    <p>
+      The text color should be overridden, and the background color of the
+      div element should also be overridden in forced colors mode.
+    </p>
+  </div>
+  <div style="background-color: transparent;">
+    <p>
+      The text color should be overridden, but the background color of the
+      div element should remain transparent in forced colors mode.
+    </p>
+  </div>
+  <div style="background-color: rgba(0, 0, 0, 0);">
+    <p>
+      The text color should be overridden, but the background color of the
+      div element should remain transparent in forced colors mode.
+    </p>
+  </div>
+</body>

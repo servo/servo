@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="match" href="2d.composite.full.mode.alpha-ref.html">
+        <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-10000" />
+    </head>
+    <body>
+        <div id="source"></div>
+        <div id="destination"></div>
+        <script>
+            function createCanvas(parent, width, height) {
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                parent.append(canvas);
+                return canvas;
+            }
+
+            function fillRects(canvas, alpha, compositeOperation) {
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#777777";
+                ctx.fillRect(10, 10, 100, 100);
+                ctx.fillRect(110, 110, 100, 100);
+
+                ctx.globalCompositeOperation = compositeOperation;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = "#ff0000";
+                ctx.fillRect(60, 60, 100, 100);
+            }
+
+            fillRects(createCanvas(source, 200, 200), 0.5, 'source-in');
+            fillRects(createCanvas(source, 200, 200), 0.5, 'source-out');
+            fillRects(createCanvas(destination, 200, 200), 0.5, `destination-in`);
+            fillRects(createCanvas(destination, 200, 200), 0.5, 'destination-atop');
+        </script>
+    </body>
+</html>

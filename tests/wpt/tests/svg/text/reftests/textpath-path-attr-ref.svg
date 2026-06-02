@@ -1,0 +1,10 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="curve" d="M 10 50 Q 100 10 200 50 T 390 50"/>
+  </defs>
+  <text x="10" y="50" font-size="20" fill="black">
+    <textPath href="#curve">
+      Text along a quadratic curve
+    </textPath>
+  </text>
+</svg>

@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title> W3C DOM Level 3 Event: focusin </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "focusin";
+            var TARGET, PARENT;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    PARENT = document.getElementById("parent");
+
+                    PARENT.addEventListener(EVENT, TestBubble, false);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestBubble(evt)
+            {
+                if ((evt.type == EVENT) && (evt.currentTarget == PARENT) && (evt.target == TARGET))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h4>
+            Test Description:
+            focusin event fires when an event target is about to receive focus.
+        </h4>
+
+        <div id="parent">
+            Click here: <input id="target" />
+        </div>
+
+        <p>Test passes if the word "PASS" appears below after clicking the above textbox using mouse.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

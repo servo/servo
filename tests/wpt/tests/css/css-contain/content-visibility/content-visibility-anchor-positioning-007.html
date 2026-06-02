@@ -1,0 +1,85 @@
+<!doctype HTML>
+<meta charset=utf8>
+<title>CSS Content Visibility: auto not skipped due to being an indirect influence on anchoring</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-relevance">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!DOCTYPE html>
+<style>
+@position-try --foo {
+  right: anchor(--a2 left);
+}
+
+#container {
+  position:relative;
+  height: 10000px;
+}
+
+#lock {
+  height: 400px;
+  width: 400px;
+  content-visibility: auto;
+  border: 1px solid black;
+}
+
+
+#anchor {
+  anchor-name: --a1;
+  position: absolute;
+}
+
+#anchor2 {
+  anchor-name: --a2;
+  position: absolute;
+  left: 60px;
+}
+
+#positioned {
+  position: absolute;
+  right: anchor(--a1 left);
+  position-try: --foo;
+}
+
+</style>
+<div id=container>
+  <!-- #positioned will anchor to anchor2, but only due to the presence of
+    #anchor. This is an example of why #anchor needs to not be locked as
+    long as #positioned is anchored to one of the other things it depends
+    on.
+  -->
+  <div id=lock>
+    <div id="anchor">--a1</div>
+  </div>
+  <div id=anchor2>--a2</div>
+  <div id=positioned>OO
+  </div>
+</div>
+
+<pre id=output>
+</pre>
+<script>
+"use strict";
+
+let skipped = false;
+lock.addEventListener("contentvisibilityautostatechange",
+  (e) => {
+    skipped = e.skipped;
+  });
+
+promise_test(async t => {
+
+  positioned.style.positionAnchor = "--anchor";
+  await waitForAnimationFrames(2);
+
+  assert_approx_equals(positioned.getBoundingClientRect().left, 44, 1,
+    '#positioned should be anchored because #anchor is on-screen.');
+
+  window.scrollTo(0, 10000);
+  await waitForAnimationFrames(4);
+  assert_false(skipped, "The content-visibility subtree is not skipped even though it's offscreen.");
+});
+
+</script>

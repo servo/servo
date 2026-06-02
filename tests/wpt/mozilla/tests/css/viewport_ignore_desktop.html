@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>viewport is ignored on desktop</title>
+<link rel="match" href="viewport_ignore_desktop_ref.html">
+<script>
+if (window.userAgent.indexOf("Mobile") === -1) {
+  var meta = document.creatElement("meta");
+  meta.name = "viewport";
+  meta.content = "width=100";
+  document.getElementsByTagName("head")[0].appendChild(meta);
+}
+</script>
+<p style='border: solid'>Test

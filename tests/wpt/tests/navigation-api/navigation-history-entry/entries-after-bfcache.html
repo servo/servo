@@ -1,0 +1,60 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+
+<script>
+// This test ensures that navigation.entries() is properly updated when a page
+// is restored from bfcache. Before navigating away and back, entries() contains
+// a single entry representing this document. When restored from bfcache,
+// entries() should now have two entries: [0] should still be this document, but
+// [1] should represent the document that we navigated to and back from
+// (assuming that document is same-origin to this one).
+runBfcacheTest({
+  targetOrigin: originSameOrigin,
+  funcBeforeNavigation: () => {
+    window.originalEntry0 = navigation.entries()[0];
+  },
+  async funcAfterAssertion(pageA, pageB) {
+    const entryData = await pageA.execute_script(() => {
+      return navigation.entries().map(e => ({
+        url: e.url,
+        key: e.key,
+        id: e.id,
+        index: e.index,
+        sameDocument: e.sameDocument
+      }));
+    });
+
+    assert_equals(entryData.length, 2);
+
+    // Ensure that [1] has the proper url, and otherwise is initialized as
+    // a cross-document NavigationHistoryEntry ought to be.
+    assert_equals(entryData[0].url, pageA.url);
+    assert_equals(entryData[1].url, pageB.url);
+
+    assert_true(isUUID(entryData[0].key));
+    assert_true(isUUID(entryData[1].key));
+    assert_not_equals(entryData[0].key, entryData[1].key);
+
+    assert_true(isUUID(entryData[0].id));
+    assert_true(isUUID(entryData[1].id));
+    assert_not_equals(entryData[0].id, entryData[1].id);
+
+    assert_equals(entryData[0].index, 0);
+    assert_equals(entryData[1].index, 1);
+
+    assert_true(entryData[0].sameDocument);
+    assert_false(entryData[1].sameDocument);
+
+    const currentIsZero = await pageA.execute_script(() => navigation.currentEntry === navigation.entries()[0]);
+    assert_true(currentIsZero);
+
+    const zeroIsSameAsOriginal = await pageA.execute_script(() => navigation.currentEntry === window.originalEntry0);
+    assert_true(zeroIsSameAsOriginal);
+  }
+}, "entries() must contain the forward-history page after navigating back to a bfcached page");
+</script>

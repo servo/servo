@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<title>The default scroll() timeline in the iframe</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<meta name="assert" content="CSS animation correctly updates values when using the default scroll() timeline">
+<link rel="match" href="scroll-timeline-default-iframe-ref.html">
+
+<iframe id="target" width="400" height="400" srcdoc='
+  <html>
+  <style>
+    @keyframes update {
+      from { transform: translateY(0px); }
+      to { transform: translateY(200px); }
+    }
+    html {
+      min-height: 100%;
+      padding-bottom: 100px;
+    }
+    #box {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      animation: update 1s linear;
+      animation-timeline: scroll();
+    }
+    #covered {
+      width: 100px;
+      height: 100px;
+      background-color: red;
+    }
+
+    * {
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+  </style>
+  <script src="/web-animations/testcommon.js"></script>
+  <script>
+    window.addEventListener("load", async function() {
+      const scroller = document.scrollingElement;
+
+      // Move the scroller to the halfway point.
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      scroller.scrollTop = 0.5 * maxScroll;
+
+      await waitForCompositorReady();
+      await waitForNextFrame();
+      await waitForNextFrame();
+
+      window.parent.postMessage("success", "*");
+    });
+  </script>
+  <body>
+    <div id="box"></div>
+    <div id="covered"></div>
+  </body>
+  </html>
+'></iframe>
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  async function finishTest() {
+    await waitForCompositorReady();
+    await waitForNextFrame();
+    await waitForNextFrame();
+    document.documentElement.classList.remove("reftest-wait");
+  }
+  window.addEventListener("message", event => {
+    if (event.data == "success") {
+      finishTest();
+    }
+  }, false);
+</script>

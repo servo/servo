@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Table Module Test: parsing border-spacing with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
+<meta name="assert" content="border-spacing supports only the grammar '<length>{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("border-spacing", "10%");
+test_invalid_value("border-spacing", "-20px");
+test_invalid_value("border-spacing", "30");
+test_invalid_value("border-spacing", "40px 50px 60px");
+</script>
+</body>
+</html>

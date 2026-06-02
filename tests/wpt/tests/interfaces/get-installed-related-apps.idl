@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Get Installed Related Apps API (https://wicg.github.io/get-installed-related-apps/spec/)
+
+dictionary RelatedApplication {
+    required USVString platform;
+    USVString url;
+    DOMString id;
+    USVString version;
+};
+
+[Exposed=Window]
+partial interface Navigator {
+  [SecureContext] Promise<sequence<RelatedApplication>> getInstalledRelatedApps();
+};

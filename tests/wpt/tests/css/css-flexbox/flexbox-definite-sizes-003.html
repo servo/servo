@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: nested flex containers with definite max-height</title>
+<link rel="match" href="flexbox-definite-sizes-001-ref.html">
+<link rel="author" href="mailto:dholbert@mozilla.com" title="Daniel Holbert">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1449326">
+<style>
+body { overflow: hidden }
+
+.outerFlex {
+  display: flex;
+  width: 100px;
+  /* Implicit "align-items:stretch" */
+}
+
+.innerFlex {
+  display: flex;
+  width: 100px;
+  background: red;
+
+  /* This reveals if we miscalculate the height of our flex item: */
+  align-items: flex-end;
+}
+
+.block {
+  width: 100px;
+  max-height: 100%;
+  background-color: green;
+}
+</style>
+<p>Test passes if you see a green 100px x 100px square, and no red</p>
+<div class="outerFlex" style="max-height: 100px">
+  <div class="innerFlex">
+    <div class="block"><div style="height:9999px"></div></div>
+  </div>
+</div>

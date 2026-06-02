@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  /*
+  The expected behavior when both shadow properties and filters are used at the
+  same time is that the filter is applied to the elements drawn and the shadow
+  properties create another shadow that includes even shadows of the
+   filter-generated shadows.
+  */
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(40, 40, 50, 50);
+  ctx.fillRect(30, 30, 50, 50);
+  ctx.fillStyle = 'red';
+  ctx.fillRect(20, 20, 50, 50);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(10, 10, 50, 50);
+</script>

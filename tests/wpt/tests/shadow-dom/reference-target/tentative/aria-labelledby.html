@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+
+<!-- 1. Declaratively defined custom label -->
+<x-label1 id="x-label1">
+  <template shadowrootmode="closed" shadowrootreferencetarget="label1">
+    <span>FAIL IF INCLUDED</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label1" data-expectedlabel="Label 1">
+
+<!-- 2. Imperatively defined custom element -->
+<script>
+  customElements.define(
+    "x-label2",
+    class XLabel2 extends HTMLElement {
+      constructor() {
+        super();
+
+        this.shadowRoot_ = this.attachShadow({ mode: "closed" });
+        this.shadowRoot_.innerHTML = `
+          <span>FAIL IF INCLUDED</span>
+          <label id="label2">
+            <slot></slot>
+          </label>
+        `;
+        this.shadowRoot_.referenceTarget = "label2";
+      }
+    }
+  );
+</script>
+<x-label2 id="x-label2">Label 2</x-label2>
+<input class="ex" aria-labelledby="x-label2" data-expectedlabel="Label 2">
+
+<!-- 3. Setting .ariaLabelledByElements to target a declaratively defined custom label -->
+<x-label3 id="x-label3">
+  <template shadowrootmode="closed" shadowrootreferencetarget="label3">
+    <span>FAIL IF INCLUDED</span>
+    <label id="label3">Label 3</label>
+  </template>
+</x-label3>
+<input id="input3" class="ex" data-expectedlabel="Label 3">
+<script>
+  document.getElementById("input3").ariaLabelledByElements = [ document.getElementById("x-label3") ];
+</script>
+
+<!-- 1. Reference target dynamically set to null; label applies to host. -->
+<x-label1 id="x-label4">
+  <template shadowrootmode="open" shadowrootreferencetarget="label1">
+    <span>Label from host</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label4" data-expectedlabel="Label from host Label 1">
+<script>
+  document.querySelector("#x-label4").shadowRoot.referenceTarget = null;
+</script>
+
+<!-- 1. Reference target is empty string; idref is treated as invalid, so no label is applied -->
+<x-label1 id="x-label5">
+  <template shadowrootmode="open" shadowrootreferencetarget="">
+    <span>Label from host</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label5" data-expectedlabel="">
+
+<script>
+  AriaUtils.verifyLabelsBySelector('.ex');
+</script>
+
+</body>
+
+</html>

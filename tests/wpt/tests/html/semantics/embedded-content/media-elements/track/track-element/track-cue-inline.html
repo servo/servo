@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Add a track and change its mode through JS</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <source src="/media/test.mp4" type="video/mp4">
+    <source src="/media/test.webm" type="video/webm">
+</video>
+<script>
+test(function() {
+    var video = document.querySelector('video');
+    var track = video.addTextTrack('captions', 'English', 'en');
+    track.addCue(new VTTCue(0.0, 10.0, 'wow wow'));
+    track.mode = 'showing';
+});
+</script>

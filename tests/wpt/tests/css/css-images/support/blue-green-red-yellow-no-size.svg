@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <rect width="100%" height="100%" fill="grey"/>
+  <rect x="0" y="0" width="25px" height="50px" style="fill: blue"/>
+  <rect x="25px" y="0" width="25px" height="50px" style="fill: green"/>
+  <rect x="0" y="50px" width="25px" height="50px" style="fill: red"/>
+  <rect x="25px" y="50px" width="25px" height="50px" style="fill: yellow"/>
+</svg>

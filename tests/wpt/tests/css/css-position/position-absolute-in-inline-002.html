@@ -1,0 +1,51 @@
+<!doctype html>
+
+<link rel="author" href="mailto:atotic@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+<meta name="assert" content="split inline containing blocks are handled correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #container-span {
+    position: relative;
+    outline: solid 1px gray;
+  }
+  #split {
+    width: 10px;
+    height: 10px;
+  }
+  #target {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,255,0,0.3);
+  }
+</style>
+<!-- There should be a green rectangle spanning two "container span" lines  below -->
+<span id="outer-span">
+outer span
+  <span id="container-span">
+    container span start
+    <div id="split"></div>
+    <div id="target"></div>
+    container span end
+  </span>
+outer span end
+</span>
+<script>
+  test(_ => {
+    let abs_bounds = document.querySelector("#target").getClientRects();
+    let container_bounds = document.querySelector("#container-span").getClientRects();
+    assert_equals(abs_bounds.length, 1);
+    assert_equals(container_bounds.length, 3);
+    assert_equals(abs_bounds[0].left, container_bounds[0].left, "left matches container");
+    assert_equals(abs_bounds[0].top, container_bounds[0].top, "top matches container");
+    assert_equals(abs_bounds[0].right, container_bounds[2].right, "right matches container");
+    assert_equals(abs_bounds[0].bottom, container_bounds[2].bottom, "bottom matches container");
+  }, "absolute inside inline container location should be correct.");
+</script>

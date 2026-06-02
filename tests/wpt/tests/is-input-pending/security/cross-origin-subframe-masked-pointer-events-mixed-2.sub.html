@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+<style>
+.obscurer {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 160px;
+  height: 180px;
+  background-color: rgba(0, 0, 255, 0.25);
+}
+
+.obscurer > * {
+  position: absolute;
+  left: 160px;
+  width: 160px;
+  height: 90px;
+  pointer-events: none;
+  background-color: rgba(255, 0, 0, 0.25);
+}
+
+</style>
+</head>
+<body>
+  <iframe src="http://{{hosts[][www1]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <div class="obscurer">
+    <div></div>
+  </div>
+  <p>Ensure that a parent frame cannot detect events on top of a cross-origin subframe masked by a div with a `pointer-events: none` child.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testCannotAccessPendingInputAt(window, 180, 120, 'parent cannot detect cross-origin events in `pointer-events: none` region');
+      PendingInputUtils.testCannotAccessPendingInputAt(frames[0], 10, 10, 'subframe cannot detect events in `pointer-events: initial` region');
+    });
+  </script>
+</body>
+</html>

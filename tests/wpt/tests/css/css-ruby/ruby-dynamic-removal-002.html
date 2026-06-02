@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic removal of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="match" href="ruby-dynamic-removal-002-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<script src="support/ruby-dynamic-removal.js"></script>
+<p>One space should exist between 'a' and 'b':</p>
+
+<!-- inter-level white space -->
+<!--     => normal white space -->
+<p>a<rb class="remove"></rb> <rt></rt>b</p>
+<p>a<rb></rb> <rt class="remove"></rt>b</p>
+<!--     => inter-base white space -->
+<p>a<rb></rb> <rt class="remove"></rt><rb></rb>b</p>
+<!--     => inter-segment white space -->
+<p>a<rbc></rbc> <rtc class="remove"></rtc><rbc></rbc>b</p>
+<!--     => inter-annotation white space -->
+<p><rb>a</rb> <rb>b</rb><rt>x</rt><rb class="remove"></rb> <rt>y</rt></p>

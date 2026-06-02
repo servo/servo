@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: display: none then inline on img</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-inline">
+<link rel="match" href="display-none-inline-img-ref.html">
+<html class="reftest-wait">
+<style>
+.carousel {
+  position: relative;
+  overflow: hidden;
+  height: 300px;
+}
+
+.scroller {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+}
+
+.slides {
+  width: 200%;
+  display: flex;
+}
+
+.slide {
+  flex: 0 0 50%;
+  contain:  paint;
+}
+
+img {
+  width: 300px;
+  height: 250px;
+}
+</style>
+
+<div class="carousel">
+  <div class="scroller">
+    <div class="slides">
+      <div class="slide">
+        <img id="image" src="/images/green-256x256.png">
+      </div>
+      <div class="slide">
+        <img>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function toggleDisplay() {
+  var img = document.getElementById("image");
+  img.style.display = img.style.display == 'none' ? 'inline' : 'none';
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    toggleDisplay();
+    requestAnimationFrame(() => {
+      toggleDisplay();
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+};
+</script>
+</html>

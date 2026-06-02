@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Name Comp: inherited presentational role with global attr (Tentative)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/wai-aria/scripts/aria-utils.js"></script>
+  </head>
+  <body>
+
+    <!-- current spec: https://w3c.github.io/aria/#conflict_resolution_presentation_none -->
+    <!-- PR with proposed clarification, pending user agent tests: https://github.com/w3c/aria/pull/2237 -->
+    <h1>Presentational role inherited with global</h1>
+
+    <!-- li is inheriting presentational role from ul; it has a global aria attr but it doesn't impact the presentational conflict resolution -->
+    <ul role="none">
+      <li aria-describedby="test" data-testname="presentational roles conflict - ul[role=none] > li[aria-describedby]" class="ex-generic">a</li>
+      <li aria-describedby="test">b</li>
+      <li aria-describedby="test">c</li>
+    </ul>
+
+    <!-- td is inheriting presentational role from table; it has a global aria attr but it doesn't impact the presentational conflict resolution -->
+    <table role="none">
+      <tbody>
+          <tr>
+            <td aria-describedby="test" data-testname="presentational roles conflict - table[role=none] td[aria-describedby]" class="ex-generic">a</td>
+          </tr>
+      </tbody>
+    </table>
+
+    <!-- td is inheriting presentational role from table; it has a global aria attr but it doesn't impact the presentational conflict resolution -->
+    <style>
+      table.with-style, table.with-style th, table.with-style td {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+    </style>
+    <table role="none" class="with-style">
+      <tbody>
+          <tr>
+            <th>col 1</th>
+            <th>col 2</th>
+          </tr>
+          <tr>
+            <td aria-describedby="test" data-testname="presentational roles conflict - table.with-style[role=none] td[aria-describedby]" class="ex-generic">cell 1</td>
+            <td>cell 2</td>
+          </tr>
+          <tr>
+            <td>cell 3</td>
+            <td>cell 4</td>
+          </tr>
+      </tbody>
+    </table>
+
+    <script>
+      AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+    </script>
+
+  </body>
+</html>

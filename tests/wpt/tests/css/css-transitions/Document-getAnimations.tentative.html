@@ -1,0 +1,196 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.getAnimations() for CSS transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#animation-composite-order">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  assert_equals(document.getAnimations().length, 0,
+    'getAnimations returns an empty sequence for a document'
+    + ' with no animations');
+}, 'getAnimations for non-animated content');
+
+test(t => {
+  const div = addDiv(t);
+
+  // Add a couple of transitions
+  div.style.left = '0px';
+  div.style.top = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.left = '100px';
+  div.style.top = '100px';
+  assert_equals(document.getAnimations().length, 2,
+                'getAnimations returns two running CSS Transitions');
+
+  // Remove both
+  div.style.transitionProperty = 'none';
+  assert_equals(document.getAnimations().length, 0,
+                'getAnimations returns no running CSS Transitions');
+}, 'getAnimations for CSS Transitions');
+
+test(t => {
+  const div = addDiv(t);
+
+  // Add a couple of transitions
+  div.style.top = '0px';
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.top = '100px';
+  div.style.left = '100px';
+
+  var animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'getAnimations returns two running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left');
+  assert_equals(animations[1].transitionProperty, 'top');
+}, 'getAnimations for CSS Transitions sort by property name');
+
+promise_test(async t => {
+  const div = addDiv(t);
+
+  // Add a couple of transitions
+  div.style.top = '0px';
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.top = '100px';
+  div.style.left = '100px';
+
+  var animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'getAnimations returns two running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left');
+  assert_equals(animations[1].transitionProperty, 'top');
+
+  // Add one more transition. As the previous call to getAnimations triggered a
+  // style change, the new animation is in a higher transition generation even
+  // though no frame was rendered for the previous transitions.
+  div.style.opacity = '1'
+  div.style.transition = 'all 100s';
+  div.style.opacity = '0'
+  animations = document.getAnimations();
+  assert_equals(animations.length, 3,
+                'getAnimations returns three running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left', '1');
+  assert_equals(animations[1].transitionProperty, 'top', '2');
+  assert_equals(animations[2].transitionProperty, 'opacity', '3');
+}, 'getAnimations for CSS Transitions sort by transition generation');
+
+function pseudoTest(description, testMarkerPseudos) {
+  test(t => {
+    // Create two divs with the following arrangement:
+    //
+    //       parent
+    //    (::marker,) // Optionally
+    //     ::before,
+    //     ::after
+    //        |
+    //       child
+
+    addStyle(t, {
+      '.init::after': 'content: ""; width: 0px; transition: all 100s;',
+      '.init::before': 'content: ""; width: 0px; transition: all 100s;',
+      '.change::after': 'width: 100px;',
+      '.change::before': 'width: 100px;',
+    });
+
+    if (testMarkerPseudos) {
+      addStyle(t, {
+        '.init::marker': 'content: ""; color: red; transition: all 100s;',
+        '.change::marker': 'color: green;',
+      });
+    }
+
+    const parent = addDiv(t, { 'style': 'display: list-item' });
+    const child = addDiv(t);
+    parent.appendChild(child);
+
+    parent.style.left = '0px';
+    parent.style.transition = 'left 100s';
+    parent.classList.add('init');
+    child.style.left = '0px';
+    child.style.transition = 'left 100s';
+    getComputedStyle(parent).left;
+
+    parent.style.left = '100px';
+    parent.classList.add('change');
+    child.style.left = '100px';
+
+    const expectedTransitions = [
+      [parent, undefined],
+      [parent, '::marker'],
+      [parent, '::before'],
+      [parent, '::after'],
+      [child, undefined],
+    ];
+    if (!testMarkerPseudos) {
+      expectedTransitions.splice(1, 1);
+    }
+
+    const transitions = document.getAnimations();
+    assert_equals(
+      transitions.length,
+      expectedTransitions.length,
+      'CSS transition on both pseudo-elements and elements are returned'
+    );
+
+    for (const [index, expected] of expectedTransitions.entries()) {
+      const [element, pseudo] = expected;
+      const actual = transitions[index];
+
+      if (pseudo) {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Transition #${index + 1} has expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          pseudo,
+          `Transition #${index + 1} has expected pseudo type`
+        );
+      } else {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Transition #${index + 1} has expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          null,
+          `Transition #${index + 1} has null pseudo type`
+        );
+      }
+    }
+  }, description);
+}
+
+pseudoTest('CSS Transitions targetting (pseudo-)elements should have correct '
+     + 'order after sorting', false)
+pseudoTest('CSS Transitions targetting (pseudo-)elements should have correct '
+     + 'order after sorting (::marker)', true)
+
+promise_test(async t => {
+  const div = addDiv(t, { style: 'left: 0px; transition: all 50ms' });
+  getComputedStyle(div).left;
+
+  div.style.left = '100px';
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 1, 'Got transition');
+  await animations[0].finished;
+
+  assert_equals(document.getAnimations().length, 0,
+                'No animations returned');
+}, 'Transitions are not returned after they have finished');
+
+</script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>No clearance due to large top margin that takes us past the float</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#flow-control" title="9.5.2 Controlling flow next to floats: the 'clear' property">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="float:left; width:100px; height:100px; background:green;"></div>
+<div style="padding-top:1px;">
+  <div style="background:red;">
+    <div style="clear:left; background:white; margin-top:150px;"><br></div>
+  </div>
+</div>

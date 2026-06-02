@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    Test that watchAvailability() runs the callback with true when user selects a device
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    setup({ explicit_timeout: true });
+  </script>
+  <body>
+    <div id="prep">
+      <p>Please make sure a device for remote playback is <b>available.</b></p>
+      <button id="prompt-button-prep">Show devices</button>
+      <button id="start-button">Start test</button>
+    </div>
+    <div id="pick-device" style="display: none">
+      <p>
+        Click the button below to prompt for a remote playback device and select
+        one!
+      </p>
+      <button id="prompt-button">Pick device</button>
+    </div>
+  </body>
+  <script src="./prepare-device.js"></script>
+  <script>
+    let v = document.createElement("video");
+    v.src = getVideoURI("/media/movie_5");
+
+    async_test(t => {
+      let deviceAvailable = false;
+      let button = document.getElementById("prompt-button");
+      button.onclick = () => {
+        v.remote
+          .watchAvailability(t.step_func(avail => (deviceAvailable = avail)))
+          .then(
+            t.step_func(() => {
+              v.remote
+                .prompt()
+                .then(() => {
+                  assert_true(deviceAvailable);
+                  t.done();
+                })
+                .catch(
+                  t.unreached_func(
+                    "Selecting a remote device was not successful."
+                  )
+                );
+            }),
+            t.unreached_func()
+          );
+      };
+    }, "Test that watchAvailability() runs the callback with true when user selects a device.");
+  </script>
+</html>

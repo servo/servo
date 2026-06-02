@@ -1,0 +1,206 @@
+<!DOCTYPE HTML>
+<title>test if select() API returns correct attributes</title>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<link rel="author" title="Koji Tashiro" href="mailto:koji.tashiro@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/association-of-controls-and-forms.html#textFieldSelection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+  var body = document.getElementsByTagName("body").item(0);
+  var dirs = ['forward', 'backward', 'none'];
+  var sampleText = "0123456789";
+
+  var createInputElement = function(value, append = true) {
+    var el = document.createElement("input");
+    el.type = "text";
+    el.value = value;
+    el.id = "input" + (append ? "-appended" : "-not-appended");
+    if (append) {
+      body.appendChild(el);
+    }
+    return el;
+  };
+
+  var createTextareaElement = function(value, append = true) {
+    var el = document.createElement("textarea");
+    el.value = value;
+    el.id = "textarea" + (append ? "-appended" : "-not-appended");
+    if (append) {
+      body.appendChild(el);
+    }
+    return el;
+  };
+
+
+  test(function() {
+    var text = 'a';
+    for (var i=0; i<255; i++) {
+      var el = createInputElement(text);
+      el.select();
+      var selectionText = el.value.substring(el.selectionStart, el.selectionEnd);
+      assert_equals(selectionText, text, "Selection text mismatched");
+      el.parentNode.removeChild(el);
+      text += 'a';
+    }
+  }, "test if selection text is correct for input");
+
+
+  test(function() {
+    var text = 'a';
+    for (var i=0; i<255; i++) {
+      var el = createTextareaElement(text);
+      el.select();
+      var selectionText = el.value.substring(el.selectionStart, el.selectionEnd);
+      assert_equals(selectionText, text, "Selection text mismatched");
+      el.parentNode.removeChild(el);
+      text += 'a';
+    }
+  }, "test if selection text is correct for textarea");
+
+
+  test(function() {
+    var text = 'あ';
+    for (var i=0; i<255; i++) {
+      var el = createInputElement(text);
+      el.select();
+      var selectionText = el.value.substring(el.selectionStart, el.selectionEnd);
+      assert_equals(selectionText, text, "Selection text mismatched");
+      el.parentNode.removeChild(el);
+      text += 'あ';
+    }
+  }, "test if non-ascii selection text is correct for input");
+
+
+  test(function() {
+    var text = 'あ';
+    for (var i=0; i<255; i++) {
+      var el = createTextareaElement(text);
+      el.select();
+      var selectionText = el.value.substring(el.selectionStart, el.selectionEnd);
+      assert_equals(selectionText, text, "Selection text mismatched");
+      el.parentNode.removeChild(el);
+      text += 'あ';
+    }
+  }, "test if non-ascii selection text is correct for textarea");
+
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createInputElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionStart, el.value.length,
+                    "SelectionStart offset without selection in " + el.id);
+      el.select();
+      assert_equals(el.selectionStart, 0, "SelectionStart offset");
+      el.remove();
+    }, "test SelectionStart offset for input that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createTextareaElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionStart, el.value.length,
+                    "SelectionStart offset without selection in " + el.id);
+      el.select();
+      assert_equals(el.selectionStart, 0, "SelectionStart offset");
+      el.remove();
+    }, "test SelectionStart offset for textarea that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createInputElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionEnd, el.value.length,
+                    "SelectionEnd offset without selection in " + el.id);
+      el.select();
+      assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
+      el.remove();
+    }, "test SelectionEnd offset for input that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createTextareaElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionEnd, el.value.length,
+                    "SelectionEnd offset without selection in " + el.id);
+      el.select();
+      assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
+      el.remove();
+    }, "test SelectionEnd offset for textarea that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+  test(function() {
+    var el = createInputElement(sampleText);
+    assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
+    el.select();
+    assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
+    el.parentNode.removeChild(el);
+  }, "test SelectionDirection for input");
+
+
+  test(function() {
+    var el = createTextareaElement(sampleText);
+    assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
+    el.select();
+    assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
+    el.parentNode.removeChild(el);
+  }, "test SelectionDirection for textarea");
+
+  promise_test(async () => {
+    // cause a layout overflow
+    const el = createInputElement(sampleText.repeat(100));
+    el.selectionEnd = 0;
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 0);
+
+    el.select();
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 0);
+    el.remove();
+  }, `test scrollLeft for input`);
+
+  promise_test(async () => {
+    // cause a layout overflow
+    const el = createInputElement(sampleText.repeat(100));
+    el.scrollLeft = 33;
+
+    el.select();
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 33);
+    el.remove();
+  }, `test scrollLeft preservation for input`);
+
+  for (const localName of ["input", "textarea"]) {
+    promise_test(async () => {
+      const container = document.createElement("div");
+      container.style.height = "100px";
+      container.style.overflow = "scroll";
+      const element = document.createElement(localName);
+      element.style.marginTop = "120px";
+      container.append(element);
+      document.body.append(container);
+
+      element.select();
+      await new Promise(requestAnimationFrame);
+      assert_equals(container.scrollTop, 0);
+
+      container.remove();
+    }, `test container.scrollTop for ${localName}`);
+  }
+</script>

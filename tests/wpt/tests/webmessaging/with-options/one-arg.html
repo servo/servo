@@ -1,0 +1,13 @@
+<!doctype html>
+<title>just one argument</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  postMessage('');
+  onmessage = t.step_func_done(e => {
+    assert_equals(e.data, '');
+  });
+});
+</script>

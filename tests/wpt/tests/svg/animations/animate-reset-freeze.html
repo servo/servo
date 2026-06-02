@@ -1,0 +1,29 @@
+<!doctype html>
+<title>SVG Animations: Rewinding fill='freeze' animations</title>
+<link rel="help" href="https://svgwg.org/specs/animations/">
+<link rel="issue" href="https://bugs.webkit.org/show_bug.cgi?id=89846">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="red"/>
+  <rect id="rect" x="0" width="100" height="100" fill="green">
+    <set attributeName="x" to="100" begin="4s" fill="freeze"/>
+    <set attributeName="x" to="200" begin="1s" dur="1s" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    let svg = document.querySelector('svg');
+    let rect = document.getElementById('rect');
+    svg.pauseAnimations();
+    svg.setCurrentTime(100);
+
+    window.onload = t.step_func(() => {
+      window.requestAnimationFrame(t.step_func_done(() => {
+        assert_equals(rect.x.animVal.value, 100, "'x' is 100 at t=100");
+        svg.setCurrentTime(0);
+        assert_equals(rect.x.animVal.value, 0, "'x' is 0 at t=0");
+      }));
+    });
+  });
+</script>

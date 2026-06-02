@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Valid Identifiers (including escape) as Classes and IDs</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="ident-000-ref.xht"/>
+  <style type="text/css">
+
+  .one { color: red; background: white; }
+  .iden\6000t\6000, .one { color: green; }
+
+  .two { color: red; background: white; }
+  #iden\6000t\6000, .two { color: green; }
+
+  </style>
+ </head>
+ <body>
+
+ <p class="one">This should be green.</p>
+ <p class="two">This should be green.</p>
+
+ </body>
+</html>

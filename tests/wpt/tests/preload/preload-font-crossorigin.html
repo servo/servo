@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Makes sure that preload font destination needs crossorigin attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+    const run_test = (preload_success, main_load_success, name,
+                      resource_url, cross_origin, number_of_requests) => {
+        const test = async_test(name);
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'font';
+        link.href = resource_url;
+        if (cross_origin) {
+            link.crossOrigin = 'anonymous';
+        }
+
+        const valid_preload_failed = test.step_func(() => {
+            assert_unreached('Valid preload fired error handler.');
+        });
+        const invalid_preload_succeeded = test.step_func(() => {
+            assert_unreached('Invalid preload load succeeded.');
+        });
+        const valid_main_load_failed = test.step_func(() => {
+            assert_unreached('Valid main load fired error handler.');
+        });
+        const invalid_main_load_succeeded = test.step_func(() => {
+            assert_unreached('Invalid main load succeeded.');
+        });
+        const main_load_pass = test.step_func(() => {
+            verifyNumberOfResourceTimingEntries(resource_url, number_of_requests);
+            test.done();
+        });
+
+        const preload_pass = test.step_func(async () => {
+            try {
+                await new FontFace('CanvasTest', `url("${resource_url}")`).load();
+            } catch (error) {
+                if (main_load_success) {
+                    valid_main_load_failed();
+                } else {
+                    main_load_pass();
+                }
+            }
+
+            if (main_load_success) {
+                main_load_pass();
+            } else {
+                invalid_main_load_succeeded();
+            }
+        });
+
+        if (preload_success) {
+            link.onload = preload_pass;
+            link.onerror = valid_preload_failed;
+        } else {
+            link.onload = invalid_preload_succeeded;
+            link.onerror = preload_pass;
+        }
+
+        document.body.appendChild(link);
+    };
+
+    verifyPreloadAndRTSupport();
+
+    const anonymous = '&pipe=header(Access-Control-Allow-Origin,*)';
+    const cross_origin_prefix = get_host_info().REMOTE_ORIGIN;
+    const file_path = '/fonts/CanvasTest.ttf';
+
+    // The CSS Font spec defines that font files always have to be fetched using
+    // anonymous-mode CORS.
+    // See https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload#cors-enabled_fetches
+    // and https://www.w3.org/TR/css-fonts-3/#font-fetching-requirements
+    // So that font loading (@font-face in CSS and FontFace.load()) always sends request
+    // with anonymous-mode CORS. The crossOrigin attribute of <link rel="preload" as="font">
+    // should be set as anonymout mode, too, even for same origin fetch. Otherwise,
+    // main font loading doesn't match the corresponding preloading due to credentials
+    // mode mismatch and the main font loading invokes another request.
+    run_test(true, true, 'Same origin font preload with crossorigin attribute',
+             file_path + '?with_crossorigin', true, 1);
+    run_test(true, true, 'Same origin font preload without crossorigin attribute',
+             file_path + '?without_crossorigin', false, 2);
+    run_test(true, true, 'Cross origin font preload with crossorigin attribute',
+             cross_origin_prefix + file_path + '?with_crossorigin' + anonymous, true, 1);
+    run_test(true, true, 'Cross origin font preload without crossorigin attribute',
+             cross_origin_prefix + file_path + '?without_crossorigin' + anonymous, false, 2);
+</script>
+</body>
+</html>

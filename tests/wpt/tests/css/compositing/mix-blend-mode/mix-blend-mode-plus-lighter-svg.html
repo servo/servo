@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>mix-blend-mode: plus-lighter SVG test</title>
+<link rel="author" title="Jake Archibald" href="mailto:jakearchibald@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-2/#mix-blend-mode">
+<link rel="match" href="reference/mix-blend-mode-plus-lighter-svg-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-4294967295">
+<style>
+  .blend-group {
+    isolation: isolate;
+  }
+  .layer {
+    mix-blend-mode: plus-lighter;
+  }
+</style>
+<script type="module">
+  import { tests } from '../support/plus-lighter.js';
+  import { toCSSColor } from '../support/utils.js';
+
+  function createRects(colors) {
+    let html = '';
+
+    for (const color of colors) {
+      html += `<rect class="layer" x="0" y="0" width="100%" height="100%" fill="${toCSSColor(color)}" />`;
+    }
+
+    return html;
+  }
+
+  for (const colors of tests) {
+    document.body.insertAdjacentHTML('beforeend', `
+      <svg width="100" height="100">
+        <g class="blend-group">
+          ${createRects(colors)}
+        </g>
+      </svg>
+    `);
+  }
+</script>

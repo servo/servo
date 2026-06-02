@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    container.style.fontSize = '50px';
+    var player = element.animate([{backgroundSize: '300px 30px'}, {backgroundSize: '10em 1em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.fontSize = '10px';
+    assert_equals(getComputedStyle(element).backgroundSize, '200px 20px');
+}, 'Border image width responsive to font size changes');
+
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: root element with ::scroll-marker-group and ::scroll-buttons() doesn't crasah</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<style>
+  html {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+  html::scroll-marker-group {
+    width: 100px;
+    height: 100px;
+  }
+  html::scroll-button(left) {
+    content: "";
+    width: 100px;
+    height: 100px;
+  }
+</style>

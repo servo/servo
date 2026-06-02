@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attach a scroll timeline to a reversed animation refTest</title>
+<link rel="help" src="https://www.w3.org/TR/scroll-animations-1/#scroll-timeline-name">
+<link rel="match" href="./animation-update-ref.html?translate=55px&scroll=825">
+<script src="/web-animations/testcommon.js"></script>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { transform: translateX(100px) }
+    to { transform: translateX(0px) }
+  }
+  #scroller {
+    border: 1px solid black;
+    overflow: hidden;
+    width: 300px;
+    height: 200px;
+    scroll-timeline: --timeline;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-top: 800px;
+    margin-left: 10px;
+    margin-right: 10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation: anim 10s linear paused;
+  }
+  #target.update {
+    animation-play-state: running;
+    animation-timeline:  --timeline;
+    animation-duration:  auto;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  document.documentElement.addEventListener('TestRendered', async () => {
+    runTest();
+  }, { once: true });
+
+  async function runTest() {
+    await waitForCompositorReady();
+
+    const anim = target.getAnimations()[0];
+    anim.playbackRate = -1;
+    await anim.ready;
+
+    // Scroll to 55% of maximum scroll while paused.
+    scroller.scrollTop = 825;
+    await waitForNextFrame();
+
+    target.classList.add('update');
+    await waitForNextFrame();
+
+    // Make sure change to animation range was properly picked up.
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: half-width Katakana and text-transform: full-size-kana</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel='author' title='Diego Pino Garcia' href='mailto:dpino@igalia.com'>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-text-transform-full-size-kana">
+<link rel="match" href="reference/text-transform-full-size-kana-004-ref.html">
+<meta name="assert" content="small half-width katakana are transformed to normal half-width katakana by text-tranform:full-size-kana">
+<style>
+td:nth-of-type(2) {
+  text-transform: full-size-kana
+}
+</style>
+
+<p>Test passes if the characters in the second column are
+the same shape and size as those in the rightmost column,
+not small as those in the leftmost column.<br>
+Any missing glyph should be ignored as long as it is missing in both the second and the rightmost column.
+
+<table>
+  <tr><td>ｧ<td>ｧ<td>ｱ
+  <tr><td>ｨ<td>ｨ<td>ｲ
+  <tr><td>ｩ<td>ｩ<td>ｳ
+  <tr><td>ｪ<td>ｪ<td>ｴ
+  <tr><td>ｫ<td>ｫ<td>ｵ
+  <tr><td>ｯ<td>ｯ<td>ﾂ
+  <tr><td>ｬ<td>ｬ<td>ﾔ
+  <tr><td>ｭ<td>ｭ<td>ﾕ
+  <tr><td>ｮ<td>ｮ<td>ﾖ
+</table>

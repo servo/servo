@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta name=fuzzy content="maxDifference=0-65; totalPixels=0-100">
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: Compute kind of widget: properties that DO NOT disable native appearance for widgets</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+<link rel="help" href="https://html.spec.whatwg.org/#widgets">
+<meta name="assert" content="appropriate widget is used for properties that don't disable native appearance.">
+<link rel="match" href="compute-kind-widget-no-fallback-ref.html">
+
+<style>
+    #container { width: 500px; }
+    #container > #search-text-input { appearance: textfield; }
+    #container > #select-menulist-button { appearance: none; appearance: menulist-button; }
+</style>
+
+<div id="container">
+    <a>a</a>
+    <button id="button">button</button>
+    <input id="button-input" type="button" value="input-button">
+    <input id="submit-input" type="submit" value="input-submit">
+    <input id="reset-input" type="reset" value="input-reset">
+
+    <input id="text-input" type="text" value="input-text">
+    <input id="search-text-input" type="search" value="input-search-text">
+    <input id="search-input" type="search" value="input-search">
+
+    <input id="range-input" type="range">
+    <input id="checkbox-input" type="checkbox">
+    <input id="radio-input" type="radio">
+    <input id="color-input" type="color">
+
+    <textarea id="textarea">textarea</textarea>
+    <select multiple id="select-listbox"><option>select-listbox</option></select>
+    <select id="select-dropdown-box"><option>select-dropdown-box</option></select>
+    <select id="select-menulist-button"><option>select-menulist-button</option></select>
+    <meter id="meter" value=0.5></meter>
+    <progress id="progress" value=0.5></progress>
+</div>
+
+<script>
+// Set author-level CSS that matches UA style, but don't use the 'revert' value.
+const elements = document.querySelectorAll('#container > *');
+const fallbackProps = new Set([
+  'background-color',
+  'border-top-color',
+  'border-top-style',
+  'border-top-width',
+  'border-right-color',
+  'border-right-style',
+  'border-right-width',
+  'border-bottom-color',
+  'border-bottom-style',
+  'border-bottom-width',
+  'border-left-color',
+  'border-left-style',
+  'border-left-width',
+  'border-block-start-color',
+  'border-block-end-color',
+  'border-inline-start-color',
+  'border-inline-end-color',
+  'border-block-start-style',
+  'border-block-end-style',
+  'border-inline-start-style',
+  'border-inline-end-style',
+  'border-block-start-width',
+  'border-block-end-width',
+  'border-inline-start-width',
+  'border-inline-end-width',
+  'background-image',
+  'background-attachment',
+  'background-position',
+  'background-position-x',
+  'background-position-y',
+  'background-clip',
+  'background-origin',
+  'background-size',
+  'border-image-source',
+  'border-image-slice',
+  'border-image-width',
+  'border-image-outset',
+  'border-image-repeat',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
+  'border-start-start-radius',
+  'border-start-end-radius',
+  'border-end-start-radius',
+  'border-end-end-radius',
+]);
+
+let mutations = []
+
+// Make sure that any supported property that is not in the above list
+// does not affect the widget type.
+const declarations = getComputedStyle(document.documentElement);
+
+for (const prop of declarations) {
+  if (fallbackProps.has(prop)) {
+    continue;
+  }
+  for (const el of elements) {
+    mutations.push([el, prop, getComputedStyle(el).getPropertyValue(prop)]);
+  }
+}
+
+// Batch all setProperty calls together (without calling gCS().getPropertyValue
+// for each mutation) to avoid excessive style recalcs.
+for (let mutation of mutations) {
+  const [el, prop, value] = mutation;
+  el.style.setProperty(prop, value);
+}
+</script>

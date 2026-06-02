@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Permission API in fenced frames should always return denied</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+  <script>
+    // See https://cs.chromium.org/chromium/src/third_party/blink/renderer/modules/permissions/permission_descriptor.idl for valid permission names.
+    standard_permission_list =
+      ['geolocation',
+        'notifications',
+        'push',
+        'midi',
+        'camera',
+        'microphone',
+        'background-fetch',
+        'background-sync',
+        'persistent-storage',
+        'ambient-light-sensor',
+        'accelerometer',
+        'gyroscope',
+        'magnetometer',
+        'screen-wake-lock',
+        'nfc',
+        'display-capture'];
+
+    standard_permission_list.forEach(function (permission_name) {
+      promise_test(async t => {
+        const permission_key = token();
+
+        attachFencedFrame(generateURL(
+          'resources/permission-api-denied-inner.html',
+          [permission_key, permission_name]));
+        const actual_result = await nextValueFromServer(permission_key);
+        assert_equals(
+          actual_result, 'result: denied',
+          'permission API should return denied for ' + permission_name +
+          ' in fenced frames.');
+      });
+    });
+  </script>
+</body>

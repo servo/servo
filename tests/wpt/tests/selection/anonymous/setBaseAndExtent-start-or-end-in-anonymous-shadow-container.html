@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Start/end boundary of selection range should match the order in the light DOM</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/editing/include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  for (const data of [
+    {
+      innerHTML: "<svg><use><circle></circle></use></svg>",
+      startContainer: "use",
+      startOffset: 0,
+      endContainer: "use",
+      endOffset: 1,
+    },
+    {
+      innerHTML: "<svg><use><circle></circle></use></svg>",
+      startContainer: "use",
+      startOffset: 0,
+      endContainer: "circle",
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<svg><use>\n<circle></circle></use></svg>",
+      startContainer: "use",
+      startOffset: 1,
+      endContainer: "circle",
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<svg><use><circle></circle></use></svg>",
+      startContainer: "circle",
+      startOffset: 0,
+      endContainer: "use",
+      endOffset: 1,
+    },
+    {
+      innerHTML: "<details><summary>ABC</summary>DEF</details>",
+      startContainer: "details",
+      startOffset: 0,
+      endContainer: "summary",
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details>\n<summary>ABC</summary>DEF</details>",
+      startContainer: "details",
+      startOffset: 1,
+      endContainer: "summary",
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details><summary>ABC</summary>DEF</details>",
+      startContainer: "details",
+      startOffset: 0,
+      endContainer: function () { return ["summary > #text", document.querySelector("summary")?.firstChild]; },
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details><summary>ABC</summary>DEF</details>",
+      startContainer: "details",
+      startOffset: 0,
+      endContainer: function () { return ["summary + #text", document.querySelector("summary")?.nextSibling]; },
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details>\n<summary>ABC</summary>DEF</details>",
+      startContainer: "details",
+      startOffset: 1,
+      endContainer: function () { return ["summary + #text", document.querySelector("summary")?.nextSibling]; },
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details><summary>ABC</summary><p>DEF</p><p>GHI</p></details>",
+      startContainer: "details",
+      startOffset: 0,
+      endContainer: "p+p",
+      endOffset: 0,
+    },
+    {
+      innerHTML: "<details>\n<summary>ABC</summary><p>DEF</p><p>GHI</p></details>",
+      startContainer: "details",
+      startOffset: 1,
+      endContainer: "p+p",
+      endOffset: 0,
+    },
+  ]) {
+    test(t => {
+      document.getElementById("container").innerHTML = data.innerHTML;
+      document.body.getBoundingClientRect();
+      const startContainer =
+        typeof(data.startContainer) === "function"
+          ? data.startContainer()[1]
+          : document.querySelector(data.startContainer);
+      const endContainer =
+        typeof(data.endContainer) === "function"
+          ? data.endContainer()[1]
+          : document.querySelector(data.endContainer);
+      getSelection().setBaseAndExtent(startContainer, data.startOffset, endContainer, data.endOffset);
+      assert_equals(
+        EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+        EditorTestUtils.getRangeDescription({
+          startContainer: startContainer,
+          startOffset: data.startOffset,
+          endContainer: endContainer,
+          endOffset: data.endOffset,
+        }),
+        `${t.name} (as-is)`
+      );
+      getSelection().setBaseAndExtent(endContainer, data.endOffset, startContainer, data.startOffset);
+      assert_equals(
+        EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+        EditorTestUtils.getRangeDescription({
+          startContainer: startContainer,
+          startOffset: data.startOffset,
+          endContainer: endContainer,
+          endOffset: data.endOffset,
+        }),
+        `${t.name} (start and end boundaries are swapped)`
+      );
+    }, `setBaseAndExtent(${
+      typeof(data.startContainer) === "function" ? data.startContainer()[0] : data.startContainer
+    }, ${data.startOffset}, ${
+      typeof(data.endContainer) === "function" ? data.endContainer()[0] : data.endContainer
+    }, ${data.endOffset}) in "${data.innerHTML.replaceAll("\n", "\\n")}"`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="container"></div>
+</body>
+</html>

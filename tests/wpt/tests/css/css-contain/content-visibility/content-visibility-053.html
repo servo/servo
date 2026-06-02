@@ -1,0 +1,30 @@
+<html>
+<meta charset="utf8">
+<title>Content Visibility: focus on display none element</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="tab navigation skips display none elements in an auto subtree">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=spacer style="height: 3000px"></div>
+<div id="host">
+  <input id="slotted" type="text">
+</div>
+
+<script>
+test(() => {
+  const container = document.createElement("div");
+  container.innerHTML = "<slot></slot>";
+  container.style = "content-visibility: auto";
+
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  shadowRoot.appendChild(container);
+
+  assert_not_equals(document.activeElement, slotted);
+  slotted.focus();
+  assert_equals(document.activeElement, slotted);
+}, "Targetting a slotted auto-hidden element with focus makes it the active element");
+</script>
+</html>

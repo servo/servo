@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Properties and Values API Level 1 (https://drafts.css-houdini.org/css-properties-values-api-1/)
+
+dictionary PropertyDefinition {
+  required DOMString name;
+           DOMString syntax       = "*";
+  required boolean   inherits;
+           DOMString initialValue;
+};
+
+partial namespace CSS {
+  undefined registerProperty(PropertyDefinition definition);
+};
+
+[Exposed=Window]
+interface CSSPropertyRule : CSSRule {
+  readonly attribute CSSOMString name;
+  readonly attribute CSSOMString syntax;
+  readonly attribute boolean inherits;
+  readonly attribute CSSOMString? initialValue;
+};

@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Same-URL Referrer Policy applied to Refresh</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=266554">
+<link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#populating-a-session-history-entry:concept-request">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/refresh-by-host.js"></script>
+<body>
+<script>
+const expectationsByPolicy = {
+  "no-referrer": kExpectEmptyString,
+  "no-referrer-when-downgrade": kExpectFullURL,
+  "origin": kExpectOrigin,
+  "origin-when-cross-origin": kExpectFullURL,
+  "same-origin": kExpectFullURL,
+  "strict-origin": kExpectOrigin,
+  "strict-origin-when-cross-origin": kExpectFullURL,
+  "unsafe-url": kExpectFullURL,
+  "": kExpectFullURL,
+};
+
+refreshWithPoliciesSameURLTest(expectationsByPolicy);
+
+function refreshWithPoliciesSameURLTest(aExpectationsByPolicy) {
+  Object.entries(aExpectationsByPolicy).forEach(([policy, expected]) =>
+    Object.entries(kRefreshOptionsByDescription).forEach(([description, refreshFrom]) => {
+      let expectedURL = new URL(refreshFrom, location).href;
+      const originalURL = expectedURL + "?" + new URLSearchParams({url: expectedURL, policy});
+      let expectedReferrer = location.href;
+
+      promise_test(async t => {
+        let loadCount = 0;
+        const { promise: frameLoaded, resolve: resolveFrameLoaded } = Promise.withResolvers();
+
+        const frame = document.createElement("iframe");
+        try {
+          frame.addEventListener("load", t.step_func(() => {
+            loadCount++;
+            try {
+              if (loadCount === 1) {
+                assert_equals(frame.contentWindow.location.href, originalURL, "original page loads");
+                assert_equals(frame.contentDocument.referrer, expectedReferrer, "referrer is parent frame");
+
+                expectedReferrer = referrerPolicyExpectationValue(expected, frame);
+              } else if (loadCount === 2) {
+                assert_equals(frame.contentWindow.location.href, expectedURL, "refresh page has expected URL");
+                assert_equals(frame.contentDocument.referrer, expectedReferrer, "document referrer is same page");
+              }
+            } finally {
+              if (loadCount === 2) {
+                resolveFrameLoaded();
+              }
+            }
+          }));
+
+          frame.src = originalURL;
+          document.body.appendChild(frame);
+
+          await frameLoaded;
+        } finally {
+          frame.remove();
+          t.done();
+        }
+      }, `same-URL ${description} with referrer policy "${policy}" refreshes with ${expected} as referrer`);
+    }));
+}
+</script>

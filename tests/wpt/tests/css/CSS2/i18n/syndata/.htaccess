@@ -1,0 +1,87 @@
+<Files ~ '^character-encoding-001\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-002\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-003\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-004\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-005\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-006\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-007\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-008\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-009\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-010\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-011\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-15 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-012\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-013\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-014\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-15 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-015\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-016\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-017\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-15 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-018\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-019\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-020\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-021\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-022\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-023\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-024\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-025\.(xht|xhtml|xml|html|htm)$'>
+AddCharset utf-8 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-026\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-027\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-028\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>
+<Files ~ '^character-encoding-029\.(xht|xhtml|xml|html|htm)$'>
+AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
+</Files>

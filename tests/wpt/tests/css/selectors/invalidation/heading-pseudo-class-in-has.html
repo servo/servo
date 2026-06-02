@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :heading() pseudo-class in :has() argument</title>
+<link rel="author" title="Anne van Kesteren" href="https://annevankesteren.nl/">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#headings">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: grey }
+  #ancestor:has(:heading(1)) ~ #has_heading_1 { color: red }
+  #ancestor:has(:heading(2)) ~ #has_heading_2 { color: orange }
+  #ancestor:has(:heading(3)) ~ #has_heading_3 { color: yellow }
+  #ancestor:has(:heading(1, 2)) ~ #has_heading_1_2 { color: green }
+  #sibling:has(+ :heading(1)) ~ #has_adjacent_heading_1 { color: blue }
+  #sibling + :heading(1) ~ #adjacent_heading_1 { color: purple }
+</style>
+<div id="ancestor"></div>
+<div id="sibling"></div>
+<div id="has_heading_1"></div>
+<div id="has_heading_2"></div>
+<div id="has_heading_3"></div>
+<div id="has_heading_1_2"></div>
+<div id="has_adjacent_heading_1"></div>
+<div id="adjacent_heading_1"></div>
+<script>
+const grey = "rgb(128, 128, 128)";
+const red = "rgb(255, 0, 0)";
+const orange = "rgb(255, 165, 0)";
+const yellow = "rgb(255, 255, 0)";
+const green = "rgb(0, 128, 0)";
+const blue = "rgb(0, 0, 255)";
+const purple = "rgb(128, 0, 128)";
+
+function testColors(test_name,
+                    has_heading_1_color,
+                    has_heading_2_color,
+                    has_heading_3_color,
+                    has_heading_1_2_color,
+                    has_adjacent_heading_1_color,
+                    adjacent_heading_1_color) {
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_1).color, has_heading_1_color);
+  }, test_name + ": #has_heading_1");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_2).color, has_heading_2_color);
+  }, test_name + ": #has_heading_2");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_3).color, has_heading_3_color);
+  }, test_name + ": #has_heading_3");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_1_2).color, has_heading_1_2_color);
+  }, test_name + ": #has_heading_1_2");
+  test(function() {
+      assert_equals(getComputedStyle(has_adjacent_heading_1).color, has_adjacent_heading_1_color);
+  }, test_name + ": #has_adjacent_heading_1");
+  test(function() {
+      assert_equals(getComputedStyle(adjacent_heading_1).color, adjacent_heading_1_color);
+  }, test_name + ": #adjacent_heading_1");
+}
+
+testColors("Initial colors", grey, grey, grey, grey, grey, grey);
+
+const h1 = document.createElement("h1");
+h1.id = "h1";
+ancestor.appendChild(h1);
+testColors("Append h1 to #ancestor", red, grey, grey, green, grey, grey);
+
+const h2 = document.createElement("h2");
+h2.id = "h2";
+ancestor.appendChild(h2);
+testColors("Append h2 to #ancestor", red, orange, grey, green, grey, grey);
+
+const h3 = document.createElement("h3");
+h3.id = "h3";
+ancestor.appendChild(h3);
+testColors("Append h3 to #ancestor", red, orange, yellow, green, grey, grey);
+
+h1.remove();
+testColors("Remove h1 from #ancestor", grey, orange, yellow, green, grey, grey);
+
+h2.remove();
+testColors("Remove h2 from #ancestor", grey, grey, yellow, grey, grey, grey);
+
+h3.remove();
+testColors("Remove h3 from #ancestor", grey, grey, grey, grey, grey, grey);
+
+const h1_adjacent = document.createElement("h1");
+h1_adjacent.id = "h1_adjacent";
+sibling.insertAdjacentElement("afterend", h1_adjacent);
+testColors("Insert h1 adjacent to #sibling", grey, grey, grey, grey, blue, purple);
+
+h1_adjacent.remove();
+testColors("Remove h1 adjacent to #sibling", grey, grey, grey, grey, grey, grey);
+
+// Test changing tag name by replacing element
+const div = document.createElement("div");
+div.id = "div";
+ancestor.appendChild(div);
+testColors("Append div to #ancestor", grey, grey, grey, grey, grey, grey);
+
+const h1_replacement = document.createElement("h1");
+h1_replacement.id = "h1_replacement";
+div.replaceWith(h1_replacement);
+testColors("Replace div with h1 in #ancestor", red, grey, grey, green, grey, grey);
+
+h1_replacement.remove();
+testColors("Remove h1_replacement from #ancestor", grey, grey, grey, grey, grey, grey);
+</script>

@@ -1,0 +1,62 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sequence operator returns constant test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader-const-expression" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  // RHS should be a constant expression (a compile-time constants) stated in section 4.3.2 from GLESSL 1.0.17
+  const float a = (0.0, 1.0);
+}
+</script>
+<script id="fshader-non-const-expression" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  float a[(2, 3)];
+}
+</script>
+<script>
+"use strict";
+description("Checks sequence operators returning constants and can be used as an array size.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext();
+
+GLSLConformanceTester.runTests([
+{ fShaderId: 'fshader-const-expression',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Sequence operator can return a constant expression",
+},
+{ fShaderId: 'fshader-non-const-expression',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Sequence operator return value can be used as array size",
+},
+]);
+
+debug("");
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>crbug.com/1130174; Non-auto-width block should be right-aligned in an RTL fieldset</title>
+<link rel="match" href="fieldset-content-rtl-ref.html">
+<style>
+.control {
+  background: blue;
+  width: 200px;
+  height: 1em;
+}
+fieldset {
+  border: 2px groove ThreeDFace;
+  margin: 0;
+  padding: 1em;
+}
+</style>
+</head>
+<body>
+<fieldset>
+  <label>Label</label>
+  <div class="control"></div>
+</fieldset>
+</body>
+</html>

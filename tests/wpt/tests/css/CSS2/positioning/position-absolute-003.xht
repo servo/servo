@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolute position element taken out of flow</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#absolute-positioning" />
+		<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+        <meta name="assert" content="Absolute positioned elements are taken out of the normal flow when they have explicit offsets." />
+        <style type="text/css">
+            #div1
+            {
+                height: 100px;
+                position: relative;
+                width: 200px;
+            }
+            #div2, #div3
+            {
+                height: 100px;
+                width: 100px;
+            }
+            #div2
+            {
+                background: red;
+            }
+            #div3
+            {
+                background: green;
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

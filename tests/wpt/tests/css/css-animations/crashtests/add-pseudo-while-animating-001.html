@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1267079">
+<style>
+
+@keyframes a {
+    0% {
+        border-radius: 1px;
+    }
+}
+
+div {
+    animation-name: a;
+    animation-duration: 3s;
+}
+
+</style>
+<script>
+
+function addSheet(text)
+{
+    var sheet = document.createElement("style");
+    sheet.appendChild(document.createTextNode(text));
+    document.head.appendChild(sheet);
+}
+
+function boom()
+{
+    requestAnimationFrame(() => { requestAnimationFrame(() => {
+        addSheet("div:after { content: 'Z'; }");
+        document.documentElement.classList.remove("test-wait");
+    }); });
+}
+
+window.addEventListener("load", boom, false);
+
+</script>
+</head>
+
+<body><div></div></body>
+</html>

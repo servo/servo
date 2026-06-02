@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Placement of out-of-flow object in elements that have been collapsed through</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/046.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   td { width: 3em; padding: 0; }
+
+   .test { background: fuchsia; }
+   .a { margin: 0; height: 1em; background: aqua; }
+   .b { margin: 0; background: red; }
+   .c { margin: 0; background: red; }
+   .d { margin: 0; background: red; }
+   .f { margin: 0 0 1em 0; background: red; }
+   .e { margin: 0; background: purple; height: 1em; float: left; width: 100%; }
+
+   .control { background: red; }
+   .aqua { border-top: solid 1em aqua; }
+   .fuchsia { border-top: solid 1em fuchsia; }
+   .purple { border-top: solid 1em purple; }
+  </style>
+ </head>
+ <body>
+  <p>The following two columns should look the same.</p>
+  <table>
+   <tr>
+    <td class="test">
+     <div class="a"> </div>
+     <div class="b">
+      <div class="c"> </div>
+      <div class="d"> </div>
+      <div class="f"> </div>
+      <div class="e"> </div>
+     </div>
+    </td>
+    <td class="control">
+     <div class="aqua"></div>
+     <div class="fuchsia"></div>
+     <div class="purple"></div>
+    </td>
+   </tr>
+  </table>
+
+
+
+</body>
+</html><!-- note. this test assumes that we accept the following proposed changes:
+     http://lists.w3.org/Archives/Member/w3c-css-wg/2003AprJun/0347.html
+  -->

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+var length = 1000000;
+var source = new Uint8Array(length);
+for (var i = 0; i < length; i++)
+    source[i] = i;
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measures performance of creating a Float64Array from an existing one million element Uint8Array.",
+    run: function() {
+        var target = new Float64Array(source);
+    }
+});
+</script>
+</body>

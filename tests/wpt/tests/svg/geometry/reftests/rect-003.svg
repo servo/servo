@@ -1,0 +1,17 @@
+<svg width="300" height="200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Rectangle coordinates and sizes specified by percentage</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match"  href="rect-ref.svg" />
+  <style>
+    rect {
+      x: 10%;
+      y: 30%;
+      width: 40%;
+      height: 50%;
+      fill: blue;
+    }
+  </style>
+  <rect />
+</svg>

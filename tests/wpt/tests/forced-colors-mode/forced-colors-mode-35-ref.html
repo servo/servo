@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - :visited fill/stroke.
+</title>
+<style>
+  a {
+    color: VisitedText;
+    forced-color-adjust: none;
+  }
+</style>
+<a href="">
+  The triangle below should NOT get overridden in forced colors mode.
+  <svg height="200" width="350">
+    <path fill="blue" stroke="green" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+  The triangle below should be currentColor in forced colors mode.
+  <svg height="200" width="350">
+    <path fill="currentColor" stroke="currentColor" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</a>

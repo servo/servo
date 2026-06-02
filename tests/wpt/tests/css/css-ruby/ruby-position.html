@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#rubypos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<p><ruby id="o1" style="ruby-position: over">base<rt>annotation</rt></ruby></p>
+<p><ruby id="o2" style="ruby-position: over">base<rt style="ruby-position: under">annotation</rt></ruby></p>
+<p><ruby id="o3" style="ruby-position: under">base<rtc style="ruby-position: over"><rt style="ruby-position: under">annotation</rt></rtc></ruby></p>
+
+<p><ruby id="u1" style="ruby-position: under">base<rt>annotation</rt></ruby></p>
+<p><ruby id="u2" style="ruby-position: under">base<rt style="ruby-position: over">annotation</rt></ruby></p>
+<p><ruby id="u3" style="ruby-position: over">base<rtc style="ruby-position: under"><rt style="ruby-position: over">annotation</rt></rtc></ruby></p>
+
+<script>
+test(() => {
+  const o1 = document.querySelector('#o1');
+  assert_true(o1.querySelector('rt').getBoundingClientRect().top <= o1.getBoundingClientRect().top);
+}, 'ruby-position:over on <ruby> works');
+
+test(() => {
+  const o2 = document.querySelector('#o2');
+  assert_true(o2.querySelector('rt').getBoundingClientRect().top <= o2.getBoundingClientRect().top);
+}, 'ruby-position:under on <rt> should not work');
+
+test(() => {
+  const o3 = document.querySelector('#o3');
+  assert_true(o3.querySelector('rt').getBoundingClientRect().top <= o3.getBoundingClientRect().top);
+}, 'ruby-position:over on <rtc> works');
+
+test(() => {
+  const u1 = document.querySelector('#u1');
+  assert_true(u1.querySelector('rt').getBoundingClientRect().bottom >= u1.getBoundingClientRect().bottom);
+}, 'ruby-position:under on <ruby> works');
+
+test(() => {
+  const u2 = document.querySelector('#u2');
+  assert_true(u2.querySelector('rt').getBoundingClientRect().bottom >= u2.getBoundingClientRect().bottom);
+}, 'ruby-position:over on <rt> should not work');
+
+test(() => {
+  const u3 = document.querySelector('#u3');
+  assert_true(u3.querySelector('rt').getBoundingClientRect().bottom >= u3.getBoundingClientRect().bottom);
+}, 'ruby-position:under on <rtc> works');
+
+</script>
+</body>

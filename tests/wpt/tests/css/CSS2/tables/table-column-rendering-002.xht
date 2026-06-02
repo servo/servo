@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table column groups are not rendered</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="assert" content="Table column groups in themselves are not rendered." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #colgroup
+            {
+                background: red;
+                display: table-column-group;
+                height: 5em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="table">
+            <div id="colgroup"></div>
+        </div>
+    </body>
+ </html>

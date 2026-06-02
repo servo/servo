@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>shaping: Arabic diacritics on NBSP</title>
+<meta name="assert" content="Shaping must work for diacritics rendered on NBSP as base">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://www.unicode.org/versions/Unicode13.0.0/ch02.pdf">
+<link rel="help" href="https://www.unicode.org/reports/tr53/">
+<link rel="match" href="reference/shaping-arabic-diacritics-002-ref.html">
+<style type="text/css">
+@font-face {
+    font-family: ArabicTest;
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+}
+.test {
+    font: 120px/2 ArabicTest, sans-serif;
+}
+.test span {
+    padding: .1em .05em 0;
+    background: black;
+}
+</style>
+</head>
+<body>
+    <p class="instructions">Test passes if the Arabic diacritics are entirely hidden by the black boxes.</p>
+    <!-- The Arabic characters here are ARABIC HAMZA ABOVE and ARABIC LETTER
+         SUPERSCRIPT ALEF, and (using the NotoNaskhArabic font) they should both
+         be entirely within the (padded) width of the NBSP, if they are properly
+         positioned (regardless of their order). -->
+    <div class=test>a<span dir=rtl>&nbsp;&#x654;&#x670;</span>z</div>
+    <div class=test>a<span dir=rtl>&nbsp;&#x670;&#x654;</span>z</div>
+</body>
+</html>

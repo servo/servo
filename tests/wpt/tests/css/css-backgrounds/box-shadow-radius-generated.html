@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Box Shadow Border Radius (Outset)</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-shape">
+<link rel="match" href="box-shadow-radius-generated-ref.html">
+<!-- Allow differences of antialised pixels along rounded edges -->
+<meta name="fuzzy" content="0-32;0-128">
+<meta name="variant" content="?width=50&height=50&spread=50&radius=0px">
+<meta name="variant" content="?width=50&height=50&spread=50&radius=1px">
+<meta name="variant" content="?width=10&height=10&spread=70&radius=100%">
+<meta name="variant" content="?width=200&height=40&spread=50&radius=100px%20/%2020px">
+<meta name="variant" content="?width=200&height=40&spread=50&radius=20px%20/%204px">
+<meta name="variant" content="?width=300&height=50&spread=30&radius=15px">
+<meta name="variant" content="?width=300&height=50&spread=30&radius=25px">
+<meta name="variant" content="?width=300&height=60&spread=30&radius=20px%2020px%2040px%2040px">
+<meta name="variant" content="?width=300&height=50&spread=30&radius=1px%201px%2049px%2049px">
+<meta name="variant" content="?width=300&height=60&spread=30&radius=0px%200px%2030px%2030px">
+<meta name="variant" content="?width=300&height=50&spread=30&radius=50%">
+<meta name="variant" content="?width=300&height=50&spread=30&radius=50%%2050%%201px%2050%">
+<meta name="variant" content="?width=200&height=40&spread=50&radius=10%%2090%%205%%">
+<meta name="variant" content="?width=200&height=40&spread=50&radius=0%2050%%2050%">
+<meta name="variant" content="?width=250&height=30&spread=100&radius=10px">
+<style>
+  #target {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: calc(var(--width) * 1px);
+    height: calc(var(--height) * 1px);
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 calc(var(--spread) * 1px) black;
+    background: green;
+  }
+</style>
+
+<script>
+  for (const param of new URL(location.href).searchParams)
+    document.documentElement.style.setProperty(`--${param[0]}`, param[1]);
+</script>
+
+<div id="target"></div>

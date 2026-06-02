@@ -1,0 +1,53 @@
+<!doctype html>
+<style>
+  div {
+    color: orange;
+  }
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+  var listSize = 1000;
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measures performance of creating and rendering elements with shadow roots from templates (contains attribute selector styles).",
+      run: function() {
+        var list = document.querySelector('#list');
+        var tmpl = document.querySelector("#tmpl");
+        list.innerHTML = '';
+        var start = PerfTestRunner.now();
+        var i = 0;
+        do {
+          var host = document.createElement('div');
+          var root = host.attachShadow({mode:'open'});
+          root.appendChild(tmpl.content.cloneNode(true));
+          var light = document.createElement('div');
+          list.appendChild(host);
+        } while (++i < listSize);
+
+        PerfTestRunner.forceLayout();
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>
+<template id="tmpl">
+  <!-- None of these styles match, but that's on purpose -->
+  <style>
+    [foo] {
+      color: blue;
+    }
+    [bar] {
+      color: red;
+    }
+    [baz] {
+      color: green;
+    }
+  </style>
+  <div>
+    <div>
+      <div>item</div>
+    </div>
+  </div>
+  <slot></slot>
+</template>
+<section id="list"></section>

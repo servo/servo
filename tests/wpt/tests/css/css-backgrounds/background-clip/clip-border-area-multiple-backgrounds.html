@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test:  background-clip:border-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-multiple-backgrounds-ref.html">
+<meta name="assert" content="Multiple backgrounds, some using border-area, are layered correctly.">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 200px;
+        box-sizing: border-box;
+        border: 50px dotted transparent;
+        background-clip: border-area, border-box, content-box;
+        background-color: red;
+        background-image: url(../resources/blue-100.png), url(../resources/green-100.png), none;
+    }
+</style>
+</head>
+<body>
+
+<div class="test"></div>
+
+</body>
+</html>

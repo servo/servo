@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<script>
+let ab = new Uint8Array([42, 222]).buffer;
+window.parent.postMessage(ab, '*', [ab]);
+</script>

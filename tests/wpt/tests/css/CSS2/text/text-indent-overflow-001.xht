@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent with negative value with overflow hidden</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="assert" content="The 'text-indent' property with negative value follows the overflow hidden assignment." />
+        <style type="text/css">
+            #div1
+            {
+                padding-left: 5em;
+            }
+            div div
+            {
+                color: red;
+                overflow: hidden;
+                text-indent: -5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="div1">
+            <div>XXXXX</div>
+        </div>
+    </body>
+</html>

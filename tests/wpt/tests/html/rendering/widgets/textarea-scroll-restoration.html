@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test textarea scroll restoration</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-textarea-element-2">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container">
+  <textarea id="textarea" rows=3>
+    A
+    B
+    C
+    D
+    E
+    F
+    G
+    H
+    I
+  </textarea>
+</div>
+<script>
+
+function frame() {
+  return new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(r));
+  });
+}
+
+let container = document.getElementById("container");
+let textarea = document.getElementById("textarea");
+
+async function test_restoration() {
+  textarea.scrollTop = 10000;
+  await frame();
+  let top = textarea.scrollTop;
+  assert_not_equals(top, 0, "Should've scrolled down");
+  container.style.display = "inline-block";
+  assert_equals(textarea.scrollTop, top, "Should've preserved the scroll position");
+  container.style.display = "";
+}
+
+promise_test(test_restoration);
+promise_test(async function() {
+  textarea.focus();
+  await frame();
+  await test_restoration();
+}, "after focus");
+</script>

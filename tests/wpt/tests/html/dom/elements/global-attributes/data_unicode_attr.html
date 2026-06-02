@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>HTML Test: dataset attribute</title>
+<link rel="author" title="ElegantPig" href="mailto:neil.ep@hotmail.com">
+<link rel="author" title="Xiaojun Wu" href="mailto:xiaojunx.a.wu@intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='log'></div>
+<div id="d1" data-weapons="laser 2" data-中文属性="中文"></div>
+<script>
+
+test(function() {
+  var d1 = document.getElementById("d1");
+  assert_equals(d1.dataset.weapons, "laser 2");
+}, "dataset - SBCS");
+
+test(function() {
+  var d1 = document.getElementById("d1");
+  assert_equals(d1.dataset.中文属性, "中文");
+}, "dataset - UNICODE");
+
+</script>

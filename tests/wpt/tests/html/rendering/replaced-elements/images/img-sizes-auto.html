@@ -1,0 +1,53 @@
+<!doctype html>
+<title>default styles for &lt;img sizes=auto></title>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/rendering/support/test-ua-stylesheet.js"></script>
+<style>
+/* Specify this bogus namespace, so the rules in this stylesheet only apply to the `fakeClone`d elements in #refs, not the HTML elements in #tests. */
+@namespace url(urn:not-html);
+
+img:is([sizes="auto" i], [sizes^="auto," i]) {
+  contain: size !important;
+  contain-intrinsic-size: 300px 150px;
+}
+</style>
+
+<style>
+/* Test !important */
+img.test-important { contain: style; contain-intrinsic-size: 30px 15px; }
+</style>
+
+<div id="log"></div>
+
+<div id="tests">
+  <img sizes=auto>
+  <img sizes=auto width=10 height=20>
+  <img sizes=AuTo>
+  <img sizes=auto,xyz>
+  <img sizes=AuTo,xyz>
+
+  <!-- UA style should not apply: -->
+  <img>
+  <img sizes>
+  <img sizes=xyz,auto>
+  <picture data-skip>
+   <source data-skip sizes=auto>
+   <img>
+  </picture>
+
+  <!-- Test !important -->
+  <img sizes=auto class=test-important>
+</div>
+
+<div id="refs"></div>
+
+<script>
+  const props = [
+    'contain',
+    'contain-intrinsic-size'
+  ];
+  runUAStyleTests(props);
+
+</script>

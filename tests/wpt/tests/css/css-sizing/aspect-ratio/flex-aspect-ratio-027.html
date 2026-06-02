@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: auto size img with aspect-ratio inside column flexbox</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-4/#propdef-aspect-ratio">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+    div {
+        width: 100px;
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+
+</head>
+<body>
+    <div><img style="aspect-ratio: 1/1;" src="support/200x200-green.png" /></div>
+</body>
+</html>

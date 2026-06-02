@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Animation test: Automated test for animation-fill-mode.</title>
+<style>
+  .target {
+    width: 50px;
+    height: 50px;
+    background: red;
+  }
+
+  @keyframes width-animation {
+    from { width: 0px; }
+    to { width: 500px; }
+  }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body></body>
+
+<script>
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let element = document.createElement("div");
+  element.className = "target";
+
+  element.style.animationDelay = "1s";
+  element.style.animationDuration = "1s";
+  element.style.animationIterationCount = 1;
+  element.style.animationName = "width-animation";
+  element.style.animationTimingFunction = "linear";
+  element.style.animationFillMode = "forwards";
+
+  document.body.appendChild(element);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "0px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
+}, "animation-delay should function correctly");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let element = document.createElement("div");
+  element.className = "target";
+
+  element.style.animationDelay = "3s";
+  element.style.animationDuration = "1s";
+  element.style.animationIterationCount = 2;
+  element.style.animationName = "width-animation";
+  element.style.animationTimingFunction = "linear";
+  element.style.animationFillMode = "forwards";
+
+  document.body.appendChild(element);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+
+  testBinding.advanceClock(2500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "0px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
+
+  // There should not be another delay here.
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
+}, "animation-delay should function correctly with multiple iterations");
+
+</script>

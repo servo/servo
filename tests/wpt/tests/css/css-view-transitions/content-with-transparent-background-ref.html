@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>View transitions: element with transparent background (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  position: fixed;
+  top: 25px;
+  left: 25px;
+  background: rgba(0,0,0,0);
+}
+
+.embedded {
+  width: 25%;
+  height: 50%;
+  position: absolute;
+  top: 0px;
+  will-change: opacity;
+}
+
+#one{
+  left: 25%;
+  background: lightblue;
+}
+#two {
+  left: 50%;
+  background: lightgreen;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-group(target) { animation: unset; }
+html::view-transition-old(target) { animation: unset; opacity: 1; }
+html::view-transition-new(target) { animation: unset; opacity: 0; }
+
+</style>
+<div class="target">
+  <div class="embedded" id="one"></div>
+  <div class="embedded" id="two"></div>
+</div>

@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<!-- Verifies CORB/ORB SVG image blocking.
+  This image has no MIME type and an html DOCTYPE declaration and is
+  expected to be blocked-->
+<meta charset="utf-8">
+<link rel="match" href="img-svg-invalid.sub-ref.html">
+<img src="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/svg-doctype-html-mimetype-empty.svg">

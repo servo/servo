@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:xiaochengh@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+
+<button id=main-menu-button>Show menu</button>
+
+<div id=main-menu>
+  <div>Foo</div>
+  <button id=nested-menu-button>
+    Show nested menu
+  </button>
+  <div>Bar</div>
+</div>
+
+<div id=nested-menu>
+  Baz
+</div>
+
+<style>
+#main-menu-button {
+  position: absolute;
+  top: 200px;
+  left: 100px;
+  width: 100px;
+}
+
+#main-menu {
+  position: absolute;
+  top: 200px;;
+  left: 200px;
+  width: 150px;
+  line-height: 20px;
+}
+
+#nested-menu-button {
+  width: 100%;
+}
+
+#nested-menu {
+  position: absolute;
+  top: 220px;
+  left: 350px;
+}
+
+[popover] {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+</style>
+
+<script>
+document.getElementById('main-menu-button').click();
+document.getElementById('nested-menu-button').click();
+</script>

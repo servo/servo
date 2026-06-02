@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>iframe.contentWindow.focus() with same-as-top intermediate frame inner</title>
+</head>
+<body>
+<script>
+document.body.onfocus = function() {
+    parent.postMessage("innerfocus;", "*");
+}
+</script>
+</body>
+</html>

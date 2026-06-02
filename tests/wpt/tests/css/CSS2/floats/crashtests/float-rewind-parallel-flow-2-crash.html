@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1520442">
+<style>
+.c3 {
+  height: 10px;
+  direction: rtl;
+  zoom: 0.1;
+  column-span: all;
+}
+
+.c13 {
+  float: right;
+  border-style: solid;
+  column-count: 3;
+  column-gap: 65536px;
+}
+
+.c17 {
+  position: fixed;
+  zoom: 0.1;
+  column-width: 100%;
+  column-span: all;
+  column-count: 3;
+}
+</style>
+<bdo class="c3">
+  <li class="c17">
+    <span class="c13">
+      <option></option>
+      <dt></dt>
+    </span>
+    -1467632561
+  </li>
+</bdo>

@@ -1,0 +1,235 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<meta name="timeout" content="long" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<video controls id="invokee" src="/media/movie_5.mp4"></video>
+<button id="invokerbutton" commandfor="invokee"></button>
+
+<script>
+  // play-pause
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "play-pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_false(invokee.paused);
+  }, "invoking video with play-pause action makes video play");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "play-pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking video with play-pause action and preventDefault is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    await test_driver.bless("play video");
+    invokee.play();
+    assert_false(invokee.paused);
+    invokerbutton.setAttribute("command", "play-pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking playing video with play-pause action pauses it");
+
+  // play
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "play");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_false(invokee.paused);
+  }, "invoking video with play action makes video play");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "play");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking video with play action and preventDefault is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    await test_driver.bless("play video");
+    invokee.play();
+    assert_false(invokee.paused);
+    invokerbutton.setAttribute("command", "play");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_false(invokee.paused);
+  }, "invoking playing video with play action is a no-op");
+
+  // pause
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking video with pause action is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_true(invokee.paused);
+    invokerbutton.setAttribute("command", "pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking video with pause action and preventDefault is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    await test_driver.bless("play video");
+    invokee.play();
+    assert_false(invokee.paused);
+    invokerbutton.setAttribute("command", "pause");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.paused);
+  }, "invoking playing video with pause action makes it pause");
+
+  // mute
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    assert_false(invokee.muted);
+    invokerbutton.setAttribute("command", "toggle-muted");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_true(invokee.muted);
+  }, "invoking video with toggle-muted action mutes it");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_false(invokee.muted);
+    invokerbutton.setAttribute("command", "toggle-muted");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_false(invokee.muted);
+  }, "invoking video with toggle-muted action and preventDefault is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("command");
+      invokee.pause();
+      invokee.currentTime = 0;
+      invokee.muted = false;
+    });
+    invokee.muted = true;
+    assert_true(invokee.muted);
+    invokerbutton.setAttribute("command", "toggle-muted");
+    await clickOn(invokerbutton);
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+    assert_false(invokee.muted);
+  }, "invoking muted video with toggle-muted action unmutes it");
+</script>

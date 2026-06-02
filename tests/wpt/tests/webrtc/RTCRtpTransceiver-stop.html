@@ -1,0 +1,155 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpTransceiver.prototype.stop</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+// FIXME: Add a test adding a transceiver, stopping it and trying to create an empty offer.
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    pc1.addTransceiver("audio", { direction: "sendonly" });
+    pc1.addTransceiver("video");
+    pc1.getTransceivers()[0].stop();
+
+    const offer = await pc1.createOffer();
+
+    assert_false(offer.sdp.includes("m=audio"), "offer should not contain an audio m-section");
+    assert_true(offer.sdp.includes("m=video"), "offer should contain a video m-section");
+}, "A transceiver added and stopped before the initial offer generation should not trigger an offer m-section generation");
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    pc1.addTransceiver("audio", { direction: "sendonly" });
+    pc1.addTransceiver("video");
+    assert_equals(null, pc1.getTransceivers()[1].receiver.transport);
+
+    pc1.getTransceivers()[1].stop();
+    assert_equals(pc1.getTransceivers()[1].receiver.transport, null);
+}, "A transceiver added and stopped should not crash when getting receiver's transport");
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+
+    await exchangeOfferAnswer(pc1, pc2);
+
+    pc1.addTransceiver("video");
+
+    pc1.getTransceivers()[0].stop();
+    pc1.getTransceivers()[1].stop();
+
+    const offer = await pc1.createOffer();
+
+    assert_true(offer.sdp.includes("m=audio"), "offer should contain an audio m-section");
+    assert_true(offer.sdp.includes("m=audio 0"), "The audio m-section should be rejected");
+
+    assert_false(offer.sdp.includes("m=video"), "offer should not contain a video m-section");
+}, "During renegotiation, adding and stopping a transceiver should not trigger a renegotiated offer m-section generation");
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+
+    await exchangeOfferAnswer(pc1, pc2);
+
+    pc1.getTransceivers()[0].direction = "sendonly";
+    pc1.getTransceivers()[0].stop();
+
+    const offer = await pc1.createOffer();
+
+    assert_true(offer.sdp.includes("a=inactive"), "The audio m-section should be inactive");
+}, "A stopped sendonly transceiver should generate an inactive m-section in the offer");
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+
+    await exchangeOfferAnswer(pc1, pc2);
+
+    pc1.getTransceivers()[0].direction = "inactive";
+    pc1.getTransceivers()[0].stop();
+
+    const offer = await pc1.createOffer();
+
+    assert_true(offer.sdp.includes("a=inactive"), "The audio m-section should be inactive");
+}, "A stopped inactive transceiver should generate an inactive m-section in the offer");
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  pc1.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc1, pc2);
+  await pc1.setLocalDescription(await pc1.createOffer());
+}, 'If a transceiver is stopped locally, setting a locally generated answer should still work');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  pc2.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc2, pc1);
+  await pc1.setLocalDescription(await pc1.createOffer());
+}, 'If a transceiver is stopped remotely, setting a locally generated answer should still work');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  assert_equals(pc1.getTransceivers().length, 1);
+  assert_equals(pc2.getTransceivers().length, 1);
+  pc1.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc1, pc2);
+  assert_equals(pc1.getTransceivers().length, 0);
+  assert_equals(pc2.getTransceivers().length, 0);
+  assert_equals(pc1.getSenders().length, 0, 'caller senders');
+  assert_equals(pc1.getReceivers().length, 0, 'caller receivers');
+  assert_equals(pc2.getSenders().length, 0, 'callee senders');
+  assert_equals(pc2.getReceivers().length, 0, 'callee receivers');
+}, 'If a transceiver is stopped, transceivers, senders and receivers should disappear after offer/answer');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  assert_equals(pc1.getTransceivers().length, 1);
+  assert_equals(pc2.getTransceivers().length, 1);
+  pc1Transceiver = pc1.getTransceivers()[0];
+  pc2Transceiver = pc2.getTransceivers()[0];
+  pc1.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc1, pc2);
+  assert_equals(pc1Transceiver.direction, 'stopped');
+  assert_equals(pc2Transceiver.direction, 'stopped');
+}, 'If a transceiver is stopped, transceivers should end up in state stopped');
+
+</script>

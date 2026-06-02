@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Properties Values API: Registered custom properties with ident()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --ident {
+    syntax: "<custom-ident>";
+    inherits: true;
+    initial-value: none;
+  }
+</style>
+<div id=target></div>
+<script>
+  let actual_ident = 'ident("--myident" calc(42 * sign(1em - 1px)))';
+  let expected_ident = '--myident42';
+
+  test((t) => {
+    t.add_cleanup(() => { target.style = ''; })
+    target.style.setProperty('--ident', actual_ident);
+    assert_equals(getComputedStyle(target).getPropertyValue('--ident'),
+      expected_ident);
+  }, 'The ident() function is resolved in a registered custom property');
+</script>

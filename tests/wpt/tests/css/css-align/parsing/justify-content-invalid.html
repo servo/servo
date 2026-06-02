@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing justify-content with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-content">
+<meta name="assert" content="justify-content supports only the grammar 'normal | <content-distribution> | <overflow-position>? [ <content-position> | left | right ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("justify-content", "auto");
+test_invalid_value("justify-content", "baseline last");
+test_invalid_value("justify-content", "baseline");
+test_invalid_value("justify-content", "center baseline");
+test_invalid_value("justify-content", "first baseline");
+test_invalid_value("justify-content", "first");
+test_invalid_value("justify-content", "flex-start flex-end");
+test_invalid_value("justify-content", "last baseline");
+test_invalid_value("justify-content", "last");
+test_invalid_value("justify-content", "legacy center");
+test_invalid_value("justify-content", "legacy left");
+test_invalid_value("justify-content", "legacy");
+test_invalid_value("justify-content", "normal baseline");
+test_invalid_value("justify-content", "right legacy");
+test_invalid_value("justify-content", "safe self-end");
+test_invalid_value("justify-content", "safe");
+test_invalid_value("justify-content", "self-end unsafe");
+test_invalid_value("justify-content", "self-start");
+test_invalid_value("justify-content", "start safe");
+test_invalid_value("justify-content", "unsafe");
+</script>
+</body>
+</html>

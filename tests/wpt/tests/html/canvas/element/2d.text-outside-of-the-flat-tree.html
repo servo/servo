@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Canvas outside the flat tree</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1792860">
+<link rel="match" href="2d.text-outside-of-the-flat-tree-ref.html">
+<div id="host"><canvas id="canvas"></canvas></div>
+<script>
+  let host = document.getElementById("host");
+  // Leaves the canvas un-slotted.
+  let root = host.attachShadow({ mode: "open"});
+  let canvas = document.getElementById("canvas");
+  let ctx = canvas.getContext("2d");
+  ctx.font = "10px sans-serif";
+  ctx.fillText('Hello, world', 10, 10);
+  // Slots the content.
+  root.innerHTML = `<slot></slot>`;
+</script>

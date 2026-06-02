@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View Transitions: Fade out of clipped content</title>
+<!-- In this test #target is not participating in the view transition and
+     therefore should have the clipped portion fade out. -->
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="clip-on-target-in-callback-2-ref.html">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Accommodate small color mismatch -->
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-48600">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  background: blue;
+  border: 5px solid black;
+  position: relative;
+}
+#container.after {
+  overflow: clip;
+}
+
+#target {
+  margin-top: 150px;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  /* freeze all animations at mid-point */
+  animation-duration: 100000s;
+  animation-delay: -50000s;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+</style>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+async function runTest() {
+  const vt = container.startViewTransition(() => {
+    container.classList.add("after");
+  });
+  await vt.ready;
+  takeScreenshotOnAnimationsReady();
+}
+
+waitForCompositorReady().then(runTest);
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test out-of-view clip-path above fixed-position element scrolled into view</title>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#fixed-position">
+<link rel="help" href="https://crbug.com/1400107">
+<link rel="match" href="clip-path-on-fixed-position-scroll-ref.html">
+<style>
+div {
+  width: 100px;
+  height: 100px;
+}
+.clip {
+  clip-path: inset(0);
+}
+.fixed {
+  position: fixed;
+  background: red;
+  z-index: -1;
+  bottom: 0;
+}
+.green {
+  position: relative;
+  background: green;
+}
+</style>
+<div style="height: 800px">Scroll to the bottom. </div>
+<div class="clip">
+  <div class="fixed"></div>
+  <div class="green"></div>
+</div>
+<script>
+onload = () => {
+  window.scrollTo(0, 400);
+};
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-group-align with invalid values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-group-align-property">
+<meta name="assert" content="text-group-align supports only the grammar 'none | start | end | left | right | center'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-group-align", "auto");
+test_invalid_value("text-group-align", "match-parent");
+test_invalid_value("text-group-align", "justify");
+test_invalid_value("text-group-align", "wrap");
+test_invalid_value("text-group-align", "left right");
+test_invalid_value("text-group-align", "center start");
+test_invalid_value("text-group-align", "end start");
+test_invalid_value("text-group-align", "none center");
+test_invalid_value("text-group-align", "start center");
+test_invalid_value("text-group-align", "right center");
+test_invalid_value("text-group-align", "5px");
+</script>
+</body>
+</html>

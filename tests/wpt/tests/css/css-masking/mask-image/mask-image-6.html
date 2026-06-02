@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask on inline element</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-image-6-ref.html">
+    <meta name="assert" content="Test checks whether mask on inline elemnt works correctly or not.">
+    <meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-70">
+    <style type="text/css">
+      div {
+        width: 100px;
+        height: 100px;
+      }
+      span {
+        font-size: 100px;
+        line-height: 100px;
+        mask-image: url(support/transparent-100x50-blue-100x50.png);
+        mask-position: center;
+        mask-repeat: repeat;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div>
+      <span>A B</span>
+    </div>
+  </body>
+</html>

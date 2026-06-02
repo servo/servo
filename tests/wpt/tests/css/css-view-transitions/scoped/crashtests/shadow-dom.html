@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<body>
+<meter><div id="node1"></div></meter>
+<div>
+  <template shadowrootmode="open"></template>
+  <div id="node2"></div>
+</div>
+<div style="display:none">
+  <div id="node3"></div>
+</div>
+<script>
+  const tr1 = node1.startViewTransition();
+  const tr2 = node2.startViewTransition();
+  const tr3 = node3.startViewTransition();
+  onload = async () => {
+    await tr1.finished;
+    await tr2.finished;
+    await tr3.finished;
+    document.documentElement.classList.remove('test-wait');
+  }
+</script>
+</body>
+</html>

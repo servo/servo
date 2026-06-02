@@ -1,0 +1,17 @@
+<!doctype HTML>
+<head>
+<style>
+* { margin: 0 }
+</style>
+<meta name="responsive-embedded-sizing">
+</head>
+<div id="target"></div>
+<script>
+window.addEventListener('load', () => {
+  requestAnimationFrame(() => {
+    target.style.width = '100px';
+    target.style.height = '400px';
+    window.requestResize();
+  })
+});
+</script>

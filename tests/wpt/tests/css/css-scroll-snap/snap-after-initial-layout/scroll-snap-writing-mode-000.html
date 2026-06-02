@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<title>
+  scroll-snap-align vs writing-mode
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap">
+<link rel="match" href="scroll-snap-writing-mode-000-ref.html">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<style>
+
+.wrapper {
+  /* lay out in a nice grid */
+  display: grid;
+  gap: 0.25em;
+  grid-template-columns: repeat(6, max-content);
+}
+
+.scroller {
+  scroll-snap-type: both mandatory;
+  overflow: hidden;
+  scroll-padding: 0;
+  width: 50px;
+  height: 50px;
+  border: solid silver;
+  border-block-start-color: blue;
+  border-inline-start-color: blue;
+}
+.area {
+  width: 200px;
+  height: 200px;
+}
+
+.target {
+  margin: 5px;
+  scroll-snap-align: start;
+}
+
+.small .target {
+  width: 30px;
+  height: 30px;
+  background: orange;
+}
+
+.large .target {
+  width: 51px;
+  height: 51px;
+  border-block-end: 20px solid red;
+  border-inline-end: 20px solid red;
+}
+
+.large .target::before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: orange;
+}
+
+.TB  { writing-mode: horizontal-tb; }
+.LR  { writing-mode: vertical-lr; }
+.RL  { writing-mode: vertical-rl; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+
+.TB.ltr.invert .target { writing-mode: vertical-rl;   direction: rtl; }
+.TB.rtl.invert .target { writing-mode: vertical-lr;   direction: rtl; }
+.LR.ltr.invert .target { writing-mode: vertical-rl;   direction: rtl; }
+.LR.rtl.invert .target { writing-mode: vertical-rl;   direction: ltr; }
+.RL.ltr.invert .target { writing-mode: vertical-lr;   direction: rtl; }
+.RL.rtl.invert .target { writing-mode: horizontal-tb; direction: ltr; }
+
+.large.invert {
+  /* key off target‘s writing mode, which we just inverted */
+  border: solid silver;
+  border-block-end-color: blue;
+  border-inline-end-color: blue;
+}
+</style>
+
+<p>Test passes if there is an orange square tucked into each blue corner without gaps,
+  and there is no red, except for the large inverted cases which should have red
+  in the silver corner and smaller orange boxes in the blue corner.
+
+<div class="wrapper">
+<!-- Simple Small Cases -->
+
+<div class="scroller TB ltr small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR ltr small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL ltr small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller TB rtl small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR rtl small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL rtl small">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<!-- Target-inverted Small Cases
+     This row should be identical to the previous. -->
+<div class="scroller TB ltr small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR ltr small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL ltr small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller TB rtl small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR rtl small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL rtl small invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<!-- Simple Large Cases -->
+
+<div class="scroller TB ltr large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR ltr large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL ltr large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller TB rtl large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR rtl large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL rtl large">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<!-- Target-inverted Large Cases
+     This is the fun one. -->
+
+<div class="scroller TB ltr large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR ltr large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL ltr large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller TB rtl large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller LR rtl large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+<div class="scroller RL rtl large invert">
+  <div class="area">
+    <div class="target"></div>
+  </div>
+</div>
+
+</div> <!-- wrapper -->

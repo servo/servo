@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+.grid {
+    display: grid;
+    grid-template-rows: 15px auto auto;
+    align-items: start;
+    background: gray;
+    padding: 10px;
+    width: max-content;
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+    overflow: visible;
+    flex-wrap: nowrap;
+    width: max-content;
+}
+</style>
+<body>
+  <p>Ensure that grid-lanes containers are sized correctly under max-content constraints even if the items do not have the max-content style.</p>
+  <div class="grid">
+    <div class="flex">
+      <div style="background: lightskyblue;">
+        Number 1
+    </div>
+    <div style="background: brown; height: 30px;">
+      Number 4
+    </div>
+    </div>
+    <div class="flex">
+      <div style="background: lightcoral;">
+        Number 2
+    </div>
+    </div>
+    <div class="flex">
+      <div style="background: lightgreen;">
+        Number 3
+    </div>
+    </div>
+  </div>
+</body>
+</html>

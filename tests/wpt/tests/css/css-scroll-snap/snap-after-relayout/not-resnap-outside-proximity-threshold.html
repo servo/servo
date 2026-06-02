@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>
+  Not re-snap once after a scroll operation has finished without snapping
+  because the scroll destination was outside of the snap proximity threshold.
+</title>
+<!-- This test assumes that all major browsers' default scroll-snap proximity
+     thresholds are greater than 200px. -->
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1780154">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0;
+}
+
+#scroller {
+  height: 600px;
+  width: 600px;
+  overflow: hidden;
+  scroll-snap-type: y proximity;
+}
+
+.snap {
+  width: 300px;
+  height: 300px;
+  background-color: green;
+  scroll-snap-align: start;
+}
+
+.area {
+  width: 2000px;
+  height: 2000px;
+}
+</style>
+
+<div id="scroller">
+  <div class="area"></div>
+  <div class="snap" style="top: 0px;"></div>
+  <div class="snap" style="top: 500px;"></div>
+</div>
+
+<script>
+test(() => {
+  // The initial snap position is at (0, 0).
+  assert_equals(scroller.scrollTop, 0);
+  assert_equals(scroller.scrollLeft, 0);
+
+  // Scroll to a position where it's outside of the scroll-snap proximity
+  // threshold, so that it won't trigger snapping.
+  scroller.scrollTo(0, 250);
+
+  assert_equals(scroller.scrollTop, 250);
+  assert_equals(scroller.scrollLeft, 0);
+
+  // Changing the initial snap target position, but still it's outside of the
+  // threshold.
+  document.querySelectorAll(".snap")[0].style.top = "10px";
+
+  // Not re-snap to the last snap point.
+  assert_equals(scroller.scrollTop, 250);
+  assert_equals(scroller.scrollLeft, 0);
+}, "Not re-snap once after a scroll operation has finished without snapping " +
+   "because the scroll destination was outside of the snap proximity threshold.");
+</script>

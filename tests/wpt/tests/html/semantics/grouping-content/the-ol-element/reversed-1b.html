@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Dynamically setting `reversed` should update the numbering</title>
+<link rel=match href="reversed-1-ref.html">
+<link rel=help href="https://html.spec.whatwg.org/#attr-ol-reversed">
+<ol id="x">
+  <li>Three</li>
+  <li>Two</li>
+  <li>One</li>
+</ol>
+<script>
+  var l = document.getElementById("x");
+  var w = l.offsetWidth;
+  l.setAttribute("reversed", "");
+</script>

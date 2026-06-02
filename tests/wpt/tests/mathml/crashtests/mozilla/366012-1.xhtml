@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+
+<head>
+<script>
+
+function boom()
+{
+  var doom = document.getElementById("doom");
+  doom.parentNode.removeChild(doom);
+  document.documentElement.removeAttribute("class");
+}
+
+</script>
+</head>
+
+<body onload="setTimeout(boom, 30);">
+  <div>
+    <p id="doom">This paragraph disappears.</p>
+    <math xmlns='http://www.w3.org/1998/Math/MathML' display='block'><msub><mi>y</mi><mn>0</mn><frameset xmlns="http://www.w3.org/1999/xhtml" /></msub></math>
+  </div>
+</body>
+
+</html>

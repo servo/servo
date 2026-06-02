@@ -1,0 +1,90 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+// fragment shader should succeed
+precision mediump float;
+uniform vec4 foo;
+void main()
+{
+    gl_FragColor = foo;
+}
+</script>
+<script id="vertexShader" type="text/something-not-javascript">
+// vertex shader should succeed
+attribute vec4 foo;
+void main()
+{
+    gl_Position = foo;
+}
+</script>
+<script>
+"use strict";
+
+/*
+This test previously concluded that an attribute in a vertex shader
+would conflict across shaders with a uniform of the same name in the
+fragment shader, based on the following sections of the GLSL ES 1.0.17
+specification:
+
+---
+Section 4.2.6
+
+...
+
+With the exception of uniform declarations, vertex and fragment shaders
+have separate name spaces.  Functions and global variables declared in a
+vertex shader cannot be referenced by a fragment shader and vice versa.
+Uniforms have a single name space.  Uniforms declared with the same name
+must have matching types and precisions.
+
+Section 4.3.3
+
+Attribute variables are required to have global scope
+
+Section 4.3.4
+
+The uniform qualifier is used to declare global variables
+---
+
+GLSL ES 3.00 later confirmed that pipeline stages have distinct
+namespaces. The OpenGL ES working group confirmed in discussions
+https://github.com/KhronosGroup/WebGL/issues/3201 that this was the
+intended behavior for GLSL ES 1.00.
+
+For this reason, this test asserts that such usage does not generate a
+conflict.
+*/
+
+GLSLConformanceTester.runTests([
+    { vShaderId: 'vertexShader',
+      vShaderSuccess: true,
+      fShaderId: 'fragmentShader',
+      fShaderSuccess: true,
+      linkSuccess: true,
+      passMsg: 'using the same name for a vertex shader attribute and fragment shader uniform should succeed'
+    },
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

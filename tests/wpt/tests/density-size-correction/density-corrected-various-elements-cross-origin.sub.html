@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>Density Corrected Size: various elements (cross-origin)</title>
+    <link rel="match" href="density-corrected-various-elements-ref.html" />
+    <meta name="assert" content="Assert that density-corrected size in EXIF is taken into account for images in all relevant elements (input/video-poster)">
+    <style>
+      .row {
+        display: flex;
+      }
+
+      .row > * {
+        object-fit: none;
+        object-position: top left;
+        margin: 5px;
+        width: 100px;
+        height: 50px;
+        background: #CCCCCC;
+      }
+    </style>
+  </head>
+  <body>
+    <p>There following boxes should be identical (the colorful boxes at the top-left quarter)</p>
+    <div class="row">
+      <div>
+        <img src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-none.jpg" width="50" height="25" />
+      </div>
+      <video poster="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg"></video>
+      <div>
+        <input type="image" src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" />
+      </div>
+    </div>
+  </body>
+</html>

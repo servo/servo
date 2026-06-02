@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+# Copyright 2025 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
+
+from selenium.common import NoSuchElementException
+
+import common_function_for_servo_test
+import common_function_for_mossel
+from selenium.webdriver.common.by import By
+
+
+def operator():
+    IMPLICIT_WAIT_TIME_FOR_POPUP = 6
+    driver = common_function_for_servo_test.create_driver()
+    # This is used to wait for element retrieval if not found
+    # and certain element click, element send key exceptions.
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
+    common_function_for_mossel.load_mossel(driver)
+
+    # Step 2. Click to close the pop-up
+    common_function_for_mossel.close_popup(driver)
+
+    print("Finding components ...")
+    target_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(3)"
+
+    try:
+        driver.find_element(By.CSS_SELECTOR, target_css_selector)
+    except NoSuchElementException:
+        raise NoSuchElementException("Components not found. Test failed.")
+
+    print("Find components successful!")
+
+
+if __name__ == "__main__":
+    common_function_for_servo_test.run_test(operator, "open_mossel")

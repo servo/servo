@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift accompanied by body display change</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#cont {
+  background: white;
+  width: 300px;
+  height: 200px;
+}
+#ch {
+  background: blue;
+  position: relative;
+  width: 300px;
+  height: 100px;
+  top: 100px;
+}
+
+</style>
+<style id="s"></style>
+<div id="cont">
+  <div id="ch"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  await waitForAnimationFrames(2);
+
+  document.querySelector("#s").innerHTML = `
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      #ch { top: 0; }
+  `;
+
+  // An element of size (300 x 100) has shifted by 100px.
+  const expectedScore = computeExpectedScore(300 * (100 + 100), 100);
+
+  // Observer fires after the frame is painted.
+  assert_equals(watcher.score, 0);
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Shift accompanied by body display change.');
+
+</script>

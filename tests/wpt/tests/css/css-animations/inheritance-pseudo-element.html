@@ -1,0 +1,49 @@
+<!doctype html>
+<title>@keyframes + pseudo-element inherits from the right style.</title>
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1757017">
+<link rel="help" href="https://drafts.csswg.org/css-animations/#property-index">
+<link rel="match" href="inheritance-pseudo-element-ref.html">
+<style>
+body {
+  font-size: 30px;
+}
+
+.container {
+  font-size: 5px;
+  height: 40px;
+}
+
+.container::after {
+  content: "";
+  display: block;
+  border: 2px solid blue;
+  width: 1em;
+  height: 1em;
+}
+
+@keyframes kf-fs5px { from, to { font-size: 5px; } }
+.fs5px::after {
+  animation: kf-fs5px 1s infinite;
+}
+
+@keyframes kf-fs1em { from, to { font-size: 1em; } }
+.fs1em::after {
+  animation: kf-fs1em 1s infinite;
+}
+
+@keyframes kf-fs100p { from, to { font-size: 100%; } }
+.fs100p::after {
+  animation: kf-fs100p 1s infinite;
+}
+
+@keyframes kf-fsinherit { from, to { font-size: inherit; } }
+.fsinherit::after {
+  animation: kf-fsinherit 1s infinite;
+}
+</style>
+<div class="container"></div>
+<div class="container fs5px"></div>
+<div class="container fs1em"></div>
+<div class="container fs100p"></div>
+<div class="container fsinherit"></div>

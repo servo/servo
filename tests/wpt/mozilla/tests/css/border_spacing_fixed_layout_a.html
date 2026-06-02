@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+    Tests that `border-spacing` with automatic table layout works when not all the column sizes
+    are specified.
+-->
+<link rel=match href=border_spacing_ref.html>
+<style>
+body, html {
+    margin: 0;
+}
+table {
+    border: none;
+    border-spacing: 6px;
+    padding: 0;
+    width: 114px;
+    table-layout: fixed;
+}
+tr {
+    padding: 0;
+}
+td {
+    border: none;
+    padding: 0;
+    background: blue;
+}
+</style>
+</head>
+<body>
+<table>
+    <tr><td style="width: 32px; height: 32px;"></td><td>&nbsp;</td></tr>
+    <tr><td style="width: 32px; height: 32px;"></td><td>&nbsp;</td></tr>
+</table>
+</body>
+</html>
+

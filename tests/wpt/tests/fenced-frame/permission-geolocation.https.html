@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>Test permission of geolocation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+
+async function runTest(policy_header_in_primary_page,
+                       policy_header_in_fenced_frame_page,
+                       allow_attribute_iframe_in_fanced_frame) {
+  const permission_geolocation_key = token();
+  const pipe_for_policy = 'pipe=header(Permissions-Policy,geolocation=self)';
+  const test_runner_url =
+      'resources/permission-geolocation-test-runner.html?' +
+      (policy_header_in_primary_page ? pipe_for_policy : '');
+  let fenced_frame_url_params = [];
+  if (policy_header_in_fenced_frame_page) {
+    fenced_frame_url_params.push(pipe_for_policy);
+  }
+  if (allow_attribute_iframe_in_fanced_frame) {
+    fenced_frame_url_params.push('load_allow_attribute_iframe=true');
+  }
+  const fenced_frame_url = 'permission-geolocation-inner.html?' +
+      fenced_frame_url_params.join('&');
+
+  const win = window.open(generateURL(test_runner_url,
+      [permission_geolocation_key]));
+  await new Promise(resolve => {
+    win.onload = resolve;
+  });
+  await test_driver.set_permission({name: 'geolocation'}, 'granted');
+
+  // Pagehide can be used to detect the document destruction.
+  const pagehidePromise = new Promise(resolve => {
+    win.onpagehide = resolve;
+  });
+
+  await win.runTest(fenced_frame_url);
+  win.close();
+  await pagehidePromise;
+}
+
+promise_test(async t => {
+  await runTest(false, false, false);
+}, 'geolocation permission is not permitted for fenced frames');
+
+promise_test(async t => {
+  await runTest(true, false, false);
+}, 'geolocation permission is not permitted for fenced frames, even if a ' +
+   '`Permissions-Policy` header is sent on the primary page.');
+
+promise_test(async t => {
+  await runTest(false, true, false);
+}, 'geolocation permission is not permitted for fenced frames, even if a ' +
+   '`Permissions-Policy` header is sent on the fenced frame response.');
+
+promise_test(async t => {
+  await runTest(false, false, true);
+}, 'geolocation permission is not permitted for fenced frames, even if an ' +
+   '`allow` attribute is set for an iframe in the fenced frame.');
+
+promise_test(async t => {
+  await runTest(false, true, true);
+}, 'geolocation permission is not permitted for fenced frames, even if a ' +
+   '`Permissions-Policy` header and an `allow` attribute is set for an iframe' +
+   ' in the fenced frame.');
+</script>
+
+</body>

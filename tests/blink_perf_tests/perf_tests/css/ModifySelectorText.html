@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style id="sheet">
+</style>
+</head>
+<body>
+<script>
+let style_text = '';
+for (let i = 0; i < 10000; ++i) {
+  style_text += '.class' + i + ' { color: red; }';
+}
+sheet.innerHTML = style_text;
+
+var runFunction = function()
+{
+  document.styleSheets[0].cssRules[9999].selectorText = '#random' + Math.floor(Math.random() * 10000000);
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of modifying selectorText on a rule late in the stylesheet",
+  run: runFunction
+});
+
+</script>
+</body>
+</html>

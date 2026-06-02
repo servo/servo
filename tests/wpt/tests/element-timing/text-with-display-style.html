@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe text with display style.</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<style>
+h1 {
+  display: flex;
+}
+h2 {
+  display: grid;
+}
+h3 {
+  display: block;
+}
+</style>
+<h1 id='title1' elementtiming='h1'>I am h1</h1>
+<h2 id='title2' elementtiming='h2'>I am h2</h2>
+<h3 id='title3' elementtiming='h3'>I am h3</h3>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const beforeRender = performance.now();
+    let observedFlex = false;
+    let observedGrid = false;
+    let observedBlock = false;
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          if (entry.id === 'title1') {
+            assert_false(observedFlex, 'Should observe flex once');
+            observedFlex = true;
+            checkTextElement(entry, 'h1', 'title1', beforeRender, document.getElementById('title1'));
+          } else if (entry.id === 'title2') {
+            assert_false(observedGrid, 'Should observe grid once');
+            observedGrid = true;
+            checkTextElement(entry, 'h2', 'title2', beforeRender, document.getElementById('title2'));
+          } else {
+            assert_equals(entry.id, 'title3', 'ID should be title1, title2, or title3');
+            assert_false(observedBlock, 'Should observe block once');
+            observedBlock = true;
+            checkTextElement(entry, 'h3', 'title3', beforeRender, document.getElementById('title3'));
+          }
+        });
+        if (observedFlex && observedGrid && observedBlock)
+          t.done();
+      })
+    );
+    observer.observe({type: 'element', buffered: true});
+  }, 'Text with display style is observable.');
+</script>
+</body>

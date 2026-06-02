@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Body Element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-body-element">
+    <meta name="flags" content="interact" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>Validation of li characteristic requiring manual testing</h1>
+
+    <p>The spec states: "If the parent element is an ol element, then the li element has an ordinal value."</p>
+    <p>This manual test is needed to verify that NON-ol element parents do NOT result in an ordinal value.</p>
+    <p>It needs to be manual because the ordinal value assigned to each list element by the user agent is NOT available programmatically. Values which are set either via markup or IDL are available programmatically, but not the calculated values for all the other list items.</p>
+    <p>And, as we cannot be sure how a mistakenly assigned value would be rendered, this test cannot be a reftest.</p>
+    <p>So, please use the buttons to answer the following questions:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>HTML Markup</th>
+                <th>Do you see any sort of sequencing information?</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <menu>
+                        <li>Menu Item</li>
+                        <li>Menu Item</li>
+                    </menu>
+                </td>
+                <td>
+                    <input type="button" id="btnMenuYes" value="Yes" />
+                    <input type="button" id="btnMenuNo" value="No" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <menu type="toolbar">
+                        <li>
+                            <menu label="ToolbarLabel">
+                                <li><a>Toolbar Menu Item</a></li>
+                                <li><a>Toolbar Menu Item</a></li>
+                            </menu>
+                        </li>
+                        <li>
+                            <menu label="ToolbarLabel">
+                                <li><a>Toolbar Menu Item</a></li>
+                                <li><a>Toolbar Menu Item</a></li>
+                            </menu>
+                        </li>
+                    </menu>
+                </td>
+                <td>
+                    <input type="button" id="btnToolbarYes" value="Yes" />
+                    <input type="button" id="btnToolbarNo" value="No" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <ul>
+                        <li>list item</li>
+                        <li>list item</li>
+                        <li>list item</li>
+                    </ul>
+                </td>
+                <td>
+                    <input type="button" id="btnULYes" value="Yes" />
+                    <input type="button" id="btnULNo" value="No" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div id="log"></div>
+
+    <script>
+        "use strict";
+
+        var testMenu = {}, testToolbar = {}, testUL = {};
+
+        // need to be able to wait for user to push button
+        setup(function () {
+                btnMenuYes.disabled = false;
+                btnMenuNo.disabled = false;
+                btnToolbarYes.disabled = false;
+                btnToolbarNo.disabled = false;
+                btnULYes.disabled = false;
+                btnULNo.disabled = false;
+             },
+             { explicit_timeout: true }
+        );
+
+        // register async tests
+        testMenu = async_test("Check that menu element does not result in values for list items.");
+        testToolbar = async_test("Check that toolbar type menu element does not result in values for list items.");
+        testUL = async_test("Check that unordered list element does not result in values for list items.");
+
+        // run async tests after buttons are clicked - MENU test
+        document.getElementById("btnMenuNo").onclick = testMenu.step_func(function (event) {
+                assert_true(true, "No sequencing applied to list elements inside menu.");
+                testMenu.done();
+                btnMenuYes.disabled = true;
+                btnMenuNo.disabled = true;
+        });
+        document.getElementById("btnMenuYes").onclick = testMenu.step_func(function (event) {
+                assert_true(false, "No sequencing applied to list elements inside menu.");
+                testMenu.done();
+                btnMenuYes.disabled = true;
+                btnMenuNo.disabled = true;
+        });
+
+        // run async tests after buttons are clicked -TOOLBAR test
+        document.getElementById("btnToolbarNo").onclick = testToolbar.step_func(function (event) {
+                assert_true(true, "No sequencing applied to list elements inside toolbar menu.");
+                testToolbar.done();
+                btnToolbarYes.disabled = true;
+                btnToolbarNo.disabled = true;
+        });
+        document.getElementById("btnToolbarYes").onclick = testToolbar.step_func(function (event) {
+                assert_true(false, "No sequencing applied to list elements inside toolbar menu.");
+                testToolbar.done();
+                btnToolbarYes.disabled = true;
+                btnToolbarNo.disabled = true;
+        });
+
+        // run async tests after buttons are clicked - UL test
+        document.getElementById("btnULNo").onclick = testUL.step_func(function (event) {
+                assert_true(true, "No sequencing applied to list elements inside UL.");
+                testUL.done();
+                btnULYes.disabled = true;
+                btnULNo.disabled = true;
+        });
+        document.getElementById("btnULYes").onclick = testUL.step_func(function (event) {
+                assert_true(false, "No sequencing applied to list elements inside UL.");
+                testUL.done();
+                btnULYes.disabled = true;
+                btnULNo.disabled = true;
+        });
+
+
+    </script>
+
+</body>

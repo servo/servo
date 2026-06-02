@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: The indicated part of the document should not match an element inside a shadow tree</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="An element inside a shadow tree should not be the indicated part of the document even if its ID is exactly equal to the decoded fragid or its name attribute is exactly equal to the fragid">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#scroll-to-the-fragment-identifier">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="testContainer"></div>
+<script>
+
+var tests = [
+    {test: async_test('The user agent scroll to the fragment when there is an element with an ID exactly equal to the decoded fragid'),
+        execute: testScrollingToElementInDocumentTree.bind(this, 'div')},
+    {test: async_test('The user agent scroll to the fragment when there is an anchor element with a name attribute exactly equal to the decoded fragid'),
+        execute: testScrollingToElementInDocumentTree.bind(this, 'a')},
+
+    {test: async_test('The user agent should not scroll to an element with an ID exactly equal to the decoded fragid in an open shadow tree'),
+        execute: testScrollingToElementInShadowTree.bind(this, 'div', 'open')},
+    {test: async_test('The user agent should not scroll to an element with an ID exactly equal to the decoded fragid in a closed shadow tree'),
+        execute: testScrollingToElementInShadowTree.bind(this, 'div', 'closed')},
+    {test: async_test('The user agent should not scroll to an anchor element with a name attribute exactly equal to the decoded fragid in an open shadow tree'),
+        execute: testScrollingToElementInShadowTree.bind(this, 'a', 'open')},
+    {test: async_test('The user agent should not scroll to an anchor element with a name attribute exactly equal to the decoded fragid in a closed shadow tree'),
+        execute: testScrollingToElementInShadowTree.bind(this, 'a', 'closed')},
+
+    {test: async_test('The user agent should scroll to an element with an ID exactly equal to the decoded fragid in the document tree'
+        + ' even if there was another element with the same ID inside an open shadow tree earlier in tree order'),
+        execute: testScrollingToElementInDocumentTreeAfterElementInShadowTreeWithSameID.bind(this, 'div', 'open')},
+    {test: async_test('The user agent should scroll to an element with an ID exactly equal to the decoded fragid in the document tree'
+        + ' even if there was another element with the same ID inside a closed shadow tree earlier in tree order'),
+        execute: testScrollingToElementInDocumentTreeAfterElementInShadowTreeWithSameID.bind(this, 'div', 'closed')},
+    {test: async_test('The user agent should scroll to an anchor element with a name attribute exactly equal to the decoded fragid in the document tree'
+        + ' even if there was another element with the same ID inside an open shadow tree earlier in tree order'),
+        execute: testScrollingToElementInDocumentTreeAfterElementInShadowTreeWithSameID.bind(this, 'a', 'open')},
+    {test: async_test('The user agent should scroll to an anchor element with a name attribute exactly equal to the decoded fragid in the document tree'
+        + ' even if there was another element with the same ID inside a closed shadow tree earlier in tree order'),
+        execute: testScrollingToElementInDocumentTreeAfterElementInShadowTreeWithSameID.bind(this, 'a', 'closed')},
+];
+
+function executeNextTest()
+{
+    window.scrollTo(0, 0);
+
+    currentFragIdSuffix++;
+    var nextTest = tests.shift();
+    if (!nextTest)
+        return;
+    setTimeout(function () {
+        nextTest.execute(nextTest.test);
+    }, 0);
+}
+
+var testContainer = document.getElementById('testContainer');
+var currentFragIdSuffix = 0;
+
+function tallElementMarkup()
+{
+    return '<div style="height: ' + (window.innerHeight * 2) + 'px"><a href="#fragid' + currentFragIdSuffix + '">Go to fragment</a></div>';
+}
+
+function targetMarkup(elementType)
+{
+    return elementType == 'div' ? ('<div id="fragid' + currentFragIdSuffix + '">hello</div>') : ('<a name="fragid' + currentFragIdSuffix + '">hello</a>');
+}
+
+function clickFirstAnchorAndRunStep(test, step)
+{
+    setTimeout(function () {
+        testContainer.querySelector('a').click();
+        setTimeout(function () {
+            test.step(step);
+            testContainer.innerHTML = '';
+            test.done();
+            executeNextTest();
+        }, 0);
+    }, 0);
+}
+
+function testScrollingToElementInDocumentTree(elementType, test)
+{
+    test.step(function () {
+        testContainer.innerHTML = tallElementMarkup() + targetMarkup(elementType);
+        assert_equals(window.pageYOffset, 0);
+    });
+    clickFirstAnchorAndRunStep(test, function () {
+        assert_not_equals(window.pageYOffset, 0);
+    });
+}
+
+function testScrollingToElementInShadowTree(elementType, mode, test)
+{
+    test.step(function () {
+        testContainer.innerHTML = tallElementMarkup() + '<div id="host"></div>';
+        var host = document.querySelector('#host');
+        var shadowRoot = host.attachShadow({mode: mode});
+        shadowRoot.innerHTML = targetMarkup(elementType);
+        assert_equals(window.pageYOffset, 0);
+    });
+    clickFirstAnchorAndRunStep(test, function () {
+        assert_equals(window.pageYOffset, 0);
+    });
+}
+
+function testScrollingToElementInDocumentTreeAfterElementInShadowTreeWithSameID(elementType, mode, test)
+{
+    test.step(function () {
+        testContainer.innerHTML = tallElementMarkup() + '<div id="host"></div>' + tallElementMarkup() + targetMarkup(elementType);
+        var host = document.querySelector('#host');
+        var shadowRoot = host.attachShadow({mode: mode});
+        shadowRoot.innerHTML = targetMarkup(elementType);
+        assert_equals(window.pageYOffset, 0);
+    });
+    clickFirstAnchorAndRunStep(test, function () {
+        assert_true(window.pageYOffset > testContainer.querySelector('#host').offsetTop);
+    });
+}
+
+executeNextTest();
+
+</script>
+</body>
+</html>

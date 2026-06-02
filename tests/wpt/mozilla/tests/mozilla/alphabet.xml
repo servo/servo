@@ -1,0 +1,41 @@
+<!-- This version of alphabet.xml has been modified to not need the DTD -->
+<A id="n1" pre="1" post="26" xml:lang="en">
+<B id="n2" pre="2" post="3">
+<C id="n3" pre="3" post="1">clergywoman</C>
+<D id="n4" pre="4" post="2">decadent</D>
+</B>
+<E id="n5" pre="5" post="22">
+<F id="n6" pre="6" post="6">
+<G id="n7" pre="7" post="4">gentility</G>
+<H id="n8" pre="8" post="5" idrefs="n17 n26">happy-go-lucky man</H>
+</F>
+<I id="n9" pre="9" post="9">
+<J id="n10" pre="10" post="7">jigsaw</J>
+<K id="n11" pre="11" post="8">kerchief</K>
+</I>
+<L id="n12" pre="12" post="15">
+<!--L is the twelve-th letter of the English alphabet-->
+The letter L is followed by the letter:
+<M id="n13" pre="13" post="10"/>
+which is followed by the letter:
+<N id="n14" pre="14" post="13">
+<O id="n15" pre="15" post="11">ovenware</O>
+<P id="n16" pre="16" post="12">plentiful</P>
+</N>
+<?myPI value="XPath is nice"?>
+<Q id="n17" pre="17" post="14" idrefs="n8 n26">quarrelsome</Q>
+</L>
+<R id="n18" pre="18" post="18">
+<S id="n19" pre="19" post="16">sage</S>
+<T id="n20" pre="20" post="17">tattered</T>
+</R>
+<U id="n21" pre="21" post="21">
+<V id="n22" pre="22" post="19">voluptuary</V>
+<W id="n23" pre="23" post="20">wriggle</W>
+</U>
+</E>
+<X id="n24" pre="24" post="25">
+<Y id="n25" pre="25" post="23">yawn</Y>
+<Z id="n26" pre="26" post="24" idrefs="n8 n17" xml:lang="it">zuzzurellone</Z>
+</X>
+</A>

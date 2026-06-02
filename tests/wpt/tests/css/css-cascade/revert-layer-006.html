@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' reverts origin when no lower priority declarations in the same origin</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+#outer {
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+}
+#inner {
+  color: green;
+  background-color: green;
+  display: inline;
+  display: revert-layer; /* This should behave as 'revert', setting 'display' to 'block' */
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="outer">
+  <div id="inner">
+    This<br>
+    is<br>
+    filler<br>
+    text.<br>
+    This<br>
+    is<br>
+    filler<br>
+    text.
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CSS Text: U+FFFC OBJECT REPLACEMENT CHARACTER presence</title>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/">
+<style>
+.foo {
+  font-size: 100px;
+  writing-mode: vertical-lr;
+  text-combine-upright: all;
+}
+</style>
+</head>
+<body>
+This test makes sure that, when <code>text-combine-upright</code> and <code>text-emphasis</code> are used together, the emphasis mark doesn't disappear. The test passes if you see an emphasis mark to the right of the letter X below.
+<p class="foo">X</p>
+</body>
+</html>

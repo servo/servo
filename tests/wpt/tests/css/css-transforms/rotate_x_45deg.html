@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: rotateX with perspective produces a trapezoid</title>
+  <link rel="author" title="Ebay Inc." href="mailto:xiatian@ebay.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#3d-transform-rendering"/>
+  <link rel="match" href="rotate_x_45deg-ref.html"/>
+  <meta name="fuzzy" content="maxDifference=159-255;totalPixels=50-200">
+  <meta name="assert" content="Rotate 45 degree in y axis"/>
+  <style type="text/css">
+      .container {
+          border: 1px solid black;
+          height: 100px;
+          width: 100px;
+          background-color:#fff;
+      }
+      .transformed {
+          transform: rotateX(45deg);
+          background-color:green;
+          height: 100px;
+      }
+  </style>
+
+ </head>
+ <body>
+   <p>There is one green area in the box</p>
+  <div class="container">
+    <div class="transformed"></div>
+  </div>
+
+</body>
+</html>

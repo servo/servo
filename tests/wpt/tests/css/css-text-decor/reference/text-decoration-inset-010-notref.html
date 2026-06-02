@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+u {
+  text-decoration-color: blue;
+  text-decoration-inset: auto;
+  text-underline-position: under;
+}
+</style>
+
+<p>The underlines for "石井" and for "艾俐俐" should be visibly separate:</p>
+
+<div>
+  <h1 lang="zh">
+    <u>石井艾俐俐</u>
+  </h1>
+</div>

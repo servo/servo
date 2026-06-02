@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: getComputedStyle().gap</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-gap">
+<meta name="assert" content="gap computed value is a pair of keyword or <length-percentage> values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("gap", "normal");
+test_computed_value("gap", "10px");
+test_computed_value("gap", "20%");
+test_computed_value("gap", "calc(20% + 10px)");
+test_computed_value("gap", "calc(-0.5em + 10px)", "0px");
+test_computed_value("gap", "calc(0.5em + 10px)", "30px");
+
+test_computed_value("gap", "normal 10px");
+test_computed_value("gap", "10px 20%");
+test_computed_value("gap", "20% calc(20% + 10px)");
+test_computed_value("gap", "calc(20% + 10px) normal");
+
+test_computed_value("gap", "calc(-0.5em + 10px) calc(0.5em + 10px)", "0px 30px");
+</script>
+</body>
+</html>

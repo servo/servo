@@ -1,0 +1,19 @@
+This directory tests conformance to HTTPS Upgrading feature of Fetch spec.
+HTTPS Upgrading automatically upgrades main frame HTTP navigations to HTTPS and
+falls back to the original HTTP URL if the upgraded HTTPS URL isn't available.
+
+In practice, HTTPS Upgrading won't work properly with URLs with non-default
+ports. This is because the upgrade logic can't guess the HTTPS port and has to
+use the same non-default port number for the upgraded HTTPS URL as the HTTP URL.
+In other words, upgrading http://example.com:8123 to https://example.com:8123
+won't work because the server can't serve both http and https on the same port.
+
+The tests in this directory rely on this fact:
+- If HTTPS Upgrading is enabled, http://{{host}}:{{https-port}} will be upgraded
+  to https://{{host}}:{{https-port}} and load properly.
+- Otherwise, http://{{host}}:{{https-port}} will remain unchanged and won't
+  load, since the server serves http URLs on {{http-port}} instead.
+
+Therefore, the simplest way to run these tests is through
+[wpt.live](http://wpt.live/https-upgrades) which serves the files over default
+ports.

@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='ISO-8859-1'?><?xml-stylesheet type="text/xsl" href="./reqLine.xsl"?>
+<RQStuff>
+  <static>./testu1LINE.xml</static>
+</RQStuff>

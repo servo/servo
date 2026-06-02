@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>View transitions: capture opacity elements (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.box {
+  color: red;
+  background: lightgreen;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  font-size: 30pt;
+}
+#e1 {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  top: 20px;
+  left: 20px;
+}
+body { background: lightpink; }
+</style>
+<div id=e1 class=box></div>
+

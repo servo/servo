@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-fixedblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that fixing the block size of children works as expected." />
+
+<style>
+.test {
+  writing-mode: vertical-rl;
+  background: red;
+  height: 100px;
+}
+
+.htb {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+  width: 3px;
+  height: 2px;
+
+  --fixed-block-size: 10;
+
+  --inline-size-expected: 2;
+  --block-size-expected: 10;
+}
+
+.vrl {
+  writing-mode: vertical-rl;
+  visibility: hidden;
+  width: 3px;
+  height: 2px;
+
+  --fixed-block-size: 10;
+
+  --inline-size-expected: 2;
+  --block-size-expected: 10;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="htb"></div>
+  <div class="vrl"></div>
+  <!-- min/max-width should have no effect, fixedBlockSize wins. -->
+  <div class="htb" style="max-width: 5px;"></div>
+  <div class="vrl" style="max-width: 5px;"></div>
+  <div class="htb" style="min-width: 15px;"></div>
+  <div class="vrl" style="min-width: 15px;"></div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Select element with background color in flexbox with zero height</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1591925">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#content-size-suggestion">
+<link rel="match" href="select-element-zero-height-002-ref.html">
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    height: 0px;
+    border: 1px dotted black;
+  }
+  .with-background {
+    background: lime;
+  }
+  select {
+    /*
+      WebKit applies intrinsic (default) margins to control elements in some circumstances,
+      let's disable them to avoid mismatch errors caused by those margins.
+    */
+    margin: 0;
+  }
+</style>
+<body>
+  <div class="container">
+    <select class="with-background"><option>Hi</option></select>
+  </div>
+</body>

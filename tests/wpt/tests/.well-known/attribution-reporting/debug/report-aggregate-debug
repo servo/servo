@@ -1,0 +1,8 @@
+"""Endpoint to receive and return aggregatable debug reports."""
+from importlib import import_module
+
+reports = import_module('attribution-reporting.resources.reports')
+
+
+def main(request, response):
+  return reports.handle_reports(request)

@@ -1,0 +1,3300 @@
+- name: 2d.text.font.parse.basic
+  code: |
+    ctx.font = '20px serif';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20PX   SERIF';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+- name: 2d.text.font.parse.tiny
+  code: |
+    ctx.font = '1px sans-serif';
+    @assert ctx.font === '1px sans-serif';
+
+- name: 2d.text.font.parse.complex
+  code: |
+    ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
+    @assert ['italic small-caps 12px "Unknown Font", sans-serif', 'italic small-caps 12px Unknown Font, sans-serif'].includes(ctx.font);
+
+- name: 2d.text.font.parse.complex2
+  code: |
+    ctx.font = 'small-caps italic 400 12px/2 "Unknown Font #2", sans-serif';
+    @assert ctx.font === 'italic small-caps 12px "Unknown Font #2", sans-serif';
+
+- name: 2d.text.font.parse.family
+  code: |
+    ctx.font = '20px cursive,fantasy,monospace,sans-serif,serif,UnquotedFont,"QuotedFont\\\\\\","';
+    @assert ctx.font === '20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, "QuotedFont\\\\\\","';
+
+  # TODO:
+  #   2d.text.font.parse.size.absolute
+  #     xx-small x-small small medium large x-large xx-large
+  #   2d.text.font.parse.size.relative
+  #     smaller larger
+  #   2d.text.font.parse.size.length.relative
+  #     em ex px
+  #   2d.text.font.parse.size.length.absolute
+  #     in cm mm pt pc
+
+- name: 2d.text.font.parse.size.percentage
+  canvas: 'style="font-size: 144px"'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.font = '50% serif';
+    @assert ctx.font === '72px serif'; @moz-todo
+    canvas.setAttribute('style', 'font-size: 100px');
+    @assert ctx.font === '72px serif'; @moz-todo
+
+- name: 2d.text.font.parse.size.percentage.default
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.font = '1000% serif';
+    @assert ctx2.font === '100px serif'; @moz-todo
+
+- name: 2d.text.font.parse.system
+  desc: System fonts must be computed to explicit values
+  code: |
+    ctx.font = 'message-box';
+    @assert ctx.font !== 'message-box';
+
+- name: 2d.text.font.parse.invalid
+  code: |
+    ctx.font = '20px serif';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'bogus';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'inherit';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '10px {bogus}';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '10px initial';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+    ctx.font = '20px serif';
+    ctx.font = '10px default';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+    ctx.font = '20px serif';
+    ctx.font = '10px inherit';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '10px revert';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'var(--x)';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'var(--x, 10px serif)';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '1em serif; background: green; margin: 10px';
+    @assert ctx.font === '20px serif';
+
+- name: 2d.text.font.default
+  code: |
+    @assert ctx.font === '10px sans-serif';
+
+- name: 2d.text.font.relative_size
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.font = '1em sans-serif';
+    @assert ctx2.font === '10px sans-serif';
+
+- name: 2d.text.font.relative_size
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    ctx.font = '1em sans-serif';
+    @assert ctx.font === '10px sans-serif';
+
+- name: 2d.text.font.weight
+  code: |
+    ctx.font = 'italic 400 12px serif';
+    @assert ctx.font === 'italic 12px serif';
+
+    ctx.font = 'italic 300 12px serif';
+    @assert ctx.font === 'italic 300 12px serif';
+
+- name: 2d.text.lang.default
+  code: |
+    @assert ctx.lang === 'inherit';
+
+- name: 2d.text.lang.valid
+  code: |
+    ctx.lang = '';
+    @assert ctx.lang === '';
+
+    ctx.lang = 'inherit';
+    @assert ctx.lang === 'inherit';
+
+    ctx.lang = 'en-US';
+    @assert ctx.lang === 'en-US';
+
+    ctx.lang = 'not-a-real-lang';
+    @assert ctx.lang === 'not-a-real-lang';
+
+- name: 2d.text.align.valid
+  code: |
+    ctx.textAlign = 'start';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'end';
+    @assert ctx.textAlign === 'end';
+
+    ctx.textAlign = 'left';
+    @assert ctx.textAlign === 'left';
+
+    ctx.textAlign = 'right';
+    @assert ctx.textAlign === 'right';
+
+    ctx.textAlign = 'center';
+    @assert ctx.textAlign === 'center';
+
+- name: 2d.text.align.invalid
+  code: |
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'bogus';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'END';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'end ';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'end\0';
+    @assert ctx.textAlign === 'start';
+
+- name: 2d.text.align.default
+  code: |
+    @assert ctx.textAlign === 'start';
+
+- name: 2d.text.baseline.valid
+  code: |
+    ctx.textBaseline = 'top';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'hanging';
+    @assert ctx.textBaseline === 'hanging';
+
+    ctx.textBaseline = 'middle';
+    @assert ctx.textBaseline === 'middle';
+
+    ctx.textBaseline = 'alphabetic';
+    @assert ctx.textBaseline === 'alphabetic';
+
+    ctx.textBaseline = 'ideographic';
+    @assert ctx.textBaseline === 'ideographic';
+
+    ctx.textBaseline = 'bottom';
+    @assert ctx.textBaseline === 'bottom';
+
+- name: 2d.text.baseline.invalid
+  code: |
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'bogus';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'MIDDLE';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle ';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle\0';
+    @assert ctx.textBaseline === 'top';
+
+- name: 2d.text.baseline.default
+  code: |
+    @assert ctx.textBaseline === 'alphabetic';
+
+- name: 2d.text.direction.default
+  code: |
+    @assert ctx.direction === 'inherit';
+
+- name: 2d.text.direction.valid
+  code: |
+    ctx.direction = 'ltr';
+    @assert ctx.direction === 'ltr';
+
+    ctx.direction = 'rtl';
+    @assert ctx.direction === 'rtl';
+
+    ctx.direction = 'inherit';
+    @assert ctx.direction === 'inherit';
+
+- name: 2d.text.direction.invalid
+  code: |
+    ctx.direction = 'ltr';
+    ctx.direction = 'rtl ';
+    @assert ctx.direction === 'ltr';
+
+    ctx.direction = 'rtl';
+    ctx.direction = 'LTR';
+    @assert ctx.direction === 'rtl';
+
+    ctx.direction = 'ltr';
+    ctx.direction = 'rtl\0';
+    @assert ctx.direction === 'ltr';
+
+    ctx.direction = 'ltr';
+    ctx.direction = 'bogus';
+    @assert ctx.direction === 'ltr';
+
+    ctx.direction = 'ltr';
+    ctx.direction = 'inheri';
+    @assert ctx.direction === 'ltr';
+
+- name: 2d.text.draw.baseline.top
+  desc: textBaseline top is the top of the em square (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'top';
+    ctx.fillText('CC', 0, 0);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - &load-font-variant-definition
+    HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
+      load_font: |-
+        await document.fonts.ready;
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas', 'Worker']
+      load_font: |-
+        var f = new FontFace("{{ fonts[0] }}", "url('/fonts/{{ fonts[0] }}.ttf')");
+        f.load();
+        {% set root = 'self' if canvas_type == 'Worker' else 'document' %}
+        {{ root }}.fonts.add(f);
+        await {{ root }}.fonts.ready;
+
+- name: 2d.text.draw.baseline.bottom
+  desc: textBaseline bottom is the bottom of the em square (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('CC', 0, 50);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.baseline.middle
+  desc: textBaseline middle is the middle of the em square (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('CC', 0, 25);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.baseline.alphabetic
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('CC', 0, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.baseline.ideographic
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'ideographic';
+    ctx.fillText('CC', 0, 31.25);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 95,45 ==~ 0,255,0,255; @moz-todo
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.baseline.hanging
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textBaseline = 'hanging';
+    ctx.fillText('CC', 0, 12.5);
+    @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.space.collapse.space
+  desc: Space characters are converted to U+0020, and are NOT collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('E  EE', 0, 37.5);
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 255,0,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.space.collapse.other
+  desc: Space characters are converted to U+0020, and are NOT collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', 0, 37.5);
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 255,0,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.space.collapse.start
+  desc: Space characters at the start of a line are NOT collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText(' EE', 0, 37.5);
+    @assert pixel 25,25 ==~ 255,0,0,255; @moz-todo
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.space.collapse.end
+  desc: Space characters at the end of a line are NOT collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'right';
+    ctx.fillText('EE ', 100, 37.5);
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 255,0,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.width.space
+  desc: Space characters are converted to U+0020 and NOT collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    @assert ctx.measureText('A B').width === 150;
+    @assert ctx.measureText('A  B').width === 200;
+    @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 650;
+    @assert ctx.measureText('A \x0b B').width >= 200;
+
+    @assert ctx.measureText(' AB').width === 150;
+    @assert ctx.measureText('AB ').width === 150;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.width.nullCharacter
+  desc: Null character does not take up space
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    @assert ctx.measureText('\u0000').width === 0;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.drawing.style.measure.rtl.text
+  desc: Measurement should follow canvas direction instead text direction
+  code: |
+    metrics = ctx.measureText('اَلْعَرَبِيَّةُ');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+- name: 2d.text.drawing.style.measure.textAlign
+  desc: Measurement should be related to textAlignment
+  code: |
+    ctx.textAlign = "right";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight;
+
+    ctx.textAlign = "left"
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+- name: 2d.text.drawing.style.measure.direction
+  desc: Measurement should follow text direction
+  code: |
+    ctx.direction = "ltr";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+    ctx.direction = "rtl";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight;
+
+- name: 2d.text.draw.fill.basic
+  desc: fillText draws filled text
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35);
+  expected: &passfill |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.fill()
+
+- name: 2d.text.draw.fill.unaffected
+  desc: fillText does not start a new path or subpath
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.fill.rtl
+  desc: fillText respects Right-To-Left Override characters
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('\u202eFAIL \xa0 \xa0 SSAP', 5, 35);
+  expected: *passfill
+
+- name: 2d.text.draw.fill.maxWidth.large
+  desc: fillText handles maxWidth correctly
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35, 200);
+  expected: *passfill
+
+- name: 2d.text.draw.fill.maxWidth.small
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', -100, 35, 90);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.zero
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, 0);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.negative
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, -1);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.NaN
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, NaN);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.stroke.basic
+  desc: strokeText draws stroked text
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#0f0';
+    ctx.fillStyle = '#f00';
+    ctx.lineWidth = 1;
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeText('PASS', 5, 35);
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.set_line_width(1)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.stroke()
+
+- name: 2d.text.draw.stroke.unaffected
+  desc: strokeText does not start a new path or subpath
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeStyle = '#f00';
+    ctx.strokeText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.kern.consistent
+  desc: Stroked and filled text should have exactly the same kerning so it overlaps
+  manual:
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 3;
+    ctx.font = '20px Arial, sans-serif';
+    ctx.fillText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.fillText('ToToToToToToTo', -50, 45);
+    ctx.strokeText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.strokeText('ToToToToToToTo', -50, 45);
+  expected: green
+
+- name: 2d.text.drawing.style.reset.fontKerning.none
+  desc: >-
+    crbug/338965374, fontKerning still works after setting font for a second
+    time.
+  code: |
+    ctx.font = '100px serif';
+    ctx.fontKerning = "none";
+    const width1 = ctx.measureText("AW").width;
+    ctx.font = '100px serif';
+    @assert ctx.fontKerning === "none";
+    const width2 = ctx.measureText("AW").width;
+    @assert width1 === width2;
+
+- name: 2d.text.drawing.style.reset.fontKerning.none2
+  desc: FontKerning value still applies after font changes.
+  code: |
+    ctx.font = '10px serif';
+    ctx.fontKerning = "none";
+    ctx.font = '20px serif';
+    ctx.fillText("TATATA", 20, 30);
+  reference: |
+    ctx.font = '20px serif';
+    ctx.fontKerning = "none";
+    ctx.fillText("TATATA", 20, 30);
+
+# CanvasTest is:
+#   A = (0, 0) to (1em, 0.75em)       (above baseline)
+#   B = (0, 0) to (1em, -0.25em)      (below baseline)
+#   C = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs above and below
+#   D = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs left and right
+#   E = (0, -0.25em) to (1em, 0.75em) (the em square)
+#   space = empty, 1em wide
+#
+# At 50px, "E" will fill the canvas vertically
+# At 67px, "A" will fill the canvas vertically
+#
+# Ideographic baseline  is 0.125em above alphabetic
+# Mathematical baseline is 0.375em above alphabetic
+# Hanging baseline      is 0.500em above alphabetic
+
+- name: 2d.text.draw.fill.maxWidth.fontface
+  desc: fillText works on @font-face fonts
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillText('EEEE', -50, 37.5, 40);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.fill.maxWidth.bound
+  desc: fillText handles maxWidth based on line size, not bounding box size
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('DD', 0, 37.5, 100);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.fontface
+  fonts:
+  - CanvasTest
+  test_type: promise
+  code: |
+    {{ load_font }}
+    ctx.font = '67px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('AA', 0, 50);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.fontface.repeat
+  desc: Draw with the font immediately, then wait a bit until and draw again. (This
+    crashes some version of WebKit.)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  font_unused_in_dom: true
+  code: |
+    {{ load_font }}
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.font = '67px CanvasTest';
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('AA', 0, 50);
+
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+    ctx.fillText('AA', 0, 50);
+    _assertPixelApprox(canvas, 5,5, 0,255,0,255, 2);
+    _assertPixelApprox(canvas, 95,5, 0,255,0,255, 2);
+    _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+    _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.fontface.notinpage
+  desc: '@font-face fonts should work even if they are not used in the page'
+  test_type: promise
+  fonts:
+  - CanvasTest
+  font_unused_in_dom: true
+  code: |
+    {{ load_font }}
+    ctx.font = '67px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('AA', 0, 50);
+    @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+    @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.left
+  desc: textAlign left is the left of the first em square (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    ctx.fillText('DD', 0, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.right
+  desc: textAlign right is the right of the last em square (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'right';
+    ctx.fillText('DD', 100, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.start.ltr
+  desc: textAlign start with ltr is the left edge
+  canvas: dir="ltr"
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    {% if canvas_type != 'HtmlCanvas' %}
+    ctx.direction = 'ltr';
+    {% endif %}
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'start';
+    ctx.fillText('DD', 0, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.start.rtl
+  desc: textAlign start with rtl is the right edge
+  canvas: dir="rtl"
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    {% if canvas_type != 'HtmlCanvas' %}
+    ctx.direction = 'rtl';
+    {% endif %}
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'start';
+    ctx.fillText('DD', 100, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.end.ltr
+  desc: textAlign end with ltr is the right edge
+  test_type: promise
+  canvas: dir="ltr"
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    {% if canvas_type != 'HtmlCanvas' %}
+    ctx.direction = 'ltr';
+    {% endif %}
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'end';
+    ctx.fillText('DD', 100, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.end.rtl
+  desc: textAlign end with rtl is the left edge
+  canvas: dir="rtl"
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    {% if canvas_type != 'HtmlCanvas' %}
+    ctx.direction = 'rtl';
+    {% endif %}
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'end';
+    ctx.fillText('DD', 0, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.align.center
+  desc: textAlign center is the center of the em squares (not the bounding box)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'center';
+    ctx.fillText('DD', 50, 37.5);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 95,5 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 95,45 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+
+- name: 2d.text.draw.space.basic
+  desc: U+0020 is rendered the correct size (1em wide)
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('E EE', -100, 37.5);
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.draw.space.collapse.nonspace
+  desc: Non-space characters are not converted to U+0020 and collapsed
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('E\x0b EE', -150, 37.5);
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.width.basic
+  desc: The width of character is same as font used
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    @assert ctx.measureText('A').width === 50;
+    @assert ctx.measureText('AA').width === 100;
+    @assert ctx.measureText('ABCD').width === 200;
+
+    ctx.font = '100px CanvasTest';
+    @assert ctx.measureText('A').width === 100;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.width.empty
+  desc: The empty string has zero width
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    @assert ctx.measureText("").width === 0;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.actualBoundingBox
+  desc: Testing actualBoundingBox
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    ctx.baseline = 'alphabetic'
+    // Different platforms may render text slightly different.
+    // Values that are nominally expected to be zero might actually vary by a
+    // pixel or so if the UA accounts for antialiasing at glyph edges, so we
+    // allow a slight deviation.
+    @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) <= 1;
+    @assert ctx.measureText('A').actualBoundingBoxRight >= 50;
+    @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
+    @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) <= 1;
+
+    @assert ctx.measureText('D').actualBoundingBoxLeft >= 48;
+    @assert ctx.measureText('D').actualBoundingBoxLeft <= 52;
+    @assert ctx.measureText('D').actualBoundingBoxRight >= 75;
+    @assert ctx.measureText('D').actualBoundingBoxRight <= 80;
+    @assert ctx.measureText('D').actualBoundingBoxAscent >= 35;
+    @assert ctx.measureText('D').actualBoundingBoxAscent <= 40;
+    @assert ctx.measureText('D').actualBoundingBoxDescent >= 12;
+    @assert ctx.measureText('D').actualBoundingBoxDescent <= 15;
+
+    @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) <= 1;
+    @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
+    @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
+    @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.actualBoundingBox.whitespace
+  desc: Testing actualBoundingBox with leading/trailing whitespace
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    ctx.baseline = 'alphabetic'
+    // Different platforms may render text slightly different.
+    // Values that are nominally expected to be zero might actually vary by a
+    // pixel or so if the UA accounts for antialiasing at glyph edges, so we
+    // allow a slight deviation.
+    var whitespaces = [0x9, 0xa, 0xc, 0xd, 0x20, 0x3000];
+    for (var codepoint of whitespaces) {
+      let whitespace = String.fromCharCode(codepoint);
+
+      @assert Math.abs(ctx.measureText('A' + whitespace).actualBoundingBoxLeft) <= 1;
+      @assert ctx.measureText('A' + whitespace).actualBoundingBoxRight >= 50;
+
+      @assert Math.abs(ctx.measureText(whitespace + 'A').actualBoundingBoxLeft) >= 49;
+      @assert ctx.measureText(whitespace + 'A').actualBoundingBoxRight <= 101;
+    }
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fontBoundingBox
+  desc: Testing fontBoundingBox measurements
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fontBoundingBox.ahem
+  desc: Testing fontBoundingBox for font ahem
+  test_type: promise
+  fonts:
+  - Ahem
+  code: |
+    {{ load_font }}
+    ctx.font = '50px Ahem';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 40;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 40;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fontBoundingBox-reduced-ascent
+  desc: Testing fontBoundingBox for OffscreenCanvas with reduced ascent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-ascent256
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-ascent256';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 10;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 10;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fontBoundingBox-zero-descent
+  desc: Testing fontBoundingBox for OffscreenCanvas with zero descent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-descent0
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-descent0';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 0;
+
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 0;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.emHeights
+  desc: Testing emHeights
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').emHeightAscent === 30;
+    @assert ctx.measureText('A').emHeightDescent === 10;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
+
+    @assert ctx.measureText('ABCD').emHeightAscent === 30;
+    @assert ctx.measureText('ABCD').emHeightDescent === 10;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.emHeights-low-ascent
+  desc: Testing emHeights with reduced ascent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-ascent256
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-ascent256';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').emHeightAscent === 20;
+    @assert ctx.measureText('A').emHeightDescent === 20;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
+
+    @assert ctx.measureText('ABCD').emHeightAscent === 20;
+    @assert ctx.measureText('ABCD').emHeightDescent === 20;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.emHeights-zero-descent
+  desc: Testing emHeights with zero descent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-descent0
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-descent0';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').emHeightAscent === 40;
+    @assert ctx.measureText('A').emHeightDescent === 0;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
+
+    @assert ctx.measureText('ABCD').emHeightAscent === 40;
+    @assert ctx.measureText('ABCD').emHeightDescent === 0;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.baselines
+  desc: Testing baselines
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert Math.abs(ctx.measureText('A').alphabeticBaseline) === 0;
+    @assert ctx.measureText('A').ideographicBaseline === 6.25;
+    @assert ctx.measureText('A').hangingBaseline === 25;
+
+    @assert Math.abs(ctx.measureText('ABCD').alphabeticBaseline) === 0;
+    @assert ctx.measureText('ABCD').ideographicBaseline === 6.25;
+    @assert ctx.measureText('ABCD').hangingBaseline === 25;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.selection-rects.tentative
+  desc: >-
+    Check that TextMetrics::getSelectionRects() matches its DOM equivalent, with
+    direction {{ text_direction }}, text align {{ text_align }},
+    {{ letter_spacing }} letter spacing, and {{ variant_names[3] }}.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function placeAndSelectTextInDOM(text, from, to) {
+      const el = document.createElement("div");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.textAlign = '{{ text_align }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
+      document.body.appendChild(el);
+
+      let range = document.createRange();
+
+      range.setStart(el.childNodes[0], 0);
+      range.setEnd(el.childNodes[0], text.length);
+      const parent = range.getClientRects()[0];
+      let width = 0;
+      for (const rect of range.getClientRects()) {
+        width += rect.width;
+      }
+
+      range.setStart(el.childNodes[0], from);
+      range.setEnd(el.childNodes[0], to);
+
+      let sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      let sel_rects = sel.getRangeAt(0).getClientRects();
+
+      document.body.removeChild(el);
+
+      // Offset to the alignment point determined by textAlign.
+      let text_align_dx;
+      switch (el.style.textAlign) {
+        case 'right':
+          text_align_dx = width;
+          break;
+        case 'center':
+          text_align_dx = width / 2;
+          break;
+        default:
+          text_align_dx = 0;
+      }
+
+      for(let i = 0 ; i < sel_rects.length ; ++i) {
+        sel_rects[i].x -= parent.x + text_align_dx;
+        sel_rects[i].y -= parent.y;
+      }
+
+      return sel_rects;
+    }
+
+    function checkRectListsMatch(list_a, list_b) {
+      @assert list_a.length === list_b.length;
+      for(let i = 0 ; i < list_a.length ; ++i) {
+        assert_approx_equals(list_a[i].x, list_b[i].x, 1.0);
+        assert_approx_equals(list_a[i].width, list_b[i].width, 1.0);
+        assert_approx_equals(list_a[i].height, list_b[i].height, 1.0);
+        // Y-position not tested here as getting the baseline for text in the
+        // DOM is not straightforward.
+      }
+    }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'איפה הספרייה?',
+      'bidiמתמטיקה'
+    ]
+
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
+      const tm = ctx.measureText(text);
+      // First character.
+      checkRectListsMatch(
+        tm.getSelectionRects(0, 1),
+        placeAndSelectTextInDOM(text, 0, 1)
+      );
+      // Last character.
+      checkRectListsMatch(
+        tm.getSelectionRects(text.length - 1, text.length),
+        placeAndSelectTextInDOM(text, text.length - 1, text.length)
+      );
+      // Whole string.
+      checkRectListsMatch(
+        tm.getSelectionRects(0, text.length),
+        placeAndSelectTextInDOM(text, 0, text.length)
+      );
+      // Intermediate string.
+      checkRectListsMatch(
+        tm.getSelectionRects(1, text.length - 1),
+        placeAndSelectTextInDOM(text, 1, text.length - 1)
+      );
+      // Invalid start > end string. Creates 0 width rectangle.
+      checkRectListsMatch(
+        tm.getSelectionRects(3, 2),
+        placeAndSelectTextInDOM(text, 3, 2)
+      );
+      checkRectListsMatch(
+        tm.getSelectionRects(1, 0),
+        placeAndSelectTextInDOM(text, 1, 0)
+      );
+    }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.measure.selection-rects-baselines.tentative
+  desc: >-
+    Check that TextMetrics::getSelectionRects() works correctly with
+    textBaseline.
+  code: |
+    ctx.font = '50px sans-serif';
+
+    const kBaselines = [
+      "top",
+      "hanging",
+      "middle",
+      "alphabetic",
+      "ideographic",
+      "bottom",
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'איפה הספרייה?',
+      'bidiמתמטיקה'
+    ]
+
+    for (const text of kTexts) {
+      for (const baseline of kBaselines) {
+        const tm = ctx.measureText(text);
+        // First character.
+        for (const r of tm.getSelectionRects(0, 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Last character.
+        for (const r of tm.getSelectionRects(text.length - 1, text.length)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Whole string.
+        for (const r of tm.getSelectionRects(0, text.length)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Intermediate string.
+        for (const r of tm.getSelectionRects(1, text.length - 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Invalid start > end string. Creates 0 width rectangle.
+        for (const r of tm.getSelectionRects(3, 2)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        for (const r of tm.getSelectionRects(1, 0)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+      }
+    }
+
+- name: 2d.text.measure.selection-rects-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getSelectionRects() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getSelectionRects(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getSelectionRects(0, -1) );
+      assert_throws_js(TypeError, () => tm.getSelectionRects(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(text.length + 1, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(text.length + 1, text.length + 1) );
+    }
+
+- name: 2d.text.measure.getActualBoundingBox.tentative
+  desc: >-
+    Test TextMetrics::getActualBoundingBox(), with text align {{ text_align }}
+    , and {{ letter_spacing }} letter spacing.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    // Returns a string a replaces the characters in text that are not in the
+    // range [start, end) with spaces.
+    function buildTestString(text, start, end) {
+      let ret = '';
+      for (let i = 0; i < text.length; ++i) {
+        if (start <= i && i < end)
+          ret += text[i];
+        else
+          ret += ' ';
+      }
+      return ret;
+    }
+
+    function checkRectsMatch(rect_a, rect_b, text, start, end) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0, `${text} :: x :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0, `${text} :: y :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0, `${text} :: width :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0, `${text} :: height :: ${start} to ${end}`);
+    }
+
+    function testForSubstring(text, start, end) {
+      const textMetrics = ctx.measureText(text);
+      const rect_from_api = textMetrics.getActualBoundingBox(start, end);
+      const rect_from_full_bounds = getFullTextBoundingBox(
+                                      buildTestString(text, start, end));
+      checkRectsMatch(rect_from_api, rect_from_full_bounds, buildTestString(text, start, end), start, end);
+    }
+
+    {{ load_font }}
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    ctx.font = '50px CanvasTest';
+    const text = 'ABCDE';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        // Full string.
+        testForSubstring(text, 0, text.length);
+        // Intermediate string.
+        testForSubstring(text, 1, text.length - 1);
+        // First character.
+        testForSubstring(text, 0, 1);
+        // Intermediate character.
+        testForSubstring(text, 2, 3);
+      }
+    }
+  variants_layout:
+      [multi_files, single_file, single_file]
+  variants:
+  - *load-font-variant-definition
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+
+- name: 2d.text.measure.getActualBoundingBox-full-text.tentative
+  desc: >-
+    Test TextMetrics::getActualBoundingBox() for the full length of the string
+    for some edge cases, with direction {{ text_direction }} and
+    {{ variant_names[1] }}
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    function checkRectsMatch(rect_a, rect_b) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0);
+    }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd ',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        for (text of kTexts) {
+          {% if use_directional_override %}
+          text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+          {% endif %}
+          const tm = ctx.measureText(text);
+          const rect_from_api = tm.getActualBoundingBox(0, text.length);
+          const rect_from_full_bounds = getFullTextBoundingBox(text);
+          checkRectsMatch(rect_from_api, rect_from_full_bounds)
+        }
+      }
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.measure.getActualBoundingBox-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getActualBoundingBox() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(0, -1) );
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(text.length, text.length + 1) );
+    }
+
+- name: 2d.text.measure.index-from-offset.tentative
+  desc: >-
+    Check that TextMetrics::getIndexFromOffset() matches its DOM equivalent,
+    where possible, with direction {{ text_direction }}, text align
+    {{ text_align }}, {{ letter_spacing }} letter spacing and
+    {{ variant_names[3] }}.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function alignOffset(offset, width) {
+      if ('{{ text_align }}' == 'center') {
+        offset -= width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        offset -= width;
+      }
+      return offset;
+    }
+
+    {% if use_directional_override %}
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    function placeAndMeasureTextInDOM(text, text_width, point) {
+      const el = document.createElement("p");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
+      // Put the text top left to make offsets simpler.
+      el.style.padding = '0px';
+      el.style.margin = '0px';
+      el.style.position = 'absolute';
+      el.style.x = '0px';
+      el.style.y = '0px';
+      document.body.appendChild(el);
+      text_bound = el.getBoundingClientRect();
+      text_x = text_bound.x;
+      text_y = text_bound.y + text_bound.height / 2;
+
+      // Offset to the requested point determined by textAlign and direction.
+      let text_align_dx = 0;
+      if ('{{ text_align }}' == 'center') {
+        text_align_dx = text_width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        text_align_dx = text_width;
+      }
+      position = document.caretPositionFromPoint(point + text_align_dx + text_x, text_y);
+      @assert position.offsetNode.parentNode === el;
+
+      document.body.removeChild(el);
+
+      return position.offset;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '）（ああ）（',
+      'ああ）（ああ',
+      '--abcd__'
+    ]
+
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
+      const tm = ctx.measureText(text);
+      text_width = tm.width;
+      step = 30;
+      if ('{{letter_spacing}}' == '10px') {
+        step = 40;
+      }
+
+      offset = step;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2 - 10;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2 + 10;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width - step;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+    }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.measure.index-from-offset-edges.tentative
+  desc: >-
+    Check that TextMetrics::getIndexFromOffset() gives correct edges when
+    the requested point is outside the range, with direction {{ text_direction }}
+    and text align {{ text_align }}.
+  code: |
+    function computeExpected(text, text_width, offset) {
+      expected_position = 0;
+      if ('{{ text_align }}' == 'center' && offset == 0) {
+        return text.length / 2;
+      }
+      if ('{{ text_direction }}' == 'ltr') {
+        if (offset >= text_width) {
+          return text.length;
+        }
+        if (offset <= -text_width) {
+          return 0;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'left') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      } else {
+        if (offset >= text_width) {
+          return 0;
+        }
+        if (offset <= -text_width) {
+          return text.length;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'right') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      }
+      return expected_position;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    // The leading and trailing '-' cause the string to always follow
+    // the specified direction, even though the interior will always be ltr.
+    const text = '-0123456789-';
+
+    // Points are multiples of the string width as reported by
+    // textMetrics.width.
+    const kPoints = [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+
+    const tm = ctx.measureText(text);
+    text_width = tm.width;
+    for (const multiple of kPoints) {
+      offset = multiple * text_width;
+      tm_position = tm.getIndexFromOffset(offset);
+      expected_position = computeExpected(text, text_width, offset);
+      assert_equals(tm_position,
+                    expected_position,
+                    "for " + text + " multiple " + multiple);
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+
+- name: 2d.text.measure.index-from-offset-edge-cases.tentative
+  desc: >-
+    Test the edge cases for getIndexFromOffset, where the point is at the
+    edge of glyph and at the midpoint.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    ctx.baseline = 'alphabetic'
+    tm = ctx.measureText('A');
+    const a_width = tm.width;
+    tm = ctx.measureText('B');
+    const b_width = tm.width;
+    tm = ctx.measureText('C');
+    const c_width = tm.width;
+    const epsilon = 1.0e-4;
+
+    tm = ctx.measureText('ABC');
+    @assert tm.getIndexFromOffset(0) == 0;
+    @assert tm.getIndexFromOffset(a_width / 2) == 0;
+    @assert tm.getIndexFromOffset(a_width / 2 + 1) == 1;
+    @assert tm.getIndexFromOffset(a_width) == 1;
+    @assert tm.getIndexFromOffset(a_width + b_width / 2) == 1;
+    @assert tm.getIndexFromOffset(a_width + b_width / 2 + 1) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width / 2) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width / 2 + 1) == 3;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width) == 3;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.text-clusters-split.tentative
+  desc: >-
+    Test that getTextClusters() splits the input correctly into the
+    minimal clusters, keeping emojis together.
+  size: [400, 200]
+  code: |
+    function getClusterIndexes(text) {
+      const clusters = ctx.measureText(text).getTextClusters();
+      const result = [];
+      for (let i = 0; i < clusters.length; i++) {
+        const end = clusters[i].end;
+        if (end === (i + 1 < clusters.length ? clusters[i + 1].start : text.length)) {
+          result.push(clusters[i].start);
+        } else {
+          result.push([clusters[i].start, clusters[i].end]);
+        }
+      }
+      return result;
+    }
+
+    function assertClusterIndexes(text, expected) {
+      const actual = getClusterIndexes(text);
+      assert_array_equals(actual, expected);
+    }
+
+    ctx.font = '50px serif';
+    const text = 'ABC ☺️❤️';
+    ctx.fillText(text, 20, 100);
+    assertClusterIndexes(text, [0, 1, 2, 3, 4, 6]);
+
+    // [UAX#29]: https://unicode.org/reports/tr29/
+    // [UAX#29] GB9: × (Extend | ZWJ)
+    assertClusterIndexes('X\u200DY', [0, 2]);
+    // [UAX#29] GB11: \p{Extended_Pictographic} Extend* ZWJ × \p{Extended_Pictographic}
+    assertClusterIndexes('\u{1FFFD}\u200D\u{1FFFD}', [0]);
+
+- name: 2d.text.measure.text-clusters-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getTextClusters() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getTextClusters(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getTextClusters(0, -1) );
+      assert_throws_js(TypeError, () => tm.getTextClusters(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(text.length, text.length + 1) );
+    }
+
+- name: 2d.text.measure.text-clusters-position.tentative
+  desc: >-
+    Test that TextMetrics::getTextClusters() returns clusters that are
+    positioned according to the target align and baseline passed as options.
+  size: [500, 500]
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest';
+    const text = 'E';
+
+    // Origin for all the measurements is placed at the top left corner.
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    let tm = ctx.measureText(text);
+
+    // X position.
+    @assert Math.abs(tm.getTextClusters({align: 'left'})[0].x) === 0;
+    @assert tm.getTextClusters({align: 'center'})[0].x === 20;
+    @assert tm.getTextClusters({align: 'right'})[0].x === 40;
+
+    // Y position.
+    @assert Math.abs(tm.getTextClusters({baseline: 'top'})[0].y) === 0;
+    @assert tm.getTextClusters({baseline: 'middle'})[0].y === 20;
+    @assert tm.getTextClusters({baseline: 'bottom'})[0].y === 40;
+    @assert tm.getTextClusters({baseline: 'alphabetic'})[0].y === 30;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fillTextCluster-align.tentative
+  desc: >-
+    Test that fillTextCluster() correctly positions the text, taking into
+    account the textAlign from the context at the time the text was measured.
+  size: [250, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_align_left:
+      ctx_align: left
+    ctx_align_center:
+      ctx_align: center
+    ctx_align_right:
+      ctx_align: right
+
+- name: 2d.text.measure.strokeTextCluster-align.tentative
+  desc: >-
+    Test that strokeTextCluster() correctly positions the text, taking into
+    account the textAlign from the context at the time the text was measured.
+  size: [250, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.strokeTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    ctx.strokeText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_align_left:
+      ctx_align: left
+    ctx_align_center:
+      ctx_align: center
+    ctx_align_right:
+      ctx_align: right
+
+- name: 2d.text.measure.fillTextCluster-baseline.tentative
+  desc: >-
+    Test that fillTextCluster() correctly positions the text, taking into
+    account the textBaseline from the context at the time the text was measured.
+  size: [180, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_baseline_top:
+      ctx_baseline: top
+    ctx_baseline_middle:
+      ctx_baseline: middle
+    ctx_baseline_bottom:
+      ctx_baseline: bottom
+    ctx_baseline_alphabetic:
+      ctx_baseline: alphabetic
+
+- name: 2d.text.measure.strokeTextCluster-baseline.tentative
+  desc: >-
+    Test that strokeTextCluster() correctly positions the text, taking into
+    account the textBaseline from the context at the time the text was measured.
+  size: [180, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.strokeTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    ctx.strokeText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_baseline_top:
+      ctx_baseline: top
+    ctx_baseline_middle:
+      ctx_baseline: middle
+    ctx_baseline_bottom:
+      ctx_baseline: bottom
+    ctx_baseline_alphabetic:
+      ctx_baseline: alphabetic
+
+- name: 2d.text.measure.fillTextCluster-font-change.tentative
+  desc: >-
+    Test that fillTextCluster() renders in the font used originally when the
+    text was measured, even if the font set on the context has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    ctx.font = '80px serif';
+
+    const x = 100;
+    const y = 100;
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    const x = 100;
+    const y = 100;
+    ctx.fillText(text, x, y);
+
+- name: 2d.text.measure.strokeTextCluster-font-change.tentative
+  desc: >-
+    Test that strokeTextCluster() renders in the font used originally when the
+    text was measured, even if the font set on the context has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    ctx.font = '80px serif';
+
+    const x = 100;
+    const y = 100;
+    for (const cluster of clusters) {
+        ctx.strokeTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    const x = 100;
+    const y = 100;
+    ctx.strokeText(text, x, y);
+
+- name: 2d.text.measure.fillTextCluster-drawing-styles-change.tentative
+  desc: >-
+    Test that fillTextCluster() renders using the drawing styles as they were
+    when `ctx.measureText()` was called, regardless of any changes in the
+    context since.
+  size: [250, 80]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    {{ modified_value }}
+
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, 10, 25);
+    }
+
+    ctx.fillText(text, 10, 50);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    ctx.fillText(text, 10, 25);
+
+    {{ modified_value }}
+
+    ctx.fillText(text, 10, 50);
+  variants_layout:
+      [single_file]
+  grid_width: 2
+  variants:
+  - letter_spacing:
+      original_value: |-
+       ctx.letterSpacing = '2px';
+      modified_value: |-
+       ctx.letterSpacing = '6px';
+    word_spacing:
+      original_value: |-
+       ctx.wordSpacing = '2px';
+      modified_value: |-
+       ctx.wordSpacing = '10px';
+    font_kerning:
+      original_value: |-
+       ctx.fontKerning = 'none';
+      modified_value: |-
+       ctx.fontKerning = 'normal';
+    font_variant_caps:
+      original_value: |-
+       ctx.fontVariantCaps = 'small-caps';
+      modified_value: |-
+       ctx.fontVariantCaps = 'all-small-caps';
+
+- name: 2d.text.measure.strokeTextCluster-drawing-styles-change.tentative
+  desc: >-
+    Test that strokeTextCluster() renders using the drawing styles as they were
+    when `ctx.measureText()` was called, regardless of any changes in the
+    context since.
+  size: [250, 80]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    {{ modified_value }}
+
+    for (const cluster of clusters) {
+        ctx.strokeTextCluster(cluster, 10, 25);
+    }
+
+    ctx.strokeText(text, 10, 50);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    ctx.strokeText(text, 10, 25);
+
+    {{ modified_value }}
+
+    ctx.strokeText(text, 10, 50);
+  variants_layout:
+      [single_file]
+  grid_width: 2
+  variants:
+  - letter_spacing:
+      original_value: |-
+       ctx.letterSpacing = '2px';
+      modified_value: |-
+       ctx.letterSpacing = '6px';
+    word_spacing:
+      original_value: |-
+       ctx.wordSpacing = '2px';
+      modified_value: |-
+       ctx.wordSpacing = '10px';
+    font_kerning:
+      original_value: |-
+       ctx.fontKerning = 'none';
+      modified_value: |-
+       ctx.fontKerning = 'normal';
+    font_variant_caps:
+      original_value: |-
+       ctx.fontVariantCaps = 'small-caps';
+      modified_value: |-
+       ctx.fontVariantCaps = 'all-small-caps';
+
+- name: 2d.text.measure.fillTextCluster-range.tentative
+  desc: >-
+    Test that getTextClusters() and fillTextCluster() correctly render
+    different ranges of the input text.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [400, 300]
+  code: |
+    // Renders all the clusters in the list from position (x, y).
+    function renderClusters(clusters, x, y) {
+      for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+      }
+    }
+
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'EEEEE';
+    let tm = ctx.measureText(text);
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+
+    // Without the first character.
+    renderClusters(tm.getTextClusters(1, 5), 0, 0);
+    @assert pixel 5,5 ==~ 255,0,0,255;
+    @assert pixel 55,5 ==~ 0,255,0,255;
+    @assert pixel 105,5 ==~ 0,255,0,255;
+    @assert pixel 155,5 ==~ 0,255,0,255;
+    @assert pixel 205,5 ==~ 0,255,0,255;
+    // Without the last character.
+    renderClusters(tm.getTextClusters(0, 4), 0, 100);
+    @assert pixel 5,105 ==~ 0,255,0,255;
+    @assert pixel 55,105 ==~ 0,255,0,255;
+    @assert pixel 105,105 ==~ 0,255,0,255;
+    @assert pixel 155,105 ==~ 0,255,0,255;
+    @assert pixel 205,105 ==~ 255,0,0,255;
+    // Only the middle character.
+    renderClusters(tm.getTextClusters(2, 3), 0, 150);
+    @assert pixel 5,155 ==~ 255,0,0,255;
+    @assert pixel 55,155 ==~ 255,0,0,255;
+    @assert pixel 105,155 ==~ 0,255,0,255;
+    @assert pixel 155,155 ==~ 255,0,0,255;
+    @assert pixel 205,155 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.strokeTextCluster-range.tentative
+  desc: >-
+    Test that getTextClusters() and strokeTextCluster() correctly render
+    different ranges of the input text.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [400, 300]
+  code: |
+    // Renders all the clusters in the list from position (x, y).
+    function renderClusters(clusters, x, y) {
+      for (const cluster of clusters) {
+        ctx.strokeTextCluster(cluster, x, y);
+      }
+    }
+
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'EEEEE';
+    let tm = ctx.measureText(text);
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 12;
+
+    // Without the first character.
+    renderClusters(tm.getTextClusters(1, 5), 0, 0);
+    @assert pixel 5,5 ==~ 255,0,0,255;
+    @assert pixel 55,5 ==~ 0,255,0,255;
+    @assert pixel 105,5 ==~ 0,255,0,255;
+    @assert pixel 155,5 ==~ 0,255,0,255;
+    @assert pixel 205,5 ==~ 0,255,0,255;
+    // Without the last character.
+    renderClusters(tm.getTextClusters(0, 4), 0, 100);
+    @assert pixel 5,105 ==~ 0,255,0,255;
+    @assert pixel 55,105 ==~ 0,255,0,255;
+    @assert pixel 105,105 ==~ 0,255,0,255;
+    @assert pixel 155,105 ==~ 0,255,0,255;
+    @assert pixel 245,105 ==~ 255,0,0,255;
+    // Only the middle character.
+    renderClusters(tm.getTextClusters(2, 3), 0, 200);
+    @assert pixel 5,205 ==~ 255,0,0,255;
+    @assert pixel 55,205 ==~ 255,0,0,255;
+    @assert pixel 105,205 ==~ 0,255,0,255;
+    @assert pixel 195,205 ==~ 255,0,0,255;
+    @assert pixel 245,205 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.fillTextCluster-options.tentative
+  desc: >-
+    Test that fillTextCluster() correctly applies the options passed as a
+    dictionary.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [100, 300]
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'E';
+    const tm = ctx.measureText(text);
+    const cluster = tm.getTextClusters()[0];
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+
+    // Override the align and baseline of the cluster.
+    ctx.fillTextCluster(cluster, 50, 50, {align: 'right', baseline: 'bottom'});
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 45,5 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 45,45 ==~ 0,255,0,255;
+    @assert pixel 55,5 ==~ 255,0,0,255;
+    @assert pixel 5,55 ==~ 255,0,0,255;
+    @assert pixel 55,55 ==~ 255,0,0,255;
+
+    // Override the x and y values of the cluster.
+    ctx.fillTextCluster(cluster, 0, 100, {x: 10, y: 10});
+    @assert pixel 15,115 ==~ 0,255,0,255;
+    @assert pixel 55,115 ==~ 0,255,0,255;
+    @assert pixel 15,155 ==~ 0,255,0,255;
+    @assert pixel 55,155 ==~ 0,255,0,255;
+    @assert pixel 65,115 ==~ 255,0,0,255;
+    @assert pixel 15,165 ==~ 255,0,0,255;
+    @assert pixel 65,165 ==~ 255,0,0,255;
+
+    // Override the align, baseline, x, and y values of the cluster.
+    ctx.fillTextCluster(cluster, 50, 250,
+                        {align: 'right', baseline: 'bottom', x: 10,  y: 10});
+    @assert pixel 15,215 ==~ 0,255,0,255;
+    @assert pixel 55,215 ==~ 0,255,0,255;
+    @assert pixel 15,255 ==~ 0,255,0,255;
+    @assert pixel 55,255 ==~ 0,255,0,255;
+    @assert pixel 65,215 ==~ 255,0,0,255;
+    @assert pixel 15,265 ==~ 255,0,0,255;
+    @assert pixel 65,265 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.strokeTextCluster-options.tentative
+  desc: >-
+    Test that strokeTextCluster() correctly applies the options passed as a
+    dictionary.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [100, 300]
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'E';
+    const tm = ctx.measureText(text);
+    const cluster = tm.getTextClusters()[0];
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 12;
+
+    // Override the align and baseline of the cluster.
+    ctx.strokeTextCluster(cluster, 50, 50, {align: 'right', baseline: 'bottom'});
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 45,5 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 45,45 ==~ 0,255,0,255;
+    @assert pixel 5,95 ==~ 255,0,0,255;
+    @assert pixel 50,95 ==~ 255,0,0,255;
+    @assert pixel 95,50 ==~ 255,0,0,255;
+    @assert pixel 95,5 ==~ 255,0,0,255;
+
+    // Override the x and y values of the cluster.
+    ctx.strokeTextCluster(cluster, 0, 100, {x: 10, y: 10});
+    @assert pixel 15,115 ==~ 0,255,0,255;
+    @assert pixel 55,115 ==~ 0,255,0,255;
+    @assert pixel 15,155 ==~ 0,255,0,255;
+    @assert pixel 55,155 ==~ 0,255,0,255;
+    @assert pixel 1,101 ==~ 255,0,0,255;
+    @assert pixel 1,151 ==~ 255,0,0,255;
+    @assert pixel 51,101 ==~ 255,0,0,255;
+
+    // Override the align, baseline, x, and y values of the cluster.
+    ctx.strokeTextCluster(cluster, 50, 250,
+                        {align: 'right', baseline: 'bottom', x: 10,  y: 10});
+    @assert pixel 15,215 ==~ 0,255,0,255;
+    @assert pixel 55,215 ==~ 0,255,0,255;
+    @assert pixel 15,255 ==~ 0,255,0,255;
+    @assert pixel 55,255 ==~ 0,255,0,255;
+    @assert pixel 5,295 ==~ 255,0,0,255;
+    @assert pixel 50,295 ==~ 255,0,0,255;
+    @assert pixel 95,250 ==~ 255,0,0,255;
+    @assert pixel 95,25 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.drawing.style.absolute.spacing
+  desc: Testing letter spacing and word spacing with absolute length
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.letterSpacing = '3px';
+    @assert ctx.letterSpacing === '3px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.wordSpacing = '5px';
+    @assert ctx.letterSpacing === '3px';
+    @assert ctx.wordSpacing === '5px';
+
+    ctx.letterSpacing = '-1px';
+    ctx.wordSpacing = '-1px';
+    @assert ctx.letterSpacing === '-1px';
+    @assert ctx.wordSpacing === '-1px';
+
+    ctx.letterSpacing = '1PX';
+    ctx.wordSpacing = '10PX';
+    @assert ctx.letterSpacing === '1px';
+    @assert ctx.wordSpacing === '10px';
+
+- name: 2d.text.measure.lang
+  desc: Testing the lang attribute
+  test_type: promise
+  fonts:
+  - Lato-Medium
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px Lato-Medium';
+    ctx.lang = 'tr';
+    const text = 'fi';
+    const tm_tr = ctx.measureText(text);
+    const tr_width = tm_tr.width;
+
+    ctx.lang = 'en';
+    const tm_en = ctx.measureText(text);
+    const en_width = tm_en.width;
+
+    @assert tr_width > en_width;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.lang.inherit
+  desc: Testing the lang attribute
+  test_type: promise
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  fonts:
+  - Lato-Medium
+  canvas: 'lang="tr"'
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px Lato-Medium';
+    ctx.lang = 'inherit';
+    const text = 'fi';
+    const tm_tr = ctx.measureText(text);
+    const tr_width = tm_tr.width;
+
+    ctx.lang = 'en';
+    const tm_en = ctx.measureText(text);
+    const en_width = tm_en.width;
+
+    @assert tr_width > en_width;
+  variants:
+  - &load-font-variant-definitio-and-set-lang
+    HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
+      load_font: |-
+        await document.fonts.ready;
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas']
+      load_font: |-
+        document.documentElement.setAttribute('lang','tr');
+        var f = new FontFace("{{ fonts[0] }}", "url('/fonts/{{ fonts[0] }}.ttf')");
+        f.load();
+        {% set root = 'self' if canvas_type == 'Worker' else 'document' %}
+        {{ root }}.fonts.add(f);
+        await {{ root }}.fonts.ready;
+
+- name: 2d.text.drawing.style.font-relative.spacing
+  desc: Testing letter spacing and word spacing with font-relative length
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.letterSpacing = '1EX';
+    ctx.wordSpacing = '1EM';
+    @assert ctx.letterSpacing === '1ex';
+    @assert ctx.wordSpacing === '1em';
+
+    ctx.letterSpacing = '1ch';
+    ctx.wordSpacing = '1ic';
+    @assert ctx.letterSpacing === '1ch';
+    @assert ctx.wordSpacing === '1ic';
+
+- name: 2d.text.drawing.style.nonfinite.spacing
+  desc: Testing letter spacing and word spacing with nonfinite inputs
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    function test_word_spacing(value) {
+      ctx.wordSpacing = value;
+      ctx.letterSpacing = value;
+      @assert ctx.wordSpacing === '0px';
+      @assert ctx.letterSpacing === '0px';
+    }
+    @nonfinite test_word_spacing(<0 NaN Infinity -Infinity>);
+
+- name: 2d.text.drawing.style.invalid.spacing
+  desc: Testing letter spacing and word spacing with invalid units
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    function test_word_spacing(value) {
+      ctx.wordSpacing = value;
+      ctx.letterSpacing = value;
+      @assert ctx.wordSpacing === '0px';
+      @assert ctx.letterSpacing === '0px';
+    }
+    @nonfinite test_word_spacing(< '0s' '1min' '1deg' '1pp' 'initial' 'inherit' 'normal' 'none'>);
+
+- name: 2d.text.drawing.style.letterSpacing.measure
+  desc: Testing letter spacing with different length units
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    var width_normal = ctx.measureText('Hello World').width;
+
+    function test_letter_spacing(value, difference_spacing, epsilon) {
+      ctx.letterSpacing = value;
+      @assert ctx.letterSpacing === value;
+      @assert ctx.wordSpacing === '0px';
+      width_with_letter_spacing = ctx.measureText('Hello World').width;
+      assert_approx_equals(width_with_letter_spacing, width_normal + difference_spacing, epsilon, "letter spacing doesn't work.");
+    }
+
+    // The first value is the letter Spacing to be set, the second value the
+    // change in length of string 'Hello World', note that there are 11 letters
+    // in 'hello world', so the length difference is always letterSpacing * 11.
+    // and the third value is the acceptable differencee for the length change,
+    // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
+    test_cases = [['3px', 33, 0.1],
+                 ['5px', 55, 0.1],
+                 ['-2px', -22, 0.1],
+                 ['1em', 110, 0.1],
+                 ['-0.1em', -11, 0.1],
+                 ['1in', 1056, 0.1],
+                 ['-0.1cm', -41.65, 0.2],
+                 ['-0.6mm', -24.95, 0.2]]
+
+    for (const test_case of test_cases) {
+      test_letter_spacing(test_case[0], test_case[1], test_case[2]);
+    }
+
+- name: 2d.text.drawing.style.wordSpacing.measure
+  desc: Testing word spacing with different length units
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    var width_normal = ctx.measureText('Hello World, again').width;
+
+    function test_word_spacing(value, difference_spacing, epsilon) {
+      ctx.wordSpacing = value;
+      @assert ctx.letterSpacing === '0px';
+      @assert ctx.wordSpacing === value;
+      width_with_word_spacing = ctx.measureText('Hello World, again').width;
+      assert_approx_equals(width_with_word_spacing, width_normal + difference_spacing, epsilon, "word spacing doesn't work.");
+    }
+
+    // The first value is the word Spacing to be set, the second value the
+    // change in length of string 'Hello World', note that there are 2 words
+    // in 'Hello World, again', so the length difference is always wordSpacing * 2.
+    // and the third value is the acceptable differencee for the length change,
+    // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
+    test_cases = [['3px', 6, 0.1],
+                 ['5px', 10, 0.1],
+                 ['-2px', -4, 0.1],
+                 ['1em', 20, 0.1],
+                 ['-0.5em', -10, 0.1],
+                 ['1in', 192, 0.1],
+                 ['-0.1cm', -7.57, 0.2],
+                 ['-0.6mm', -4.54, 0.2]]
+
+    for (const test_case of test_cases) {
+      test_word_spacing(test_case[0], test_case[1], test_case[2]);
+    }
+
+- name: 2d.text.drawing.style.letterSpacing.change.font
+  desc: Set letter spacing and word spacing to font dependent value and verify it works after font change.
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    // Get the width for 'Hello World' at default size, 10px.
+    var width_normal = ctx.measureText('Hello World').width;
+
+    ctx.letterSpacing = '1em';
+    @assert ctx.letterSpacing === '1em';
+    // 1em = 10px. Add 10px after each letter in "Hello World",
+    // makes it 110px longer.
+    var width_with_spacing = ctx.measureText('Hello World').width;
+    assert_approx_equals(width_with_spacing, width_normal + 110, 0.1, "letter-spacing error");
+
+    // Changing font to 20px. Without resetting the spacing, 1em letterSpacing
+    // is now 20px, so it's suppose to be 220px longer without any letterSpacing set.
+    ctx.font = '20px serif';
+    width_with_spacing = ctx.measureText('Hello World').width;
+    // Now calculate the reference spacing for "Hello World" with no spacing.
+    ctx.letterSpacing = '0em';
+    width_normal = ctx.measureText('Hello World').width;
+    assert_approx_equals(width_with_spacing, width_normal + 220, 0.1, "letter-spacing error after font change");
+
+- name: 2d.text.drawing.style.wordSpacing.change.font
+  desc: Set word spacing and word spacing to font dependent value and verify it works after font change.
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    // Get the width for 'Hello World, again' at default size, 10px.
+    var width_normal = ctx.measureText('Hello World, again').width;
+
+    ctx.wordSpacing = '1em';
+    @assert ctx.wordSpacing === '1em';
+    // 1em = 10px. Add 10px after each word in "Hello World, again",
+    // makes it 20px longer.
+    var width_with_spacing = ctx.measureText('Hello World, again').width;
+    @assert width_with_spacing === width_normal + 20;
+
+    // Changing font to 20px. Without resetting the spacing, 1em wordSpacing
+    // is now 20px, so it's suppose to be 40px longer without any wordSpacing set.
+    ctx.font = '20px serif';
+    width_with_spacing = ctx.measureText('Hello World, again').width;
+    // Now calculate the reference spacing for "Hello World, again" with no spacing.
+    ctx.wordSpacing = '0em';
+    width_normal = ctx.measureText('Hello World, again').width;
+    @assert width_with_spacing === width_normal + 40;
+
+- name: 2d.text.drawing.style.fontKerning
+  desc: Testing basic functionalities of fontKerning for canvas
+  code: |
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "normal";
+    width_normal = ctx.measureText("TAWATAVA").width;
+    ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "none";
+    width_none = ctx.measureText("TAWATAVA").width;
+    @assert width_normal < width_none;
+
+- name: 2d.text.drawing.style.fontKerning.with.uppercase
+  desc: Testing basic functionalities of fontKerning for canvas
+  code: |
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "Normal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "noRmal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NoRMal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NORMAL";
+    @assert ctx.fontKerning === "auto";
+
+    ctx.fontKerning = "None";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "nOne";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "nonE";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NONE";
+    @assert ctx.fontKerning === "auto";
+
+- name: 2d.text.drawing.style.fontVariant.settings
+  desc: Testing basic functionalities of fontVariant for canvas
+  code: |
+    // Setting fontVariantCaps with lower cases
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "normal";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "small-caps";
+    @assert ctx.fontVariantCaps === "small-caps";
+
+    ctx.fontVariantCaps = "all-small-caps";
+    @assert ctx.fontVariantCaps === "all-small-caps";
+
+    ctx.fontVariantCaps = "petite-caps";
+    @assert ctx.fontVariantCaps === "petite-caps";
+
+    ctx.fontVariantCaps = "all-petite-caps";
+    @assert ctx.fontVariantCaps === "all-petite-caps";
+
+    ctx.fontVariantCaps = "unicase";
+    @assert ctx.fontVariantCaps === "unicase";
+
+    ctx.fontVariantCaps = "titling-caps";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    // Setting fontVariantCaps with mixed-case values is not valid
+    ctx.fontVariantCaps = "nORmal";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    ctx.fontVariantCaps = "normal";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "smaLL-caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "all-small-CAPS";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "pEtitE-caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "All-Petite-Caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "uNIcase";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "titling-CAPS";
+    @assert ctx.fontVariantCaps === "normal";
+
+    // Setting fontVariantCaps with non-existing font variant.
+    ctx.fontVariantCaps = "titling-caps";
+    ctx.fontVariantCaps = "abcd";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+- name: 2d.text.drawing.style.textRendering.settings
+  desc: Testing basic functionalities of textRendering in Canvas
+  code: |
+    // Setting textRendering with correct case.
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "geometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "auto";
+
+    // Setting textRendering with incorrect case is ignored.
+    ctx.textRendering = "OPtimizeSpeed";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "OPtimizELEgibility";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "GeometricPrecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizespeed";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizelegibility";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "geometricprecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "AUTO";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "Auto";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    // Setting textRendering with non-existing font variant.
+    ctx.textRendering = "abcd";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "normal";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "auto";
+
+- name: 2d.text.drawing.style.reset.TextRendering
+  desc: TextRendering stays the same after font change.
+  code: |
+    ctx.font = '20px serif';
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+    ctx.font = '10px serif';
+    @assert ctx.textRendering === "optimizeSpeed";
+
+- name: 2d.text.drawing.style.fontStretch.settings
+  desc: Testing value setting of fontStretch in Canvas
+  code: |
+    // Setting fontStretch with lower cases
+    ctx.fontStretch = "ultra-condensed";
+    @assert ctx.fontStretch === "ultra-condensed";
+
+    ctx.fontStretch = "extra-condensed";
+    @assert ctx.fontStretch === "extra-condensed";
+
+    ctx.fontStretch = "condensed";
+    @assert ctx.fontStretch === "condensed";
+
+    ctx.fontStretch = "semi-condensed";
+    @assert ctx.fontStretch === "semi-condensed";
+
+    ctx.fontStretch = "normal";
+    @assert ctx.fontStretch === "normal";
+
+    ctx.fontStretch = "semi-expanded";
+    @assert ctx.fontStretch === "semi-expanded";
+
+    ctx.fontStretch = "expanded";
+    @assert ctx.fontStretch === "expanded";
+
+    ctx.fontStretch = "extra-expanded";
+    @assert ctx.fontStretch === "extra-expanded";
+
+    ctx.fontStretch = "ultra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    // Setting fontStretch with lower cases and upper cases word,
+    // these values should be ignored.
+    ctx.fontStretch = "ulTra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Extra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "cOndensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Semi-Condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "normaL";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "semi-Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "eXtra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "abcd";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+- name: 2d.text.fontVariantCaps1
+  desc: Testing small caps setting in fontVariant
+  code: |
+    ctx.font = "32px serif";
+    ctx.fontVariantCaps = "small-caps";
+    // This should render the same as font = "small-caps 32px serif".
+    ctx.fillText("Hello World", 20, 100);
+  reference: |
+    ctx.font = "small-caps 32px serif";
+    ctx.fillText("Hello World", 20, 100);
+
+- name: 2d.text.fontVariantCaps2
+  desc: Testing small caps setting in fontVariant
+  code: |
+    ctx.font = "small-caps 32px serif";
+    // "mismatch" test, to verify that small-caps does change the rendering.
+    smallCaps_len = ctx.measureText("Hello World").width;
+
+    ctx.font = "32px serif";
+    normalCaps_len = ctx.measureText("Hello World").width;
+    @assert smallCaps_len != normalCaps_len;
+
+- name: 2d.text.fontVariantCaps3
+  desc: Testing small caps setting in fontVariant
+  code: |
+    ctx.font = "32px serif";
+    ctx.fontVariantCaps = "all-small-caps";
+    // This should render the same as using font = "small-caps 32px serif"
+    // with all the underlying text in lowercase.
+    ctx.fillText("Hello World", 20, 100);
+  reference: |
+    ctx.font = "small-caps 32px serif";
+    ctx.fillText("hello world", 20, 100);
+
+- name: 2d.text.fontVariantCaps4
+  desc: Testing small caps setting in fontVariant
+  code: |
+    ctx.font = "small-caps 32px serif";
+    // fontVariantCaps overrides the small-caps setting from the font attribute
+    // (spec unclear, cf. https://github.com/whatwg/html/issues/8103)
+    ctx.fontVariantCaps = "all-small-caps";
+    ctx.fillText("Hello World", 20, 100);
+  reference: |
+    ctx.font = "small-caps 32px serif";
+    ctx.fillText("hello world", 20, 100);
+
+- name: 2d.text.fontVariantCaps5
+  desc: Testing small caps setting in fontVariant
+  code: |
+    ctx.font = "small-caps 32px serif";
+    // fontVariantCaps 'normal' does not override the setting from the font attribute.
+    // (spec unclear, cf. https://github.com/whatwg/html/issues/8103)
+    ctx.fontVariantCaps = "normal";
+    ctx.fillText("Hello World", 20, 100);
+  reference: |
+    ctx.font = "small-caps 32px serif";
+    ctx.fillText("Hello World", 20, 100);
+
+- name: 2d.text.fontVariantCaps6
+  desc: Testing small caps setting in fontVariant
+  code: |
+    // fontVariantCaps is reset when the font attribute is set.
+    // (spec unclear, cf. https://github.com/whatwg/html/issues/8103)
+    ctx.fontVariantCaps = "all-small-caps";
+    ctx.font = "32px serif";
+    ctx.fillText("Hello World", 20, 100);
+  reference: |
+    ctx.font = "32px serif";
+    ctx.fillText("Hello World", 20, 100);
+
+- name: 2d.text.fontVariantCaps.after.reset.font
+  desc: Testing if the fontVariantCaps is reset after font change
+  size: [300, 300]
+  code: |
+    ctx.font = "32px serif";
+    ctx.fontVariantCaps = "small-caps";
+
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
+  reference: |
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
+
+- name: 2d.text.setFont.mathFont
+  desc: crbug.com/1212190, make sure offscreencanvas doesn't crash with Math Font
+  code: |
+    ctx.font = "math serif";
+
+- name: 2d.text.writingmode
+  desc: writing-mode in css should not change how text is rendered
+  canvas_types: ['HtmlCanvas']
+  size: [300, 300]
+  code: |
+    canvas.style.textOrientation = "upright";
+    canvas.style.writingMode = "vertical-rl";
+    canvas.style.fontFamily = "Arial";
+
+    ctx.font = "bold 64px Arial";
+    ctx.textBaseline = "top";
+
+    ctx.fillText("Happy", 100, 0);
+  reference: |
+    ctx.font = "bold 64px Arial";
+    ctx.textBaseline = "top";
+
+    ctx.fillText("Happy", 100, 0);
+
+# TODO: shadows, alpha, composite, clip

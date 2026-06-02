@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Test opaque fenced frame navigations with disallowed CSP blocked</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<body>
+<script>
+const blockedCSPs = [
+  "'none'",
+  "'self'",
+  "data:",
+  "https://*",
+  "https://*:80",
+  "https://b.test:*"
+];
+for (const resolve_to_config of [true, false]) {
+  blockedCSPs.forEach((csp) => {
+    promise_test(async(t) => {
+      const iframe = setupCSP(csp);
+      const key = token();
+
+      await iframe.execute(async(key, resolve_to_config, csp) => {
+        let promise = new Promise((resolve) => {
+          window.addEventListener('securitypolicyviolation', function(e) {
+            resolve(e.violatedDirective + ";" + e.blockedURI);
+          }, {once: true});
+        });
+
+        attachFencedFrame(await runSelectURL(
+            "/fenced-frame/resources/embeddee.html", [key], resolve_to_config));
+
+        await promise.then((result) => {
+          assert_equals(result, "fenced-frame-src;",
+              "The fenced frame should not load for CSP fenced-frame-src " +
+              csp);
+        });
+      }, [key, resolve_to_config, csp]);
+    }, "Fenced frame blocked for CSP fenced-frame-src " + csp + " using " +
+       (resolve_to_config ? "config" : "urn:uuid"));
+  });
+
+  promise_test(async(t) => {
+    const iframe = setupCSP("*", "'self'");
+    const key = token();
+
+    await iframe.execute(async(key, resolve_to_config) => {
+      window.addEventListener('securitypolicyviolation', function(e) {
+        // Write to the server even though the listener is in the same file in
+        // the test below.
+        writeValueToServer(key, e.violatedDirective + ";" + e.blockedURI);
+      }, {once: true});
+      attachFencedFrame(await runSelectURL("resources/embeddee.html",
+                                  [key], resolve_to_config));
+    }, [key, resolve_to_config]);
+
+    const result = await nextValueFromServer(key);
+    assert_equals(result, "fenced-frame-src;",
+        "The fenced frame should not load for CSP frame-src 'self' even if " +
+        "another CSP allows loading a fenced frame.");
+
+    await iframe.execute(() => {
+      // Test the canLoadOpaqueURL API to ensure it arrives at the same result.
+      assert_false(navigator.canLoadAdAuctionFencedFrame());
+    });
+  }, "Fenced frame not loaded using " +
+     (resolve_to_config ? "config" : "urn:uuid") +
+     " if any of CSPs in place disallow loading");
+}
+
+blockedCSPs.forEach((csp) => {
+  promise_test(async() => {
+    const iframe = setupCSP(csp);
+    await iframe.execute(() => {
+      assert_false(navigator.canLoadAdAuctionFencedFrame());
+    })
+  }, "Opaque-ads can load API returns false for " + csp);
+});
+</script>
+</body>

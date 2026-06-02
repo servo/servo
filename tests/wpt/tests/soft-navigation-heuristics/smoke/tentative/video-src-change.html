@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<video id="testVideo" src="/media/test.webm"></img>
+
+<script>
+  function waitForVideoRender() {
+    return new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        if (list.getEntries().filter((e) => e.id === 'testVideo').length) {
+          resolve();
+          observer.disconnect();
+        }
+      }).observe({type: 'largest-contentful-paint', buffered: true});
+    });
+  }
+
+  async function runTest(t, url, newVideoSrc) {
+    navigateButton.addEventListener("click", () => {
+      history.pushState({}, '', url);
+      testVideo.src = newVideoSrc;
+    }, {once: true});
+
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    const entries = await helper.withTimeoutMessage(
+        softNavPromise, "Soft navigation entry never arrived.", 5000);
+    assert_equals(entries.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+        entries[0].name.endsWith(url),
+        'Unexpected Soft Navigation URL.');
+  }
+
+  // Wait for the video to initially load and make its way through the image
+  // timing pipeline before changing its source.
+  promise_setup(waitForVideoRender);
+
+  promise_test(async t => {
+    const url = '/video-src-change-1';
+    const src = '/media/A4.webm';
+    return runTest(t, url, src);
+  }, 'Soft Navigation Detection supports HTMLVideoElment.src');
+</script>

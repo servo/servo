@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Cue size from settings</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/cue-size.vtt", function(track) {
+    var expected = [
+        { size: 100 },
+        { size: 10  },
+        { size: 0   }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+
+check_cues_from_track("resources/cue-size-bad.vtt", function(track) {
+    var expected = [
+        { size: 100 },
+        { size: 100 },
+        { size: 100 }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+</script>

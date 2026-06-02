@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Missing scheme information box in protected sample entry</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+  </head>
+  <body>
+    <div id='log'></div>
+    <div id='audio'>
+      <audio id="audioelement" width="200px"></video>
+    </div>
+  </body>
+  <script>
+const contentItem = content['mp4-av-multikey'];
+const audio = document.getElementById('audioelement');
+
+// Test that a non conforming mp4 protected sample entry triggers the append
+// error algorithm.
+// https://w3c.github.io/media-source/#sourcebuffer-segment-parser-loop
+// 2. If the [[input buffer]] contains bytes that violate the SourceBuffer
+//    byte stream format specification, then run the append error algorithm and
+//    abort this algorithm.
+promise_test(async t => {
+  audio.watcher = new EventWatcher(t, audio, ['error']);
+
+  const response = await fetch(contentItem.audio.path);
+  assert_true(response.ok, 'response.ok');
+  const audioMedia = new Uint8Array(await response.arrayBuffer());
+
+  const source = new MediaSource();
+  source.watcher = new EventWatcher(t, source, ['sourceopen']);
+  audio.src = URL.createObjectURL(source);
+  await source.watcher.wait_for('sourceopen');
+
+  const mediaType = contentItem.audio.type;
+  assert_implements_optional(MediaSource.isTypeSupported(mediaType),
+                             `${mediaType} supported`);
+  const buffer = source.addSourceBuffer(mediaType);
+  buffer.watcher = new EventWatcher(t, buffer, ['error', 'updateend']);
+
+  // ISO/IEC 14496-12:2015(E)
+  // 8.12.1 Protection Scheme Information Box
+  // 8.12.1.1 Definition
+  // "At least one protection scheme information box must occur in a protected
+  //  sample entry."
+  //
+  // Change the 'sinf' box type to 'sin ' so that there is no protection
+  // scheme information box in the protected sample entry.
+  // 4-byte offset for the `type` field after `size` and 3 bytes to index the
+  // last character of the type.
+  audioMedia[contentItem.audio.sinfStart + 4 + 3] = ' '.charCodeAt();
+
+  buffer.appendBuffer(audioMedia);
+  await Promise.all([
+    buffer.watcher.wait_for(['error', 'updateend']),
+    audio.watcher.wait_for('error'),
+  ]);
+}, 'missing-sinf');
+  </script>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script src="resources/webxr_test_asserts.js"></script>
+
+  <script>
+
+    let testName = "XRFrame getViewerPose(refSpace) matches getPose(viewer, refSpace).";
+
+    // Used for viewer origin, the actual values should not matter for the test.
+    const poseTransform = {
+        position: [1, 2, 3],
+        orientation: [0.5, 0.5, 0.5, 0.5] // 120 degrees around [1, 1, 1] axis
+    };
+
+    // Use the same device as tracked immersive device, but modify the viewer origin.
+    const deviceInitParams = Object.assign({}, TRACKED_IMMERSIVE_DEVICE, {viewerOrigin: poseTransform});
+
+    // Used when creating a reference space that is offset from local space.
+    // Actual values should not matter for the test.
+    const offsetSpaceTransform = new XRRigidTransform(
+      { x: 1.00, y: -1.50, z: 10.00, w: 1.0 },
+      { x: 0.27, y:  0.00, z:  0.27, w: 0.92},  // 45 degrees around [1, 0, 1] axis
+    );
+
+    const testFunction = function(session, fakeDeviceController, t) {
+      return Promise.all([
+        session.requestReferenceSpace('local'),
+        session.requestReferenceSpace('viewer'),
+      ]).then(([referenceSpace, viewerRefSpace]) => new Promise((resolve, reject) => {
+        const offsetRefSpace = referenceSpace.getOffsetReferenceSpace(offsetSpaceTransform);
+
+        function onFrame(time, frame){
+          t.step(() => {
+            const pose1 = frame.getViewerPose(referenceSpace);
+            const pose2 = frame.getPose(viewerRefSpace, referenceSpace);
+            assert_not_equals(pose1, null);
+            assert_not_equals(pose2, null);
+            assert_matrix_approx_equals(pose1.transform.matrix, pose2.transform.matrix);
+
+            const pose3 = frame.getViewerPose(offsetRefSpace);
+            const pose4 = frame.getPose(viewerRefSpace, offsetRefSpace);
+            assert_not_equals(pose3, null);
+            assert_not_equals(pose4, null);
+            assert_matrix_approx_equals(pose3.transform.matrix, pose4.transform.matrix);
+          });
+
+          resolve();
+        }
+
+        session.requestAnimationFrame(onFrame);
+      }));
+    };
+
+    xr_session_promise_test(testName, testFunction,
+      deviceInitParams, 'immersive-vr');
+
+  </script>
+</body>

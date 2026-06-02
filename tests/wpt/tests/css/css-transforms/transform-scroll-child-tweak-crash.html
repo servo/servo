@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<style>
+* {
+	pointer-events: none;
+}
+.transformed {
+	width: 200px;
+	height: 200px;
+	transform: translate(10px, 10px);
+}
+.scrollcontainer {
+	width: 150px;
+	height: 150px;
+	overflow: auto;
+	scrollbar-width: none;
+}
+#container {
+	width: 10px;
+	height: 200px;
+}
+#thediv1 {
+	width: 2px; height: 2px;
+	background: green;
+}
+
+</style>
+<div class="transformed">
+	<div class="scrollcontainer" id="scrollcontainer">
+		<div id="container">
+			<div id="thediv1"></div>
+		</div>
+	</div>
+</div>
+
+<script>
+function promiseFrame() {
+	return new Promise(resolve => window.requestAnimationFrame(resolve));
+}
+function finish() {
+	document.documentElement.className = "";
+}
+
+function tweak2() {
+	document.getElementById("container").style.height = "100px";
+	document.getElementById("scrollcontainer").style.overflow = "visible";
+	requestAnimationFrame(finish);
+}
+
+function tweak() {
+	document.getElementById("thediv1").style.background = "red";
+	requestAnimationFrame(tweak2);
+}
+
+async function start() {
+	await promiseFrame();
+	await promiseFrame();
+	tweak();
+	await promiseFrame();
+	await promiseFrame();
+	tweak2();
+	await promiseFrame();
+	await promiseFrame();
+	finish();
+}
+
+window.onload = () => {
+	requestAnimationFrame(start);
+};
+
+</script>
+</html>

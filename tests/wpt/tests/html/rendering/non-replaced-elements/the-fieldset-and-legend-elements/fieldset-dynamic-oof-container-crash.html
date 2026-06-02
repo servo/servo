@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>No crash after stop being an asbolute container.</title>
+<link rel="help" href="https://crbug.com/1395688">
+<style>
+.c2 {
+  transform: rotate3d(0, 1, 0, 45deg);
+  column-width: 100px;
+}
+.c19 {
+  overflow: auto;
+  padding-left: 65536px;
+  column-count: 3;
+}
+
+q {
+  position: absolute;
+  column-width: 1px;
+}
+
+body {
+  column-count: 3;
+}
+</style>
+<script>
+function animationFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function doTest() {
+  document.documentElement.appendChild(document.createElement('body'));
+  await animationFrame();
+  document.body.innerHTML = '<fieldset class=c2><q>q</q></fieldset>';
+  window.scrollBy(28, 71);
+  await animationFrame();
+  document.querySelector('fieldset').setAttribute('class', 'c19');
+  await animationFrame();
+  document.body.remove();
+  await animationFrame();
+  await animationFrame();
+  document.documentElement.classList.remove('test-wait');
+}
+
+doTest();
+</script>
+</html>

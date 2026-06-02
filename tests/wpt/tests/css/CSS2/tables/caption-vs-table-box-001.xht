@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Caption border and table border</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="assert" content="A caption has padding, margin and borders independent of those of its parent table." />
+        <style type="text/css">
+            #table, #caption
+            {
+                border: 1px solid black;
+                padding: 1em;
+            }
+            #caption, #cell
+            {
+                height: 4em;
+                width: 4em;
+            }
+            #table
+            {
+                display: table;
+                margin-top: 1em;
+            }
+            #caption
+            {
+                display: table-caption;
+                margin-bottom: 1em;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two separate boxes below and the "Filler Text" inside the boxes has the same alignment.</p>
+        <div id="table">
+            <div id="caption">Filler Text</div>
+            <div id="row">
+                <div id="cell">Filler Text</div>
+           </div>
+        </div>
+    </body>
+</html>

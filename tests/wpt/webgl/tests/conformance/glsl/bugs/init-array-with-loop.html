@@ -1,0 +1,86 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Initializing an array with a loop test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderInitLoop" type="x-shader/x-fragment">
+precision mediump float;
+
+void initGlobals();
+
+uniform vec4 in0;
+vec4 out0;
+
+float func(float a[4]) {
+    a[0] = -1.0;
+    return a[0];
+}
+
+float arr[4];
+
+bool isOk(vec4 a) {
+    vec4 ref = -(in0 + 1.0);
+    if (abs(a.x - ref.x) < 0.05 && abs(a.y - ref.y) < 0.05 && abs(a.z - ref.z) < 0.05 && abs(a.w - ref.w) < 0.05)
+    {
+        return true;
+    }
+    return false;
+}
+
+void main() {
+    initGlobals();
+    arr[0] = in0.x + 1.0;
+    arr[1] = in0.y + 1.0;
+    arr[2] = in0.z + 1.0;
+    arr[3] = in0.w + 1.0;
+    mediump float f = func(arr);
+    out0 = f * vec4(arr[0], arr[1], arr[2], arr[3]);
+    if (isOk(out0))
+    {
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    }
+    else
+    {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+}
+
+void initGlobals() {
+    out0 = vec4(0.0, 0.0, 0.0, 0.0);
+    for (int i = 0; i < 4; ++i)
+    {
+        arr[i] = 0.0;
+    }
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderInitLoop',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Initialize a global array using a for loop"
+}
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: auto height img with max-width, max-height, and attributes width / height inside column flexbox</title>
+<link rel="help" href="https://html.spec.whatwg.org/#map-to-the-aspect-ratio-property-(using-dimension-rules)">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+    div {
+        display: flex;
+    }
+    img {
+        max-height: 100px;
+        max-width: 100px;
+        height: auto;
+    }
+</style>
+</head>
+<body>
+  <div><img src="support/200x200-green.png" width="200" height="200"></div>
+</body>
+</html>

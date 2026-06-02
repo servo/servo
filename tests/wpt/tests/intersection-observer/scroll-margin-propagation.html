@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Scroll margin propagation from descendant frame to top page</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<meta name="timeout" content="long">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<!--
+  This tests that when
+  (1) an implicit root intersection observer includes a scroll margin
+  (2) the observer target is in a frame descendant of the top page
+
+  Then the scroll margin is applied up to, and excluding, the first cross-origin-domain
+  frame in the chain from the target to the top page. Then, subsequent frames won't
+  have scroll margin applied, even if any of subsequent frames are same-origin-domain.
+
+  This follows the discussion at [1] that says:
+  > Implementation notes:
+  > * [...]
+  > * Should stop margins at a cross-origin iframe boundary for security
+
+  [1]: https://github.com/w3c/IntersectionObserver/issues/431#issuecomment-1542502858
+
+  The setup:
+    * 3-level iframe nesting: top page -> iframe 1 -> iframe 2 -> iframe 3
+    * Iframe 1 is cross-origin-domain with top page, iframe 2/3 are same-origin-domain
+    * Top page and iframe 1/2 have a scroller, which consists of a spacer to trigger
+      scrolling, and an iframe to the next level.
+    * Iframe 3 has an implicit root intersection observer and the target.
+    * The observer specifies a scroll margin, which should be applied to iframe 2,
+      and not to iframe 1 and top page.
+
+  Communication between frames:
+    * Iframe 3 sends a "isIntersectingChanged" to the top page when the target's
+      isIntersecting changed.
+    * Iframe 1, 2 accepts a "setScrollTop" message to set the scrollTop of its scroller.
+      The message contains a destination, if the destination matches, it sets the scrollTop,
+      otherwise it passes the message down the chain. After setting scrollTop, the iframe emits
+      a "scrollEnd" message to the top frame.
+-->
+
+<p>Top page</p>
+<div style="width: 400px; height: 400px; outline: 1px solid blue; overflow-y: scroll" id="scroller">
+  <!-- Spacer to trigger scrolling -->
+  <div style="height: 500px"></div>
+
+  <iframe width=350 height=400 id="iframe"></iframe>
+</div>
+
+<script>
+iframe.src =
+  get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/intersection-observer/resources/scroll-margin-propagation-iframe-1.html";
+const iframeWindow = iframe.contentWindow;
+
+// Set the scrollTop of the scroller in the frame specified by `target`:
+// "this" - top frame, "iframe1" - iframe 1, "iframe2" - iframe2
+// When setting scrollTop of remote frames, remote frame will send a "scrollEnd"
+// message to indicate the scroll has been set. Wait for this message before returning.
+async function setScrollTop(target, scrollTop) {
+  if (target === "this") {
+    scroller.scrollTop = scrollTop;
+  } else {
+    iframeWindow.postMessage({
+      msgName: "setScrollTop",
+      target: target,
+      scrollTop: scrollTop
+    }, "*");
+
+    await new Promise(resolve => {
+      window.addEventListener("message", event => {
+        if (event.data.msgName === "scrollEnd" && event.data.source === target)
+          resolve();
+
+      }, { once: true })
+    })
+  }
+
+  // Wait for IntersectionObserver notifications to be generated.
+  await new Promise(resolve => waitForNotification(null, resolve));
+  await new Promise(resolve => waitForNotification(null, resolve));
+}
+
+var grandchildFrameIsIntersecting = null;
+
+promise_setup(() => {
+  // Wait for the initial IntersectionObserver notification.
+  // This indicates iframe 3 is fully ready for test.
+  return new Promise(resolve => {
+    window.addEventListener("message", event => {
+      if (event.data.msgName === "isIntersectingChanged") {
+        grandchildFrameIsIntersecting = event.data.value;
+
+        // Install a long-lasting event listener, since this listerner is one-shot
+        window.addEventListener("message", event => {
+          if (event.data.msgName === "isIntersectingChanged")
+            grandchildFrameIsIntersecting = event.data.value;
+        });
+
+        resolve();
+      }
+    }, { once: true });
+  });
+});
+
+promise_test(async t => {
+  // Scroll everything to bottom, so target is fully visible
+  await setScrollTop("this", 99999);
+  await setScrollTop("iframe1", 99999);
+  await setScrollTop("iframe2", 99999);
+  assert_true(grandchildFrameIsIntersecting, "Target is fully visible and intersecting");
+
+  // Scroll iframe 2 up a bit so that target is not visible, but still intersecting
+  // because of scroll margin.
+  await setScrollTop("iframe2", 130);
+  assert_true(grandchildFrameIsIntersecting, "Target is not visible, but in the scroll margin zone, so still intersects");
+
+  await setScrollTop("iframe2", 85);
+  assert_false(grandchildFrameIsIntersecting, "Target is fully outside the visible and scroll margin zone");
+}, "Scroll margin is applied to iframe 2, because it's same-origin-domain with iframe 3");
+
+promise_test(async t => {
+  // Scroll everything to bottom, so target is fully visible
+  await setScrollTop("this", 99999);
+  await setScrollTop("iframe1", 99999);
+  await setScrollTop("iframe2", 99999);
+  assert_true(grandchildFrameIsIntersecting, "Target is fully visible");
+
+  await setScrollTop("iframe1", 180);
+  assert_false(grandchildFrameIsIntersecting, "Target is not visible, in the scroll margin zone, but not intersecting because scroll margin doesn't apply to cross-origin-domain frames");
+}, "Scroll margin is not applied to iframe 1, because it's cross-origin-domain with iframe 3");
+
+promise_test(async t => {
+  // Scroll everything to bottom, so target is fully visible
+  await setScrollTop("this", 99999);
+  await setScrollTop("iframe1", 99999);
+  await setScrollTop("iframe2", 99999);
+  assert_true(grandchildFrameIsIntersecting, "Target is fully visible");
+
+  await setScrollTop("this", 235);
+  assert_false(grandchildFrameIsIntersecting, "Target is not visible, in the scroll margin zone, but not intersecting because scroll margin doesn't apply to frames beyond cross-origin-domain frames");
+
+}, "Scroll margin is not applied to top page, because scroll margin doesn't propagate past cross-origin-domain iframe 1");
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-with-table1-ref.html">
+<style>
+table {
+  width: 160px;
+}
+tr {
+  animation: bgcolor 0.1s;
+}
+@keyframes bgcolor {
+  0% { background-color: rgba(0, 200, 0, 0); }
+  100% { background-color: rgba(200, 0, 0, 0); }
+}
+</style>
+<table>
+  <tr><td>1
+  <tr><td>2
+</table>

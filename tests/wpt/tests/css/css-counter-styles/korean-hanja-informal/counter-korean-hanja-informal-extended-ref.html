@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/#limited-korean">
+
+<!-- Extended range implementation tests (algorithm step 2: split into 4-digit groups) -->
+<!-- Test second group marker (萬) - ten-thousands group -->
+<div>&#x842c;</div>
+<div>&#x4e8c;&#x842c;</div>
+<div>&#x4e94;&#x842c;</div>
+<div>&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<!-- Test complex patterns within ten-thousands group (algorithm step 4: digit markers) -->
+<div>&#x842c; &#x4e8c;&#x5343;&#x4e09;&#x767e;&#x56db;&#x5341;&#x4e94;</div>
+<div>&#x842c; &#x4e00;</div>
+<div>&#x842c; &#x5341;</div>
+<div>&#x842c; &#x767e;</div>
+<div>&#x842c; &#x5343;</div>
+
+<!-- Test third group marker (億) - hundred-millions group -->
+<div>&#x4e00;&#x5104;</div>
+<div>&#x4e8c;&#x5104;</div>
+<div>&#x4e94;&#x5104;</div>
+<div>&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<!-- Test complex patterns within hundred-millions group (algorithm step 6: zero dropping) -->
+<div>&#x4e00;&#x5104; &#x4e8c;&#x5343;&#x4e09;&#x767e;&#x56db;&#x5341;&#x4e94;&#x842c; &#x516d;&#x5343;&#x4e03;&#x767e;&#x516b;&#x5341;&#x4e5d;</div>
+<div>&#x4e00;&#x5104; &#x4e00;</div>
+<div>&#x4e00;&#x5104; &#x842c;</div>
+<div>&#x4e00;&#x5104; &#x5341;&#x842c;</div>
+<div>&#x4e00;&#x5104; &#x767e;&#x842c;</div>
+<div>&#x4e00;&#x5104; &#x5343;&#x842c;</div>
+
+<!-- Test fourth group marker (兆) - trillions group -->
+<div>&#x4e00;&#x5146;</div>
+<div>&#x4e8c;&#x5146;</div>
+<div>&#x4e94;&#x5146;</div>
+<div>&#x4e5d;&#x5146; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<!-- Test extended ranges (algorithm step 3: group markers up to 10^16) -->
+<!-- Test 10^13 range (ten-trillions) -->
+<div>&#x5341;&#x5146;</div>
+<div>&#x4e94;&#x5341;&#x5146;</div>
+<div>&#x4e5d;&#x5341;&#x4e5d;&#x5146; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<!-- Test 10^15 range (hundred-trillions) -->
+<div>&#x767e;&#x5146;</div>
+<div>&#x4e94;&#x767e;&#x5146;</div>
+<div>&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5146; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<!-- Test complex patterns in trillions group (step 5: drop ones, step 6: drop zeros) -->
+<div>&#x4e00;&#x5146; &#x4e8c;&#x5343;&#x4e09;&#x767e;&#x56db;&#x5341;&#x4e94;&#x5104; &#x516d;&#x5343;&#x4e03;&#x767e;&#x516b;&#x5341;&#x4e5d;&#x842c; &#x767e;&#x4e8c;&#x5341;&#x4e09;</div>
+<div>&#x4e00;&#x5146; &#x4e00;</div>
+<div>&#x4e00;&#x5146; &#x842c;</div>
+<div>&#x4e00;&#x5146; &#x767e;&#x842c;</div>
+<div>&#x4e00;&#x5146; &#x4e00;&#x5104;</div>
+<div>&#x4e00;&#x5146; &#x767e;&#x5104;</div>
+<div>&#x4e00;&#x5146; &#x5343;&#x5104;</div>
+
+<!-- Test interaction between multiple groups -->
+<div>&#x4e00;&#x5146; &#x5341;&#x5104; &#x767E;&#x842C; &#x5343;&#x4e00;</div>
+<div>&#x4e00;&#x5146; &#x767E;&#x4e00;&#x5104; &#x767E;&#x4e00;&#x842c; &#x767E;&#x4e00;</div>
+<div>&#x4e00;&#x5146; &#x4e00;&#x5104; &#x842c; &#x4e00;</div>
+<div>&#x4e94;&#x5146; &#x4e94;&#x5341;&#x5104; &#x4e94;&#x767e;&#x842c; &#x4e94;&#x5343;&#x4e94;</div>
+
+<!-- Test zero dropping behavior across different groups -->
+<div>&#x4e00;&#x5146;</div>
+<div>&#x5341;&#x5104;</div>
+<div>&#x767e;&#x842c;</div>
+<div>&#x5343;</div>
+<div>&#x5341;&#x5146;</div>
+<div>&#x767e;&#x5146;</div>
+
+<!-- Test boundary values at the edge of range (-10^16+1 to 10^16-1) -->
+<div>&#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5146; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+<div>&#x5343;&#x5146;</div>
+
+<!-- Test out-of-range values (should fallback to cjk-decimal) -->
+<div>&#x4e00;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;&#x3007;</div>
+
+<!-- Test negative numbers (algorithm step 8: negative sign handling) -->
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#x842C;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#x4e00;&#x5104;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#x4e00;&#x5146;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5146; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x5104; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;&#x842c; &#x4e5d;&#x5343;&#x4e5d;&#x767e;&#x4e5d;&#x5341;&#x4e5d;</div>
+
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#x4e00;</div>

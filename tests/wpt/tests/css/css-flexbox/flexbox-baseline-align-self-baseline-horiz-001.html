@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for how we compute the baseline of a horizontal flex container
+     with several flex items, some of which have "align-self:baseline".  The
+     spec says this about this case:
+       If any of the flex items on the flex container's first line
+       participate in baseline alignment, the flex container's
+       main-axis baseline is the baseline of those flex items.
+-->
+<html>
+<head>
+  <title>CSS Test: Testing the baseline of a horizontal flex container with baseline-aligned flex items</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-baselines">
+  <link rel="match" href="flexbox-baseline-align-self-baseline-horiz-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    body {
+      margin: 0;
+      font-size: 20px;
+      line-height: 20px;
+    }
+    .flexContainer {
+      display: inline-flex;
+      background: lightblue;
+      align-items: baseline;
+    }
+    .hugeAndUnaligned {
+      font-size: 35px;
+      line-height: 35px;
+      /* This one flex item won't be baseline-aligned, so it won't impact
+         the flex container's positioning */
+      align-self: stretch;
+    }
+    .smallFont {
+      font-size: 10px;
+      line-height: 10px;
+    }
+  </style>
+</head>
+<body>
+  a
+  <div class="flexContainer">
+    <div class="smallFont">b</div>
+    <div>c</div>
+    <div class="hugeAndUnaligned">d</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">e</div>
+    <div>f</div>
+    <div class="smallFont">g</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">h</div>
+    <div class="smallFont">i</div>
+    <div>j</div>
+  </div>
+</body>
+</html>

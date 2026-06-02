@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Highlights on ::first-line text update on viewport changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-styling">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<link rel="match" href="custom-highlight-dynamic-viewport-metrics-first-line-001-ref.html">
+<meta name="assert" content="Highlight styles using viewport units on text affected by ::first-line update correctly when the viewport changes. This tests that cached lazy pseudos are invalidated even when the text frame's style differs from the originating element's primary style.">
+<script src="/common/reftest-wait.js"></script>
+<head>
+  <style>
+    iframe {
+      width: 200px;
+      height: 100px;
+    }
+
+    iframe.resize {
+      width: 400px;
+      height: 200px;
+    }
+</style>
+</head>
+<iframe id="iframe" src="resources/iframe-viewport-first-line.html"></iframe>
+<script>
+  function runtest() {
+    // Ensure the highlight is painted (and cached) at the initial viewport size
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Resize the viewport
+        iframe.classList.add('resize');
+        requestAnimationFrame(() => takeScreenshot());
+      });
+    });
+  }
+  iframe.onload = runtest;
+</script>
+</html>

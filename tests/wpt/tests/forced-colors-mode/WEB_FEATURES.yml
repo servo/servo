@@ -1,0 +1,14 @@
+features:
+- name: forced-colors
+  files:
+  - "*"
+  - "!forced-colors-mode-42.html"
+  - "!forced-colors-mode-43.html"
+  - "!forced-colors-mode-44.html"
+  - "!forced-colors-mode-45.html"
+- name: caret-color
+  files:
+  - forced-colors-mode-42.html
+  - forced-colors-mode-43.html
+  - forced-colors-mode-44.html
+  - forced-colors-mode-45.html

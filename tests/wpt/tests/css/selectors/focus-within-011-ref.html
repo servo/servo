@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: :focus-within selector</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div {
+        border: solid 15px blue;
+        outline: none;
+        border-color: green;
+      }
+      #child1 {
+        border-color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if, when the upper element is unfocused and the lower element is focused, the upper element is blue and the lower one is green, and they are surrounded by a thick green border.</p>
+    <div id="parent">
+      <div id="child1"></div>
+      <div id="child2"></div>
+    </div>
+  <body>
+</html>

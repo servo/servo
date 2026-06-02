@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: URLs in style attributes (with xml:base)</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/ref-green-on-green.xht"/>
+  <link rel="help" href="https://drafts.csswg.org/css-style-attr/#interpret"/>
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="flags" content="image nonHTML" />
+  <meta name="assert" content="xml:base is ignored when resolving URLs in style attributes."/>
+  <!-- This test originally asserted that xml:base works, and xml:base is mentioned in
+       https://www.w3.org/TR/2013/REC-css-style-attr-20131107/. Support for xml:base
+       has been removed from browsers and it's no longer mentioned in the spec. -->
+  <style type="text/css"><![CDATA[
+    p { background-color: lime; color: green; }
+  ]]></style>
+ </head>
+ <body>
+  <p style="background-image: url(swatch-red.png)" xml:base="support/">
+    This sentence must be green on a green background.
+  </p>
+ </body>
+</html>

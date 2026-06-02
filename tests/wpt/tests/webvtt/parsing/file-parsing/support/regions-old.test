@@ -1,0 +1,18 @@
+regions, old
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-region-settings">
+
+assert_equals(cues.length, 2);
+
+assert_equals(cues[0].region, null);
+assert_equals(cues[1].region, null);
+
+===
+WEBVTT
+Region: id=foo width=40% lines=3 regionanchor=0%,100% viewportanchor=10%,90% scroll=up
+Region: id=bar width=40% lines=3 regionanchor=100%,100% viewportanchor=90%,90% scroll=up
+
+00:00:00.000 --> 00:00:01.000 region:foo
+text0
+
+00:00:00.000 --> 00:00:01.000 region:bar
+text1

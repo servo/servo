@@ -1,0 +1,18 @@
+<html>
+ <head>
+  <title>CSS Test: Blocks in style attributes in quirks mode</title>
+  <link rel="author" title="Simon Pieters" href="mailto:simonp@opera.com">
+  <link rel="match" href="reference/ref-green-on-green.xht"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#syntax"/>
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="Style attribute values are the content of a
+    declaration block: the braces must not be included and are therefore invalid."/>
+  <style type="text/css">
+    p { background: lime; color: green; margin-top: 1em; }
+  </style>
+ </head>
+ <body>
+  <p style="{color: red; background: red; }">
+    This sentence must be green on a green background.</p>
+ </body>
+</html>

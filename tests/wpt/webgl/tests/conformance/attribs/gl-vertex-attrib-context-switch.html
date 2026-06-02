@@ -1,0 +1,62 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+<meta charset="utf-8">
+    <title>WebGL Vertex Attrib Context Switch Test</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../js/js-test-pre.js"></script>
+    <script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="one" width="50" height="50">
+</canvas>
+<canvas id="two" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("tests that vertex attrib value is preserved across context switches");
+var wtu = WebGLTestUtils;
+var positionLocation = 0;
+var colorLocation = 1;
+var gridRes = 1;
+
+var canvas1 = document.getElementById("one");
+var gl1 = wtu.create3DContext(canvas1);
+var program1 = wtu.setupSimpleVertexColorProgram(gl1, positionLocation, colorLocation);
+gl1.vertexAttrib4f(colorLocation, 0.0, 1.0, 0.0, 1.0);
+wtu.setupIndexedQuad(gl1, gridRes, positionLocation);
+wtu.clearAndDrawIndexedQuad(gl1, gridRes);
+wtu.checkCanvas(gl1, [0, 255, 0, 255], "should be green 1");
+
+var canvas2 = document.getElementById("two");
+var gl2 = wtu.create3DContext(canvas2);
+var program2 = wtu.setupSimpleVertexColorProgram(gl2, positionLocation, colorLocation);
+wtu.setupIndexedQuad(gl2, gridRes, positionLocation);
+wtu.clearAndDrawIndexedQuad(gl2, gridRes);
+wtu.checkCanvas(gl2, [0, 0, 0, 255], "should be black 1");
+
+wtu.checkCanvas(gl1, [0, 255, 0, 255], "should be green 2");
+
+wtu.clearAndDrawIndexedQuad(gl2, gridRes);
+wtu.checkCanvas(gl2, [0, 0, 0, 255], "should be black 2");
+
+wtu.clearAndDrawIndexedQuad(gl1, gridRes);
+wtu.checkCanvas(gl1, [0, 255, 0, 255], "should be green 3");
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

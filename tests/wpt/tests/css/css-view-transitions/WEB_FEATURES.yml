@@ -1,0 +1,10 @@
+features:
+- name: view-transitions
+  files: "**"
+- name: view-transition-class
+  files:
+  - class-specificity.html
+  - pseudo-with-classes-*
+- name: active-view-transition
+  files:
+  - active-view-transition-*

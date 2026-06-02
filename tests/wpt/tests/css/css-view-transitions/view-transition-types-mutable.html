@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>View behavior of ViewTransitionTypeSet</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async () => {
+    assert_implements(document.startViewTransition);
+    let transition = document.startViewTransition();
+    assert_true(transition.types instanceof ViewTransitionTypeSet);
+    await transition.finished;
+  }, "ViewTransition.types is a ViewTransitionTypeSet");
+
+  promise_test(async () => {
+    assert_implements(document.startViewTransition);
+    let transition = document.startViewTransition();
+    let types = transition.types;
+    assert_equals(types, transition.types, "Should return the same object");
+    types.add("a");
+    types.add("b");
+    assert_array_equals([...types], ["a", "b"]);
+    assert_array_equals(Array.from(types), ["a", "b"]);
+    types.delete("b");
+    assert_array_equals([...types], ["a"]);
+    assert_true(types.has("a"));
+    types.add("a");
+    assert_array_equals([...types], ["a"]);
+    types.add(".");
+    types.add("");
+    types.add("123");
+    assert_array_equals([...types], ["a", ".", "", "123"]);
+    await transition.finished;
+  }, "ViewTransitionTypeSet behaves like an ordinary Set of strings");
+
+  promise_test(async () => {
+    assert_implements(document.startViewTransition);
+    const transition = document.startViewTransition();
+    transition.types.add("a");
+    await transition.finished;
+    assert_array_equals([...transition.types], ["a"]);
+    transition.types.add("b");
+    assert_array_equals([...transition.types], ["a", "b"]);
+  }, "ViewTransitionTypeSet should reflect its members for a non-active transition");
+</script>
+
+</html>

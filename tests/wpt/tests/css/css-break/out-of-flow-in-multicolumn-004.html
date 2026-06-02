@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#breaking-controls">
+<link rel="match" href="out-of-flow-in-multicolumn-004-ref.html">
+<!-- break-inside: avoid and break-before: column do not apply to absolute positioned elements. -->
+<style>
+  #multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 40px;
+    width: 100px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    width: 40px;
+    height: 30px;
+    background: green;
+  }
+  .content {
+    width: 20px;
+    height: 20px;
+    background: blue;
+  }
+  .inside {
+    break-inside: avoid;
+  }
+  .before {
+    break-before: column;
+  }
+</style>
+<div id="multicol">
+  <div class="content"></div>
+  <div class="rel">
+    <div class="abs inside"></div>
+  </div>
+</div>
+<div id="multicol">
+  <div class="content"></div>
+  <div class="rel">
+    <div class="abs before"></div>
+  </div>
+</div>

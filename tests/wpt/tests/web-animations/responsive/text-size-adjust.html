@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {textSizeAdjust: 'inherit'},
+        {textSizeAdjust: '60%'}
+    ];
+
+    container.style.textSizeAdjust = '100%';
+    var player = element.animate(keyframes, 20);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).textSizeAdjust, '90%');
+
+    player.currentTime = 10;
+    container.style.textSizeAdjust = '50%';
+    assert_equals(getComputedStyle(element).textSizeAdjust, '55%');
+}, 'text-size-adjust responsive to inherited text-size-adjust changes');
+</script>

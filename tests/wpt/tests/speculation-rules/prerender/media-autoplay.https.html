@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can trigger autoplay</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const {exec, activate} = await create_prerendered_page(t);
+  await exec(() => {
+    const video = document.createElement('video');
+    video.src = '/media/A4.mp4';
+    video.autoplay = true;
+    video.muted = true;
+    window.video = video;
+    document.body.appendChild(video);
+  });
+
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+
+  const before_activation = await exec(() => ({
+    readyState: video.readyState,
+    paused: video.paused,
+    currentTime: video.currentTime
+  }));
+
+  await activate();
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+  const after_activation = await exec(() => ({
+    readyState: video.readyState,
+    paused: video.paused,
+    currentTime: video.currentTime
+  }));
+
+  assert_equals(before_activation.paused, false);
+  assert_equals(before_activation.currentTime, 0);
+  assert_equals(after_activation.paused, false);
+  assert_greater_than(before_activation.currentTime, 0);
+}, "media autoplay should defer playaback");
+</script>

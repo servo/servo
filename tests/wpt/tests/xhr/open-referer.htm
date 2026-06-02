@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() - value of Referer header</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method">
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("POST", "resources/inspect-headers.py?filter_name=referer", false)
+        client.send(null)
+        assert_equals(client.responseText, "Referer: "+location.href+'\n')
+      })
+    </script>
+  </body>
+</html>

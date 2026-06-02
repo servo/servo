@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test shorthand variable substitution</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#variables-in-shorthands">
+
+    <style>
+        #target7parent > #target7 {
+            margin: var(--invalid); /* invalid at compute time */
+        }
+
+        #target7 {
+            margin: 77px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="target1" style="--prop: 8px; margin: var(--prop); margin-top: 10px"></div>
+<div id="target2" style="--prop: 8px; margin: var(--prop) !important; margin-top: 10px"></div>
+<div id="target3" style="--prop: 8px; margin-top: 10px !important; margin: var(--prop);"></div>
+<div id="target4" style="--prop: 3px 5px 7px 11px; margin: var(--prop);"></div>
+<div id="target5" style="--border1: 5px solid rgb(0, 0, 0); --border2: 3px dotted red; border-left: var(--border2); border: var(--border1);"></div>
+<div id="target6" style="--border1: 5px solid rgb(0, 0, 0); --border2: 3px dotted red; border: var(--border1); border-left: var(--border2);"></div>
+<div id="target7parent">
+    <div id="target7"></div>
+</div>
+<div id="target8" style="transition: opacity var(--duration); --duration: 2s"></div>
+<div id="target9" style="border-style: dashed; --border1: 5px solid rgb(0, 0, 0); --border2: 3px dotted red; --width: 1px; border-left: var(--border1); border-width: var(--width);"></div>
+<script type="text/javascript">
+    "use strict";
+    // Set a value via CSSOM to test precedence over markup values
+    document.getElementById("target9").style.borderLeft = "var(--border2)";
+</script>
+
+<script type="text/javascript">
+    "use strict";
+
+    var testcases = [
+        { element: "target1",   propertyName: "margin-left",    expectedPropertyValue: "8px" },
+        { element: "target1",   propertyName: "margin-top",     expectedPropertyValue: "10px" },
+        { element: "target1",   propertyName: "margin-right",   expectedPropertyValue: "8px" },
+        { element: "target1",   propertyName: "margin-bottom",  expectedPropertyValue: "8px" },
+
+        { element: "target2",   propertyName: "margin-left",    expectedPropertyValue: "8px" },
+        { element: "target2",   propertyName: "margin-top",     expectedPropertyValue: "8px" },
+        { element: "target2",   propertyName: "margin-right",   expectedPropertyValue: "8px" },
+        { element: "target2",   propertyName: "margin-bottom",  expectedPropertyValue: "8px" },
+
+        { element: "target3",   propertyName: "margin-left",    expectedPropertyValue: "8px" },
+        { element: "target3",   propertyName: "margin-top",     expectedPropertyValue: "10px" },
+        { element: "target3",   propertyName: "margin-right",   expectedPropertyValue: "8px" },
+        { element: "target3",   propertyName: "margin-bottom",  expectedPropertyValue: "8px" },
+
+        { element: "target4",   propertyName: "margin-left",    expectedPropertyValue: "11px" },
+        { element: "target4",   propertyName: "margin-top",     expectedPropertyValue: "3px" },
+        { element: "target4",   propertyName: "margin-right",   expectedPropertyValue: "5px" },
+        { element: "target4",   propertyName: "margin-bottom",  expectedPropertyValue: "7px" },
+
+        { element: "target5",   propertyName: "border-top-width",       expectedPropertyValue: "5px" },
+        { element: "target5",   propertyName: "border-top-style",       expectedPropertyValue: "solid" },
+        { element: "target5",   propertyName: "border-top-color",       expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target5",   propertyName: "border-right-width",     expectedPropertyValue: "5px" },
+        { element: "target5",   propertyName: "border-right-style",     expectedPropertyValue: "solid" },
+        { element: "target5",   propertyName: "border-right-color",     expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target5",   propertyName: "border-bottom-width",    expectedPropertyValue: "5px" },
+        { element: "target5",   propertyName: "border-bottom-style",    expectedPropertyValue: "solid" },
+        { element: "target5",   propertyName: "border-bottom-color",    expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target5",   propertyName: "border-left-width",      expectedPropertyValue: "5px" },
+        { element: "target5",   propertyName: "border-left-style",      expectedPropertyValue: "solid" },
+        { element: "target5",   propertyName: "border-left-color",      expectedPropertyValue: "rgb(0, 0, 0)" },
+
+        { element: "target6",   propertyName: "border-top-width",       expectedPropertyValue: "5px" },
+        { element: "target6",   propertyName: "border-top-style",       expectedPropertyValue: "solid" },
+        { element: "target6",   propertyName: "border-top-color",       expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target6",   propertyName: "border-right-width",     expectedPropertyValue: "5px" },
+        { element: "target6",   propertyName: "border-right-style",     expectedPropertyValue: "solid" },
+        { element: "target6",   propertyName: "border-right-color",     expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target6",   propertyName: "border-bottom-width",    expectedPropertyValue: "5px" },
+        { element: "target6",   propertyName: "border-bottom-style",    expectedPropertyValue: "solid" },
+        { element: "target6",   propertyName: "border-bottom-color",    expectedPropertyValue: "rgb(0, 0, 0)" },
+        { element: "target6",   propertyName: "border-left-width",      expectedPropertyValue: "3px" },
+        { element: "target6",   propertyName: "border-left-style",      expectedPropertyValue: "dotted" },
+        { element: "target6",   propertyName: "border-left-color",      expectedPropertyValue: "rgb(255, 0, 0)" },
+
+        { element: "target7",   propertyName: "margin-left",    expectedPropertyValue: "0px" },
+        { element: "target7",   propertyName: "margin-top",     expectedPropertyValue: "0px" },
+        { element: "target7",   propertyName: "margin-right",   expectedPropertyValue: "0px" },
+        { element: "target7",   propertyName: "margin-bottom",  expectedPropertyValue: "0px" },
+
+        { element: "target8",   propertyName: "transition-duration",    expectedPropertyValue: "2s" },
+
+        { element: "target9",   propertyName: "border-left-width",      expectedPropertyValue: "3px" },
+        { element: "target9",   propertyName: "border-left-style",      expectedPropertyValue: "dotted" },
+        { element: "target9",   propertyName: "border-left-color",      expectedPropertyValue: "rgb(255, 0, 0)" },
+        { element: "target9",   propertyName: "border-top-width",       expectedPropertyValue: "1px" },
+        { element: "target9",   propertyName: "border-right-width",     expectedPropertyValue: "1px" },
+        { element: "target9",   propertyName: "border-bottom-width",    expectedPropertyValue: "1px" },
+    ];
+
+    testcases.forEach(function (testcase) {
+        test( function () {
+            var div = document.getElementById(testcase.element);
+            var actualPropertyValue = window.getComputedStyle(div).getPropertyValue(testcase.propertyName);
+            assert_equals(actualPropertyValue, testcase.expectedPropertyValue);
+        }, testcase.element + " " + testcase.propertyName);
+    });
+</script>
+
+</body>
+</html>

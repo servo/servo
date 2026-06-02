@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <style>
+    rect {
+      fill: cyan;
+      stroke: cyan;
+      stroke-width: 16px;
+    }
+  </style>
+  <g transform="translate(140, 130)">
+    <rect id="r" x="-30" y="-10" width="80" height="20" />
+  </g>
+</svg>

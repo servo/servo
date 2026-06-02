@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title>requestAnimationFrame callback exception reported to error handler</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://w3c.github.io/web-performance/specs/RequestAnimationFrame/Overview.html#dom-windowanimationtiming-requestanimationframe"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var custom_exception = 'requestAnimationFrameException';
+      setup({allow_uncaught_exception : true});
+      async_test(function (t) {
+        addEventListener("error",function(e) {
+          t.step(function() {
+             assert_equals(e.error.message, custom_exception);
+             t.done();
+          })
+        });
+        window.requestAnimationFrame(function () {
+          throw new Error(custom_exception);
+        });
+      }, "requestAnimationFrame callback exceptions are reported to error handler");
+    </script>
+  </body>
+</html>

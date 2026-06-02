@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button()s box creation</title>
+<link rel="match" href="scroll-buttons-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  div::scroll-button(block-end) {
+    content: "";
+    background: green;
+    display: flex;
+    height: 50px;
+    width: 100px;
+    border: none;
+  }
+
+  div::scroll-button(block-start) {
+    content: "";
+    background: green;
+    display: flex;
+    height: 50px;
+    width: 100px;
+    border: none;
+  }
+</style>
+<p>Test passes if there is a <strong>filled green rectangle</strong>.
+<div></div>

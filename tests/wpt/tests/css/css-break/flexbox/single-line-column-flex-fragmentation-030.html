@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  Tests that flex-items get pushed down due to a previous flex row expanding as
+  a result of fragmentation with margin-top.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+  }
+  #flex > div {
+    background: green;
+    width: 20px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; background: red;">
+  <div id="flex">
+    <div>
+      <div style="contain: size; width: 20px; height: 70px;"></div>
+      <div style="contain: size; width: 20px; height: 40px;"></div>
+    </div>
+    <div style="margin-top: 10px; width: 20px; position: relative;">
+      <div style="contain: size; width: 20px; height: 80px;"></div>
+      <div style="contain: size; width: 20px; height: 40px;"></div>
+      <div style="position: absolute; top: -60px; width: 20px; height: 60px; background: green;"></div>
+    </div>
+    <div style="height: 100px; width: 20px;"></div>
+    <div style="height: 60px; width: 20px;"></div>
+  </div>
+</div>

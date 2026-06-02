@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=root></div>
+<style>
+  /* Explicit inheritance is used to trigger recalc of all elements. */
+  * { z-index: inherit; }
+  :root { z-index: 42; }
+</style>
+<script>
+
+function setup() {
+  createDOMTree(root, /* siblings */ 8, /* depth */ 4);
+
+  let leaf = document.querySelector('body div:empty');
+  let style = document.createElement('style');
+
+  // Create many non-matching rules with an expensive selector
+  // implicitly scoped to a leaf node in the tree.
+  //
+  // @scope {
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: 0; }
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: 1; }
+  //   .
+  //   .
+  //   .
+  //   :not(.a0, .a1, ... .aN):not(div) { --x: M; }
+  // }
+  style.textContent = (() => {
+    const PSEUDO_NOT_COUNT = 50;
+    let selector = `:not(${[...Array(PSEUDO_NOT_COUNT).keys()].map(x => `.a${x}`).join(', ')}):not(div)`;
+    const RULES = 100;
+    let rules = [...Array(RULES).keys()].map(x => `${selector} { --x:${x}; }`).join('\n');
+    return `
+      @scope {
+        ${rules}
+      }
+    `;
+  })();
+  leaf.append(style);
+}
+
+setup();
+
+// Each iteration, we'll recalc all elements. Hopefully, the RuleSet within
+// the style element beneath the leaf node can be completely ignored for all
+// elements except `leaf`.
+PerfTestRunner.measureTime({
+    description: 'An implicit whole-RuleSet @scope deep in the tree',
+    run: () => {
+      root.offsetTop;
+      root.style.zIndex = '43';
+      root.offsetTop;
+      root.style.zIndex = '42';
+    }
+});
+
+</script>

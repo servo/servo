@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="currentcolor-visited-fallback-ref.html">
+<title>currentcolor and visited inherited parent color fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-other-colors">
+<link rel="author" title="Matthieu Dubet" href="https://github.com/mdubet">
+<style>
+body { color: red; }
+div { color: green; }
+a {
+    color: currentcolor;
+}
+</style>
+<div>
+    <a href="">This should be green</a>
+</div>
+<div>
+    <a href="unvisited">This should be green</a>
+</div>

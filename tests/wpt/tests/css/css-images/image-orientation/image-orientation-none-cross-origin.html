@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: none</title>
+<script src=/common/get-host-info.sub.js></script>
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
+<link rel="match" href="reference/image-orientation-none-cross-origin-ref.html">
+<style>
+    body {
+        overflow: hidden;
+        image-orientation: none;
+    }
+    div {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+</style>
+</head>
+<body>
+    <p>The following images should not be identical.</p>
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is same origin.</p>
+    <div><img src="support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>This image should rotate respecting their EXIF orientation because
+       image-orientation: none should be effectively ignored for opaque (cross-origin) images.</p>
+    <div><img id="corsImage" src="support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is CORS anonymous.</p>
+    <div><img id="corsAnonymousImg" crossorigin="anonymous" src="support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the request is CORS
+       use-credentials.</p>
+    <div><img id="corsUseCredsImg" crossorigin="use-credentials" src="support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a blob.</p>
+    <div><img id="blobImage"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a data url.</p>
+    <div><img id="dataImage"/></div>
+</body>
+<script>
+  const testImage = 'support/exif-orientation-3-lr.jpg';
+  let sPendingImagesToLoad = 5;
+
+  function pendingImageLoaded() {
+    if (!--sPendingImagesToLoad) {
+      document.documentElement.removeAttribute('class');
+    }
+  }
+
+  const img = document.getElementById('corsImage')
+  img.onload = pendingImageLoaded;
+  img.src = img.src.replace(new URL(img.src).origin, get_host_info().HTTP_REMOTE_ORIGIN)
+
+  const corsAnonImg = document.getElementById('corsAnonymousImg')
+  corsAnonImg.onload = pendingImageLoaded;
+  corsAnonImg.src = corsAnonImg.src.replace(new URL(corsAnonImg.src).origin,
+                                            get_host_info().HTTP_REMOTE_ORIGIN)
+    + "?pipe=header(Access-Control-Allow-Origin,*)";
+
+  const corsUseCredsImg = document.getElementById('corsUseCredsImg')
+  corsUseCredsImg.onload = pendingImageLoaded;
+  corsUseCredsImg.src = corsUseCredsImg.src.replace(new URL(corsUseCredsImg.src).origin,
+                                                    get_host_info().HTTP_REMOTE_ORIGIN)
+    + "?pipe=header(Access-Control-Allow-Credentials,true)"
+    + "|header(Access-Control-Allow-Origin," + location.origin + ")";
+
+  const blobImg = document.getElementById('blobImage');
+  fetch(testImage).then((resp) => {
+    return resp.blob();
+  }).then((blob) => {
+    blobImg.onload = pendingImageLoaded;
+    blobImg.src = URL.createObjectURL(blob);
+  });
+
+  const dataImg = document.getElementById('dataImage');
+  fetch(testImage).then((resp) => {
+    return resp.blob();
+  }).then((blob) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      dataImg.onload = pendingImageLoaded;
+      dataImg.src = reader.result;
+    });
+
+    reader.readAsDataURL(blob);
+  });
+</script>
+</html>

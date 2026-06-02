@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll anchoring is suppressed during editing in editable elements</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<style>
+textarea,
+div {
+  font-size: 14px;
+  width: 685px;
+  height: 716px;
+}
+</style>
+<body>
+<script>
+const baseText = 'Scroll Anchor Test of the editable element.';
+const text = Array(500).fill(baseText).join(' ');
+const caretOffset = 426;
+const targetScrollTop = 30;
+
+// Perform an editing operation while scroll anchoring is suppressed.
+async function insertLineBreak(element) {
+  let scrollEndPromise = waitForScrollEndOrTimeout(element, 1000);
+  element.scrollTop = targetScrollTop;
+  await scrollEndPromise;
+  assert_equals(element.scrollTop, targetScrollTop);
+  scrollEndPromise = waitForScrollEndOrTimeout(element, 1000);
+  document.execCommand('insertLineBreak');
+  await scrollEndPromise;
+  assert_equals(element.scrollTop, targetScrollTop);
+}
+
+promise_test(async t => {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  document.body.appendChild(textarea);
+
+  textarea.focus();
+  textarea.setSelectionRange(caretOffset, caretOffset);
+  assert_equals(textarea.selectionStart, caretOffset);
+  assert_equals(textarea.selectionEnd, caretOffset);
+
+  await insertLineBreak(textarea);
+  textarea.remove();
+}, 'Scroll anchoring is suppressed during editing in a textarea');
+
+promise_test(async t => {
+  const selection = window.getSelection();
+  const editable = document.createElement('div');
+  editable.contentEditable = true;
+  editable.innerText = text;
+  document.body.appendChild(editable);
+
+  editable.focus();
+  const range = document.createRange();
+  const textNode = editable.firstChild;
+  assert_equals(textNode.nodeType, Node.TEXT_NODE);
+  range.setStart(textNode, caretOffset);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  assert_equals(selection.anchorOffset, caretOffset);
+
+  await insertLineBreak(document.documentElement);
+  editable.remove();
+}, 'Scroll anchoring is suppressed during editing in a contenteditable element');
+</script>
+</body>

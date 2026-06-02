@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Positioning of floats in tables: zero-width floats with negative outer width</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/053.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-153-ref.xht" />
+
+  <style type="text/css">
+   td { padding: 2em 5em; }
+   div { width: 0; float: right; margin-left: -10em; color: green; background: red; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is the green word PASS.</p>
+  <table>
+   <tr>
+    <td>
+     <div>PASS</div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

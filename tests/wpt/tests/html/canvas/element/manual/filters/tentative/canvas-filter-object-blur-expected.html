@@ -1,0 +1,19 @@
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.filter = 'blur(2px)';
+  ctx.fillStyle = 'yellow';
+  ctx.fillRect(10,10,100,100);
+  ctx.filter = 'blur(5px)';
+  ctx.fillStyle = 'magenta';
+  ctx.fillRect(120, 10, 100, 100);
+  ctx.filter = 'blur(5px) blur(10px)';
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(10, 120, 100, 100);
+  ctx.filter = 'none';
+  ctx.fillStyle = 'black';
+  ctx.fillRect(120, 120, 100, 100);
+</script>

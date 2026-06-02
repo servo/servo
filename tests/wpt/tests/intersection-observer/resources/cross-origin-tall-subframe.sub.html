@@ -1,0 +1,79 @@
+<!doctype html>
+<style>
+  body { margin: 0 }
+  .spacer {
+    height: 5000px;
+  }
+  #target {
+    height: 100px;
+    background-color: green;
+  }
+  #next {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  #leaf {
+    display: none;
+  }
+  .leaf #next {
+    display: none;
+  }
+  .leaf #leaf {
+    display: block;
+  }
+</style>
+<iframe id="next" sandbox="allow-scripts"></iframe>
+<div id="leaf">
+  <div class=spacer></div>
+  <div id="target"></div>
+</div>
+<script>
+  const A = "http://{{hosts[alt][]}}:{{ports[http][0]}}";
+  const B = "http://{{hosts[][]}}:{{ports[http][0]}}";
+
+  const nestingLevel = parseInt(new URL(document.URL).searchParams.get("nest"), 10);
+
+  const isLeaf = nestingLevel == 0;
+  document.documentElement.classList.toggle("leaf", isLeaf);
+  if (!isLeaf) {
+    next.src = `${location.origin == A ? B : A}${location.pathname}?nest=${nestingLevel - 1}`;
+  }
+
+  window.addEventListener("message", function(e) {
+    if (e.data.entries) {
+      // This is a response from another frame, there's another listener that
+      // will forward it.
+      return;
+    }
+    let port = e.source;
+    if (!isLeaf) {
+      function respond(e) {
+        if (!e.data.entries) {
+          return;
+        }
+        port.postMessage(e.data, "*");
+        window.removeEventListener("message", respond);
+      }
+      window.addEventListener("message", respond);
+      next.contentWindow.postMessage(e.data, "*");
+      return;
+    }
+    let observer = new IntersectionObserver(function(entries) {
+      port.postMessage({
+        entries: entries.map(e => {
+          return {
+            isIntersecting: e.isIntersecting,
+            intersectionRatio: e.intersectionRatio,
+            intersectionRect: e.intersectionRect,
+            boundingClientRect: e.boundingClientRect.toJSON(),
+          }
+        }),
+      }, "*")
+      observer.disconnect();
+    });
+    observer.observe(document.getElementById("target"));
+  });
+</script>

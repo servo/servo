@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="manifest" href="resources/protocol_handlers-member.webmanifest" />
+  <title>Protocol Handling Web Platform Test</title>
+  <script>
+    navigator.serviceWorker.register(
+      'protocol_handlers-member-service-worker.js');
+  </script>
+</head>
+<body>
+  <h1>Protocol Handling Web Platform Test</h1>
+  <p>This test validates that an install application can register URL protocol
+     handlers via a property in the web app manifest. The app should open
+     directly when the 'web+testing' custom-scheme URL is visited.
+  </p>
+  <h2>Manual Test Steps:</h2>
+  <p>
+    <ol>
+      <li>Install this app.</li>
+      <li>Launch 'web+testing://test-url/'. Instructions will vary by OS.
+        <ul>
+          <li>On Windows - open a command prompt, and run "start web+testing://test-url/".</li>
+          <li>On MacOS - open a terminal, and "open web+testing://test-url/".</li>
+          <li>On Linux - open a terminal, and "xgd-open web+testing://test-url/".</li>
+        </ul>
+      </li>
+      <li>If your browser prompts you, allow the app to open.</li>
+      <li>The app window that opens should indicate success of this test.</li>
+    </ol>
+  </p>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Position: dynamic abspos table height changes</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abs-non-replaced-height">
+<meta name="assert" content="Height changes for abspos table.">
+<style>
+
+#container {
+  width: 400px;
+  height: 300px;
+  background: green;
+  position: relative;
+}
+#target {
+  display: table;
+  background: red;
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100px;
+}
+</style>
+<!-- There should be no red on this page -->
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+document.body.offsetTop;
+let target = document.querySelector("#target");
+target.style.height = "auto";
+test(() => {
+  assert_equals(window.getComputedStyle(target).height, "0px");
+}, '#target height changed');
+</script>

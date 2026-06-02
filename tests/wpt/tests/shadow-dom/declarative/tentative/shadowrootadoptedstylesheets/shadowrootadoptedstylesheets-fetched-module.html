@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Basic shadowrootadoptedstylesheets support on &lt;template&gt;</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<body>
+<script type="module">
+  // Import a module so it's in the module map.
+  import("./support/styles.css", { with: { type: "css" } }).then((sheet) => {
+    // Setting 'shadowrootadoptedstylesheets' to the same specifier should appliy it immediately.
+    // Use setHTMLUnsafe, as declarative shadow DOM's don't get created via CreateElement or innerHTML.
+    document.body.setHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' shadowrootadoptedstylesheets='./support/styles.css'>" +
+          "<span id='test_element'>Test content</span>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const host = document.getElementById("host");
+    test(function (t) {
+      assert_equals(
+        host.shadowRoot.adoptedStyleSheets.length,
+        1,
+        "The shadowrootadoptedstylesheets will declaratively import named specifiers into the adoptedStyleSheets array.",
+      );
+      assert_equals(
+        host.shadowRoot.adoptedStyleSheets[0],
+        sheet.default,
+        "The CSSStyleSheet imported imperatively matches the one imported declaratively.",
+      );
+    }, "adoptedStyleSheets is populated from a <template> element's shadowrootadoptedstylesheets attribute.");
+
+    const test_element = host.shadowRoot.getElementById("test_element");
+    test(function (t) {
+      assert_equals(getComputedStyle(test_element)
+                .color, "rgb(0, 0, 255)",
+                "Declarative styles were applied.");
+    }, "Styles from the adoptedStyleSheets are applied to elements.");
+  });
+</script>
+</body>

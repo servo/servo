@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test changing a fenced frame's src attribute when there has been a config
+with url installed already does not trigger navigation.</title>
+
+<body>
+
+<script>
+function getTimeoutPromise(t) {
+  return new Promise(resolve =>
+    t.step_timeout(() => resolve("NOT LOADED"), 2000));
+}
+
+promise_test(async (t) => {
+  const fenced_frame_loaded_key = token();
+
+  const url = generateURL(
+    'resources/fenced-frame-loaded.html', [fenced_frame_loaded_key]);
+  const url_string = url.toString();
+
+  // Create a fenced frame and install an inner config constructed with an url.
+  const fenced_frame = document.createElement('fencedframe');
+  const config = new FencedFrameConfig(url_string);
+  fenced_frame.config = config;
+  document.body.append(fenced_frame);
+
+  // Installing a config to the fenced frame triggers navigation.
+  const load_expected = "fenced frame loaded";
+  const load_actual = await nextValueFromServer(fenced_frame_loaded_key);
+  assert_equals(load_actual, load_expected,
+    "Fenced frame successfully loaded.");
+
+  const src_key = token();
+  const src_url = generateURL(
+    'resources/fenced-frame-loaded.html', [src_key]);
+
+  // Changing the src attribute, should not trigger navigation.
+  fenced_frame.src = src_url;
+  const src_loaded_promise = nextValueFromServer(src_key);
+  const src_loaded_result = await Promise.any([src_loaded_promise,
+    getTimeoutPromise(t)]);
+  assert_equals(src_loaded_result, "NOT LOADED");
+
+}, 'Changing the src attribute of a fenced frame when a config with url',
+  'has already been installed does not trigger navigation.');
+</script>
+
+</body>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>SyntaxError thrown when matching CSS-wide keyword</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-set-load">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+  function load_on_worker(keyword) {
+    return new Promise((resolve, reject) =>{
+      var blob = new Blob([`
+        self.fonts.load('${keyword}').then(
+          ()=>{ self.postMessage('success') },
+          (e)=>{ self.postMessage(e) }
+        );
+      `]);
+      var blob_url = window.URL.createObjectURL(blob);
+      let worker = new Worker(blob_url);
+      worker.onmessage = msg => {
+        if (msg === 'success')
+          resolve(msg.data)
+        else
+          reject(msg.data)
+      }
+    });
+  }
+
+  // https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces
+  // forbids CSS-wide keywords as the value of the font given to the
+  // load method (equivalent to the font shorthand).  Note that the test
+  // for this case will also pass when the system-wide keyword simply
+  // isn't supported, since the syntax won't be valid syntax for the
+  // 'font' shorthand.
+  // https://drafts.csswg.org/css-fonts-4/#family-name-syntax also
+  // forbids using the CSS-wide keywords as unquoted keywords within
+  // <font-family>.
+  for (let [description_prefix, syntax_prefix] of [["", ""], ["value with ", "medium "]]) {
+    for (let keyword of ["initial", "inherit", "unset", "default", "revert", "revert-layer"]) {
+      promise_test(test => {
+        return promise_rejects_dom(test, 'SyntaxError', document.fonts.load(`${syntax_prefix}${keyword}`));
+      }, `Loading ${description_prefix}CSS-wide keyword "${keyword}" causes SyntaxError (document)`)
+      promise_test(test => {
+        return promise_rejects_dom(test, 'SyntaxError', load_on_worker(`${syntax_prefix}${keyword}`));
+      }, `Loading ${description_prefix}CSS-wide keyword "${keyword}" causes SyntaxError (worker)`)
+    }
+  }
+
+</script>

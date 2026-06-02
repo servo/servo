@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="subject1" class="subject"></div>
+        <div id="space"></div>
+        <div id="subject2" class="subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target" class="target"></div>
+    </div>
+    <script>
+      // The trigger and exit ranges are the same for this test.
+      const TRIGGER_START_PX = 150;
+      const TRIGGER_END_PX = 200;
+      const scroller = document.getElementById("scroller");
+      const subject1 = document.getElementById("subject1");
+      const subject2 = document.getElementById("subject2");
+      const target = document.getElementById("target");
+
+      function getRangeBoundariesForSubject(subject, scroller) {
+        const cover_start_offset = subject.offsetTop - scroller.clientHeight;
+        return getRangeBoundariesForTest(
+                                    cover_start_offset + TRIGGER_START_PX,
+                                    cover_start_offset + TRIGGER_END_PX,
+                                    cover_start_offset + TRIGGER_START_PX,
+                                    cover_start_offset + TRIGGER_END_PX,
+                                    scroller);
+      }
+      const rangeBoundaries1 = getRangeBoundariesForSubject(subject1,
+          scroller);
+      const rangeBoundaries2 = getRangeBoundariesForSubject(subject2,
+          scroller);
+
+      const ANIMATION_DURATION_MS = 1;
+      const view_timeline1 = new ViewTimeline({ subject: subject1 });
+      const view_timeline2 = new ViewTimeline({ subject: subject2 });
+      function setupAnimation() {
+        const animation = new Animation(
+          new KeyframeEffect(
+            target,
+            [
+              { transform: "scaleX(1)", backgroundColor: "pink" },
+              { transform: "scaleX(5)", backgroundColor: "pink" }
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        return animation;
+      }
+      function setupAnimationTrigger(view_timeline) {
+        const trigger = new TimelineTrigger([{
+              timeline: view_timeline,
+              activationRangeStart: `${TRIGGER_START_PX}px`,
+              activationRangeEnd: `${TRIGGER_END_PX}px`
+            }]);
+        return trigger;
+      }
+
+      promise_test(async (test) => {
+        const animation = setupAnimation();
+        const trigger1 = setupAnimationTrigger(view_timeline1);
+        const trigger2 = setupAnimationTrigger(view_timeline2);
+
+        // Test preconditions.
+        assert_equals(animation.playState, "idle", "animation is idle");
+        assert_equals(animation.currentTime, null, "currentTime is null");
+        assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
+          "not within the trigger range");
+        assert_array_equals(trigger1.getAnimations(), [],
+          "trigger1 has no animation attached");
+        assert_array_equals(trigger2.getAnimations(), [],
+          "trigger2 has no animation attached");
+
+        trigger1.addAnimation(animation, "play-forwards", "reset");
+        assert_throws_dom('NotSupportedError', () => {
+          trigger2.addAnimation(animation, "play-forwards", "reset");
+        });
+
+        // Test preconditions.
+        assert_equals(animation.playState, "paused", "animation is idle");
+        assert_equals(animation.currentTime, 0, "currentTime is 0");
+        assert_array_equals(trigger1.getAnimations(), [animation],
+          "trigger1 has animation attached");
+
+        await rangeBoundaries1.enterTriggerRange();
+        await animation.finished;
+        assert_equals(animation.playState, "finished",
+          "animation is played by trigger1");
+        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
+          `currentTime is ${ANIMATION_DURATION_MS}`);
+
+        await rangeBoundaries1.exitExitRangeBelow();
+        await waitForNextFrame();
+        assert_equals(animation.playState, "paused",
+          "animation should be reset by trigger1");
+        assert_times_equal(animation.currentTime, 0, "currentTime is 0");
+      }, "Multiple triggers on same animation throws.");
+    </script>
+  </body>
+</html>

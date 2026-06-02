@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An iframe that does parseHTMLUnsafe stuff with base and pushstates itself</title>
+<base href="/fake/base-from-iframe">
+
+<script>
+"use strict";
+history.pushState(null, "", "/fake/push-state-from-iframe");
+</script>
+<script src="/html/webappapis/dynamic-markup-insertion/html-unsafe-methods/resources/parseHTMLUnsafe-iframe.js"></script>

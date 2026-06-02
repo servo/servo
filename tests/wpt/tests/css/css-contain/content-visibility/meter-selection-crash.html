@@ -1,0 +1,21 @@
+<!doctype HTML>
+<link rel=author href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="meter, iframe, and selection API should not crash">
+
+<style>
+* {
+  all: initial;
+  content-visibility: hidden;
+}
+</style>
+
+<meter></meter><iframe id="frame"></iframe>
+<script>
+function runTest() {
+  var range_beadc = window.getSelection();
+  var elem1 = document.getElementById("frame");
+  range_beadc.setBaseAndExtent(elem1, 0, document.getElementById("none"), 0);
+}
+onload = runTest;
+</script>

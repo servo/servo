@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<title>HTML: widgets' baseline alignment and interaction with 'overflow'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+This test tests where the baseline is for different widgets.
+This isn't yet specified, see https://github.com/whatwg/html/issues/5065
+
+Where the baseline is affects where *other* things on the same linebox are positioned. So this test
+makes assertions about the offsetTop for a previous sibling <span>, and compares it to a reference
+that has equivalent setup but using a styled <span> instead of an actual widget (where possible) so
+we can control where its baseline will be (assuming a correct CSS implementation).
+
+CSS has the following behavior regarding baselines (this is non-normative, also read the spec):
+
+* for a normal inline containing text, the baseline is the same as the text's baseline.
+* for replaced elements (like images), the baseline is at the bottom margin-box edge.
+* for an inline-block, it depends on its 'overflow':
+  - 'visible': the baseline is the same as the baseline for the last line box in the inline-block.
+  - otherwise: the baseline is like replaced elements.
+
+The baselines for different widgets, as implemented in Firefox, are as follows:
+
+<input type=text>
+<input type=search>
+<input type=tel>
+<input type=email>
+<input type=password>
+<input type=date>
+<input type=month>
+<input type=week>
+<input type=time>
+<input type=datetime-local>
+<input type=number>
+<input type=submit>
+<input type=reset>
+<input type=button>
+   Like inline-block but 'overflow' is forced to 'visible' and text inside is vertically centered.
+
+<input type=checkbox> with 'appearance: auto'
+<input type=radio> with 'appearance: auto'
+   At the bottom of the content-box edge (and whether there's a border depends
+   on the platform).
+
+   This is not usually how CSS works so we fake it with a negative margin-bottom.
+
+<input type=color>
+   At the content-box edge.
+
+<input type=file>
+   Like inline-block but 'overflow' is forced to to 'visible' and it contains a button; the button
+   can affect where the baseline is.
+
+<input type=image> showing alt text, with 'overflow: visible'
+   Like inline-block.
+
+<input type=image> showing an image
+<input type=image> showing alt text, with 'overflow' something other than 'visible'
+<input type=range>
+<input type=checkbox> with 'appearance: none'
+<input type=radio> with 'appearance: none'
+   Like replaced elements.
+
+-->
+<style>
+.test {
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.test td {
+  border: none;
+  padding: 0;
+  margin:0;
+  outline: 1px solid silver;
+}
+
+.test td > input,
+.ref td > .fake-input-text,
+.ref td > .inline-block,
+.ref td > img,
+.ref td > button {
+  font: inherit;
+  height: 60px;
+  width: 60px;
+  padding: 10px;
+  box-sizing: border-box;
+  margin: 10px 0;
+  /* Note: a border is not specified because that would imply 'appearance: none' for some widgets */
+}
+
+.ref button img {
+  height: 100%;
+  width: 100%;
+  display: block;
+}
+
+/* Use inline-grid instead of inline-block here to more easily center the text inside */
+.ref .fake-input-text {
+  display: inline-grid;
+  border: 2px solid; /* 2px matches UA default style */
+  align-items: center;
+}
+.ref .inline-block {
+  display: inline-block;
+}
+
+.ref-file-input-like button {
+  font-size: unset;
+}
+
+[style*="appearance: none;"] {
+  -webkit-appearance: none; /* TODO(zcorpan) remove this when unprefixed appearance is supported */
+}
+</style>
+<div id="log"></div>
+<h2>refs</h2>
+<!--
+The first span's offsetTop is what we want to compare with the corresponding test's span's offsetTop.
+The sibling element is there to control where the baseline for the line box will be.
+-->
+<table class="test ref">
+  <tr class="ref-text-input-like"><td><span>ref-text-input-like</span> <span class=fake-input-text>x</span>
+  <tr class="ref-checkbox-input-appearance-auto-like"><td><span>ref-checkbox-input-appearance-auto-like</span> <img class=auto-checkbox src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D">
+  <tr class="ref-color-input-like"><td><span>ref-color-input-like</span> <button><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D"></button>
+  <tr class="ref-file-input-like"><td><span>ref-file-input-like</span> <span class=inline-block><button>x</button></span>
+  <tr class="ref-image-input-showing-alt-overflow-visible-like"><td><span>ref-image-input-showing-alt-overflow-visible-like</span> <span class=inline-block>x</span>
+  <tr class="ref-image-input-showing-image-like"><td><span>ref-image-input-showing-image-like</span> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D">
+</table>
+<h2>template table</h2>
+<!--
+Each row in this table will be cloned into #test-table for each combination of styles to test.
+-->
+<table id="template-table">
+  <tr><td><span>text</span> <input type=text value=x></td></tr>
+  <tr><td><span>search</span> <input type=search value=x></td></tr>
+  <tr><td><span>tel</span> <input type=tel value=x></td></tr>
+  <tr><td><span>url</span> <input type=url value="data:,x"></td></tr>
+  <tr><td><span>email</span> <input type=email value=x></td></tr>
+  <tr><td><span>password</span> <input type=password value=x></td></tr>
+  <tr><td><span>date</span> <input type=date value="2020-01-01"></td></tr>
+  <tr><td><span>month</span> <input type=month value="2020-01"></td></tr>
+  <tr><td><span>week</span> <input type=week value="2020-W01"></td></tr>
+  <tr><td><span>time</span> <input type=time value="00:00"></td></tr>
+  <tr><td><span>datetime-local</span> <input type=datetime-local value="2020-01-01T00:00"></td></tr>
+  <tr><td><span>number</span> <input type=number value=0></td></tr>
+  <tr><td><span>range</span> <input type=range></td></tr>
+  <tr><td><span>color</span> <input type=color value=#000000></td></tr>
+  <tr><td><span>checkbox</span> <input type=checkbox></td></tr>
+  <tr><td><span>radio</span> <input type=radio></td></tr>
+  <tr><td><span>file</span> <input type=file></td></tr>
+  <tr><td><span>submit</span> <input type=submit value=x></td></tr>
+  <tr><td><span>image</span> <input type=image src="data:,broken" alt="x"></td></tr>
+  <tr><td><span>image-with-src</span> <input type=image src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D" alt="x"></td></tr>
+  <tr><td><span>reset</span> <input type=reset value=x></td></tr>
+  <tr><td><span>button</span> <input type=button value=x></td></tr>
+</table>
+<h2>tests</h2>
+<!--
+This table gets populated by the script.
+-->
+<table class="test" id="test-table"><tbody></tbody></table>
+<script>
+  "use strict";
+
+  promise_setup(async () => {
+    const templateTable = document.querySelector('#template-table');
+    const testTBody = document.querySelector('#test-table tbody');
+
+    {
+      const checkboxBorder = getComputedStyle(document.querySelector("input[type=checkbox]")).borderTopWidth;
+      const checkboxLike = document.querySelector(".auto-checkbox");
+      checkboxLike.style.border = checkboxBorder + " solid";
+      checkboxLike.style.marginBottom = "-" + checkboxBorder;
+    }
+
+    const templateRows = templateTable.querySelectorAll('tr');
+    for (const templateRow of templateRows) {
+      for (const appearanceValue of ["auto", "none"]) {
+        for (const overflowValue of ['visible', 'hidden', 'scroll']) {
+          const clonedRow = templateRow.cloneNode(true);
+          clonedRow.querySelector('input').setAttribute('style', `overflow: ${overflowValue}; appearance: ${appearanceValue};`);
+          testTBody.append(clonedRow);
+        }
+      }
+    }
+
+    // wait for images to load
+    await new Promise(resolve => window.onload = e => resolve());
+    for (const img of document.images) {
+      assert_true(img.complete); // either error state or loaded
+    }
+
+    // get layout info from refs
+    const refTextInputLikeOffsetTop = document.querySelector('.ref-text-input-like span').offsetTop;
+    const refCheckboxInputAppearanceAutoLikeOffsetTop = document.querySelector('.ref-checkbox-input-appearance-auto-like span').offsetTop;
+    const refColorInputLikeOffsetTop = document.querySelector('.ref-color-input-like span').offsetTop;
+    const refFileInputLikeOffsetTop = document.querySelector('.ref-file-input-like span').offsetTop;
+    const refImageInputShowingAltOverflowVisibleLikeOffsetTop = document.querySelector('.ref-image-input-showing-alt-overflow-visible-like span').offsetTop;
+    const refImageInputShowingImageLikeOffsetTop = document.querySelector('.ref-image-input-showing-image-like span').offsetTop;
+
+    function expectedOffsetTop(input) {
+      // TODO(zcorpan) https://github.com/whatwg/html/issues/5065
+      // for now this is intended to match Firefox
+      const style = input.getAttribute('style');
+      const src = input.getAttribute('src');
+      switch (input.type) {
+        case 'file':
+          return refFileInputLikeOffsetTop;
+        case 'range':
+          return refImageInputShowingImageLikeOffsetTop;
+        case 'color':
+          return refColorInputLikeOffsetTop;
+        case 'checkbox':
+        case 'radio':
+          return (style.includes('appearance: none;')) ? refImageInputShowingImageLikeOffsetTop : refCheckboxInputAppearanceAutoLikeOffsetTop;
+        case 'image':
+          return (src === 'data:,broken' && style.includes('overflow: visible;')) ? refImageInputShowingAltOverflowVisibleLikeOffsetTop : refImageInputShowingImageLikeOffsetTop;
+        default:
+          return refTextInputLikeOffsetTop;
+      }
+    }
+
+    function testName(markup) {
+      return markup.replace(/data:image\/png[^"]+/, 'data:(png)');
+    }
+
+    for (const row of testTBody.children) {
+      const input = row.firstChild.lastElementChild;
+      // This is not using test() because promise_setup() only allows promise_test().
+      promise_test(async () => {
+        assert_equals(input.type, input.getAttribute('type'), 'input type should be supported')
+        const offsetTopActual = row.firstChild.firstChild.offsetTop;
+        assert_equals(offsetTopActual, expectedOffsetTop(input), '<span>.offsetTop');
+      }, testName(input.outerHTML));
+    }
+  });
+</script>

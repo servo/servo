@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): 'perspective-origin' and translate()</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#propdef-perspective-origin">
+    <meta name="assert" content="This tests that 'perspective' and
+    'perspective-origin' have the same effect as an appropriately calculated
+    sequence of translate() and perspective().  The reference file's body has
+    a width of 400px and a height of 100px, so the perspective-origin should be
+    (200, 50).  The transform-origin is 'top', which works out to (50, 0).
+    Thus we translate by (150, 50) to get the right origin.">
+    <link rel="match" href="transform3d-perspective-009-ref.html">
+    <link rel="mismatch" href="transform-lime-square-ref.html">
+  </head>
+  <body>
+    <div style="height: 100px; width: 100px; background: lime;
+      transform: translate(150px, 50px) perspective(1000px) translate(-150px, -50px)
+      rotatex(45deg) scaley(1.41421356); transform-origin: top">
+    </div>
+  </body>
+</html>

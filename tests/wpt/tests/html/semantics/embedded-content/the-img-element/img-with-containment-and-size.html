@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Ensure images with containment and size are rendered properly</title>
+<meta charset="utf-8">
+<link rel="match" href="img-with-containment-and-size-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
+<style>
+img {
+  contain: paint;
+  width: 200px;
+  height: 100px;
+  will-change: transform;
+}
+</style>
+<script>
+onload = () => {
+  var i = new Image();
+  i.onload = function() {
+    document.body.appendChild(i);
+    document.documentElement.classList.remove("reftest-wait");
+  };
+  i.src = "image.png";
+};
+</script>

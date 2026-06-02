@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions bar</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Verifies that the fraction bar takes the full width of the mfrac element">
+    <link rel="match" href="frac-bar-003-ref.html">
+    <style type="text/css">
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/fraction-rulethickness10000.woff");
+      }
+      math {
+        /* FractionRuleThickness = 10000 * 1 / 1000 = 10px; */
+        /* The gap / shift / axisheight parameters are set to 0. */
+        font-family: "TestFont";
+        font-size: 1px;
+      }
+      #container {
+          position: absolute;
+          left: 10px;
+          top: 50px;
+          width: 150px;
+          height: 150px;
+      }
+
+      /* Revert style specified in the UA style sheet that changes box size. */
+      mfrac { padding: 0; }
+    </style>
+    <script src="/mathml/support/fonts.js"></script>
+  </head>
+  <body>
+    <p>This test passes if you see a green square.</p>
+    <div id="container">
+      <math>
+        <mfrac style="width: 150px; color: green; font-size: 15em">
+          <mspace></mspace>
+          <mspace></mspace>
+        </mfrac>
+      </math>
+    </div>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+  </body>
+</html>

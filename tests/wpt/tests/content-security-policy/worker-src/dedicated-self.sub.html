@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="worker-src 'self'">
+<script>
+  var url = new URL("../support/ping.js", document.baseURI).toString();
+  assert_worker_is_loaded(url, "Same-origin dedicated worker allowed by 'self'.");
+</script>

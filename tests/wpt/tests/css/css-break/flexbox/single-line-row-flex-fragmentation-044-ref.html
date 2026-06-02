@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+
+  <style>
+  .multicol {
+    column-count: 2;
+    column-gap: 0;
+    column-fill: auto;
+    width: 200px;
+    border: 5px solid gray;
+    height: 0px;
+  }
+  .flexbox {
+    position: relative
+  }
+  .flexbox > div {
+    position: absolute;
+    width: 50px;
+    contain: size;
+  }
+  </style>
+
+  <div class="multicol">
+    <div class="flexbox">
+      <div style="height: 10px; background: pink; left: 100px;"></div>
+      <div style="height: 20px; background: orange; left: 50px;"></div>
+    </div>
+  </div>
+</html>

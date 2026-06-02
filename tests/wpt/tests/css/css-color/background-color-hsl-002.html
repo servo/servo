@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS-Color-4: hsl() syntax accepts comma-less expressions (and comments as separators) and alpha component (and percentage alpha) - test</title>
+    <link rel="author" title="Jerry Shih" href="mailto:bignose1007@gmail.com" />
+    <link rel="author" title="Mozilla" href="http://www.mozilla.org/" />
+    <link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hsl-notation" />
+    <meta name="assert" content="hsl() should accept comma-less expressions (and comments as separators) and alpha component (and percentage alpha)." />
+    <link rel="match" href="background-color-hsl-002-ref.html" />
+    <style type="text/css">
+      #p1 { background-color: hsl(120, 75%, 50%, 0.2); }
+      #p2 { background-color: hsl(120, 75%, 50%, 40%); }
+      #p3 { background-color: hsl(120 75% 50% / 0.6); }
+      #p4 { background-color: hsl(120 75% 50% / 80%); }
+      #p5 { background-color: hsl(120/* comment */75%/* comment */50%/1.0); }
+      #p6 { background-color: hsl(120/* comment */75%/* comment */50%/100%); }
+      #p7 { background-color: hsl(120,/* comment */75%,/* comment */50%,1.0); }
+      #p8 { background-color: hsl(120,/* comment */75%,/* comment */50%,100%); }
+      #p9 { background-color: hsl(120/* comment */75%/* comment */50%); }
+      #p10 { background-color: hsl(120/* comment */,75%,/* comment */50%); }
+    </style>
+  </head>
+  <body>
+    <p id="p1">color</p>
+    <p id="p2">color</p>
+    <p id="p3">color</p>
+    <p id="p4">color</p>
+    <p id="p5">color</p>
+    <p id="p6">color</p>
+    <p id="p7">color</p>
+    <p id="p8">color</p>
+    <p id="p9">color</p>
+    <p id="p10">color</p>
+  </body>
+</html>

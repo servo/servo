@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Test: Absolutely positioned object in an inline container repsonding to the block width change</title>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos">
+<link rel="match" href="abspos-width-change-inline-container-001-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+#container {
+  text-align: center;
+  width: 200px;
+}
+#relpos {
+  position: relative;
+  background: red;
+}
+#abspos {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+</style>
+<body>
+  <div id="container">
+    <span id="relpos">x
+      <span id="abspos"></span>
+    </span>
+  </div>
+<script>
+run();
+function run() {
+  document.body.offsetTop;
+  container.style.width = '100px';
+}
+</script>
+</body>

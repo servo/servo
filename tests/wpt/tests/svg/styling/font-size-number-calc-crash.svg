@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" font-size="calc(0)"></svg>
+<!-- Loading this test should not cause a crash. https://crbug.com/1172750 -->

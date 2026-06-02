@@ -1,0 +1,59 @@
+<!doctype html>
+<title></title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6738">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1706346">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="li-value-reversed-006-ref.html">
+<meta name="assert" content="Reversed value initialization works also for sibling scopes.">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+::marker {
+  content: counter(foo) ". ";
+}
+ol::before, li::before {
+  content: counters(foo,".");
+}
+ol[reversed] {
+  counter-reset: reversed(foo);
+}
+li {
+  counter-increment: foo -1;
+}
+ol[reversed] {
+  margin-bottom: 0;
+}
+ol.no-counter {
+  counter-reset: blah;
+  margin-top: 0;
+}
+ol.no-counter::before {
+  content: none;
+}
+</style>
+<ol reversed></ol>
+<ol class="no-counter">
+ <li style="counter-increment: foo -2"></li>
+ <li style="counter-increment: foo -2"></li>
+ <li style="counter-increment: foo -2"></li>
+</ol>
+<ol reversed></ol>
+<ol class="no-counter">
+ <li style="counter-increment: foo -3"></li>
+ <li style="counter-increment: foo -1"></li>
+ <li style="counter-increment: foo -8"></li>
+</ol>
+<ol reversed></ol>
+<ol class="no-counter">
+ <li style="counter-increment: foo 2"></li>
+ <li style="counter-increment: foo 2"></li>
+ <li style="counter-increment: foo 2"></li>
+</ol>
+<ol reversed></ol>
+<ol class="no-counter">
+ <li style="counter-increment: foo 3"></li>
+ <li style="counter-increment: foo 1"></li>
+ <li style="counter-increment: foo 8"></li>
+</ol>

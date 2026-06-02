@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: test-font;
+  src: url(support/cap-x-height.ttf);
+}
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+#target {
+  font-family: test-font;
+  font-size: 100px;
+  line-height: 2;
+  text-box-trim: both;
+  text-box-edge: ex alphabetic;
+}
+</style>
+<div id="container">
+  <div class="spacer"></div>
+  <div id="target">A</div>
+  <div class="spacer"></div>
+</div>
+<script>
+function run_tests(test_names) {
+  const container = document.getElementById('container');
+  const container_bounds = container.getBoundingClientRect();
+  const target = document.getElementById('target');
+  const target_bounds = target.getBoundingClientRect();
+
+  // Test `getBoundingClientRect()` returns the trimmed box size.
+  test(() => {
+    assert_equals(target_bounds.top - container_bounds.top, 100);
+  }, "getBoundingClientRect.top");
+  test(() => {
+    assert_equals(target_bounds.height, 20);
+  }, "getBoundingClientRect.height");
+
+  // Test `elementFromPoint()` hits `target` even if the point is above/below
+  // the client rect, because the inner line box overflows the box.
+  test(() => {
+    const result = document.elementFromPoint(10, 90 + container_bounds.top);
+    assert_equals(result, target);
+  }, "elementFromPoint: 10px above the client rect");
+  test(() => {
+    const result = document.elementFromPoint(10, 130 + container_bounds.top);
+    assert_equals(result, target);
+  }, "elementFromPoint: 10px below the client rect");
+}
+
+setup({explicit_done: true});
+document.fonts.ready.then(() => {
+  run_tests();
+  done();
+});
+</script>

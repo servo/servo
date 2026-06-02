@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Test that navigator.vibrate is disabled in fenced frames.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+// Simulate a click in frame context `frame`.
+async function click(frame) {
+  var actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: frame})
+               .pointerDown()
+               .pointerUp()
+               .send();
+}
+
+promise_test(async () => {
+  // This test ensures that vibration is disabled in fenced frames.
+  // It uses a top-level frame A and a fenced frame B.
+  // The structure of the test is as follows:
+  // - Check that B can't vibrate before user activation.
+  // - Check that B can't vibrate after user activation.
+  // - Check that A can't vibrate before user activation.
+  // - Check that A CAN vibrate after user activation.
+
+  const B = attachFencedFrameContext();
+  await B.execute(() => {
+    assert_false(navigator.userActivation.hasBeenActive);
+    var success = navigator.vibrate(100);
+    assert_false(success,
+        "Vibration failed in fenced frame before user activation");
+  });
+
+  await click(B.element);
+  await B.execute(() => {
+    assert_true(navigator.userActivation.hasBeenActive);
+    var success = navigator.vibrate(100);
+    assert_false(success,
+        "Vibration failed in fenced frame, even after user activation");
+  });
+
+  var success = navigator.vibrate(100);
+  assert_false(navigator.userActivation.hasBeenActive);
+  assert_false(success,
+      "Vibration failed in top-level frame before user activation");
+
+  await click(document.documentElement);
+  assert_true(navigator.userActivation.hasBeenActive);
+  var success = navigator.vibrate(100);
+  assert_true(success,
+      "Vibration succeeded in top-level frame after user activation");
+}, 'navigator.vibrate');
+</script>
+</body>

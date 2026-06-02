@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Filter Effects Module Level 1: getComputedStyle().floodColor</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FloodColorProperty">
+<meta name="assert" content="flood-color computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    color: lime;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("flood-color", "currentcolor", "rgb(0, 255, 0)");
+
+test_computed_value("flood-color", "red", "rgb(255, 0, 0)");
+test_computed_value("flood-color", "#00FF00", "rgb(0, 255, 0)");
+test_computed_value("flood-color", "rgb(0, 0, 255)");
+test_computed_value("flood-color", "rgb(100%, 100%, 0%)", "rgb(255, 255, 0)");
+test_computed_value("flood-color", "hsl(120, 100%, 50%)", "rgb(0, 255, 0)");
+test_computed_value("flood-color", "teal", "rgb(0, 128, 128)");
+
+test_computed_value("flood-color", "transparent", "rgba(0, 0, 0, 0)");
+</script>
+</body>
+</html>

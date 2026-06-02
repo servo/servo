@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: getComputedStyle().maxInlineSize</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-max-inline-size">
+<meta name="assert" content="Computed max-inline-size is the specified keyword, or the length-percentage made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("max-inline-size", "none");
+
+test_computed_value("max-inline-size", "10px");
+test_computed_value("max-inline-size", "20%");
+test_computed_value("max-inline-size", "calc(10px + 0.5em)", "30px");
+test_computed_value("max-inline-size", "calc(10px - 0.5em)", "0px");
+test_computed_value("max-inline-size", "calc(20% + 10px)");
+
+test_computed_value("max-inline-size", "min-content");
+test_computed_value("max-inline-size", "max-content");
+</script>
+</body>
+</html>

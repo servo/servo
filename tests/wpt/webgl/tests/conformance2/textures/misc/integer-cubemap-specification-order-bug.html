@@ -1,0 +1,218 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Integer Cubemap Texture Specification Order Bug Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="128" height="128"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vs" type="x-shader/x-vertex">#version 300 es
+  precision highp float;
+  in vec4 a_position;
+  void main(){
+      gl_Position = a_position;
+  }
+</script>
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+  precision highp float;
+  // This program samples both textures at varying Lod and exposes
+  // both of them, the regular on top, and the weird on the bottom.
+  // On the NVIDIA driver the top is both green and red while the bottom
+  // is only green. This is a driver bug because both textures should be
+  // exactly the same.
+  // I think that because of our level specification order weirdness, the
+  // driver gets confused as to which levels are complete and thinks only
+  // level 0 is complete. Then when sampling the texture it clamps the sampling
+  // to only level 0, resulting in green for all Lod values.
+  layout(location = 0) out vec4 fragColor;
+  uniform highp isamplerCube texRegular;
+  uniform highp isamplerCube texWeird;
+  void main() {
+      vec2 fragPos = gl_FragCoord.xy / vec2(128.0, 128.0);
+      float lod = (fragPos.x - 0.5) * 10.0 + 0.5;
+
+      ivec4 colorRegular = textureLod(texRegular, vec3(1.0, 0.0, 0.0), lod);
+      ivec4 colorWeird = textureLod(texWeird, vec3(1.0, 0.0, 0.0), lod);
+
+      if (fragPos.y > 0.51) {
+          fragColor = vec4(vec2(colorRegular.rg), 0.0, 1.0);
+      } else if (fragPos.y < 0.49){
+          fragColor = vec4(vec2(colorWeird.rg), 0.0, 1.0);
+      } else {
+          fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      }
+  }
+</script>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+
+description("Test for a driver bug when specifying integer cubemaps in weird order");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function createTextureCube(layers, maxLevel) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+    layers.forEach(function(layer) {
+        var level = layer.level;
+        var face = layer.face;
+        var color = layer.color;
+
+        var levelSize = 1 << (maxLevel - level);
+
+        var backingBuffer = new ArrayBuffer(levelSize * levelSize * 2);
+        new Int16Array(backingBuffer).fill(color);
+        gl.texImage2D(face + gl.TEXTURE_CUBE_MAP_POSITIVE_X, level, gl.RG8I, levelSize, levelSize, 0, gl.RG_INTEGER, gl.BYTE, new Int8Array(backingBuffer));
+    });
+
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture;
+}
+
+function makePermutedLayers(layers, permutation) {
+    return permutation.map(i => layers[i]);
+}
+
+function test() {
+    var kMaxLevel = 4;
+    var kBlack = 0x0000;
+    var kGreen = 0x7F00;
+    var kRed = 0x007F;
+
+    // Create two integer cubemaps with green on level 0 and red on the others.
+
+    // The "regular" cube map is filled in a sensible manner.
+    var regularLayers = [];
+    for (var level = 0; level <= kMaxLevel; level ++) {
+        for (var face = 0; face < 6; face ++) {
+            if (level == 0) {
+                regularLayers.push({level: level, face: face, color: kGreen});
+            } else {
+                regularLayers.push({level: level, face: face, color: kRed});
+            }
+        }
+    }
+
+    // The "weird" cube map has all its >= 1 levels filled, then the first level,
+    // then the >= 1 levels again but for one face. This replicates what the
+    // Chromium command buffer "cubemap completeness" workaround is doing.
+    var weirdLayers = [];
+    for (var level = 1; level <= kMaxLevel; level ++) {
+        for (var face = 0; face < 5; face ++) {
+            weirdLayers.push({level: level, face: face, color: kBlack});
+        }
+        weirdLayers.push({level: level, face: 5, color: kRed});
+    }
+    for (var level = 0; level <= kMaxLevel; level ++) {
+        for (var face = 0; face < 6; face ++) {
+            if (level == 0) {
+                weirdLayers.push({level: level, face: face, color: kGreen});
+            } else {
+                if (face != 5) {
+                    weirdLayers.push({level: level, face: face, color: kRed});
+                }
+            }
+        }
+    }
+
+    var regularTex = createTextureCube(regularLayers, kMaxLevel);
+
+    var sampleProgram = wtu.setupProgram(gl, ["vs", "fs"], ["a_position"]);
+    var regularLocation = gl.getUniformLocation(sampleProgram, "texRegular");
+    var weirdLocation = gl.getUniformLocation(sampleProgram, "texWeird");
+
+    wtu.setupQuad(gl, gl.getAttribLocation(sampleProgram, "a_position"));
+
+    gl.uniform1i(regularLocation, 0);
+    gl.uniform1i(weirdLocation, 1);
+
+    function testcase(layers1, casename) {
+        var tex1 = createTextureCube(layers1, kMaxLevel);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, regularTex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex1);
+        // At this point both textures should be the same.
+        wtu.drawUnitQuad(gl);
+
+        gl.deleteTexture(tex1);
+
+        wtu.checkCanvasRect(gl, 96, 32, 1, 1, [255, 0, 0, 255], "should be green: " + casename);
+        wtu.checkCanvasRect(gl, 96, 96, 1, 1, [255, 0, 0, 255], "should be green: " + casename);
+        wtu.checkCanvasRect(gl, 32, 32, 1, 1, [0, 255, 0, 255], "should be red: " + casename);
+        wtu.checkCanvasRect(gl, 32, 96, 1, 1, [0, 255, 0, 255], "should be red: " + casename);
+    }
+
+    testcase(weirdLayers, "original");
+    const cases = [
+        [10,23,3,19,26,29,14,9,4,11,27,28,13,24,20,12,17,21,16,5,6,25,1,15,22,8,7,18,0,2],
+        [10,27,3,29,17,28,13,20,18,25,9,2,8,4,24,12,15,7,19,11,6,14,16,21,1,26,23,22,0,5],
+        [11,4,15,13,26,24,25,2,19,20,16,23,1,18,28,27,6,21,14,8,17,29,3,10,12,9,22,7,0,5],
+        [14,2,6,28,7,25,11,26,22,13,19,21,24,4,16,29,9,27,3,17,18,15,12,20,8,23,10,1,0,5],
+        [14,20,22,16,11,27,17,21,15,3,5,28,6,2,9,12,7,24,1,26,8,19,23,25,18,13,29,10,0,4],
+        [14,20,22,16,11,27,17,21,15,3,5,28,6,2,9,12,7,24,1,26,8,19,23,25,18,13,29,10,0,4],
+        [14,22,27,1,12,24,13,21,6,10,20,28,23,16,5,18,7,3,25,2,11,19,17,26,8,29,15,9,0,4],
+        [15,22,13,28,6,12,19,9,18,11,3,23,17,8,10,20,5,14,4,25,27,26,21,16,29,24,7,0,1,2],
+        [15,22,13,28,6,12,19,9,18,11,3,23,17,8,10,20,5,14,4,25,27,26,21,16,29,24,7,0,1,2],
+        [16,22,18,15,19,6,21,27,4,14,29,17,7,9,11,20,24,23,28,25,2,13,10,26,8,12,3,0,5,1],
+        [16,26,18,7,20,25,11,24,2,1,28,13,29,10,27,21,6,15,5,19,17,12,14,9,23,22,8,3,0,4],
+        [2,22,25,12,19,16,7,27,9,10,8,17,18,24,1,21,20,14,13,4,11,29,15,5,23,26,6,28,0,3],
+        [2,9,16,26,6,15,4,3,17,13,21,10,7,22,23,29,19,18,12,24,14,25,8,5,20,28,11,27,0,1],
+        [2,9,16,26,6,15,4,3,17,13,21,10,7,22,23,29,19,18,12,24,14,25,8,5,20,28,11,27,0,1],
+        [20,21,24,15,5,13,6,12,2,17,10,14,27,16,8,22,9,25,29,1,28,11,4,19,7,23,26,18,0,3],
+        [21,14,19,12,28,6,10,7,16,27,11,22,20,24,25,26,3,8,4,18,5,2,9,15,17,23,13,29,0,1],
+        [22,4,18,7,11,6,23,17,14,3,13,21,15,19,25,28,9,8,10,12,29,16,27,2,24,1,20,26,0,5],
+        [22,4,18,7,11,6,23,17,14,3,13,21,15,19,25,28,9,8,10,12,29,16,27,2,24,1,20,26,0,5],
+        [23,21,9,28,22,15,25,12,24,18,29,2,17,1,14,4,16,26,3,11,27,13,8,7,6,20,10,19,0,5],
+        [23,6,15,13,19,2,12,7,11,29,3,20,17,10,4,18,1,22,16,27,24,9,21,25,14,26,8,28,0,5],
+        [25,12,1,4,9,22,16,28,6,11,14,29,15,2,5,13,10,20,21,19,23,27,18,26,7,8,17,24,0,3],
+        [25,13,29,26,28,17,19,23,7,24,10,1,15,8,3,11,18,21,27,22,12,5,9,6,16,14,20,2,0,4],
+        [25,18,28,12,27,13,11,4,29,8,21,15,9,6,26,20,22,23,24,17,5,16,2,7,14,19,10,0,1,3],
+        [25,19,3,10,23,15,27,18,12,8,7,24,16,14,26,4,21,5,9,1,22,28,20,29,6,11,13,17,0,2],
+        [25,24,12,9,13,10,23,4,19,29,16,1,15,8,21,26,18,11,17,7,20,28,22,14,27,6,0,2,5,3],
+        [25,9,29,8,3,6,10,27,11,28,13,23,18,16,17,19,5,22,12,26,21,4,7,14,24,15,2,20,0,1],
+        [27,23,20,2,12,14,6,19,3,28,18,10,29,11,13,22,21,7,15,9,8,17,25,16,26,24,4,5,0,1],
+        [27,7,2,5,19,10,3,26,22,18,23,16,9,24,21,17,6,28,12,14,25,29,13,15,8,20,11,4,0,1],
+        [28,7,10,9,29,27,2,20,1,26,11,5,12,23,25,3,17,16,24,13,8,6,14,18,21,19,15,22,0,4],
+        [28,8,23,13,18,29,20,9,10,27,15,21,3,19,14,4,26,5,24,1,6,17,11,12,16,7,25,22,0,2],
+        [29,12,13,2,22,19,16,7,14,11,24,23,28,15,17,9,20,21,18,26,27,25,10,5,8,6,4,3,0,1],
+        [29,8,5,4,7,15,19,17,3,26,13,9,23,6,25,22,27,24,14,16,10,21,11,18,28,12,2,20,0,1],
+        [5,18,6,17,19,16,13,11,28,8,10,4,29,26,20,24,9,7,21,25,27,23,22,2,15,14,12,0,3,1],
+        [5,23,2,15,7,13,19,11,27,3,22,14,4,26,28,20,17,18,8,25,16,29,10,24,12,9,6,21,0,1],
+        [7,24,27,26,16,18,22,20,10,11,9,19,23,12,17,13,4,2,6,1,21,25,15,28,8,3,29,14,0,5],
+    ];
+    for (const c of cases) {
+        testcase(makePermutedLayers(regularLayers, c), "case " + c.toString());
+    }
+}
+
+test();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

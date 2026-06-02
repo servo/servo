@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'float' and 'shrink-to-fit' logical width (16 sub-tests)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that 'shrink-to-fit' rule (CSS2.1, §10.3.5) is applied onto logical width in vertical writing-modes. This test thoroughly checks systematically the 16 combinations of 'writing-mode: vertical-rl', 'writing-mode: vertical-lr', with 'float: left', with 'float: right' and with left and/or right border(s). Not tested here is 'padding-left' and 'padding-right'." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div.test
+    {
+      background-color: red;
+      font: 100px/1 Ahem; /* computes to 100px/100px */
+    }
+
+  div.floated-right
+    {
+      float: right;
+    }
+
+  div.floated-left
+    {
+      float: left;
+    }
+
+  div.vrl
+    {
+      writing-mode: vertical-rl;
+    }
+
+  div.vlr
+    {
+      writing-mode: vertical-lr;
+    }
+
+  div.left-border
+    {
+      border-left: red solid 1em;
+    }
+
+  div.right-border
+    {
+      border-right: red solid 1em;
+    }
+
+  div#reference-overlapped-green
+    {
+      background-color: green;
+      height: 100px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="test floated-right vlr">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-right vlr">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-right vrl">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-right vrl">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-right vlr">
+    <div class="left-border"></div>
+  </div>
+
+  <div class="test floated-right vlr">
+    <div class="right-border"></div>
+  </div>
+
+  <div class="test floated-right vrl">
+    <div class="left-border"></div>
+  </div>
+
+  <div class="test floated-right vrl">
+    <div class="right-border"></div>
+  </div>
+
+  <div class="test floated-left vlr">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-left vlr">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-left vrl">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-left vrl">
+    <div class="left-border right-border"></div>
+  </div>
+
+  <div class="test floated-left vlr">
+    <div class="left-border"></div>
+  </div>
+
+  <div class="test floated-left vlr">
+    <div class="right-border"></div>
+  </div>
+
+  <div class="test floated-left vrl">
+    <div class="left-border"></div>
+  </div>
+
+  <div class="test floated-left vrl">
+    <div class="right-border"></div>
+  </div>
+
+  <div id="reference-overlapped-green"></div>
+
+ </body>
+</html>

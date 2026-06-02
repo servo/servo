@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Transition test: Support for faster reversing of interrupted transitions</title>
+<style>
+  .target {
+    width: 10px;
+    height: 50px;
+    background: red;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body></body>
+
+<script>
+function createTransitionElement() {
+  let element = document.createElement("div");
+  element.className = "target";
+
+  element.style.transitionProperty = "width";
+  element.style.transitionDuration = "10s";
+  element.style.transitionTimingFunction = "linear";
+
+  document.body.appendChild(element);
+  getComputedStyle(element).width;
+
+  return element;
+}
+
+function waitForFrame() {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(resolve);
+  });
+}
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = createTransitionElement();
+
+  // Start a transition and allow 30% of it to complete.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(3000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 40, 1);
+
+  // Reverse the transition. It should be complete after a proportional
+  // amount of time and not the "transition-duration" set in the style.
+  div.style.width = "10px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(3000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 10, 1);
+
+  document.body.removeChild(div);
+}, "Reversed transitions are shortened proportionally");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = createTransitionElement();
+
+  // Start a transition and allow 50% of it to complete.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(5000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 60, 1);
+
+  // Reverse the transition.
+  div.style.width = "10px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(2500);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 35, 1);
+
+  // Reverse the reversed transition.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(2000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 55, 1);
+
+  testBinding.advanceClock(4500);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 100, 1);
+
+  testBinding.advanceClock(1000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 110, 1);
+
+  document.body.removeChild(div);
+}, "Reversed already reversed transitions are shortened proportionally");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = createTransitionElement();
+
+  // Start a transition and allow most of it to complete.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(9000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 100, 1);
+
+  // Start a new transition that explicitly isn't a reversal. This should
+  // take the entire 10 seconds.
+  div.style.width = "0px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(2000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 80, 1);
+
+  testBinding.advanceClock(6000);
+  getComputedStyle(div).width;
+  assert_approx_equals(div.clientWidth, 20, 1);
+
+  testBinding.advanceClock(2000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+
+  document.body.removeChild(div);
+}, "Non-reversed transition changes use the full transition-duration");
+
+promise_test(async t => {
+  let testBinding = new window.TestBinding();
+  let div = createTransitionElement();
+
+  let handledTransitionEnd = false;
+  div.addEventListener("transitionend", () => {
+      handledTransitionEnd = true;
+  });
+
+  let handledTransitionCancel = false;
+  div.addEventListener("transitioncancel", () => {
+      handledTransitionCancel = true;
+  });
+
+  // Start a transition and allow 30% of it to complete.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(10000);
+  getComputedStyle(div).width;
+
+  div.style.transitionDuration = "1000s";
+  div.style.width = "10px";
+
+  testBinding.advanceClock(1);
+  getComputedStyle(div).width;
+
+  await waitForFrame();
+
+  // We should either have canceled the animation or it should have terminated.
+  assert_true(handledTransitionCancel || handledTransitionEnd);
+  assert_false(handledTransitionCancel && handledTransitionEnd);
+
+  document.body.removeChild(div);
+}, "Finished transitions are not reversed");
+
+</script>

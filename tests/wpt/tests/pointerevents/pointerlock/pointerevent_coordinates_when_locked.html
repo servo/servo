@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events pointer lock tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+        </style>
+        <script>
+            var last_pointer_client_pos = {'x': 0, 'y': 0}
+            var last_pointer_screen_pos = {'x': 0, 'y': 0}
+
+            const kStateInit = 0
+            const kStateLocked = 1
+            const kStateUnlocked = 2.
+
+            var test_state = kStateInit;
+
+            function resetTestState() {
+              test_state = kStateInit;
+              document.exitPointerLock();
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("Test pointerevent coordinates when pointer is locked", ['mouse']);
+                var div1 = document.getElementById("target");
+
+                on_event(div1, 'click', function(event) {
+                    if (test_state == kStateInit)
+                       div1.requestPointerLock();
+                    else if (test_state == kStateLocked)
+                        document.exitPointerLock();
+                });
+                on_event(div1, 'pointermove', function(event) {
+                    if (test_state == kStateLocked) {
+                        test_pointerEvent.step(function() {
+                            assert_equals(event.clientX, last_pointer_client_pos['x'], 'clientX')
+                            assert_equals(event.clientY, last_pointer_client_pos['y'], 'clientY')
+                            assert_equals(event.screenX, last_pointer_screen_pos['x'], 'screenX')
+                            assert_equals(event.screenY, last_pointer_screen_pos['y'], 'screenY')
+                        });
+                    } else {
+                        last_pointer_client_pos = {'x': event.clientX, 'y': event.clientY}
+                        last_pointer_screen_pos = {'x': event.screenX, 'y': event.screenY}
+                    }
+                });
+                on_event(document, 'pointerlockchange', function(event) {
+                    if (test_state == kStateInit) {
+                        test_state = kStateLocked;
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, div1, "document.pointerLockElement should be div1.");
+                        });
+
+                        var actions = new test_driver.Actions();
+                        pos_x = div1.offsetWidth / 2;
+                        pos_y = div1.offsetHeight / 2;
+                        for (var i = 0; i < 10; i++) {
+                            // Move left and up.
+                            pos_x += 10;
+                            pos_y -= 10;
+                            actions.pointerMove(pos_x, pos_y, {origin: div1});
+                        }
+                        actions.pointerDown().pointerUp().send();
+                    } else if (test_state == kStateLocked) {
+                        test_state = kStateUnlocked;
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, null, "document.pointerLockElement should be null.");
+                        });
+                        test_pointerEvent.done();
+                    }
+                });
+
+                new test_driver.Actions().pointerMove(/* x = */ 0, /* y = */ 0, {origin: div1}).pointerDown().pointerUp().send();
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events movement in locked state test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks the pointer event coordinates stays unchanged when pointer is locked.
+            <ol>
+                 <li>Click left mouse button on the green rectangle.</li>
+                 <li>Move the mouse around.</li>
+                 <li>Click left mouse button again. </li>
+            </ol>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="target" style="width:200px;height:200px;background:green"></div>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>

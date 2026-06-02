@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <title>WebGPU ResizeObserver test (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <style>
+    .outer {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    .outer>* {
+      display: block;
+      height: 100px;
+    }
+  </style>
+  <body>
+    <div id="dpr"></div>
+    <div class="outer"></div>
+    <script type="module">
+  import { takeScreenshotDelayed } from '../../../../common/util/wpt_reftest_wait.js';
+  import createPatternDataURL from '../create-pattern-data-url.js';
+
+  (async () => {
+    const {patternSize, dataURL} = createPatternDataURL();
+
+    document.querySelector('#dpr').textContent = `dpr: ${devicePixelRatio}`;
+
+    /**
+     * Set the pattern's size on this element so that it draws where
+     * 1 pixel in the pattern maps to 1 devicePixel.
+     */
+    function setPattern(elem) {
+      const oneDevicePixel = 1 / devicePixelRatio;
+      const patternPixels = oneDevicePixel * patternSize;
+      elem.style.backgroundImage = `url("${dataURL}")`;
+      elem.style.backgroundSize = `${patternPixels}px ${patternPixels}px`;
+    }
+
+    /*
+    This ref creates elements like this
+      <body>
+        <div class="outer">
+          <div></div>
+          <div></div>
+          <div></div>
+          ...
+        </div>
+      </body>
+    Where the outer div is a flexbox centering the child elements.
+    Each of the child elements is set to a different width in percent.
+    The devicePixelContentBox size of each child element is observed
+    with a ResizeObserver and when changed, a pattern is applied to
+    the element and the pattern's size set so each pixel in the pattern
+    will be one device pixel.
+    A similar process happens in the test HTML using canvases
+    and patterns generated using putImageData.
+    The test and this reference page should then match.
+    */
+
+    const outerElem = document.querySelector('.outer');
+
+    let resolve;
+    const promise = new Promise(_resolve => (resolve = _resolve));
+
+    /**
+     * Set the pattern's size on this element so that it draws where
+     * 1 pixel in the pattern maps to 1 devicePixel.
+     */
+    function setPatterns(entries) {
+      for (const entry of entries) {
+        setPattern(entry.target)
+      }
+      resolve();
+    }
+
+    const observer = new ResizeObserver(setPatterns);
+    for (let percentSize = 7; percentSize < 100; percentSize += 13) {
+      const innerElem = document.createElement('div');
+      innerElem.style.width = `${percentSize}%`;
+      observer.observe(innerElem, {box:"device-pixel-content-box"});
+      outerElem.appendChild(innerElem);
+    }
+
+    await promise;
+    takeScreenshotDelayed(50);
+  })();
+    </script>
+  </body>
+</html>

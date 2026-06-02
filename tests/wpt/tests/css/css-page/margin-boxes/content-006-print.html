@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-based-counters">
+<meta name="assert" content="Test counter(page) and counter(pages) in page margin boxes, except on the first page. Everything is absolute-positioned.">
+<!-- Using the ref from the preceding test, since they should be the same -->
+<link rel="match" href="content-005-print-ref.html">
+<style>
+  @page {
+    margin: 4em;
+
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      content: "Page " counter(page) " of " counter(pages);
+    }
+    @bottom-center {
+      text-align: left;
+      vertical-align: top;
+      content: "Page " counter(page) " of " counter(pages);
+    }
+  }
+  @page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="position:absolute;">
+  All pages except this one should display the current page and the total page
+  count in both the header and footer.
+  <div style="break-before:page;">
+    Another page
+  </div>
+  <div style="break-before:page;">
+    Yet another page
+  </div>
+</div>

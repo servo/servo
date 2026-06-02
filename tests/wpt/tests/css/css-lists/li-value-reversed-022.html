@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Interaction of ol reversed and list-item value</title>
+<link rel="help" href="https://html.spec.whatwg.org/#attr-ol-reversed">
+<link rel="help" href="https://html.spec.whatwg.org/#ordinal-value">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#auto-numbering">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#instantiating-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="li-value-reversed-022-ref.html">
+<ol reversed>
+ <li>Six
+ <li style="counter-set: list-item 5">Five
+ <li>Four
+ <li style="counter-set: list-item 2">Two
+ <li>One
+</ol>

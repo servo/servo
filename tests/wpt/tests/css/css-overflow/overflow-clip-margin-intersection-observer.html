@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Overflow: intersection observer with overflow-clip-margin</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Scott Violet" href="mailto:sky@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #clipped_container {
+    overflow: clip;
+    width: 100px;
+    height: 100px;
+    border: solid;
+    overflow-clip-margin: 50px;
+  }
+  #big_green_div {
+      position: relative;
+      width: 1000px;
+      height: 1000px;
+      background: green;
+      left: -200px;
+      top: -200px;
+  }
+  /* These values ensure the element is vertically offscreen. */
+  .spacer { width: 150px; height: calc(100vh + 10px); }
+</style>
+<div class="spacer"></div>
+<div id="clipped_container">
+  <div id="big_green_div"></div>
+</div>
+
+<script>
+let t = async_test("ParentWithOverflowClipMargin");
+let options = {
+  threshold: 0,
+  rootMargin: '0px'
+}
+// The 'big_green_div' is initially on screen due to
+// overflow-clip-margin of the parent. Once the observer is notified, the
+// overflow-clip-margin is reduced so that 'big_green_div' is no longer
+// on screen, and the observer should again be notified.
+let gotIntersects = false;
+let intersectionObserver = new IntersectionObserver((entries, observer) => {
+  t.step(function() { assert_equals(1, entries.length); });
+  let entry = entries[0];
+  if (!gotIntersects) {
+    t.step(function() { assert_true(entry.isIntersecting); });
+    gotIntersects = true;
+    document.getElementById('clipped_container').style.overflowClipMargin = "0px";
+  } else {
+    t.step(function() { assert_false(entry.isIntersecting); });
+    t.done();
+  }}, options);
+intersectionObserver.observe(document.getElementById('big_green_div'));
+</script>

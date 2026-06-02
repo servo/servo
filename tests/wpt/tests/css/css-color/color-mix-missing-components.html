@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>color-mix(): &lt;color>s with missing components</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#interpolation-missing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  fuzzy_test_computed_color(`color-mix(in srgb, oklch(0 none none), white)`, `color(srgb 0.5 0.5 0.5)`);
+</script>

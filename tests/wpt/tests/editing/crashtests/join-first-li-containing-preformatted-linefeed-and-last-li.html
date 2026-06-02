@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*:last-child {
+  white-space: pre-line;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  document.designMode = "on";
+  getSelection().setBaseAndExtent(
+    document.querySelector("ol"),
+    0,
+    document.querySelector("ol"),
+    document.querySelector("ol").childNodes.length
+  );
+  document.execCommand("insertHTML", false, "");
+}, {once: true});
+</script>
+</head>
+<!-- Do not change the white-spaces between <li> elements nor the line break in the first <li> -->
+<body>
+<ol><li>
+</li><li>
+<blockquote style="display:inline-flex">
+  <title contenteditable></title>
+</blockquote>
+</li><li></li></ol>
+</body>
+</html>

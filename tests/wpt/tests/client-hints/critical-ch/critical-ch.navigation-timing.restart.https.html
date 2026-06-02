@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  var navigationTiming = window.performance.getEntriesByType('navigation')[0];
+  assert_not_equals(navigationTiming, undefined);
+  assert_less_than(navigationTiming.startTime, navigationTiming.criticalCHRestart, "Restarts happen after the beginning of the navigation");
+  assert_less_than(navigationTiming.criticalCHRestart, navigationTiming.fetchStart, "Restarts happen before fetch");
+}, "Critical-CH restart navigation timing test");
+</script>
+</body>
+</html>

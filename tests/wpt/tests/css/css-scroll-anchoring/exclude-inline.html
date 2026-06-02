@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#expander {
+  margin-bottom: 50px;
+}
+#no {
+  overflow-anchor: none;
+}
+#spacing {
+  margin-bottom: 300vh;
+}
+
+</style>
+<span>out of view</span>
+<div id="expander"></div>
+<span id="no">excluded subtree <span>[nested inline]</span></span>
+<div id="spacing"></div>
+<script>
+
+// Tests that an inline element can be an excluded subtree.
+
+test(() => {
+  scrollTo(0, 50);
+  document.querySelector('#expander').style = "margin-bottom: 100px";
+  assert_equals(document.scrollingElement.scrollTop, 50,
+      "Scroll anchoring should not anchor within the span.");
+  scrollTo(0, 0);
+});
+
+</script>

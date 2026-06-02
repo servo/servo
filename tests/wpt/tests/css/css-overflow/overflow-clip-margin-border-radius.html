@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: overflow-clip-margin with border-radius</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#overflow-clip-margin">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-radius">
+<link rel="match" href="overflow-clip-margin-border-radius-ref.html">
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-7">
+<meta name="assert" content="
+  “The overflow clip edge is shaped in the corners exactly the same way
+  as an outer box-shadow with a spread radius of the same cumulative offset
+  from the box’s border edge.”
+
+  Note that the exact shape is under discussion (*), this test only asserts
+  that the shapes are equal.
+  (*) https://github.com/w3c/csswg-drafts/issues/7103
+">
+<style>
+#outer {
+  width: 50px;
+  height: 50px;
+  overflow: clip;
+  border-radius: 25px;
+  overflow-clip-margin: 100px;
+  margin: 125px;
+}
+#inner {
+  width: 50px;
+  height: 50px;
+  box-shadow: black 0 0 0 100px;
+  background: black;
+}
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>

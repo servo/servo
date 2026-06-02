@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>Coordination of kern and palt features for CJK kerning</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-kerning-prop" />
+<link rel="help" href="https://learn.microsoft.com/en-gb/typography/opentype/spec/features_ko#tag-kern" />
+<link rel="help" href="https://learn.microsoft.com/en-gb/typography/opentype/spec/features_pt#palt" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: test;
+  src: url('resources/NotoSansJP-Regular.subset.otf') format('opentype');
+}
+h1 {
+	font: bold 1.5em/1 sans-serif;
+}
+h2 {
+	font: 1em/1 sans-serif;
+	margin-bottom: .25em;
+}
+.test {
+	font-family: test, sans-serif;
+	font-size: 3em;
+}
+.latin {
+    background: yellow;
+}
+.cjk {
+    background: cyan;
+}
+.paltOFFkernON {
+	font-feature-settings: "palt" 0;
+	font-kerning: normal;
+}
+.kernOFF {
+	font-kerning: none;
+}
+.kernON {
+	font-kerning: normal;
+}
+.paltONkernON {
+    font-feature-settings: "palt" 1;
+    font-kerning: normal;
+}
+.paltONkernOFF {
+    font-feature-settings: "palt" 1;
+    font-kerning: none;
+}
+</style>
+<body>
+
+<h1>Testing application of kerning to CJK text</h1>
+<h2>default</h2>
+<div class="test default">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+<h2>font-kerning: none;</h2>
+<div class="test kernOFF">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+<h2>font-kerning: normal;</h2>
+<div class="test kernON">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+<h2>font-feature-settings:"palt" 0; font-kerning: normal;</h2>
+<div class="test paltOFFkernON">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+<h2>font-feature-settings:"palt" 1; font-kerning: normal;</h2>
+<div class="test paltONkernON">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+<h2>font-feature-settings:"palt" 1; font-kerning: none;</h2>
+<div class="test paltONkernOFF">
+<span class=latin>YeYeYeYe</span><span class=cjk>ティティティティ</span>
+</div>
+
+<script>
+const expectMatch = [
+    [ ".kernON .latin",  ".paltOFFkernON .latin" ],
+    [ ".kernON .latin",  ".paltONkernON .latin" ],
+    [ ".kernOFF .latin", ".paltONkernOFF .latin" ],
+    [ ".kernON .cjk",    ".paltONkernON .cjk" ],
+    [ ".default .cjk",   ".kernOFF .cjk" ],
+];
+const expectMismatch = [
+    [ ".kernOFF .latin",     ".kernON .latin" ],
+    [ ".kernOFF .cjk",       ".kernON .cjk" ],
+    [ ".paltOFFkernON .cjk", ".paltONkernON .cjk" ],
+];
+const expectMatchOneOf = [
+    [ ".default .latin", [".kernON .latin", ".kernOFF .latin"] ],
+];
+
+expectMatch.forEach((t) => {
+    test(() => {
+        let w1 = document.querySelector(t[0]).offsetWidth;
+        let w2 = document.querySelector(t[1]).offsetWidth;
+        assert_equals(w1, w2);
+    }, "expected match: " + t[0] + " vs " + t[1]);
+});
+
+expectMismatch.forEach((t) => {
+    test(() => {
+        let w1 = document.querySelector(t[0]).offsetWidth;
+        let w2 = document.querySelector(t[1]).offsetWidth;
+        assert_not_equals(w1, w2);
+    }, "expected mismatch: " + t[0] + " vs " + t[1]);
+});
+
+expectMatchOneOf.forEach((t) => {
+    test(() => {
+        let w1 = document.querySelector(t[0]).offsetWidth;
+        let matched = false;
+        t[1].forEach((t2) => {
+            let w2 = document.querySelector(t2).offsetWidth;
+            if (w1 == w2) {
+                matched = true;
+            }
+        });
+        assert_true(matched);
+    }, t[0] + " matches one of [" + t[1].join(", ") + "]");
+});
+</script>
+
+</body>
+</head>

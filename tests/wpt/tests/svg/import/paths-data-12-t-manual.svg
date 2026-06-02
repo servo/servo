@@ -1,0 +1,66 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CN" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: paths-data-12-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
+        <p>
+          Test using multiple coord sets to build a polybeizer, and implicit values for initial S.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly, except for possible variations in the labelling text (per CSS2 rules).
+      </p>
+
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-12-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Use multiple coord sets to build a polybeizer-->
+    <path fill="none" stroke="black" stroke-width="3" d="M  100 100    C  100 20   200 20   200 100   S   300 180   300 100"/>
+    <rect x="100" y="100" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="200" y="100" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="300" y="100" width="4" height="4" fill="blue" stroke="none"/>
+    <!-- Test if S not preceeded by either C or S ,  first control point is coincident with the current point.-->
+    <path fill="none" stroke="black" stroke-width="3" d="M  100 250    S  200 200   200 250     300 300   300 250"/>
+    <rect x="100" y="250" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="200" y="200" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="200" y="250" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="200" y="300" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="300" y="300" width="4" height="4" fill="blue" stroke="none"/>
+    <rect x="300" y="250" width="4" height="4" fill="blue" stroke="none"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

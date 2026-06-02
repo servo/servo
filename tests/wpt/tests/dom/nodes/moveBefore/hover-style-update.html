@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>moveBefore should update hover style</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  .item .controls { background: blue; }
+  .item:hover .controls { background: red; }
+</style>
+<body></body>
+<script>
+function createTestElements(t) {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <div class="item" id="itemA">
+      <div class="controls" id="controlsA">A</div>
+    </div>
+    <div class="item" id="itemB">
+      <div class="controls" id="controlsB">B</div>
+    </div>
+  `;
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  return {
+    container,
+    item: document.getElementById("itemA"),
+    controls: document.getElementById("controlsA"),
+  };
+}
+
+promise_test(async t => {
+  const { container, item, controls } = createTestElements(t);
+
+  await (new test_driver.Actions()
+    .pointerMove(1, 1, {origin: controls}))
+    .send();
+  await new Promise(requestAnimationFrame);
+  assert_true(item.matches(':hover'));
+  assert_equals(getComputedStyle(controls).backgroundColor, "rgb(255, 0, 0)");
+
+  container.moveBefore(item, null);
+  await new Promise(requestAnimationFrame);
+  assert_false(item.matches(':hover'));
+  assert_equals(getComputedStyle(controls).backgroundColor, "rgb(0, 0, 255)");
+}, "Element loses hover when moved to different position");
+
+promise_test(async t => {
+  const { container, item, controls } = createTestElements(t);
+
+  assert_false(item.matches(':hover'));
+  assert_equals(getComputedStyle(controls).backgroundColor, "rgb(0, 0, 255)");
+
+  container.moveBefore(item, null);
+  await new Promise(requestAnimationFrame);
+  await (new test_driver.Actions()
+    .pointerMove(1, 1, {origin: controls}))
+    .send();
+  await new Promise(requestAnimationFrame);
+  assert_true(item.matches(':hover'));
+  assert_equals(getComputedStyle(controls).backgroundColor, "rgb(255, 0, 0)");
+}, "Hover works immediately after moved");
+</script>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[Optional] Starting a presentation from the browser using a default presentation request.</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentation-defaultrequest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p>
+    Click the button or the menu item for presentation on your browser (for example, "Cast"), <br>
+    to start the manual test, and select a presentation display when prompted to do so.<br>
+    The test passes if a "PASS" result appears.
+</p>
+<p id="notice">
+    If your browser does not support <code>defaultRequest</code>, please click this button: <button id="notsupported">Not Supported</button>
+</p>
+
+<script>
+    // disable the timeout function for the tests
+    // and call 'done()' when the tests cases are finished.
+    setup({explicit_timeout: true});
+
+    // -----------
+    // DOM Element
+    // -----------
+    var button = document.getElementById('notsupported'),
+        notice = document.getElementById('notice');
+
+    // ------------------------------
+    // Start New Presentation with
+    // 'default request' Test - BEGIN
+    // ------------------------------
+    async_test(function(t) {
+        // clean up the presentation and the instruction notice when the test ends
+        var connection;
+        t.add_cleanup(function() {
+            notice.parentNode.removeChild(notice);
+            if(connection)
+                connection.terminate();
+        });
+        // set an event handler to make the test fail when the button is clicked
+        button.onclick = t.step_func_done(function() {
+            assert_unreached('This browser does not support defaultRequest.');
+        });
+        // set up a default presentation request
+        var request = new PresentationRequest(presentationUrls);
+        navigator.presentation.defaultRequest = request;
+        request.onconnectionavailable = t.step_func_done(function (evt) {
+            connection = evt.connection;
+            // check the presentation connection and its attributes
+            assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
+            assert_true(!!connection.id, 'The connection ID is set.');
+            assert_equals(typeof connection.id, 'string', 'The connection ID is a string.');
+            assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+        });
+    });
+    // ----------------------------
+    // Start New Presentation with
+    // 'default request' Test - END
+    // ----------------------------
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<title>CSS Overflow Test: disabling ::scroll-marker-group removes scroll-markers</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group%E2%91%A0">
+<link rel="match" href="scroll-marker-group-style-remove-ref.html">
+<style>
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: after;
+    height: 100px;
+    width: 100px;
+  }
+
+  .scroll-marker-group::scroll-marker-group {
+    border: 3px solid black;
+    display: flex;
+    height: 50px;
+    width: 100px;
+  }
+
+  .item {
+    height: 100px;
+    width: 100px;
+  }
+
+  .item::scroll-marker {
+    content: ' ';
+    border-radius: 50%;
+    background: blue;
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<div id="scroller" class="scroll-marker-group">
+  <div class="item">1</div>
+  <div class="item">2</div>
+</div>
+<script>
+  document.body.offsetTop;
+  scroller.className = "";
+</script>

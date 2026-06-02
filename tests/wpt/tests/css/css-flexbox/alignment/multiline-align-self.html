@@ -1,0 +1,1630 @@
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#align-items-property">
+<style>
+.flexbox {
+  position: relative;
+  display: flex;
+  background-color: grey;
+  max-width: 600px;
+  align-content: flex-start;
+}
+.title {
+  margin-top: 1em;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+.horizontal-tb {
+  writing-mode: horizontal-tb;
+}
+.vertical-rl {
+  writing-mode: vertical-rl;
+}
+.vertical-lr {
+  writing-mode: vertical-lr;
+}
+.row {
+  flex-flow: row;
+}
+.row-reverse {
+  flex-flow: row-reverse;
+}
+.column {
+  flex-flow: column;
+}
+.column-reverse {
+  flex-flow: column-reverse;
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.wrap-reverse {
+  flex-wrap: wrap-reverse;
+}
+.flexbox> :nth-child(1) {
+  background-color: #0f0;
+}
+.flexbox> :nth-child(2) {
+  background-color: #0d0;
+}
+.flexbox> :nth-child(3) {
+  background-color: #0b0;
+}
+.flexbox> :nth-child(4) {
+  background-color: #090;
+}
+.flexbox> :nth-child(5) {
+  background-color: #070;
+}
+.flexbox> :nth-child(6) {
+  background-color: #050;
+}
+.flexbox> :nth-child(7) {
+  background-color: #030;
+}
+.flexbox> :nth-child(8) {
+  background-color: #00f;
+}
+.flexbox> :nth-child(9) {
+  background-color: #00d;
+}
+.flexbox> :nth-child(10) {
+  background-color: #00b;
+}
+.flexbox> :nth-child(11) {
+  background-color: #009;
+}
+.flexbox> :nth-child(12) {
+  background-color: #007;
+}
+.flexbox> :nth-child(13) {
+  background-color: #005;
+}
+.flexbox> :nth-child(14) {
+  background-color: #003;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+
+<body onload="checkLayout('.flexbox')">
+  <div class="title">horizontal-tb ltr row wrap</div>
+  <div class="flexbox horizontal-tb ltr row wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">horizontal-tb ltr row wrap-reverse</div>
+  <div class="flexbox horizontal-tb ltr row wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb rtl row wrap</div>
+  <div class="flexbox horizontal-tb rtl row wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+  <div class="title">horizontal-tb rtl row wrap-reverse</div>
+  <div class="flexbox horizontal-tb rtl row wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb ltr column wrap</div>
+  <div class="flexbox horizontal-tb ltr column wrap" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">horizontal-tb ltr column wrap-reverse</div>
+  <div class="flexbox horizontal-tb ltr column wrap-reverse" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="580" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="570" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="590" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="550" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="540" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="560" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="60"></div>
+  </div>
+  <div class="title">horizontal-tb rtl column wrap</div>
+  <div class="flexbox horizontal-tb rtl column wrap" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="580" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="570" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="585" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="585" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="550" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="540" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="555" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="555" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="60"></div>
+  </div>
+  <div class="title">horizontal-tb rtl column wrap-reverse</div>
+  <div class="flexbox horizontal-tb rtl column wrap-reverse" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">horizontal-tb ltr row-reverse wrap</div>
+  <div class="flexbox horizontal-tb ltr row-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+  <div class="title">horizontal-tb ltr row-reverse wrap-reverse</div>
+  <div class="flexbox horizontal-tb ltr row-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb rtl row-reverse wrap</div>
+  <div class="flexbox horizontal-tb rtl row-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">horizontal-tb rtl row-reverse wrap-reverse</div>
+  <div class="flexbox horizontal-tb rtl row-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb ltr column-reverse wrap</div>
+  <div class="flexbox horizontal-tb ltr column-reverse wrap" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb ltr column-reverse wrap-reverse</div>
+  <div class="flexbox horizontal-tb ltr column-reverse wrap-reverse" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="580" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="570" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="590" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="550" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="540" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="560" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb rtl column-reverse wrap</div>
+  <div class="flexbox horizontal-tb rtl column-reverse wrap" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="590" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="580" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="570" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="585" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="585" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="570" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="560" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="550" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="540" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="555" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="555" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="540" data-offset-y="0"></div>
+  </div>
+  <div class="title">horizontal-tb rtl column-reverse wrap-reverse</div>
+  <div class="flexbox horizontal-tb rtl column-reverse wrap-reverse" style="height: 70px" data-expected-width="600"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl ltr row wrap</div>
+  <div class="flexbox vertical-rl ltr row wrap" style="height: 70px" data-expected-width="60" data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="45" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="45" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="15" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="15" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-rl ltr row wrap-reverse</div>
+  <div class="flexbox vertical-rl ltr row wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-rl rtl row wrap</div>
+  <div class="flexbox vertical-rl rtl row wrap" style="height: 70px" data-expected-width="60" data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="45" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="45" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="15" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="15" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl row wrap-reverse</div>
+  <div class="flexbox vertical-rl rtl row wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl ltr column wrap</div>
+  <div class="flexbox vertical-rl ltr column wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-rl ltr column wrap-reverse</div>
+  <div class="flexbox vertical-rl ltr column wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl column wrap</div>
+  <div class="flexbox vertical-rl rtl column wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl column wrap-reverse</div>
+  <div class="flexbox vertical-rl rtl column wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-rl ltr row-reverse wrap</div>
+  <div class="flexbox vertical-rl ltr row-reverse wrap" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="45" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="45" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="15" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="15" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl ltr row-reverse wrap-reverse</div>
+  <div class="flexbox vertical-rl ltr row-reverse wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl row-reverse wrap</div>
+  <div class="flexbox vertical-rl rtl row-reverse wrap" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="45" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="45" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="15" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="15" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-rl rtl row-reverse wrap-reverse</div>
+  <div class="flexbox vertical-rl rtl row-reverse wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-rl ltr column-reverse wrap</div>
+  <div class="flexbox vertical-rl ltr column-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-rl ltr column-reverse wrap-reverse</div>
+  <div class="flexbox vertical-rl ltr column-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl column-reverse wrap</div>
+  <div class="flexbox vertical-rl rtl column-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-rl rtl column-reverse wrap-reverse</div>
+  <div class="flexbox vertical-rl rtl column-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-lr ltr row wrap</div>
+  <div class="flexbox vertical-lr ltr row wrap" style="height: 70px" data-expected-width="60" data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-lr ltr row wrap-reverse</div>
+  <div class="flexbox vertical-lr ltr row wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-lr rtl row wrap</div>
+  <div class="flexbox vertical-lr rtl row wrap" style="height: 70px" data-expected-width="60" data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl row wrap-reverse</div>
+  <div class="flexbox vertical-lr rtl row wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr ltr column wrap</div>
+  <div class="flexbox vertical-lr ltr column wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-lr ltr column wrap-reverse</div>
+  <div class="flexbox vertical-lr ltr column wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl column wrap</div>
+  <div class="flexbox vertical-lr rtl column wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl column wrap-reverse</div>
+  <div class="flexbox vertical-lr rtl column wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="40" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="60" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-lr ltr row-reverse wrap</div>
+  <div class="flexbox vertical-lr ltr row-reverse wrap" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr ltr row-reverse wrap-reverse</div>
+  <div class="flexbox vertical-lr ltr row-reverse wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl row-reverse wrap</div>
+  <div class="flexbox vertical-lr rtl row-reverse wrap" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="5" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="5" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="35" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="35" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-lr rtl row-reverse wrap-reverse</div>
+  <div class="flexbox vertical-lr rtl row-reverse wrap-reverse" style="height: 70px" data-expected-width="60"
+    data-expected-height="70">
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="30" data-offset-y="60"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="10" data-offset-y="10"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="0" data-offset-y="20"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;width: 10px;align-self: baseline; margin-block-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="40"></div>
+    <div style="flex: 1 10px;width: auto;align-self: stretch" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="50"></div>
+    <div style="flex: 1 10px;width: 30px;align-self: flex-start" data-expected-width="30" data-expected-height="10"
+      data-offset-x="0" data-offset-y="60"></div>
+  </div>
+  <div class="title">vertical-lr ltr column-reverse wrap</div>
+  <div class="flexbox vertical-lr ltr column-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="5"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="35"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+  <div class="title">vertical-lr ltr column-reverse wrap-reverse</div>
+  <div class="flexbox vertical-lr ltr column-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl column-reverse wrap</div>
+  <div class="flexbox vertical-lr rtl column-reverse wrap" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+  </div>
+  <div class="title">vertical-lr rtl column-reverse wrap-reverse</div>
+  <div class="flexbox vertical-lr rtl column-reverse wrap-reverse" style="width: 70px" data-expected-width="70"
+    data-expected-height="60">
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="10"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="20"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="15"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="0"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-start" data-expected-width="10" data-expected-height="10"
+      data-offset-x="60" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: center" data-expected-width="10" data-expected-height="10"
+      data-offset-x="50" data-offset-y="40"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: flex-end" data-expected-width="10" data-expected-height="10"
+      data-offset-x="40" data-offset-y="50"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline" data-expected-width="10" data-expected-height="10"
+      data-offset-x="30" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: 10px;align-self: baseline; margin-inline-start: 5px;" data-expected-width="10"
+      data-expected-height="10" data-offset-x="20" data-offset-y="45"></div>
+    <div style="flex: 1 10px;height: auto;align-self: stretch" data-expected-width="10" data-expected-height="30"
+      data-offset-x="10" data-offset-y="30"></div>
+    <div style="flex: 1 10px;height: 30px;align-self: flex-start" data-expected-width="10" data-expected-height="30"
+      data-offset-x="0" data-offset-y="30"></div>
+  </div>
+</body>
+</html>

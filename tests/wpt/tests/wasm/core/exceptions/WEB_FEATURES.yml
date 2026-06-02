@@ -1,0 +1,10 @@
+features:
+- name: wasm-exception-handling
+  files:
+  - "*"
+  - "!throw_ref.wast.js.html"
+  # excluding because it has a mix of exception-handling tests, including some that test exnref
+  - "!try_table.wast.js.html"
+- name: wasm-exnref-exceptions
+  files:
+  - "throw_ref.wast.js.html"

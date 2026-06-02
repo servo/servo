@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CORP for WebBundle subresource loading</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md#cors-and-corp-for-subresource-requests"
+/>
+<link
+  rel="help"
+  href="https://fetch.spec.whatwg.org/#cross-origin-resource-policy-header"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+
+<body>
+  <!--
+       This wpt should run on an origin different from https://www1.web-platform.test:8444/,
+       from where cross-orign WebBundles are served.
+
+       This test uses a cross-origin WebBundle,
+       https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp.wbn,
+       which is served with an Access-Control-Allow-Origin response header.
+
+       `corp.wbn` includes three subresources:
+       a. `no-corp.js`, which doesn't include a Cross-Origin-Resource-Policy response header.
+       b. `corp-same-origin.js`, which includes a Cross-Origin-Resource-Policy: same-origin response header.
+       c. `corp-cross-origin.js`, which includes a Cross-Origin-Resource-Policy: cross-origin response header.
+  -->
+  <script type="webbundle">
+    {
+      "source": "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp.wbn",
+      "resources": [
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/no-corp.js",
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-same-origin.js",
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-cross-origin.js"
+      ]
+    }
+  </script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    promise_test(async () => {
+      const prefix =
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/";
+      await addScriptAndWaitForExecution(prefix + "no-corp.js");
+      await addScriptAndWaitForError(prefix + "corp-same-origin.js");
+      await addScriptAndWaitForExecution(prefix + "corp-cross-origin.js");
+    }, "Subresource loading from WebBundles should respect Cross-Origin-Resource-Policy header.");
+
+  </script>
+</body>

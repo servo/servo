@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call removeAllRanges() to clear the selection</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var p1 = document.getElementById("p1");
+
+                var range = document.createRange();
+                range.selectNode(p1);
+                selection.addRange(range);
+
+                checkSelectionAttributes(document.body, 1, document.body, 2, false, 1);
+                assert_equals(selection.toString(), p1.textContent);
+
+                selection.removeAllRanges();
+
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <p id="p1">Call removeAllRanges() to clear the selection</p>
+    </body>
+</html>

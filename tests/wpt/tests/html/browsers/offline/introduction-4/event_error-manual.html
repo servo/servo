@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - Event_error</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Add a dummy file in the manifest file (manifest/clock.manifest).</li>
+      <li>Refresh the page.</li>
+    </ol>
+
+    <div id="log"></div>
+
+    <script>
+      var t = async_test("error event test");
+      var cache = window.applicationCache;
+
+      cache.onerror = t.done();
+    </script>
+  </body>
+</html>

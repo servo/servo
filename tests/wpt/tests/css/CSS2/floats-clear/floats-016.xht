@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floated elements stacked with blocks and inline elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <meta name="assert" content="Floated elements are rendered in front of non-positioned in-flow blocks but behind in-flow inline boxes when a normal flow box is next to a floated element with negative margins." />
+        <style type="text/css">
+            #container
+            {
+                margin: 0.5in;
+            }
+            #inline
+            {
+                background: yellow;
+                margin-left: -0.5in;
+            }
+            #float, #block
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #float
+            {
+                background: orange;
+                float: left;
+            }
+            #block
+            {
+                background: blue;
+                margin: -0.25in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes are partially stacked on top of each other, and they are stacked in the following order from bottom to top: blue, orange, yellow.</p>
+        <div id="container">
+            <span id="inline">Filler Text</span>
+            <div id="float">Filler Text</div>
+            <div id="block">Filler Text</div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,20 @@
+WEBVTT
+Either one or both of positioning and alignment values are invalid.
+
+1
+00:00:00.000 --> 00:00:30.500 position:10% align: start
+Bear is Coming!!!!!
+Positioning on the left bottom, middle aligned,
+because the alignment is mistyped.
+
+2
+00:00:31.000 --> 00:00:45.500 position:200% align:middle
+I said Bear is coming!!!!
+Positioning on the bottom middle, middle aligned,
+because the positioning is off.
+
+3
+00:01:01.000 --> 00:02:00.500 position:-80% align:ends
+I said Bear is coming now!!!!
+Positioning on the bottom middle, middle aligned,
+because both the alignment and positioning don't apply.

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>date input baseline shouldn't be insane</title>
+<link rel="match" href="input-date-baseline-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1667510">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  div {
+    border: 1px solid black;
+    line-height: 0;
+  }
+
+  input {
+    height: 20px;
+    font: 20px/1 Ahem;
+    box-sizing: border-box;
+    padding: 1px; /* needed to trigger the bug */
+    border: 0;
+    visibility: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+</style>
+<div>
+  <input type="date">
+</div>

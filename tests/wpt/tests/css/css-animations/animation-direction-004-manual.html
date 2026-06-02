@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-direction - reverse</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-03-24 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-direction">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-iteration-count">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-direction is set to reverse,
+                             all iterations of the animation are played in the reverse direction
+                             from the way they were specified.">
+<style>
+  div {
+    animation-name: sample;
+    animation-duration: 10s;
+    animation-direction: reverse;
+    animation-iteration-count: infinite;
+
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  @keyframes sample {
+    from {
+      left: 150px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled color square with 'Filler Text',
+    which starts moving from left to right, then back to left again and moves from
+    left to right. This cycle gets repeated.
+  </p>
+  <div>Filler Text</div>
+</body>
+

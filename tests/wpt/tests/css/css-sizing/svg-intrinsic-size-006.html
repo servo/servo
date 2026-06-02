@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Test SVG intrinsic sizing with and without preferred aspect-ratio</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1801581">
+<link rel="match" href="svg-intrinsic-size-006-ref.html">
+
+<style>
+div {
+  width: max-content;
+  background: green;
+  line-height: 0;
+  border: 5px solid black;
+  margin: 5px;
+}
+svg {
+  vertical-align: top;
+}
+</style>
+
+<!-- Chrome 110 and Safari 16.4 render these two divs with zero width. -->
+<div><svg viewBox="0 0 1 1"></svg></div>
+<div><svg style="aspect-ratio: 1/1;"></svg></div>
+
+<!-- Chrome 110 and Safari 16.4 render the following divs with 300px width. -->
+<div><svg></svg></div>
+<div><svg style="width: 10%" viewBox="0 0 1 1"></svg></div>
+<div><svg width="10%" viewBox="0 0 1 1"></svg></div>
+<div><svg style="width: 10%; aspect-ratio: 1/1"></svg></div>
+<div><svg width="10%" style="aspect-ratio: 1/1"></svg></div>

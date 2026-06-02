@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Event handler with labels</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body onload="javascript:
+  for (var i = 0; i < 2; ++i) {
+    for (var j = 0; j < 2; ++j) {
+      t.step(function() {
+        assert_equals(i, 0);
+        assert_equals(j, 0);
+      });
+      break javascript;
+    }
+  }
+  t.done();
+">
+<div id="log"></div>
+<script>
+var t = async_test("Event handlers starting with 'javascript:' should treat that as a label.");
+</script>

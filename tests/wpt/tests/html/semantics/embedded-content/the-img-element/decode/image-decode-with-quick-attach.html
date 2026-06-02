@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>HTMLImageElement.prototype.decode(), attach to DOM before promise resolves.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <picture id="empty-picture-1"></picture>
+  <picture id="empty-picture-2"></picture>
+  <picture id="empty-picture-3"></picture>
+  <picture id="picture-with-source-1">
+    <source srcset="/images/blue.png"></source>
+  </picture>
+  <picture id="picture-with-source-2">
+    <source srcset="/images/blue.png"></source>
+  </picture>
+  <picture id="picture-with-source-3">
+    <source srcset="/images/blue.png"></source>
+  </picture>
+</body>
+
+<script>
+"use strict";
+
+let png = "/images/green.png?image-decode-with-quick-attach-" + Math.random();
+
+function run_test(t, {
+  image = png,
+  prop = "src",
+  container = document.body,
+  expectReject = false
+} = {}) {
+  const img = new Image();
+  img[prop] = image;
+  const promise = img.decode().then(function (arg) {
+    assert_equals(arg, undefined);
+  });
+  // Intentionally don't wait for the promise to settle before attaching the image.
+  container.appendChild(img);
+  return expectReject ?
+    promise_rejects_dom(t, "EncodingError", promise) :
+    promise;
+}
+
+promise_test(t => run_test(t), document.title + ": src not cached");
+promise_test(t => run_test(t), document.title + ": src cached");
+promise_test(t => run_test(t, {prop: "srcset"}), document.title + ": srcset");
+promise_test(t => run_test(t, {
+  image: png + "-picture",
+  container: document.getElementById("empty-picture-1"),
+  expectReject: true,
+}), document.title + ": src in empty picture not cached");
+promise_test(t => run_test(t, {
+  image: png + "-picture",
+  container: document.getElementById("empty-picture-2"),
+  // NOTE(emilio): This is inconsistent between the cached and un-cached case
+  // below, but actually correct per spec, because in the sync case the current
+  // request doesn't mutate after the decode() call.
+  // This is expected to change in https://github.com/whatwg/html/issues/10531
+  expectReject: false,
+}), document.title + ": src in empty picture cached");
+promise_test(t => run_test(t, {
+  image: png + "-picture-srcset",
+  prop: "srcset",
+  container: document.getElementById("empty-picture-3"),
+  expectReject: true,
+}), document.title + ": srcset in empty picture");
+promise_test(t => run_test(t, {
+  image: png + "-picture-with-source",
+  container: document.getElementById("picture-with-source-1"),
+  expectReject: true,
+}), document.title + ": src in picture with source not cached");
+promise_test(t => run_test(t, {
+  image: png + "-picture-with-source",
+  container: document.getElementById("picture-with-source-2"),
+  expectReject: true,
+}), document.title + ": src in picture with source cached");
+promise_test(t => run_test(t, {
+  image: png + "-picture-with-source-srcset",
+  prop: "srcset",
+  container: document.getElementById("picture-with-source-3"),
+  expectReject: true,
+}), document.title + ": srcset in picture with source");
+</script>

@@ -1,0 +1,21 @@
+<!doctype HTML>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Pseudo-Elements Reference: Invalidation on custom property changes</title>
+  <script src="support/selections.js"></script>
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+    main::selection {
+      background-color: green;
+    }
+  </style>
+  <body>
+    <p>Test passes if the text below has green background.</p>
+    <main class="highlight_reftest">
+      <p>quick</p>
+    </main>
+    <script>
+      selectNodeContents(document.querySelector('main'));
+    </script>
+  </body>
+</html>

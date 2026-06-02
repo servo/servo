@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <title>iframe with srcdoc content that loads after iframe is removed from the document</title>
+        <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com">
+        <link rel="help" href="https://github.com/servo/servo/issues/32432">
+        <iframe srcdoc="contents"></iframe>
+        <script>
+            document.querySelector('iframe').remove();
+        </script>
+    </body>
+</html>

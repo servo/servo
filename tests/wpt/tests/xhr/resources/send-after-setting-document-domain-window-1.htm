@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() with document.domain set: loading documents from original origin after setting document.domain</title>
+    <script src="send-after-setting-document-domain-window-helper.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[2]/ol[1]/li[3]" />
+  </head>
+  <body>
+    <script>
+      run_test(function() {
+        document.domain = document.domain; // this is not a noop, it does actually change the security context
+        var client = new XMLHttpRequest();
+        client.open("GET", "status.py?content=hello", false);
+        client.send(null);
+        assert_equals(client.responseText, "hello");
+        document.domain = document.domain.replace(/^\w+\./, "");
+        client.open("GET", "status.py?content=hello2", false);
+        client.send(null);
+        assert_equals(client.responseText, "hello2");
+      }, "loading documents from original origin after setting document.domain");
+    </script>
+  </body>
+</html>

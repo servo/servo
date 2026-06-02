@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Fonts testcase: oblique/italic fallback</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-style-matching">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9389#issuecomment-2625314278">
+<meta name="assert" content="request for 'oblique' style should not fall back to a face labelled 'italic'">
+<link rel="match" href="italic-oblique-fallback-ref.html">
+
+<style>
+/* font-family test1 has 'normal' and 'oblique' (reduced-size) faces */
+@font-face {
+  font-family: test1;
+  font-style: normal;
+  src: url("resources/markA.ttf");
+}
+@font-face {
+  font-family: test1;
+  font-style: oblique;
+  src: url("resources/markA.ttf");
+  size-adjust: 50%;
+}
+
+/* font-family test2 has 'normal' and 'italic' (reduced-size) faces */
+@font-face {
+  font-family: test2;
+  font-style: normal;
+  src: url("resources/markA.ttf");
+}
+@font-face {
+  font-family: test2;
+  font-style: italic;
+  src: url("resources/markA.ttf");
+  size-adjust: 50%;
+}
+
+/* font-family test3 has only an 'italic' face */
+@font-face {
+  font-family: test3;
+  font-style: italic;
+  src: url("resources/markA.ttf");
+}
+
+div {
+  font-size: 50px;
+  font-synthesis: none;
+}
+
+.test1 {
+  font-family: test1, serif;
+}
+
+.test2 {
+  font-family: test2, serif;
+}
+
+.test3 {
+  font-family: test3, serif;
+}
+</style>
+
+<!-- (1) font family with 'normal' and 'oblique' faces -->
+  <!-- the span uses the 'oblique' face -->
+  <div class="test1">A<span style="font-style:oblique">A</span></div>
+  <!-- the span requests 'italic', will fall back to the 'oblique' face -->
+  <div class="test1">A<span style="font-style:italic">A</span></div>
+
+<br>
+
+<!-- (2) font family with 'normal' and 'italic' faces -->
+  <!-- the span uses the 'italic' face -->
+  <div class="test2">A<span style="font-style:italic">A</span></div>
+  <!-- the span requests 'oblique', should NOT fall back to the 'italic' face -->
+  <div class="test2">A<span style="font-style:oblique">A</span></div>
+
+<br>
+
+<!-- (3) font family with only an 'italic' face -->
+  <!-- the ONLY face in the family is 'italic', so it will be used throughout -->
+  <div class="test3">A<span style="font-style:italic">A</span></div>
+  <div class="test3">A<span style="font-style:oblique">A</span></div>

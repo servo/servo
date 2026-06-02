@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='support/base.css' />
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#visibility-prop">
+<style>
+    x-table {
+      border: 5px solid black;
+    }
+    x-table span {
+        display: inline-block;
+        vertical-align: top;
+        background: lime;
+        margin: 3px;
+        height: 100px;
+        width: 100px;
+    }
+</style>
+<main>
+    <h1>Visibility hidden</h1>
+    <a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec</a>
+    <p>
+    Setting a table to visibility:hidden, but rows and cells to different nested visibility values.
+    Height and width of table should not change.
+    </p>
+    <x-table id="one">
+      <x-tbody>
+        <x-tr>
+            <x-td>
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+      </x-tbody>
+    </x-table>
+    Bottom table is identical to top except entire row group of two rows is hidden, and
+    first row is visible with two hidden cells and a visible span in the left cell.
+    <x-table id="two">
+      <x-tbody style="visibility:hidden;">
+        <x-tr id="invisibleRow" style="visibility:visible;">
+            <x-td id="leftCell" style="visibility:hidden;">
+                <span style="visibility:visible;">row 1</span>
+            </x-td>
+            <x-td id="rightCell" style="visibility:hidden;">
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+      </x-tbody>
+    </x-table>
+
+</main>
+
+<script>
+    tests = [
+        [
+            document.getElementById('two').offsetHeight,
+            document.getElementById('one').offsetHeight,
+            "table visibility:hidden doesn't change table height"
+        ],
+        [
+            document.getElementById('two').offsetWidth,
+            document.getElementById('one').offsetWidth,
+            "table visibility:hidden doesn't change table width"
+        ],
+        [
+            document.getElementById("leftCell").offsetWidth,
+            document.getElementById("rightCell").offsetWidth,
+            "hidden and visible cells should have same height"
+        ],
+        [
+            document.getElementById("leftCell").offsetHeight,
+            document.getElementById("rightCell").offsetHeight,
+            "hidden and visible cells should have same width"
+        ]
+    ];
+
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

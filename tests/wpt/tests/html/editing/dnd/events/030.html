@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Drag and drop without cancelling dragenter on body</title>
+    <style type="text/css">
+div:first-child {
+  height: 100px;
+  width: 100px;
+  background: orange;
+  display: inline-block;
+}
+div:first-child + div {
+  height: 100px;
+  width: 100px;
+  margin-left: 100px;
+  background: blue;
+  display: inline-block;
+}
+    </style>
+    <script type="text/javascript">
+//If dragenter is cancelled the body should then become the target element, receiving both a dragenter and a dragover event.
+//When the body is the actual immediate user selection (first time over the body), that means it gets *2* dragenter events
+//Then when a div becomes immediate user selection (blue) but does not cancel the dragenter event, dragenter does not need
+//to fire on body because body is already the current target element
+//Then when the body is the actual immediate user selection again (second time over the body), it is already the current
+//target element, so does not get a dragenter event
+window.onload = function () {
+  var drag = document.getElementsByTagName('div')[0], beforecount = 0, aftercount = 0, switchcount = false;
+  drag.ondragstart = function (e) {
+    e.dataTransfer.setData('text','hello');
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+  drag.ondragenter = drag.ondrop = drag.ondragover = function (e) {
+    e.preventDefault();
+  };
+  var drop = document.getElementsByTagName('div')[1];
+  drop.ondragenter = function (e) {
+    switchcount = true;
+  };
+  drop.ondragover = function (e) {
+    e.preventDefault();
+  };
+  document.body.ondragenter = function (e) {
+    if( e.target != this ) { return; }
+    if( switchcount ) { aftercount++; } else { beforecount++; }
+  };
+  drag.ondragend = function (e) {
+    document.getElementsByTagName('div')[2].innerHTML = ( beforecount == 2 && aftercount == 0 ) ? 'PASS' : ( 'FAIL, dragenter fired on body '+beforecount+' time(s) before blue.ondragenter and '+aftercount+' time(s) afterwards, instead of 2 and 0 times respectively' );
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div draggable="true"></div><div></div>
+    <div>&nbsp;</div>
+    <p>Drag the orange square onto the blue square, then back to the orange square, and release it.</p>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+
+  </body>
+</html>

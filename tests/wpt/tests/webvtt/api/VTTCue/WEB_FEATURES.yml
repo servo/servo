@@ -1,0 +1,22 @@
+features:
+- name: webvtt
+  files:
+  - constructor-exceptions.html
+  - getCueAsHTML.html
+  - text.html
+- name: webvtt-cue-settings
+  files:
+  - align.html
+  - line.html
+  - position.html
+  - size.html
+  - snapToLines.html
+  - vertical.html
+- name: webvtt-cue-alignment
+  files:
+  - lineAlign.html
+  - positionAlign.html
+- name: webvtt-regions
+  files:
+  - region.html
+# Note: constructor.html spans features and is not mapped.

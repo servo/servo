@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Test fenced frame sandbox attribute.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+
+async function runTest(t, sandbox_flags, success) {
+  const frame = await attachFencedFrameContext({
+      generator_api: 'fledge', resolve_to_config: true,
+      attributes: [['sandbox', sandbox_flags]]});
+
+  assert_equals(frame.element.sandbox.value, sandbox_flags);
+  if (sandbox_flags) {
+    assert_equals(frame.element.sandbox.length, sandbox_flags.split(' ').length);
+  } else {
+    assert_equals(frame.element.sandbox.length, 0);
+  }
+
+  const result = await Promise.any([
+    frame.execute(() => { return 'success';}),
+    new Promise(resolve => t.step_timeout(() => resolve('failure'), 2000))]);
+  if (success) {
+    assert_equals(result, 'success');
+  } else {
+    assert_equals(result, 'failure');
+  }
+}
+
+// We omit test cases that lack the sandbox attribute, because that's covered
+// by every other test that doesn't explicitly use the `sandbox` attribute.
+
+promise_test(async t => {
+  return runTest(t, '', false);
+}, 'Navigation fails with no allowed features');
+
+promise_test(async t => {
+  return runTest(t, 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation', true);
+}, 'Navigation succeeds with exactly the required unsandboxed features');
+
+promise_test(async t => {
+  return runTest(t, 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-pointer-lock', true);
+}, 'Navigation succeeds with extra unsandboxed features');
+
+promise_test(async t => {
+  return runTest(t, 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox', false);
+}, 'Navigation fails with too few unsandboxed features');
+
+promise_test(async t => {
+  return runTest(t, 'foo bar baz', false);
+}, 'Navigation fails with malformed sandbox flags');
+
+promise_test(async t => {
+  return runTest(t, 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-foobarbaz', true);
+}, 'Navigation fails with the required unsandboxed features, plus some malformed ones');
+
+</script>
+</body>

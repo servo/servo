@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>background shorthand test</title>
+<link rel=match href=background_position_shorthand_ref.html>
+<style>
+div {
+  float: left; /* So all the divs are visible in the test viewport */
+  width: 200px;
+  height: 200px;
+}
+/* test different orders for background position */
+#a { background: red url(100x100_green.png) no-repeat right center; }
+#b { background: red url(100x100_green.png) no-repeat center right; }
+#c { background: right center red url(100x100_green.png) no-repeat; }
+#d { background: red url(100x100_green.png) right center no-repeat; }
+#e { background: red url(100x100_green.png) no-repeat right; }
+#f { background: right red url(100x100_green.png) no-repeat; }
+</style>
+</head>
+<body>
+<div id="a"></div>
+<div id="b"></div>
+<div id="c"></div>
+<div id="d"></div>
+<div id="e"></div>
+<div id="f"></div>
+</body>
+</html>
+

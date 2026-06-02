@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, documentHasCookie, postJson } from "./helper.js";
+
+  async function runTest(t, registrationUrl, refreshUrl) {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to use the absolute URL for refresh instead of a relative URL.
+    await configureServer({ refreshUrl });
+
+    // Configure registration to use absolute URL instead of relative.
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await postJson('login.py', { registrationUrl });
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Confirm that a request has the cookie set.
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
+
+    // Trigger refresh and confirm that the cookie gets set again.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue));
+  }
+
+  promise_test(async t => {
+    const registrationUrl = `${location.origin}/device-bound-session-credentials/start_session.py`;
+    const refreshUrl = `${location.origin}/device-bound-session-credentials/refresh_session.py`;
+    await runTest(t, registrationUrl, refreshUrl);
+  }, "The registration and refresh endpoints can be configured as absolute URLs");
+
+  promise_test(async t => {
+    const registrationUrl = `/device-bound-session-credentials/start_session.py`;
+    const refreshUrl = `/device-bound-session-credentials/refresh_session.py`;
+    await runTest(t, registrationUrl, refreshUrl);
+  }, "The registration and refresh endpoints can be configured as relative URLs with leading slash");
+
+  promise_test(async t => {
+    const registrationUrl = `start_session.py`;
+    const refreshUrl = `refresh_session.py`;
+    await runTest(t, registrationUrl, refreshUrl);
+  }, "The registration and refresh endpoints can be configured as relative URLs without leading slash");
+</script>

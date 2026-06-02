@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Test changing the allow="" attribute after a navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        generator_api: 'fledge',
+        attributes: [["allow", "attribution-reporting *"]],
+        origin: get_host_info().ORIGIN});
+
+  fencedframe.element.allow = "attribution-reporting 'none'";
+
+  await fencedframe.execute(async () => {
+    assert_true(document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Changing the allow attribute should do nothing for this navigation.");
+  }, []);
+}, 'Changing the allow attribute is a no-op for the current navigation');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        generator_api: 'fledge',
+        attributes: [["allow", "attribution-reporting *"]],
+        origin: get_host_info().ORIGIN});
+
+  fencedframe.element.allow = "attribution-reporting 'none'";
+
+  await fencedframe.execute(async () => {
+    window.executor.suspend(() => {
+      location.reload();
+    });
+  }, []);
+
+  await fencedframe.execute(async () => {
+    assert_true(document.featurePolicy.allowsFeature('attribution-reporting'),
+          "Changing the allow attribute should do nothing on frame refresh.");
+  }, []);
+
+}, 'Changing the allow attribute is a no-op for frame-initiated navigations');
+
+</script>
+</body>
+</html>

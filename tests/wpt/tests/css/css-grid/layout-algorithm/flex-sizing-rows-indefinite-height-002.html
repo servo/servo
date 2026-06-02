@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Expand flexible tracks with a fractional size</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-find-fr-size">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<style>
+.grid {
+  display: grid;
+  width: 100px;
+  background: red;
+}
+.item {
+  grid-row: 2 / span 1;
+  background: green;
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: -32px; /* To move this item up to cover the first row */
+}
+</style>
+
+<!--
+  Flexible row track sizes are resolved in two passes:
+
+  The first pass:
+   - The only grid item has a max-content height of 100px, which is also the
+     hypothetical fr size.
+   - Initially, each flexible track (0.4fr) is given a hypothetical size of
+     100px * 0.4 = 40px.
+   - This makes the grid container's height 40px * 2 = 80px in this pass.
+
+  The second pass:
+   - With the grid container's height now became fixed at 80px, the available
+     grid space is known.
+   - Per https://drafts.csswg.org/css-grid-2/#algo-find-fr-size
+     the hypothetical fr size is 80px * max(0.4 * 2 , 1.0) = 80px.
+   - In this pass, each 0.4fr row track resolves to 80px * 0.4 = 32px in height.
+-->
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid" style="grid-template-rows: repeat(2, minmax(0,0.4fr))">
+  <span class="item"></span>
+</div>

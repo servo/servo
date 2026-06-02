@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-media-capabilities-decoding-info.https.html)
+// loads the initiator page then the initiator page will prerender itself with
+// the `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+// These configurations are copied from
+// wpt/media-capabilities/decodingInfo.webrtc.html
+const minimalVideoConfiguration = {
+  contentType: 'video/VP9; profile-level="0"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+};
+
+const minimalAudioConfiguration = {
+  contentType: 'audio/opus',
+};
+
+const configuration = {
+  type: 'webrtc',
+  video: minimalVideoConfiguration,
+  audio: minimalAudioConfiguration,
+};
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.start(
+      navigator.mediaCapabilities.decodingInfo(configuration), 'navigator.mediaCapabilities.decodingInfo');
+}
+
+</script>

@@ -1,0 +1,21 @@
+<!doctype html>
+<title>WebSockets: navigating nested browsing context with a websocket in top-level</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<p>Test requires popup blocker disabled</p>
+<div id=log></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var w = window.open("005-1.html" + location.search);
+  add_result_callback(function() {
+    w.close();
+  });
+});
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: cursor - &lt;uri&gt; value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+  <meta content="interact invalid" name="flags" />
+  <meta content="When an user-defined cursor is provided, a generic cursor value must be provided at the end of the list." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  span {cursor: url("support/fail.cur");}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Hovering the pointing device over the text sample should make it rendered as a text cursor (often an I-beam).</p>
+
+  <div>
+   <span>text sample</span>
+  </div>
+
+ </body>
+</html>

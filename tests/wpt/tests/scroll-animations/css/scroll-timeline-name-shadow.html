@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<title>scroll-timeline-name and tree-scoped references</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-named">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/8135">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/8192">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    main.append(template.content.cloneNode(true));
+    main.offsetTop;
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { z-index: 100; }
+    to { z-index: 100; }
+  }
+</style>
+
+<template id=scroll_timeline_host>
+  <style>
+    .target {
+      animation: anim 10s linear;
+      animation-timeline: --timeline;
+    }
+    main > .scroller {
+      scroll-timeline: --timeline x;
+    }
+  </style>
+  <div class=scroller>
+    <div class=scroller>
+      <template shadowrootmode=open shadowrootclonable>
+        <style>
+          :host {
+            scroll-timeline: --timeline y;
+          }
+        </style>
+        <slot></slot>
+      </template>
+      <div class=target></div>
+    </div>
+  </div>
+  <style>
+  </style>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_host);
+    let target = main.querySelector('.target');
+    assert_equals(target.getAnimations().length, 1);
+    let anim = target.getAnimations()[0];
+    assert_not_equals(anim.timeline, null);
+    assert_equals(anim.timeline.axis, 'y');
+  }, 'Outer animation can see scroll timeline defined by :host');
+</script>
+
+
+<template id=scroll_timeline_slotted>
+  <style>
+    .target {
+      animation: anim 10s linear;
+      animation-timeline: --timeline;
+    }
+    .host {
+      scroll-timeline: --timeline x;
+    }
+  </style>
+  <div class=host>
+    <template shadowrootmode=open shadowrootclonable>
+      <style>
+        ::slotted(.scroller) {
+          scroll-timeline: --timeline y;
+        }
+      </style>
+      <slot></slot>
+    </template>
+    <div class=scroller>
+      <div class=target></div>
+    </div>
+  </div>
+  <style>
+  </style>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_slotted);
+    let target = main.querySelector('.target');
+    assert_equals(target.getAnimations().length, 1);
+    let anim = target.getAnimations()[0];
+    assert_not_equals(anim.timeline, null);
+    assert_equals(anim.timeline.axis, 'y');
+  }, 'Outer animation can see scroll timeline defined by ::slotted');
+</script>
+
+
+<template id=scroll_timeline_part>
+  <style>
+    .host {
+      scroll-timeline: --timeline y;
+    }
+    .host::part(foo) {
+      scroll-timeline: --timeline x;
+    }
+  </style>
+  <div class=host>
+    <template shadowrootmode=open shadowrootclonable>
+      <style>
+          /* Not using 'anim' at document scope, due to https://crbug.com/1334534 */
+          @keyframes anim2 {
+            from { z-index: 100; background-color: green; }
+            to { z-index: 100; background-color: green; }
+          }
+        .target {
+          animation: anim2 10s linear;
+          animation-timeline: --timeline;
+        }
+      </style>
+      <div part=foo>
+        <div class=target></div>
+      </div>
+    </template>
+  </div>
+  <style>
+  </style>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_part);
+    let target = main.querySelector('.host').shadowRoot.querySelector('.target');
+    assert_equals(target.getAnimations().length, 1);
+    let anim = target.getAnimations()[0];
+    assert_not_equals(anim.timeline, null);
+    assert_equals(anim.timeline.axis, 'x');
+  }, 'Inner animation can see scroll timeline defined by ::part');
+</script>
+
+
+<template id=scroll_timeline_shadow>
+  <style>
+    .target {
+      animation: anim 10s linear;
+      animation-timeline: --timeline;
+    }
+    .host {
+      scroll-timeline: --timeline x;
+    }
+  </style>
+  <div class=scroller>
+    <div class=host>
+      <template shadowrootmode=open shadowrootclonable>
+        <style>
+          div {
+            scroll-timeline: --timeline y;
+          }
+        </style>
+        <div>
+          <slot></slot>
+        </div>
+      </template>
+      <div class=target></div>
+    </div>
+  </div>
+  <style>
+  </style>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_shadow);
+    let target = main.querySelector('.target');
+    assert_equals(target.getAnimations().length, 1);
+    let anim = target.getAnimations()[0];
+    assert_not_equals(anim.timeline, null);
+    assert_equals(anim.timeline.axis, 'y');
+  }, 'Slotted element can see scroll timeline within the shadow');
+</script>

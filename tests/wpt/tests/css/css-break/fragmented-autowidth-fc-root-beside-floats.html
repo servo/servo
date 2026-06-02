@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#varying-size-boxes">
+<link rel="match" href="fragmented-autowidth-fc-root-beside-floats-ref.html">
+<p>There should be (from left to right) a hotpink square, a thin hotpink
+  rectangle, then a wider hotpink rectangle.</p>
+<div style="columns:3; column-gap:10px; column-fill:auto; width:620px; height:100px;">
+  <div style="float:right; width:100px; height:60px;"></div>
+  <div style="clear:both; float:right; break-inside:avoid; width:190px; height:60px;"></div>
+  <div style="display:flow-root; height:300px; background:hotpink;"></div>
+</div>

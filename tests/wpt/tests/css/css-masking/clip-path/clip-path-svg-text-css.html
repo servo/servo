@@ -1,0 +1,24 @@
+<!doctype html>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#ClipPathElement">
+<link rel="match" href="reference/clip-path-svg-text-css-ref.html">
+<meta name="fuzzy" content="0-1;0-200">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css" />
+<style>
+text {
+  font: 50px/1 Ahem;
+  text-shadow: grey 10px 10px;
+  fill: none;
+  stroke: red;
+  stroke-width: 10px;
+}
+</style>
+<svg>
+  <defs>
+    <!-- clipPath works on raw geometry regardless of fill/stroke/shadow etc -->
+    <clipPath id="c">
+      <text x="30" y="50">Hello</text>
+    </clipPath>
+  </defs>
+  <rect width="200" height="100" fill="green" clip-path="url(#c)"/>
+</svg>

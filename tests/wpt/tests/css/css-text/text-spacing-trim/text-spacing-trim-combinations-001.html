@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<!--
+  Test patterns are from "Fullwidth Punctuation Collapsing":
+  https://drafts.csswg.org/css-text-4/#fullwidth-collapsing
+-->
+<meta name="variant" content="?class=htb&test=CC:HF">
+<meta name="variant" content="?class=htb&test=CM:HF">
+<meta name="variant" content="?class=htb&test=CO:FH">
+<meta name="variant" content="?class=htb&test=MO:FH">
+<meta name="variant" content="?class=htb&test=OO:FH">
+<meta name="variant" content="?class=vrl&test=CC:HF">
+<meta name="variant" content="?class=vrl&test=CM:HF">
+<meta name="variant" content="?class=vrl&test=CO:FH">
+<meta name="variant" content="?class=vrl&test=MO:FH">
+<meta name="variant" content="?class=vrl&test=OO:FH">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/variant-class.js"></script>
+<script src="../support/get-char-advances.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+}
+.vrl #container {
+  writing-mode: vertical-rl;
+}
+</style>
+<div id="log"></div>
+<div id="container"></div>
+<script>
+const classes = {
+  // Open. Noto CJK doesn't have these glyphs or `halt`/`valt`:
+  // \u3008\u301A\u3010\uFF3B
+  'O': '\u300A\u300C\u300E\u3014\u3016\u3018\u301D' +
+       '\uFF08\uFF5B\uFF5F',
+  // Close. Noto CJK doesn't have these glyphs or `halt`/`valt`:
+  // \u3009\u301B\u3011\u301E\uFF3D
+  'C': '\u300B\u300D\u300F\u3015\u3017\u3019\u301F' +
+       '\uFF09\uFF5D\uFF60',
+  // Open Quotes.
+  'Q': '\u2018\u201C',
+  // Close quotes.
+  'R': '\u2019\u201D',
+  // Middle and ideographic space.
+  'M': '\u30FB\u3000',
+  // Dot (comma and full stops.)
+  'D': '\u3001\u3002\uFF0C\uFF0E',
+  // Colon.
+  'L': '\uFF1A',
+  // Semicolon. Colon and Semicolon may be different in vertical flow.
+  'S': '\uFF1B',
+  // Exclamation marks.
+  'E': '\uFF01\uFF1F',
+};
+const container = document.getElementById('container');
+const em = parseInt(getComputedStyle(container).fontSize);
+const threshold = em * .8;
+
+// Generate a list of text from a pattern.
+// For example, a pattern 'OC' generates all combinations from
+// characters in `classes['O']` and `classes['C']`.
+function* textFromPattern(pattern, prefix = '') {
+  const key = pattern[0];
+  const rest = pattern.substr(1);
+  for (const ch of classes[key]) {
+    if (!rest) {
+      yield prefix + ch;
+      continue;
+    }
+    yield *textFromPattern(rest, prefix + ch);
+  }
+}
+
+class TestData {
+  constructor(text, expect) {
+    const element = document.createElement('div');
+    element.textContent = text;
+    this.text = text;
+    this.element = element;
+    this.expect = expect;
+  }
+
+  static all = [];
+
+  static generate(pattern, expect, container) {
+    for (const text of textFromPattern(pattern)) {
+      const data = new TestData(text, expect);
+      container.appendChild(data.element);
+      TestData.all.push(data);
+    }
+  }
+
+  static runAll(indices) {
+    if (indices && indices.length) {
+      for (const index of indices) {
+        TestData.all[index].run(index);
+      }
+      return;
+    }
+    TestData.all.forEach((data, i) => {
+      data.run(i);
+    })
+  }
+
+  run(index) {
+    const advances = getCharAdvances(this.element);
+    const results = advances.map(advance => advance >= threshold ? 'F' : 'H');
+    const result = results.join('');
+    test(() => {
+      assert_equals(result, this.expect);
+    }, `${index}: ${this.text}`);
+  }
+}
+
+setup(() => {
+  assert_implements(CSS.supports('text-spacing-trim', 'initial'));
+}, {explicit_done: true});
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const style= getComputedStyle(container);
+  const is_vertical = style.writingMode.startsWith('vertical');
+
+  // Assign dots and colons using the Noto's Japanese convention.
+  classes['C'] += classes['D'];
+  classes['M'] += classes['L'];
+  if (!is_vertical) classes['M'] += classes['S'];
+
+  const args = params.getAll('test').flatMap(i => i.split(','));
+  for (const arg of args) {
+    const [pattern, expect] = arg.split(':');
+    TestData.generate(pattern, expect, container);
+  }
+
+  await document.fonts.ready;
+  const indices = params.getAll('i').flatMap(i => i.split(','))
+                        .map(i => parseInt(i));
+  TestData.runAll(indices);
+  done();
+})();
+</script>

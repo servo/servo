@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: green;
+  border: green solid 20px;
+  font: 20px/1 Ahem;
+  height: 100px;
+  margin-left: 3px;
+  /*
+    default horizontal border-spacing : 2px
+  +
+    padding-left of cell : 1px
+  =========================================
+    3px
+  */
+
+  margin-top: 39px;
+  /*
+    margin-bottom of p : 16px
+  +
+    default vertical border-spacing : 2px
+  +
+    padding-top of cell : 1px
+  +
+    pre's margin-top (margin: 1em 0px) : 20px
+  ===========================================
+    39px
+  */
+  width: 380px;
+  }
+
+  img {vertical-align: top;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the word PASS is drawn and if there is <strong>no red</strong>.</p>
+
+  <div>
+  <!-- start of 1st line -->
+  <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />
+
+  <!-- start of 2nd line -->
+  <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;
+
+  <!-- start of 3rd line -->
+  <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />
+
+  <!-- start of 4th line -->
+  <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />
+
+  <!-- start of 5th line -->
+    <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;<img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" /><img src="support/swatch-lime.png" width="20" height="20" alt="Image download support must be enabled" />
+
+  </div>
+
+ </body>
+</html>

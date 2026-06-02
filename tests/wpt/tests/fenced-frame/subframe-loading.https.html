@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test Subframe Loading Disabler</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+
+promise_test(async () => {
+  const container = document.body.appendChild(document.createElement("div"));
+
+  // Create a helper iframe that triggers loading the new fenced frame
+  // simultaneously when the parent container is removed.
+  const helperFrame = container.appendChild(document.createElement("iframe"));
+
+  helperFrame.contentWindow.onunload = function() {
+    const fenced_frame = document.createElement("fencedframe");
+    fenced_frame.src = "resources/dummy.https.html";
+    container.appendChild(fenced_frame);
+  };
+
+  // If the fenced frame loads when it's not supposed to,
+  // a DCHECK will catch that and cause the test to crash.
+  document.body.removeChild(container);
+
+}, "Fenced frames should not load if its parent has subframe loading disabled");
+
+</script>
+</body>
+</html>

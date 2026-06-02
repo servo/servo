@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<div id="container">
+  <form id="formId"></form>
+</div>
+<input id="inputId" required form="formId" oninvalid="container.remove()">
+<script>
+  formId.checkValidity();
+</script>

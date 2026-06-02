@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Remote tracks should not get ended except for stop/close</title>
+<script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    <script src="RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+    <video id="video" controls autoplay playsinline></video>
+    <script>
+    let pc1, pc2;
+    let localTrack, remoteTrack;
+    promise_test(async (test) => {
+        await setMediaPermission("granted", ["microphone"]);
+        const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+        localTrack = localStream.getAudioTracks()[0];
+
+        pc1 = new RTCPeerConnection();
+        pc1.addTrack(localTrack, localStream);
+        pc2 = new RTCPeerConnection();
+
+        let trackPromise = new Promise(resolve => {
+            pc2.ontrack = e => resolve(e.track);
+        });
+
+        exchangeIceCandidates(pc1, pc2);
+        await exchangeOfferAnswer(pc1, pc2);
+
+        remoteTrack = await trackPromise;
+        video.srcObject = new MediaStream([remoteTrack]);
+        await video.play();
+    }, "Setup audio call");
+
+    promise_test(async (test) => {
+        pc1.getTransceivers()[0].direction = "inactive";
+
+        let offer = await pc1.createOffer();
+        await pc1.setLocalDescription(offer);
+
+        // Let's remove ssrc lines
+        let sdpLines = offer.sdp.split("\r\n");
+        offer.sdp = sdpLines.filter(line => line && !line.startsWith("a=ssrc")).join("\r\n") + "\r\n";
+
+        await pc2.setRemoteDescription(offer);
+        let answer = await pc2.createAnswer();
+        await pc2.setLocalDescription(answer);
+        await pc1.setRemoteDescription(answer);
+
+        assert_equals(remoteTrack.readyState, "live");
+    }, "Inactivate the audio transceiver");
+
+    promise_test(async (test) => {
+        pc1.getTransceivers()[0].direction = "sendonly";
+
+        await exchangeOfferAnswer(pc1, pc2);
+
+        assert_equals(remoteTrack.readyState, "live");
+    }, "Reactivate the audio transceiver");
+
+    promise_test(async (test) => {
+        pc1.close();
+        pc2.close();
+        localTrack.stop();
+    }, "Clean-up");
+    </script>
+</body>
+</html>

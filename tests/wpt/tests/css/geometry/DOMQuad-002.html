@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: DOMQuad interface tests</title>
+    <link rel="author" title="Hwanseung Lee" href="mailto:hs1217.lee@samsung.com" />
+    <link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMQuad">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMQuad interface</p>
+    <div id="log"></div>
+    <script>
+
+        function init() {
+            var initial = {
+                p1: { x: 0, y: 0, z: 0, w: 1 },
+                p2: { x: 0, y: 0, z: 0, w: 1 },
+                p3: { x: 0, y: 0, z: 0, w: 1 },
+                p4: { x: 0, y: 0, z: 0, w: 1 }
+            };
+            return initial;
+        }
+
+        test(function() {
+            checkDOMQuad(new DOMQuad(), init());
+        },'test Constructor no args');
+
+        test(function() {
+            checkDOMQuad(new DOMQuad(new DOMPoint()), init());
+        },'test Constructor with one init DOMPoint arg');
+
+        test(function() {
+            checkDOMQuad(new DOMQuad(new DOMPoint(), new DOMPoint()), init());
+        },'test Constructor with two init DOMPoint args');
+
+        test(function() {
+            checkDOMQuad(new DOMQuad(new DOMPoint(), new DOMPoint(), new DOMPoint()), init());
+        },'test Constructor with three init DOMPoint args');
+
+        test(function() {
+            checkDOMQuad(new DOMQuad(new DOMPoint(), new DOMPoint(), new DOMPoint(), new DOMPoint()), init());
+        },'test Constructor with four init DOMPoint args');
+
+        test(function() {
+            var exp = init();
+            exp.p1 = { x: 1, y: 2, z: 3, w: 4 };
+            checkDOMQuad(new DOMQuad(new DOMPoint(1, 2, 3, 4)), exp);
+        },'test Constructor with one DOMPoint arg');
+
+        test(function() {
+            var exp = init();
+            exp.p1 = { x: 1, y: 2, z: 3, w: 4 };
+            exp.p2 = { x: 5, y: 6, z: 7, w: 8 };
+            checkDOMQuad(new DOMQuad(new DOMPoint(1, 2, 3, 4), new DOMPoint(5, 6, 7, 8)), exp);
+        },'test Constructor with two DOMPoint args');
+
+        test(function() {
+            var exp = init();
+            exp.p1 = { x: 1, y: 2, z: 3, w: 4 };
+            exp.p2 = { x: 5, y: 6, z: 7, w: 8 };
+            exp.p3 = { x: 9, y: 10, z: 11, w: 12 };
+            checkDOMQuad(new DOMQuad(new DOMPoint(1, 2, 3, 4), new DOMPoint(5, 6, 7, 8), new DOMPoint(9, 10, 11, 12)), exp);
+        },'test Constructor with three DOMPoint args');
+
+        test(function() {
+            var exp = init();
+            exp.p1 = { x: 1, y: 2, z: 3, w: 4 };
+            exp.p2 = { x: 5, y: 6, z: 7, w: 8 };
+            exp.p3 = { x: 9, y: 10, z: 11, w: 12 };
+            exp.p4 = { x: 13, y: 14, z: 15, w: 16 };
+            checkDOMQuad(new DOMQuad(new DOMPoint(1, 2, 3, 4), new DOMPoint(5, 6, 7, 8), new DOMPoint(9, 10, 11, 12), new DOMPoint(13, 14, 15, 16)), exp);
+        },'test Constructor with four DOMPoint args');
+
+        test(function() {
+            assert_throws_js(TypeError, function() { new DOMQuad(1, 2, 3, 4); });
+        },'test Constructor with invaild integer args');
+
+        test(function() {
+            assert_throws_js(TypeError, function() { new DOMQuad("1", "2", "3", "4"); });
+        },'test Constructor with invaild string args');
+
+        test(function() {
+            assert_throws_js(TypeError, function() { new DOMQuad({}, {}, {}, NaN); });
+        },'test Constructor with NaN');
+
+        test(function() {
+            var domQuad = DOMQuad.fromRect(new DOMRect(10, 20, 100, 200));
+            var expQuad = init();
+            expQuad.p1 = { x: 10, y: 20, z: 0, w: 1 };
+            expQuad.p2 = { x: 110, y: 20, z: 0, w: 1 };
+            expQuad.p3 = { x: 110, y: 220, z: 0, w: 1 };
+            expQuad.p4 = { x: 10, y: 220, z: 0, w: 1 };
+            checkDOMQuad(domQuad, expQuad);
+        },'test fromRect');
+
+        test(function() {
+            var domQuad = DOMQuad.fromRect(new DOMRect(-Infinity, -Infinity, Infinity, Infinity));
+            var expQuad = init();
+            expQuad.p1 = { x: -Infinity, y: -Infinity, z: 0, w: 1 };
+            expQuad.p2 = { x: NaN, y: -Infinity, z: 0, w: 1 };
+            expQuad.p3 = { x: NaN, y: NaN, z: 0, w: 1 };
+            expQuad.p4 = { x: -Infinity, y: NaN, z: 0, w: 1 };
+            checkDOMQuad(domQuad, expQuad);
+        },'test fromRect with Infinity');
+
+        test(function() {
+            var domQuad = DOMQuad.fromQuad(
+                new DOMQuad(
+                    new DOMPoint(1, 2, 3, 4),
+                    new DOMPoint(5, 6, 7, 8),
+                    new DOMPoint(9, 10, 11, 12),
+                    new DOMPoint(13, 14, 15, 16)));
+            var exp = init();
+            exp.p1 = { x: 1, y: 2, z: 3, w: 4 };
+            exp.p2 = { x: 5, y: 6, z: 7, w: 8 };
+            exp.p3 = { x: 9, y: 10, z: 11, w: 12 };
+            exp.p4 = { x: 13, y: 14, z: 15, w: 16 };
+            checkDOMQuad(domQuad, exp);
+        },'test fromQuad');
+
+        test(function() {
+            var domQuad = new DOMQuad();
+            domQuad.p1 = new DOMPoint(1, 2, 3, 4);
+            domQuad.p2 = new DOMPoint(1, 2, 3, 4);
+            domQuad.p3 = new DOMPoint(1, 2, 3, 4);
+            domQuad.p4 = new DOMPoint(1, 2, 3, 4);
+            checkDOMQuad(domQuad, init());
+        },'test p1, p2, p3, p4 are readonly');
+
+        test(function() {
+            var domQuad = DOMQuad.fromQuad(
+                new DOMQuad(
+                    new DOMPoint(10, 20, 0, 1),
+                    new DOMPoint(110, 20, 0, 1),
+                    new DOMPoint(110, 220, 0, 1),
+                    new DOMPoint(10, 220, 10, 1)));
+            var expBound = new DOMRect(10, 20, 100, 200);
+            checkDOMRect(domQuad.getBounds(), expBound);
+        },'test getBounds');
+
+        function checkDOMQuad(actual, exp) {
+            assert_equals(actual.p1.x, exp.p1.x, "p1.x is not matched");
+            assert_equals(actual.p1.y, exp.p1.y, "p1.y is not matched");
+            assert_equals(actual.p1.z, exp.p1.z, "p1.z is not matched");
+            assert_equals(actual.p1.w, exp.p1.w, "p1.w is not matched");
+            assert_equals(actual.p2.x, exp.p2.x, "p2.x is not matched");
+            assert_equals(actual.p2.y, exp.p2.y, "p2.y is not matched");
+            assert_equals(actual.p2.z, exp.p2.z, "p2.z is not matched");
+            assert_equals(actual.p2.w, exp.p2.w, "p2.w is not matched");
+            assert_equals(actual.p3.x, exp.p3.x, "p3.x is not matched");
+            assert_equals(actual.p3.y, exp.p3.y, "p3.y is not matched");
+            assert_equals(actual.p3.z, exp.p3.z, "p3.z is not matched");
+            assert_equals(actual.p3.w, exp.p3.w, "p3.w is not matched");
+            assert_equals(actual.p4.x, exp.p4.x, "p4.x is not matched");
+            assert_equals(actual.p4.y, exp.p4.y, "p4.y is not matched");
+            assert_equals(actual.p4.z, exp.p4.z, "p4.z is not matched");
+            assert_equals(actual.p4.w, exp.p4.w, "p4.w is not matched");
+        }
+
+        function checkDOMRect(actual, exp) {
+            assert_equals(actual.x, exp.x, "x is not matched");
+            assert_equals(actual.y, exp.y, "y is not matched");
+            assert_equals(actual.width, exp.width, "width is not matched");
+            assert_equals(actual.height, exp.height, "height is not matched");
+            assert_equals(actual.top, exp.top, "top is not matched");
+            assert_equals(actual.left, exp.left, "left is not matched");
+            assert_equals(actual.bottom, exp.bottom, "bottom is not matched");
+            assert_equals(actual.right, exp.right, "right is not matched");
+        }
+    </script>
+</body>
+</html>

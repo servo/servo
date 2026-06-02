@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>UA style for hidden attribute on table elements</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<table hidden></table>
+<table><caption hidden></caption></table>
+<table><colgroup hidden></table>
+<table><col hidden></table>
+<table><thead hidden></table>
+<table><tbody hidden></table>
+<table><tfoot hidden></table>
+<table><tr hidden></table>
+<table><tr><td hidden></table>
+<table><tr><th hidden></table>
+<script>
+const expectedDisplay = {
+  'table': 'none',
+  'caption': 'none',
+  'colgroup': 'table-column-group',
+  'col': 'table-column',
+  'thead': 'table-header-group',
+  'tbody': 'table-row-group',
+  'tfoot': 'table-footer-group',
+  'tr': 'table-row',
+  'td': 'none',
+  'th': 'none',
+};
+for (const el of document.querySelectorAll("[hidden]")) {
+  test(function() {
+    const style = getComputedStyle(el);
+    assert_equals(style.display, expectedDisplay[el.localName]);
+    if (el instanceof HTMLTableElement ||
+        el instanceof HTMLTableCaptionElement ||
+        el instanceof HTMLTableCellElement) {
+      assert_equals(style.visibility, 'visible');
+    } else {
+      assert_equals(style.visibility, 'collapse');
+    }
+  }, `Computed display and visibility of ${el.localName}`);
+}
+</script>

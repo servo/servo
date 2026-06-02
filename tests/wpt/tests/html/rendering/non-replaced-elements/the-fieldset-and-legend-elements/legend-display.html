@@ -1,0 +1,38 @@
+<!doctype html>
+<title>rendered legend and CSS display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+legend { width:initial; }
+</style>
+<fieldset><legend id="ref">x</legend></fieldset>
+<fieldset><legend id="test">x</legend></fieldset>
+<script>
+  const refElm = document.querySelector('#ref');
+  const refStyle = getComputedStyle(refElm);
+  const testElm = document.querySelector('#test');
+  // Note that we're not testing "display:run-in" here; it's mentioned in
+  // several CSS specs, but no browser engines appear likely to support it.
+  const values = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root', 'inline',
+                  'inline-block', 'inline-table',
+                  'grid', 'inline-grid', 'flex', 'inline-flex'];
+  const extraStyle = ['', 'overflow:hidden', 'columns:1', 'overflow:hidden;columns:1'];
+
+  for (const style of extraStyle) {
+    for (const val of values) {
+      test(() => {
+        testElm.style.removeProperty('display');
+        testElm.style = style;
+        testElm.style.display = val;
+        const computed = getComputedStyle(testElm);
+        // Note that computed value is different from the used value.
+        // Also, 'flow' is serialized as 'block' for legacy reasons.
+        let expected = val == 'flow' ? 'block' : val;
+        assert_equals(computed.display, expected, `display: ${val} is not supported`);
+        assert_equals(computed.width, refStyle.width, 'width');
+        assert_equals(testElm.offsetLeft, refElm.offsetLeft, 'offsetLeft');
+      }, `rendered legend with display: ${val}` + (style == '' ? '' : "; " + style));
+    }
+  }
+</script>

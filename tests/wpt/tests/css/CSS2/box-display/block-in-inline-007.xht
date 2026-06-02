@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Blocks within inlines: Simple</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-07 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/ib/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+  <link rel="match" href="block-in-inline-007-ref.xht" />
+
+  <meta name="assert" content="When an inline box contains block boxes,
+    the inline box is broken around the blocks." />
+  <style type="text/css">
+   .inline { display: inline; }
+   .block { display: block; margin: 1em 0; }
+   td { font: 1em/1 monospace; }
+  </style>
+ </head>
+ <body>
+  <p>The pairs of letters below should be adjacent.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="block">
+      <div class="inline">
+       A
+       <div class="block">
+       B
+       </div>
+       <div class="block">
+       C
+       </div>
+       D
+       <div class="block">
+       E
+       </div>
+       F
+       <div class="block">
+       G
+       </div>
+      </div>
+     </div>
+    </td>
+    <td>
+<pre>A
+
+B
+
+C
+
+D
+
+E
+
+F
+
+G</pre>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

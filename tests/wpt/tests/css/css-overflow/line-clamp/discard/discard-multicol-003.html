@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: continue:discard on multicol with overflow content, spanners, etc</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#continue">
+<link rel="match" href="reference/discard-multicol-003-ref.html">
+<meta name="assert" content="Content overflowing a multicol gets discarded with continue: discard, inclding overflow columns and any subsequent content">
+<style>
+div {
+    columns: 3;
+    border: solid 1px;
+}
+div p {
+    break-after: column;
+}
+.spanner {
+    column-span: all;
+    text-align: center;
+}
+
+.test {
+    continue: discard;
+    block-overflow: no-ellipsis;
+}
+
+/* incidental to the example, but needed for a controlled rendering :*/
+div p { margin: 0; }
+div {
+    margin: 1em;
+    width: 47ch;
+    font-family: monospace;
+    gap: 1ch;
+}
+</style>
+<p>Test passes if the two boxes bellow are identical.
+
+<div class="test">
+    <p>Column 1</p>
+    <p>Column 2</p>
+    <p>Column 3</p>
+    <p>Overflow column
+    <aside class="spanner">Spanner 1</aside>
+    </p>
+    <aside class="spanner">Spanner 2</aside>
+    <p>Following 1</p>
+    <p>Following 2</p>
+    <p>Following 3</p>
+    <aside class="spanner">Spanner 3</aside>
+    <p>Following 4</p>
+    <p>Following 5</p>
+    <p>Following 6</p>
+</div>
+<div class="ref">
+    <p>Column 1</p>
+    <p>Column 2</p>
+    <p>Column 3</p>
+</div>

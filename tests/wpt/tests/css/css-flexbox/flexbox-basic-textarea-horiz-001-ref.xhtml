@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        width: 200px;
+        background: lightgreen;
+        margin-bottom: 5px;
+        line-height: 8px;
+      }
+      textarea {
+        width: 10px;
+        height: 20px;
+        background: white;
+        border-radius: 0;
+        border: 1px dotted green;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <textarea/>
+    </div>
+
+    <div class="flexbox"
+         style="height: 22px"><!-- height of textarea's border-box -->
+      some words
+      <textarea style="float:right"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="width: 122.5px"
+    /><textarea style="width: 73.5px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="width: 93px"
+    /><textarea style="width: 103px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="width: 114px"
+    /><textarea style="width: 82px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="width: 106px"
+    /><textarea style="width: 90px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="width: 46px"
+    /><textarea style="width: 150px"/>
+    </div>
+
+  </body>
+</html>

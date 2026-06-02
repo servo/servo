@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: intrinsic width of text-indent: calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-text-indent-intrinsic-1-ref.html">
+<style type="text/css">
+
+body { font-size: 10px }
+div { float: left; clear: left;
+       margin: 0 0 1px 0; background: blue; color: white; height: 5px }
+span { display: inline-block; width: 10px }
+
+</style>
+</head>
+<body>
+
+<div style="text-indent: calc(50% - 3px)"><span></span></div>
+<div style="text-indent: calc(5em - 3px)"><span></span></div>
+<div style="text-indent: calc(5em - 0%)"><span></span></div>
+<div style="text-indent: calc(50%)"><span></span></div>
+<div style="text-indent: calc(50px)"><span></span></div>
+<div style="text-indent: calc(25% + 25%)"><span></span></div>
+</body>
+</html>

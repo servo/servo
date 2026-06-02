@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - API_swapCache</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Modify the part of comment in manifest file of server.</li>
+      <li>Refresh the page.</li>
+    </ol>
+
+    <div id="log"></div>
+
+    <script>
+      var t = async_test("swapCache method test");
+      var cache = window.applicationCache;
+
+      cache.onupdateready = t.step_func(function() {
+        try {
+          cache.swapCache();
+          t.done();
+        } catch (e) {
+          assert_unreached("swapCache method failed.");
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Table's block size is not shrunk below its min-content block size when a specified size suggestion makes its automatic minimum size = 0.">
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex; flex-direction: column; height: 0px; width: 100px;">
+  <div style="display: table; height: 0px; width: 100px; background: green;">
+    <div style="display: table-cell">
+      <div style="height: 50px"></div>
+    </div>
+  </div>
+  <div style="flex: 0 0 50px; background: green;"></div>
+</div>

@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<body>
+<script>
+  test(function (t) {
+    const host = document.createElement("div");
+    document.body.append(host);
+    t.add_cleanup(() => host.remove());
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = shadow.appendChild(document.createElement("button"));
+    const invokee = host.appendChild(document.createElement("div"));
+    button.commandForElement = invokee;
+    button.command = '--test-command';
+    let event = null;
+    let eventTarget = null;
+    let eventSource = null;
+    invokee.addEventListener(
+      "command",
+      (e) => {
+        event = e;
+        eventTarget = e.target;
+        eventSource = e.source;
+      },
+      { once: true },
+    );
+    button.click();
+    assert_true(event instanceof CommandEvent);
+    assert_equals(event.composed, false, "composed is false");
+    assert_equals(eventTarget, invokee, "target is invokee");
+    assert_equals(eventSource, host, "source is host");
+  }, "cross shadow CommandEvent retargets source to host element");
+</script>
+</body>

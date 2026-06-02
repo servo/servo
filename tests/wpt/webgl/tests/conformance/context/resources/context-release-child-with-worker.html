@@ -1,0 +1,55 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html style="margin: 0; padding: 0;">
+<head>
+<meta charset="utf-8">
+<title>Simple WebGL context with Worker</title>
+<script src="../../../js/webgl-test-utils.js"> </script>
+</head>
+<body style="margin: 0; padding: 0; overflow: hidden;">
+<canvas id="c" width="1680" height="1050" style="width: 256px; height: 256px;"> <!-- scaled to fit page better -->
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+void main()
+{
+    gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+}
+</script>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var myWorker = new Worker("context-release-worker.js");
+
+var gl = wtu.create3DContext("c", { antialias: false });
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+
+var vertexObject = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.75,0, -0.75,-0.75,0, 0.75,-0.75,0 ]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+if (parent) {
+  window.glContext = gl;
+  parent.postMessage("Ready", "*");
+}
+</script>
+</body>
+</html>

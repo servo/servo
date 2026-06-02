@@ -1,0 +1,50 @@
+<!doctype html>
+<title>MediaStreamTrack transfer to Worker</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script id="workerCode" type="javascript/worker">
+self.onmessage = (e) => {
+  try {
+    if(e.data instanceof MediaStreamTrack) {
+      self.postMessage({result: 'Success'});
+      return;
+    } else {
+      self.postMessage({
+        result: 'Failure',
+        error: `${e.data} is not a MediaStreamTrack`
+      });
+    }
+  } catch (error) {
+    self.postMessage({
+      result: 'Failure',
+      error
+    });
+  }
+}
+</script>
+<script>
+promise_test(async () => {
+  const workerBlob = new Blob([document.querySelector('#workerCode').textContent],
+                {type: "text/javascript"});
+  const workerUrl = window.URL.createObjectURL(workerBlob);
+  const worker = new Worker(workerUrl);
+  window.URL.revokeObjectURL(workerUrl);
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
+  const track = stream.getVideoTracks()[0];
+  const result = new Promise((resolve, reject) => {
+    worker.onmessage = (e) => {
+      if (e.data.result === 'Failure') {
+        reject('Failed: ' + e.data.error);
+      } else {
+        resolve();
+      }
+    };
+  });
+  worker.postMessage(track, [track]);
+  return result;
+});
+</script>

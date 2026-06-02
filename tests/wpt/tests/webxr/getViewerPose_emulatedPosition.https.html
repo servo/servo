@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+
+    let testName = "XRFrame getViewerPose has emulatedPosition set properly.";
+
+    const poseTransform = {
+        position: [1, 1, 1],
+        orientation: [0.5, 0.5, 0.5, 0.5]
+    };
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      let debug = xr_debug.bind(this, 'testFunction');
+      return session.requestReferenceSpace('local')
+        .then((referenceSpace) => new Promise((resolve, reject) => {
+          debug('refSpace promise');
+          function CheckPositionNotEmulated(time, vrFrame){
+            debug('rAF 1: checkPositionNotEmulated');
+            t.step(() => {
+              let pose = vrFrame.getViewerPose(referenceSpace);
+              assert_not_equals(pose, null);
+              assert_equals(pose.emulatedPosition, false);
+              fakeDeviceController.setViewerOrigin(poseTransform, true);
+            });
+
+            session.requestAnimationFrame(CheckPositionEmulated);
+          }
+
+          function CheckPositionEmulated(time, vrFrame) {
+            debug('rAF 2: checkPositionEmulated');
+            t.step(() => {
+              let pose = vrFrame.getViewerPose(referenceSpace);
+              assert_not_equals(pose, null);
+              assert_equals(pose.emulatedPosition, true);
+            });
+
+            // Finished.
+            debug('resolve');
+            resolve();
+          }
+
+          requestSkipAnimationFrame(session, CheckPositionNotEmulated);
+        }));
+    };
+
+    xr_session_promise_test(testName, testFunction,
+      TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+
+  </script>
+</body>

@@ -1,0 +1,12 @@
+features:
+- name: credential-management
+  files:
+    - '*'
+    - '!federatedcredential-framed-get.sub.https.html'
+    - '!passwordcredential-framed-get.sub.https.html'
+- name: federated-credentials
+  files:
+    - 'federatedcredential-framed-get.sub.https.html'
+- name: password-credentials
+  files:
+    - 'passwordcredential-framed-get.sub.https.html'

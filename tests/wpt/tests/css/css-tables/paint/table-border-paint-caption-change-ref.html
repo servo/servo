@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The table element should update its border whenever the caption side changes</title>
+  <link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+  <link rel="help" href="https://www.w3.org/TR/css-tables-3/#computing-the-table-height">
+</head>
+<style>
+#caption {
+  caption-side: bottom;
+}
+table, tr, td {
+  border: 1px solid #000000;
+}
+</style>
+<body>
+<table>
+  <caption id="caption">
+    caption
+  </caption>
+  <tbody>
+    <tr>
+      <td>a</td>
+      <td>b</td>
+    </tr>
+    <tr>
+      <td>c</td>
+      <td>d</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    position: relative;
+    grid-template-rows: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing always prioritizes the start-most track opening. Item 6 should go into the top-most track-opening.</p>
+  <div class="grid">
+    <div class="flex">
+      <div style="background: lightskyblue; width: 20px;" >
+        1
+      </div>
+      <div style="background: yellow; width: 40px;">
+        6
+      </div>
+    </div>
+    <div class="flex">
+      <div style="background: lightcoral; width: 60px;" >
+        2
+      </div>
+      <div style="background: brown; width: 10px; height: 150px; transform: translateY(-50px);">
+        4
+      </div>
+      <div style="background:orchid; width: 10px; height: 100px; transform: translateY(-50px);">
+        5
+      </div>
+    </div>
+    <div style="background: lightgreen; width: 20px;">
+      3
+    </div>
+  </div>
+</body>
+</html>

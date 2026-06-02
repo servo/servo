@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-embed-element">
+<link rel="help" href="http://crbug.com/1035330">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const embed = document.createElement('embed');
+  let loadPromise = new Promise(resolve => embed.onload = resolve);
+  embed.src = '/media/white.mp4';
+  document.body.appendChild(embed);
+
+  await loadPromise;
+
+  loadPromise = new Promise(resolve => embed.onload = resolve);
+  embed.src = '/media/white.webm';
+
+  await loadPromise;
+}, 'Verifies that embed elements reload with new content when the src attribute is changed.');
+</script>

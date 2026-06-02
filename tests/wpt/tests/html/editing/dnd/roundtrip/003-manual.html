@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>SVG image drag and drop roundtrip</title>
+<style type="text/css">
+img
+  {margin:0 2px;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('p').appendChild(c);}
+</script>
+</head>
+<body>
+<p><img ondragstart="event.dataTransfer.effectAllowed = 'copy'" ondragenter="event.preventDefault()" ondrop="addImage(event)" ondragover="return false" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20version%3D%221.1%22%20width%3D%22100px%22%20height%3D%22100px%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22green%22/%3E%3C/svg%3E" alt="SVG circle"/></p>
+<p>Drag circle outside browser window and then drag it back and drop on itself. It should be duplicated once you drop it.</p>
+</body>
+</html>

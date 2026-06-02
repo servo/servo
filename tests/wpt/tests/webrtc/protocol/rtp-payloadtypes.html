@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>payload type handling (assuming rtcp-mux)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+// Tests behaviour from https://tools.ietf.org/html/rfc5761#section-4
+
+function createOfferSdp(opusPayloadType) {
+  return `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:6HHHdzzeIhkE0CKj
+a=ice-pwd:XYDGVpfvklQIEnZ6YnyLsAew
+m=audio 9 RTP/SAVPF ${opusPayloadType}
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:audio
+a=rtpmap:${opusPayloadType} opus/48000/2
+a=setup:actpass
+`;
+}
+
+promise_test(async t => {
+  for (let payloadType = 96; payloadType <= 127; payloadType++) {
+    const pc = new RTCPeerConnection();
+    await pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(payloadType)});
+    const answer = await pc.createAnswer();
+    assert_true(answer.sdp.includes(`a=rtpmap:${payloadType} opus/48000/2`));
+    pc.close();
+  }
+}, 'setRemoteDescription with a codec in the range 96-127 works');
+
+// This is written as a separate test since it currently fails in Chrome.
+promise_test(async t => {
+  for (let payloadType = 35; payloadType <= 63; payloadType++) {
+    const pc = new RTCPeerConnection();
+    await pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(payloadType)});
+    const answer = await pc.createAnswer();
+    assert_true(answer.sdp.includes(`a=rtpmap:${payloadType} opus/48000/2`));
+    pc.close();
+  }
+}, 'setRemoteDescription with a codec in the range 35-63 works');
+
+promise_test(async t => {
+  for (let payloadType = 64; payloadType <= 95; payloadType++) {
+    const pc = new RTCPeerConnection();
+    await promise_rejects_dom(t, 'InvalidAccessError',
+                              pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(payloadType)}),
+                              'Failed to reject on PT ' + payloadType);
+
+
+    pc.close();
+  }
+}, 'setRemoteDescription with a codec in the range 64-95 throws an InvalidAccessError');
+</script>

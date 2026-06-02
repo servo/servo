@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>min-width: min-content with fixed-width children</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#sizing-values">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-contribution">
+<link rel="author" title="Ojan Vafai" href="mailto:ojan@chromium.org">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+/* Reduce the heights if you want to add more variants. Don't go less than 2px per stripe. */
+
+.screen {
+    width: 100px;
+    height: 50px;
+    background: red;
+}
+
+.container {
+    min-width: min-content;
+    width: 50px;
+    height: 25px;
+    background: url(../support/1x1-red.png) repeat-x green;
+}
+.child {
+    width: 100px;
+    height: 10px;
+    background: green;
+    color: transparent;
+}
+
+.inline-block .child {
+    display: inline-block;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="screen inline-block">
+  <div class=container>
+    <div class=child>x</div>
+  </div>
+  <div class=container>
+    <div class=child>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+  </div>
+</div>
+
+<div class="screen block">
+  <div class=container>
+    <div class=child>x</div>
+  </div>
+  <div class=container>
+    <div class=child>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+  </div>
+</div>

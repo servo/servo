@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for PaymentRequest.canMakePayment() method</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#canmakepayment-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script>
+"use strict";
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const defaultMethods = Object.freeze([basicCard, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+const unsupportedMethods = [
+  { supportedMethods: "this-is-not-supported" },
+  { supportedMethods: "https://not.supported" },
+];
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  assert_true(
+    await request.canMakePayment(),
+    "one of the methods should be supported"
+  );
+}, `If payment method identifier are supported, resolve promise with true.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  try {
+    assert_true(
+      await request.canMakePayment(),
+      `canMakePaymentPromise should be true`
+    );
+    assert_true(
+      await request.canMakePayment(),
+      `canMakePaymentPromise should be true`
+    );
+  } catch (err) {
+    assert_equals(
+      err.name,
+      "NotAllowedError",
+      "if it throws, then it must be a NotAllowedError."
+    );
+  }
+}, `If request.[[state]] is "created", then return a promise that resolves to true for known method.`);
+
+promise_test(async t => {
+  const noneSupported = new PaymentRequest(
+    unsupportedMethods,
+    defaultDetails
+  ).canMakePayment();
+  assert_false(await noneSupported, `methods must not be supported`);
+}, "All methods are unsupported");
+
+promise_test(async t => {
+  const someSupported = new PaymentRequest(
+    [...unsupportedMethods, ...defaultMethods],
+    defaultDetails
+  ).canMakePayment();
+  assert_true(await someSupported, `At least one method is expected to be supported.`);
+}, `Mix of supported and unsupported methods, at least one method is supported.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [acceptPromise, canMakePaymentPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show(); // Sets state to "interactive"
+      const canMakePaymentPromise = request.canMakePayment();
+      return [acceptPromise, canMakePaymentPromise];
+    });
+
+  await promise_rejects_dom(t, "InvalidStateError", canMakePaymentPromise);
+  request.abort();
+  await promise_rejects_dom(t, "AbortError", acceptPromise);
+
+  // The state should be "closed"
+  await promise_rejects_dom(t, "InvalidStateError", request.canMakePayment());
+}, 'If request.[[state]] is "interactive", then return a promise rejected with an "InvalidStateError" DOMException.');
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const [abortPromise, acceptPromise] = await test_driver.bless(
+    "show payment request",
+    () => {
+      const acceptPromise = request.show(); // Sets state to "interactive"
+      acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
+      const abortPromise = request.abort();  // Sets state to "closed"
+      return [abortPromise, acceptPromise];
+    });
+
+  await abortPromise;
+  await promise_rejects_dom(t, "AbortError", acceptPromise);
+  await promise_rejects_dom(t, "InvalidStateError", request.canMakePayment());
+}, 'If request.[[state]] is "closed", then return a promise rejected with an "InvalidStateError" DOMException.');
+</script>
+
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

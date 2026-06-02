@@ -1,0 +1,3 @@
+features:
+- name: individual-transforms
+  files: "**"

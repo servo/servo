@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DocumentTimeline.duration</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-2/#dom-animationtimeline-duration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/timing-override.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const timeline = new DocumentTimeline();
+  assert_equals(timeline.duration, null);
+}, 'A document timeline does not have a duration');
+
+</script>
+</body>

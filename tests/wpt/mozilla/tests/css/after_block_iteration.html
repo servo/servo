@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+  Although this test may seem (and is) trivial, it ensures that iteration with generated content
+  with `display: block` is correct during flow construction. Before this commit, this could hang
+  when combined with incremental reflow, since the parallel traversal counters would become
+  corrupted.
+-->
+<title>ack</title>
+<link rel=match href=after_block_iteration_ref.html>
+<style>
+div.after-portlet-lang:after {
+    display: block;
+}
+</style>
+<body>
+    <div class='after-portlet-lang'><div>x</div></div>
+</body>
+</html>

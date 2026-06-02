@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transform of Background Image (propagated body with root element transform)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <link rel="reviewer" title="Apple Inc." href="http://www.apple.com">
+    <meta name="assert" content='"If the root element is transformed, the transformation should not apply to
+    any background specified for the root element.'>
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-root-bg-001-ref.html">
+    <style>
+      html {
+        overflow: hidden;
+        transform: rotate(90deg);
+        transform-origin: 50px 50px;
+      }
+      body {
+        background: url(support/transform-triangle-left.svg);
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

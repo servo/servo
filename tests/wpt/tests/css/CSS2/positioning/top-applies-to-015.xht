@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Top applied to element with 'display' set to 'table-caption'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-top" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="top-applies-to-001-ref.xht" />
+
+        <meta name="assert" content="The 'top' property applies to elements with a display of 'table-caption'." />
+        <style type="text/css">
+            #caption
+            {
+                background: green;
+                top: 0;
+                display: table-caption;
+                height: 1in;
+                position: absolute;
+                width: 1in;
+            }
+            #table
+            {
+                display: table;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+            p
+            {
+                margin-top: 1.5in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square at the top of the page.</p>
+        <div id="table">
+            <div id="caption"></div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

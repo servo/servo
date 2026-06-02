@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-source">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<meta name="assert" content="<textarea> with baseline-source: last generates sensible baselines.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  inline-size: 200px;
+  padding: 10px;
+  border: solid 3px;
+  position: relative;
+  line-height: 0;
+  font-size: 20px;
+  writing-mode: vertical-lr;
+}
+
+.inner {
+  border: solid 5px;
+  padding: 10px;
+  baseline-source: last;
+  font-size: 30px;
+}
+
+span {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  outline: solid cyan 3px;
+  outline-offset: -3px;
+}
+
+textarea {
+  border: solid 5px;
+  width: 60px;
+  height: 60px;
+  vertical-align: baseline;
+  font-family: Ahem;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.target > *')">
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner"></textarea>
+</div>
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner">X X X X X</textarea>
+</div>
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner" placeholder="X X X X X"></textarea>
+</div>
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner" style="font-size: 100px;"></textarea>
+</div>
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner" style="font-size: 100px;">X X X X X</textarea>
+</div>
+<div class="target">
+  <span data-offset-x="45"></span>
+  <textarea data-offset-x="10" class="inner" style="font-size: 100px;" placeholder="X X X X X"></textarea>
+</div>

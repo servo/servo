@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>::slotted rules should be associated with the correct cascade layers</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="host">
+  <div id="target"></target>
+</div>
+
+<script>
+const host = document.getElementById('host');
+host.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@layer {
+  ::slotted(*) {
+    background-color: green !important;
+  }
+}
+::slotted(*) {
+  background-color: red !important;
+}
+</style>
+<slot></slot>
+`;
+</script>

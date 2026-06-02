@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    i.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+      let iframe_constructor = i.contentWindow.DOMException;
+      i.remove();
+      assert_throws_dom("InvalidStateError", iframe_constructor, () => e.intercept());
+    });
+
+    i.contentWindow.location.href = "#1";
+  });
+}, "event.intercept() throws if used on an event from a detached iframe");
+</script>

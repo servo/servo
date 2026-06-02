@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Overflow: clip hit testing includes overflow in overflow-clip-margin</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<link rel="author" title="Scott Violet" href="mailto:wangxianzhu@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container" style="width: 100px; height: 100px;
+                           overflow: clip; overflow-clip-margin: 50px">
+  <div id="child" style="width: 300px; height: 50px"></div>
+</div>
+
+<script>
+test(() => {
+  var bounds = container.getBoundingClientRect();
+  assert_equals(child, document.elementFromPoint(bounds.x + 50, bounds.y + 20),
+                'in child and container');
+  assert_equals(child, document.elementFromPoint(bounds.x + 125, bounds.y + 25),
+                'in child and container overflow clip margin');
+  assert_equals(document.body, document.elementFromPoint(bounds.x + 175, bounds.y + 25),
+                'outside of container overflow, would in child without clip');
+  assert_equals(container, document.elementFromPoint(bounds.x + 50, bounds.y + 75),
+                'outside of child, in container');
+  assert_equals(document.documentElement,
+                document.elementFromPoint(bounds.x + 50, bounds.y + 125),
+                'in container overflow clip margin, but nothing there');
+}, "Ensure elements in overflow-clip-margin are returned from elementFromPoint");
+</script>

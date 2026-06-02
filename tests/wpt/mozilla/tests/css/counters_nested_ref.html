@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `counters` works with nested counters. -->
+<style>
+h1, h2, h3 {
+    font-size: 24px;
+}
+</style>
+</head>
+<body>
+<section>
+    <h1>1. Foo</h1>
+    <section>
+        <h2>1.1. Boo</h2>
+        <h2>1.2. Quux</h2>
+        <section>
+            <h3>1.2.1. Blah</h3>
+        </section>
+    </section>
+    <h1>1.3. Bar</h1>
+    <section></section>
+    <h2>1.1. Boo</h2>
+    <h2>1.2. Quux</h2>
+    <h1>1.3. Baz</h1>
+</section>
+</body>
+</html>
+

@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline specified with the ':hover' selector</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#outline-focus" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Outline works with the ':hover' selector." />
+        <style type="text/css">
+            span:hover
+            {
+                outline: 10px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box around the "Filler Text" below when the text is hovered over.</p>
+        <div>
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

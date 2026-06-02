@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/common.js"></script>
+</head>
+
+<body>
+  <style>
+    .placeholder {
+      top: 0px;
+      left: 0px;
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: black;
+      scroll-snap-align: start;
+    }
+    .space {
+      position: absolute;
+      height: 300vh;
+      width: 300vw;
+      top: 100px;
+      left: 100px;
+    }
+    .scroller {
+      overflow: scroll;
+      scroll-snap-type: both mandatory;
+      width: 550px;
+      height: 550px;
+      border: solid 1px black;
+      position: relative;
+      resize: both;
+    }
+    .box {
+      background-color: green;
+      height: 200px;
+      width: 200px;
+      scroll-snap-align: start;
+      position: absolute;
+      border: solid 1px white;
+    }
+    .row {
+      top: 100px;
+    }
+    .col {
+      left: 100px;
+    }
+    /* Place boxes 0 through 4 on a horizontal row. */
+    #box0 {
+      left: 300px;
+    }
+    #box1 {
+      left: 500px;
+    }
+    #box2 {
+      left: 700px;
+    }
+    #box3 {
+      left: 900px;
+    }
+    #box4 {
+      left: 1100px;
+    }
+    /* Place boxes 5 through 9 in a vertical column. */
+    #box5 {
+      top: 300px;
+    }
+    #box6 {
+      top: 500px;
+    }
+    #box7 {
+      top: 700px;
+    }
+    #box8 {
+      top: 900px;
+    }
+    #box9 {
+      top: 1100px;
+    }
+  </style>
+    <div id="scroller" class="scroller">
+      <!-- This placeholder is a snap target at the top-left of the
+      scroller. It gives the scroller an opportunity to scroll to the
+      snap targets, forcing the UA to run the snap point selection
+      algorithm. Each test case ensures the snap point selection algorithm is
+      invoked by:
+      - first resetting the scroller's scroll position to snap to the
+        placeholder,
+      - then configuring the tree-order and layout of the snap
+        targets as necessary,
+      - then scrolling to the snap areas and,
+      - finally, verifying that the correct snap area was selected.
+      Without the scroll from the placeholder to the snap targets, the UA would
+      be correct to simply make the scroller follow the previously selected snap
+      target (i.e. when there was no snap area aligned in both axes) even after
+      the layout changes made by the test. -->
+      <div class="placeholder"></div>
+      <div id="box0" class="row box">Box 0</div>
+      <div id="box1" class="row box">Box 1</div>
+      <div id="box2" class="row box">Box 2</div>
+      <div id="box3" class="row box">Box 3</div>
+      <div id="box4" class="row box">Box 4</div>
+      <div id="box5" class="col box">Box 5</div>
+      <div id="box6" class="col box">Box 6</div>
+      <div id="box7" class="col box">Box 7</div>
+      <div id="box8" class="col box">Box 8</div>
+      <div id="box9" class="col box">Box 9</div>
+      <div class="space" id="space">
+    </div>
+  <script>
+    window.onload = async () => {
+      const scroller = document.getElementById("scroller");
+      const boxes = document.querySelectorAll(".box");
+      const box = (n) => {
+        return boxes[n];
+      }
+
+      async function test(n) {
+        return promise_test(async (t) => {
+          await waitForScrollReset(t, scroller);
+          await waitForCompositorCommit();
+          const target = document.getElementById(`box${n}`);
+
+          assert_equals(scroller.scrollLeft, 0, "scrollLeft is reset");
+          assert_equals(scroller.scrollTop, 0, "scrollTop is reset");
+
+          // Make target the last in tree-order.
+          scroller.removeChild(target);
+          scroller.appendChild(target);
+
+          const old_style = getComputedStyle(target);
+          const old_top = old_style.top;
+          const old_left = old_style.left;
+
+          // Make target snap-aligned in both axes.
+          t.add_cleanup(async () => {
+            target.style.top = old_top;
+            target.style.left = old_left;
+          });
+          target.style.left = "100px";
+          target.style.top = "100px";
+
+          await runScrollSnapSelectionVerificationTest(t, scroller,
+            /*aligned_elements_x=*/[box(5), box(6), box(7), box(8), box(9)],
+            /*aligned_elements_y=*/[box(0), box(1), box(2), box(3), box(4)],
+            /*axis=*/"both",
+            /*expected_target_x*/target,
+            /*expected_target_y*/target);
+        }, `box${n} is common to both axes and is the snap target despite ` +
+          `being last in tree order.`);
+      }
+
+      await test(0);
+      await test(1);
+      await test(2);
+      await test(3);
+      await test(4);
+      await test(5);
+      await test(6);
+      await test(7);
+      await test(8);
+      await test(9);
+  }
+  </script>
+</body>
+<html>

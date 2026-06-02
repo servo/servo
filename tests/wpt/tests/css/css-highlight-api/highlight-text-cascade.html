@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Multiple custom highlight pseudo elements.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#creating-highlights">
+    <link rel="match" href="highlight-text-cascade-ref.html">
+    <meta name="assert" content="Multiple highlights should be able to be specified.">
+    <style>
+        #out::highlight(example-highlight) {
+            background-color: yellow;
+            color:green;
+        }
+        #scoped::highlight(example-highlight) {
+            background-color: blue;
+            color:red;
+        }
+    </style>
+</head>
+<body>
+    <div id="out"><span id="text1">One two three</span></div>
+    <div id="scoped"><span id="text2">four five six</span></div>
+    <span id="text3">seven eight nine</span>
+
+    <script>
+        let textElement1 = document.getElementById('text1');
+        let textElement2 = document.getElementById('text2');
+        let textElement3 = document.getElementById('text3');
+        let highlight = new Highlight(new StaticRange({startContainer: textElement1.childNodes[0], startOffset: 0, endContainer: textElement1.childNodes[0], endOffset: 3}));
+        highlight.add(new StaticRange({startContainer: textElement2.childNodes[0], startOffset: 5, endContainer: textElement2.childNodes[0], endOffset: 9}));
+
+        CSS.highlights.set("example-highlight", highlight);
+    </script>
+</body>
+</html>

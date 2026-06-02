@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#attributes-for-embedded-content-and-images:presentational-hints">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#attribute-case">
+<meta name="assert" content="@align values on embedded content and images are ASCII case-insensitive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img src="fuchsia.png" align="absbottom">
+<img src="fuchsia.png" align="AbSbOtToM">
+<img src="fuchsia.png" align="abſbottom">
+<img src="fuchsia.png" align="abscenter">
+<img src="fuchsia.png" align="AbScEnTeR">
+<img src="fuchsia.png" align="abſcenter">
+<img src="fuchsia.png" align="absmiddle">
+<img src="fuchsia.png" align="AbSmIdDlE">
+<img src="fuchsia.png" align="abſmiddle">
+<script>
+const img = document.querySelectorAll("img");
+
+test(() => {
+  assert_equals(getComputedStyle(img[0]).getPropertyValue("vertical-align"),
+    "bottom", "lowercase valid");
+  assert_equals(getComputedStyle(img[1]).getPropertyValue("vertical-align"),
+    "bottom", "mixed case valid");
+  assert_equals(getComputedStyle(img[2]).getPropertyValue("vertical-align"),
+    "baseline", "non-ASCII invalid");
+}, "keyword absbottom");
+
+test(() => {
+  assert_equals(getComputedStyle(img[3]).getPropertyValue("vertical-align"),
+    "middle", "lowercase valid");
+  assert_equals(getComputedStyle(img[4]).getPropertyValue("vertical-align"),
+    "middle", "mixed case valid");
+  assert_equals(getComputedStyle(img[5]).getPropertyValue("vertical-align"),
+    "baseline", "non-ASCII invalid");
+}, "keyword abscenter");
+
+test(() => {
+  assert_equals(getComputedStyle(img[6]).getPropertyValue("vertical-align"),
+    "middle", "lowercase valid");
+  assert_equals(getComputedStyle(img[7]).getPropertyValue("vertical-align"),
+    "middle", "mixed case valid");
+  assert_equals(getComputedStyle(img[8]).getPropertyValue("vertical-align"),
+    "baseline", "non-ASCII invalid");
+}, "keyword absmiddle");
+</script>

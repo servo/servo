@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: removing async attribute at runtime, script also has defer attribute</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="test"></div>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script id="async-script" async defer src="scripts/include-1.js?pipe=trickle(d3)"></script>
+
+        <script>
+          var t = async_test();
+          document.getElementById("async-script").removeAttribute("async");
+
+          addEventListener("DOMContentLoaded", t.step_func(function () {
+            assert_array_equals(eventOrder, []);
+          }), false);
+
+          addEventListener("load", t.step_func(function () {
+            assert_array_equals(eventOrder, ["external script #1"]);
+            t.done();
+          }), false);
+
+        </script>
+</body></html>

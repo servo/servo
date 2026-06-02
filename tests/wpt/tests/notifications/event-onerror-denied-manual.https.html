@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.onerror (permission=denied)</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_timeout: true })
+Notification.requestPermission()
+if (Notification.permission != "denied") {
+    alert("TEST NOT RUN. Change your browser settings so that notifications"
+        + " for this origin are blocked, and then reload this page.")
+} else {
+    async_test(function (t) {
+        t.step(function () {
+            var notification = new Notification("New Email Received")
+            notification.onerror = function(e) {
+                assert_equals(Object.prototype.toString.call(e), "[object Event]")
+                assert_equals(e.type, "error")
+                Notification.requestPermission()
+                t.done()
+            }
+        })
+    })
+}
+</script>

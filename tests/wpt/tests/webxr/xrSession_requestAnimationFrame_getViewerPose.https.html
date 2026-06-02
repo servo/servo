@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script src="resources/webxr_test_asserts.js"></script>
+
+  <script>
+
+    let immersiveTestName =
+      "XRFrame getViewerPose updates on the next frame for immersive sessions";
+    let nonImmersiveTestName =
+      "XRFrame getViewerPose updates on the next frame for non-immersive sessions";
+
+    let fakeDeviceInitParams = {
+      supportsImmersive: true,
+      supportedModes: ["inline", "immersive-vr"],
+      views: VALID_VIEWS,
+      supportedFeatures: ALL_FEATURES
+    };
+
+    // A valid pose matrix/transform for  when we don't care about specific values
+    // Note that these two should be identical, just different representations
+    const expectedPoseMatrix = [0, 1, 0, 0,
+                                0, 0, 1, 0,
+                                1, 0, 0, 0,
+                                1, 1, 1, 1];
+
+    const poseTransform = {
+        position: [1, 1, 1],
+        orientation: [0.5, 0.5, 0.5, 0.5]
+    };
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return session.requestReferenceSpace('local')
+        .then((referenceSpace) => new Promise((resolve, reject) => {
+          let counter = 0;
+          function onFrame(time, vrFrame) {
+            if (counter == 0) {
+              t.step( () => {
+                // Expecting to not get a pose since none has been supplied
+                assert_equals(vrFrame.getViewerPose(referenceSpace), null);
+
+                fakeDeviceController.setViewerOrigin(poseTransform);
+
+                // Check that pose does not update pose within the same frame.
+                assert_equals(vrFrame.getViewerPose(referenceSpace), null);
+              });
+
+              // In order to avoid race conditions, after we've set the viewer
+              // pose, we queue up the next requestAnimationFrame. This should
+              // ensure that the next frame will be able to get the appropriate
+              // pose.
+              // Note that since the next frame will immediately resolve and end
+              // the test we only need to request a new frame once, here.
+              session.requestAnimationFrame(onFrame);
+            } else {
+              t.step( () => {
+                let pose = vrFrame.getViewerPose(referenceSpace);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.transform.matrix;
+                assert_not_equals(poseMatrix, null);
+                assert_matrix_approx_equals(poseMatrix, expectedPoseMatrix);
+              });
+
+              // Finished.
+              resolve();
+            }
+            counter++;
+          }
+
+          session.requestAnimationFrame(onFrame);
+        }));
+    };
+
+    xr_session_promise_test(nonImmersiveTestName, testFunction,
+      fakeDeviceInitParams, 'inline', { 'requiredFeatures': ['local'] });
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+
+  </script>
+</body>

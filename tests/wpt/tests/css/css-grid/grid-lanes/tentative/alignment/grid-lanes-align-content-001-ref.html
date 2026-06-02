@@ -1,0 +1,194 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Grid Lanes layout with `align-content` in grid-lanes axis</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+grid {
+  display: inline-block;
+  color: #444;
+  border: 1px solid;
+  padding: 2px;
+  height: 100px;
+  width: 86px;
+  position: relative;
+}
+
+.multicolumn-content {
+  column-count: 4;
+  column-gap: 2px;
+  column-width: 20px;
+  height: max-content;
+}
+
+.column-item {
+  background-color: #444;
+  color: #fff;
+  width: 20px;
+  height: 15px;
+  break-inside: avoid;
+  margin-bottom: 1px;
+  line-height: 1em;
+}
+
+.tall { padding-top:30px;}
+
+.safe {
+  height: 10px;
+}
+
+</style>
+</head>
+<body>
+
+<grid style="align-content:start">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:start">
+  <div class="multicolumn-content">
+    <div class="column-item">1</div>
+    <div class="column-item">5</div>
+    <div class="column-item tall">2</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:safe start" class="safe">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:end">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:end">
+  <div class="multicolumn-content">
+    <div class="column-item">1</div>
+    <div class="column-item">5</div>
+    <div class="column-item tall">2</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:safe end" class="safe">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:center">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:center">
+  <div class="multicolumn-content">
+    <div class="column-item">1</div>
+    <div class="column-item">5</div>
+    <div class="column-item tall">2</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:safe center" class="safe">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:stretch">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:start">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:center">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>
+
+<grid style="align-content:center">
+  <div class="multicolumn-content">
+    <div class="column-item tall">1</div>
+    <div class="column-item">2</div>
+    <div class="column-item">5</div>
+    <div class="column-item">3</div>
+    <div class="column-item">6</div>
+    <div class="column-item">4</div>
+  </div>
+</grid>

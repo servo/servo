@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: flex-block-start-trimmed-only</title>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<link rel="match" href="flex-block-start-trimmed-only-ref.html">
+<meta name="assert" content="block-start should trim only margin block start of flex items">
+<style>
+flexbox {
+    display: flex;
+    width: min-content;
+    border: 1px black solid;
+    margin-trim: block-start;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+    margin-inline: 10px;
+    margin-block: 10px;
+}
+</style>
+</head>
+<body>
+<flexbox>
+<item></item>
+<item></item>
+<item></item>
+</flexbox>
+</body>
+</html>

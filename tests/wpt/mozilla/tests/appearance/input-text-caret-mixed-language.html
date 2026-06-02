@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text caret should be properly positioned in &lt;input&gt; with multiple fonts</title>
+    <link rel="mismatch" href="input-text-caret-mixed-language-ref.html">
+    <link rel="help" href="https://github.com/servo/servo/issues/42354">
+</head>
+
+<input id="input" value="A床">
+
+<script>
+    input.focus();
+    input.setSelectionRange(2, 2);
+</script>

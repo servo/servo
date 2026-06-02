@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background Position: bottom right and the viewport (fixed)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-20 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/bg-pos-4.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-bg-pos-204-ref.xht" />
+  <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-15" />
+
+<style type="text/css"><![CDATA[
+   html { background: bottom right url(support/diamond.png) fixed white no-repeat; color: black; }
+   html, body { margin: 0; border: 0; padding: 0; }
+   p { margin: 2em; }
+]]></style>
+
+</head>
+<body>
+<p>There should be a single fuchsia diamond at the bottom right of the viewport.</p></body>
+</html>

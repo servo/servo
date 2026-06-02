@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Content is not confined by containing blocks</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#containing-block" />
+  <link rel="match" href="containing-block-030-ref.xht" />
+
+  <meta content="may" name="flags" />
+  <meta content="Content may overflow containing blocks." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#containing-block
+  {
+  background-color: blue;
+  height: 1in;
+  padding-left: 5px;
+  width: 1in;
+  }
+
+  div#sole-child-with-taller-content
+  {
+  background-color: orange;
+  height: 2in;
+  width: 0.5in;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if the orange rectangle is within or overflows below and outside of the blue square.</p>
+
+  <div id="containing-block">
+   <div id="sole-child-with-taller-content"></div>
+  </div>
+
+ </body>
+</html>

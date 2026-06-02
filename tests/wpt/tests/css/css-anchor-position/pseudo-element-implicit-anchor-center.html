@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Originating element implicit anchor for pseudo elements using anchor-center</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#implicit">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #anchor {
+    display: flow-root;
+    margin-left: -50px;
+    margin-top: -50px;
+    width: 200px;
+    height: 200px;
+  }
+  #anchor::after {
+    content: "";
+    position: absolute;
+    position-anchor: auto;
+    width: 100px;
+    height: 100px;
+    background: green;
+    /* Should be centered inside #anchor */
+    place-self: anchor-center;
+  }
+  #ref {
+    margin-left: 50px;
+    margin-top: 50px;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="wrapper">
+  <div id="anchor">
+    <div id="ref"></div>
+  </div>
+</div>

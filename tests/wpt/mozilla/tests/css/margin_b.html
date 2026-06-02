@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <title>margin</title>
+    <style>
+      html {
+          font-size: 15px;
+      }
+      div {
+        background: yellow;
+        padding: 10px 10px 10px 10px;
+        margin: 10px 10px 10px 10px;
+      }
+      p {
+        color: white;
+        background: blue;
+        padding: 10px 10px 10px 10px;
+        margin: 10px 10px 10px 10px;
+        border-style: solid;
+        border-width: medium;
+        border-color: red;
+      }
+      .nomargin {
+        margin: 0px 10px 0px 10px;
+      }
+      .margin5 {
+        margin: 5px 10px 5px 10px;
+      }
+      .margin10 {
+        margin: 10px 10px 10px 10px;
+      }
+      .margin15 {
+        margin: 15px 10px 15px 10px;
+      }
+      .margin25 {
+        margin: 25px 10px 25px 10px;
+      }
+      .nopadding {
+        padding: 0px 0px 0px 0px;
+      }
+      .noborder {
+        border: 0px 0px 0px 0px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div>
+      <p class="margin15">p1</p>
+      <p class="margin5">p2</p>
+      <p class="margin15">p3</p>
+    </div>
+    <div class="nopadding" class="noborder" class="margin15">
+      <p>p4</p>
+      <p>p5</p>
+    </div>
+    <div class="margin10">
+      <p class="margin10">p6</p>
+      <p class="nomargin">p7</p>
+      <p class="margin15">p8</p>
+    </div>
+    <div class="nopadding" class="noborder" class="margin15">
+      <p class="nomargin">p9</p>
+    </div>
+    <div class="nopadding" class="noborder" class="nomargin">
+      <p class="margin15">p10</p>
+    </div>
+    <div class="nopadding" class="noborder" class="nomargin">
+      <p class="margin10">p11</p>
+    </div>
+    <div class="nopadding" class="noborder" class="nomargin">
+      <p class="margin25">p12</p>
+    </div>
+  </body>
+</html>

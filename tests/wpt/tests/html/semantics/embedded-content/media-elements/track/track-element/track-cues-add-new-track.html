@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Adding a new track with a cue during playback should fire events</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+</video>
+<script>
+async_test(t => {
+    const video = document.querySelector("video");
+    let trackAdded = false;
+    let cue1Entered = false;
+    let cue1Exited = false;
+    let cue2Entered = false;
+    let cue2Exited = false;
+
+    // Test Case 1: Track added before video.play()
+    const track1 = video.addTextTrack("subtitles");
+    let cue1 = new VTTCue(0.1, 0.3, "Cue1");
+    cue1.onenter = t.step_func(() => {
+        cue1Entered = true;
+    });
+    cue1.onexit = t.step_func(() => {
+        cue1Exited = true;
+        maybeDone();
+    });
+    track1.addCue(cue1);
+
+    video.ontimeupdate = t.step_func(() => {
+        // Test Case 2: Add a new track after video starts playing.
+        if (!trackAdded && video.currentTime > 0.1) {
+            trackAdded = true;
+            const track2 = video.addTextTrack("subtitles");
+            let cue2 = new VTTCue(video.currentTime + 0.1, video.currentTime + 0.3, "Cue2");
+            cue2.onenter = t.step_func(() => {
+                cue2Entered = true;
+            });
+            cue2.onexit = t.step_func(() => {
+                cue2Exited = true;
+                maybeDone();
+            });
+            track2.addCue(cue2);
+        }
+
+        if (video.currentTime > 1.0) {
+            video.ontimeupdate = null;
+            // Fail the test if not all events have fired by now
+            assert_true(cue1Entered, "Cue1 should have entered");
+            assert_true(cue1Exited, "Cue1 should have exited");
+            assert_true(cue2Entered, "Cue2 should have entered");
+            assert_true(cue2Exited, "Cue2 should have exited");
+            t.done();
+        }
+    });
+
+    function maybeDone() {
+        if (cue1Entered && cue1Exited && cue2Entered && cue2Exited) {
+            video.ontimeupdate = null;
+            t.done();
+        }
+    }
+
+    video.src = getVideoURI("/media/test");
+    video.play();
+});
+</script>

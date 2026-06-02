@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#alignment">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<title>A baseline outside a single flex-item shouldn't affect the size of the flex-line.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; width: 100px; align-items: baseline; background: red;">
+  <div style="height: 100px; background: green; min-width: 100px;">
+     <div style="margin-top: 200px; color: transparent;">baseline</div>
+  </div>
+</div>

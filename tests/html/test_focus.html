@@ -1,0 +1,7 @@
+<body>
+<input id="focused">
+<script>
+  document.body.addEventListener('keydown', function() { alert("body"); }, false);
+  document.getElementById('focused').addEventListener('keydown', function() { alert("input"); }, false);
+</script>
+</body>

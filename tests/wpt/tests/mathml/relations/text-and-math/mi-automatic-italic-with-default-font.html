@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mathematica Alphanumeric Italic with default font</title>
+    <meta name="assert" content="Verify italic mi are not rendered with Tofu.">
+    <meta charset="utf-8"/>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute"/>
+    <link rel="mismatch" href="mi-automatic-italic-with-default-font-ref.html"/>
+  </head>
+  <body>
+
+    <!-- The lowercase italic o should be smaller than the uppercase italic X
+         (this will fail if missing char boxes are used) -->
+    <math><mstyle mathbackground="red"><mphantom><mi>o</mi></mphantom></mstyle></math>
+
+  </body>
+</html>

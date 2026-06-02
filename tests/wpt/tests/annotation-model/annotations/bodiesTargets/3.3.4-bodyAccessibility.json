@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.4-bodyAccessibility.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Body may include accessibility key which has one or more values.",
+    "title": "Implements **body _accessibility_ key** which has one or more values - [model 3.3.4](#https://www.w3.org/TR/annotation-model/#accessibility-of-content)",
+    "description": "True when Annotation includes one or more Bodies, one or more of which include accessibility key which has one or more values. (Section 3.3.4)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/accessibilityPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemAccessibilityPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceAccessibilityPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/accessibilityPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemAccessibilityPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceAccessibilityPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+
+                     ]
+         }
+     }
+}

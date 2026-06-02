@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    promise_setup(async () => {
+        // Ensure permission is granted before proceeding.
+        await test_driver.bidi.permissions.set_permission({
+            descriptor: {name: "geolocation"},
+            state: "granted",
+        });
+    });
+
+    promise_test(async (t) => {
+        t.add_cleanup(async () => {
+            await test_driver.bidi.emulation.set_geolocation_override(
+                {coordinates: null});
+        });
+
+        const latitude = 51.478;
+        const longitude = -0.166;
+        const accuracy = 100;
+
+        await test_driver.bidi.emulation.set_geolocation_override({
+            coordinates: {latitude, longitude, accuracy}
+        });
+
+        const position = await new Promise(
+            (resolve, reject) =>
+                window.navigator.geolocation.getCurrentPosition(
+                    position => resolve(position.coords.toJSON()),
+                    error => reject(error),
+                    {timeout: 200}
+                ));
+
+        assert_equals(position.latitude, latitude);
+        assert_equals(position.longitude, longitude);
+        assert_equals(position.accuracy, accuracy);
+    }, "Tests Geolocation success callback");
+</script>

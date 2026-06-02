@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: hit test shared element at the real dom location</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="hit-test-unpainted-element-ref.html">
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+html { view-transition-name: none }
+div {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  view-transition-name: shared;
+}
+.before {
+  position: relative;
+  background: yellow;
+  left: 200px;
+}
+.after {
+  background: green;
+}
+.after:hover {
+  background: red;
+}
+
+html::view-transition-group(shared) {
+  animation-delay: 300s;
+}
+html::view-transition-old(shared) {
+  animation: unset;
+  opacity: 0;
+}
+html::view-transition-new(shared) {
+  animation: unset;
+  opacity: 1;
+}
+</style>
+
+<div id=target class=before></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function mouseMoveToTarget(x, y) {
+  return new test_driver.Actions().pointerMove(x, y).send();
+}
+
+async function runTest() {
+  document.startViewTransition(() => {
+    target.classList.toggle("before");
+    target.classList.toggle("after");
+    // Ensure that we exit the capture phase before doing the rest of the test,
+    // since we want the animating phase to do hit-testing.
+    requestAnimationFrame(async () => {
+      await mouseMoveToTarget(10, 10);
+      requestAnimationFrame(takeScreenshot);
+    });
+  });
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

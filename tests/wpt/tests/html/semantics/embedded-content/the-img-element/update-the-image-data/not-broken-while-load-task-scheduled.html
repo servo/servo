@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Image shouldn't be broken while load task is scheduled.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async function run_test(prop) {
+  let img = new Image();
+  img.width = 50;
+  img.height = 50;
+  img.alt = "Anything non-empty";
+  img[prop] = `/images/green.png?not-broken-while-load-task-scheduled-` + Math.random();
+  let load = new Promise(r => img.addEventListener("load", r, { once: true }));
+  document.body.appendChild(img);
+
+  assert_equals(img.clientWidth, 50, "clientWidth");
+  assert_equals(img.clientHeight, 50, "clientHeight");
+  assert_equals(getComputedStyle(img).height, "50px", "Computed height");
+  assert_equals(getComputedStyle(img).width, "50px", "Computed height");
+
+  await load;
+
+  assert_equals(img.clientWidth, 50, "clientWidth");
+  assert_equals(img.clientHeight, 50, "clientHeight");
+  assert_equals(getComputedStyle(img).height, "50px", "Computed height");
+  assert_equals(getComputedStyle(img).width, "50px", "Computed height");
+}
+
+promise_test(() => run_test("src"));
+promise_test(() => run_test("srcset"));
+</script>

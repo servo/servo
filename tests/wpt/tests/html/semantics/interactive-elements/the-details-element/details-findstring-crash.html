@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1264507">
+
+<script>
+window.onload = () => {
+  window.getSelection().selectAllChildren(document.body);
+  document.querySelector('object').remove();
+  document.execCommand('FindString',false,0);
+};
+</script>
+
+<details>
+  <object id='id6'></object>
+</details>

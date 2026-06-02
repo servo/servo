@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: same-origin service worker should not be treated as TAO-fail</title>
+
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/largest-contentful-paint-helpers.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+  <script>
+    setup(() => {
+      assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    });
+
+    promise_test(async t => {
+      const scope = "resources/lcp-sw.https.html";
+
+      const registration =
+          await service_worker_unregister_and_register(t, "resources/lcp-sw-from-cache.js", "resources/");
+
+      await wait_for_state(t, registration.installing, "activated");
+      t.add_cleanup(() => registration.unregister());
+      const iframe = document.createElement("iframe");
+      iframe.src = scope;
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+      const entry = await new Promise(resolve => window.addEventListener("message", e => resolve(e.data)));
+
+      assert_equals(entry.id, "theImage");
+      assert_not_equals(entry.renderTime, 0);
+    }, "Same-origin images served from a service-worker should have a correct renderTime");
+</script>
+</body>

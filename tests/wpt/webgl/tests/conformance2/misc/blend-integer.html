@@ -1,0 +1,178 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Blend Integer Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="outputVertexShader" type="x-shader/x-vertex">
+#version 300 es
+in vec4 vPosition;
+void main()
+{
+  gl_Position = vPosition;
+}
+</script>
+<script id="outputFragmentShaderSigned" type="x-shader/x-fragment">
+#version 300 es
+layout(location = 1) out highp vec4 o_drawBuffer1;
+layout(location = 2) out highp ivec4 o_drawBuffer2;
+layout(location = 3) out highp vec4 o_drawBuffer3;
+void main(void)
+{
+  o_drawBuffer1 = vec4(0, 0, 0, 0);
+  o_drawBuffer2 = ivec4(0, 0, 0, 0);
+  o_drawBuffer3 = vec4(0, 0, 0, 0);
+}
+</script>
+<script id="outputFragmentShaderUnsigned" type="x-shader/x-fragment">
+  #version 300 es
+  layout(location = 1) out highp vec4 o_drawBuffer1;
+  layout(location = 2) out highp uvec4 o_drawBuffer2;
+  layout(location = 3) out highp vec4 o_drawBuffer3;
+  void main(void)
+  {
+    o_drawBuffer1 = vec4(0, 0, 0, 0);
+    o_drawBuffer2 = uvec4(0, 0, 0, 0);
+    o_drawBuffer3 = vec4(0, 0, 0, 0);
+  }
+  </script>
+
+<script>
+"use strict";
+description("This test verifies correct behavior of min/max blending operations on integer attachments.");
+
+debug("");
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext(null, undefined, 2);
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  debug("")
+  debug("GL_MIN");
+  runTest(false, gl.MIN);
+  runTest(true, gl.MIN);
+
+  debug("")
+  debug("GL_MAX");
+  runTest(false, gl.MAX);
+  runTest(true, gl.MAX);
+}
+
+function compareValue(value, attachment, isSigned) {
+  const pixel = isSigned ? new Int32Array(4) : new Uint32Array(4);
+  gl.readBuffer(attachment);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA_INTEGER, isSigned ? gl.INT : gl.UNSIGNED_INT, pixel);
+  let pass = true;
+  for (let i = 0; i < 4; i++) {
+    if (value[i] != pixel[i]) {
+      testFailed(`Read value of channel ${i} should be ${pixel[i]}, was ${value[i]}.`);
+      pass = false;
+    }
+  }
+  return pass;
+}
+
+function runTest(isSigned, operation) {
+  gl.viewport(0, 0, 1, 1);
+  gl.disable(gl.BLEND);
+
+  const program = wtu.setupProgram(gl,
+    ["outputVertexShader",
+      isSigned ? "outputFragmentShaderSigned" : "outputFragmentShaderUnsigned"],
+    ['vPosition'], [0]);
+  const quadParameters = wtu.setupUnitQuad(gl, 0, 1);
+
+  // Setup render targets
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  const rb1 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb1);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 50, 50);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, rb1);
+
+  const rb2 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb2);
+  gl.renderbufferStorage(gl.RENDERBUFFER, isSigned ? gl.RGBA32I : gl.RGBA32UI, 50, 50);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.RENDERBUFFER, rb2);
+
+  const rb3 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb3);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 50, 50);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.RENDERBUFFER, rb3);
+
+  gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Pipeline setup complete.");
+
+  if (isSigned) {
+    const clearValue = new Int32Array([-1, 2, -3, 4]);
+    gl.clearBufferiv(gl.COLOR, 2, clearValue);
+    if (compareValue(clearValue, gl.COLOR_ATTACHMENT2, isSigned)) {
+      testPassed("Signed clear passed.");
+    } else {
+      testFailed("Signed clear failed.");
+    }
+  } else {
+    const clearValue = new Uint32Array([1, 2, 3, 4]);
+    gl.clearBufferuiv(gl.COLOR, 2, clearValue);
+    if (compareValue(clearValue, gl.COLOR_ATTACHMENT2, isSigned)) {
+      testPassed("Unsigned clear passed.");
+    } else {
+      testFailed("Unsigned clear failed.");
+    }
+  }
+
+  gl.blendEquation(operation);
+  gl.enable(gl.BLEND);
+
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Draw complete.");
+
+  if (isSigned) {
+    const drawValue = new Int32Array([0, 0, 0, 0]);
+    if (compareValue(drawValue, gl.COLOR_ATTACHMENT2, isSigned)) {
+      testPassed("Signed draw passed.");
+    } else {
+      testFailed("Signed draw failed.");
+    }
+  } else {
+    const drawValue = new Uint32Array([0, 0, 0, 0]);
+    if (compareValue(drawValue, gl.COLOR_ATTACHMENT2, isSigned)) {
+      testPassed("Unsigned draw passed.");
+    } else {
+      testFailed("Unsigned draw failed.");
+    }
+  }
+  gl.deleteRenderbuffer(rb1);
+  gl.deleteRenderbuffer(rb2);
+  gl.deleteRenderbuffer(rb3);
+  gl.deleteFramebuffer(fb);
+  gl.deleteProgram(program);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html contenteditable="true">
+<head>
+<meta charset="utf-8">
+<title>Test for bug 615450 of Mozilla</title>
+<script>
+function boom()
+{
+  document.documentElement.appendChild(document.body);
+  document.documentElement.contentEditable = "false";
+  try { document.execCommand("outdent", false, null); } catch(e) { }
+  document.body.contentEditable = "true";
+  try { document.execCommand("inserthtml", false, "x"); } catch(e) { }
+}
+</script>
+</head>
+<body onload="boom();"><div style="margin-left: 40px;"><span contenteditable="true">p q r s</span> T</div></body></html>

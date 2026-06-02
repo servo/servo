@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Beacon (https://w3c.github.io/beacon/)
+
+partial interface Navigator {
+    boolean sendBeacon(USVString url, optional BodyInit? data = null);
+};

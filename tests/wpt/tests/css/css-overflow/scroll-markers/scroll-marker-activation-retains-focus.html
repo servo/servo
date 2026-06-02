@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker retains focus on ::scroll-marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    width: 40px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    width: 100px;
+    height: 20px;
+    background-color: green;
+    display: inline-block;
+  }
+
+  #scroller div::scroll-marker:focus {
+    background-color: blue;
+  }
+</style>
+<div id="scroller">
+  <div id="target"></div>
+  <div></div>
+</div>
+<script>
+  promise_test(async t => {
+    actions_promise = new test_driver.Actions()
+      .pointerMove(15, 15)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(0, 0, 255)", "::scroll-marker activation retains focus");
+  });
+</script>

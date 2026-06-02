@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { opacity: 0 }
+    to { opacity: 1 }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin: 800px 0px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto linear;
+    animation-timeline: --t1;
+    view-timeline:  --t1 block;
+    animation-range-start:  entry 0%;
+    animation-range-end:  entry 100%;
+    /* Sentinel value when in before or after phase of the animation. */
+    opacity: 0.96875;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+
+    function assert_opacity_equals(expected, errorMessage) {
+      assert_approx_equals(
+          parseFloat(getComputedStyle(target).opacity), expected, 1e-6,
+                     errorMessage);
+    }
+
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anim = document.getAnimations()[0];
+      await anim.ready;
+
+      await waitForNextFrame();
+      scroller.scrollTop = 650;
+      await waitForNextFrame();
+
+      const baseOpacity = 0.96875;
+      // Delays are percentages.
+      const testData = [
+         { delay: 0, endDelay: 0, opacity: 0.5 },
+         { delay: 20, endDelay: 0, opacity: 0.375 },
+         { delay: 0, endDelay: 20, opacity: 0.625 },
+         { delay: 20, endDelay: 20, opacity: 0.5 },
+         // Negative delays.
+         { delay: -25, endDelay: 0, opacity: 0.6 },
+         { delay: 0, endDelay: -25, opacity: 0.4 },
+         { delay: -25, endDelay: -25, opacity: 0.5 },
+         // Stress tests with >= 100% total delay. Verify effect is inactive.
+         { delay: 100, endDelay: 0, opacity: baseOpacity },
+         { delay: 0, endDelay: 100, opacity: baseOpacity },
+         { delay: 100, endDelay: 100, opacity: baseOpacity }
+      ];
+
+      testData.forEach(test => {
+        anim.effect.updateTiming({
+          delay: CSS.percent(test.delay),
+          endDelay: CSS.percent(test.endDelay)
+        });
+        assert_opacity_equals(
+            test.opacity,
+            `Opacity when delay=${test.delay} and endDelay=${test.endDelay}`);
+      });
+    }, 'ViewTimeline with animation delays and range');
+  }
+
+  window.onload = runTest;
+
+</script>
+</html>

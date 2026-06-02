@@ -1,0 +1,4 @@
+features:
+- name: width-height
+  files:
+  - sizing-properties-computed.svg

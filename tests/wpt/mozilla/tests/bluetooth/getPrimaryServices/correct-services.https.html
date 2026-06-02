@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.two_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryServices(heart_rate.name))
+    .then(services => Promise.all([
+        services[0].getCharacteristics(),
+        services[1].getCharacteristics()]))
+    .then(characteristics_arrays => {
+        assert_equals(characteristics_arrays[0].length, 2);
+        assert_equals(characteristics_arrays[1].length, 1);
+    });
+}, 'Find correct services with UUID.');
+</script>

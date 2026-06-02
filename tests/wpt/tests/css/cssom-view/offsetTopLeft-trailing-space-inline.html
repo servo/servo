@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#extensions-to-the-htmlelement-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  .container {
+    position: relative;
+    width: 8em;
+    height: 7em;
+    padding: 1em;
+  }
+</style>
+<div class="container" style="writing-mode:horizontal-tb;">
+  <br><span>ref</span><span class="target"> </span>
+</div>
+<div class="container" style="writing-mode:vertical-lr;">
+  <br><span>ref</span><span class="target"> </span>
+</div>
+<div class="container" style="writing-mode:vertical-rl;">
+  <br><span>ref</span><span class="target"> </span>
+</div>
+<script>
+var i = 0;
+document.querySelectorAll('span.target').forEach((target) => {
+  var ref = target.previousSibling;
+  test(() => {
+    assert_equals(target.offsetLeft,
+                  ref.offsetLeft + (i ? 0 : ref.offsetWidth),
+                  'offsetLeft');
+    assert_equals(target.offsetTop,
+                  ref.offsetTop + (i ? ref.offsetHeight : 0),
+                  'offsetTop');
+  }, 'offsetTop/Left of empty inline elements should work as if they were not empty: ' + i);
+  i++;
+});
+</script>

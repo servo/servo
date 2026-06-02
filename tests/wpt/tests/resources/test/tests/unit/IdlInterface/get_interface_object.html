@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<title>IdlInterface.prototype.get_interface_object()</title>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+"use strict";
+test(function() {
+    window.A = {};
+    var i = interfaceFrom('interface A { };');
+    assert_equals(i.get_interface_object(), window.A);
+}, 'Interface does not have LegacyNamespace.');
+
+test(function() {
+    window.Foo = { A: {} };
+    var i = interfaceFrom('[LegacyNamespace=Foo] interface A { }; namespace Foo { };');
+    assert_equals(i.get_interface_object(), window.Foo.A);
+}, 'Interface has LegacyNamespace');
+</script>

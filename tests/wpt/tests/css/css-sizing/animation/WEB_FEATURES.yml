@@ -1,0 +1,4 @@
+features:
+- name: box-sizing
+  files:
+  - box-sizing-no-interpolation.html

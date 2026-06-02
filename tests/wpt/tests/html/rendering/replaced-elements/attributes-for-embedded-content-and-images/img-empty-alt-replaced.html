@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Images with an empty alt attribute have an intrinsic size of zero</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img {
+    width: 50px;
+    height: auto;
+  }
+</style>
+<img src="broken">
+<img src="broken" alt="non-empty">
+<img src="broken" alt="">
+<script>
+const t = async_test("Images with an empty alt attribute have an intrinsic size of zero");
+onload = t.step_func_done(function() {
+  for (const img of document.querySelectorAll("img")) {
+    const alt = img.getAttribute("alt");
+    const shouldTakeUpSpace = alt == null || alt.length > 0;
+    (shouldTakeUpSpace ? assert_not_equals : assert_equals)(img.offsetHeight, 0, img.outerHTML);
+  }
+});
+</script>

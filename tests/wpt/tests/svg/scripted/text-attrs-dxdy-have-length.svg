@@ -1,0 +1,23 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#text-TSpanNotes"/>
+    <h:meta name="assert" content="dx and dy attributes on text elements are lists that support length()"/>
+</metadata>
+  <text id="text" font-family="Verdana" font-size="55" fill="blue"
+    y="150"
+    x="120"
+    dx="60 90 -30 120 60 -257"
+    dy="0 12 24 12 0 -12 -24 -12 0"
+    >His socks are black.</text>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    test(function() {
+      var text = document.getElementById('text');
+      assert_equals(text.dx.baseVal.length, 6);
+      assert_equals(text.dy.baseVal.length, 9);
+    });
+  ]]></script>
+</svg>

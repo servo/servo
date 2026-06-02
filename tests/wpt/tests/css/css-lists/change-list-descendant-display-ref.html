@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: test the change of descendant's display</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+.inline {
+  display: inline;
+}
+</style>
+<ol>
+  <li><div class="target inline">text</div></li>
+  <li><div class="target">text</div></li>
+  <li><div><div class="target inline">text</div></div></li>
+  <li><div><div class="target">text</div></div></li>
+  <li><div><div><div class="target inline">text</div></div></div></li>
+  <li><div><div><div class="target">text</div></div></div></li>
+</ol>

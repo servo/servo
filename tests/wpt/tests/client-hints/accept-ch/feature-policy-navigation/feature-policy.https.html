@@ -1,0 +1,29 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="/client-hints/resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    cross_origin_client_hints,
+    "",
+    "Client hints loaded on cross-origin iframe request with feature policy.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    same_origin_client_hints,
+    "",
+    "Client hints loaded on same-origin iframe request with feature policy.");
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    cross_origin_client_hints,
+    "",
+    "Client hints loaded on cross-origin iframe request with feature policy after attempting to set independently.");
+})();
+
+</script>
+</body>
+</html>

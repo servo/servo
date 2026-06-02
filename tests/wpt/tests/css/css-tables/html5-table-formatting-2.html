@@ -1,0 +1,150 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='./support/base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#missing-cells-fixup">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#dimensioning-the-row-column-grid">
+<main>
+
+    <h1>HTML5 Table Formatting algorithm (row/column grid computation)</h1>
+    <p>Verifies how browsers deal with explicit tracks from which no cell does originate</p>
+
+    <hr/>
+    <p>This should be a 100px by 100px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <x-table style="background: blue;">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"></x-tr>
+        <x-tr style="height: 50px"></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 175px by 175px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <p>Three 25px border-spacing causes the addition of 75px</p>
+    <x-table style="background: blue; border-spacing: 25px">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"></x-tr>
+        <x-tr style="height: 50px"></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 175px by 175px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <p>Three 25px border-spacing causes the addition of 75px</p>
+    <x-table style="background: blue; border-spacing: 25px">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"><x-td></x-td><x-td></x-td></x-tr>
+        <x-tr style="height: 50px"></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 175px by 175px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <p>Three 25px border-spacing causes the addition of 75px</p>
+    <x-table style="background: blue; border-spacing: 25px">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"></x-tr>
+        <x-tr style="height: 50px"><x-td></x-td><x-td></x-td></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 175px by 175px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <p>Three 25px border-spacing causes the addition of 75px</p>
+    <x-table style="background: blue; border-spacing: 25px">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"><x-td></x-td><x-td></x-td></x-tr>
+        <x-tr style="height: 50px"><x-td></x-td><x-td></x-td></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 175px by 175px blue square:</p>
+    <p>The table grid is 2x2, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <p>The consecutive tracks are not merged together because they are all defined explicitely by a table-column or a table-row</p>
+    <p>Three 25px border-spacing causes the addition of 75px</p>
+    <x-table style="background: blue; border-spacing: 25px">
+        <x-col style="width: 50px"></x-col>
+        <x-col style="width: 50px"></x-col>
+        <x-tr style="height: 50px"><x-td></x-td></x-tr>
+        <x-tr style="height: 50px"><x-td></x-td></x-tr>
+    </x-table>
+
+</main>
+
+<script>
+
+    generate_tests(assert_equals, [
+        [
+            "Explicitely defined columns are not merged",
+            document.querySelector("x-table:nth-of-type(1)").offsetWidth,
+            100
+        ],
+        [
+            "Explicitely defined rows are not merged",
+            document.querySelector("x-table:nth-of-type(1)").offsetHeight,
+            100
+        ],
+        [
+            "Border-spacing is added between any two unmerged columns (1)",
+            document.querySelector("x-table:nth-of-type(2)").offsetWidth,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged rows (1)",
+            document.querySelector("x-table:nth-of-type(2)").offsetHeight,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged columns (2)",
+            document.querySelector("x-table:nth-of-type(3)").offsetWidth,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged rows (2)",
+            document.querySelector("x-table:nth-of-type(3)").offsetHeight,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged columns (3)",
+            document.querySelector("x-table:nth-of-type(4)").offsetWidth,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged rows (3)",
+            document.querySelector("x-table:nth-of-type(4)").offsetHeight,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged columns (4)",
+            document.querySelector("x-table:nth-of-type(5)").offsetWidth,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged rows (4)",
+            document.querySelector("x-table:nth-of-type(5)").offsetHeight,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged columns (5)",
+            document.querySelector("x-table:nth-of-type(6)").offsetWidth,
+            175
+        ],
+        [
+            "Border-spacing is added between any two unmerged rows (5)",
+            document.querySelector("x-table:nth-of-type(6)").offsetHeight,
+            175
+        ],
+    ])
+
+</script>

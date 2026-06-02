@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: parsing inset-block and inset-inline with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-inset-block">
+<meta name="assert" content="inset-block, inset-inline support only the grammar '<'top'>{1,2}'.">
+<meta name="assert" content="inset-block, inset-inline longhands support only the grammar '<'top'>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("inset-block-start", "none");
+test_invalid_value("inset-block-end", "10");
+test_invalid_value("inset-inline-start", "20% calc(10px - 0.5em)");
+test_invalid_value("inset-inline-end", "10px, auto");
+
+test_invalid_value("inset-block", "none");
+test_invalid_value("inset-block", "20%, calc(10px - 0.5em)");
+test_invalid_value("inset-inline", "10px auto 20px");
+</script>
+</body>
+</html>

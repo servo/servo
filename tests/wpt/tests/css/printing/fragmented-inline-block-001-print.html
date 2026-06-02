@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>test that inline-blocks are fragmented in print output</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1740304">
+  <meta name="reftest-pages" content="10">
+  <link rel="mismatch" href="/css/reference/blank.html">
+  <style>
+    .inline-block {
+      display: inline-block;
+    }
+    li { height: 1in; }
+  </style>
+</head>
+<body>
+  <!-- This test is expecting there to be content on page 10, as a
+       regression-test for a bug where each page was progressively
+       more-clipped, which caused later pages (e.g. page 10) to be fully-blank.
+       In this testcase, we have 40 1-inch-tall numbered list-items, which
+       collectively are 40 inches tall. This is tall enough to ensure that
+       we'll have at least 10 pages, given that our pages are each 3 inches
+       tall. -->
+  <div class="inline-block">
+    <ol>
+      <li><li><li><li><li><li><li><li><li><li>
+      <li><li><li><li><li><li><li><li><li><li>
+      <li><li><li><li><li><li><li><li><li><li>
+      <li><li><li><li><li><li><li><li><li><li>
+    </ol>
+  </div>
+</body>
+</html>

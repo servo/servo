@@ -1,0 +1,27 @@
+<!doctype>
+<meta charset="utf-8">
+<title>CSS Test: Text is not incorrectly clipped in presence of perspective.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1494685">
+<link rel="mismatch" href="about:blank">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+.container {
+  perspective: 1px;
+}
+.heading {
+  transform: translateZ(-9px) scale(10);
+}
+h1 {
+  font-size: 100px;
+}
+</style>
+<div class="container">
+  <div class="heading">
+    <h1>X</h1>
+  </div>
+</div>

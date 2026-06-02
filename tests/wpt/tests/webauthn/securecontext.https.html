@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebAuthn Secure Context Tests</title>
+<link rel="author" title="Adam Powers" href="mailto:adam@fidoalliance.org">
+<link rel="help" href="https://w3c.github.io/webauthn/#iface-credential">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=helpers.js></script>
+<body></body>
+<script>
+"use strict";
+
+// See https://www.w3.org/TR/secure-contexts/
+// Section 1.1 - 1.4 for list of examples referenced below
+
+// Example 2
+// https://example.com/ opened in a top-level browsing context is a secure context, as it was delivered over an authenticated and encrypted channel.
+test (() => {
+    assert_true (typeof navigator.credentials === "object" && typeof navigator.credentials.create === "function");
+}, "navigator.credentials.create exists in secure context");
+
+// Example 3: TODO
+// Example 5: TODO
+// Example 8: TODO
+// Example 10: TODO
+// Example 11: TODO
+
+</script>

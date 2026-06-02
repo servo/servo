@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+let dataArray = [];
+for (let i = 0; i < 100000; i++)
+  dataArray.push('');
+
+let iterableData = {
+  [Symbol.iterator]() {
+    var count = 0;
+    return {
+      next() {
+        if (count >= dataArray.length)
+          return {done: true};
+        return {done: false, value: dataArray[count++]};
+      }
+    }
+  }
+};
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "This benchmark measures the overhead of converting JavaScript objects into WebIDL sequences (slow path using the @@iteratorprotocol)",
+  run: function() {
+    new Blob(iterableData);
+  }});
+</script>
+</body>
+</html>

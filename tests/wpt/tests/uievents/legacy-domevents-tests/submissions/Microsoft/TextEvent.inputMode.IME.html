@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> TextEvent: inputMode with DOM_INPUT_METHOD_IME </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "textInput";
+            var TARGET;
+
+            function TestEvent(evt)
+            {
+                TARGET.removeEventListener(EVENT, TestEvent, true);
+                if ((0x04 == evt.inputMode) && ("あ" == evt.data))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: TextEvent.inputMode is DOM_INPUT_METHOD_IME  (0x04)
+            when the text string was entered through an Input Method Editor.
+        </h4>
+
+        <span id="parent">
+            <input id="target" type="text" />
+        </span>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Open Japanese Microsoft IME and select Hiragana input method
+                <li> Click at the above textbox and then type 'a' using keyboard
+                <li> Press '{ENTER}' key to complete the IME composition
+            </ol>
+        </p>
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

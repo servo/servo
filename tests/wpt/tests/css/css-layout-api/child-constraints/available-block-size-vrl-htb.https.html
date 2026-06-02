@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting the available block-size of children works as expected." />
+
+<style>
+.test {
+  writing-mode: vertical-rl;
+  background: red;
+  height: 100px;
+}
+
+.child {
+  writing-mode: horizontal-tb;
+  visibility: hidden;
+  line-height: 0;
+
+  --available-block-size: 20;
+}
+
+.inline {
+  display: inline-block;
+  height: 8px;
+}
+
+.inline-size-10 { width: 10px; }
+.inline-size-30 { width: 30px; }
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- As the inlines don't fit within 20px, we'll end up with two lines. -->
+  <div class="child" style="--block-size-expected: 30; --inline-size-expected: 16;">
+    <span class="inline inline-size-10"></span>
+    <span class="inline inline-size-30"></span>
+  </div>
+
+  <!-- The single inline doesn't take up the whole 20px, so will be shrink fitted. -->
+  <div class="child" style="--block-size-expected: 10; --inline-size-expected: 8;">
+    <span class="inline inline-size-10"></span>
+  </div>
+
+  <!-- Make sure the max-width property clamps the size. -->
+  <div class="child" style="max-width: 25px; --block-size-expected: 25; --inline-size-expected: 8;">
+    <span class="inline inline-size-30"></span>
+  </div>
+
+  <!-- Make sure the min-width property clamps the size. -->
+  <div class="child" style="min-width: 25px; --block-size-expected: 25; --inline-size-expected: 8;">
+    <span class="inline inline-size-10"></span>
+  </div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+</script>

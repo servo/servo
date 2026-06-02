@@ -1,0 +1,33 @@
+features:
+- name: animation-composition
+  files:
+  - animation-composition.html
+  - animation-composition-*
+- name: display-animation
+  files:
+  - display-interpolation.html
+- name: steps-easing
+  files:
+  - animation-base-response-*
+  - animation-important-*
+  - animation-timing-function-009-manual.html
+  - animation-timing-function-010-manual.html
+- name: backdrop
+  files:
+  - dialog-backdrop-animation.html
+- name: empty
+  files:
+  - empty-pseudo-class-with-animation.html
+- name: animations-css
+  # Everything which does not belong to some other feature, above
+  files:
+  - "*"
+  - "!animation-composition.html"
+  - "!animation-composition-*"
+  - "!display-interpolation.html"
+  - "!animation-base-response-*"
+  - "!animation-important-*"
+  - "!animation-timing-function-009-manual.html"
+  - "!animation-timing-function-010-manual.html"
+  - "!dialog-backdrop-animation.html"
+  - "!empty-pseudo-class-with-animation.html"

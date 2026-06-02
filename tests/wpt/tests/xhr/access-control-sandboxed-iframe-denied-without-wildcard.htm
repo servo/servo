@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that sandboxed iframe does not have CORS XHR access to server with "Access-Control-Allow-Origin" set to the original origin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+const path = "/xhr/resources/pass.txt?pipe=" +
+    "header(Cache-Control,no-store)|" +
+    "header(Content-Type,text/plain)" +
+    "header(Access-Control-Allow-Credentials,true)|" +
+    "header(Access-Control-Allow-Origin," + get_host_info().HTTP_ORIGIN + ")";
+
+async_test((test) => {
+  const xhr = new XMLHttpRequest;
+  xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN + path);
+  xhr.send();
+  xhr.onerror = test.unreached_func("Unexpected error");
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.status, 200);
+    assert_equals(xhr.responseText.trim(), "PASS");
+  });
+}, "Check that path exists and is accessible via CORS XHR request");
+
+async_test((test) => {
+  window.addEventListener("message", test.step_func((evt) => {
+    if (evt.data === "ready") {
+      document.getElementById("frame").contentWindow.postMessage(
+          get_host_info().HTTP_REMOTE_ORIGIN + path, "*");
+    } else {
+      assert_equals(evt.data, "Exception thrown. Sandboxed iframe XHR access was denied in 'send'.");
+      test.done();
+    }
+  }), false);
+}, "Sandboxed iframe is denied CORS access to server that allows parent origin");
+    </script>
+    <iframe id="frame" sandbox="allow-scripts" src="/xhr/resources/access-control-sandboxed-iframe.html">
+    </iframe>
+  </body>
+</html>

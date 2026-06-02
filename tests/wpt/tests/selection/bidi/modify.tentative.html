@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection#modify bidi tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id="container">
+  <div title="LTR text">Hello World</div>
+  <div title="RTL text">مرحبا عالم</div>
+  <div title="RTL+LTR text">مرحبا عالم Hello World</div>
+  <div title="LTR+RTL text">Hello World مرحبا عالم</div>
+  <div title="LTR+RTL+LTR text">Hello World مرحبا عالم Hello World</div>
+  <div title="RTL+LTR+RTL text">مرحبا عالم Hello World مرحبا عالم</div>
+</div>
+
+<script>
+/**
+ * @param {"ltr" | "rtl"} bidi
+ * @param {"left" | "right"} direction
+ * @param {number} length
+ */
+function getExpectedOffset(bidi, direction, length) {
+  const isLtr = bidi === "ltr";
+  const toLeft = direction === "left";
+  return isLtr === toLeft ? 0 : length;
+}
+
+function runTest(div, direction, bidi, postfix = "") {
+  test(() => {
+    div.dir = bidi;
+
+    selection.collapse(div);
+    selection.modify("extend", direction, "lineboundary");
+
+    const offset = getExpectedOffset(
+      bidi, direction,
+      div.childNodes[0].textContent.length
+    );
+
+    assert_equals(selection.focusOffset, offset);
+  }, `${div.title} with ${direction} direction in ${bidi} context${postfix}`);
+}
+
+const selection = getSelection();
+for (const bidi of ["ltr", "rtl"]) {
+  for (const direction of ["left", "right"]) {
+    for (const div of container.children) {
+      runTest(div, direction, bidi)
+    }
+  }
+}
+
+// Gecko treats morphed LTR contexts differently from native LTR context
+// @see https://searchfox.org/mozilla-central/rev/35d927df97900a57ecb562ad13909e392440b0fb/dom/base/Document.h#981-987
+for (const direction of ["left", "right"]) {
+  for (const div of container.children) {
+    runTest(div, direction, "ltr", " (which was previously rtl)")
+  }
+}
+</script>

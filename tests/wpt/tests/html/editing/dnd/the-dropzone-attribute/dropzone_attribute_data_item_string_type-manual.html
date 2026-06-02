@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Test: dropzone_attribute_data_item_string_type</title>
+    <link rel='author' title='Intel' href='http://www.intel.com'>
+    <link rel='help' href='https://html.spec.whatwg.org/multipage/#the-dropzone-attribute'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <style>
+      #drop {
+        border: 2px solid black;
+        width: 100px;
+        height: 100px;
+        padding: 20px;
+      }
+      #select {
+        color: blue;
+        margin: 20px auto;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>Select and drag the blue text to rectangular box.</div>
+    <div id='select' draggable>blue text</div>
+    <div id='drop' dropzone='copy string:text/plain'></div>
+    <div id='log'> </div>
+
+    <script>
+      var drop;
+      setup(function() {
+          drop = document.querySelector('#drop');
+      }, {explicit_done: true, explicit_timeout: true});
+
+      on_event(drop, 'drop', function(event) {
+        var item = event.dataTransfer.items[0];
+        test(function() {
+          assert_equals(item.type, 'text/plain',  'data item type is "text/plain"');
+        }, 'data item type is "text/plain"');
+        done();
+      });
+    </script>
+  </body>
+</html>

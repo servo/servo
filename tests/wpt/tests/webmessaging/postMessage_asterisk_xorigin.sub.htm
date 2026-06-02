@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> Cross-origin postMessage with targetOrigin == "*" </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+
+
+    var description = "Test Description: To send the message to the target regardless of origin, set the target origin to '*'.";
+
+    var t = async_test(description);
+
+    var PORT = location.port !== "" ? ":" + location.port : "";
+    var XORIGIN = "{{location[scheme]}}://{{domains[www]}}" + PORT;
+    var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
+    var ExpectedResult = ["#1", XORIGIN, "#2", SORIGIN];
+    var ActualResult = [];
+
+    window.onmessage = t.step_func(function(e)
+    {
+        // Messages from TARGET1 and TARGET2 can come in any order
+        // (since one of them is cross-origin and can run in parallel).
+        // To make the tests immune to message reordering, always
+        // put the response from TARGET1 at the start of the list.
+        if (e.data.toString() === "#1")
+        {
+            ActualResult = [e.data, e.origin].concat(ActualResult);
+        }
+        else if (e.data.toString() === "#2")
+        {
+            ActualResult = ActualResult.concat([e.data, e.origin]);
+        }
+
+        if (ActualResult.length >= ExpectedResult.length)
+        {
+            assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+            t.done();
+        }
+    });
+</script>
+
+<div style="display:none">
+    <iframe width="70%" onload="this.contentWindow.postMessage('#1', '*')" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="this.contentWindow.postMessage('#2', '*')" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+</body>
+</html>

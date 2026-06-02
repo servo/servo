@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selector: pseudo-class :placeholder-shown input type change</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#pseudo-classes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  span {
+    color: red;
+  }
+  :placeholder-shown + span {
+    color: green;
+  }
+</style>
+<input id="input" type="submit" placeholder="placeholder"></input>
+<span id="sibling">This text should be green.</span>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(sibling).color, "rgb(255, 0, 0)",
+      "Not matching :placeholder-shown for type=submit");
+
+    input.type = "text";
+    assert_equals(getComputedStyle(sibling).color, "rgb(0, 128, 0)",
+      "Matching :placeholder-shown for type=text");
+  }, "Evaluation of :placeholder-shown changes for input type change.");
+</script>

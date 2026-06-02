@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent from cross-origin subframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Allow-Cross-Origin-Event-Reporting', '?1'
+    ]],
+    register_beacon: true,
+    origin: 'https://{{hosts[alt][]}}:{{ports[https][0]}}',
+  });
+  await fencedframe.execute(async () => {
+    const iframe = await attachIFrameContext({
+      origin: 'https://{{hosts[alt][]}}:{{ports[https][1]}}'
+    });
+    await iframe.execute(() => {
+      const destination_url = new URL(BEACON_URL + "?type=url",
+          get_host_info().HTTPS_ORIGIN);
+      window.fence.reportEvent({
+        eventType: "click",
+        eventData: "enum",
+        destination: ["buyer"],
+        crossOriginExposed: true
+      });
+      window.fence.reportEvent({
+        destinationURL: destination_url,
+        crossOriginExposed: true
+      });
+    });
+  });
+  // Check that both the destination enum and destination URL events were
+  // reported.
+  const [enum_origin, enum_referrer] = await nextBeacon("click", "enum")
+      .then(data => data.split(','));
+  const [url_origin, url_referrer] = await nextBeacon("url", "<No data>")
+      .then(data => data.split(','));
+
+  // Check the "Origin" headers are set to the origin that supplied the
+  // reporting URL. For destination enum events, that's the origin of the
+  // worklet. For destination URL events, that's the origin of the iframe.
+  assert_equals(enum_origin, get_host_info().HTTPS_ORIGIN,
+      'The enum origin should be correctly set.');
+  assert_equals(url_origin, 'https://{{hosts[alt][]}}:{{ports[https][1]}}',
+      'The url origin should be correctly set.');
+
+  assert_equals(enum_referrer,
+      'https://{{hosts[alt][]}}:{{ports[https][1]}}/',
+      'The enum referrer should be correctly set.');
+  assert_equals(url_referrer, 'https://{{hosts[alt][]}}:{{ports[https][1]}}/',
+      'The url referrer should be correctly set.');
+}, 'window.fence.reportEvent from a cross-origin subframe');
+</script>
+</body>

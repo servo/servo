@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='table_caption_bottom_ref.html'>
+<!-- Tests that `caption-side` places the caption on the right side. -->
+<style>
+caption {
+    background-color: blue;
+    color: white;
+    caption-side: bottom;
+    padding: 0;
+    text-align: left;
+    width: 500px;
+}
+table {
+    width: 500px;
+}
+</style>
+</head>
+<body>
+<table border=0 cellspacing=0 cellpadding=0>
+    <tr><td>Kitten</td><td>Kätzchen</td><td>Chaton</td><td>Koneko</td></tr>
+    <tr><td>Cat</td><td>Katze</td><td>Chat</td><td>Neko</td></tr>
+    <caption>Vocabulary</caption>
+    <tr><td>Dog</td><td>Hund</td><td>Chien</td><td>Inu</td></tr>
+</table>
+</body>
+</html>
+

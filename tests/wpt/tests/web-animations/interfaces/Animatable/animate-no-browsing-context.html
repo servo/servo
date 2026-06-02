@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animatable.animate in combination with elements in documents
+       without a browsing context</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animatable-animate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+//
+// The following tests relate to animations on elements in documents without
+// a browsing context. This is NOT the same as documents that are not bound to
+// a document tree.
+//
+
+function getXHRDoc(t) {
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '../../resources/xhr-doc.py');
+    xhr.responseType = 'document';
+    xhr.onload = t.step_func(() => {
+      assert_equals(xhr.readyState, xhr.DONE,
+                    'Request should complete successfully');
+      assert_equals(xhr.status, 200,
+                    'Response should be OK');
+      resolve(xhr.responseXML);
+    });
+    xhr.send();
+  });
+}
+
+promise_test(t => {
+  return getXHRDoc(t).then(xhrdoc => {
+    const div = xhrdoc.getElementById('test');
+    const anim = div.animate(null);
+    assert_class_string(anim.timeline, 'DocumentTimeline',
+                        'Animation should have a timeline');
+    assert_equals(anim.timeline, xhrdoc.timeline,
+                  'Animation timeline should be the default document timeline'
+                  + ' of the XHR doc');
+    assert_not_equals(anim.timeline, document.timeline,
+                      'Animation timeline should NOT be the same timeline as'
+                      + ' the default document timeline for the current'
+                      + ' document');
+
+  });
+}, 'Element.animate() creates an animation with the correct timeline'
+   + ' when called on an element in a document without a browsing context');
+
+//
+// The following tests are cross-cutting tests that are not specific to the
+// Animatable.animate() interface. Instead, they draw on assertions from
+// various parts of the spec. These assertions are tested in other tests
+// but are repeated here to confirm that user agents are not doing anything
+// different in the particular case of document without a browsing context.
+//
+
+promise_test(t => {
+  return getXHRDoc(t).then(xhrdoc => {
+    const div = xhrdoc.getElementById('test');
+    const anim = div.animate(null);
+    // Since a document from XHR will not be active by itself, its document
+    // timeline will also be inactive.
+    assert_equals(anim.timeline.currentTime, null,
+                  'Document timeline time should be null');
+  });
+}, 'The timeline associated with an animation trigger on an element in'
+   + ' a document without a browsing context is inactive');
+
+promise_test(t => {
+  let anim;
+  return getXHRDoc(t).then(xhrdoc => {
+    const div = xhrdoc.getElementById('test');
+    anim = div.animate(null);
+    anim.timeline = document.timeline;
+    assert_true(anim.pending, 'The animation should be initially pending');
+    return waitForAnimationFrames(2);
+  }).then(() => {
+    // Because the element is in a document without a browsing context, it will
+    // not be rendered and hence the user agent will never deem it ready to
+    // animate.
+    assert_true(anim.pending,
+                'The animation should still be pending after replacing'
+                + ' the document timeline');
+  });
+}, 'Replacing the timeline of an animation targetting an element in a'
+   + ' document without a browsing context leaves it in the pending state');
+
+promise_test(t => {
+  let anim;
+  return getXHRDoc(t).then(xhrdoc => {
+    const div = xhrdoc.getElementById('test');
+    anim = div.animate({ opacity: [ 0, 1 ] }, 1000);
+    anim.timeline = document.timeline;
+    document.body.appendChild(div);
+    assert_equals(getComputedStyle(div).opacity, '0',
+                  'Style should be updated');
+  });
+}, 'Replacing the timeline of an animation targetting an element in a'
+   + ' document without a browsing context and then adopting that element'
+   + ' causes it to start updating style');
+
+</script>
+</body>

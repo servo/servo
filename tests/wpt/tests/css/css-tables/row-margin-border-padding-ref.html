@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reference: table-row border/padding/margin has no effect in border-collapse:separate tables</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+.ltr { direction:ltr; }
+.rtl { direction:rtl; }
+table, td {
+  border: 3px solid;
+}
+.bc table {
+  border-collapse: collapse;
+}
+
+.inherited > td {
+  border: 3px dashed;
+  padding: 5px;
+  margin: 7px;
+}
+</style>
+</head>
+<body>
+
+<table class="ltr"><tr><td></td><td></td></tr></table>
+<table class="ltr"><tr><td></td><td></td></tr></table>
+<table class="ltr"><tr><td></td><td></td></tr></table>
+
+<table class="rtl"><tr><td></td><td></td></tr></table>
+<table class="rtl"><tr><td></td><td></td></tr></table>
+<table class="rtl"><tr><td></td><td></td></tr></table>
+
+<table class="ltr"><tr class="inherited"><td></td><td></td></tr></table>
+<table class="rtl"><tr class="inherited"><td></td><td></td></tr></table>
+
+<div class="bc">
+<table class="rtl"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="rtl"><tr><td></td><td></td></tr></table>
+<table class="rtl"><tr><td></td><td></td></tr></table>
+
+<table class="ltr"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="ltr"><tr><td></td><td></td></tr></table>
+<table class="ltr"><tr><td></td><td></td></tr></table>
+
+<table class="rtl"><tr class="inherited"><td></td><td></td></tr></table>
+<table class="ltr"><tr class="inherited"><td></td><td></td></tr></table>
+</div>
+
+</body>
+</html>

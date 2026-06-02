@@ -1,0 +1,24 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden svg (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+div {
+  background: blue;
+  color: white;
+}
+.mysvg {
+  display: inline-block;
+  width: 400px;
+  height: 300px;
+  background: lightblue;
+  border: 1px solid black;
+}
+</style>
+
+<div>Test passes if there is a plain light blue box below with no circles in it.</div>
+<div class="mysvg"></div>
+<div>Lorem ipsum consectetur adipiscing elit</div>

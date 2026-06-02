@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<script>
+
+const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
+
+// This test verifies that MediaTrackCapabilities are returned upon
+// MediaStreamTrack.getCapabilities(), with a mock Mojo service implementation.
+// When PTZ permission is denied though, PTZ capabilities are not available.
+
+function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
+  image_capture_test(async (t, imageCaptureTest) => {
+    const ptzPermission = hasPanTiltZoomPermissionGranted ? 'granted' : 'denied';
+    await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        ptzPermission);
+
+    let mockCapabilities = imageCaptureTest.mockImageCapture().state();
+
+    // |stream| must be created _after_ |mock| is constructed to give the
+    // latter time to override the bindings.
+    let stream = await navigator.mediaDevices.getUserMedia({video: true});
+    assert_equals(stream.getAudioTracks().length, 0);
+    assert_equals(stream.getVideoTracks().length, 1);
+
+    let videoTrack = stream.getVideoTracks()[0];
+    assert_equals(typeof videoTrack.getCapabilities, 'function');
+
+    let capabilities = videoTrack.getCapabilities();
+    assert_equals(typeof capabilities, 'object');
+
+    assert_equals(capabilities.whiteBalanceMode.length,
+                  mockCapabilities.supportedWhiteBalanceModes.length,
+                  'whiteBalanceMode');
+    for (i = 0; i < capabilities.whiteBalanceMode.length; ++i) {
+      assert_equals(
+          capabilities.whiteBalanceMode[i],
+          meteringModeNames[mockCapabilities
+                                .supportedWhiteBalanceModes[i]],
+          'whiteBalanceMode');
+    }
+
+    assert_equals(capabilities.exposureMode.length,
+                  mockCapabilities.supportedExposureModes.length,
+                  'exposureMode');
+    for (i = 0; i < capabilities.exposureMode.length; ++i) {
+      assert_equals(
+          capabilities.exposureMode[i],
+          meteringModeNames[mockCapabilities.supportedExposureModes[i]],
+          'exposureMode');
+    }
+
+    assert_equals(capabilities.focusMode.length,
+                  mockCapabilities.supportedFocusModes.length,
+                  'focusMode');
+    for (i = 0; i < capabilities.focusMode.length; ++i) {
+      assert_equals(
+          capabilities.focusMode[i],
+          meteringModeNames[mockCapabilities.supportedFocusModes[i]],
+          'focusMode');
+    }
+
+    assert_equals(capabilities.exposureCompensation.max,
+                  mockCapabilities.exposureCompensation.max);
+    assert_equals(capabilities.exposureCompensation.min,
+                  mockCapabilities.exposureCompensation.min);
+    assert_equals(capabilities.exposureCompensation.step,
+                  mockCapabilities.exposureCompensation.step);
+
+    assert_equals(capabilities.exposureTime.max,
+                  mockCapabilities.exposureTime.max);
+    assert_equals(capabilities.exposureTime.min,
+                  mockCapabilities.exposureTime.min);
+    assert_equals(capabilities.exposureTime.step,
+                  mockCapabilities.exposureTime.step);
+
+    assert_equals(capabilities.colorTemperature.max,
+                  mockCapabilities.colorTemperature.max);
+    assert_equals(capabilities.colorTemperature.min,
+                  mockCapabilities.colorTemperature.min);
+    assert_equals(capabilities.colorTemperature.step,
+                  mockCapabilities.colorTemperature.step);
+
+    assert_equals(capabilities.iso.max, mockCapabilities.iso.max);
+    assert_equals(capabilities.iso.min, mockCapabilities.iso.min);
+    assert_equals(capabilities.iso.step, mockCapabilities.iso.step);
+
+    assert_equals(capabilities.brightness.max,
+                  mockCapabilities.brightness.max);
+    assert_equals(capabilities.brightness.min,
+                  mockCapabilities.brightness.min);
+    assert_equals(capabilities.brightness.step,
+                  mockCapabilities.brightness.step);
+
+    assert_equals(capabilities.contrast.max,
+                  mockCapabilities.contrast.max);
+    assert_equals(capabilities.contrast.min,
+                  mockCapabilities.contrast.min);
+    assert_equals(capabilities.contrast.step,
+                  mockCapabilities.contrast.step);
+
+    assert_equals(capabilities.saturation.max,
+                  mockCapabilities.saturation.max);
+    assert_equals(capabilities.saturation.min,
+                  mockCapabilities.saturation.min);
+    assert_equals(capabilities.saturation.step,
+                  mockCapabilities.saturation.step);
+
+    assert_equals(capabilities.sharpness.max,
+                  mockCapabilities.sharpness.max);
+    assert_equals(capabilities.sharpness.min,
+                  mockCapabilities.sharpness.min);
+    assert_equals(capabilities.sharpness.step,
+                  mockCapabilities.sharpness.step);
+
+    assert_equals(capabilities.focusDistance.max,
+                  mockCapabilities.focusDistance.max);
+    assert_equals(capabilities.focusDistance.min,
+                  mockCapabilities.focusDistance.min);
+    assert_equals(capabilities.focusDistance.step,
+                  mockCapabilities.focusDistance.step);
+
+    if (ptzPermission === 'granted') {
+      assert_equals(capabilities.pan.max, mockCapabilities.pan.max);
+      assert_equals(capabilities.pan.min, mockCapabilities.pan.min);
+      assert_equals(capabilities.pan.step, mockCapabilities.pan.step);
+
+      assert_equals(capabilities.tilt.max, mockCapabilities.tilt.max);
+      assert_equals(capabilities.tilt.min, mockCapabilities.tilt.min);
+      assert_equals(capabilities.tilt.step, mockCapabilities.tilt.step);
+
+      assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
+      assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);
+      assert_equals(capabilities.zoom.step, mockCapabilities.zoom.step);
+    } else if (ptzPermission === 'denied') {
+      assert_false('pan' in capabilities);
+      assert_false('tilt' in capabilities);
+      assert_false('zoom' in capabilities);
+    }
+
+    assert_equals(capabilities.torch, mockCapabilities.supportsTorch,
+                  'torch');
+  });
+}
+
+generate_tests(makeImageCaptureTest, [
+  [
+    "exercises MediaStreamTrack.getCapabilities() with PTZ permission denied",
+    false,
+  ],
+  [
+    "exercises MediaStreamTrack.getCapabilities() with PTZ permission granted",
+    true,
+  ],
+]);
+</script>

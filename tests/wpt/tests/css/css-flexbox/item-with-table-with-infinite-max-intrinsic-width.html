@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Flex item with table with infinite max intrinsic inline size</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#algo-main-item" title="3. Determine the flex base size and hypothetical main size of each item:">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display:flex; width:100px; height:100px; align-items:flex-start; background:green;">
+  <div style="flex-grow:1; flex-shrink:0;">
+    <table style="height:50px; background:green;" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="width:100%; background:green;">&nbsp;</td>
+        <td style="background:green;">&nbsp;</td>
+      </tr>
+    </table>
+  </div>
+</div>

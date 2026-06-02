@@ -1,0 +1,249 @@
+name: MacOS Arm64
+
+on:
+  workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt:
+        required: false
+        type: boolean
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+          required: false
+          type: boolean
+          default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        options: ["release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt:
+        required: false
+        type: boolean
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+          required: false
+          type: boolean
+          default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: MacOS 15 Build
+    runs-on: macos-15
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
+    steps:
+      # XProtect can cause random failures if it decides that the DMG we create
+      # during the packaging phase is malware.
+      # TODO(mrobinson): Is there a way we can do things in a less suspicious way so
+      # we don't have to kill this service?
+      - name: Kill XProtectBehaviorService
+        run: |
+          echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
+      - uses: actions/checkout@v5
+        if: runner.environment != 'self-hosted' && github.event_name != 'pull_request_target'
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: runner.environment != 'self-hosted' && github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+
+      - if: runner.environment != 'self-hosted'
+        name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
+      - name: Install crown
+        run: cargo install --path support/crown
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - if: runner.environment != 'self-hosted'
+        name: Bootstrap
+        run: |
+          ./mach bootstrap --yes --skip-lints
+          brew install gnu-tar
+      - name: Build (${{ inputs.profile }})
+        run: |
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
+          cp -r target/cargo-timings target/cargo-timings-macos-arm64
+      - name: Smoketest
+        uses: nick-fields/retry@v3
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: ./mach smoketest --profile ${{ inputs.profile }}
+      - name: Script tests
+        run: ./mach test-scripts
+      - name: Unit tests
+        if: ${{ inputs.unit-tests }}
+        id: run_unit_tests
+        env:
+          NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
+        run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
+      # We upload the test-results to Codecov to help us identify flaky unit-tests.
+      - name: Upload test results to Codecov
+        # Upload test results to Codecov, also for failed unit-tests, but only
+        # if unit-tests were supposed to run, and not if they were skipped (e.g., due
+        # to an earlier failure).
+        if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
+        uses: codecov/codecov-action@v5
+        with:
+          report_type: test_results
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          flags: unittests,unittests-mac-arm64,unittests-mac-arm64-${{ inputs.profile }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Devtools tests
+        if: ${{ false && inputs.unit-tests }} # FIXME #39273
+        run: ./mach test-devtools --profile ${{ inputs.profile }}
+      - name: Build mach package
+        run: ./mach package --profile ${{ inputs.profile }}
+      - name: Run DMG smoketest
+        uses: nick-fields/retry@v3
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
+      - name: Archive build timing
+        uses: actions/upload-artifact@v6
+        with:
+          name: cargo-timings-macos-arm64-${{ inputs.profile }}
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+      - name: Upload artifact for mach package
+        uses: actions/upload-artifact@v6
+        id: upload-dmg
+        with:
+          name: ${{ inputs.profile }}-binary-mac-arm64
+          path: target/${{ inputs.profile }}/servo-tech-demo.dmg
+      - name: Collect artifact IDs needed by the release workflow
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{ steps.upload-dmg.outputs.artifact-id }}" >> $GITHUB_OUTPUT
+      - name: Build package for target
+        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
+      - name: Upload package for target
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.profile }}-binary-macos-arm64
+          path: target.tar.gz
+
+  wpt-2020:
+    if: ${{ inputs.wpt }}
+    name: MacOS WPT
+    needs: ["build"]
+    uses: ./.github/workflows/mac-wpt.yml
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-args: ${{ inputs.wpt-args }}
+      arm: true
+    secrets: inherit
+
+  bencher:
+    needs: ["build"]
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: 'macos-arm64'
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ${{ inputs.profile }}-binary-macos-arm64/target.tar.gz
+      binary-path: target/${{ inputs.profile }}/servo
+      file-size: true
+      speedometer: false
+      dromaeo: false
+    secrets: inherit
+
+  build-libservo:
+    if: ${{ inputs.build-libservo }}
+    name: Build libservo and MSRV check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Determine MSRV
+        id: msrv
+        uses: ./.github/actions/parse_msrv
+      - name: Install MSRV
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.rust_version }}
+      - name: Compile libservo with MSRV
+        run: |
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets

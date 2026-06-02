@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>This tests that first line text-indent is applied properly when the child is a statically positioned out-of-flow renderer.</title>
+
+<link rel="stylesheet" href="/fonts/ahem.css" />
+<style>
+ body {
+  margin: 40px;
+ }
+
+.container {
+  display: block;
+  background-color: green;
+  width: 100px;
+  height: 20px;
+  color: green;
+  font-family: Ahem;
+  font-size: 10px;
+}
+
+.inner {
+  display: block;
+  background-color: blue;
+  width: 20px;
+  height: 20px;
+}
+</style>
+</head>
+<body>
+<div>
+<div class=container><div class=inner style="margin-left: 20px;"></div></div>
+<div class=container><div class=inner style="margin-left: 20px;"></div></div>
+<div class=container><div class=inner style="margin-left: 20px;"></div></div>
+<div class=container><div class=inner style="margin-left: 20px;"></div></div>
+<div class=container><div class=inner style="position: relative; left: 70px;"></div></div>
+<div class=container><div class=inner style="margin-left: -20px;"></div></div>
+<div class=container><div class=inner style="left: 40px;"></div></div>
+<div class=container><div class=inner></div></div>
+<div class=container><div class=inner></div></div>
+<div class=container><div class=inner style="position: relative; top: 10px"></div></div>
+<div class=container><div class=inner></div></div>
+</div>
+
+<div style="direction: rtl;">
+<div class=container><div class=inner style="margin-right: 20px;"></div></div>
+<div class=container><div class=inner style="margin-right: 20px;"></div></div>
+<div class=container><div class=inner style="margin-right: 20px;"></div></div>
+<div class=container><div class=inner style="margin-right: 20px;"></div></div>
+<div class=container><div class=inner style="position: relative; right: 70px;"></div></div>
+<div class=container><div class=inner style="margin-right: -20px;"></div></div>
+<div class=container><div class=inner style="right: 40px;"></div></div>
+<div class=container><div class=inner></div></div>
+<div class=container><div class=inner></div></div>
+<div class=container><div class=inner style="position: relative; top: 10px"></div></div>
+<div class=container><div class=inner></div></div>
+</div>
+
+</body>
+</html>

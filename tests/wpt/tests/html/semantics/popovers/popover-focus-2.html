@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover focus behaviors</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<meta name=variant content=?test1>
+<meta name=variant content=?test2>
+<meta name=variant content=?test3>
+
+<div id=fixup>
+  <button id=button1 tabindex="0">Button1</button>
+  <div popover id=popover0  tabindex="0" style="top:300px">
+  </div>
+  <div popover id=popover1 style="top:100px">
+    <button id=inside_popover1 tabindex="0">Inside1</button>
+    <button id=invoker2 tabindex="0">Nested Invoker 2</button>
+    <button id=inside_popover2 tabindex="0">Inside2</button>
+  </div>
+  <button id=button2 tabindex="0">Button2</button>
+  <div popover id=popover_no_invoker tabindex="0" style="top:300px"></div>
+  <button id=invoker0 tabindex="0">Invoker0</button>
+  <button id=invoker1 tabindex="0">Invoker1</button>
+  <button id=button3 tabindex="0">Button3</button>
+  <div popover id=popover2 style="top:200px">
+    <button id=inside_popover3 tabindex="0">Inside3</button>
+    <button id=invoker3 tabindex="0">Nested Invoker 3</button>
+  </div>
+  <div popover id=popover3 style="top:300px">
+    Non-focusable popover
+  </div>
+  <button id=button4 tabindex="0">Button4</button>
+</div>
+<style>
+  #fixup [popover] {
+    bottom:auto;
+  }
+</style>
+<script>
+async function testPopoverFocusNavigation() {
+  button1.focus();
+  assert_equals(document.activeElement,button1);
+  await sendTab();
+  assert_equals(document.activeElement,button2,'Hidden popover should be skipped');
+  await sendShiftTab();
+  assert_equals(document.activeElement,button1,'Hidden popover should be skipped backwards');
+  popover_no_invoker.showPopover();
+  await sendTab();
+  await sendTab();
+  assert_equals(document.activeElement,popover_no_invoker,"Focusable popover that is opened without an invoker should get focused");
+  await sendTab();
+  assert_equals(document.activeElement,invoker0);
+  await sendEnter(); // Activate the invoker0
+  assert_true(popover0.matches(':popover-open'), 'popover0 should be invoked by invoker0');
+  assert_equals(document.activeElement,invoker0,'Focus should not move when popover is shown');
+  await sendTab();
+  await sendEnter(); // Activate the invoker
+  assert_true(popover1.matches(':popover-open'), 'popover1 should be invoked by invoker1');
+  assert_equals(document.activeElement,invoker1,'Focus should not move when popover is shown');
+  await sendTab();
+  // Make invoker1 non-focusable.
+  invoker1.disabled = true;
+  assert_equals(document.activeElement,inside_popover1,'Focus should move from invoker into the open popover');
+  await sendTab();
+  assert_equals(document.activeElement,invoker2,'Focus should move within popover');
+  await sendShiftTab();
+  await sendShiftTab();
+  assert_equals(document.activeElement,invoker0,'Focus should not move back to invoker as it is non-focusable');
+  // Reset invoker1 to focusable.
+  invoker1.disabled = false;
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');
+  invoker2.focus();
+  await sendEnter(); // Activate the nested invoker
+  assert_true(popover2.matches(':popover-open'), 'popover2 should be invoked by nested invoker');
+  assert_equals(document.activeElement,invoker2,'Focus should stay on the invoker');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover3,'Focus should move into nested popover');
+  await sendTab();
+  assert_equals(document.activeElement,invoker3);
+  await sendEnter(); // Activate the (empty) nested invoker
+  assert_true(popover3.matches(':popover-open'), 'popover3 should be invoked by nested invoker');
+  assert_equals(document.activeElement,invoker3,'Focus should stay on the invoker');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover2,'Focus should skip popover without focusable content, going back to higher scope');
+  await sendShiftTab();
+  assert_equals(document.activeElement,invoker3,'Shift-tab from the higher scope should return to the lower scope');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover2);
+  await sendTab();
+  assert_equals(document.activeElement,button3,'Focus should exit popovers');
+  await sendTab();
+  assert_equals(document.activeElement,button4,'Focus should skip popovers');
+  button1.focus();
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
+}
+
+// This test is very slow. Variants are used to split it into pieces.
+switch (window.location.search.substring(1)) {
+  case 'test1':
+    promise_test(async t => {
+      invoker0.setAttribute('popovertarget', 'popover0');
+      invoker1.setAttribute('popovertarget', 'popover1');
+      invoker2.setAttribute('popovertarget', 'popover2');
+      invoker3.setAttribute('popovertarget', 'popover3');
+      t.add_cleanup(() => {
+        invoker0.removeAttribute('popovertarget');
+        invoker1.removeAttribute('popovertarget');
+        invoker2.removeAttribute('popovertarget');
+        invoker3.removeAttribute('popovertarget');
+      });
+      await testPopoverFocusNavigation();
+    }, "Popover focus navigation with popovertarget invocation");
+    break;
+  case 'test2':
+    promise_test(async t => {
+      invoker0.setAttribute('commandfor', 'popover0');
+      invoker1.setAttribute('commandfor', 'popover1');
+      invoker2.setAttribute('commandfor', 'popover2');
+      invoker3.setAttribute('commandfor', 'popover3');
+      invoker0.setAttribute('command', 'toggle-popover');
+      invoker1.setAttribute('command', 'toggle-popover');
+      invoker2.setAttribute('command', 'toggle-popover');
+      invoker3.setAttribute('command', 'toggle-popover');
+      t.add_cleanup(() => {
+        invoker0.removeAttribute('commandfor');
+        invoker1.removeAttribute('commandfor');
+        invoker2.removeAttribute('commandfor');
+        invoker3.removeAttribute('commandfor');
+        invoker0.removeAttribute('command');
+        invoker1.removeAttribute('command');
+        invoker2.removeAttribute('command');
+        invoker3.removeAttribute('command');
+      });
+      await testPopoverFocusNavigation();
+    }, "Popover focus navigation with command/commandfor invocation");
+    break;
+  case 'test3':
+    promise_test(async t => {
+      const invoker0Click = () => {
+        popover0.togglePopover({ source: invoker0 });
+      };
+      invoker0.addEventListener('click', invoker0Click);
+      const invoker1Click = () => {
+        popover1.togglePopover({ source: invoker1 });
+      };
+      invoker1.addEventListener('click', invoker1Click);
+      const invoker2Click = () => {
+        popover2.togglePopover({ source: invoker2 });
+      };
+      invoker2.addEventListener('click', invoker2Click);
+      const invoker3Click = () => {
+        popover3.togglePopover({ source: invoker3 });
+      };
+      invoker3.addEventListener('click', invoker3Click);
+      t.add_cleanup(() => {
+        invoker0.removeEventListener('click', invoker0Click);
+        invoker1.removeEventListener('click', invoker1Click);
+        invoker2.removeEventListener('click', invoker2Click);
+        invoker3.removeEventListener('click', invoker3Click);
+      });
+      await testPopoverFocusNavigation()
+    }, "Popover focus navigation with imperative invocation");
+    break;
+  default:
+    assert_unreached('Invalid variant');
+}
+</script>

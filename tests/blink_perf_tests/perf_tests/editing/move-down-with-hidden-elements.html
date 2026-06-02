@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<div id="sample"></div>
+<script>
+const kElements = 10000;
+
+const metaElements = (() => {
+  const result = [];
+  for (let count = 0; count < kElements; ++count)
+    result.push('<meta>', '</meta>');
+  return result;
+})();
+const sample = document.getElementById('sample');
+sample.innerHTML =   [
+  '<h1 id="before">first line of renderered text</h1>',
+  '<div hidden>', ...metaElements, '</div>',
+  '<h1 id="target">second line of renderered text</h1>',
+  '<div hidden>', ...metaElements, '</div>',
+  '<h1 id="after">third line of renderered text</h1>',
+].join('');
+
+const selection = window.getSelection();
+
+PerfTestRunner.measureTime({
+  description: 'Measures performance of move-down through non-renderered elements',
+  setup: () => {
+    selection.removeAllRanges();
+    const target = document.getElementById('target');
+    selection.collapse(target.firstChild, 5);
+    selection.extend(target.firstChild, 10);
+  },
+  run: () => {
+    selection.modify('extend', 'forward', 'line');
+  },
+});
+</script>

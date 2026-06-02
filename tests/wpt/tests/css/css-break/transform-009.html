@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="match" href="transform-009-ref.html">
+<style>
+  .relpos {
+      position: relative;
+      width: 30px;
+      top: 50px;
+      left: 50px;
+  }
+  .transform {
+      transform: rotate(45deg);
+      height: 150px;
+  }
+  .abspos {
+      position: absolute;
+      width: 100%;
+      height: 500px;
+      top: -200px;
+      background: green;
+  }
+</style>
+<p>Below there should be six rotated green rectangles (not all with the same
+  size).</p>
+<div style="columns:5; column-gap:0; column-fill:auto; width:500px; height:100px;">
+  <div style="height:250px;"></div>
+  <div class="relpos">
+    <div class="transform">
+      <div class="abspos"></div>
+    </div>
+  </div>
+</div>

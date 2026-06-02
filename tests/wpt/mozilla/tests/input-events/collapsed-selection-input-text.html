@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Equal selection origin and edit points should be treated as a collapsed selection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<input id="target" style="font: 50px/1 Ahem;" value="123456">
+
+<script>
+promise_test(async test => {
+    target.focus();
+    target.setSelectionRange(2, 2);
+
+    const arrowRight = "\uE014";
+    await test_driver.send_keys(document.body, arrowRight);
+
+    // The selection should be treated as collapsed which means that pressing
+    // the right arrow should move the edit point rather than collapsing the
+    // selection.
+    assert_equals(target.selectionStart, 3);
+    assert_equals(target.selectionEnd, 3);
+}, 'Equal selection origin and edit points should be treated as a collapsed selection');
+</script>

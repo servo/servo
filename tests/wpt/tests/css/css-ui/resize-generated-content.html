@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resize - generated content</title>
+<meta name="assert" content="The resize property should not apply to generated content, the behavior is undefined">
+<link rel="help" href="http://drafts.csswg.org/css-ui/#resize">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  #test::before {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    resize: both;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="test"></div>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+table {
+  display: inline-table;
+  font-family: Ahem;
+}
+table, table * {
+  border-width: 3px;
+}
+</style>
+<p>For every three tables below, the first two should have borders between some cells, but not the third:
+<table rules="rows"><tr><td>X<tr><td>X<tr><td>X</table>
+<table rules="rows"><tr><td>X<tr><td>X<tr><td>X</table>
+<table><tr><td>X<tr><td>X<tr><td>X</table>
+<br><br>
+<table rules="cols"><tr><td>X<td>X<td>X</table>
+<table rules="cols"><tr><td>X<td>X<td>X</table>
+<table><tr><td>X<td>X<td>X</table>
+<br><br>
+<table rules="groups"><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<table rules="groups"><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<table><colgroup span="2"><colgroup><tr><td>X<td>X<td>X</table>
+<br><br>
+<p>For every three tables below, the first two should have borders on some edges, but not the third:
+<table frame="hsides"><tr><td>X</table>
+<table frame="hsides"><tr><td>X</table>
+<table><tr><td>X</table>
+<br><br>
+<table frame="lhs"><tr><td>X</table>
+<table frame="lhs"><tr><td>X</table>
+<table><tr><td>X</table>
+<br><br>
+<table frame="rhs"><tr><td>X</table>
+<table frame="rhs"><tr><td>X</table>
+<table><tr><td>X</table>
+<br><br>
+<table frame="vsides"><tr><td>X</table>
+<table frame="vsides"><tr><td>X</table>
+<table><tr><td>X</table>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="match" href="multiple_backgrounds_ref.html">
+    <style type="text/css">
+        /* Example from
+           https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Background_and_Borders/Using_CSS_multiple_backgrounds
+           (Public domain)
+
+           bubbles.png is from the above MDN page, by Mozilla contributors,
+           licensed under CC-BY-SA 2.5
+
+           Rust logo from https://www.rust-lang.org/logos/rust-logo-256x256.png,
+           licensed as CC-BY-SA 4.0, owned by Mozilla
+        */
+        #multibg {
+            width: 700px;
+            height: 400px;
+            background: url("rust-logo-256x256.png") no-repeat bottom right / 256px 256px,
+                        url("bubbles.png?pipe=trickle(d1)") no-repeat left / 700px 100%,
+                        linear-gradient(to right, rgba(30, 75, 115, 1), rgba(255, 255, 255, 0)) no-repeat;
+        }
+    </style>
+</head>
+<body>
+    <div id="multibg">
+    </div>
+</body>
+</html>

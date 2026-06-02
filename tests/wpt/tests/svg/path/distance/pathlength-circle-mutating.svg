@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait"
+     width="100" height="100">
+  <title>Mutating the 'pathLength' attribute ('circle' element)</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+  <h:link rel="match" href="../../linking/reftests/reference/green-100x100.svg"/>
+  <circle cx="100" cy="50" r="100" fill="red" pathLength="6400"
+          stroke="green" stroke-width="200" stroke-dasharray="200"/>
+  <script>
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector('circle').setAttribute('pathLength', 200);
+        document.documentElement.classList.toggle("reftest-wait");
+      });
+    });
+  </script>
+</svg>

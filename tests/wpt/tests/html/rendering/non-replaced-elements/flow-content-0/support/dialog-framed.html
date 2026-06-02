@@ -1,0 +1,13 @@
+<!doctype html>
+<style>
+ html { color: red }
+</style>
+<dialog id=dialog-closed></dialog>
+<dialog id=dialog-open open></dialog>
+<dialog id=dialog-modal></dialog>
+<script>
+window.dialogClosed = document.getElementById('dialog-closed');
+window.dialogOpen = document.getElementById('dialog-open');
+window.dialogModal = document.getElementById('dialog-modal');
+dialogModal.showModal();
+</script>

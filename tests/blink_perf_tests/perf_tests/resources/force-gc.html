@@ -1,0 +1,6 @@
+<!DOCTYPE HTML>
+<!-- This page forces a GC in DRT for https://bugs.webkit.org/show_bug.cgi?id=98203. -->
+<html>
+<body onload="window.GCController.collect();">
+</body>
+</html>

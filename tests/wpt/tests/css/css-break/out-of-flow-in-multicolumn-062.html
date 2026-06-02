@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned element in nested multicol with inline containing
+  block - the relative offset should apply to the OOF descendant after
+  fragmentation.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+  }
+  #outer {
+    height: 100px;
+    width: 100px;
+    margin-left: -150px;
+    margin-top: -150px;
+  }
+  #inner {
+    width: 50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+    width: 25px;
+    height: 400px;
+    left: -100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol" id="outer">
+  <div class="multicol" id="inner">
+    <div class="rel" style="top: 50px; left: 100px;">
+      <span class="rel" style="top: 100px; left: 50px;">
+        <div style="height: 400px; width: 25px; background: red;"></div>
+        <div class="abs"></div>
+      </span>
+    </div>
+  </div>
+</div>

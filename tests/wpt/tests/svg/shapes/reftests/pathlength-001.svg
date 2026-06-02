@@ -1,0 +1,21 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Test of 'pathLength' on shapes.</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/shapes.html#RectElement"/>
+    <html:link rel="match"  href="pathlength-001-ref.svg" />
+  </g>
+
+  <g id="test-body-content" style="fill:none;stroke:black;stroke-width:5px">
+    <rect x="20"  y="140" width="200" height="200" style="stroke-dasharray:50"/>
+    <rect x="260" y="140" width="200" height="200" style="stroke-dasharray:0.25" pathLength="4"/>
+  </g>
+
+</svg>

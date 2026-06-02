@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#forced-breaks">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="columns: 2; column-fill: auto; gap: 0; width: 100px; height: 200px;">
+  <div style="background: green; height: 100px; width: 100%; display: table; break-after: avoid;">
+    <div style="display: table-cell;">
+      <div style="break-after: column;"></div> <!-- Should be propagated to the outer table. -->
+    </div>
+    <div style="display: table-cell;"></div>
+  </div>
+  <div style="background: green; height: 100px;"></div>
+</div>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InputEvent.getTargetRanges() of deleting  a range across editing host boundaries</title>
+<div contenteditable></div>
+<script src="input-events-get-target-ranges.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+// This test just check whether the deleted content range(s) and target ranges of `beforeinput`
+// are match or different.  The behavior should be defined by editing API.
+// https://github.com/w3c/editing/issues/283
+
+promise_test(async () => {
+  initializeTest('<p>ab[c<span contenteditable="false">no]n-editable</span>def</p>');
+  await sendBackspaceKey();
+  const kNothingDeletedCase = '<p>abc<span contenteditable="false">non-editable</span>def</p>';
+  const kOnlyEditableTextDeletedCase = '<p>ab<span contenteditable="false">non-editable</span>def</p>';
+  const kNonEditableElementDeleteCase = '<p>abdef</p>';
+  if (gEditor.innerHTML === kNothingDeletedCase) {
+    if (gBeforeinput.length === 0) {
+      assert_true(true, "If nothing changed, `beforeinput` event may not be fired");
+      assert_equals(gInput.length, 0, "If nothing changed, `input` event should not be fired");
+      return;
+    }
+    assert_equals(gBeforeinput.length, 1,
+      "If nothing changed, `beforeinput` event can be fired for web apps can handle by themselves");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 0,
+      `If nothing changed but \`beforeinput\` event is fired, its target range should be empty array (got ${
+        getRangeDescription(gBeforeinput[0].cachedRanges[0])
+      })`);
+    assert_equals(gBeforeinput[0].inputType, "deleteContentBackward",
+      "If nothing changed but `beforeinput` event is fired, its input type should be deleteContentBackward");
+    assert_equals(gInput.length, 0,
+      "If nothing changed but `beforeinput` event is fired, `input` event should not be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kOnlyEditableTextDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If only editable text is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If only editable text is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild,
+        startOffset: 2,
+        endContainer: gEditor.firstChild.firstChild,
+        endOffset: 3,
+      }),
+      "If only editable text is deleted, its target range should be the deleted text range");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If only editable text is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If only editable text is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeleteCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    assert_in_array(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      [
+        getRangeDescription({
+          startContainer: gEditor.firstChild.firstChild,
+          startOffset: 2,
+          endContainer: gEditor.firstChild,
+          endOffset: 2,
+        }),
+        getRangeDescription({
+          startContainer: gEditor.firstChild.firstChild,
+          startOffset: 2,
+          endContainer: gEditor.firstChild.firstChild.nextSibling,
+          endOffset: 0,
+        }),
+      ],
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  assert_in_array(gEditor.innerHTML,
+    [
+      kNothingDeletedCase,
+      kOnlyEditableTextDeletedCase,
+      kNonEditableElementDeleteCase,
+    ], "The result content is unexpected");
+}, 'Backspace at "<p>ab[c<span contenteditable="false">no]n-editable</span>def</p>"');
+
+promise_test(async () => {
+  initializeTest('<p>abc<span contenteditable="false">non-[editable</span>de]f</p>');
+  await sendBackspaceKey();
+  const kNothingDeletedCase = '<p>abc<span contenteditable="false">non-editable</span>def</p>';
+  const kOnlyEditableTextDeletedCase = '<p>abc<span contenteditable="false">non-editable</span>f</p>';
+  const kNonEditableElementDeletedCase = '<p>abcf</p>';;
+  if (gEditor.innerHTML === kNothingDeletedCase) {
+    if (gBeforeinput.length === 0) {
+      assert_true(true, "If nothing changed, `beforeinput` event may not be fired");
+      assert_equals(gInput.length, 0, "If nothing changed, `input` event should not be fired");
+      return;
+    }
+    assert_equals(gBeforeinput.length, 1,
+      "If nothing changed, `beforeinput` event can be fired for web apps can handle by themselves");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 0,
+      `If nothing changed but \`beforeinput\` event is fired, its target range should be empty array (got ${
+        getRangeDescription(gBeforeinput[0].cachedRanges[0])
+      })`);
+    assert_equals(gBeforeinput[0].inputType, "deleteContentBackward",
+      "If nothing changed but `beforeinput` event is fired, its input type should be deleteContentBackward");
+    assert_equals(gInput.length, 0,
+      "If nothing changed but `beforeinput` event is fired, `input` event should not be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kOnlyEditableTextDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If only editable text is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If only editable text is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.lastChild,
+        startOffset: 0,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If only editable text is deleted, its target range should be the deleted text range");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If only editable text is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If only editable text is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  assert_in_array(gEditor.innerHTML,
+    [
+      kNothingDeletedCase,
+      kOnlyEditableTextDeletedCase,
+      kNonEditableElementDeletedCase,
+    ], "The result content is unexpected");
+}, 'Backspace at "<p>abc<span contenteditable="false">non-[editable</span>de]f</p>"');
+
+
+promise_test(async () => {
+  initializeTest('<p contenteditable="false"><span contenteditable>a[bc</span>non-editable<span contenteditable>de]f</span></p>');
+  let firstRange = gSelection.getRangeAt(0);
+  if (!firstRange ||
+      firstRange.startContainer != gEditor.firstChild.firstChild.firstChild ||
+      firstRange.startOffset != 1 ||
+      firstRange.endContainer != gEditor.firstChild.lastChild.firstChild ||
+      firstRange.endOffset != 2) {
+    assert_true(true, "Selection couldn't set across editing host boundaries");
+    return;
+  }
+  await sendBackspaceKey();
+  const kNothingDeletedCase = '<p contenteditable="false"><span contenteditable="">abc</span>non-editable<span contenteditable="">def</span></p>';
+  const kOnlyEditableContentDeletedCase = '<p contenteditable="false"><span contenteditable="">a</span>non-editable<span contenteditable="">f</span></p>';
+  const kNonEditableElementDeletedCase = '<p contenteditable="false"><span contenteditable="">af</span></p>';
+  const kDeleteEditableContentBeforeNonEditableContentCase = '<p contenteditable="false"><span contenteditable="">a</span>non-editable<span contenteditable="">def</span></p>';
+  const kDeleteEditableContentAfterNonEditableContentCase = '<p contenteditable="false"><span contenteditable="">abc</span>non-editable<span contenteditable="">f</span></p>';
+  if (gEditor.innerHTML === kNothingDeletedCase) {
+    if (gBeforeinput.length === 0) {
+      assert_true(true, "If nothing changed, `beforeinput` event may not be fired");
+      assert_equals(gInput.length, 0, "If nothing changed, `input` event should not be fired");
+      return;
+    }
+    assert_equals(gBeforeinput.length, 1,
+      "If nothing changed, `beforeinput` event can be fired for web apps can handle by themselves");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 0,
+      `If nothing changed but \`beforeinput\` event is fired, its target range should be empty array (got ${
+        getRangeDescription(gBeforeinput[0].cachedRanges[0])
+      })`);
+    assert_equals(gBeforeinput[0].inputType, "deleteContentBackward",
+      "If nothing changed but `beforeinput` event is fired, its input type should be deleteContentBackward");
+    assert_equals(gInput.length, 0,
+      "If nothing changed but `beforeinput` event is fired, `input` event should not be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kOnlyEditableContentDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If only editable text is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 2,
+      "If only editable text is deleted, `beforeinput` event should have 2 target ranges");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.lastChild,
+        endOffset: 3,
+      }),
+      "If only editable text is deleted, its first target range should be the deleted text range in the first text node");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[1]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.last.firstChild,
+        startOffset: 0,
+        endContainer: gEditor.firstChild.last.firstChild,
+        endOffset: 2,
+      }),
+      "If only editable text is deleted, its second target range should be the deleted text range in the last text node");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If only editable text is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If only editable text is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.lastChild.firstChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentBeforeNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.firstChild.firstChild,
+        endOffset: 3,
+      }),
+      "If editable text before non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text before non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text before non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentAfterNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.lastChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.lastChild.firstChild,
+        endOffset: 3,
+      }),
+      "If editable text after non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text after non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text after non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  assert_in_array(gEditor.innerHTML,
+    [
+      kNothingDeletedCase,
+      kOnlyEditableContentDeletedCase,
+      kNonEditableElementDeletedCase,
+      kDeleteEditableContentBeforeNonEditableContentCase,
+      kDeleteEditableContentAfterNonEditableContentCase,
+    ], "The result content is unexpected");
+}, 'Backspace at "<p contenteditable="false"><span contenteditable>a[bc</span>non-editable<span contenteditable>de]f</span></p>"');
+
+promise_test(async () => {
+  initializeTest('<p>a[bc<span contenteditable="false">non-editable<span contenteditable>de]f</span></span></p>');
+  let firstRange = gSelection.getRangeAt(0);
+  if (!firstRange ||
+      firstRange.startContainer != gEditor.firstChild.firstChild ||
+      firstRange.startOffset != 1 ||
+      firstRange.endContainer != gEditor.querySelector("span span").firstChild ||
+      firstRange.endOffset != 2) {
+    assert_true(true, "Selection couldn't set across editing host boundaries");
+    return;
+  }
+  await sendBackspaceKey();
+  const kNothingDeletedCase = '<p>abc<span contenteditable="false">non-editable<span contenteditable="">def</span></span></p>';
+  const kOnlyEditableContentDeletedCase = '<p>a<span contenteditable="false">non-editable<span contenteditable="">f</span></span></p>';
+  const kNonEditableElementDeletedCase1 = '<p>af</p>';
+  const kNonEditableElementDeletedCase2 = '<p>a<span contenteditable="">f</span></p>';
+  const kDeleteEditableContentBeforeNonEditableContentCase ='<p>a<span contenteditable="false">non-editable<span contenteditable="">def</span></span></p>';
+  const kDeleteEditableContentAfterNonEditableContentCase ='<p>abc<span contenteditable="false">non-editable<span contenteditable="">f</span></span></p>';
+  if (gEditor.innerHTML === kNothingDeletedCase) {
+    if (gBeforeinput.length === 0) {
+      assert_true(true, "If nothing changed, `beforeinput` event may not be fired");
+      assert_equals(gInput.length, 0, "If nothing changed, `input` event should not be fired");
+      return;
+    }
+    assert_equals(gBeforeinput.length, 1,
+      "If nothing changed, `beforeinput` event can be fired for web apps can handle by themselves");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 0,
+      `If nothing changed but \`beforeinput\` event is fired, its target range should be empty array (got ${
+        getRangeDescription(gBeforeinput[0].cachedRanges[0])
+      })`);
+    assert_equals(gBeforeinput[0].inputType, "deleteContentBackward",
+      "If nothing changed but `beforeinput` event is fired, its input type should be deleteContentBackward");
+    assert_equals(gInput.length, 0,
+      "If nothing changed but `beforeinput` event is fired, `input` event should not be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kOnlyEditableContentDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If only editable text is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 2,
+      "If only editable text is deleted, `beforeinput` event should have 2 target ranges");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.firstChild,
+        endOffset: 3,
+      }),
+      "If only editable text is deleted, its first target range should be the deleted text range in the first text node");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[1]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span span").firstChild,
+        startOffset: 0,
+        endContainer: gEditor.querySelector("span span").firstChild,
+        endOffset: 2,
+      }),
+      "If only editable text is deleted, its second target range should be the deleted text range in the last text node");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If only editable text is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If only editable text is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase1) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    // XXX If the text nodes are merged, we need to cache it for here.
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase2) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.querySelector("span").firstChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentBeforeNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.firstChild,
+        endOffset: 3,
+      }),
+      "If editable text before non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text before non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text before non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentAfterNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span").firstChild,
+        startOffset: 0,
+        endContainer: gEditor.querySelector("span").firstChild,
+        endOffset: 2,
+      }),
+      "If editable text after non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text after non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text after non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  assert_in_array(gEditor.innerHTML,
+    [
+      kNothingDeletedCase,
+      kOnlyEditableContentDeletedCase,
+      kNonEditableElementDeletedCase1,
+      kNonEditableElementDeletedCase2,
+      kDeleteEditableContentBeforeNonEditableContentCase,
+      kDeleteEditableContentAfterNonEditableContentCase,
+    ], "The result content is unexpected");
+}, 'Backspace at "<p>a[bc<span contenteditable="false">non-editable<span contenteditable>de]f</span></span></p>"');
+
+promise_test(async () => {
+  initializeTest('<p><span contenteditable="false"><span contenteditable>a[bc</span>non-editable</span>de]f</p>');
+  let firstRange = gSelection.getRangeAt(0);
+  if (!firstRange ||
+      firstRange.startContainer != gEditor.querySelector("span span").firstChild ||
+      firstRange.startOffset != 1 ||
+      firstRange.endContainer != gEditor.firstChild.lastChild.firstChild ||
+      firstRange.endOffset != 2) {
+    assert_true(true, "Selection couldn't set across editing host boundaries");
+    return;
+  }
+  await sendBackspaceKey();
+  const kNothingDeletedCase = '<p><span contenteditable="false"><span contenteditable="">abc</span>non-editable</span>def</p>';
+  const kOnlyEditableContentDeletedCase = '<p><span contenteditable="false"><span contenteditable="">a</span>non-editable</span>f</p>';
+  const kNonEditableElementDeletedCase1 = '<p><span contenteditable="false"><span contenteditable="">af</span></span></p>';
+  const kNonEditableElementDeletedCase2 = '<p><span contenteditable="false"><span contenteditable="">a</span></span>f</p>';
+  const kDeleteEditableContentBeforeNonEditableContentCase = '<p><span contenteditable="false"><span contenteditable="">a</span>non-editable</span>def</p>';
+  const kDeleteEditableContentAfterNonEditableContentCase = '<p><span contenteditable="false"><span contenteditable="">abc</span>non-editable</span>f</p>';
+  if (gEditor.innerHTML === kNothingDeletedCase) {
+    if (gBeforeinput.length === 0) {
+      assert_true(true, "If nothing changed, `beforeinput` event may not be fired");
+      assert_equals(gInput.length, 0, "If nothing changed, `input` event should not be fired");
+      return;
+    }
+    assert_equals(gBeforeinput.length, 1,
+      "If nothing changed, `beforeinput` event can be fired for web apps can handle by themselves");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 0,
+      `If nothing changed but \`beforeinput\` event is fired, its target range should be empty array (got ${
+        getRangeDescription(gBeforeinput[0].cachedRanges[0])
+      })`);
+    assert_equals(gBeforeinput[0].inputType, "deleteContentBackward",
+      "If nothing changed but `beforeinput` event is fired, its input type should be deleteContentBackward");
+    assert_equals(gInput.length, 0,
+      "If nothing changed but `beforeinput` event is fired, `input` event should not be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kOnlyEditableContentDeletedCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If only editable text is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 2,
+      "If only editable text is deleted, `beforeinput` event should have 2 target ranges");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span span").firstChild,
+        startOffset: 1,
+        endContainer: gEditor.querySelector("span span").firstChild,
+        endOffset: 3,
+      }),
+      "If only editable text is deleted, its first target range should be the deleted text range in the first text node");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[1]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.lastChild,
+        startOffset: 0,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If only editable text is deleted, its second target range should be the deleted text range in the last text node");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If only editable text is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If only editable text is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase1) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    // XXX If the text nodes are merged, we need to cache it for here.
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span span").firstChild,
+        startOffset: 1,
+        endContainer: gEditor.querySelector("span span").lastChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kNonEditableElementDeletedCase2) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text and non-editable element are deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span span").firstChild,
+        startOffset: 1,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If editable text and non-editable element are deleted, its target range should include the deleted non-editable element");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text and non-editable element are deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text and non-editable element are deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentBeforeNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text before non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.querySelector("span span").firstChild,
+        startOffset: 1,
+        endContainer: gEditor.querySelector("span span").firstChild,
+        endOffset: 3,
+      }),
+      "If editable text before non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text before non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text before non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  if (gEditor.innerHTML === kDeleteEditableContentAfterNonEditableContentCase) {
+    assert_equals(gBeforeinput.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should be fired");
+    assert_equals(gBeforeinput[0].cachedRanges.length, 1,
+      "If editable text after non-editable element is deleted, `beforeinput` event should have a target range");
+    assert_equals(getRangeDescription(gBeforeinput[0].cachedRanges[0]),
+      getRangeDescription({
+        startContainer: gEditor.firstChild.lastChild,
+        startOffset: 0,
+        endContainer: gEditor.firstChild.lastChild,
+        endOffset: 2,
+      }),
+      "If editable text after non-editable element is deleted, its target range should be only the deleted text");
+    assert_equals(gBeforeinput[0].inputType, "deleteContent",
+      "If editable text after non-editable element is deleted, its input type should be deleteContent");
+    assert_equals(gInput.length, 1,
+      "If editable text after non-editable element is deleted, `input` event should be fired");
+    return;
+  }
+  assert_in_array(gEditor.innerHTML,
+    [
+      kNothingDeletedCase,
+      kOnlyEditableContentDeletedCase,
+      kNonEditableElementDeletedCase1,
+      kNonEditableElementDeletedCase2,
+      kDeleteEditableContentBeforeNonEditableContentCase,
+      kDeleteEditableContentAfterNonEditableContentCase,
+    ], "The result content is unexpected");
+}, 'Backspace at "<p><span contenteditable="false"><span contenteditable>a[bc</span>non-editable</span>de]f</p>"');
+
+</script>

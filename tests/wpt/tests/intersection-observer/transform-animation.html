@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+
+#container {
+  width: 200px;
+  height: 200px;
+  background-color: black;
+}
+
+#target {
+  position: relative;
+  top: 100px;
+  width: 100%;
+  height: 1px;
+  background-color: gray;
+}
+
+</style>
+
+<div id="container"><div id="target"></div></div>
+
+<script>
+
+promise_test(async function(t) {
+  let intersections = 0;
+
+  const observer = new IntersectionObserver(entries => ++intersections);
+  observer.observe(document.getElementById("target"));
+
+  await document.getElementById("container").animate({ transform: 'translate(0, 100px)' }, 1000).finished;
+  assert_equals(intersections, 1);
+}, "An element that already intersects with the viewport does not trigger the observer callback when animating its transform.");
+
+</script>

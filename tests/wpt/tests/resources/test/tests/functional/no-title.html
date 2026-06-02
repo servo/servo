@@ -1,0 +1,146 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Tests with no title</title>
+</head>
+<script src="/resources/testharness.js"></script>
+
+<body>
+<h1>Tests with no title</h1>
+<div id="log"></div>
+<script>
+  test(function(){assert_true(true, '1')});
+  test(()=>assert_true(true, '2'));
+  test(() => assert_true(true, '3'));
+  test(() => assert_true(true, '3'));  // test duplicate behaviour
+  test(() => assert_true(true, '3'));  // test duplicate behaviour
+  test(() => {
+      assert_true(true, '4');
+  });
+  test(() => { assert_true(true, '5') });
+  test(() => { assert_true(true, '6') }   );
+  test(() => { assert_true(true, '7'); });
+  test(() => {});
+  test(() => { });
+  test(() => {;;;;});
+  test(() => { ; ; ; ; });
+  test(()=>{});
+  test(()=>{ });
+  test(()=>{;;;;});
+  test(()=>{ ; ; ; ; });
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '2')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '3')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '3') 1",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '3') 2",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 1",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '5')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '6')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '7')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 2",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 3",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 4",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 5",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 6",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 7",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 8",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 9",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

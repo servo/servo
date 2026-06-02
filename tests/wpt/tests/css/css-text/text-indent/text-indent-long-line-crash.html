@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Very long line with `text-indent` should not crash</title>
+<link rel="help" href="https://crbug.com/963794">
+<link rel="author" title="Koji Ishii" href="kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  width: 2147483648px;
+}
+div {
+  text-indent: 2147483648px;
+  width: 200%; /* Double the width in case CSS parser clamps the body width */
+}
+</style>
+<body>
+  <div>XXX</div>
+<script>test(() => { document.body.offsetTop; });</script>
+</body>

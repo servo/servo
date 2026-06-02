@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<style type="text/css">
+  canvas {
+    margin: 5px;
+  }
+</style>
+<body>
+  <svg width="0" height="0">
+    <filter color-interpolation-filters='sRGB' id="justKernel">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"/>
+    </filter>
+    <filter color-interpolation-filters='sRGB' id="preserveAlpha">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"
+          preserveAlpha="true"/>
+    </filter>
+    <filter color-interpolation-filters='sRGB' id="target">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"
+          targetX="2" targetY="2"/>
+    </filter>
+    <filter color-interpolation-filters='sRGB' id="divisor">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"
+          divisor="3"/>
+    </filter>
+    <filter color-interpolation-filters='sRGB' id="bias">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"
+          bias="0.5"/>
+    </filter>
+    <filter color-interpolation-filters='sRGB' id="edgeMode">
+      <feConvolveMatrix
+          kernelMatrix="3 0 0 0 0 0 0 0 -3"
+          edgeMode="wrap"/>
+    </filter>
+  </svg>
+</body>
+<script type="text/javascript">
+
+const filters = [
+  "url('#justKernel')",
+  "url('#preserveAlpha')",
+  "url('#target')",
+  "url('#divisor')",
+  "url('#bias')",
+  "url('#edgeMode')",
+];
+
+function draw(ctx) {
+  ctx.fillRect(0, 20, 120, 100);
+
+  ctx.beginPath();
+  ctx.arc(150, 70, 50, 0, 2*Math.PI);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(220, 20);
+  ctx.lineTo(170, 120);
+  ctx.lineTo(270, 120);
+  ctx.lineTo(220, 20);
+  ctx.fill();
+}
+
+for (f of filters) {
+  const canvas = document.createElement("canvas");
+  document.body.prepend(canvas);
+  const ctx = canvas.getContext("2d");
+  ctx.filter = "blur(0px)";
+  ctx.fillStyle = "rgba(0,255,0,0.5)";
+  draw(ctx);
+  ctx.fillStyle = "rgba(255,0,255,0.5)";
+  ctx.filter = f;
+  draw(ctx);
+}
+</script>

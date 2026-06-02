@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>CSS-contain test: paint containment on internal ruby elements.</title>
+    <link rel="author" title="Yusuf Sermet" href="mailto:ysermet@mozilla.com">
+    <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-paint">
+    <link rel="match" href="contain-paint-ignored-cases-ruby-stacking-and-clipping-001-ref.html">
+    <meta name="assert" content="Paint containment should not apply to ruby base, ruby base container, ruby text, and ruby text container. This test confirms that contain:paint does not create a stacking context and does not apply overflow clipping.">
+    <style>
+      div {
+        position: relative;
+      }
+      rb,
+      rbc,
+      rt,
+      rtc {
+        contain: paint;
+      }
+      rbc {
+        display: ruby-base-container;
+      }
+      .contained {
+        z-index: 5;
+        width: 70px;
+        height: 10px;
+        background-color: blue;
+        margin-left: -25px;
+      }
+      .background {
+        background-color: yellow;
+        height: 50px;
+        width: 50px;
+        position: fixed;
+        z-index: 2;
+      }
+      .group {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rb>&emsp;<div class="contained"></div></rb></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rbc>&emsp;<div class="contained"></div></rbc></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rt>&emsp;<div class="contained"></div></rt></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rtc>&emsp;<div class="contained"></div></rtc></ruby>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+[package]
+name = "servo-media-derive"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_derive"
+proc-macro = true
+path = "lib.rs"
+
+[dependencies]
+syn = "2"
+quote = "1"
+proc-macro2 = "1"

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>table-width-4</title>
+    <meta charset="utf-8"/>
+    <link rel="match" href="table-width-4-ref.html"/>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=941607"/>
+    <style type="text/css">
+      html { background-color: grey; }
+      td { border: 1px solid white;
+      padding-top: 0;
+      padding-bottom: 0;
+      padding-right: 2px;
+      padding-left: 1px;
+      background-color: black;
+      color: black; }
+    </style>
+  </head>
+  <body>
+
+    <table>
+      <tr>
+        <td>
+          <math><mi>ℓ</mi><mi>i</mi></math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math><mtext>ℓ</mtext><mi>i</mi></math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math><mtext style="font-style: italic">ℓ</mtext><mi>i</mi></math>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

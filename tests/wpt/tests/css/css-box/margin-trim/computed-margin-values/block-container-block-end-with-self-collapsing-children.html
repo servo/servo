@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="Second item and all self-collapsing children at block-end should have margins trimmed">
+<style>
+container {
+    display: block;
+    inline-size: min-content;
+    margin-trim: block-end;
+}
+item {
+    display: block;
+    background-color: green;
+    inline-size: 50px;
+    block-size: 50px;
+    margin-block-end: 10px;
+}
+.collapsed {
+    block-size: 0px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('item')">
+    <div id="target">
+        <container>
+            <item data-expected-margin-bottom="10"></item>
+            <item data-expected-margin-bottom="0"></item>
+            <item class="collapsed" data-expected-margin-bottom="0">
+                <div><item class="collapsed" data-expected-margin-bottom="0">
+                    <div><item class="collapsed" data-expected-margin-bottom="0">
+                        <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                        <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                    </item></div>
+                </item></div>
+                <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+            </item>
+            <item class="collapsed" data-expected-margin-bottom="0">
+                <div><item class="collapsed" data-expected-margin-bottom="0">
+                    <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                    <div><item class="collapsed" data-expected-margin-bottom="0">
+                        <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                    </item></div>
+                    <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                </item></div>
+                <div><item class="collapsed" data-expected-margin-bottom="0">
+                    <div><item class="collapsed" data-expected-margin-bottom="0">
+                        <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                    </item></div>
+                </item></div>
+            </item>
+            <item class="collapsed" data-expected-margin-bottom="0"></item>
+        </container>
+    </div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pointer Lock event constructor</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="http://www.w3.org/TR/pointerlock/#pointerlockchange-and-pointerlockerror-events">
+    <link rel="help" href="http://www.w3.org/TR/dom/#interface-event">
+  </head>
+  <body>
+    <p>Create Pointer Lock events and check each default value.</p>
+    <div id='log'></div>
+    <script>
+test(function() {
+  var ev = new MouseEvent("pointerlockchange");
+  assert_equals(ev.type, "pointerlockchange");
+  assert_equals(ev.target, null);
+  assert_equals(ev.currentTarget, null);
+  assert_equals(ev.bubbles, false);
+  assert_equals(ev.eventPhase, Event.NONE);
+  assert_equals(ev.cancelable, false);
+  assert_true("preventDefault" in ev);
+  assert_equals(ev.defaultPrevented, false);
+  assert_true(ev.timeStamp > 0);
+  assert_true("initEvent" in ev);
+  assert_true("movementX" in ev, "movementX exists");
+  assert_true("movementY" in ev, "movementY exists");
+  assert_equals(ev.movementX, 0);
+  assert_equals(ev.movementY, 0);
+}, "Default event values for mouse event interface and its pointer lock extensions.");
+test(function() {
+  var ev = new MouseEvent("pointerlockerror",
+                            { type: "trololol",
+                              bubbles: true,
+                              cancelable: false,
+                              get defaultPrevented() {
+                                  assert_unreached("Should not look at the defaultPrevented property.");
+                               },
+                              movementX: 10,
+                              movementY: 10});
+  assert_equals(ev.type, "pointerlockerror");
+  assert_equals(ev.bubbles, true); // this is synthetic event, so follow the dictionary
+  assert_equals(ev.cancelable, false);
+  assert_equals(ev.defaultPrevented, false);
+  assert_equals(ev.movementX, 10); // this is synthetic event, so follow the dictionary
+  assert_equals(ev.movementY, 10); // this is synthetic event, so follow the dictionary
+}, "Default event values for pointerlockerror using a dictionary");
+   </script>
+
+</body>
+
+</html>

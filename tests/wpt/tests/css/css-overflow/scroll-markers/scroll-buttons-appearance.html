@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button()s appearance</title>
+<link rel="match" href="scroll-buttons-appearance-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  div::scroll-button(block-start) {
+    content: "appearance: auto";
+    /* appearance: auto is the default. */
+  }
+  div::scroll-button(block-end) {
+    content: "appearance: none";
+    appearance: none;
+  }
+
+</style>
+<p>Test passes if there are two buttons, the first one using appearance auto
+and the second using appearance: none.</p>
+<div></div>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+ <html>
+  <head>
+   <script type="application/its+xml">
+   <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml">
+     <its:param name="termparam">term</its:param>
+     <its:termRule selector="//h:p[@id=$termparam]/h:a[1]" term="yes" termInfoRef="#TDPV"/>
+   </its:rules>
+   </script>
+   <meta charset=utf-8>
+   <title>EXAMPLE</title>
+  </head>
+  <body>
+   <p id="term">
+   We may define
+    <a>discoursal point of view</a>
+   as
+    <cite id="TDPV">
+   the relationship, expressed through discourse structure, between the implied author or some other addresser, and the fiction.
+    </cite>
+   </p>
+  </body>
+ </html>

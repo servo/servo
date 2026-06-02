@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: fallback line breaking (Burmese)</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+div {
+    border-right: 5em solid;
+    width: 7em;
+}
+.test {
+    white-space: pre;
+    color: blue;
+}
+.ref {
+    white-space: pre;
+    color: orange;
+}
+</style>
+
+<p>This test passes if the <strong>blue text wraps</strong> into more that one line, making it <strong>different</strong> from the orange one.
+
+
+<div class=test lang="my">အပြည်ပြည်ဆိုင်ရာလူ့အခွင့်ရေးကြေညာစာတမ်းကို</div>
+
+<div class=ref lang="my">အပြည်ပြည်ဆိုင်ရာလူ့အခွင့်ရေးကြေညာစာတမ်းကို</div>

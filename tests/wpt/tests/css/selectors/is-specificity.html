@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Selectors: :is()</title>
+    <link rel="author" title="Victoria Su" href="mailto:victoriaytsu@google.com">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+    <meta name="assert" content="This tests that the :is() selector chooses the correct specificity">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      .b.c + .d + .q.r + .s + #target {
+        font-size: 10px;
+        height: 10px;
+        width: 10px;
+      }
+      :is(.a, .b.c + .d, .q) + :is(* + .p, .q.r + .s, * + .t) + #target {
+        height: 20px;
+        width: 20px;
+      }
+      .b.c + .d + .q.r + .s + #target {
+        width: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="b c"></div>
+    <div class="a d e"></div>
+    <div class="q r"></div>
+    <div class="p s t"></div>
+    <div id="target"></div>
+    <script>
+
+      test(() => {
+        assert_equals(getComputedStyle(target).width, "30px");
+        assert_equals(getComputedStyle(target).height, "20px");
+        assert_equals(getComputedStyle(target).fontSize, "10px");
+      }, "Test :is() uses highest possible specificity");
+
+    </script>
+  </body>
+</html>

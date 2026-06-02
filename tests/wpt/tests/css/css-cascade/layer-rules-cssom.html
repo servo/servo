@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>The CSSOM API for Cascade Layers</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layer-apis">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const testCases = [
+  {
+    style: `@layer foo { }`,
+    expectedNames: ['foo'],
+    title: 'Basic layer block name',
+  },
+  {
+    style: `@layer { }`,
+    expectedNames: [''],
+    title: 'Anonymous layer block name',
+  },
+  {
+    style: `
+      @layer foo;
+    `,
+    expectedNames: [['foo']],
+    title: 'Basic layer statement name',
+  },
+  {
+    style: `
+      @layer foo, bar;
+    `,
+    expectedNames: [['foo', 'bar']],
+    title: 'Layer statement with multiple names',
+  },
+  {
+    style: `
+      @layer outer {
+        @layer foo.bar { }
+      }
+      @layer outer.foo.bar { }
+    `,
+    expectedNames: ['outer', 'foo.bar', 'outer.foo.bar'],
+    title: 'Nested layer block names',
+  },
+  {
+    style: `
+      @layer outer {
+        @layer foo.bar, baz;
+      }
+      @layer outer.foo.bar, outer.baz;
+    `,
+    expectedNames: ['outer', ['foo.bar', 'baz'], ['outer.foo.bar', 'outer.baz']],
+    title: 'Nested layer statement name lists',
+  },
+  {
+    style: `
+      @import url('data:text/css,') layer;
+    `,
+    expectedNames: [''],
+    title: 'Import into anonymous layer',
+  },
+  {
+    style: `
+      @import url('data:text/css,') layer(foo);
+    `,
+    expectedNames: ['foo'],
+    title: 'Import into named layer',
+  },
+  {
+    style: `
+      @import url('data:text/css,');
+    `,
+    expectedNames: [null],
+    title: 'Import without layer',
+  },
+];
+
+for (let testCase of testCases) {
+  promise_test(async function (t) {
+    assert_implements(window.CSSLayerBlockRule);
+    assert_implements(window.CSSLayerStatementRule);
+
+    const style = document.createElement('style');
+    t.add_cleanup(() => style.remove());
+
+    const isLoadAsync = testCase.style.includes("@import");
+    const load = new Promise(resolve => {
+      style.addEventListener("load", resolve, { once: true });
+    });
+
+    style.appendChild(document.createTextNode(testCase.style));
+    document.head.appendChild(style);
+
+    if (isLoadAsync) {
+      await load;
+    }
+
+    let index = 0;
+    function compareNames(ruleOrSheet) {
+      if (ruleOrSheet instanceof CSSLayerBlockRule)
+        assert_equals(ruleOrSheet.name, testCase.expectedNames[index++]);
+      else if (ruleOrSheet instanceof CSSImportRule)
+        assert_equals(ruleOrSheet.layerName, testCase.expectedNames[index++]);
+      else if (ruleOrSheet instanceof CSSLayerStatementRule)
+        assert_array_equals(ruleOrSheet.nameList, testCase.expectedNames[index++]);
+      if (ruleOrSheet.cssRules) {
+        for (let i = 0; i < ruleOrSheet.cssRules.length; ++i)
+          compareNames(ruleOrSheet.cssRules.item(i));
+      }
+    }
+    compareNames(style.sheet);
+    assert_equals(index, testCase.expectedNames.length);
+  }, testCase.title);
+}
+</script>

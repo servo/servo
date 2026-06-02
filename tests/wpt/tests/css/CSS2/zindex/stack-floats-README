@@ -1,0 +1,19 @@
+Tests 001 to 004 are tests of CSS2, section 9.5, normative paragraph 6:
+
+# A float can overlap other boxes in the normal flow (e.g., when a
+# normal flow box next to a float has negative margins). When an
+# inline box overlaps with a float, the content, background, and
+# borders of the inline box are rendered in front of the float. When a
+# block box overlaps, the background and borders of the block box are
+# rendered behind the float and are only be visible where the box is
+# transparent. The content of the block box is rendered in front of
+# the float.
+ -- http://www.w3.org/TR/REC-CSS2/visuren.html#floats
+
+
+For some of these tests you will need Todd Fahrner's Ahem font, which
+you can download from:
+
+   http://www.hixie.ch/resources/fonts/
+
+Versions for Mac, Unix and Windows are available.

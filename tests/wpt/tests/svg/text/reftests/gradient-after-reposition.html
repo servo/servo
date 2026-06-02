@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="match" href="gradient-after-reposition-ref.html">
+<link rel="help" href="https://crbug.com/1274630">
+<body>
+<svg style="border: 1px solid gray;">
+  <defs>
+    <linearGradient id="testGradient">
+      <stop stop-color="#000000" offset="0%"/>
+      <stop stop-color="#000000" offset="50%"/>
+      <stop stop-color="#3dcd58" offset="50%"/>
+      <stop stop-color="#ff4a4a" offset="100%"/>
+    </linearGradient>
+  </defs>
+  <text id="test" fill="url(#testGradient)" x="25" y="50" font-weight="bold" font-size="40">
+  Test gradient</text>
+</svg>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const text  = document.getElementById('test');
+    text.setAttribute('x', '50');
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</body>
+</html>

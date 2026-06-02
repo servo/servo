@@ -1,0 +1,19 @@
+<!doctype html>
+<title>pagehide event fires on history navigation forward</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+onload = function() {setTimeout(t.step_func(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.src = "pagehide-on-history-forward-1.html";
+}), 100)};
+
+base_hide = t.step_func(function() {
+  t.done()
+});
+</script>
+<iframe src="base.html"></iframe>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<head>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/csp-violations.js"></script>
+  <!-- Content-Security-Policy-Report-Only directives are not supported on meta
+       tags per https://www.w3.org/TR/CSP3/#cspro-header. This test sets at
+       least one such directive in a .headers file. It also sets a default-src
+       rule to allow all scripting except 'unsafe-eval', so we can also test
+       reporting of this case. Please refer to that file for the complete set of
+       CSP rules that apply to this test. -->
+</head>
+<body>
+  <!-- Some elements for the tests to act on. -->
+  <script id="customscript" is="custom-script" src="a"></script>
+  <svg><script id="svgscript"></script></svg>
+  <script>
+
+  const url = "" + document.location;
+
+  // A sample policy we use to test trustedTypes.createPolicy behaviour.
+  const id = x => x;
+  const a_policy = {
+    createHTML: id,
+    createScriptURL: id,
+    createScript: id,
+  };
+
+  promise_test(async t => {
+    const policyName = "three";
+    let {violations, exception} =
+        await trusted_type_violations_and_exception_for(_ =>
+          trustedTypes.createPolicy("three", a_policy)
+        );
+    assert_equals(violations.length, 2);
+    assert_true(violations[0].originalPolicy.includes("trusted-types one"));
+    assert_equals(violations[0].sample, clipSampleIfNeeded(policyName));
+    assert_equals(violations[0].blockedURI, "trusted-types-policy");
+    assert_true(violations[1].originalPolicy.includes("trusted-types two"));
+    assert_equals(violations[1].sample, clipSampleIfNeeded(policyName));
+    assert_equals(violations[1].blockedURI, "trusted-types-policy");
+    assert_true(exception instanceof TypeError);
+  }, "Trusted Type violation report: creating a forbidden policy.");
+
+  promise_test(async t => {
+    const policyName = "two";
+    let {violations, exception} =
+        await trusted_type_violations_and_exception_for(_ =>
+          trustedTypes.createPolicy(policyName, a_policy)
+        );
+    assert_equals(violations.length, 1);
+    assert_true(violations[0].originalPolicy.includes("trusted-types one"));
+    assert_equals(violations[0].sample, clipSampleIfNeeded(policyName));
+    assert_equals(violations[0].blockedURI, "trusted-types-policy");
+    assert_true(exception instanceof TypeError);
+  }, "Trusted Type violation report: creating a report-only-forbidden policy.");
+
+  // policy_one is set below, and used in several tests further down.
+  let policy_one = null;
+
+  promise_test(async t => {
+    const policyName = "one";
+    let violation =
+        await trusted_type_violation_without_exception_for(_ =>
+          policy_one = trustedTypes.createPolicy(policyName, a_policy)
+        );
+    assert_true(violation.originalPolicy.includes("trusted-types two"));
+    assert_equals(violation.sample, clipSampleIfNeeded(policyName));
+    assert_equals(violation.blockedURI, "trusted-types-policy");
+  }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
+
+  promise_test(async t => {
+    const input = "about:blank";
+    let violation = await trusted_type_violation_for(TypeError, _ =>
+      document.getElementById("svgscript").href.baseVal = input
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+    assert_equals(violation.blockedURI, "trusted-types-sink");
+    assert_equals(violation.sample, `SVGScriptElement href|${clipSampleIfNeeded(input)}`);
+  }, "Trusted Type violation report: sample for SVGScriptElement href assignment");
+
+  promise_test(async t => {
+    const input = "about:blank";
+    let violation = await trusted_type_violation_for(TypeError, _ =>
+      document.getElementById("svgscript").setAttribute('href', input)
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+    assert_equals(violation.blockedURI, "trusted-types-sink");
+    assert_equals(violation.sample, `SVGScriptElement href|${clipSampleIfNeeded(input)}`);
+  }, "Trusted Type violation report: sample for SVGScriptElement href assignment by setAttribute");
+
+  promise_test(async t => {
+    const input = "2+2";
+    let violation = await trusted_type_violation_for(EvalError, _ =>
+      eval(input)
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+    assert_equals(violation.blockedURI, "trusted-types-sink");
+    assert_equals(violation.sample, `eval|${clipSampleIfNeeded(input)}`);
+  }, "Trusted Type violation report: sample for eval");
+
+  // Test reporting for Custom Elements (where supported). The report should
+  // refer to the DOM elements being modified, so that Custom Elements cannot
+  // "mask" the underlying DOM mechanism (for reporting).
+  if (customElements) {
+    class CustomScript extends HTMLScriptElement {};
+    customElements.define("custom-script", CustomScript, { extends: "script" });
+
+    promise_test(async t => {
+      const input = "about:blank";
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        document.getElementById("customscript").src = input
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.blockedURI, "trusted-types-sink");
+      assert_equals(violation.sample, `HTMLScriptElement src|${clipSampleIfNeeded(input)}`);
+    }, "Trusted Type violation report: sample for custom element assignment");
+  }
+
+  promise_test(async t => {
+    const input = "about:blank";
+    let violation = await trusted_type_violation_for(TypeError, _ =>
+      new Worker(input)
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+    assert_equals(violation.blockedURI, "trusted-types-sink");
+    assert_equals(violation.sample, `Worker constructor|${clipSampleIfNeeded(input)}`);
+  }, "Trusted Type violation report: Worker constructor");
+
+  </script>
+</body>

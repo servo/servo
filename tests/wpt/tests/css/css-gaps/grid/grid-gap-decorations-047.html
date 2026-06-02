@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>
+    CSS Gap Decorations: Gap decorations are painted on dynamic grid change.
+  </title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <style>
+    .container {
+      height: 100px;
+      width: 100px;
+      background: red;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: auto;
+      gap: 2px;
+      row-rule: green solid 2px;
+      height: 100%;
+    }
+
+    .item {
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="container">
+    <div id="grid">
+      <div class="item"> </div>
+      <div class="item"> </div>
+    </div>
+  </div>
+  <script>
+    const grid = document.getElementById('grid');
+    function addChild(num) {
+      for (let i = 0; i < num; i++) {
+        const item = document.createElement('div');
+        item.className = 'item';
+        grid.appendChild(item);
+      }
+    }
+    // Use double requestAnimationFrame to remove need of setTimeout.
+    // Wait for the first frame to ensure that the style is computed.
+    requestAnimationFrame(() => {
+      // Wait for the second frame to ensure that the style is painted.
+      requestAnimationFrame(() => {
+        addChild(1);
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</body>
+</html>

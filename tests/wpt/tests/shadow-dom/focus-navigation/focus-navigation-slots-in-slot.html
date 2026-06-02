@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+<p>Tests for moving focus by pressing tab key across nodes in slot scope.<br>
+
+<div id="b1" tabindex="0">outside</div>
+<div id='host'>
+  <template data-mode='open'>
+    <slot></slot>
+  </template>
+  <slot>
+    <div id="1A" tabindex="0">single nested slot</div>
+    <div id="1B" tabindex="0">single nested slot</div>
+  </slot>
+  <slot>
+    <div id="1C" tabindex="0">single nested slot</div>
+  </slot>
+  <slot>
+    <slot>
+      <div id="2A" tabindex="0">double nested slot</div>
+      <div id="2B" tabindex="0">double nested slot</div>
+    </slot>
+  </slot>
+  <slot>
+    <div id="3A" tabindex="0">single nested slot</div>
+    <slot>
+      <div id="3B" tabindex="0">double nested slot</div>
+      <slot>
+        <div id="3C" tabindex="0">Triple nested slot</div>
+        <div id="3D" tabindex="0">Triple nested slot</div>
+      </slot>
+      <div id="3E" tabindex="0">double nested slot</div>
+    </slot>
+    <div id="3F" tabindex="0">single nested slot</div>
+  </slot>
+</div>
+<div id="b2" tabindex="0">outside</div>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  convertTemplatesToShadowRootsWithin(host);
+
+  let elements = [
+    'b1',
+    '1A',
+    '1B',
+    '1C',
+    '2A',
+    '2B',
+    '3A',
+    '3B',
+    '3C',
+    '3D',
+    '3E',
+    '3F',
+    'b2',
+  ];
+
+  await assert_focus_navigation_bidirectional(elements);
+}, 'Focus should cover assigned nodes of slot, especially for nested slots in slot scope.');
+
+</script>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+'use strict';
+const controls = ['input','textarea'];
+
+function setupControl(control, value) {
+  document.body.innerHTML = control === 'input'
+    ? '<input type="text" id="test">'
+    : '<textarea id="test"></textarea>';
+  const element = document.getElementById('test');
+  element.value = value;
+  element.focus();
+  // Stabilize layout.
+  element.style.fontFamily = 'monospace';
+  element.style.fontSize = '16px';
+  element.style.lineHeight = '20px';
+  element.style.padding = '0';
+  element.style.border = '0';
+  element.style.margin = '8px';
+  element.style.boxSizing = 'content-box';
+
+  // Zero scroll offsets so client rects are relative to a known origin.
+  if ('scrollTop' in element) element.scrollTop = 0;
+  if ('scrollLeft' in element) element.scrollLeft = 0;
+  return element;
+}
+function assert_rect_inside(inner, outer, msg = '') {
+  const rounding = 0.5; // sub-pixel fuzz.
+  assert_greater_than_equal(inner.left + rounding, outer.left, msg + 'left inside');
+  assert_less_than_equal(inner.right - rounding, outer.right, msg + 'right inside');
+}
+
+function rect(range, element, label='') {
+  const r = range.getBoundingClientRect();
+  assert_rect_inside(r, element.getBoundingClientRect(), label);
+  return r;
+}
+function setupFormControlRange(element, startOffset, endOffset) {
+  const range = new FormControlRange();
+  range.setFormControlRange(element, startOffset, endOffset);
+  return range;
+}
+
+controls.forEach(controlType => {
+  // Bidirectional text: a full selection spanning LTR and RTL text
+  // should produce a non-zero bounding box within the control.
+  test(() => {
+    const mixed = 'abc \u0645\u0631\u062D\u0628\u0627 def'; // abc مرحبا def.
+    const element = setupControl(controlType, mixed);
+    const range = setupFormControlRange(element, 0, mixed.length);
+    const boundingRect = rect(range, element, 'Bidirectional text full selection inside: ');
+    assert_greater_than(boundingRect.width, 0);
+    assert_greater_than(boundingRect.height, 0);
+  }, `Bidirectional mixed text full selection geometry (${controlType})`);
+
+  test(() => {
+    // Surrogate pair handling: geometry should not split a single emoji.
+    // Check that a full pair has width, and a single code unit slice
+    // does not produce a larger width than the full pair.
+    const value = '\ud83c\udf20A\ud83c\udf20'; // 🌠A🌠 in UTF-16.
+    const element = setupControl(controlType, value);
+
+    const fullRects = Array.from(setupFormControlRange(element, 0, value.length).getClientRects());
+    assert_greater_than_equal(fullRects.length, 1, 'full selection has rects');
+
+    const fullWidth = fullRects[0].width;
+    const wHalf1 = Array.from(setupFormControlRange(element, 0, 1).getClientRects())[0]?.width ?? 0;
+    const wHalf2 = Array.from(setupFormControlRange(element, 1, 2).getClientRects())[0]?.width ?? 0;
+    const wPair  = Array.from(setupFormControlRange(element, 0, 2).getClientRects())[0]?.width ?? 0;
+
+  assert_greater_than(wPair, 0, 'pair width greater than 0');
+  assert_greater_than_equal(wPair + 0.05, Math.max(wHalf1, wHalf2), 'full pair width greater than or equal to any single code-unit slice');
+  assert_greater_than(fullWidth, 0, 'full width greater than 0');
+  }, `Surrogate pair width normalization invariants (${controlType})`);
+
+  test(() => {
+    // visibility:hidden controls still produce a caret box with zero width.
+    document.body.innerHTML = controlType === 'input'
+      ? '<input id="test" style="visibility:hidden" value="abc">'
+      : '<textarea id="test" style="visibility:hidden">abc</textarea>';
+    const hidden = document.getElementById('test');
+    hidden.focus();
+    const range = setupFormControlRange(hidden, 2, 2);
+    const caretRect = rect(range, hidden, 'hidden caret inside: ');
+    assert_greater_than(caretRect.height, 0, 'caret height greater than 0');
+    assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');
+  }, `visibility:hidden caret geometry (${controlType})`);
+});
+</script>

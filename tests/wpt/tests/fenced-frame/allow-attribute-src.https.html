@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Test the 'src' attribute set in fenced frames.</title>
+<meta name=variant content="?type=fencedframe">
+<meta name=variant content="?type=iframe">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/media.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body></body>
+<script>
+frame_builder = () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('type') === "fencedframe") {
+    return attachFencedFrameContext({
+      attributes: [["allow", "shared-storage"]]
+    });
+  } else {
+    return attachIFrameContext({
+      generator_api: "fledge",
+      attributes: [["allow", "shared-storage"]]
+    });
+  }
+}
+
+promise_test(async () => {
+  // Not specifying an allowlist for a permissions policy will default the
+  // allowlist to 'src', which is an allowlist unique to iframes/fencedframes
+  // that matches either the URL of the 'src' attribute, the mapped URL of the
+  // URN in the 'src' attribute, or the mapped URL of the config in the 'config'
+  // attribute.
+  const frame = await frame_builder();
+  await frame.execute(async () => {
+    assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+  });
+}, 'Src permissions policy in allow attribute.');
+
+promise_test(async () => {
+  const frame = await frame_builder();
+  await navigateFrameContext(frame, {
+    origin: get_host_info().HTTPS_ORIGIN,
+  });
+  // When the fenced frame navigates itself to a same-origin page, the resulting
+  // document should still allow "shared-storage" since it is still same-origin to the
+  // original mapped URL (i.e. what 'src' is considered to be).
+  await frame.execute(async () => {
+    assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+  });
+}, 'Src permissions policy after same-origin navigation.');
+
+promise_test(async () => {
+  const frame = await frame_builder();
+  await navigateFrameContext(frame, {
+    origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+  });
+  // When the fenced frame navigates itself to a cross-origin page, the
+  // resulting document should not allow "shared-storage" since it is now cross-origin
+  // to the original mapped URL (i.e. what 'src' is considered to be).
+  await frame.execute(async () => {
+    assert_false(document.featurePolicy.allowsFeature("shared-storage"));
+  });
+}, 'Src permissions policy after cross-origin navigation.');
+
+promise_test(async () => {
+  const frame = await frame_builder();
+  await frame.execute(async () => {
+    const child_frame = await attachIFrameContext();
+    await child_frame.execute(() => {
+      assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+    })
+  });
+}, 'Src permissions policy in child iframe inheritance works properly.');
+</script>

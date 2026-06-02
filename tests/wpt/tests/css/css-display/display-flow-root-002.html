@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSS Display Test: div with display: flow-root and zero width does not intersect outer floats</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-flow-root">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="display-flow-root-002-ref.html">
+<style>
+  .float {
+    background-color: blue;
+    width: 250px;
+    height: 100px;
+  }
+  .left { float: left; }
+  .right { float: right; }
+
+  #outer { width: 400px; }
+
+  #zerowidth {
+    display: flow-root;
+    width: 0;
+    outline: 1px solid black;
+    height: 200px;
+  }
+</style>
+<div id="outer">
+  <!-- Two floats are positioned and sized such that there is less than zero empty space "between" them. -->
+  <div class="float right"></div>
+  <div class="float left"></div>
+  <div id="zerowidth"></div>
+</div>

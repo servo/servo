@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with Declarative CSS Module</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<style type="module" specifier="foo">
+span {color:blue}
+</style>
+
+<div id="host">
+  <template shadowrootmode="open" shadowrootadoptedstylesheets="foo">
+    <span id="test_element">Test content</span>
+  </template>
+</div>
+
+<script>
+  const host = document.getElementById("host");
+  test(function (t) {
+    assert_equals(
+      host.shadowRoot.adoptedStyleSheets.length,
+      1,
+      "The shadowrootadoptedstylesheets will declaratively import named specifiers into the adoptedStyleSheets array.",
+    );
+
+   }, "adoptedStyleSheets is populated from a <template> element's shadowrootadoptedstylesheets attribute.");
+  const test_element = host.shadowRoot.getElementById("test_element");
+
+  test(function (t) {
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 255)",
+              "Declarative styles were applied.");
+
+  }, "Styles from the adoptedStyleSheets are applied to elements.");
+</script>

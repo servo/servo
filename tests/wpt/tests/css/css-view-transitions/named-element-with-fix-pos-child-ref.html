@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: element with fixed position descendant (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+.child {
+  width: 100px;
+  height: 100px;
+  position: fixed;
+  top: 150px;
+  left: 150px;
+  background: grey;
+}
+</style>
+
+<div class=target>
+  <div class=child></div>
+</div>
+

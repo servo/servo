@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [blocklist_test_service_uuid]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryService(blocklist_test_service_uuid))
+    .then(service => service.getCharacteristic(blocklist_exclude_reads_characteristic_uuid))
+    .then(characteristic => promise_rejects_dom(t, 'SecurityError', characteristic.startNotifications()));
+}, 'Characteristic with exclude-reads rejects startNotifications.');
+</script>

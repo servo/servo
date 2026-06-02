@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Ensure that adopted nodes pass the same-origin-domain checks</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-adoptnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t) {
+  // This tests that adopting a node changes its same-origin-domain checks.
+  var iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  iframe.onload = t.step_func(function() {
+    // Create two nodes in the iframe's content document.
+    var nodeToAdopt = iframe.contentDocument.createElement("div");
+    var nodeToLeaveUnadopted = iframe.contentDocument.createElement("div");
+    document.adoptNode(nodeToAdopt);
+    assert_equals(nodeToAdopt.ownerDocument, document);
+    assert_equals(nodeToLeaveUnadopted.ownerDocument, iframe.contentDocument);
+    // Setting the iframe's document.domain causes it not to be same-origin-domain
+    iframe.contentDocument.domain = document.domain;
+    // We can still access the adopted node, since it is still same-origin-domain,
+    // but accessing the unadopted node throws a security exception.
+    assert_equals(nodeToAdopt.ownerDocument, document);
+    assert_throws_exactly(null, function() { nodeToLeaveUnadopted.ownerDocument; });
+    t.done();
+  });
+  document.body.appendChild(iframe);
+}, "Adopting a node should make it same-origin-domain.")
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Author-level CSS padding should apply to select controls with native appearance</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<select id="select"></select>
+<script>
+test(() => {
+    let value = "10px";
+    select.style.paddingLeft = value;
+    assert_equals(window.getComputedStyle(select).paddingLeft, value);
+    select.style.paddingTop = value;
+    assert_equals(window.getComputedStyle(select).paddingTop, value);
+    select.style.paddingRight = value;
+    assert_equals(window.getComputedStyle(select).paddingRight, value);
+    select.style.paddingBottom = value;
+    assert_equals(window.getComputedStyle(select).paddingBottom, value);
+});
+</script>
+</body>
+</html>

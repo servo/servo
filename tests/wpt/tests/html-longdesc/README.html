@@ -1,0 +1,109 @@
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Multifunction tests</title>
+
+</head>
+<body>
+<h1>longdesc-tests</h1>
+
+<p>Proposed tests for the <a href="http://www.w3.org/TR/html-longdesc">HTML Image Description Extension specification</a>. These tests are © chaals, and available under the <a href="http://www.w3.org/Consortium/Legal/copyright-software">W3C Software license</a></p>
+
+<h2>Multifunction tests</h2>
+
+<p>These 15 tests include descriptions under different combinations of circumstances - images included "normally", as data: URIs, or missing, with the descriptions internal or external to the page, as a data: URI, or in a location only reachable by taking into account the base element.</p>
+
+<p>The same tests are used to provide 3 results:
+1 Can the user discover there is an image that has a long description available?
+2 Can the user access the description? To pass, the user should arrive at the "pass page" which has a heading "Pass" followed by a description, or the focus must be on the text "Pass, if the focus is here" which is followed by a description of the image.
+3 Is the long description available to system accessibility APIs</p>
+
+<h3>Longdesc value as data:URI</h3>
+
+<ul>
+<li><a href="data-uri-image-data-uri-description-manual.html">data:URI image with data:URI description</a></li>
+<li><a href="empty-image-data-uri-description-manual.html">Empty image with data:URI description</a></li>
+<li><a href="external-image-data-uri-description-girt-by-spaces-manual.html">External image with data:URI description (with extra spaces)</a></li>
+<li><a href="external-image-data-uri-description-manual.html">External image with data:URI description</a></li>
+</ul>
+
+
+<h3>Longdesc value as external URI</h3>
+
+<ul>
+<li><a href="data-uri-image-external-description-manual.html">data:URI with External description</a></li>
+<li><a href="empty-image-external-description-manual.html">Empty image with an External description</a></li>
+<li><a href="external-image-external-description-girt-by-spaces-manual.html">External image with External description (with extra spaces)</a></li>
+<li><a href="external-image-external-description-manual.html">External image with External description</a></li>
+</ul>
+
+
+<h3>Longdesc value as internal URI (same page link)</h3>
+
+<ul>
+<li><a href="data-uri-image-internal-description-manual.html">data:URI with Internal description</a></li>
+<li><a href="empty-image-internal-description-manual.html">Empty image with an Internal description</a></li>
+<li><a href="external-image-internal-description-girt-by-spaces-manual.html">External image with an Internal description (with extra spaces)</a></li>
+<li><a href="external-image-internal-description-manual.html">External image with an Internal description</a></li>
+</ul>
+
+
+<h3>Longdesc value as a fragment in an external resource</h3>
+
+<ul>
+<li><a href="data-uri-image-external-description-fragment-manual.html">data:URI with External description fragment</a></li>
+<li><a href="empty-image-external-description-fragment-manual.html">Empty image with an External description fragment</a></li>
+<li><a href="external-image-external-description-fragment-girt-by-spaces-manual.html">External image with External description fragment (with extra spaces around the URL)</a></li>
+<li><a href="external-image-external-description-fragment-manual.html">External image with External description fragment</a></li>
+</ul>
+
+
+<h3>Longdesc value as external URI in presence of <code>&lt;base&gt;</code> element</h3>
+
+<ul>
+<li><a href="external-image-with-relative-base-external-description-manual.html">External image with External Description (relative base element set)</a></li>
+<li><a href="external-image-with-absolute-base-external-description-manual.html">External image with External Description (absolute base element set)</a></li>
+</ul>
+
+
+<h3>Longdesc for an image within an iframe</h3>
+
+<ul>
+<li><a href="iframe-discoverability-manual.html">Image in an <code>&lt;iframe&gt;</code> with External Description</a></li>
+</ul>
+
+
+<h2>Automated tests</h2>
+
+<p><a href="reflected-changing-longdesc-manual.html">Longdesc value updated by javascript</a> tests that the HTML attribute reflects changes made by javascript. To pass, the browser must redirect to the "Longdesc test Pass Page" which has the word "Pass" as a heading, followed by a description of the image.  Displaying the "Longdesc test Fail Page" would indicate a failure of this test.</p>
+
+<h2>Validation / Repair tool tests</h2>
+
+<p><a href="invalid-longdesc-manual.html">Invalid long description (plain text)</a> contains an invalid long description (plain text) and can be used to test User Agent and validation tool handling. <em>NOTE: Handling of invalid longdescs by user agents is currently undefined.</em>
+<a href="empty-longdesc-manual.html">Invalid long description (empty attribute)</a> contains an invalid long description (plain text) and can be used to test User Agent and validation tool handling. <em>NOTE: Handling of invalid longdescs by user agents is currently undefined.</em>
+<a href="fail-fragment-pointer-manual.html">Pointer to an invalid long description (not contained in a well-formed fragment)</a> points to a long description in a <a href="fail-fragment-pointer-manual.html">page fragment whose target is an empty element</a>. Validation tools should at least generate a warning, since an empty element is almost certainly not an adequate description, and is likely instead to reflect not passing the relevant authoring requirement.</p>
+
+<h2>Test results</h2>
+
+<p>Preliminary <a href="test-results.html">test results</a> are available for some platforms. More results are welcome.</p>
+
+<h2>Supporting files</h2>
+
+<p>The following files are required to make one or more of the tests work:</p>
+
+<ul>
+<li><a href="README.html">README.html</a> - this documentation</li>
+<li><a href="fail.html">fail.html</a></li>
+<li><a href="pass.html">pass.html</a></li>
+<li><a href="fail-fragment.html">fail-fragment.html</a></li>
+<li><a href="pass-fragment.html">pass-fragment.html</a></li>
+<li><a href="picture.png">picture.png</a></li>
+<li><a href="rebased/picture2.png">rebased/picture2.png</a>)</li>
+<li><a href="rebased/fail.html">rebased/fail.html</a> (actually a pass page, used to test what happens in the presence of a <code>&lt;base&gt;</code> element)</li>
+</ul>
+
+</body>
+</html>

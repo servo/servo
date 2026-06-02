@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Ensure that the scroll position isn't lost when the iframe is set to display:none and shown again</title>
+<link rel="author" href="mailto:perryuwang@gmail.com">
+<link rel="help" href="https://issues.chromium.org/issues/41368291">
+<script src="scroll_support.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <iframe id="frame"></iframe>
+</div>
+
+<script>
+const IFRAME_PATH = '/dom/events/scrolling/save-iframe-scroll-offset-when-display-none.sub.html';
+
+function waitForFrameLoadAsync(frame) {
+  return new Promise(async (resolve) => {
+    frame.addEventListener('load', resolve, { once: true });
+  });
+}
+
+function waitForMessageAsync(expected_frame_id, expected_command) {
+  return new Promise((resolve) => {
+    window.addEventListener('message', (event) => {
+      assert_equals(event.data.command, expected_command);
+      assert_equals(event.data.frame_id, expected_frame_id);
+      resolve({scrollX: event.data.scrollX, scrollY: event.data.scrollY});
+    }, { once: true });
+  });
+}
+
+function iframeScrollTo(frame, x, y) {
+  return new Promise(async (resolve) => {
+    const scroll_ack_waiter = waitForMessageAsync(frame.id, 'scrollTo');
+    await frame.contentWindow.postMessage({
+      command: 'scrollTo',
+      frame_id: frame.id,
+      scrollX: x,
+      scrollY: y,
+    }, '*');
+    const ret = await scroll_ack_waiter;
+    resolve(ret);
+  });
+}
+
+function iframeGetScroll(frame) {
+  return new Promise(async (resolve) => {
+    const scroll_ack_waiter = waitForMessageAsync(frame.id, 'getScroll');
+    await frame.contentWindow.postMessage({
+      command: 'getScroll',
+      frame_id: frame.id,
+    }, '*');
+    const ret = await scroll_ack_waiter;
+    resolve(ret);
+  });
+}
+
+async function testIFrame(src) {
+  const frame = document.getElementById('frame');
+  frame.src = src;
+  await waitForFrameLoadAsync(frame);
+  let ret = await iframeScrollTo(frame, 1000, 2000);
+  assert_equals(ret.scrollX, 1000);
+  assert_equals(ret.scrollY, 2000);
+  frame.style.display = 'none';
+  await waitForCompositorCommit();
+  frame.style.display = '';
+  await waitForCompositorCommit();
+  ret = await iframeGetScroll(frame);
+  assert_equals(ret.scrollX, 1000);
+  assert_equals(ret.scrollY, 2000);
+}
+
+window.onload = async () => {
+  promise_test(async () => {
+    await testIFrame(IFRAME_PATH);
+  }, 'Ensure that the scroll position is not lost when the local iframe is set to display:none and shown again.');
+
+  promise_test(async () => {
+    await testIFrame(get_host_info().HTTP_NOTSAMESITE_ORIGIN + IFRAME_PATH);
+  }, 'Ensure that the scroll position is not lost when the remote iframe is set to display:none and shown again.');
+}
+</script>

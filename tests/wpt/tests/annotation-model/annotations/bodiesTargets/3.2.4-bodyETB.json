@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.4-bodyETB.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "An Embedded Textual Body may be used as an Annotation Body.",
+    "title": "Implements **Embedded Textual Body** with **_value_ key** as a body of the Annotation  [model 3.2.4](https://www.w3.org/TR/annotation-model/#embedded-textual-body)",
+    "description": "True when Annotation includes one or more Embedded Textual Bodies as Annotation body(ies). (Section 3.2.4)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "anyOf": [
+                      { "$ref": "bodyTarget.json#/definitions/textualBodyFound" },
+                      { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/textualBodyFound" } } } },
+                      { "$ref": "bodyTarget.json#/definitions/itemETBDetected" },
+                      { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemETBDetected" } } } }
+                    ]
+         }
+     }
+}

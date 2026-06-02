@@ -1,0 +1,112 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: off-screen selection</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility auto element remains non-skipped when elements in its subtree have selection.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body, html {
+  padding: 0;
+  margin: 0;
+}
+
+.spacer {
+  height: 3000px;
+  background: lightblue;
+}
+#container {
+  background: lightgreen;
+  contain-intrinsic-size: 50px 100px;
+  content-visibility: auto;
+}
+#selectable {
+  width: 10px;
+  height: 10px;
+}
+</style>
+
+<div class=spacer></div>
+<div id=container>
+  <div id=selectable>hello</div>
+</div>
+<div class=spacer></div>
+
+<script>
+async_test((t) => {
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(selectable);
+
+  // Initially container should be 3000px offscreen with contained height 100px.
+  function step1() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step1 offset");
+      assert_equals(r.height, 100, "step1 height");
+    });
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    requestAnimationFrame(step2);
+  }
+  // The container has a selection so it should be smaller now, height 10px.
+  function step2() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step2 offset");
+      assert_equals(r.height, 10, "step2 height");
+    });
+    document.scrollingElement.scrollTop = 3000;
+    requestAnimationFrame(step3);
+  }
+  // After scrolling the container should be closer and still height 10px.
+  function step3() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_less_than(r.y, 3000, "step3 offset");
+      assert_equals(r.height, 10, "step3 height");
+    });
+    document.scrollingElement.scrollTop = 0;
+    requestAnimationFrame(step4);
+  }
+  // Scrolling back to the top we should remain at height 10px.
+  function step4() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step4 offset");
+      assert_equals(r.height, 10, "step4 height");
+    });
+    requestAnimationFrame(step5);
+  }
+  // Repeat step4 to ensure we're in a stable situation.
+  function step5() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step5 offset");
+      assert_equals(r.height, 10, "step5 height");
+    });
+
+    selection.removeAllRanges();
+
+    requestAnimationFrame(step6);
+  }
+  // After removing the selection, we keep the last rendered size, see
+  // https://github.com/w3c/csswg-drafts/issues/8407.
+  function step6() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step6 offset");
+      assert_equals(r.height, 10, "step6 height");
+    });
+    t.done();
+  }
+  step1();
+});
+</script>
+</html>

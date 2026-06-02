@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor applied to element with 'display' set to 'table-row'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-cursor" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="The 'cursor' property applies to elements with a display of table-row." />
+        <style type="text/css">
+            #test
+            {
+                display: table-row;
+                background-color: blue;
+                cursor: pointer;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #cell
+            {
+                display: table-cell;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the cursor changes to a pointer cursor when it is over the blue area.</p>
+        <div id="table">
+            <div id="test">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

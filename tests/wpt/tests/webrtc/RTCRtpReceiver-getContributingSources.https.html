@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getContributingSources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function connectAndExpectNoCsrcs(t, kind) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({[kind]:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  pc1.addTrack(track, stream);
+
+  exchangeIceCandidates(pc1, pc2);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+
+  // Some browsers might need an audio element attached to the DOM.
+  const element = document.createElement(kind);
+  element.autoplay = true;
+  element.srcObject = trackEvent.streams[0];
+  document.body.appendChild(element);
+  t.add_cleanup(() => { document.body.removeChild(element) });
+
+  assert_array_equals(trackEvent.receiver.getContributingSources(), []);
+}
+
+promise_test(async t => {
+  await connectAndExpectNoCsrcs(t, 'audio');
+}, '[audio] getContributingSources() returns an empty list in loopback call');
+
+promise_test(async t => {
+  await connectAndExpectNoCsrcs(t, 'video');
+}, '[video] getContributingSources() returns an empty list in loopback call');
+</script>

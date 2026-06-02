@@ -1,0 +1,15 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno23",
+  "type": "Annotation",
+  "body": {
+    "source": "http://example.org/video1",
+    "purpose": "describing",
+    "selector": {
+      "type": "FragmentSelector",
+      "conformsTo": "http://www.w3.org/TR/media-frags/",
+      "value": "t=30,60"
+    }
+  },
+  "target": "http://example.org/image1"
+}

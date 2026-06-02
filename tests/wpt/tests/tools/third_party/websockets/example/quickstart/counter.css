@@ -1,0 +1,33 @@
+body {
+    font-family: "Courier New", sans-serif;
+    text-align: center;
+}
+.buttons {
+    font-size: 4em;
+    display: flex;
+    justify-content: center;
+}
+.button, .value {
+    line-height: 1;
+    padding: 2rem;
+    margin: 2rem;
+    border: medium solid;
+    min-height: 1em;
+    min-width: 1em;
+}
+.button {
+    cursor: pointer;
+    user-select: none;
+}
+.minus {
+    color: red;
+}
+.plus {
+    color: green;
+}
+.value {
+    min-width: 2em;
+}
+.state {
+    font-size: 2em;
+}

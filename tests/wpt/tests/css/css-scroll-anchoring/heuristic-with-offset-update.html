@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+<head>
+    <style type="text/css">
+        #scroller {
+            overflow: scroll;
+            height: 500px;
+            height: 500px;
+        }
+        #before {
+            height: 200px;
+        }
+        #anchor {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin-bottom: 500px;
+            background-color: blue;
+            /*
+             * To trigger the Gecko bug that's being regression-tested here, we
+             * need 'top' to start out at a non-'auto' value, so that the
+             * dynamic change can trigger Gecko's "RecomputePosition" fast path
+             */
+            top: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div id="scroller">
+        <div id="before">
+        </div>
+        <div id="anchor">
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        test(() => {
+            let scroller = document.querySelector('#scroller');
+            let before = document.querySelector('#before');
+            let anchor = document.querySelector('#anchor');
+
+            // Scroll down to select #anchor as a scroll anchor
+            scroller.scrollTop = 200;
+
+            // Adjust the 'top' of #anchor, which should trigger a suppression
+            anchor.style.top = '10px';
+
+            // Expand #before and make sure we don't apply an adjustment
+            before.style.height = '300px';
+            assert_equals(scroller.scrollTop, 200);
+        }, 'Positioned ancestors with dynamic changes to offsets trigger scroll suppressions.');
+    </script>
+</body>
+</html>

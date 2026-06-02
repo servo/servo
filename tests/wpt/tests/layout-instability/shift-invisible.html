@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift of invisible element not counted</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div id="target" style="width: 100px; height: 100px; position: relative"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  target.style.top = "200px";
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift of invisible element not counted.");
+
+</script>

@@ -1,0 +1,71 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+function parseBitLimit() {
+  const url = new URL(location.href);
+  return parseInt(url.searchParams.get("bits"));
+}
+
+async function init() {
+  const [outerKey] = parseKeylist();
+  const bitLimit = parseBitLimit();
+  const innerKey = token();
+  const numUrls = 8;
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [innerKey]);
+  const bitsPerCall = Math.log2(numUrls);
+
+  await sharedStorage.worklet.addModule(
+      "/shared-storage/resources/simple-module.js");
+
+  for (let i = 0; i < Math.floor(bitLimit / bitsPerCall); ++i) {
+    let config = await sharedStorage.selectURL(
+        "test-url-selection-operation", urls,
+        {data: {'mockResult': 1}, keepAlive: true, resolveToConfig: true});
+    assert_true(config instanceof FencedFrameConfig);
+    attachFencedFrame(config, 'opaque-ads');
+    try {
+      const result = await nextValueFromServer(innerKey);
+      assert_equals(result, "frame1_loaded",
+          `for origin ${location.origin}, index ${i} when budget should remain;`);
+    } catch (error) {
+      writeValueToServer(outerKey,
+          `run_url_selection_limit_inner_failed ${error}`);
+      return;
+    }
+  }
+
+  // Either the per-origin per-pageload bit limit or the overall per-pageload
+  // bit limit for `selectURL()` has been reached. The next call should return
+  // the default URL.
+  let config = await sharedStorage.selectURL(
+      "test-url-selection-operation", urls,
+      {data: {'mockResult': 1}, resolveToConfig: true});
+  assert_true(config instanceof FencedFrameConfig);
+    attachFencedFrame(config, 'opaque-ads');
+  try {
+    const result = await nextValueFromServer(innerKey);
+      assert_equals(result, "frame0_loaded",
+          `for origin ${location.origin} when budget should be exhausted;`);
+  } catch (error) {
+    writeValueToServer(outerKey,
+            `run_url_selection_limit_inner_failed ${error}`);
+    return;
+  }
+
+  // No errors were caught, so this portion of the test succeeded.
+  writeValueToServer(outerKey, "run_url_selection_limit_inner_succeeded");
+}
+
+init();
+</script>
+</body>

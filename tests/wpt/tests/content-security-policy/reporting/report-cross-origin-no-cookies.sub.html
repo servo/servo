@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cookies are not sent on cross origin violation reports</title>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- CSP headers
+         Content-Security-Policy: script-src 'unsafe-inline' 'self'; img-src 'none'; report-uri http://{{domains[www1]}}:{{ports[http][0]}}/reporting/resources/report.py?op=put&reportID=$id
+         -->
+</head>
+<body>
+<script>
+  promise_test(function(test) {
+    const path = encodeURIComponent("{{domains[www1]}}:{{ports[http][0]}}/");
+    return fetch(
+      "/cookies/resources/set-cookie.py?name=cspViolationReportCookie1&path=" + path,
+      {mode: 'no-cors', credentials: 'include'})
+    .then(() => {
+      test.add_cleanup(() => {
+        return fetch("/cookies/resources/set.py?cspViolationReportCookie1=; path=" + path + "; expires=Thu, 01 Jan 1970 00:00:01 GMT");
+      });
+
+      // This image will generate a CSP violation report.
+      const img = new Image();
+      img.onerror = test.step_func_done();
+      img.onload = test.unreached_func("Should not have loaded the image");
+
+      img.src = "../support/fail.png";
+      document.body.appendChild(img);
+    });
+  }, "Image should not load");
+</script>
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27&noCookies=true'></script>
+
+</body>
+</html>

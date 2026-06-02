@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Auto margin-top and margin-bottom, non-auto everything else</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <div style="position:absolute; top:50%; bottom:50%; width:100px; height:100px; margin:auto; background:green;"></div>
+</div>

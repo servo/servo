@@ -1,0 +1,11 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i"></iframe>
+<script>
+promise_test(async t => {
+  i.contentWindow.navigation.oncurrententrychange = t.unreached_func("currententrychange should not fire");
+  i.contentWindow.navigation.navigate("/common/blank.html");
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+}, "currententrychange does not fire when navigating away from the initial about:blank");
+</script>

@@ -1,0 +1,4 @@
+features:
+- name: canvas-roundrect
+  files:
+  - 2d.path.roundrect.*

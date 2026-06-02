@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: wheel scroll</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+}
+
+#content {
+  width: 600px;
+  height: 1000px;
+  background-color: blue;
+}
+
+</style>
+
+<div id="container">
+  <div id="content"></div>
+</div>
+
+<script>
+let event_type = [];
+let event_id = [];
+
+promise_test(async t => {
+  let container = document.getElementById("container");
+  container.addEventListener("wheel",
+    e => {event_type.push(e.type);});
+
+  let actions = new test_driver.Actions()
+       .scroll(0, 0, 0, 50, {origin: container});
+
+  await actions.send()
+  assert_array_equals(event_type, ["wheel"]);
+});
+</script>

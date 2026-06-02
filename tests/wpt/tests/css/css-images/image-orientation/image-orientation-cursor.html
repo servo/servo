@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation does apply to cursor</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="flags" content="interact">
+<style>
+div { width: 100px; height: 100px; border: solid blue; margin-left: 64px; }
+.orient { cursor: url(support/cursor-8-llo.jpg) 33 0, default; }
+.no-orient { cursor: url(support/cursor-8-llo.jpg) 64 33, default; image-orientation: none; }
+</style>
+<p>The test passes if</p>
+<ul>
+  <li>when moved inside either of the blue boxes, the cursor is shown as a
+  black arrow on a white background, with the point of the arrow at the current
+  cursor location</li>
+  <li>in the first box, the cursor points up and to the right</li>
+  <li>in the second box, the cursor points down and to the right</li>
+</ul>
+<div class="orient"></div>
+<div class="no-orient"></div>

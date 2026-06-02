@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="closed-listbox-rendering-ref.html">
+<style>
+select {
+  appearance: base-select;
+}
+</style>
+<select>
+  <option>option</option>
+</select>
+<select>
+  <optgroup label=label>
+    <option>option</option>
+  </optgroup>
+</select>
+<select>
+  <option>one</option>
+  <hr>
+  <option>two</option>
+</select>

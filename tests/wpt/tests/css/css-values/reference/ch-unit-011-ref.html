@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test Reference File</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      float: left;
+      font-size: 80px; /* arbitrary font size */
+      line-height: 1.8; /* arbitrary line-height */
+      text-orientation: upright;
+      writing-mode: vertical-rl;
+    }
+
+  div#blue
+    {
+      background-color: blue;
+      color: blue;
+    }
+
+  div#orange
+    {
+      background-color: orange;
+      color: orange;
+    }
+  </style>
+
+  <p>Test passes if there is a blue rectangle with the <strong>same height</strong> as an orange rectangle.
+
+  <div id="blue">00000</div>
+
+  <div id="orange">00000</div>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  This test is for testing the range selection of floating list item on
+  double click.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .fl,
+  li {
+    float: left;
+    margin-right: 40px;
+  }
+</style>
+<div>
+  <ul>
+    <li id="first">First</li>
+    <li>Second</li>
+  </ul>
+</div>
+<div>
+  <strong id="sfirst" class="fl">first</strong
+  ><strong class="fl">second</strong>
+</div>
+<script>
+  function runTests() {
+    promise_test(async () => {
+      const first = document.getElementById("first");
+      first.focus();
+      let actions = new test_driver.Actions()
+        .pointerMove(0, 0, { origin: first })
+        .pointerDown()
+        .pointerUp()
+        .pointerDown()
+        .pointerUp();
+      await actions.send();
+      const selection = window.getSelection();
+      let selectedText = selection.toString();
+      assert_equals(
+        selectedText,
+        "First",
+        "Selected Text Should be equal to first list item"
+      );
+    }, "Double click on one floating list item should not select more than one list item");
+
+    promise_test(async () => {
+      const sfirst = document.getElementById("sfirst");
+      sfirst.focus();
+      let actions = new test_driver.Actions()
+        .pointerMove(0, 0, { origin: sfirst })
+        .pointerDown()
+        .pointerUp()
+        .pointerDown()
+        .pointerUp();
+      await actions.send();
+      const selection = window.getSelection();
+      let selectedText = selection.toString();
+      assert_equals(
+        selectedText,
+        "first",
+        "Selected Text Should be equal to first list item"
+      );
+    }, "Double click on one floating strong text should not select more than one item");
+  }
+
+  window.addEventListener("load", runTests, { once: true });
+</script>

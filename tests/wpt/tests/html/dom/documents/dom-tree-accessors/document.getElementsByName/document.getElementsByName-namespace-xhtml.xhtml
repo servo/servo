@@ -1,0 +1,32 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>getElementsByName and foreign namespaces</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="test">
+<p name="math"><math name="math" xmlns="http://www.w3.org/1998/Math/MathML">
+<mi>a</mi>
+<mo>+</mo>
+<mi>b</mi>
+</math></p>
+<p name="svg"><svg width="300" height="100" name="svg" xmlns="http://www.w3.org/2000/svg">
+<rect width="300" height="100" fill="rgb(0,0,255)"/>
+</svg></p>
+</div>
+<script>
+test(function() {
+  var ps = document.getElementById("test")
+                   .getElementsByTagName("p");
+  assert_equals(document.getElementsByName("math").length, 1);
+  assert_equals(document.getElementsByName("math")[0], ps[0]);
+  assert_equals(document.getElementsByName("svg").length, 1);
+  assert_equals(document.getElementsByName("svg")[0], ps[1]);
+});
+</script>
+</body>
+</html>

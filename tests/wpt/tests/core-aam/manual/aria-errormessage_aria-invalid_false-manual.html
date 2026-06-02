@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-errormessage</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_ERROR_MESSAGE",
+                  "isNot",
+                  "[error]"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXErrorMessageElements",
+                  "isNot",
+                  "[error]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_ERROR",
+                  "isNot",
+                  "[error]"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControllerFor",
+                  "isNot",
+                  "error"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "error",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_ERROR_FOR",
+                  "isNot",
+                  "[test]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_ERROR_FOR",
+                  "isNot",
+                  "[test]"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-errormessage"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>User agents must not expose aria-errormessage for an object with aria-invalid false.</p>
+    <div role='checkbox' id='test' aria-errormessage='error' aria-invalid='false'>content</div>
+  <div id='error'>hello world</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following-sibling::ol/li[9]/ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[10] following::a[contains(@href,'#switch-done')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[6] following::ol[1]/li[7]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute" data-tested-assertations="following-sibling::ol/li[1]" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
+    <title>XMLHttpRequest: The send() method: event order when there is no response entity body</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+            prepare_xhr_for_event_order_test(xhr);
+
+            xhr.addEventListener("readystatechange", test.step_func(function() {
+                if (xhr.readyState == 3) {
+                    assert_equals(xhr.response, "");
+                }
+            }));
+
+            xhr.addEventListener("loadend", test.step_func(function(e) {
+                assert_xhr_event_order_matches([1, "loadstart(0,0,false)", 2, "progress(0,0,false)", 4,"load(0,0,false)", "loadend(0,0,false)"]);
+                test.done();
+            }));
+
+            xhr.open("POST", "./resources/content.py", true);
+            xhr.send();
+        });
+    </script>
+</body>
+</html>

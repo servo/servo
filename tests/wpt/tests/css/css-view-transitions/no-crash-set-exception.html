@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: exception thrown during transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: shared;
+}
+
+html::view-transition,
+html::view-transition-group(shared),
+html::view-transition-image-pair(shared),
+html::view-transition-old(shared),
+html::view-transition-new(shared) {
+  background: blue;
+}
+</style>
+
+<div></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  await waitForCompositorReady();
+  const vt = document.startViewTransition(() => {
+    throw "error";
+  });
+  let update_callback_resolution;
+  let ready_resolution;
+  let finished_resolution;
+
+  await vt.updateCallbackDone.then(
+    () => { update_callback_resolution = "fulfilled" },
+    () => { update_callback_resolution = "rejected" });
+  await vt.ready.then(
+    () => { ready_resolution = "fulfilled" },
+    () => { ready_resolution = "rejected" });
+  await vt.finished.then(
+    () => { finished_resolution = "fulfilled" },
+    () => { finished_resolution = "rejected" });
+
+  assert_equals(update_callback_resolution, "rejected");
+  assert_equals(ready_resolution, "rejected");
+  assert_equals(finished_resolution, "rejected");
+}, "An exception thrown during a transition shouldn't crash.");
+
+</script>

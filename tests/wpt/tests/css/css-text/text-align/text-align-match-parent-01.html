@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Text: text-align: match-parent</title>
+    <link rel="author" title="Simon Montagu" href="mailto:smontagu@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css-text-3/#text-align-property">
+    <meta name="assert" content="Text checks that an element with
+     text-align: match-parent inherits its parent's value and calculates
+     'start' and 'end' with respect to its parent's direction">
+     <link rel="match" href="text-align-match-parent-ref.html">
+    <style type="text/css">
+div.start  { text-align: start; }
+div.end    { text-align: end; }
+div.left   { text-align: left; }
+div.right  { text-align: right; }
+div > div  { text-align: match-parent; }
+    </style>
+  </head>
+  <body>
+   <div>Test passes if each line that says "Left" is aligned left and
+   each line that says "Right" is aligned right</div>
+   <div class="start" dir="ltr"><div dir="ltr">Left</div></div>
+   <div class="start" dir="ltr"><div dir="rtl">Left</div></div>
+   <div class="start" dir="rtl"><div dir="ltr">Right</div></div>
+   <div class="start" dir="rtl"><div dir="rtl">Right</div></div>
+   <div class="end" dir="ltr"><div dir="ltr">Right</div></div>
+   <div class="end" dir="ltr"><div dir="rtl">Right</div></div>
+   <div class="end" dir="rtl"><div dir="ltr">Left</div></div>
+   <div class="end" dir="rtl"><div dir="rtl">Left</div></div>
+   <div class="left" dir="ltr"><div dir="ltr">Left</div></div>
+   <div class="left" dir="ltr"><div dir="rtl">Left</div></div>
+   <div class="left" dir="rtl"><div dir="ltr">Left</div></div>
+   <div class="left" dir="rtl"><div dir="rtl">Left</div></div>
+   <div class="right" dir="ltr"><div dir="ltr">Right</div></div>
+   <div class="right" dir="ltr"><div dir="rtl">Right</div></div>
+   <div class="right" dir="rtl"><div dir="ltr">Right</div></div>
+   <div class="right" dir="rtl"><div dir="rtl">Right</div></div>
+ </body>
+</html>

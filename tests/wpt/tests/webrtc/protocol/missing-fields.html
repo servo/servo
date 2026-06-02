@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection SDP parse tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+function removeSdpLines(description, toRemove) {
+  const edited = description.sdp.split('\n').filter(function(line) {
+    return (!line.startsWith(toRemove));
+  }).join('\n');
+  return {type: description.type, sdp: edited};
+}
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  t.add_cleanup(() => callee.close());
+  caller.addTrack(trackFactories.audio());
+  const offer = await caller.createOffer();
+  await caller.setLocalDescription(offer);
+  let remote_offer = removeSdpLines(offer, 'a=mid:');
+  remote_offer = removeSdpLines(remote_offer, 'a=group:');
+  await callee.setRemoteDescription(remote_offer);
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+}, 'Offer description with no mid is accepted');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  t.add_cleanup(() => callee.close());
+  caller.addTrack(trackFactories.audio());
+  const offer = await caller.createOffer();
+  await caller.setLocalDescription(offer);
+  await callee.setRemoteDescription(offer);
+  const answer = await callee.createAnswer();
+  let remote_answer = removeSdpLines(answer, 'a=mid:');
+  remote_answer = removeSdpLines(remote_answer, 'a=group:');
+  await caller.setRemoteDescription(remote_answer);
+}, 'Answer description with no mid is accepted');
+
+</script>

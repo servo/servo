@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Object.prototype.hasOwnProperty: Check prototype chain</title>
+<link rel="author" title="Masaya Iseki" href="mailto:iseki.m.aa@gmail.com">
+<link rel="help" href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.hasownproperty">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  [{}, []].forEach(function(that) {
+  	that.prop = 'exists';
+  	assert_true(that.hasOwnProperty('prop'));
+  	assert_true('hasOwnProperty' in that);
+  	assert_false(that.hasOwnProperty('hasOwnProperty'));
+  });
+});
+
+test(function() {
+  ['foo', 42].forEach(function(that) {
+  	assert_false(that.hasOwnProperty('hasOwnProperty'));
+  });
+});
+
+test(function() {
+  [null, undefined].forEach(function(that) {
+    assert_throws_js(TypeError,
+        function() { that.hasOwnProperty('hasOwnProperty'); });
+  });
+});
+</script>
+
+</body>
+</html>

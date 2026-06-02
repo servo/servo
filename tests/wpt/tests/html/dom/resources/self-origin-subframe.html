@@ -1,0 +1,22 @@
+<script>
+  window.onmessage = function(e){
+    if (e.data == "getOrigin") {
+      parent.postMessage(self.origin, "*");
+    } else if (e.data == "setDomainAndGetOrigin") {
+      var oldDomain = document.domain;
+      try {
+        document.domain = document.domain.replace(/^[^.]*./, "");
+      } catch (e) {
+        parent.postMessage("THREW WHEN SETTING DOMAIN: " + e, "*");
+        return;
+      }
+      if (oldDomain === document.domain) {
+        parent.postMessage("FAILED TO SET DOMAIN", "*");
+      } else {
+        parent.postMessage(self.origin, "*");
+      }
+    } else {
+      parent.postMessage("UNEXPECTED MESSAGE", "*");
+    }
+  }
+</script>

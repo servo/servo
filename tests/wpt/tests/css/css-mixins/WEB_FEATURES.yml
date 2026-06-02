@@ -1,0 +1,13 @@
+features:
+- name: function
+  files:
+  - at-function-*
+  - dashed-function-*
+  - function-*
+  - local-*-substitution.html
+  - function-parameter-types.tentative.html
+- name: mixin
+  files:
+  - mixin-basic.html
+  - mixin-declarations.html
+  - apply-within-mixin.html

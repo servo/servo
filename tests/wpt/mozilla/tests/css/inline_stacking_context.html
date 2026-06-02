@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Inline stacking context positioned correctly</title>
+        <link rel=match href="inline_stacking_context_ref.html">
+    </head>
+    <body>
+        <div style="font-size: 25px">
+            <span style="color: transparent;"><img src="100x100_green.png"></span>
+            <img style="filter: blur(0px);" src="100x100_green.png">
+        </div>
+        <div style="font-size: 25px">
+            <span style="transform:scale(1)">X</span>
+            <span style="transform:scale(1)">O</span>
+        </div>
+    </body>
+</html>

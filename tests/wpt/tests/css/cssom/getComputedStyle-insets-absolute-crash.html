@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Chromium bug: getComputedStyle() crashes with subtree layout of out-of-flow node</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1458561">
+
+<style>
+.container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+
+.oof {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  background: hotpink;
+}
+</style>
+
+<div class="container">
+  <div id="target1" class="oof">hi</div>
+</div>
+<script>
+document.body.offsetTop;
+target1.innerText = 'boom';
+getComputedStyle(target1).top;  // Shouldn't crash
+</script>
+
+<div class="container">
+  <div id="target2" class="oof"><div>hi</div></div>
+</div>
+<script>
+document.body.offsetTop;
+target2.firstChild.innerText = 'boom';
+getComputedStyle(target2).top;  // Shouldn't crash
+</script>

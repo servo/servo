@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>SVG Test: DOM mutations in template should not stop transition in &lt;use&gt; element tree</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1002">
+<link rel="match" href="use-element-selector-ref.html">
+<style>
+  #rect { fill: black; transition: fill 1000s steps(2, start); }
+  .class > #rect { fill: lime; }
+</style>
+<svg>
+  <use id="use_elm" xlink:href="#tmpl" />
+  <defs>
+    <g id="tmpl">
+      <rect id="rect" width="100" height="100"></rect>
+      <text id="txt">FAIL</text>
+    </g>
+  </defs>
+</svg>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      tmpl.setAttribute("class", "class");
+      requestAnimationFrame(() => {
+        txt.remove();
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  });
+</script>

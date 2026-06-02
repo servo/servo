@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: CSSOM StyleSheet insertRule omitted second argument</title>
+    <link rel="author" title="Sendil Kumar N" href="mailto:sendilkumarn.opensource@gmail.com">
+    <link rel="help" href="https://drafts.csswg.org/cssom/">
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssrule-interface">
+    <meta name="flags" content="dom">
+    <script src="/resources/testharness.js" type="text/javascript"></script>
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+    <style id="styleElement">
+        /* An initial style rule to test where the new rule is inserted relative to this one */
+        nosuchelement { color: red; }
+    </style>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+    var sheet = document.getElementById("styleElement").sheet;
+    test(function() {
+        assert_equals(sheet.cssRules.length, 1);
+        sheet.insertRule("p { color: green; }");
+        assert_equals(sheet.cssRules.length, 2);
+        assert_equals(sheet.cssRules.item(0).cssText, "p { color: green; }");
+    }, "insertRule with omitted index argument");
+
+    test(function() {
+        assert_equals(sheet.cssRules.length, 2);
+        sheet.insertRule("p { color: yellow; }", undefined);
+        assert_equals(sheet.cssRules.length, 3);
+        assert_equals(sheet.cssRules.item(0).cssText, "p { color: yellow; }");
+    }, "insertRule with undefined index argument");
+</script>
+</body>
+</html>

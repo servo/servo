@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text testcase - text-indent should not affect tab-stop positions</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/text-indent-tab-positions-001-ref.html">
+<meta name="assert" content="Tab stops occur at points that are multiples of the tab size from the block’s starting content edge.">
+<style>
+p { font-family: monospace; white-space: pre; tab-size: 8ch;
+    width: 40ch; margin: 1em 8ch; border: 1px solid silver; }
+.indent { text-indent: 3ch; }
+.outdent { text-indent: -3ch; }
+</style>
+The tab-stop positions should be the same in all three blocks below;
+only the ‘a’ characters affected by text-indent should be unaligned.
+<p>a&#9;b&#9;c<br>d&#9;e&#9;f</p>
+<p class=indent>a&#9;b&#9;c<br>d&#9;e&#9;f</p>
+<p class=outdent>a&#9;a'&#9;b&#9;c<br>d&#9;e&#9;f</p>

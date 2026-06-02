@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert" content="Check inline level replaced elements are not affected by block-step-size via getComputedStyle">
+<style>
+.container {
+  display: inline flow-root;
+  width: 100px;
+  font-size: 0px;
+}
+.block-step {
+  block-step-size: 100px;
+  visibility: hidden;
+}
+
+iframe {
+  border: 0;
+}
+
+</style>
+</head>
+<body onload="checkLayout('.test')">
+
+<div class="container test" data-expected-height="60">
+  <img class="block-step test" src="../../support/60x60-green.png" data-expected-margin-top="0" data-expected-margin-bottom="0"></img>
+</div>
+
+<div class="container test" data-expected-height="20">
+  <canvas width="20" height="20" class="block-step test" data-expected-margin-top="0" data-expected-margin-bottom="0"></canvas>
+</div>
+
+<div class="container test" data-expected-height="20">
+  <svg class="block-step test" viewBox="0 0 100 20" data-expected-margin-top="0" data-expected-margin-bottom="0"></svg>
+</div>
+
+<div class="container test" data-expected-height="20">
+  <embed type="text/xml" width="20" height="20" class="block-step test" data-expected-margin-top="0" data-expected-margin-bottom="0"></embed>
+</div>
+<div class="container test" data-expected-height="20">
+  <iframe src="" width="20" height="20" class="block-step test" data-expected-margin-top="0" data-expected-margin-bottom="0"></iframe>
+</div>
+
+<div class="container test" data-expected-height="20">
+  <object width="20" height="20" class="block-step test" data-expected-margin-top="0" data-expected-margin-bottom="0"></object>
+</div>
+
+<div class="container test" data-expected-height="20">
+  <video width="20" height="20" class="block-step test" data-expected-margin-top="0" data-expected-margin-bottom="0"></video>
+</div>
+
+</body>
+</html>

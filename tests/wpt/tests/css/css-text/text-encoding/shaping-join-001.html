@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: zwj and text-shaping</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/ch23.pdf">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/ch09.pdf">
+<link rel="help" href="https://www.w3.org/TR/alreq/#h_joining_enforcement">
+<link rel="match" href="reference/shaping-join-001-ref.html">
+<meta name="assert" content="Arabic characters next to a ZERO WIDTH JOINER character must take their correct positional form.">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  table {
+    font-family: 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl>
+<tr><!-- alef, final form as it doesn't have a medial form -->
+  <td>&zwj;&#x0627;&zwj;
+  <td>&#xFE8E;
+<tr><!-- alef, final form -->
+  <td>&zwj;&#x0627;
+  <td>&#xFE8E;
+<tr><!-- beh, initial form -->
+  <td>&#x0628;&zwj;
+  <td>&#xFE91;
+<tr><!-- beh, medial form -->
+  <td>&zwj;&#x0628;&zwj;
+  <td>&#xFE92;
+<tr><!-- beh, final form -->
+  <td>&zwj;&#x0628;
+  <td>&#xFE90;
+</table>

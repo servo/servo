@@ -1,0 +1,50 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestorKey = token();
+
+  // Note that we have set the site page bit limit to 3 and the overall page
+  // bit limit to 6. A single saved query with 8 URLs (i.e. log2(8) = 3 bits)
+  // will be permitted by the site's page budget, plus re-uses of the saved
+  // query.
+  const numUrls = 8;
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [ancestorKey]);
+
+  await sharedStorage.worklet.addModule(
+      "/shared-storage/resources/simple-module.js");
+
+  let config = await sharedStorage.selectURL(
+    "test-url-selection-operation", urls,
+      {data: {'mockResult': 1}, keepAlive: true, resolveToConfig: true,
+       savedQuery: "query"});
+  assert_true(config instanceof FencedFrameConfig);
+  attachFencedFrame(config, 'opaque-ads');
+  const result = await nextValueFromServer(ancestorKey);
+  assert_equals(result, "frame1_loaded",
+                `when budget should remain;`);
+
+  // The per-site per-pageload bit limit for `selectURL()` has been
+  // reached. No previously saved query can be retrieved for operation
+  // "test-url-selection-operation-2". The following call should return
+  // the default URL.
+  let config1 = await sharedStorage.selectURL(
+      "test-url-selection-operation-2", urls,
+      {data: {'mockResult': 2}, resolveToConfig: true, savedQuery: "query"});
+  assert_true(config1 instanceof FencedFrameConfig);
+  attachFencedFrame(config1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestorKey);
+  assert_equals(result1, "frame0_loaded", 'when budget should be exhausted;');
+}, 'selectURL() saved query not reused across different operations');
+</script>
+</body>

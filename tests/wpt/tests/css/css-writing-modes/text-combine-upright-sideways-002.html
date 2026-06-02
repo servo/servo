@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS test: text-combine-upright has no effect in sideways writing mode</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright"/>
+<link rel="match" href="reference/text-combine-upright-sideways-002-ref.html"/>
+<style>
+.test {
+  font: 32px sans-serif;
+  writing-mode: sideways-lr;
+}
+.combined {
+  text-combine-upright: all;
+}
+</style>
+<body>
+<p>Test passes if the digits are NOT rotated or compressed to appear horizontally</p>
+<div class="test">AB<span class="combined">123</span>CD</div>

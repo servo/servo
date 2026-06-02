@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: fit-content() tracks don't stretch</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing" title="7.2. Explicit Track Sizing: the grid-template-rows and grid-template-columns properties">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-align" title="10.5. Aligning the Grid: the justify-content and align-content properties">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch" title="11.8. Stretch auto Tracks">
+<meta name="flags" content="ahem dom">
+<meta name="assert" content="This test checks that 'fit-content()' tracks behave the same with 'normal', 'stretch' or 'start' values for content distribution properties.">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  display: grid;
+  width: 400px;
+  height: 200px;
+  font: 25px/1 Ahem;
+}
+
+.constrainedGrid {
+  width: 20px;
+  height: 10px;
+}
+
+.fitContent200x100 {
+  grid-template-columns: fit-content(200px);
+  grid-template-rows: fit-content(100px);
+}
+
+.placeContentStretch {
+  place-content: stretch;
+}
+
+.placeContentStart {
+  place-content: start;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div id="log"></div>
+
+<h1>1) place-content: normal</h1>
+
+<h2>1.2) Unconstrained grid container</h2>
+
+<div class="grid" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="400" data-expected-height="200">X</div>
+</div>
+
+<div class="grid" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="400" data-expected-height="200">XXXX XXX XX X</div>
+</div>
+
+<div class="grid fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="200" data-expected-height="50">XXXX XXX XX X</div>
+</div>
+
+<div class="grid fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid fitContent200x100" data-expected-width="400" data-expected-height="200">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+<h2>1.2) Constrained grid container</h2>
+
+<div class="grid constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+<h1>2) place-content: stretch</h1>
+
+<h2>2.2) Unconstrained grid container</h2>
+
+<div class="grid placeContentStretch" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="400" data-expected-height="200">X</div>
+</div>
+
+<div class="grid placeContentStretch" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="400" data-expected-height="200">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStretch fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStretch fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="200" data-expected-height="50">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStretch fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid placeContentStretch fitContent200x100" data-expected-width="400" data-expected-height="200">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+<h2>2.2) Constrained grid container</h2>
+
+<div class="grid placeContentStretch constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStretch constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStretch constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStretch constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStretch constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid placeContentStretch constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+<h1>3) place-content: start</h1>
+
+<h2>3.1) Unconstrained grid container</h2>
+
+<div class="grid placeContentStart" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStart" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="325" data-expected-height="25">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStart fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStart fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="200" data-expected-height="50">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStart fitContent200x100" data-expected-width="400" data-expected-height="200">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid placeContentStart fitContent200x100" data-expected-width="400" data-expected-height="200">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+<h2>3.2) Constrained grid container</h2>
+
+<div class="grid placeContentStart constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStart constrainedGrid" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStart constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="25" data-expected-height="25">X</div>
+</div>
+
+<div class="grid placeContentStart constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="100" data-expected-height="75">XXXX XXX XX X</div>
+</div>
+
+<div class="grid placeContentStart constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+  <div data-expected-width="225" data-expected-height="50">XXXXXXXXX X</div>
+</div>
+
+<div class="grid placeContentStart constrainedGrid fitContent200x100" data-expected-width="20" data-expected-height="10">
+    <div data-expected-width="50" data-expected-height="125">XX<br>X<br>X<br>X<br>X</div>
+</div>
+
+</body>

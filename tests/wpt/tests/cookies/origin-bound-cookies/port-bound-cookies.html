@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Port-Bound Cookies Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+
+<body>
+<script>
+if (location.protocol === 'https:') {
+  // This test needs to run from an insecure origin to be able to set
+  // cookies on an insecure origin.
+  location.href.replace("https://", "http://");
+} else {
+  const httpOriginUrl = new URL(get_host_info().HTTP_ORIGIN);
+  const httpOriginUrlDifferentPort = new URL(get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT);
+
+  const httpOrigin = httpOriginUrl.origin;
+  // A second HTTP origin on the same host but with a different port.
+  const httpOriginDifferentPort = httpOriginUrlDifferentPort.origin;
+
+  const cookieName = "pbc-test-cookie";
+  const cookieValue = "1";
+  const cookieValueDifferentPort = "2";
+
+  async function setCookie(origin, name, value) {
+    const cookieString = `${name}=${value};path=/`;
+    const url = `${origin}/cookies/resources/set.py?${cookieString}`;
+    await credFetch(url);
+  }
+
+  async function getCookie(origin, name) {
+    const url = `${origin}/cookies/resources/list.py`;
+    const response = await credFetch(url);
+    const cookies = await response.json();
+    return cookies[name] || null;
+  }
+
+  async function deleteCookie(origin, name) {
+    // To delete a cookie, we set it with an expiry date in the past.
+    const cookieString = `${name}=;path=/;Max-Age=0`;
+    const url = `${origin}/cookies/resources/set.py?${cookieString}`;
+    await credFetch(url);
+  }
+
+  promise_test(async t => {
+    // Clean up any existing cookies on both origins to ensure a clean slate.
+    await deleteCookie(httpOrigin, cookieName);
+    await deleteCookie(httpOriginDifferentPort, cookieName);
+
+    // Add a cleanup function to run after the test finishes.
+    t.add_cleanup(async () => {
+      await deleteCookie(httpOrigin, cookieName);
+      await deleteCookie(httpOriginDifferentPort, cookieName);
+    });
+
+    // Set a cookie on the first HTTP origin.
+    await setCookie(httpOrigin, cookieName, cookieValue);
+    assert_equals(await getCookie(httpOrigin, cookieName), cookieValue, "Cookie must be set on the first HTTP origin successfully.");
+
+    // Verify the cookie is not present on the second HTTP origin.
+    assert_equals(await getCookie(httpOriginDifferentPort, cookieName), null, "Cookie set on first port should not be visible to second port.");
+
+    // Attempt to set a cookie on the second HTTP origin.
+    await setCookie(httpOriginDifferentPort, cookieName, cookieValueDifferentPort);
+
+    // Since port-bound behavior is active the cookie will be set in a seperate jar on this other port, it will not overwrite the original cookie.
+    assert_equals(await getCookie(httpOriginDifferentPort, cookieName), cookieValueDifferentPort, "The cookie on the second port should have been created.");
+
+     // Verify that the original cookie on the HTTP origin is unchanged.
+    assert_equals(await getCookie(httpOrigin, cookieName), cookieValue, "Cookie 1 should remain unchanged.");
+
+  }, "Cookies should be bound to their origin's port.");
+}
+</script>
+</body>

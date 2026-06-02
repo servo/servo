@@ -1,0 +1,46 @@
+[package]
+name = "storage"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
+
+[lib]
+name = "storage"
+path = "lib.rs"
+
+[dependencies]
+base = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+postcard = { workspace = true }
+profile_traits = { workspace = true }
+rusqlite = { version = "0.37", features = ["bundled"] }
+rustc-hash = { workspace = true }
+sea-query = { workspace = true }
+sea-query-rusqlite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+servo_config = { path = "../config" }
+servo_url = { path = "../url" }
+storage_traits = { workspace = true }
+tempfile = "3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tokio-rustls = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true, features = ["codec", "io"] }
+uuid = { workspace = true }
+
+[dev-dependencies]
+profile = { path = "../profile" }
+url = { workspace = true }
+
+[[test]]
+name = "main"
+path = "tests/main.rs"

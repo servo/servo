@@ -1,0 +1,19 @@
+<html>
+  <title>Upgrade Insecure Requests: link upgrade.</title>
+  <head>
+    <script>
+      function click() {
+        document.getElementById("link").click();
+      }
+    </script>
+  </head>
+  <body onload="click()">
+    <!--
+    This is a bit of a hack. UPGRADE doesn't upgrade the port number, so we
+    specify this non-existent URL ('http' over https port). If UPGRADE doesn't
+    work, it won't load. The expected behavior is that the url is upgraded and
+    the page loads.
+    -->
+    <a id="link" href="http://{{host}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/post-message-to-opener.sub.html?message=basic-link-upgrade"> Click me </a>
+  </body>
+</html>

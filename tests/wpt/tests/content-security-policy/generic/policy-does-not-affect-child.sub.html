@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc';">
+    <title>object-src-url-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+  <script nonce='abc'>
+    window.onmessage = function(e) {
+      log(e.data);
+    }
+  </script>
+  <iframe src="support/log-pass.html"></iframe>
+  <div id="log"></div>
+</body>
+
+</html>

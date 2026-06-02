@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Legacy maction and semantics elements (reference)</title>
+</head>
+<body>
+  <p>This test passes if you see 4 green squares and no red.</p>
+  <p>
+    <math>
+      <mrow>
+        <mtext>
+          <span style="display: inline-block; width: 50px; height: 50px; background: green;"></span>
+        </mtext>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mrow style="display: inline-block">
+          <span style="display: inline-block; width: 50px; height: 50px; background: green;"></span>
+        </mrow>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mspace style="background: green" width="50px" height="50px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mspace style="background: green" width="50px" height="50px"></mspace>
+      </mrow>
+    </math>
+  </p>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

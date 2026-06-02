@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+
+<script>
+// This test ensures that navigation.entries() in an iframe is properly updated
+// when a page is restored from bfcache.
+// First, create an iframe and do a fragment navigation in it, so that its
+// navigation.entries().length == 2. Then go back, so that entries()[0] is
+// current. Finally, navigate the main window (which should clobber the
+// the iframe's entries()[1]), and come back via bfcache. If the iframe's
+// entries() were updated, then its entries().length should have been reduced
+// to 1.
+runBfcacheTest({
+  targetOrigin: originSameOrigin,
+  funcBeforeNavigation: async () => {
+    window.events = [];
+    let i = document.createElement("iframe");
+    i.src = "/common/blank.html";
+    document.body.appendChild(i);
+    await new Promise(resolve => i.onload = () => setTimeout(resolve, 0));
+    await i.contentWindow.navigation.navigate("#foo");
+    await i.contentWindow.navigation.back();
+    window.frames[0].navigation.entries()[1].ondispose = () => events.push("dispose");
+    window.frames[0].onpageshow = () => events.push("pageshow");
+  },
+  async funcAfterAssertion(pageA, pageB) {
+    assert_equals(await pageA.execute_script(() => window.frames[0].navigation.entries().length), 1);
+    assert_array_equals(await pageA.execute_script(() => window.events), ["pageshow", "dispose"]);
+  }
+}, "entries() in an iframe must be updated after navigating back to a bfcached page");
+</script>

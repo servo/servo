@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection SDP handling of unknown media types</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({audio: true});
+  pc1.addTrack(stream.getTracks()[0], stream);
+  const offer = await pc1.createOffer();
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: offer.sdp
+        .replace('m=audio ', 'm=unicorns ')
+  });
+  await pc1.setLocalDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  // Do not attempt to call pc1.setRemoteDescription.
+
+  const [preamble, media_section, postamble] = answer.sdp.split('\r\nm=');
+  assert_true(typeof(postamble) === 'undefined');
+  assert_greater_than(media_section.search(
+    /^unicorns 0/), -1);
+}, 'Unknown media types are rejected with the port set to 0');
+</script>

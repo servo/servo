@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: capture elements with different size capture</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  overflow-clip-margin: 50px;
+}
+#target {
+  top: 20px;
+  left: 20px;
+  view-transition-name: target;
+}
+.inner_overflow {
+  width: 50px;
+  height: 150px;
+  margin-left: -10px;
+  margin-top: -20px;
+  background: lightgreen;
+  clip-path: inset(1px 1px 1px 1px);
+}
+
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 0; }
+html::view-transition-old(*) { animation: unset; opacity: 1; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<div id=target class=box><div class=inner_overflow>X</div></div>
+<script>
+failIfNot(document.startViewTransition, "Reference missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

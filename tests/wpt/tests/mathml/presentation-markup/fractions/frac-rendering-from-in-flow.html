@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>fraction rendering from in-flow children</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Verify rendering of fractions is only affected by in-flow children.">
+    <style>
+      .oof1 {
+          position: absolute;
+      }
+      .oof2 {
+          position: fixed;
+      }
+      .nobox {
+          display: none;
+      }
+    </style>
+    <link rel="match" href="frac-rendering-from-in-flow-ref.html">
+  </head>
+  <body>
+    <math>
+      <mfrac>
+        <mspace height="32px" width="24px" class="oof1"/>
+        <mspace height="16px" width="12px" class="oof2"/>
+        <mspace height="8px" width="4px" class="nobox"/>
+        <mspace width="64px" height="48px" style="background: lightblue"></mspace>
+        <mspace height="32px" width="24px" class="oof1"/>
+        <mspace height="16px" width="12px" class="oof2"/>
+        <mspace height="8px" width="4px" class="nobox"/>
+        <mspace width="128px" height="96px" style="background: lightgreen"></mspace>
+        <mspace height="32px" width="24px" class="oof1"/>
+        <mspace height="16px" width="12px" class="oof2"/>
+        <mspace height="8px" width="4px" class="nobox"/>
+      </mfrac>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+  </body>
+</html>

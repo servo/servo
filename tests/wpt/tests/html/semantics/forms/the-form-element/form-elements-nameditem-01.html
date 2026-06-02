@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>form.elements: namedItem</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-form-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<form id=form>
+<input name=b id=i1>
+<input name=b id=i2>
+</form>
+</div>
+<script>
+test(function() {
+  assert_true("RadioNodeList" in window, "RadioNodeList should exist");
+}, "RadioNodeList should exist")
+test(function() {
+  var nl = document.forms.form.elements["b"];
+  assert_true(nl instanceof NodeList, "Should get a NodeList");
+  if ("RadioNodeList" in window) {
+    assert_true(nl instanceof RadioNodeList, "Should get a RadioNodeList");
+  }
+  assert_array_equals(nl,
+                      [document.getElementById("i1"),
+                       document.getElementById("i2")]);
+
+  var el = nl[0];
+  el.parentNode.removeChild(el);
+  assert_true(nl instanceof NodeList, "Should get a NodeList");
+  if ("RadioNodeList" in window) {
+    assert_true(nl instanceof RadioNodeList, "Should get a RadioNodeList");
+  }
+  assert_array_equals(nl, [document.getElementById("i2")]);
+  assert_equals(document.forms.form.elements["b"], document.getElementById("i2"));
+}, "elements collection should return elements or RadioNodeLists")
+test(function() {
+  var fs = document.forms.form.appendChild(document.createElement("fieldset"));
+  fs.name = "fs";
+  assert_equals(document.forms.form.elements.fs, fs);
+  fs.parentNode.removeChild(fs);
+}, "elements collection should include fieldsets")
+</script>

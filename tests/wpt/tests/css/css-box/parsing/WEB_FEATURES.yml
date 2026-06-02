@@ -1,0 +1,25 @@
+features:
+- name: float-clear
+  files:
+  - 'clear-computed.html'
+  - 'clear-invalid.html'
+  - 'clear-valid.html'
+  - 'float-computed.html'
+  - 'float-invalid.html'
+  - 'float-valid.html'
+- name: width-height
+  files:
+  - 'width-*'
+  - 'height-*'
+- name: margin
+  files:
+  - 'margin-computed.html'
+  - 'margin-invalid.html'
+  - 'margin-shorthand.html'
+  - 'margin-valid.html'
+- name: padding
+  files:
+  - 'padding-*'
+- name: visibility
+  files:
+  - 'visibility-*'

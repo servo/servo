@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html dir=rtl>
+<title>Reftest Reference</title>
+<style>
+  /* Label things */
+  body > div {
+    display: flow-root;
+  }
+  body > div::before {
+    display: block;
+    content: attr(class);
+    font-size: 10px;
+    margin-top: 10px;
+  }
+
+  /* Test Framework */
+  .container {
+    border: solid aqua;
+    margin: 10px;
+    float: right;
+    width: 30px;
+    height: 30px;
+  }
+
+  .item {
+    background: orange;
+    height: 100%;
+  }
+
+  /* Test */
+  .small .item {
+    width: 20px;
+  }
+  .large .item {
+    width: 40px;
+  }
+
+  .small .center
+    { margin-right: 5px }
+  .small .end,
+  .small .self-end,
+  .small .flex-end
+    { margin-right: 10px }
+  .large .center
+    { margin-right: -5px; }
+  .large .end,
+  .large .self-end,
+  .large .flex-end
+    { margin-right: -10px; }
+  .large.safe .item
+    { margin-right: 0; }
+</style>
+
+<div class="default small">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="default large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="unsafe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="safe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+

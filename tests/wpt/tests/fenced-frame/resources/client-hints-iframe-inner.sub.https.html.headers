@@ -1,0 +1,4 @@
+Supports-Loading-Mode: fenced-frame
+Accept-CH: sec-ch-viewport-width
+Feature-Policy: ch-viewport-width *
+Access-Control-Allow-Origin: *

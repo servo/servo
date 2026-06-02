@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>View Transitions: @view-transition removing opt-in doesn't skip active transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+  #target {
+    view-transition-name: target;
+  }
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "pass");
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace("?mode=new");
+  }));
+  break;
+case "new":
+  addEventListener('pagereveal', async e => {
+    if (e.viewTransition) {
+      await e.viewTransition.ready;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      // Remove the opt-in after the view transition has started.
+      document.styleSheets[0].cssRules[0].navigation = 'none';
+
+      e.viewTransition.finished.then(
+        () => window.opener.did_reveal("pass"),
+        () => window.opener.did_reveal("fail: finished rejected"));
+    } else {
+      window.opener.did_reveal("fail: no viewTransition");
+    }
+  });
+  break;
+}
+</script>
+<body>
+<div id="target"></div>
+</body>

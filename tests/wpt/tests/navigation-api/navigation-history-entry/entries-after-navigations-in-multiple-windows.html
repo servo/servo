@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/is_uuid.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  let start_index = navigation.currentEntry.index;
+  // The navigations in each window should have only added an navigation to
+  // their own window.
+  function assertExpectedEntries(entries, expected_url) {
+    assert_equals(entries.length, 2);
+    assert_not_equals(entries[1].key, entries[0].key);
+    assert_not_equals(entries[1].url, entries[0].url);
+    assert_not_equals(entries[1].id, entries[0].id);
+    assert_true(isUUID(entries[0].key));
+    assert_true(isUUID(entries[0].id));
+    assert_true(isUUID(entries[1].key));
+    assert_true(isUUID(entries[1].id));
+
+    assert_equals(entries[1].url, expected_url);
+  }
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(t.step_func(() => {
+    location.hash = "#1";
+    i.onload = t.step_func_done(() => {
+      assertExpectedEntries(navigation.entries().slice(start_index), location.href);
+      assertExpectedEntries(i.contentWindow.navigation.entries(), i.contentWindow.location.href);
+    });
+    i.contentWindow.location = "/common/blank.html?2";
+  }), 0);
+}, "navigation.entries() behavior when multiple windows navigate.");
+</script>

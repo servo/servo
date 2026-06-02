@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Check that non-successful responses result in discarding the prerender</title>
+<meta name="variant" content="?code=204">
+<meta name="variant" content="?code=205">
+<meta name="variant" content="?code=402">
+<meta name="variant" content="?code=404">
+<meta name="variant" content="?code=500">
+<meta name="variant" content="?code=503">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const params = new URLSearchParams(window.location.search);
+
+promise_test(async t => {
+  // Pass the `code` search param so that a prerendered page is served with the
+  // response code.
+  const {exec, tryToActivate} =
+      await create_prerendered_page(t, {'prerendering': params});
+
+  // Open new window with url to clear cache data through Clear-Site-Data header.
+  // Ensure that the cache is cleared before the navigation.
+  //
+  // This is a hack for Chromium that may trigger prefetch prior to prerender,
+  // and serve the same prefetched response multiple times (This is known as
+  // PrefetchReusable). This breaks the assumption of this test that the first
+  // prerender request fails for non-OK status code and then the next real
+  // navigation succeeds with 200. With the PrefetchReusable, the real
+  // navigation sees the prefetched error response and fails.
+  const gotMessage = new Promise(resolve => {
+      window.addEventListener('message', e => {
+          resolve(e.data);
+        }, {
+          once: true
+      });
+  });
+  window.open("/../../clear-site-data/support/clear-site-data-prefetchCache.py");
+  await gotMessage;
+
+  const result = await tryToActivate();
+  assert_equals(result, 'discarded');
+},`Responses with code ${params.get('code')} should be discarded`);
+</script>

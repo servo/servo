@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<body>
+  <div id="sq-1"></div>
+  <div id="sq-2"></div>
+  <div id="sq-3"></div>
+  <div id="sq-4"></div>
+</body>
+<style>
+  /*The expected behavior when setting the opacity through different methods
+  is that the opacity of the resulting drawn element is the product of the opacity
+  value set by each of the methods.*/
+  div{
+    width: 50px;
+    height: 50px;
+    position: absolute;
+  }
+  #sq-1{
+    background-color: black;
+    left:  18px;
+    top:  18px;
+    opacity: 0.125;
+  }
+  #sq-2{
+    background-color: black;
+    left:  78px;
+    top:  18px;
+    opacity: 0.03125;
+  }
+  #sq-3{
+    background-color: black;
+    left:  18px;
+    top:  78px;
+    opacity: 0.1875;
+  }
+  #sq-4{
+    background-color: black;
+    left:  78px;
+    top:  78px;
+    opacity: 0.016;
+  }
+</style>

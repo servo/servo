@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let testName = "Test that getReflectionCubeMap returns or throws appropriately without a reflection map.";
+
+    let testFunction = (session, controller, t, sessionObjects) => new Promise((resolve) => {
+      let halfFloatExt = sessionObjects.gl.getExtension('OES_texture_half_float');
+      // The preferredReflectionFormat used below is set to "rgba16f" by default.
+      // This means half float textures must be supported in order to run this test
+      if (!halfFloatExt) {
+        resolve(session.end());
+      } else {
+        let debug = xr_debug.bind(this, 'testFunction');
+        let lightProbe1 = null;
+        let binding1 = new XRWebGLBinding(session, sessionObjects.gl);
+
+        // Request a default lightProbe
+        session.requestLightProbe({reflectionFormat: session.preferredReflectionFormat }).then((probe) => {
+          // Stash and end session.
+          lightProbe1 = probe;
+
+          debug("Querying first pair");
+          t.step(() => {
+            assert_equals(
+              binding1.getReflectionCubeMap(lightProbe1),
+              null,
+              "Active binding and light probe shouldn't throw when requesting cube map");
+          });
+
+          return session.end();
+        }).then(() => {
+          // Need to request a new session.
+          navigator.xr.test.simulateUserActivation( () => {
+            navigator.xr.requestSession('immersive-ar', { 'requiredFeatures': ['light-estimation'] })
+            .then((newSession) => {
+              let newBinding = new XRWebGLBinding(newSession, sessionObjects.gl);
+              newSession.requestLightProbe({ reflectionFormat: newSession.preferredReflectionFormat }).then((newProbe) => {
+                t.step(() => {
+                  debug("Querying second pair");
+                  assert_equals(
+                    newBinding.getReflectionCubeMap(newProbe),
+                    null,
+                    "Newly created binding and light probe shouldn't throw");
+
+                  debug("Querying old pair");
+                  assert_throws_dom(
+                    "InvalidStateError",
+                    () => binding1.getReflectionCubeMap(lightProbe1),
+                    "Binding created with an ended session should throw InvalidStateError");
+                  debug("Querying mismatched pair");
+                  assert_throws_dom(
+                    "InvalidStateError",
+                    () => newBinding.getReflectionCubeMap(lightProbe1),
+                    "Querying binding with a probe with a different backing session should throw InvalidStateError");
+                });
+                debug("losing context");
+
+                // Trigger a context loss and verify that we are unable to get the reflectionCubeMap.
+                let lose_context_ext = sessionObjects.gl.getExtension('WEBGL_lose_context');
+
+                sessionObjects.gl.canvas.addEventListener('webglcontextlost', (ev) => {
+                  ev.preventDefault();
+
+                  t.step(() => {
+                    assert_throws_dom(
+                      "InvalidStateError",
+                      () => newBinding.getReflectionCubeMap(newProbe),
+                      "Querying for reflection cube map on a binding with context loss should throw InvalidStateError");
+                  });
+
+                  resolve(newSession.end());
+                });
+
+                lose_context_ext.loseContext();
+              }); // Request second light probe
+            }); // Request second session
+          }); // SimulateUserActivation
+        }); // .then on session end
+      } // halfFloatExt
+    }); // testFunction
+
+    xr_session_promise_test(
+      testName,
+      testFunction,
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar',
+      {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: ::first-line supports opacity.</title>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1639664">
+<link rel="match" href="first-line-opacity-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-styling">
+  <style>
+    p::first-line {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <p>First<br>Second</p>
+</body>
+</html>

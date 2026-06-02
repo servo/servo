@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  let dispose_promise = new Promise(r => navigation.currentEntry.ondispose = r);
+
+  // There is no spec for the maximum number of joint session history entries
+  // (hence this is a .tentative.html test). However, all(?) browsers have a
+  // settled on a maximum of 50.
+  for (let i = 0; i < 50; i++)
+    await navigation.navigate("#" + i).finished;
+  await dispose_promise;
+}, "Dispose should fire when an entry is removed from session history due to too many entries");
+</script>

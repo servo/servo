@@ -1,0 +1,8 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "/annotations/anno3.jsonld",
+  "type": "Annotation",
+  "target": "http://w3c.org/",
+  "body": "https://en.wikipedia.org/wiki/World_Wide_Web_Consortium",
+  "movivation": "describing"
+}

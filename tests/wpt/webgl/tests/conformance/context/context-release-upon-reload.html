@@ -1,0 +1,74 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Context Release Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<iframe id="host" style="width: 256px; height: 256px; border: 0;"></iframe>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test ensures that WebGL contexts are released properly upon page reload");
+
+var wtu = WebGLTestUtils;
+
+var host = document.getElementById("host");
+var testIterations = 25;
+var currentIteration = 0;
+
+function refreshFrame() {
+  if(currentIteration < testIterations) {
+    currentIteration++;
+    debug("");
+    debug("Test " + currentIteration + " of " + testIterations);
+    host.src = "resources/context-release-upon-reload-child.html";
+  } else {
+    finishTest();
+  }
+}
+
+function testContext() {
+  var gl = host.contentWindow.glContext;
+  assertMsg(gl != null, "context was created properly");
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors");
+
+  if(gl.canvas.width != gl.drawingBufferWidth ||
+    gl.canvas.height != gl.drawingBufferHeight) {
+    testFailed("Buffer was the wrong size: " +
+        gl.drawingBufferWidth + "x" + gl.drawingBufferHeight);
+  } else {
+    testPassed("Buffer was the correct size: " +
+        gl.drawingBufferWidth + "x" + gl.drawingBufferHeight);
+    refreshFrame();
+  }
+
+  gl = null;
+}
+
+window.addEventListener("message", function(event) {
+  if(event.data == "Ready") {
+    testContext();
+  }
+});
+
+refreshFrame();
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>dispatchEvent from child frame during document.write :-o </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="testlib/testlib.js"></script>
+    </head>
+    <body onclick="log('click event')">
+      <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+      <iframe></iframe>
+      <script>
+        var doc = document.getElementsByTagName("iframe")[0].contentDocument;
+        doc.open("text/html");
+        doc.write('<html><head><title>event dispatcher</title></head><body>Before script<script>top.log("inline script before event");var ev = parent.document.createEvent("MouseEvents");ev.initMouseEvent("click", true, false, null, 0, 0, 0, 0, 0, false, false, false, false, 0, null);parent.document.body.dispatchEvent(ev);top.log("inline script after event");</sc'+'ript> After script</body>');
+          log( 'end main script' );
+
+
+      </script>
+
+<script>
+    var t = async_test()
+
+    function test() {
+      if(test.ran)return; test.ran=true;
+
+      assert_array_equals(eventOrder, ['inline script before event',
+                                       'click event',
+                                       'inline script after event',
+                                       'end main script'
+        ]);
+      doc.close();
+      t.done();
+}
+
+    onload = t.step_func(test)
+    /* onload doesn't fire in this test, a fallback.. */
+    setTimeout(t.step_func(test), 800 );
+</script>
+  </body>
+</html>

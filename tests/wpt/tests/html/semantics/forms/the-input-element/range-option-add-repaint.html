@@ -1,0 +1,21 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>The range is repainted if an option is added to the range's list</title>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1805105">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel=match href=range-tick-marks-05-ref.html>
+<script src=/common/reftest-wait.js></script>
+<input type=range step=3 value=1 min=-5 max=5 list=tickmarks>
+<datalist id=tickmarks>
+  <option value=4></option>
+</datalist>
+<script>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const dataList = document.querySelector("datalist");
+      const toAdd = document.createElement("option");
+      toAdd.value = -2;
+      dataList.appendChild(toAdd);
+      takeScreenshot();
+    }));
+</script>

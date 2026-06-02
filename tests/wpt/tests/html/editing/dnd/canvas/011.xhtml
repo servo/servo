@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop between dataURL frames: dropping block element onto canvas</title>
+</head>
+<frameset rows="50%, 50%">
+<frame src="data:application/xhtml+xml,%3Chtml%20xmlns%3D%22http%3A//www.w3.org/1999/xhtml%22%3E%3Chead%3E%3Ctitle%3ECanvas%20drag%20and%20drop%3C/title%3E%3Cstyle%20type%3D%22text/css%22%3Ediv%7Bwidth%3A20px%3Bheight%3A20px%3Bbackground-color%3Agreen%3B%7D%3C/style%3E%3Cscript%20type%3D%22application/ecmascript%22%3Efunction%20start%28event%29%7Bevent.dataTransfer.effectAllowed%20%3D%20%27copy%27%3Bevent.dataTransfer.setData%28%27text/plain%27%2C%20%27green%27%29%3B%7D%3C/script%3E%3C/head%3E%3Cbody%3E%3Cdiv%20draggable%3D%22true%22%20ondragstart%3D%22start%28event%29%22/%3E%3Cp%3EDrag%20green%20box%20above%20to%20the%20gray%20canvas%20below.%20Canvas%20should%20turn%20green%20when%20you%20drop%20green%20box%20on%20it.%3C/p%3E%3C/body%3E%3C/html%3E"/>
+<frame src="data:application/xhtml+xml,%3Chtml%20xmlns%3D%22http%3A//www.w3.org/1999/xhtml%22%3E%3Chead%3E%3Ctitle%3ECanvas%20drag%20and%20drop%3C/title%3E%3Cscript%20type%3D%22application/ecmascript%22%3Efunction%20paint%28color%29%7Bvar%20canvas%20%3D%20document.querySelector%28%27canvas%27%29%2Cc%20%3D%20canvas.getContext%28%272d%27%29%3Bc.fillStyle%20%3D%20color%3Bc.beginPath%28%29%3Bc.moveTo%280%2C0%29%3Bc.lineTo%28100%2C0%29%3Bc.lineTo%28100%2C100%29%3Bc.lineTo%280%2C100%29%3Bc.closePath%28%29%3Bc.fill%28%29%3B%7Dfunction%20start%28event%29%7Bevent.dataTransfer.effectAllowed%20%3D%20%27copy%27%3Bevent.dataTransfer.setData%28%27text/plain%27%2C%20document.querySelector%28%27input%27%29.value%29%3B%7D%3C/script%3E%3C/head%3E%3Cbody%20onload%3D%22paint%28%27gray%27%29%22%3E%3Cp%3E%3Ccanvas%20width%3D%22100%22%20height%3D%22100%22%20ondragenter%3D%22event.preventDefault%28%29%22%20ondragover%3D%22return%20false%22%20ondrop%3D%22paint%28event.dataTransfer.getData%28%27text/plain%27%29%29%22%3ECanvas%3C/canvas%3E%3C/p%3E%3C/body%3E%3C/html%3E"/>
+</frameset>
+</html>

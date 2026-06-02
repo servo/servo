@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Right and Left Pages (page area equal)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The right and left pages of a document may use differing margin styles that yield different page area widths, but the UA may adjust the margins such that the page area widths are the same. " />
+  <style type="text/css">
+
+    @page :first {
+        margin: 7%;
+    }
+    @page :left {
+        margin-left: 50%;
+        margin-right: 7%;
+    }
+    @page :right {
+        margin-right: 33%;
+        margin-left: 7%;
+    }
+    div {
+        margin-bottom: 2em;
+        width: 98%
+    }
+    .edged {
+        border: medium solid blue;
+        background: #ececff;
+        padding: 1%;
+        page-break-after: always;
+    }
+
+  .style1 {
+    background-color: #ececff;
+}
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces three pages on paged media.
+   </div>
+   <div class="edged">
+   This page should have typical right and left margins.  This content is completely enclosed by a blue border and has a pale blue background. A page break follows.
+   </div>
+   <div class="edged">
+   This content should be entirely on the right side of the page (but might instead
+   have margins like the first page). It is completely enclosed by a blue border and has a pale blue background. A page break follows.
+   </div>
+   <div class="edged">
+   This page should have a wide right margin and narrow left margin (but might
+   instead have margins like the first page). This content has a blue border on all sides and a pale blue background.
+   </div>
+ </body>
+</html>

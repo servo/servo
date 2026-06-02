@@ -1,0 +1,62 @@
+<!doctype html>
+<title>&lt;animateTransform> 'type' attribute missing/invalid value default</title>
+<link rel="help" href="https://svgwg.org/specs/animations/#AnimateTransformElementTypeAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="10">
+  <rect width="10" height="10" fill="blue">
+    <animateTransform attributeName="transform" type="translate"
+                      fill="freeze" dur="1s" from="10 0" to="10 0"/>
+  </rect>
+  <rect width="10" height="10" fill="blue">
+    <animateTransform attributeName="transform"
+                      fill="freeze" dur="1s" from="30 0" to="30 0"/>
+  </rect>
+  <rect width="10" height="10" fill="blue">
+    <animateTransform attributeName="transform" type="foo"
+                      fill="freeze" dur="1s" from="50 0" to="50 0"/>
+  </rect>
+  <rect width="10" height="10" fill="blue">
+    <animateTransform attributeName="transform" type="foo"
+                      fill="freeze" dur="1s" from="70 0" to="70 0"/>
+  </rect>
+</svg>
+<script>
+  const animations = document.querySelectorAll('animateTransform');
+
+  async_test(t => {
+    animations[0].addEventListener('beginEvent', t.step_func_done(function() {
+      let ctm = animations[0].targetElement.getCTM();
+      assert_equals(ctm.e, 10);
+      assert_equals(ctm.f, 0);
+    }));
+  }, document.title + ', "type" attribute is "translate"');
+
+  async_test(t => {
+    animations[1].addEventListener('beginEvent', t.step_func_done(function() {
+      let ctm = animations[1].targetElement.getCTM();
+      assert_equals(ctm.e, 30);
+      assert_equals(ctm.f, 0);
+    }));
+  }, document.title + ', missing "type" attribute');
+
+  async_test(t => {
+    animations[2].addEventListener('beginEvent', t.step_func_done(function() {
+      let ctm = animations[2].targetElement.getCTM();
+      assert_equals(ctm.e, 0);
+      assert_equals(ctm.f, 0);
+    }));
+  }, document.title + ', invalid "type" attribute');
+
+  async_test(t => {
+    animations[3].addEventListener('beginEvent', t.step_func(function() {
+      animations[3].removeAttribute('type');
+
+      window.requestAnimationFrame(t.step_func_done(function() {
+        let ctm = animations[3].targetElement.getCTM();
+        assert_equals(ctm.e, 70);
+        assert_equals(ctm.f, 0);
+      }));
+    }));
+  }, document.title + ', removed "type" attribute');
+</script>

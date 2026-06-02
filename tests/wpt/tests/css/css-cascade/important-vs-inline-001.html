@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: inline style loses to !important</title>
+  <link rel="help" href="https://www.w3.org/TR/css-cascade-4/#cascade-sort">
+  <link rel="author" href="mailto:sesse@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .outer {
+       opacity: 0.5 !important;
+    }
+  </style>
+</head>
+<body>
+  <p class="outer" id="el">Test passes if this text is semi-transparent.</p>
+</body>
+<script>
+test(() => {
+  el.offsetTop;
+  assert_equals(getComputedStyle(el).opacity, "0.5", "style is set correctly");
+});
+test(() => {
+  el.offsetTop;
+  el.style.opacity = 0.75;
+  assert_equals(getComputedStyle(el).opacity, "0.5", "!important has higher priority than adding inline style");
+});
+test(() => {
+  el.offsetTop;
+  el.style.opacity = 1.0;
+  assert_equals(getComputedStyle(el).opacity, "0.5", "!important has higher priority than modifying inline style");
+});
+test(() => {
+  el.offsetTop;
+  el.style.opacity = null;
+  assert_equals(getComputedStyle(el).opacity, "0.5", "!important has higher priority than removing inline style");
+});
+</script>
+</html>

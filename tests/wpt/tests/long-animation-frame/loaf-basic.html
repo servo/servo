@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: basic</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+    await expect_long_frame((t, busy_wait) => busy_wait(), t);
+}, 'A long busy wait is a long animation frame');
+
+promise_test(async t => {
+    await expect_long_frame((t, busy_wait) => requestAnimationFrame(busy_wait), t);
+}, 'A long busy wait in a requestAnimationFrame is a long animation frame');
+
+promise_test(async t => {
+    const segment_duration = very_long_frame_duration / 2;
+    const entry = await expect_long_frame(async (t, busy_wait) => {
+        busy_wait(segment_duration);
+        await new Promise(resolve => requestAnimationFrame(() => {
+            busy_wait(segment_duration)
+            resolve();
+        }));
+    }, t);
+
+    assert_not_equals(entry, "timeout");
+    assert_greater_than_equal(entry.renderStart - entry.startTime, segment_duration);
+}, 'A long busy wait split between a task and a requestAnimationFrame is a long animation frame');
+
+promise_test(async t => {
+    const segment_duration = very_long_frame_duration / 3;
+    const entry = await expect_long_frame(async (t, busy_wait) => {
+        const element = document.createElement("div");
+        document.body.appendChild(element);
+        t.add_cleanup(() => element.remove());
+        busy_wait(segment_duration);
+        requestAnimationFrame(() => {
+            busy_wait(segment_duration);
+        });
+
+        new ResizeObserver(() => {
+            busy_wait(segment_duration);
+        }).observe(element);
+    }, t);
+
+    assert_not_equals(entry, "timeout");
+    assert_greater_than_equal(entry.renderStart - entry.startTime, segment_duration);
+    assert_greater_than_equal(entry.styleAndLayoutStart - entry.renderStart, segment_duration);
+}, 'ResizeObservers should create a long-frame and affect layoutStartTime');
+</script>
+</body>

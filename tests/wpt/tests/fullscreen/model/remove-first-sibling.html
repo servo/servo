@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Remove the first of two sibling elements in the fullscreen stack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="a"></div>
+<div id="b"></div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
+    await Promise.all([trusted_request(a), fullScreenChange()]);
+
+    assert_equals(document.fullscreenElement, a, "fullscreen element after first request");
+    assert_true(a.matches(":fullscreen"), "a matches :fullscreen after first request");
+
+    await Promise.all([trusted_request(b, a), fullScreenChange()]);
+    assert_equals(document.fullscreenElement, b, "fullscreen element after second request");
+    assert_true(a.matches(":fullscreen"), "a matches :fullscreen after second request");
+    assert_true(b.matches(":fullscreen"), "b matches :fullscreen after second request");
+
+    // Removing /a/ now shouldn't do anything except remove it from the top
+    // layer, which causes it to no longer match :fullscreen.
+    a.remove();
+    assert_equals(document.fullscreenElement, b, "fullscreen element immediately after removal of a");
+    assert_false(a.matches(":fullscreen"), "a should no longer match :fullscreen immediately after removal");
+    assert_true(b.matches(":fullscreen"), "b matches :fullscreen immediately after removal of a");
+
+    // No fullscreenchange event should fire. If the removal triggered exiting
+    // fullscreen the event would be fired after an async section and an
+    // animation frame task, so wait until after that.
+    document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+  });
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+<title>GeolocationSensor Feature Policy Test: Disabled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script src="/generic-sensor/generic-sensor-feature-policy-test.sub.js"></script>
+<script>
+"use strict";
+
+run_fp_tests_disabled('GeolocationSensor');
+
+promise_test(async t => {
+  await promise_rejects_dom(t, 'SecurityError', GeolocationSensor.read());
+}, "GeolocationSensor.read(): 'SecurityError' is thrown when disabled by Feature Policy");
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  controller.abort();
+
+  await promise_rejects_dom(t, 'AbortError', GeolocationSensor.read({ signal }));
+}, "GeolocationSensor.read(): 'AbortError' takes priority");
+</script>
+</body>

@@ -1,0 +1,66 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bug - indexing with 'int()' should not crash</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<canvas id="example" width="40" height="40"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+void main(){
+  gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="fshaderTest" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 uniformVec;
+uniform mat4 uniformMat;
+uniform float uniformArray[4];
+void main()
+{
+  vec4 tempVec = vec4(0.0);
+  mat4 tempMat = mat4(0.0);
+  float tempArray[4];
+  gl_FragColor = vec4($(indexed)[int()]);
+}
+</script>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+
+var fTestSource = wtu.getScript("fshaderTest");
+
+var tests = [];
+
+var indexedValues = ['tempVec', 'tempMat[0]', 'tempArray', 'uniformVec', 'uniformMat[0]', 'uniformArray'];
+
+for (var i = 0; i < indexedValues.length; ++i) {
+  var subs = {indexed: indexedValues[i]};
+  tests.push({
+    vShaderId: "vshader",
+    vShaderSuccess: true,
+    fShaderSource: wtu.replaceParams(fTestSource, subs),
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "shader with invalid index expression int() should not compile",
+  });
+}
+GLSLConformanceTester.runTests(tests);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: dynamic transform change of new content after start</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="new-content-transform-change-001-ref.html">
+<meta name=fuzzy content="maxDifference=0-75;totalPixels=0-10100">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+
+  #target {
+    view-transition-name: target;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    transform: translate(0);
+  }
+
+  :root::view-transition {
+    background-color: pink;
+  }
+
+  /* Just something that doesn't animate transform, so that the transform change takes effect immediately */
+  @keyframes opacity-anim {
+    from { opacity: 1 }
+    to { opacity: 1 }
+  }
+
+  :root::view-transition-group(*) {
+    animation-name: opacity-anim;
+    animation-play-state: paused;
+  }
+</style>
+<div id="target"></div>
+<script>
+  function twoRafs() {
+    return new Promise(r => {
+      requestAnimationFrame(() => requestAnimationFrame(r));
+    });
+  }
+  async function runTest() {
+    await document.startViewTransition().ready;
+    await twoRafs();
+    document.getElementById("target").style.transform = "rotate(45deg)";
+    await twoRafs();
+    takeScreenshot();
+  }
+  onload = () => twoRafs().then(runTest);
+</script>

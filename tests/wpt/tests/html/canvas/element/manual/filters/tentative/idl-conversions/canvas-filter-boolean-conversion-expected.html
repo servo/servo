@@ -1,0 +1,30 @@
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var ctx = document.getElementById('canvas').getContext('2d');
+
+  // preserveAlpha for convolveMatrix is the only boolean so far implemented
+  function drawWithConvolveFilter(x, y, preserveAlphaValue) {
+    ctx.filter = new CanvasFilter({
+      name: "convolveMatrix",
+      kernelMatrix: [[1, 0], [0, 1]],
+      preserveAlpha: preserveAlphaValue,
+    });
+    ctx.fillRect(x, y, 30, 30);
+  }
+
+  ctx.fillStyle = "rgba(255,0,255,0.5)";
+  let x = 10;
+  let y = 10;
+  for (var i = 0; i < 6; i++) {
+    drawWithConvolveFilter(x, y, true);
+    x += 40;
+  }
+  y = 50;
+  x = 10;
+  for (var i = 0; i < 5; i++) {
+    drawWithConvolveFilter(x, y, false);
+    x += 40;
+  }
+</script>

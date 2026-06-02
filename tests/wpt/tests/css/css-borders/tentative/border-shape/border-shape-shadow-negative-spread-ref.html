@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+    body {
+        margin: 0;
+    }
+    svg {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 140px;
+        height: 140px;
+        overflow: visible;
+    }
+    .shadow {
+        fill: red;
+    }
+    .box {
+        fill: blue;
+    }
+</style>
+<!-- Shadow should be 80x80 (100 - 10*2 for negative spread) offset by 20,20 -->
+<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+    <rect x="30" y="30" width="80" height="80" class="shadow" />
+    <rect x="0" y="0" width="100" height="100" class="box" />
+</svg>

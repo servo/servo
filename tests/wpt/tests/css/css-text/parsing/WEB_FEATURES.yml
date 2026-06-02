@@ -1,0 +1,59 @@
+features:
+- name: letter-spacing
+  files:
+  - letter-spacing-*
+- name: line-break
+  files:
+  - line-break-*
+- name: hanging-punctuation
+  files:
+  - hanging-punctuation-*
+- name: overflow-wrap
+  files:
+  - overflow-wrap*
+  - word-wrap*
+- name: text-spacing-trim
+  files:
+  - text-spacing-trim-*
+- name: text-wrap-pretty
+  files:
+  - text-wrap-pretty.html
+- name: text-wrap-style
+  files:
+  - text-wrap-style-*
+- name: white-space-collapse
+  files:
+  - white-space-collapse-*
+- name: text-wrap
+  files:
+  # No wildcard here to avoid capturing text-wrap-mode-*.
+  - text-wrap-computed.html
+  - text-wrap-invalid.html
+  - text-wrap-valid.html
+- name: text-wrap-mode
+  files:
+  - text-wrap-mode-*
+- name: word-spacing
+  files:
+  - word-spacing-*
+- name: tab-size
+  files:
+  - tab-size-*
+- name: text-autospace
+  files:
+  - text-autospace-*
+- name: text-align
+  files:
+  - "text-align-all-*"
+  - text-align-computed.html
+  - text-align-invalid.html
+  - text-align-valid.html
+- name: text-align-last
+  files:
+  - "text-align-last-*"
+- name: text-transform
+  files:
+  - text-transform-*
+- name: text-justify
+  files:
+  - text-justify-*

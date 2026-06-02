@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Selection with nested videos doesn't crash</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1887963">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  document.addEventListener("DOMContentLoaded", () => {
+    let c = a.attachShadow({mode: "open"});
+    const sel = window.getSelection();
+
+    sel.setBaseAndExtent(b, 0, c, 0);
+
+    assert_equals(sel.anchorNode, b);
+    assert_equals(sel.anchorOffset, 0);
+    assert_equals(sel.focusNode, b);
+    assert_equals(sel.focusOffset, 0);
+    t.done();
+  })
+}, 'selection have the same anchor and focus nodes because b and c are in different tree scopes.');
+
+</script>
+<div id="a">A</div>
+<video>
+  <video id="b"></video>
+</video>

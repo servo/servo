@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Positioning in paged media: Positioning multiple pages</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/paged/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-intro" />
+  <meta name="flags" content="paged"/>
+  <style type="text/css">
+   html, body { height: 100%; margin: 0; padding: 0; }
+   p { margin: 0; padding: 1em; }
+   div { height: 100%; position: relative; }
+   h1 { position: absolute; top: 50%; margin-top: -0.5em;
+        left: 0; right: 0; text-align: center;
+        font: 2em monospace; }
+  </style>
+ </head>
+ <body>
+  <div>
+  <p>Test passes if each of its five pages has the page number printed
+    in the middle of the page, with no overlap.</p>
+       <h1>Page one</h1></div>
+  <div><h1>Page two</h1></div>
+  <div><h1>Page three</h1></div>
+  <div><h1>Page four</h1></div>
+  <div><h1>Page five</h1></div>
+ </body>
+</html>

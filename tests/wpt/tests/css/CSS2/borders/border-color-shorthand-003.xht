@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color shorthand - three values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <meta name="assert" content="Specifying three values to the 'border-color' property assigns the first value to the top the second value to the left and right and the third value to the bottom." />
+        <style type="text/css">
+            div
+            {
+                border-style: solid;
+                border-color: blue green orange;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top border is blue, the bottom border is orange and the left and right borders are green.</p>
+        <div></div>
+    </body>
+</html>

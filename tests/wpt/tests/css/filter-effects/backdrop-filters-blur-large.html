@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters: Blur over large element</title>
+<link rel="author" href="mailto:clchambers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filters-blur-large-ref.html">
+<style>
+    .background {
+        position: fixed;
+        width: 200px;
+        height: 32768px;
+        left: 100px;
+        top: 50px;
+        background: red;
+    }
+    .filter {
+        backdrop-filter: blur(10px);
+        width: 100%;
+        height: 100%;
+        transform: translateX(-20px);
+    }
+</style>
+<p>You should see a blurred red bar going to the bottom of the page.</p>
+<div class="background">
+    <div class="filter"></div>
+</div>
+

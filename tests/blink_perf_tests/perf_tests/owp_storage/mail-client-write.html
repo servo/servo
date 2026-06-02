@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Mail Client Bulk Write</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script src="resources/mail-client-config.js"></script>
+<script src="resources/mail-client-write-shared.js"></script>
+<script src="resources/mail-client-write-setup.js"></script>
+<script>
+  deleteThenOpen(databaseName, populateFakeMailClientDatabase, () => {
+    var test = {
+      description: 'Benchmark modeling the IndexedDB activity for a Mail Client Bulk Write Scenario.',
+      unit: 'ms',
+      iterationCount: 20,
+      tracingCategories: 'IndexedDB',
+      traceEventsToMeasure: ['IDBObjectStore::get','IDBFactory::open'],
+      path: "resources/mail-client-write-runner.html"
+    }
+    PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+  });
+</script>

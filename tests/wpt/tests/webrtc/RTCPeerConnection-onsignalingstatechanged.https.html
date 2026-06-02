@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection onsignalingstatechanged</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+
+promise_test(async t => {
+  const [track] = (await getNoiseStream({video: true})).getTracks();
+  t.add_cleanup(() => track.stop());
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTrack(track, new MediaStream());
+  await pc1.setLocalDescription(await pc1.createOffer());
+  const events = [];
+  pc2.onsignalingstatechange = t.step_func(e => {
+    const [transceiver] = pc2.getTransceivers();
+    assert_equals(transceiver.currentDirection, null);
+    events.push(pc2.signalingState);
+  });
+  await pc2.setRemoteDescription(pc1.localDescription);
+  assert_equals(events.length, 1, "event fired");
+  assert_equals(events[0], "have-remote-offer");
+
+  pc2.onsignalingstatechange = t.step_func(e => {
+    const [transceiver] = pc2.getTransceivers();
+    assert_equals(transceiver.currentDirection, "recvonly");
+    events.push(pc2.signalingState);
+  });
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  assert_equals(events.length, 2, "event fired");
+  assert_equals(events[1], "stable");
+}, 'Negotiation methods fire signalingstatechange events');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  const stream = await getNoiseStream({ audio: true });
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+  exchangeIceCandidates(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
+  await listenToIceConnected(pc2);
+
+  pc2.onsignalingstatechange = t.unreached_func();
+  pc2.close();
+  assert_equals(pc2.signalingState, 'closed');
+  await new Promise(r => t.step_timeout(r, 100));
+}, 'Closing a PeerConnection should not fire signalingstatechange event');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc2.addTransceiver('video');
+
+  pc1.ontrack = t.unreached_func();
+  pc1.onsignalingstatechange = t.step_func(e => {
+    pc1.ontrack = null;
+  });
+  await pc1.setRemoteDescription(await pc2.createOffer());
+}, 'signalingstatechange is the first event to fire');
+
+</script>

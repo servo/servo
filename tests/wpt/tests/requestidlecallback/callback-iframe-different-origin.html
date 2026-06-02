@@ -1,0 +1,19 @@
+<!doctype html>
+<title>window.requestIdleCallback in a cross-origin iframe.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  onload = function() {
+    const iframe = document.createElement('iframe');
+    iframe.src = location.href.replace('://', '://www1.')
+        .replace('callback-iframe-different-origin', 'resources/child');
+    document.body.appendChild(iframe);
+  };
+
+  onmessage = function(e) {
+    assert_equals(e.data, 'done');
+    t.done();
+  }
+}, 'Check that idle tasks run in a cross-origin iframe');
+</script>

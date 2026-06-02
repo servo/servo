@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Anchor-positioned element with transformed anchor inside multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+<style>
+  .anchored {
+    position: absolute;
+    position-anchor: --a;
+    background: green;
+  }
+</style>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; display:flow-root; width:100px; height:100px; background:red;">
+  <div style="columns:5; column-gap:20px; margin-top:25px; column-fill:auto; height:40px;">
+    <div style="height:70px;"></div>
+    <div style="height:20px; transform:scale(2); anchor-name:--a; background:lime;"></div>
+  </div>
+  <div class="anchored" style="position-area:left span-all; width:22px; height:100%;"></div>
+  <div class="anchored" style="position-area:right span-all; width:46px; height:100%;"></div>
+  <div class="anchored" style="position-area:top center; width:32px; height:20px;"></div>
+  <div class="anchored" style="position-area:bottom center; width:32px; height:30px;"></div>
+  <div class="anchored" style="position-area:center; width:32px; height:50px;"></div>
+</div>

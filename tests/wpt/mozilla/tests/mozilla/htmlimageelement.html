@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLImageElement usemap special cases</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id="empty" usemap>
+<img id="multibyte" usemap=&#x1F4A9;>
+<script>
+  test(function () {
+    document.querySelector("#empty").dispatchEvent(new Event("click"));
+    assert_true(true);
+  }, "Do not panic on empty usemap");
+
+  test(function () {
+    document.querySelector("#multibyte").dispatchEvent(new Event("click"));
+    assert_true(true);
+  }, "Do not panic on multibyte usemap");
+</script>

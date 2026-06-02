@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test Web NFC API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const ndef_write_key = token();
+  const ndef_scan_key = token();
+
+  attachFencedFrame(generateURL("resources/web-nfc-inner.https.html",
+      [ndef_write_key, ndef_scan_key]));
+
+  let result = await nextValueFromServer(ndef_write_key);
+  assert_equals(result, "rejected",
+                "The fenced frame is not allowed to NDEFReader.write().");
+  result = await nextValueFromServer(ndef_scan_key);
+  assert_equals(result, "rejected",
+                "The fenced frame is not allowed to NDEFReader.scan().");
+
+}, "Test Web NFC API");
+</script>
+
+</body>

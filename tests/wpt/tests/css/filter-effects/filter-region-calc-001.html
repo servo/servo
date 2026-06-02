@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>SVG Filters: &lt;filter> with filter region using calc() for 'width'</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#ColorInterpolationFiltersProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feFloodElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#element-attrdef-filter-width">
+<link rel="match" href="reference/green-100x100.html">
+<style>
+#target {
+  width: 200px;
+  height: 100px;
+  background-color: red;
+  filter: url(#f);
+}
+</style>
+<div id="target"></div>
+<svg width="0" height="0">
+  <filter id="f" x="0" y="0" width="calc(25% + 0.25px)" height="1"
+          color-interpolation-filters="sRGB">
+    <feFlood flood-color="green"/>
+  </filter>
+</svg>

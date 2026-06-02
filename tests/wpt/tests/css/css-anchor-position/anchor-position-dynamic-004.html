@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.cb {
+  position: relative;
+}
+#anchor1 {
+  anchor-name: --a1;
+  margin-left: 15px;
+  width: 30px;
+  height: 20px;
+  background: red;
+}
+.after #anchor1 {
+  margin-left: 50px;
+}
+.target {
+  position: absolute;
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  right: anchor(--a1 right);
+  bottom: anchor(--a1 bottom);
+  background: lime;
+}
+</style>
+<body>
+  <div class="cb">
+    <div style="contain: strict; height: 50px">
+      <div class="spacer" style="height: 10px"></div>
+      <div id="anchor1"></div>
+    </div>
+
+    <div class="target"
+         data-offset-x=50 data-offset-y=10
+         data-expected-width=30 data-expected-height=20></div>
+  </div>
+<script type="module">
+document.body.classList.add('after');
+await checkLayoutForAnchorPos('.target');
+</script>
+</body>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Forms a containing block for fixed/absolute</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+
+
+<p>Expected: one green square and one red square, both 200px by 200px.</p>
+<div class="container">
+  <div class="fixed-child"></div>
+  <div class="absolute-child"></div>
+</div>
+
+<style>
+.container {
+  width: 200px;
+  will-change: transform;
+}
+
+.fixed-child {
+  position: fixed;
+  top: 0;
+  background-color: green;
+  width: 200px;
+  height: 200px;
+}
+
+.absolute-child {
+  position: absolute;
+  top: 0;
+  left: 210px;
+  background-color: red;
+  width: 200px;
+  height: 200px;
+}
+</style>
+

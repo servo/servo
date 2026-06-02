@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>Hit Test with Stacking Context</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-radius">
+<link rel="help" href="https://issues.chromium.org/issues/40811639">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#parent {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+#child {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="parent">
+  <div id="child"></div>
+</div>
+
+<script>
+function elementFromPointOutsideParentBorderRadius() {
+  const rect = document.getElementById('parent').getBoundingClientRect();
+  return document.elementFromPoint(rect.left + 27, rect.bottom - 5);
+}
+function elementFromPointInsideParentBorderRadius() {
+  const rect = document.getElementById('parent').getBoundingClientRect();
+  return document.elementFromPoint(rect.left + 32, rect.bottom - 10);
+}
+
+test(() => {
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+}, 'Hit testing respects border-radius clipping on elements without creating stacking contexts');
+
+test(() => {
+  child.style = 'will-change: transform';
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with will-change transform');
+
+test(() => {
+  child.style = 'opacity: 0.2';
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with opacity < 1');
+
+test(() => {
+  child.style = 'height: 1000px; transform: translate(0, -500px);';
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with a transform property');
+
+test(() => {
+  child.style = 'position: relative; top: 30px;';
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with a PaintOffset from the container');
+
+test(() => {
+  child.style = 'position: relative; top: 30px; overflow: scroll;';
+  assert_equals(elementFromPointOutsideParentBorderRadius(), document.body);
+  assert_equals(elementFromPointInsideParentBorderRadius(), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with a PaintOffsetTranslation from the container');
+
+test(() => {
+  child.style = 'position: relative; top: 30px; overflow: scroll;';
+  document.body.style.margin = '50px';
+  const container = document.createElement('div');
+  container.style.width = '50px';
+  container.style.height = '50px';
+  container.style.overflow = 'scroll';
+  container.appendChild(document.getElementById('parent'));
+  document.body.appendChild(container);
+  container.scrollTop = container.scrollHeight;
+  container.scrollLeft = 0;
+  const offset = container.getBoundingClientRect().left;
+  const curY = offset + 10;
+  assert_equals(document.elementFromPoint(offset, curY), container);
+  assert_equals(document.elementFromPoint(offset + 10, curY), child);
+  child.style = '';
+}, 'Hit testing respects border-radius clipping on elements with a different coordinate space');
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Test: calc() in counter-style descriptor</title>
+  <link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/">
+  <link rel="match" href="descriptor-calc-ref.html">
+  <link rel="stylesheet" href="support/test-common.css">
+  <style type="text/css">
+    /* 100em - 1px should be positive with pretty much any initial font size. */
+    @counter-style a {
+      system: extends upper-roman;
+      range: calc(2 - sign(100em - 1px)) calc(5 + sign(100em - 1px));
+      pad: calc(3 + sign(100em - 1px)) '*';
+    }
+    @counter-style b {
+      system: fixed calc(1 + sign(100em - 1px));
+      symbols: g h;
+    }
+    @counter-style c {
+      system: additive;
+      additive-symbols: calc(2 + sign(100em - 1px)) c, 2 b, 1 a;
+    }
+  </style>
+</head>
+<body>
+  <ol style="list-style-type: a;"><li><li><li><li><li><li><li><li><li><li></ol>
+  <ol style="list-style-type: b;"><li><li><li><li><li><li><li><li><li><li></ol>
+  <ol style="list-style-type: c;"><li><li><li><li><li><li><li><li><li><li></ol>
+</body>

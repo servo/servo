@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>CSS Test (Backgrounds): border-radius clipping on overflow:hidden with transforms</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1207151">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#corner-clipping">
+<link rel="match" href="border-radius-clipping-with-transform-001-ref.html">
+<meta name="assert" content="The content should be clipped correctly, despite the interesting transforms.">
+<meta name="fuzzy" content="maxDifference=0-48; totalPixels=0-6783" />
+<style>
+
+#outer {
+  border: 10px solid #000;
+  border-radius: 60px;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  transform: rotate(90deg);
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+#inner {
+  width: 100%;
+  height: 100%;
+  background: blue;
+  transform: translateZ(0);
+}
+
+#coverinner, #coverouter {
+  position: absolute;
+  border: 4px solid fuchsia;
+  filter: grayscale(30%);
+}
+
+#coverinner {
+  width: 196px;
+  height: 196px;
+  top: 18px;
+  left: 18px;
+  border-radius: 52px;
+}
+
+#coverouter {
+  width: 216px;
+  height: 216px;
+  top: 8px;
+  left: 8px;
+  border-radius: 62px;
+}
+
+</style>
+
+<div id="outer">
+  <div id="inner">
+  </div>
+</div>
+<div id="coverinner">
+</div>
+<div id="coverouter">
+</div>

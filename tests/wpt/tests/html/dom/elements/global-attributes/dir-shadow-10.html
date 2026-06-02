@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>[dir] and shadow slots: dir=rtl on the shadow host, paragraph in the light tree</title>
+<link rel="author" title="Eric Meyer" href="mailto:emeyer@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/C#the-dir-attribute">
+<link rel="help" href="https://github.com/whatwg/html/issues/3699">
+<link rel="help" href="https://github.com/whatwg/html/pull/9796">
+<link rel="match" href="dir-shadow-10-ref.html">
+<style type="text/css">
+body {width: 600px;}
+div {border: 1px solid gray; margin: 1em;}
+div p {width: 50%; border: 1px dotted;}
+</style>
+<script src="dir-shadow-utils.js"></script>
+</head>
+<body>
+
+<p>`dir=rtl` on the shadow host, paragraph in the light tree</p>
+<div id="host" dir="rtl"><p>اختبر.</p></div>
+<p id="result">The HTML direction / computed CSS `direction` value for the paragraph is: </p>
+
+<script type="text/javascript">
+  let root = host.attachShadow({mode:"open"});
+  root.innerHTML = `
+    <slot></slot>
+  `;
+  result.innerHTML += html_direction(host.firstChild) + " / " + getComputedStyle(host.firstChild).direction + '.';
+</script>
+
+</body>
+</html>

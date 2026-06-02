@@ -1,0 +1,10 @@
+<!-- Used by ./query-target-in-load-event.html -->
+<script>
+  window.onload = function() {
+    let target = document.querySelector(":target");
+    let expected = document.querySelector("#target");
+    window.parent.postMessage(target == expected ? "PASS" : "FAIL", "*");
+  };
+</script>
+
+<div id="target"></div>

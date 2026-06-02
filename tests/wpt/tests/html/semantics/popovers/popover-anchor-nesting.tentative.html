@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover anchor nesting</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+
+<!-- This example has the anchor (b1) for one popover (p1)
+     which contains a separate popover (p2) which is anchored
+     by a separate anchor (b2). -->
+<button id=b1 onclick='p1.showPopover()'>Popover 1
+  <div popover id=p2 anchor=b2>
+    <span id=inside2>Inside popover 2</span>
+  </div>
+</button>
+<div popover id=p1 anchor=b1>This is popover 1</div>
+<button id=b2 onclick='p2.showPopover()'>Popover 2</button>
+
+<style>
+  #p1 { top:50px; }
+  #p2 { top:50px; left:250px; }
+  [popover] { border: 5px solid red; }
+</style>
+
+
+<script>
+  const popover1 = document.querySelector('#p1');
+  const button1 = document.querySelector('#b1');
+  const popover2 = document.querySelector('#p2');
+
+  (async function() {
+    setup({ explicit_done: true });
+
+    popover2.showPopover();
+    assert_false(popover1.matches(':popover-open'));
+    assert_true(popover2.matches(':popover-open'));
+    await clickOn(button1);
+    test(t => {
+      // Button1 is the anchor for popover1, and an ancestor of popover2.
+      // Since popover2 is open, but not popover1, button1 should not be
+      // the anchor of any open popover. So popover2 should be closed.
+      assert_false(popover2.matches(':popover-open'));
+      assert_true(popover1.matches(':popover-open'));
+    },'Nested popovers (inside anchor elements) do not affect light dismiss');
+
+    done();
+  })();
+</script>

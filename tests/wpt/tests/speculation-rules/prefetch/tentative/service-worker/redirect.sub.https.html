@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../../../resources/utils.js"></script>
+<script src="../../resources/utils.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<meta name="variant" content="?origin=same-site&sc=in-in&sw=fetch-handler">
+<meta name="variant" content="?origin=same-site&sc=in-in&sw=fetch-handler-to-fallback">
+<meta name="variant" content="?origin=same-site&sc=in-in&sw=fetch-handler-synthetic">
+<meta name="variant" content="?origin=same-site&sc=in-in&sw=no-fetch-handler">
+
+<meta name="variant" content="?origin=same-site&sc=in-out&sw=fetch-handler">
+<meta name="variant" content="?origin=same-site&sc=in-out&sw=fetch-handler-to-fallback">
+<meta name="variant" content="?origin=same-site&sc=in-out&sw=fetch-handler-synthetic">
+<meta name="variant" content="?origin=same-site&sc=in-out&sw=no-fetch-handler">
+
+<meta name="variant" content="?origin=same-site&sc=out-in&sw=fetch-handler">
+<meta name="variant" content="?origin=same-site&sc=out-in&sw=fetch-handler-to-fallback">
+<meta name="variant" content="?origin=same-site&sc=out-in&sw=no-fetch-handler">
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const originOption = new URL(location.href).searchParams.get('origin');
+const swOption = new URL(location.href).searchParams.get('sw');
+
+// We use a short name `sc` to avoid long file names https://crbug.com/40469687
+const scopeOption = new URL(location.href).searchParams.get('sc');
+
+promise_test(async t => {
+  const hostname = originOption === 'cross-site' ? '{{hosts[alt][www]}}'
+                                                 : undefined;
+  const win = await spawnWindow(t, { protocol: 'https', hostname: hostname });
+
+  const finalUrl = win.getExecutorURL({ executor: 'counting-executor.py', protocol: 'https', page: 2 });
+  const initialUrl = new URL('../../resources/counting-executor.py', location.href);
+  // Assign a different UUID to track the number of requests to server
+  // separately for the initialUrl and finalUrl.
+  initialUrl.searchParams.set('uuid', token());
+  initialUrl.searchParams.set('location', finalUrl);
+
+  const swUrl = new URL('../../resources/basic-service-worker.js?sw=' + swOption, location.href).href;
+
+  let sw1;
+  if (scopeOption === 'in-in' || scopeOption === 'in-out') {
+    // Register a SW for `initialUrl`.
+    const reg = await service_worker_unregister_and_register(
+        t, swUrl + '&sw1', initialUrl);
+    sw1 = reg.installing;
+    await wait_for_state(t, reg.installing, 'activated');
+  }
+
+  let sw2;
+  if (scopeOption === 'in-in' || scopeOption === 'out-in') {
+    // Register a SW for `finalUrl`.
+    const reg = await service_worker_unregister_and_register(
+        t, swUrl + '&sw2', finalUrl);
+    sw2 = reg.installing;
+    await wait_for_state(t, reg.installing, 'activated');
+  }
+
+  // Start speculation rules prefetch and navigate to the URL.
+  await win.forceSinglePrefetch(initialUrl);
+
+  await win.navigate(initialUrl, {expectedDestinationUrl: finalUrl});
+
+  const initialRequestCount = await (await fetch(initialUrl + '&check')).json();
+  const finalRequestCount = await (await fetch(finalUrl + '&check')).json();
+
+  const headers = await win.execute_script(() => {
+    return requestHeaders;
+  }, []);
+
+  const controllerUrl = await win.execute_script(() => {
+    return navigator.serviceWorker.controller ?
+           navigator.serviceWorker.controller.scriptURL :
+           undefined;
+  }, []);
+
+  if (sw2) {
+    // The navigated page should be controlled by the ServiceWorker,
+    // regardless of whether prefetch is performed/used.
+    assert_equals(controllerUrl, swUrl + '&sw2');
+  } else {
+    assert_equals(controllerUrl, undefined);
+  }
+
+  // In any cases prefetch + redirects + ServiceWorker fails and prefetched
+  // results aren't served.
+  assert_not_prefetched(headers, "Prefetched result should not be served.");
+
+  if (swOption === 'fetch-handler-synthetic') {
+    // Synthetic redirect response from ServiceWorker prevents the initial
+    // prefetch/non-prefetch requests to the server.
+    assert_equals(initialRequestCount.prefetch, 0,
+        'prefetch requests to initial URL should not be sent to the server.');
+    assert_equals(initialRequestCount.nonPrefetch, 0,
+        'a non-prefetch requests to initial URL should not be sent to the server.');
+  } else {
+    // Otherwise, the initial prefetch request (either with or without
+    // ServiceWorker interception) anyway reaches the server, and then
+    // re-requested as a non-prefetch request on navigation.
+    assert_equals(initialRequestCount.prefetch, 1,
+        'prefetch requests to initial URL should be sent to the server.');
+    assert_equals(initialRequestCount.nonPrefetch, 1,
+        'a non-prefetch requests to initial URL should be sent to the server.');
+  }
+
+  // Prefetch requests to the URL after redirects shouldn't be sent to server
+  // because prefetch should fail immediately on receiving redirects.
+  assert_equals(finalRequestCount.prefetch, 0,
+      'prefetch requests should not be sent to the server.');
+  // Instead, a single non-prefetch request should be sent.
+  assert_equals(finalRequestCount.nonPrefetch, 1,
+      'a non-prefetch request should be sent to the server.');
+
+}, "Prefetch with ServiceWorker (" + swOption + ")");
+</script>

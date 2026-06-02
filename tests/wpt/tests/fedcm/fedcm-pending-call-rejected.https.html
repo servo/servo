@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        alt_request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const first = fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  const second = navigator.credentials.get(alt_request_options_with_mediation_required());
+
+  // We have to call promise_rejects_dom here, because if we call it after
+  // the promise gets rejected, the unhandled rejection event handler is called
+  // and fails the test even if we handle the rejection later.
+  const rej = promise_rejects_dom(t, 'NotAllowedError', second);
+
+  const first_cred = await first;
+  assert_equals(first_cred.token, "token");
+
+  return rej;
+}, "When there's a pending request, a second `get` call should be rejected.");
+</script>

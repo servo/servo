@@ -1,0 +1,10 @@
+{
+    "name": "Icons member (CSP check) WPT",
+    "icons": [{
+        "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/resources/pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }],
+    "start_url": "../icons-member-csp-manual.sub.html",
+    "display": "fullscreen"
+}

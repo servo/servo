@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>textarea validation behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-constraint-validation-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<textarea id=t1 minlength=5 required></textarea>
+<textarea id=t2 minlength=5 required>a</textarea>
+<textarea id=t3 required>a</textarea>
+<textarea id=t4>a</textarea>
+<script>
+test(() => {
+  const emptyMinlength = document.getElementById('t1');
+  const nonEmptyMinlength = document.getElementById('t2');
+  const nonEmptyRequired = document.getElementById('t3');
+  const nonEmptyNonRequired = document.getElementById('t4');
+  assert_false(emptyMinlength.validity.valid,'Empty textareas with constraints will validate');
+  assert_true(nonEmptyMinlength.validity.valid,'Non-empty textareas with constraints will *not* validate');
+  assert_true(nonEmptyRequired.validity.valid,'Textareas without constraints will validate');
+  assert_true(nonEmptyNonRequired.validity.valid,'Textareas without constraints will validate');
+  [t1,t2,t3,t4].forEach(t => t.remove());
+},'Default validity based on emptiness');
+</script>
+
+<textarea id=t5 minlength=5 required></textarea>
+<script>
+promise_test(async () => {
+  const textarea = document.getElementById('t5');
+  document.querySelector('#t1');
+  assert_false(textarea.validity.valid,'By default, this textarea will validate (and fail) because it started empty');
+  textarea.defaultValue = 'abc';
+  assert_true(textarea.validity.valid,'Programmatically setting defaultValue is not a user edit - automatically valid');
+  textarea.replaceChildren('abcd');
+  assert_true(textarea.validity.valid,'Programmatically replacing children is not a user edit - automatically valid');
+  textarea.defaultValue = 'abcde';
+  assert_true(textarea.validity.valid,'Still valid');
+  textarea.remove();
+},'Setting textarea.defaultValue should not trigger validation');
+</script>
+
+<textarea id=t6 minlength=5 required></textarea>
+<script>
+promise_test(async () => {
+  const textarea = document.getElementById('t6');
+  assert_false(textarea.validity.valid,'By default, this textarea will validate (and fail) because it started empty');
+  await test_driver.send_keys(textarea, "abc");
+  assert_false(textarea.validity.valid,'Keystrokes should trigger validation, which will fail (length 3)');
+  await test_driver.send_keys(textarea, "de");
+  assert_equals(textarea.value,"abcde");
+  assert_true(textarea.validity.valid,'Now valid');
+  textarea.remove();
+},'User keystrokes should trigger validation');
+</script>
+
+<textarea id=t7 minlength=5 required></textarea>
+<script>
+promise_test(async () => {
+  const textarea = document.getElementById('t7');
+  textarea.addEventListener('input', (e) => {
+    e.target.defaultValue = e.target.value;
+  });
+  assert_false(textarea.validity.valid,'By default, this textarea will validate (and fail) because it started empty');
+  await test_driver.send_keys(textarea, "abc");
+  assert_equals(textarea.value,"abc");
+  assert_false(textarea.validity.valid,'Still invalid with 3 characters');
+  await test_driver.send_keys(textarea, "de");
+  assert_equals(textarea.value,"abcde");
+  assert_true(textarea.validity.valid,'With 5 characters, now valid');
+  textarea.remove();
+},'Setting textarea.defaultValue from the input event handler should trigger validation');
+</script>
+
+<textarea id=t8 minlength=5 required></textarea>
+<script>
+promise_test(async () => {
+  const textarea = document.getElementById('t8');
+  textarea.addEventListener('input', (e) => {
+    e.target.replaceChildren(e.target.value);
+  });
+  assert_false(textarea.validity.valid,'By default, this textarea will validate (and fail) because it started empty');
+  await test_driver.send_keys(textarea, "abc");
+  assert_equals(textarea.value,"abc");
+  assert_false(textarea.validity.valid,'Still invalid with 3 characters');
+  await test_driver.send_keys(textarea, "de");
+  assert_equals(textarea.value,"abcde");
+  assert_true(textarea.validity.valid,'With 5 characters, now valid');
+  textarea.remove();
+},'Calling textarea.replaceChildren() from the input event handler should trigger validation');
+</script>
+
+<style>
+  :invalid { background-color: rgb(248, 203, 203); }
+</style>

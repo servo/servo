@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<link rel="help"
+  href="https://drafts.csswg.org/cssom-view/#extensions-to-the-window-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+  This test makes sure that calling the window scrolling methods with a single
+  non-dictionary argument or with a dictionary whose 'behavior' field is invalid
+  throws an exception.
+-->
+<div style="height: 1000px; width: 1000px; border: 1px solid black;">
+  Scrollable area to test.
+</div>
+<script type="text/javascript">
+  "use strict";
+
+  const x = 25;
+  const y = 50;
+
+  function reset() {
+    window.scrollTo(0, 0);
+  }
+
+  let scroll_methods = [window.scrollTo, window.scroll, window.scrollBy];
+
+  for (const scroll_method of scroll_methods) {
+    promise_test(async (test) => {
+      reset();
+      try {
+        await scroll_method();
+      } catch(e) {
+        assert_unreached(e);
+      }
+    }, scroll_method.name + " with 0 arguments");
+
+    promise_test(async (test) => {
+      reset();
+      await promise_rejects_js(test, TypeError, scroll_method(x));
+    }, scroll_method.name + " with 1 non-dictionary argument");
+
+    promise_test(async (test) => {
+      reset();
+      try {
+        await scroll_method({ });
+        await scroll_method({ left: x });
+        await scroll_method({ top: y });
+        await scroll_method({ behavior: "auto" });
+        await scroll_method({ behavior: "instant" });
+        await scroll_method({ behavior: "smooth" });
+        await scroll_method({ left: x, top: y });
+        await scroll_method({ left: x, top: y, behavior: "auto" });
+        await scroll_method({ left: x, top: y, behavior: "instant" });
+        await scroll_method({ left: x, top: y, behavior: "smooth" });
+      } catch(e) {
+        assert_unreached(e);
+      }
+    }, scroll_method.name + " with a valid ScrollToOptions argument");
+
+    promise_test(async (test) => {
+      reset();
+      await promise_rejects_js(test, TypeError, scroll_method({ behavior: "" }));
+      await promise_rejects_js(test, TypeError, scroll_method({ left: x, top: y, behavior: "abcd" }));
+      await promise_rejects_js(test, TypeError, scroll_method({ left: x, top: y, behavior: 200 }));
+    }, scroll_method.name + " with an invalid ScrollToOptions argument");
+  }
+</script>

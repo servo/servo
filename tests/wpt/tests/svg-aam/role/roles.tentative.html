@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <title>SVG-AAM Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<!-- Added examples to check SVG element computed role -->
+<!-- svg-aam https://www.w3.org/TR/svg-aam-1.0/ is expecting svg elements to be exposed as role graphics-document -->
+
+<!--
+Additional related or potentially blocking issues:
+- https://github.com/w3c/svg-aam/issues/24#issuecomment-1814011444
+- https://github.com/w3c/svg-aam/issues/30
+-->
+
+<svg height="100" width="100" data-testname="svg" data-expectedrole="UNDEFINED in SVG-AAM, but possibly graphics-document" class="ex">
+  <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red"></circle>
+</svg>
+
+<svg height="130" width="500" data-testname="svg-text" data-expectedrole="UNDEFINED in SVG-AAM, but possibly graphics-document" class="ex">
+   <defs>
+      <linearGradient id="grad1">
+         <stop offset="0%" stop-color="yellow"></stop>
+         <stop offset="100%" stop-color="red"></stop>
+      </linearGradient>
+   </defs>
+   <ellipse cx="100" cy="70" rx="85" ry="55" fill="url(#grad1)"></ellipse>
+   <text fill="#ffffff" font-size="45" font-family="Verdana" x="50" y="86">SVG</text>
+</svg>
+
+<svg data-testname="svg-symbol" data-expectedrole="UNDEFINED in SVG-AAM, but possibly graphics-document" class="ex">
+  <symbol id="myDot" width="10" height="10" viewBox="0 0 2 2">
+    <circle cx="1" cy="1" r="1"></circle>
+  </symbol>
+</svg>
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+</script>
+
+</body>
+</html>

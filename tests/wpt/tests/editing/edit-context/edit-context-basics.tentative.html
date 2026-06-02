@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The HTMLElement.editContext property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='../../html/resources/common.js'></script>
+</head>
+<body>
+  <div id="test"></div>
+  <div id="contenteditableDiv" contenteditable></div>
+  <script>
+    test(function() {
+      const editContextDict = {
+        text: "Hello world",
+        selectionStart: 11,
+        selectionEnd: 11
+      };
+      const editContext = new EditContext(editContextDict);
+      assert_not_equals(editContext, null);
+      // Verify all the members of the EditContext
+      assert_equals(editContext.text, "Hello world");
+      assert_equals(editContext.selectionStart, 11);
+      assert_equals(editContext.selectionEnd, 11);
+    }, 'Testing EditContext Dictionary Init');
+
+    test(function() {
+      contenteditableDiv.editContext = new EditContext();
+      contenteditableDiv.editContext = null;
+      contenteditableDiv.focus();
+      assert_equals(document.activeElement, contenteditableDiv);
+    }, 'A contenteditable element should remain editable after attaching and detaching EditContext.');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+
+      const disconnected_div = document.createElement("DIV");
+      assert_equals(disconnected_div.editContext, null);
+
+      disconnected_div.editContext = editContext;
+      assert_equals(disconnected_div.editContext, editContext);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], disconnected_div);
+    }, 'EditContext can be associated with an element that is not in the tree.');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+
+      const div = document.createElement("DIV");
+      assert_equals(div.editContext, null);
+
+      document.body.appendChild(div);
+      div.editContext = editContext;
+      assert_equals(div.editContext, editContext);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], div);
+
+      document.body.removeChild(div);
+      assert_equals(div.editContext, editContext);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], div);
+    }, 'If an element is removed from the tree, the associated EditContext remains connected to the element.');
+
+    test(function() {
+      const editContext = new EditContext();
+
+      const div_parent = document.createElement("DIV");
+      const div_child = document.createElement("DIV");
+      document.body.appendChild(div_parent);
+      div_parent.appendChild(div_child);
+
+      div_child.editContext = editContext;
+      assert_equals(div_child.editContext, editContext);
+      assert_equals(div_parent.editContext, null);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], div_child);
+
+      document.body.removeChild(div_parent);
+      assert_equals(div_child.editContext, editContext);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], div_child);
+    }, 'If an element\'s ancestor is removed from tree, the associated EditContext remains connected to the element.');
+
+    test(function() {
+      const editContext = new EditContext();
+      const test = document.getElementById("test");
+
+      test.editContext = editContext;
+
+      assert_equals(test.editContext, editContext);
+      assert_equals(editContext.attachedElements().length, 1);
+      assert_equals(editContext.attachedElements()[0], test);
+
+      test.editContext = null;
+
+      assert_equals(editContext.attachedElements().length, 0);
+    }, '.attachedElements() should return associated element');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      editContext.updateText(0, 3, "foo");
+      assert_equals(editContext.text, "foo");
+      const test = document.getElementById('test');
+      // Update the layout of the |EditContext|
+      var viewRect = test.getBoundingClientRect();
+      viewRect.x = viewRect.left;
+      viewRect.y = viewRect.top;
+      var caretRect = test.getBoundingClientRect();
+      caretRect.x = caretRect.left;
+      caretRect.y = 2.2 * caretRect.top;
+      caretRect.width = 1;
+      editContext.updateSelection(0, 0);
+      assert_equals(editContext.selectionStart, 0);
+      assert_equals(editContext.selectionEnd, 0);
+      editContext.updateSelection(1, 0);
+      assert_equals(editContext.selectionStart, 1);
+      assert_equals(editContext.selectionEnd, 0);
+      editContext.updateSelection(0, 1);
+      assert_equals(editContext.selectionStart, 0);
+      assert_equals(editContext.selectionEnd, 1);
+      editContext.updateSelection(1, 1);
+      assert_equals(editContext.selectionStart, 1);
+      assert_equals(editContext.selectionEnd, 1);
+      editContext.updateControlBounds(viewRect);
+      editContext.updateSelectionBounds(caretRect);
+      editContext.updateCharacterBounds(0, [caretRect]);
+
+      assert_throws_js(TypeError, function() { editContext.updateControlBounds(42); });
+      assert_throws_js(TypeError, function() { editContext.updateSelectionBounds(42); });
+      assert_throws_js(TypeError, function() { editContext.updateControlBounds(undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateSelectionBounds(undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds([caretRect]); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, caretRect); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, 42); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, [undefined]); });
+
+      viewRect.x = viewRect.y = viewRect.width = viewRect.height = undefined;
+      editContext.updateControlBounds(viewRect);
+      editContext.updateSelectionBounds(viewRect);
+      editContext.updateCharacterBounds(0, [viewRect]);
+    }, 'Testing EditContext update text, selection and layout');
+
+    test(function() {
+      const editContext = new EditContext();
+      const test = document.getElementById('test');
+      var rect1 = DOMRect.fromRect({x:0, y:1, width:100, height:200});
+      var rect2 = DOMRect.fromRect({x:2, y:3, width:300, height:400});
+      var rectArray = [rect1, rect2];
+      var rangeStart = 2;
+      editContext.updateCharacterBounds(rangeStart, rectArray);
+      assert_equals(editContext.characterBoundsRangeStart, 2);
+
+      var actualRectArray = editContext.characterBounds();
+      assert_equals(actualRectArray.length, 2);
+      assert_equals(actualRectArray[0].x, 0);
+      assert_equals(actualRectArray[0].y, 1);
+      assert_equals(actualRectArray[0].width, 100);
+      assert_equals(actualRectArray[0].height, 200);
+      rect2.x=100;
+      assert_equals(actualRectArray[1].x, 2);  // the cached value shouldn't change.
+      assert_equals(actualRectArray[1].y, 3);
+      assert_equals(actualRectArray[1].width, 300);
+      assert_equals(actualRectArray[1].height, 400);
+    }, 'updateCharacterBounds(), characterBounds(), and characterBoundsRangeStart should work properly');
+
+    // The behavior in this test case is not well-defined in the spec.
+    // See https://github.com/w3c/edit-context/issues/88
+    // test(function() {
+    //   const editContext = new EditContext();
+    //   assert_not_equals(editContext, null);
+    //   editContext.updateText(0, 3, "foo");
+    //   assert_equals(editContext.text, "foo");
+    //   assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(10, 0); });
+    //   assert_equals(editContext.selectionStart, 0);
+    //   assert_equals(editContext.selectionEnd, 0);
+    //   assert_throws_dom("IndexSizeError", function() { editContext.updateText(10, 1, "h"); });
+    //   assert_equals(editContext.text, "foo");
+    // }, 'Testing EditContext update text and selection with invalid values');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      editContext.updateText(0, 3, "foo");
+      assert_equals(editContext.text, "foo");
+      editContext.updateSelection(3, 0);
+      assert_equals(editContext.selectionStart, 3);
+      assert_equals(editContext.selectionEnd, 0);
+    }, 'EditContext should allow a backwards selection');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      editContext.updateText(6, 0, "abcdef");
+      assert_equals(editContext.text, "abcdef");
+
+      editContext.updateText(2, 5, "ghi");
+      assert_equals(editContext.text, "abghif");
+
+      editContext.updateText(5, 2, "jkl");
+      assert_equals(editContext.text, "abjklf");
+    }, 'updateText can replace substrings including with backwards parameters');
+  </script>
+</body>
+</html>

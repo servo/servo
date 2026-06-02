@@ -1,0 +1,392 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <title>Exceptional cases</title>
+</head>
+<body>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: getEnumProp(status, status.status),
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+promise_test(() => {
+  return makeTest(
+      () => { done(); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'completion signaled before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => { assert_true(true); done(); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'passing assertion before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => { assert_false(true); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'failing assertion before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => { throw new Error('this error is expected'); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_array_equals(Object.keys(tests), []);
+    });
+}, 'uncaught exception before testing begins');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ allow_uncaught_exception: true });
+        throw new Error('this error is expected');
+      },
+      () => {
+        test(function() {}, 'a');
+        test(function() {}, 'b');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.a, 'PASS');
+      assert_equals(tests.b, 'PASS');
+    });
+}, 'uncaught exception with subsequent subtest');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        async_test((t) => {
+          setTimeout(() => {
+            setTimeout(() => t.done(), 0);
+            async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
+            throw new Error('this error is expected');
+          }, 0);
+        }, 'during');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.during, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'uncaught exception during async_test');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        promise_test(() => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve();
+              promise_test(() => Promise.resolve(), 'after');
+              throw new Error('this error is expected');
+            }, 0);
+          });
+        }, 'during');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.during, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'uncaught exception during promise_test');
+
+promise_test(() => {
+  return makeTest(
+      () => { test(() => {}, 'before'); },
+      () => { throw new Error('this error is expected'); },
+      () => { test(() => {}, 'after'); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'uncaught exception between tests');
+
+promise_test(() => {
+  return makeTest(
+      () => { promise_test(() => Promise.resolve(), 'before'); },
+      () => { throw new Error('this error is expected'); },
+      () => { promise_test(() => Promise.resolve(), 'after'); }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'uncaught exception between promise_tests');
+
+
+// This feature of testharness.js is only observable in browsers which
+// implement the `unhandledrejection` event.
+if ('onunhandledrejection' in window) {
+
+  promise_test(() => {
+    return makeTest(
+        () => { Promise.reject(new Error('this error is expected')); }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_array_equals(Object.keys(tests), []);
+      });
+  }, 'unhandled rejection before testing begins');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          async_test((t) => {
+            Promise.reject(new Error('this error is expected'));
+
+            window.addEventListener('unhandledrejection', () => {
+            setTimeout(() => t.done(), 0);
+              async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
+              t.done();
+            });
+          }, 'during');
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.during, 'PASS');
+        assert_equals(tests.after, 'PASS');
+      });
+  }, 'unhandled rejection during async_test');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          promise_test(() => {
+            return new Promise((resolve) => {
+              Promise.reject(new Error('this error is expected'));
+
+              window.addEventListener('unhandledrejection', () => {
+                resolve();
+                promise_test(() => Promise.resolve(), 'after');
+                throw new Error('this error is expected');
+              }, 0);
+            });
+          }, 'during');
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.during, 'PASS');
+        assert_equals(tests.after, 'PASS');
+      });
+  }, 'unhandled rejection during promise_test');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          setup({ explicit_done: true });
+          test(() => {}, 'before');
+          Promise.reject(new Error('this error is expected'));
+          window.addEventListener('unhandledrejection', () => {
+            test(() => {}, 'after');
+            done();
+          });
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.before, 'PASS');
+        assert_true('after' in tests);
+      });
+  }, 'unhandled rejection between tests');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          setup({ explicit_done: true });
+          async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'before');
+          Promise.reject(new Error('this error is expected'));
+          window.addEventListener('unhandledrejection', () => {
+            async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
+            done();
+          });
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.before, 'PASS');
+        assert_equals(tests.after, 'PASS');
+      });
+  }, 'unhandled rejection between async_tests');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          setup({ explicit_done: true });
+          promise_test(() => Promise.resolve(), 'before');
+          Promise.reject(new Error('this error is expected'));
+          window.addEventListener('unhandledrejection', () => {
+            promise_test(() => Promise.resolve(), 'after');
+            done();
+          });
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.before, 'PASS');
+        assert_true('after' in tests);
+      });
+  }, 'unhandled rejection between promise_tests');
+
+  promise_test(() => {
+    return makeTest(
+        () => {
+          test((t) => {
+            t.add_cleanup(() => { throw new Error('this error is expected'); });
+          }, 'during');
+          test((t) => {}, 'after');
+        }
+      ).then(({harness, tests}) => {
+        assert_equals(harness, 'ERROR');
+        assert_equals(tests.during, 'PASS');
+        assert_equals(tests.after, 'NOTRUN');
+      });
+  }, 'exception in `add_cleanup` of a test');
+
+}
+
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({explicit_done: true});
+        window.addEventListener('DOMContentLoaded', () => {
+          async_test((t) => {
+            t.add_cleanup(() => {
+              setTimeout(() => {
+                async_test((t) => t.done(), 'after');
+                done();
+              }, 0);
+              throw new Error('this error is expected');
+            });
+            setTimeout(t.done.bind(t), 0);
+          }, 'during');
+        });
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.during, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'exception in `add_cleanup` of an async_test');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        promise_test((t) => {
+          t.add_cleanup(() => { throw new Error('this error is expected'); });
+          return Promise.resolve();
+        }, 'test');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.test, 'PASS');
+    });
+}, 'exception in `add_cleanup` of a promise_test');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        promise_test((t) => {
+          t.step(() => {
+            throw new Error('this error is expected');
+          });
+        }, 'test');
+        async_test((t) => t.done(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.test, 'FAIL');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'exception in `step` of an async_test');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        promise_test((t) => {
+          t.step(() => {
+            throw new Error('this error is expected');
+          });
+
+          return new Promise(() => {});
+        }, 'test');
+
+        // This following test should be run to completion despite the fact
+        // that the promise returned by the previous test never resolves.
+        promise_test((t) => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.test, 'FAIL');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'exception in `step` of a promise_test');
+</script>
+</body>
+</html>

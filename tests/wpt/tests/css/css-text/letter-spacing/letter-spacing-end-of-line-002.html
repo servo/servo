@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text test - letter-spacing applied to preserved newline</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1850620">
+<link rel="match" href="reference/letter-spacing-end-of-line-002-ref.html">
+<meta name="assert" content="Letter-spacing on a preserved newline should not cause spurious line-wrapping.">
+
+<style>
+div {
+  margin: 1em;
+  font: 24px monospace;
+  white-space: pre-wrap;
+  display: inline-block;
+  outline: 1px solid gray;
+}
+.letterspc {
+  letter-spacing: 10px;
+}
+.nospc {
+  letter-spacing: 0px;
+}
+</style>
+
+<p>None of these examples should wrap to a second line:</p>
+<div class=letterspc><span>1. a</span><span>&#10;</span></div>
+<br>
+<div class=letterspc><span>2. b</span><span class=nospc>&#10;</span></div>
+<br>
+<div class=nospc><span>3. c</span><span class=letterspc>&#10;</span></div>

@@ -1,0 +1,60 @@
+<!doctype html>
+<style>
+  body {
+    --peek: LightGreen;
+    --border: transparent;
+    margin:0;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(45deg, orange 0px, orange 5px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 99%, blue 99%);
+    background-size: 200px 50px;
+    background-repeat: no-repeat; /* FF defaults to no-repeat, Chrome to repeat */
+  }
+  main > * {
+    box-sizing: border-box;
+  }
+  .table {
+    width: 200px;
+    position: relative;
+    margin-top: 5px;
+    margin-left:5px;
+  }
+  .row {
+    width: 200px;
+    height: 50px;
+  }
+  .cell {
+    width: 50px;
+    height: 50px;
+    display: inline-block;
+    vertical-align: top;
+  }
+  .bigsquarecell {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    vertical-align: top;
+    background-position-x: -50px;
+  }
+  .c2 {
+    background-position-x: -50px
+  }
+  .c3 {
+    background-position-x: -100px;
+  }
+  .c4 {
+    background-position-x: -150px;
+  }
+  .bottomrow > .cell {
+    margin-top: 5px;
+  }
+</style>
+<main>
+<div class="table">
+<div class="row bg"></div>
+<div><div class="cell firstcell bg"></div><div class="bigsquarecell bg"></div><div class="cell c4 bg"></div></div>
+<div class="row bg"></div>
+<div style="position:absolute;top:-5px;left:-5px;bottom:-5px;right:-5px;border: 10px solid var(--border)"></div>
+</div>
+</main>

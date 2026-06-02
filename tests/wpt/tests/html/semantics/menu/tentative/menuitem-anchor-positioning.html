@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<link rel="match" href="menuitem-anchor-positioning-ref.html">
+
+<menubar>
+  <menuitem>Nothing</menuitem>
+  <menuitem id="trigger" command="toggle-menu" commandfor="menulist">Trigger</menuitem>
+</menubar>
+
+<menulist id="menulist">
+  <menuitem id=trigger2 command=toggle-menu commandfor=submenu>Trigger 2</menuitem>
+</menulist>
+
+<menulist id="submenu">
+  <menuitem>Most nested item</menuitem>
+</menulist>
+
+<script>
+  trigger.click();
+  trigger2.click();
+</script>

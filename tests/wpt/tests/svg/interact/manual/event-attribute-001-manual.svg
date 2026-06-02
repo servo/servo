@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="100%" height="100%" viewBox="0 0 480 360">
+  <title>Event attributes - onwheel</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#EventAttributes"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/attindex.html#RegularAttributes"/>
+    <h:meta name="assert" content="onwheel attribute runs script in response to wheel events"/>
+  </metadata>
+  <style>
+    text {
+      font-size: 12px;
+    }
+    #target {
+      fill: yellow;
+    }
+  </style>
+  <script>
+    'use strict';
+    function complete() {
+      document.getElementById('target').style.fill = 'lime';
+    }
+  </script>
+  <text x="30" y="30">Select the box, use the mouse wheel and check that the box become green.</text>
+  <rect id="target" x="140" y="160" width="200" height="200" onwheel="complete()" />
+</svg>

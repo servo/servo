@@ -1,0 +1,10 @@
+--- WebIDL.py
++++ WebIDL.py
+@@ -1987,6 +1987,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
+                 or identifier == "RunConstructorInCallerCompartment"
+                 or identifier == "WantsEventListenerHooks"
+                 or identifier == "Serializable"
++                or identifier == "Abstract"
+             ):
+                 # Known extended attributes that do not take values
+                 if not attr.noArguments():

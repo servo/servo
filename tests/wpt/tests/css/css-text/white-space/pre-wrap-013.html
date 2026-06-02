@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: preserved white space at the end of soft-wrapped lines and white-space:pre-wrap with center alignement</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/pre-wrap-013-ref.html">
+<meta name="assert" content="When white-space is pre-wrap, spaces at the end of soft-wrapped lines hang, so they do not have any effect when centering.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+  white-space: pre-wrap;
+  color: green;
+
+  background: linear-gradient(red, red) 0.5ch 0/2ch 2ch no-repeat;
+
+  width: 3ch;
+  text-align: center;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div>XX XX</div>
+</body>

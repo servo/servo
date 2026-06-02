@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Auto repeat tracks and percentage min sizes with percentage track sizes</title>
+<link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<meta name="assert"
+  content="This test checks that auto repeat tracks can use percentage track
+  size when only a min size is available to compute the number of tracks.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+  .grid {
+    position: relative;
+    display: inline-grid;
+    grid-template-rows: repeat(auto-fill, 20%);
+    grid-auto-columns: 100px;
+    min-height: 50%;
+    float: left;
+  }
+
+  .wrapper {
+    height: 1000px;
+  }
+
+  #cell {
+    background-color: lime;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid');">
+  <div id="log"></div>
+  <div class="wrapper">
+    <div class="grid" data-expected-width="100" data-expected-height="500">
+      <div id="cell" data-expected-width="100" data-expected-height="100">Cell 1</div>
+      <div id="cell" data-expected-width="100" data-expected-height="100">Cell 2</div>
+      <div id="cell" data-expected-width="100" data-expected-height="100">Cell 3</div>
+      <div id="cell" data-expected-width="100" data-expected-height="100">Cell 4</div>
+      <div id="cell" data-expected-width="100" data-expected-height="100">Cell 5</div>
+    </div>
+  </div>

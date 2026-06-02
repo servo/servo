@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Owner implied AX role inference</title>
+<meta name="assert" content="A generic focusgroup owner with a behavior token gets an implied minimum ARIA role; explicit and native roles are preserved.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Generic container (no explicit or native role) should inherit implied toolbar role. -->
+<div id=fgGeneric focusgroup="toolbar"><button>Item</button></div>
+<!-- Explicit author role must win over implied role. -->
+<div id=fgExplicit role="list" focusgroup="toolbar"><div>Item</div></div>
+<!-- Native semantics (UL -> list) must win over implied role. -->
+<ul id=fgNative focusgroup="toolbar"><li>Item</li></ul>
+
+<script>
+if (!window.accessibilityController) {
+  test(() => { assert_true(true); }, 'accessibilityController not available (noop)');
+} else {
+  test(() => {
+    const ax = accessibilityController.accessibleElementById('fgGeneric');
+    assert_equals(ax.role, 'AXRole: AXToolbar');
+  }, 'Generic container focusgroup owner gets implied toolbar role');
+
+  test(() => {
+    const ax = accessibilityController.accessibleElementById('fgExplicit');
+    assert_equals(ax.role, 'AXRole: AXList');
+  }, 'Explicit author role is preserved over implied focusgroup role');
+
+  test(() => {
+    const ax = accessibilityController.accessibleElementById('fgNative');
+    assert_equals(ax.role, 'AXRole: AXList');
+  }, 'Native semantic list role is preserved over implied focusgroup role');
+}
+</script>

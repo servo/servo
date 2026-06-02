@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+    <title>eval-scripts-setInterval-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS 1 of 2","PASS 2 of 2"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+<pre>
+<script>
+  window.addEventListener('securitypolicyviolation', function(e) {
+    log("Fail");
+  });
+
+  var id_string = setInterval("clearInterval(id_string); log('PASS 1 of 2')", 0);
+  if (id_string == 0)
+    log('FAIL: Return value for string (should not be 0): ' + id_string);
+
+  var id_function = setInterval(function() {
+    clearInterval(id_function);
+    log('PASS 2 of 2');
+  }, 0);
+
+  if (id_function == 0)
+    log('FAIL');
+</script>
+</pre>
+
+</html>

@@ -1,0 +1,4 @@
+Content-Type: application/webbundle
+X-Content-Type-Options: nosniff
+Access-Control-Allow-Origin: https://{{domains[]}}:{{ports[https][0]}}
+Access-Control-Allow-Credentials: true

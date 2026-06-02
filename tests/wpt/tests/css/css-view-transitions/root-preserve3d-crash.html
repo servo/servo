@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1963368">
+<style>
+  * {
+      border-style: double !important;
+      -webkit-transform-style: preserve-3d !important;
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    document.startViewTransition(undefined)
+  })
+</script>

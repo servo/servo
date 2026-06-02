@@ -1,0 +1,15 @@
+<!doctype html>
+<p>Resize this window. FAIL if the window doesn't close shortly afterwards.</p>
+<script>
+onload = opener.t.step_func(function() {
+  opener.load_count++;
+  if (opener.load_count > 1) {
+    opener.do_test();
+  }
+})
+
+onresize = opener.t.step_func(function() {
+  opener.flag_resized();
+  location.reload();
+});
+</script>

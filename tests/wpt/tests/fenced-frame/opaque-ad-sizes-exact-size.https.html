@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test frame size restrictions in FLEDGE.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/opaque-ad-sizes-utils.js"></script>
+
+<body>
+<script>
+
+// Exact size cases.
+promise_test(async () => { return runOpaqueAdSizesTest(320, 50, 320, 50); }, '320x50');
+promise_test(async () => { return runOpaqueAdSizesTest(728, 90, 728, 90); }, '728x90');
+promise_test(async () => { return runOpaqueAdSizesTest(970, 90, 970, 90); }, '970x90');
+promise_test(async () => { return runOpaqueAdSizesTest(320, 100, 320, 100); }, '320x100');
+promise_test(async () => { return runOpaqueAdSizesTest(160, 600, 160, 600); }, '160x600');
+promise_test(async () => { return runOpaqueAdSizesTest(300, 250, 300, 250); }, '300x250');
+promise_test(async () => { return runOpaqueAdSizesTest(970, 250, 970, 250); }, '970x250');
+promise_test(async () => { return runOpaqueAdSizesTest(336, 280, 336, 280); }, '336x280');
+promise_test(async () => { return runOpaqueAdSizesTest(320, 480, 320, 480); }, '320x48');
+promise_test(async () => { return runOpaqueAdSizesTest(300, 600, 300, 600); }, '300x600');
+promise_test(async () => { return runOpaqueAdSizesTest(300, 1050, 300, 1050); }, '300x1050');
+</script>
+</body>

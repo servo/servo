@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Range.getClientRects should correct indexing into trailing surrogates</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getclientrects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="surrogates">🌠a🌠</div>
+<span id="surrogate">🌠a</span><span id="surrogate2">🌠</span>
+<script>
+  test(function () {
+    const surrogates = document.getElementById("surrogates");
+    const surrogate = document.getElementById("surrogate");
+    const surrogate2 = document.getElementById("surrogate2");
+
+    // test range with one container
+    fullrange = document.createRange();
+    fullrange.setStart(surrogates.firstChild, 0);
+    fullrange.setEnd(surrogates.firstChild, 5);
+
+    range = document.createRange();
+    range.setStart(surrogates.firstChild, 1);
+    range.setEnd(surrogates.firstChild, 5);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+
+    range.setStart(surrogates.firstChild, 0);
+    range.setEnd(surrogates.firstChild, 4);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+
+    range.setStart(surrogates.firstChild, 1);
+    range.setEnd(surrogates.firstChild, 4);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+
+    // test range with two containers
+    fullrange.setStart(surrogate.firstChild, 0);
+    fullrange.setEnd(surrogate2.firstChild, 2);
+
+    range.setStart(surrogate.firstChild, 1);
+    range.setEnd(surrogate2.firstChild, 2);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+    assert_equals(range.getClientRects()[1].width, fullrange.getClientRects()[1].width);
+
+    range.setStart(surrogate.firstChild, 0);
+    range.setEnd(surrogate2.firstChild, 1);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+    assert_equals(range.getClientRects()[1].width, fullrange.getClientRects()[1].width);
+
+    range.setStart(surrogate.firstChild, 1);
+    range.setEnd(surrogate2.firstChild, 1);
+
+    assert_equals(range.getClientRects()[0].width, fullrange.getClientRects()[0].width);
+    assert_equals(range.getClientRects()[1].width, fullrange.getClientRects()[1].width);
+  }, "Range.getClientRects should correct indexing into trailing surrogates")
+</script>

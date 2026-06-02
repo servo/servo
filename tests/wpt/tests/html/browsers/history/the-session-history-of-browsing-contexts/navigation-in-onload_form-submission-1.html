@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Navigation in onload handler through form submission</title>
+    <script>
+      function redirect() {
+        document.querySelector("#redirectionForm").submit();
+      }
+    </script>
+  </head>
+  <body onload="redirect();">
+    <form id="redirectionForm" action="navigation-in-onload_form-submission-2.html" method="get"></form>
+  </body>
+</html>

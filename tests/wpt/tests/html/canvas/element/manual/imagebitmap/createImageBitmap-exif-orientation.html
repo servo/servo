@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<title>Test that createImageBitmap honors EXIF orientation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>canvas { outline: 1px solid black; margin-right: 1em; }</style>
+<body>
+<script>
+function loadImage(src) {
+    return new Promise(function(resolve) {
+        const image = new Image();
+        image.addEventListener("load", () => resolve(image), { once: true });
+        image.src = src;
+    });
+}
+
+function checkColors(ctx, w, h, tileW, tileH, expectedColors) {
+    let data = ctx.getImageData(0, 0, w, h).data;
+    for (let [row, col, r, g, b, a] of expectedColors) {
+        let x = col * tileW + tileW / 2;
+        let y = row * tileH + tileH / 2;
+        let i = (x + y * w) * 4;
+
+        let expected = [r, g, b, a];
+        let actual = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+
+        assert_array_approx_equals(actual, expected, 1, `Pixel value at (${x},${y}) ${expected} =~ ${actual}.`);
+    }
+}
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 320;
+    canvas.height = 160;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then((image) => createImageBitmap(image))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 80, 80, [
+                // row, col, r, g, b, a
+                [0, 0, 255, 0, 0, 255],
+                [0, 1, 0, 255, 0, 255],
+                [0, 2, 0, 0, 255, 255],
+                [0, 3, 0, 0, 0, 255],
+                [1, 0, 255, 128, 128, 255],
+                [1, 1, 128, 255, 128, 255],
+                [1, 2, 128, 128, 255, 255],
+                [1, 3, 128, 128, 128, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation from-image, and no cropping");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 320;
+    canvas.height = 160;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then((image) => createImageBitmap(image, { imageOrientation: "flipY" }))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 80, 80, [
+                // row, col, r, g, b, a
+                [0, 0, 255, 128, 128, 255],
+                [0, 1, 128, 255, 128, 255],
+                [0, 2, 128, 128, 255, 255],
+                [0, 3, 128, 128, 128, 255],
+                [1, 0, 255, 0, 0, 255],
+                [1, 1, 0, 255, 0, 255],
+                [1, 2, 0, 0, 255, 255],
+                [1, 3, 0, 0, 0, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation flipY, and no cropping");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 160;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then(image => createImageBitmap(image, 80, 0, 160, 160))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 80, 80, [
+                // row, col, r, g, b, a
+                [0, 0, 0, 255, 0, 255],
+                [0, 1, 0, 0, 255, 255],
+                [1, 0, 128, 255, 128, 255],
+                [1, 1, 128, 128, 255, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation from-image, and cropping");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 160;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then(image => createImageBitmap(image, 80, 0, 160, 160, { imageOrientation: "flipY" }))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 80, 80, [
+                // row, col, r, g, b, a
+                [0, 0, 128, 255, 128, 255],
+                [0, 1, 128, 128, 255, 255],
+                [1, 0, 0, 255, 0, 255],
+                [1, 1, 0, 0, 255, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation flipY, and cropping");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 80;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then((image) => createImageBitmap(image, { resizeWidth:160, resizeHeight:80} ))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 40, 40, [
+                // row, col, r, g, b, a
+                [0, 0, 255, 0, 0, 255],
+                [0, 1, 0, 255, 0, 255],
+                [0, 2, 0, 0, 255, 255],
+                [0, 3, 0, 0, 0, 255],
+                [1, 0, 255, 128, 128, 255],
+                [1, 1, 128, 255, 128, 255],
+                [1, 2, 128, 128, 255, 255],
+                [1, 3, 128, 128, 128, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation from-image, no cropping, and resize");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 80;
+    canvas.height = 80;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then(image => createImageBitmap(image, 80, 0, 160, 160, { imageOrientation: "flipY", resizeWidth:80, resizeHeight:80 }))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 40, 40, [
+                // row, col, r, g, b, a
+                [0, 0, 128, 255, 128, 255],
+                [0, 1, 128, 128, 255, 255],
+                [1, 0, 0, 255, 0, 255],
+                [1, 1, 0, 0, 255, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation flipY, cropping, and resize");
+
+async_test(function(t) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 80;
+    canvas.height = 40;
+    document.body.append(canvas);
+
+    const ctx = canvas.getContext("2d");
+    loadImage("resources/squares_6.jpg")
+        .then(image => createImageBitmap(image, 80, 0, 160, 160, { imageOrientation: "flipY", resizeWidth:80, resizeHeight:40 }))
+        .then(t.step_func_done(function(imageBitmap) {
+            ctx.drawImage(imageBitmap, 0, 0);
+            checkColors(ctx, canvas.width, canvas.height, 40, 20, [
+                // row, col, r, g, b, a
+                [0, 0, 128, 255, 128, 255],
+                [0, 1, 128, 128, 255, 255],
+                [1, 0, 0, 255, 0, 255],
+                [1, 1, 0, 0, 255, 255],
+            ]);
+        }));
+}, "createImageBitmap with EXIF rotation, imageOrientation flipY, cropping, and nonuniform resize");
+
+</script>

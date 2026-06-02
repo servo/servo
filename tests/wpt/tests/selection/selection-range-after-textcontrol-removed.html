@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?textControl=text">
+<meta name="variant" content="?textControl=password">
+<meta name="variant" content="?textControl=number">
+<meta name="variant" content="?textControl=textarea">
+<title>Selection range after text control is removed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+/**
+ * Browsers may use internal Selection and/or Range to implement the selection
+ * in text controls.  They should not be appear outside the host text control
+ * after the host is removed.
+ */
+addEventListener("load", () => {
+  const textControlType = (new URLSearchParams(document.location.search)).get("mode");
+  function createTextControlElement() {
+    const textControl =
+      document.createElement(textControlType == "textarea" ? "textarea" : "input");
+    if (textControlType != "textarea") {
+      textControl.type = textControlType;
+    }
+    return textControl;
+  }
+
+  test(() => {
+    const textControl = createTextControlElement();
+    document.body.appendChild(textControl);
+    textControl.select();
+    getSelection().removeAllRanges();
+    textControl.remove();
+    assert_equals(getSelection().rangeCount, 0);
+  }, "Removing the text control should not add selection range");
+
+  test(() => {
+    const wrapper = document.createElement("div");
+    wrapper.id = "wrapper";
+    const textControl = createTextControlElement();
+    wrapper.appendChild(textControl);
+    document.body.appendChild(wrapper);
+    textControl.select();
+    getSelection().removeAllRanges();
+    wrapper.remove();
+    assert_equals(getSelection().rangeCount, 0);
+  }, "Removing the text control parent should not add selection range");
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

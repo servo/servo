@@ -1,0 +1,18 @@
+.container {
+    display: none;
+}
+
+.float {
+    float: left;
+    width: 5px;
+    height: 5px;
+    border: 1px solid green;
+}
+
+.big {
+    width: 10px;
+}
+
+.float-end {
+    clear:left;
+}

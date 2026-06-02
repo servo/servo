@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-left</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: blue; margin-left: 20px; }
+   span { color: silver; }
+   .one { border-left: blue double 10px; }
+   .two { border-left: blue thin solid; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p class="one">
+   &#x21E6; This paragraph should have two blue lines on its left.
+   <span>dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text</span>
+  </p>
+  <p class="two">
+   &#x21E6; This paragraph should have a thin blue line on its left.
+   <span>dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text</span>
+  </p>
+ </body>
+</html>

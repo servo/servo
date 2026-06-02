@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Nested View Transitions: rotated container</title>
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+
+<style>
+:root { background: pink }
+#target {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  background: lightblue;
+
+  transform: translateX(100px) rotate(45deg);
+  will-change: transform;
+}
+#item {
+  width: 50px;
+  height: 50px;
+  background: blue;
+}
+</style>
+
+<div id=target>
+  <div id=item></div>
+</div>
+

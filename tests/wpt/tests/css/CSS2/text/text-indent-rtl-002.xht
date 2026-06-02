@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent with negative value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+        <link rel="match" href="text-indent-rtl-002-ref.xht"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'text-indent' property with negative values with direction rtl indent to the right." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                direction: rtl;
+                width: 40em;
+            }
+            #div2
+            {
+                font-family: Ahem;
+                line-height: 1em;
+                text-indent: -5em;
+                width: 30em;
+            }
+            #div3
+            {
+                background: blue;
+                height: 1em;
+                float: right;
+                margin-right: -5em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is directly above the blue box.</p>
+        <div id="div1">
+            <div id="div2">XXXXX</div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

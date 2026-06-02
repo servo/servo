@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>drawFocusIfNeeded() - AAPI test</title>
+    <link rel="author" title="Mark Sadecki" href="mark@w3.org">
+    <link rel="help" href="http://www.w3.org/TR/2dcontext/#dom-context-2d-drawFocusIfNeeded">
+
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>This manual test can be used to verify that drawFocusIfNeeded actually updates the accessible location information (i.e. UIAutomation's CurrentBoundingRectangle) in the Accessibility API.  To perform this test, you will need an <a href="http://www.w3.org/WAI/PF/wiki/ARIA_Test_Plan#Test_tools">accessibility API inspector</a>.  To perform this test, use the <code>tab</code> key to move from the first focusable element to through to the fourth.  This test passes if the first parameter of the bounding rectangle increases by 100 when focus is moved from the gray square to the orange square.</p>
+    <p><a href="http://www.w3.org">First focusable element</a></p>
+    <canvas height=100 width=200 id=canvas>
+      <a href='http://www.w3.org' id='button1'>Second focusable element</a>
+      <a href='http://www.w3.org' id='button2'>Third focusable element</a>
+    </canvas>
+    <p><a href="http://www.w3.org">Fourth focusable element</a></p>
+
+    <script>
+        var button1 = document.getElementById('button1');
+        var button2 = document.getElementById('button2');
+        var canvas = document.getElementById('canvas');
+        var buttons = canvas.getElementsByTagName('a');
+
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].addEventListener('focus', drawCanvas, false);
+          buttons[i].addEventListener('blur', drawCanvas, false);
+        }
+
+        function drawRect(context, color, element) {
+          context.beginPath();
+          context.rect(10, 10, 80, 80);
+          context.fillStyle = color;
+          context.fill();
+          context.drawFocusIfNeeded(element);
+        }
+
+        function drawCanvas() {
+          var canvas = document.getElementById('canvas');
+          var context = canvas.getContext('2d');
+          context.clearRect (0, 0, 200, 100);
+
+          drawRect(context, "gray", button1);
+          context.translate(100,0);
+          drawRect(context, "orange", button2);
+        }
+        drawCanvas();
+    </script>
+  </body>
+</html>

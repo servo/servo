@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>HTML Test: BDI: neutral when nested</title>
+    <link rel="match" href="bdi-neutral-nested-ref.html"/>
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com"/>
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com"/>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-bdi-element"/>
+    <meta name="assert" content="
+      'For the purposes of applying the bidirectional algorithm to the paragraph-level
+      container that a bdi element finds itself within, the bdi element must be treated
+      like a U+FFFC OBJECT REPLACEMENT CHARACTER.'
+      This must apply when a BDI is nested within a BDI."/>
+    <style>
+      body{
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 500px;
+        margin: 20px;
+      }
+      .comments { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="comments">
+      Key to entities used below:
+        &#x05D0; ... &#x05D5; - The first six Hebrew letters (strongly RTL).
+        &#x202D; - The LRO (left-to-right override) formatting character.
+        &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
+    </div>
+    <div class="test">
+      <div dir="ltr">&#x05D0; + <bdi>[a + <bdi>[&#x05D1; + <bdi>[b + 4]</bdi> + 3]</bdi> + 2]</bdi> + 1</div>
+      <div dir="ltr">&#x05D0; + <bdi dir="rtl">[a + <bdi dir="ltr">[&#x05D1; + <bdi dir="rtl">[b + 4]</bdi> + 3]</bdi> + 2]</bdi> + 1</div>
+      <div dir="ltr">&#x05D0; + <bdi dir="ltr">[a + <bdi dir="rtl">[&#x05D1; + <bdi dir="ltr">[b + 4]</bdi> + 3]</bdi> + 2]</bdi> + 1</div>
+      <div dir="rtl">a + <bdi>[&#x05D0; + <bdi>[b + <bdi>[&#x05D1; + 3]</bdi> + 2]</bdi> + 1]</bdi> + 0</div>
+      <div dir="rtl">a + <bdi dir="ltr">[&#x05D0; + <bdi dir="rtl">[b + <bdi dir="ltr">[&#x05D1; + 3]</bdi> + 2]</bdi> + 1]</bdi> + 0</div>
+      <div dir="rtl">a + <bdi dir="rtl">[&#x05D0; + <bdi dir="ltr">[b + <bdi dir="rtl">[&#x05D1; + 3]</bdi> + 2]</bdi> + 1]</bdi> + 0</div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">&#x202D;1 + [a + [3 + [b + 4] + &#x05D1;] + 2] + &#x05D0;&#x202C;</div>
+      <div dir="ltr">&#x202D;1 + [a + [3 + [b + 4] + &#x05D1;] + 2] + &#x05D0;&#x202C;</div>
+      <div dir="ltr">&#x202D;1 + [a + [3 + [b + 4] + &#x05D1;] + 2] + &#x05D0;&#x202C;</div>
+      <div dir="rtl">&#x202D;a + [1 + [b + [3 + &#x05D1;] + 2] + &#x05D0;] + 0&#x202C;</div>
+      <div dir="rtl">&#x202D;a + [1 + [b + [3 + &#x05D1;] + 2] + &#x05D0;] + 0&#x202C;</div>
+      <div dir="rtl">&#x202D;a + [1 + [b + [3 + &#x05D1;] + 2] + &#x05D0;] + 0&#x202C;</div>
+    </div>
+  </body>
+</html>

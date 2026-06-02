@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Makes sure the resources with an unsupported type attribute should not be loaded</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var imageLoaded = false;
+  var imageError = false;
+  var preloadCount = undefined;
+</script>
+<link rel="preload" href="resources/preload-count.py?action=image" as="image" type="not-a-mime" onerror="imageError=true" onload="imageLoaded=true">
+<body>
+<script>
+  setup({single_test: true});
+
+  function getPreloadCount() {
+    return new Promise(resolve => {
+      var script = document.createElement("script");
+      script.src = "resources/preload-count.py?action=result";
+      script.onload = resolve;
+      document.body.appendChild(script);
+    });
+  }
+
+  function check_result() {
+    assert_false(imageLoaded, "image should not trigger load event");
+    assert_false(imageLoaded, "image should not trigger error event");
+    getPreloadCount().then(() => {
+      assert_equals(preloadCount, 0, "should not try to load resource");
+      done();
+    });
+  }
+
+  window.addEventListener("load", function() {
+    step_timeout(check_result, 3000);
+  });
+</script>
+</body>
+</html>

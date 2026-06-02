@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  document.designMode = "on";
+  getSelection().collapse(document.querySelector("hatchpath"), 2);
+  document.execCommand("delete");
+}, {once: true});
+</script>
+</head>
+<body>TEST
+  <svg xml:space="preserve">
+    <hatchpath>
+      <test>
+        <meshgradient>
+        </meshgradient>
+      </test>
+    </hatchpath>
+  </svg>
+</body>
+</html>

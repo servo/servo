@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>WindowClient.navigate() on a prerendered iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script>
+// The main test page loads the initiator page, then the initiator page will
+// prerender itself with the `prerendering` parameter and add an iframe. Once
+// the prerendered iframe is ready, post a message to a service worker to call
+// WindowClient.navigate().
+
+const params = new URLSearchParams(location.search);
+const prerendering = params.has('prerendering');
+const navigationUrl = params.get('navigationUrl');
+const uid = params.get('uid');
+
+const IFRAME_URL = `prerendered-iframe.html?uid=${uid}`;
+
+function addIframe() {
+  const iframe = document.createElement('iframe');
+  iframe.src = IFRAME_URL;
+  document.body.appendChild(iframe);
+}
+
+// If the navigation is expected to be deferred, wait to navigate to
+// `navigationUrl` until a prerendered iframe is activated by
+// PrerenderEventCollector. The result of the navigation is sent to
+// "navigation-channel" PrerenderChannel and the prerendering states and events
+// is sent to "test-channel" PrerenderChannel by PrerenderEventCollector.
+async function startNavigationToCrossOriginUrl() {
+  assert_not_equals(new URL(navigationUrl).origin, window.location.origin);
+
+  const navigationPromise = new Promise(resolve => {
+    const bc = new PrerenderChannel('navigation-channel', uid);
+    bc.addEventListener('message', e => {
+      assert_equals(e.data, 'navigate() succeeded');
+      resolve()
+      bc.close();
+    });
+    bc.postMessage(JSON.stringify({
+      navigationUrl: navigationUrl,
+      clientUrl: new URL(IFRAME_URL, window.location).toString(),
+      respondTo: 'navigation-channel',
+    }));
+  });
+
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.start(navigationPromise, 'navigation on iframe');
+}
+
+// If the navigation is expected to succeed without delay, the navigation result
+// is directly sent to "test-channel" PrerenderChannel.
+function startNavigationToSameOriginUrl() {
+  assert_equals(new URL(navigationUrl).origin, window.location.origin);
+
+  const bc = new PrerenderChannel('navigation-channel', uid);
+  bc.postMessage(JSON.stringify({
+    navigationUrl: navigationUrl,
+    clientUrl: new URL(IFRAME_URL, window.location).toString(),
+    respondTo: 'test-channel',
+  }));
+  bc.close();
+}
+
+if (prerendering) {
+  assert_not_equals(null, navigator.serviceWorker.controller,
+      'should be controlled by a service worker');
+
+  const bc = new PrerenderChannel('iframe-channel', uid);
+  const readyPromise = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  addIframe();
+
+  readyPromise.then(result => {
+    assert_equals(result, 'prerender success');
+
+    if (new URL(navigationUrl).origin === window.location.origin) {
+      startNavigationToSameOriginUrl();
+    } else {
+      startNavigationToCrossOriginUrl();
+    }
+
+    bc.close();
+  });
+} else {
+  loadInitiatorPage();
+}
+</script>
+</body>

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Unicode range is not a token, and doesn't cause confusion in selectors</title>
+<link name="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-syntax/#urange">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  a { color: red }
+  u+a { color: green }
+</style>
+<u></u><a></a>
+<script>
+  test(function() {
+    assert_equals(
+      getComputedStyle(document.querySelector("a")).color,
+      "rgb(0, 128, 0)"
+    );
+  }, "Unicode range is not a token, and doesn't cause confusion in selectors");
+</script>

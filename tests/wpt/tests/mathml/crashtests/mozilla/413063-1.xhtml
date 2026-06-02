@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  var mtd = document.getElementById("mtd");
+  var ns = document.createElementNS("http://www.w3.org/1999/xhtml", "span");
+  var nt = document.createTextNode("foo");
+  ns.appendChild(nt);
+  mtd.appendChild(ns);
+  mtd.setAttribute("rowspan", "0");
+}
+
+
+</script>
+</head>
+
+<body onload="boom();"><m:mtd id="mtd" style="display: table-footer-group"><m:mi /></m:mtd></body>
+
+</html>

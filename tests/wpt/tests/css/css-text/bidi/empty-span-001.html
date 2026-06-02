@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: bidi reordering testcase</title>
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1966313">
+<link rel="match" href="empty-span-001-ref.html">
+<meta name="assert" content="empty spans should not disrupt bidi reordering">
+
+<p>All the following lines should match:</p>
+
+<span dir="auto">1;234;56א;</span><br>
+<span dir="auto"><span></span>1;234;56א;</span><br>
+<span dir="auto">1<span></span>;234;56א;</span><br>
+<span dir="auto">1;<span></span>234;56א;</span><br>
+<span dir="auto">1;2<span></span>34;56א;</span><br>
+<span dir="auto">1;23<span></span>4;56א;</span><br>
+<span dir="auto">1;234<span></span>;56א;</span><br>
+<span dir="auto">1;234;<span></span>56א;</span><br>
+<span dir="auto">1;234;5<span></span>6א;</span><br>
+<span dir="auto">1;234;56<span></span>א;</span><br>
+<span dir="auto">1;234;56א<span></span>;</span><br>
+<span dir="auto">1;234;56א;<span></span></span><br>

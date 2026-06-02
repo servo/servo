@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Handovers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  const answerPcFirst = new RTCPeerConnection();
+  const answerPcSecond = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerPc.close();
+    answerPcFirst.close();
+    answerPcSecond.close();
+  });
+  offerPc.addTransceiver('audio');
+  // Negotiate connection with PC 1
+  const offer1 = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer1);
+  await answerPcFirst.setRemoteDescription(offer1);
+  const answer1 = await answerPcFirst.createAnswer();
+  await offerPc.setRemoteDescription(answer1);
+  await answerPcFirst.setLocalDescription(answer1);
+  // Renegotiate with PC 2
+  const offer2 = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer2);
+  await answerPcSecond.setRemoteDescription(offer2);
+  const answer2 = await answerPcSecond.createAnswer();
+  await offerPc.setRemoteDescription(answer2);
+  await answerPcSecond.setLocalDescription(answer2);
+}, 'Negotiation of handover initiated at caller works');
+
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  const answerPcFirst = new RTCPeerConnection();
+  const answerPcSecond = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerPc.close();
+    answerPcFirst.close();
+    answerPcSecond.close();
+  });
+  offerPc.addTransceiver('audio');
+  // Negotiate connection with PC 1
+  const offer1 = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer1);
+  await answerPcFirst.setRemoteDescription(offer1);
+  const answer1 = await answerPcFirst.createAnswer();
+  await offerPc.setRemoteDescription(answer1);
+  await answerPcFirst.setLocalDescription(answer1);
+  // Renegotiate with PC 2
+  // The offer from PC 2 needs to be consistent on at least the following:
+  // - Number, type and order of media sections
+  // - MID values
+  // - Payload type values
+  // Do a "fake" offer/answer using the original offer against PC2 to achieve this.
+  await answerPcSecond.setRemoteDescription(offer1);
+  // Discard the output of this round.
+  await answerPcSecond.setLocalDescription(await answerPcSecond.createAnswer());
+
+  // Now we can initiate an offer from the new PC.
+  const offer2 = await answerPcSecond.createOffer();
+  await answerPcSecond.setLocalDescription(offer2);
+  await offerPc.setRemoteDescription(offer2);
+  const answer2 = await offerPc.createAnswer();
+  await answerPcSecond.setRemoteDescription(answer2);
+  await offerPc.setLocalDescription(answer2);
+}, 'Negotiation of handover initiated at callee works');
+
+</script>

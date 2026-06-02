@@ -1,0 +1,8 @@
+<script>
+  try {
+    const test = navigator.getGamepads();
+    if (test) window.parent.postMessage({ enabled: true }, "*");
+  } catch (err) {
+    window.parent.postMessage({ enabled: false }, "*");
+  }
+</script>

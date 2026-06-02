@@ -1,0 +1,28 @@
+{%- if versiondata["version"] == "main" -%}
+## Changes for the Upcoming Release
+
+:::{warning}
+These changes reflect the current [development progress](https://github.com/python-attrs/attrs/tree/main) and have **not** been part of a PyPI release yet.
+:::
+{% else -%}
+## [{{ versiondata["version"] }}](https://github.com/python-attrs/attrs/tree/{{ versiondata["version"] }}) - {{ versiondata["date"] }}
+{%- endif %}
+
+{% for section, _ in sections.items() %}
+{% if sections[section] %}
+{% for category, val in definitions.items() if category in sections[section] %}
+
+### {{ definitions[category]['name'] }}
+
+{% for text, values in sections[section][category].items() %}
+- {{ text }}
+  {{ values|join(',\n  ') }}
+{% endfor %}
+
+{% endfor %}
+{% else %}
+No significant changes.
+
+
+{% endif %}
+{% endfor %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify API Test: Body Element Announcement</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+  <script src="core-aam/arianotify/resources/aria-notify-helpers.js"></script>
+</head>
+<body>
+  <h1>ARIA Notify API Test: Body Element Announcement</h1>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API with an announcement on the body element.</p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that
+    supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Click the "Run Test" button and listen for the announced text from your screen reader.</p>
+
+  <div>
+    <h3>Test: Simple Announcement on Body Element</h3>
+    <p><strong>Expected:</strong> Screen reader should announce "Body notification test"</p>
+
+    <button onclick="test()">Run Test</button>
+    <div id="status"></div>
+
+    <script>
+      function test() {
+        document.getElementById('status').textContent = tryCallAriaNotify(document.body, 'Body notification test');
+      }
+    </script>
+  </div>
+</body>
+
+</html>

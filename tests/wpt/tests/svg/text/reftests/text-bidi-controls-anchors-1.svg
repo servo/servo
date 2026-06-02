@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Text anchors and bidi control characters</title>
+  <html:link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextAnchoringProperties"/>
+  <html:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1906978"/>
+  <html:link rel="match" href="text-bidi-controls-anchors-1-ref.svg"/>
+  <g transform="translate(200,20)" font-family="Arial, sans-serif" font-size="12px">
+    <line x1="0" y1="0" x2="0" y2="300" stroke="black" stroke-width="0.5"/>
+
+    <g transform="translate(0,20)">
+      <text style="fill: red" text-anchor="start">Start Anchor</text>
+      <text y="10" style="fill: green" text-anchor="middle">Middle Anchor</text>
+      <text y="20" style="fill: blue" text-anchor="end">End Anchor</text>
+    </g>
+    <g transform="translate(0,60)">
+      <text style="fill: red" text-anchor="start">&#x202b;Start Anchor&#x202c;</text>
+      <text y="10"  style="fill: green" text-anchor="middle">&#x202b;Middle Anchor&#x202c;</text>
+      <text y="20"  style="fill: blue" text-anchor="end">&#x202b;End Anchor&#x202c;</text>
+    </g>
+    <g transform="translate(0,100)">
+      <text style="fill: red" text-anchor="start">&#x202b;Start&#x202c; Anchor</text>
+      <text y="10"  style="fill: green" text-anchor="middle">&#x202b;Middle&#x202c; Anchor</text>
+      <text y="20"  style="fill: blue" text-anchor="end">&#x202b;End&#x202c; Anchor</text>
+    </g>
+    <g transform="translate(0,140)">
+      <text style="fill: red" text-anchor="start">Start &#x202b;Anchor&#x202c;</text>
+      <text y="10"  style="fill: green" text-anchor="middle">Middle &#x202b;Anchor&#x202c;</text>
+      <text y="20"  style="fill: blue" text-anchor="end">End &#x202b;Anchor&#x202c;</text>
+    </g>
+    <g transform="translate(0,180)">
+      <text style="fill: red" text-anchor="start">&#x202e;Start Anchor&#x202c;</text>
+      <text y="10"  style="fill: green" text-anchor="middle">&#x202e;Middle Anchor&#x202c;</text>
+      <text y="20"  style="fill: blue" text-anchor="end">&#x202e;End Anchor&#x202c;</text>
+    </g>
+    <g transform="translate(0,220)">
+      <text style="fill: red" text-anchor="start">&#x202e;Start&#x202c; Anchor</text>
+      <text y="10"  style="fill: green" text-anchor="middle">&#x202e;Middle&#x202c; Anchor</text>
+      <text y="20"  style="fill: blue" text-anchor="end">&#x202e;End&#x202c; Anchor</text>
+    </g>
+    <g transform="translate(0,260)">
+      <text style="fill: red" text-anchor="start">Start &#x202e;Anchor&#x202c;</text>
+      <text y="10"  style="fill: green" text-anchor="middle">Middle &#x202e;Anchor&#x202c;</text>
+      <text y="20"  style="fill: blue" text-anchor="end">End &#x202e;Anchor&#x202c;</text>
+    </g>
+  </g>
+</svg>

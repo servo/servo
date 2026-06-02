@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A deferred paint gets properly re-scheduled</title>
+<link rel="match" href="deferred-paint-ref.html">
+<style>
+  .container div {
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+</style>
+<div class="container">
+  <div></div>
+</div>
+<script>
+  let container = document.querySelector('.container');
+  window.onload = function() {
+    container.insertBefore(document.createElement('div'), container.firstChild);
+    container.firstChild.offsetTop;
+  }
+</script>

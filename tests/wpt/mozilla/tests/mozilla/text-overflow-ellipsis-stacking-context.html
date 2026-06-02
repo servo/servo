@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="match" href="text-overflow-ellipsis-stacking-context-ref.html">
+<style>
+  .ellipsis-overflow {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      width: 10px;
+  }
+
+  .stacking-context {
+      transform: translateX(1px);
+      display: inline-block;
+      width: 1px;
+
+  }
+</style>
+This page should successfully load.<p>
+<div class="stacking-context">
+  <div class="ellipsis-overflow"></div>
+</div>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    position: relative;
+    height: 215px;
+    width: 320px;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 10px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(21, 10px) 5px repeat(3, 10px);
+    column-gap: 10px;
+  }
+  .grid-container>div {
+    background-color: lightgray;
+  }
+  .column-gap {
+    position: absolute;
+    background: blue;
+    height: 215px;
+    width: 6px;
+  }
+  .row-set {
+    position: absolute;
+    width: 100px;
+    left: 0px;
+    top: 12.5px;
+    height: 205px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
+  }
+  .row-set>div {
+    background: red;
+    width: 100px;
+    height: 5px;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div style="grid-row: 1/2; background: skyblue;"></div>
+    <div style="grid-row: 23/24; background: skyblue;"></div>
+  </div>
+
+  <div class="column-gap" style="top: 0px; left: 47px;"></div>
+  <div class="column-gap" style="top: 0px; left: 157px; height: 30px;"></div>
+
+  <div class="row-set">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <div class="row-set" style="left: 110px;">
+    <div></div>
+  </div>
+</div>

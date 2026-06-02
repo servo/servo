@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<style>
+* {
+  text-decoration-line: underline blink;
+  -webkit-appearance: progress-bar;
+  columns: 11px;
+}
+
+#x4 {
+  -webkit-user-modify: read-write;
+  animation: keyframes4 2s;
+}
+</style>
+<style>
+@keyframes keyframes0 {
+  20% {
+    scroll-padding-left: 1em
+  }
+}
+
+@keyframes keyframes3 {
+  20% {
+    scroll-padding-block-end: auto
+  }
+}
+
+@keyframes keyframes4 {
+  60% {
+    background-position: 65%
+  }
+}
+</style>
+
+<script>
+function main() {
+  const sheet1 = document.styleSheets[1];
+  sheet1.deleteRule(2);
+  x4.hspace;
+  sheet1.deleteRule(1);
+  x4.checkValidity();
+  sheet1.deleteRule(0);
+}
+</script>
+
+<body onload="main()">
+  <object id="x4"> A </object>
+</body>

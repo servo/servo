@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Positive values for spread distance</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow" />
+        <meta name="assert" content="Positive values of the spread distance cause the shadow to grow in all directions by the specified distance." />
+        <style type="text/css">
+            #reference
+            {
+                width: 120px;
+                height: 120px;
+                margin-left: 40px;
+                margin-top: 10px;
+                background: red;
+            }
+            #test
+            {
+                width: 100px;
+                height: 100px;
+                background: black;
+                box-shadow: 50px 10px 0 10px;
+                margin-top: -120px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

@@ -1,0 +1,58 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ANGLE constructor bugs test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderSamplerInConstructorArguments" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D s;
+void main()
+{
+    gl_FragColor = vec4(0.0, s, 0.0, 0.0);
+}
+</script>
+<script id="fshaderVoidInConstructorArguments" type="x-shader/x-fragment">
+precision mediump float;
+void foo() {}
+void main()
+{
+    gl_FragColor = vec4(0.0, foo(), 0.0, 0.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test constructors that have had issues in ANGLE");
+
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshaderSamplerInConstructorArguments',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Sampler in constructor arguments should not compile"
+},
+{
+  fShaderId: 'fshaderVoidInConstructorArguments',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: "Void in constructor arguments should not compile"
+},
+]);
+</script>
+</body>
+</html>

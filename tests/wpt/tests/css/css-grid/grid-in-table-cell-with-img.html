@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-item-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Percent height image resolves against grid area size">
+<style>
+.cell {
+  display: table-cell;
+}
+.grid {
+  display: grid;
+  grid-template: 100px / 100px;
+}
+img {
+  height: 100%;
+}
+</style>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="cell">
+  <div class="grid">
+    <img src="grid-items/support/200x200-green.png">
+  </div>
+</div>
+</body>
+</html>

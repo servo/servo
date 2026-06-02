@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Closing a PresentationConnection</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="He Yue" href="mailto:yue.he@intel.com">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#closing-a-presentationconnection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script src="support/stash.js"></script>
+<h2>Description</h2>
+<p>
+  This test validates that after connection close,<br/>
+  the connection state is set closed,<br/>
+  the onclose EventHandler is triggered.
+</p>
+<br/>
+<p>Click the button below to start the test.</p>
+<button id="presentBtn" >Start Presentation Test</button>
+
+<script>
+  setup({explicit_timeout: true});
+
+  const presentBtn = document.getElementById('presentBtn');
+
+  promise_test(t => {
+    const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+    const request = new PresentationRequest(presentationUrls);
+    const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+    let connection, eventWatcher;
+
+    t.add_cleanup(() => {
+      if (connection) {
+        connection.onconnect = () => { connection.terminate(); };
+        if (connection.state === 'closed')
+          request.reconnect(connection.id);
+        else
+          connection.terminate();
+      }
+      stash.stop();
+    });
+
+    const checkCloseEvent = evt => {
+      assert_true(evt instanceof PresentationConnectionCloseEvent, 'An event using PresentationConnectionCloseEvent is fired.');
+      assert_true(evt.isTrusted, 'The event is a trusted event.');
+      assert_false(evt.bubbles, 'The event does not bubbles.');
+      assert_false(evt.cancelable, 'The event is not cancelable.');
+      assert_equals(evt.type, 'close', 'The event name is "close".');
+      assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+      assert_equals(connection.state, 'closed', 'State of the presentation connection is "closed".');
+      assert_equals(evt.reason, 'closed', 'The reason for closing the presentation connection is "closed".');
+    };
+
+    const watchEvent = (obj, watcher, type) => {
+      const watchHandler = new Promise(resolve => {
+        obj['on' + type] = evt => { resolve(evt); };
+      });
+      return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+        assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+        return results[0];
+      });
+    };
+
+    const waitForEvent = (obj, watcher, type) => {
+      const watchHandler = new Promise(resolve => {
+        obj['on' + type] = evt => { resolve(evt); };
+      });
+      return Promise.race([ watchHandler, watcher.wait_for(type) ]);
+    };
+
+    return Promise.all([
+      clickWatcher.wait_for('click'),
+      stash.init()
+    ]).then(() => {
+      presentBtn.disabled = true;
+      return request.start();
+    }).then(c => {
+      // Enable timeout again, cause no user action is needed from here.
+      t.step_timeout(() => {
+          t.force_timeout();
+          t.done();
+      }, 10000);
+
+      connection = c;
+      eventWatcher = new EventWatcher(t, connection, ['connect', 'close', 'terminate']);
+
+      // Step 1: close the presentation connection in "connecting" state
+      connection.close();
+      return Promise.race([
+        new Promise((_, reject) => {
+          t.step_timeout(() => { reject('The presentation connection in "connecting" state was not closed successfully.'); }, 3000);
+        }),
+        watchEvent(connection, eventWatcher, 'close')
+      ]);
+    }).then(evt => {
+      checkCloseEvent(evt);
+
+      // Step 2: close the presentation connection in "connected" state
+      return request.reconnect(connection.id);
+    }).then(() => {
+      return eventWatcher.wait_for('connect');
+    }).then(() => {
+      connection.close();
+      return watchEvent(connection, eventWatcher, 'close');
+    }).then(evt => {
+      checkCloseEvent(evt);
+
+      // Step 3: check a connection closed by the receiving user agent
+      return request.reconnect(connection.id);
+    }).then(() => {
+      return eventWatcher.wait_for('connect');
+    }).then(() => {
+      return Promise.all([ stash.send('close'), watchEvent(connection, eventWatcher, 'close') ]);
+    }).then(results => {
+      checkCloseEvent(results[1]);
+
+      // Step 4: close the presentation connection in "closed" state (nothing should happen)
+      const closeWatcher = new EventWatcher(t, connection, 'close');
+      connection.close();
+      return Promise.race([
+        new Promise(resolve => { t.step_timeout(resolve, 1000); }),
+        waitForEvent(connection, closeWatcher, 'close').then(() => {
+          assert_unreached('Invoking PresentationConnection.close() in the "closed" state causes nothing.'); })
+      ]);
+    }).then(() => {
+      // Step 5: close the presentation connection in "terminated" state (nothing should happen)
+      return request.reconnect(connection.id);
+    }).then(() => {
+      return eventWatcher.wait_for('connect');
+    }).then(() => {
+      connection.terminate();
+      return eventWatcher.wait_for('terminate');
+    }).then(() => {
+      const closeWatcher = new EventWatcher(t, connection, 'close');
+      connection.close();
+      return Promise.race([
+        new Promise(resolve => { t.step_timeout(resolve, 1000); }),
+        waitForEvent(connection, closeWatcher, 'close').then(() => {
+          assert_unreached('Invoking PresentationConnection.close() in the "terminated" state causes nothing.'); })
+      ]);
+    });
+  });
+</script>

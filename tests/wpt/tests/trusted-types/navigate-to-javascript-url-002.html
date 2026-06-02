@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script'; connect-src 'none'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script src="./support/navigation-support.js"></script>
+<script>
+  promise_test(async _ => {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+    const result = await setLocationToJavaScriptURL("replace-js-execution" /* defaultpolicy */);
+    assert_false(result.javaScriptExecuted, "JavaScript shouldn't have been executed");
+    assert_true(result.modifiedJavaScriptExecuted, "JavaScript code modified by default policy executed");
+    assert_equals(result.violations.length, 0, "No violations");
+    assert_equals(result.exception, null, "No exception");
+  }, "Setting window.location to a javascript: URL with a default policy should execute the JavaScript code modified by that policy.");
+</script>

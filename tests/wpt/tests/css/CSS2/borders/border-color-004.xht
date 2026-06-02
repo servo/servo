@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color with four color values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <meta name="assert" content="The 'border-color' property with four color values is supported and applied to the correct sides of the box." />
+        <style type="text/css">
+            div
+            {
+                border-color: blue green orange silver;
+                border-style: solid;
+                border-width: 10px;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box with top border that is blue, right border that is green, a bottom border that is orange and a left border that is silver.</p>
+        <div></div>
+    </body>
+</html>

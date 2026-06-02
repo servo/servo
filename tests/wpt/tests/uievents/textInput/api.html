@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>textInput: API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input class=test-el>
+<textarea class=test-el></textarea>
+<div contenteditable class=test-el></div>
+<script src="support/common.js"></script>
+<script>
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new TextEvent('textInput');
+  });
+}, "No constructor");
+
+test(() => {
+  const e = document.createEvent('TextEvent');
+  assert_equals(Object.getPrototypeOf(e), window.TextEvent.prototype);
+  assert_equals(Object.getPrototypeOf(Object.getPrototypeOf(e)), window.UIEvent.prototype);
+  assert_equals(Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf(e))), window.Event.prototype);
+}, "document.CreateEvent('TextEvent') prototype chain");
+
+test(() => {
+  const e = document.createEvent('TextEvent');
+  assert_throws_js(TypeError, () => { e.initTextEvent(); });
+}, "initTextEvent() no arguments");
+
+test(() => {
+  const e = document.createEvent('TextEvent');
+  e.initTextEvent('foo');
+  assert_equals(e.type, 'foo');
+  assert_equals(e.bubbles, false);
+  assert_equals(e.cancelable, false);
+  assert_equals(e.view, null);
+  assert_equals(e.data, 'undefined');
+}, "initTextEvent('foo')");
+
+test(() => {
+  const e = document.createEvent('TextEvent');
+  e.initTextEvent('foo', true, true, window, 'bar');
+  assert_equals(e.type, 'foo');
+  assert_equals(e.bubbles, true);
+  assert_equals(e.cancelable, true);
+  assert_equals(e.view, window);
+  assert_equals(e.data, 'bar');
+}, "initTextEvent('foo', true, true, window, 'bar')");
+
+test(() => {
+  const div = document.createElement('div');
+  let textinputCount = 0;
+  let textInputCount = 0;
+  div.addEventListener('textinput', e => {
+    assert_equals(e.type, 'textinput');
+    textinputCount++;
+  });
+  div.addEventListener('textInput', e => {
+    assert_equals(e.type, 'textInput');
+    textInputCount++;
+  });
+  const textinputEvent = document.createEvent('TextEvent');
+  textinputEvent.initTextEvent('textinput');
+  div.dispatchEvent(textinputEvent);
+
+  const textInputEvent = document.createEvent('TextEvent');
+  textInputEvent.initTextEvent('textInput');
+  div.dispatchEvent(textInputEvent);
+
+  assert_equals(textinputCount, 1);
+  assert_equals(textInputCount, 1);
+}, "case sensitivity: textInput vs textinput");
+
+const els = document.querySelectorAll('.test-el');
+for (const el of els) {
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      el.addEventListener('textInput', reject);
+      el.addEventListener('input', t.step_func(e => {
+        const actualValue = 'value' in el ? el.value : el.textContent;
+        assert_equals(actualValue, 'a');
+        resolve();
+      }));
+      el.focus();
+      document.execCommand('insertText', false, 'a');
+    });
+  }, `execCommand('insertText', false, 'a'), ${elDesc(el)}` );
+}
+</script>

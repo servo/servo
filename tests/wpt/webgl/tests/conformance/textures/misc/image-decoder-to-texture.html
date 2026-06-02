@@ -1,0 +1,108 @@
+<!--
+Copyright (c) 2024 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests uploading VideoFrames from ImageDecoder to WebGL textures</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/tests/tex-image-and-sub-image-utils.js"></script>
+</head>
+<body onload="run()">
+<canvas id="c" width="32" height="32"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+let wtu = WebGLTestUtils;
+let tiu = TexImageUtils;
+let canvas = document.getElementById("c");
+let gl = wtu.create3DContext(canvas);
+let program = tiu.setupTexturedQuad(gl, gl.RGBA);
+const resourcePath = "../../../resources/";
+const tolerance = 15;
+const redColor = [255, 0, 0];
+const greenColor = [0, 255, 0];
+
+function output(str)
+{
+    debug(str);
+    bufferedLogToConsole(str);
+}
+
+function checkColors(topColor, bottomColor)
+{
+    // Check a few pixels near the top and bottom and make sure they have
+    // the right color.
+    debug("Checking lower left corner");
+    wtu.checkCanvasRect(gl, 4, 4, 2, 2, bottomColor,
+                        "shouldBe " + bottomColor, tolerance);
+    debug("Checking upper left corner");
+    wtu.checkCanvasRect(gl, 4, gl.canvas.height - 8, 2, 2, topColor,
+                        "shouldBe " + topColor, tolerance);
+}
+
+async function testImage(filename, type)
+{
+    let response = await fetch(resourcePath + filename);
+    let imageDecoder = new ImageDecoder({data: response.body, type: type});
+    let decodeResult = await imageDecoder.decode({frameIndex: 0});
+    if (!decodeResult.complete) {
+        throw "Image decoding for " + filename + " failed";
+    }
+    let frame = decodeResult.image;
+    if (window.WebGL2RenderingContext && gl instanceof window.WebGL2RenderingContext) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, frame.codedWidth, frame.codedHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, frame);
+    } else {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frame);
+    }
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+    checkColors(greenColor, redColor);
+}
+
+async function run()
+{
+    if (!window.ImageDecoder) {
+        debug("ImageDecoder API not supported - skipping test");
+        finishTest();
+        return;
+    }
+
+    let tex = gl.createTexture();
+    // Bind the texture to the default texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    // Set up texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    const files = [
+        // Created using https://squoosh.app/ from red-green-512x512.png, using
+        // MozJPEG encoder, Channels YCbCr, deselect "Auto subsample chroma",
+        // set "Subsample chroma by" to 2. Leave other settings as-is. Creates
+        // an I420 encoded JPEG, which was one of the problematic
+        // configurations.
+        ["red-green-512x512-I420.jpg", "image/jpeg"],
+    ];
+
+    for (let f of files) {
+        await testImage(f[0], f[1]);
+    }
+
+    finishTest();
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

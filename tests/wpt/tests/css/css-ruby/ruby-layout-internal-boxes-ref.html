@@ -1,0 +1,179 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Ruby Reference: ruby content w. layout-internal 'display' values</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:14px/1 monospace; padding:0; margin:0;
+}
+
+input {
+  width: 20px;
+  -webkit-appearance: none;
+  border: 1px solid black;
+  background: white;
+}
+
+.thg { display: table-header-group; }
+.trg { display: table-row-group; }
+.tfg { display: table-footer-group; }
+.tr  { display: table-row; }
+.tc  { display: table-cell; }
+.tcg { display: table-column-group; }
+.tco { display: table-column; }
+.tca { display: table-caption; }
+.t   { display: table; }
+
+.rb  { display: ruby-base; }
+.rt  { display: ruby-text; }
+.rbc { display: ruby-base-container; }
+.rtc { display: ruby-text-container; }
+
+.x { background: red}
+    </style>
+</head>
+<body>
+
+<ruby><rb><span>a<span><input class="thg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="thg"><input class="thg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="thg">b</div><input class="thg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="thg">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="trg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="trg"><input class="trg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="trg">b</div><input class="trg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="trg">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tfg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tfg"><input class="tfg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tfg">b</div><input class="tfg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tfg">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tr"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tr"><input class="tr"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tr">b</div><input class="tr"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tr">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tc"><input class="tc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tc">b</div><input class="tc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tc">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tcg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tcg"><input class="tcg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tcg">b</div><input class="tcg"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tcg">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tco"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tco"><input class="tco"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tco">b</div><input class="tco"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tco">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="tca"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="tca"><input class="tca"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tca">b</div><input class="tca"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="tca">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="t"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="t"><input class="t"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="t">b</div><input class="t"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="t">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="rb"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="rb"><input class="rb"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rb">b</div><input class="rb"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rb">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="rt"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="rt"><input class="rt"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rt">b</div><input class="rt"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rt">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="rbc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="rbc"><input class="rbc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rbc">b</div><input class="rbc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rbc">b</div></span>c</span></rb></ruby>
+
+<ruby><rb><span>a<span><input class="rtc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><input class="rtc"><input class="rtc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rtc">b</div><input class="rtc"></span>b</span></rb></ruby>
+<ruby><rb><span>a<span><div class="rtc">b</div></span>c</span></rb></ruby>
+
+<br><hr>
+
+<!--  -->
+
+<ruby><rb><span><input class="thg"></span>b</rb></ruby>
+<ruby><rb><span><input class="thg"><input class="thg"></span>b</rb></ruby>
+<ruby><rb><span><div class="thg">b</div><input class="thg"></span>b</rb></ruby>
+<ruby><rb><span><div class="thg">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="trg"></span>b</rb></ruby>
+<ruby><rb><span><input class="trg"><input class="trg"></span>b</rb></ruby>
+<ruby><rb><span><div class="trg">b</div><input class="trg"></span>b</rb></ruby>
+<ruby><rb><span><div class="trg">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="tfg"></span>b</rb></ruby>
+<ruby><rb><span><input class="tfg"><input class="tfg"></span>b</rb></ruby>
+<ruby><rb><span><div class="tfg">b</div><input class="tfg"></span>b</rb></ruby>
+<ruby><rb><span><div class="tfg">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="tr"></span>b</rb></ruby>
+<ruby><rb><span><input class="tr"><input class="tr"></span>b</rb></ruby>
+<ruby><rb><span><div class="tr">b</div><input class="tr"></span>b</rb></ruby>
+<ruby><rb><span><div class="tr">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="tc"></span>b</rb></ruby>
+<ruby><rb><span><input class="tc"><input class="tc"></span>b</rb></ruby>
+<ruby><rb><span><div class="tc">b</div><input class="tc"></span>b</rb></ruby>
+<ruby><rb><span><div class="tc">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="tcg"></span>b</rb></ruby>
+<ruby><rb><span><input class="tcg"><input class="tcg"></span>b</rb></ruby>
+<ruby><rb><span><div class="tcg">b</div><input class="tcg"></span>b</rb></ruby>
+<ruby><rb><span><div class="tcg">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="tco"></span>b</rb></ruby>
+<ruby><rb><span><input class="tco"><input class="tco"></span>b</rb></ruby>
+<ruby><rb><span><div class="tco">b</div><input class="tco"></span>b</rb></ruby>
+<ruby><rb><span><div class="tco">b</div></span>c</rb></ruby>
+
+<!-- bug NNNNNN
+<ruby><rb><span><input class="tca"></span>b</rb></ruby>
+<ruby><rb><span><input class="tca"><input class="tca"></span>b</rb></ruby>
+<ruby><rb><span><div class="tca">b</div><input class="tca"></span>b</rb></ruby>
+<ruby><rb><span><div class="tca">b</div></span>c</rb></ruby>
+-->
+
+<ruby><rb><span><input class="t"></span>b</rb></ruby>
+<ruby><rb><span><input class="t"><input class="t"></span>b</rb></ruby>
+<ruby><rb><span><div class="t">b</div><input class="t"></span>b</rb></ruby>
+<ruby><rb><span><div class="t">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="rb"></span>b</rb></ruby>
+<ruby><rb><span><input class="rb"><input class="rb"></span>b</rb></ruby>
+<ruby><rb><span><div class="rb">b</div><input class="rb"></span>b</rb></ruby>
+<ruby><rb><span><div class="rb">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="rt"></span>b</rb></ruby>
+<ruby><rb><span><input class="rt"><input class="rt"></span>b</rb></ruby>
+<ruby><rb><span><div class="rt">b</div><input class="rt"></span>b</rb></ruby>
+<ruby><rb><span><div class="rt">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="rbc"></span>b</rb></ruby>
+<ruby><rb><span><input class="rbc"><input class="rbc"></span>b</rb></ruby>
+<ruby><rb><span><div class="rbc">b</div><input class="rbc"></span>b</rb></ruby>
+<ruby><rb><span><div class="rbc">b</div></span>c</rb></ruby>
+
+<ruby><rb><span><input class="rtc"></span>b</rb></ruby>
+<ruby><rb><span><input class="rtc"><input class="rtc"></span>b</rb></ruby>
+<ruby><rb><span><div class="rtc">b</div><input class="rtc"></span>b</rb></ruby>
+<ruby><rb><span><div class="rtc">b</div></span>c</rb></ruby>
+
+</body>
+</html>

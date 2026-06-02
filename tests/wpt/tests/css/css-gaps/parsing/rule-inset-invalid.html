@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing rule-inset shorthands with invalid values</title>
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    const properties = ['column-rule-inset', 'row-rule-inset', 'rule-inset'];
+    for (const property of properties) {
+      test_invalid_value(property, 'auto');
+      test_invalid_value(property, 'none');
+      test_invalid_value(property, '10');
+      test_invalid_value(property, '10px 20px 10px 20px 20px');
+      test_invalid_value(property, '10px / 20px / 10px');
+      test_invalid_value(property, '/ 10px 20px');
+      test_invalid_value(property, '10px 10px 20px');
+      test_invalid_value(property, '10% / 10px 10px 20px');
+    }
+  </script>
+</body>
+</html>

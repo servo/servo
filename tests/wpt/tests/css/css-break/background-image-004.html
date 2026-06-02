@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#break-decoration">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; width:100px; gap:0; column-fill:auto; height:100px; background:red;">
+  <div style="box-decoration-break:clone; height:120px; padding:10px; border:10px solid green; background:linear-gradient(green 80px, red 80px);"></div>
+</div>

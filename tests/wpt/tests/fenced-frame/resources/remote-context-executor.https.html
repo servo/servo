@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<script src="automatic-beacon-helper.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<title>Script to wait for instructions from RemoteContext.</title>
+
+<body>
+<script>
+window.addEventListener("load", async () => {
+  // Find the uuid to communicate with the parent.
+  const uuid = new URLSearchParams(window.location.search).get('uuid');
+
+  // Wait for the window to have its size computed and become visible,
+  // so that simulated user gestures will be handled properly.
+  while (window.innerWidth == 0) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }
+
+  // Create a RemoteContext Executor, which will wait in the background
+  // for scripts to execute.
+  window.executor = new Executor(uuid);
+});
+</script>
+</body>

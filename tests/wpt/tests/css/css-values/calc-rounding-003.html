@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1893127">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="calc-rounding-003-ref.html">
+<style>
+  .outer {
+    width: 100px;
+    border: 1px solid;
+  }
+  .inner {
+    height: 40px;
+    vertical-align: top;
+    display: inline-block;
+    --margin: 4.009px;
+    width: calc(50% - 2 * var(--margin));
+    margin-inline: var(--margin);
+  }
+</style>
+<div class="outer"
+  ><div class="inner"></div
+  ><div class="inner"></div
+></div>

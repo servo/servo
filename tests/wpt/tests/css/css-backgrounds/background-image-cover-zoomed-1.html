@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Background Test: background-size:cover should cover at zoom</title>
+    <link rel="author" title="schenney" href="mailto:schenney@chromium.org">
+    <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-size">
+    <link rel="match" href="reference/background-image-cover-zoomed-1-ref.html">
+    <style>
+      body {
+        zoom: 80%;
+      }
+      body > div {
+        background: #f00;
+        width: 504px;
+        height: 252px;
+      }
+
+      div > div {
+        width: 504px;
+        height: 252px;
+        background-image: url(support/40px-wide-20px-tall-green-rect.png);
+        background-size: cover;
+        background-repeat: no-repeat;
+      }
+  </style>
+</head>
+
+<body>
+  <div>
+    <div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<script>
+'use strict';
+
+// Check that RTCDataChannel is not collected by GC while observing remote pc close
+
+async function didRemotePcClose(t, closeRemotePc) {
+  let pc1 = new RTCPeerConnection(), pc2 = new RTCPeerConnection();
+  t.add_cleanup(async () => await garbageCollect());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+  let dc1 = pc1.createDataChannel("");
+  const haveOpened = new Promise(r => dc1.onopen = r);
+  let closed = false;
+  const haveClosed = new Promise(r => dc1.onclose = () => r(closed = true));
+  dc1 = null;
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+  await haveOpened;
+  if (closeRemotePc) pc2.close();
+  pc1 = pc2 = null;
+  await garbageCollect();
+  await Promise.race([haveClosed, new Promise(r => t.step_timeout(r, 10000))]);
+  return closed;
+}
+
+promise_test(async t => {
+  assert_true(await didRemotePcClose(t, true));
+}, "Control: detected remote PC being closed using a data channel");
+
+promise_test(async t => {
+  assert_false(await didRemotePcClose(t, false));
+}, "While remote PC remains open, its datachannel should not be collected");
+
+</script>
+</body>
+</html>
+

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel=match href="sort-ref.html">
+
+<body>
+  <div id="container"></div>
+</body>
+
+<script type="text/xml" id="sampleXml">
+  <root>
+    <node id="1" />
+    <node id="7" />
+    <node id="3" />
+    <node id="2" />
+  </root>
+</script>
+
+<script type="text/xml" id="sampleXsl">
+  <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+
+    <xsl:template match="/">
+      <xsl:apply-templates select="//node">
+        <xsl:sort select="@id" data-type="number" />
+      </xsl:apply-templates>
+    </xsl:template>
+
+    <xsl:template match="node">
+      <div>
+        <xsl:value-of select="@id"/>
+      </div>
+    </xsl:template>
+
+  </xsl:stylesheet>
+</script>
+
+<script>
+  let parser = new DOMParser();
+  const xslStyleSheet = parser.parseFromString(document.getElementById('sampleXsl').textContent, 'text/xml');
+
+  const xsltProcessor = new XSLTProcessor();
+  xsltProcessor.importStylesheet(xslStyleSheet);
+
+  parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(document.getElementById('sampleXml').textContent, 'text/xml');
+
+  const fragment = xsltProcessor.transformToFragment(xmlDoc, document);
+
+  document.getElementById('container').appendChild(fragment);
+</script>

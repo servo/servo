@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline-block elements establish a new block formatting context</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-formatting" />
+		<link rel="match" href="block-formatting-contexts-008-ref.xht" />
+
+        <meta name="assert" content="Elements defined as inline-blocks establish a new block formatting context." />
+		<style type="text/css"><![CDATA[
+            span#block-formatting-context
+            {
+	            border: black solid medium;
+    	        display: inline-block;
+        	    height: 200px;
+	            width: 200px;
+            }
+
+			span.block-descendant
+			{
+				background-color: blue;
+				display: block;
+				height: 25%;
+				width: 100%;
+			}
+		]]></style>
+    </head>
+    <body>
+        <p>Test passes if the upper-half of the square is blue.</p>
+		<div>
+			<span id="block-formatting-context">
+				<span class="block-descendant"></span>
+				<span class="block-descendant"></span>
+			</span>
+		</div>
+
+    </body>
+</html>

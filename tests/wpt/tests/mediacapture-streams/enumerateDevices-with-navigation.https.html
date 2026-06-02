@@ -1,0 +1,77 @@
+<!doctype html>
+<title>enumerateDevices() with navigation</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script>
+'use strict';
+const blank_url = '/common/blank.html';
+const search2 = '?2';
+
+function promise_new_task(t) {
+  return new Promise(resolve => t.step_timeout(resolve, 0));
+}
+function promise_event(target, name) {
+  return new Promise(resolve => target[`on${name}`] = resolve);
+}
+
+promise_test(async t => {
+  // Gecko persists only toplevel documents, so load documents in a toplevel.
+  await test_driver.bless('window.open()');
+  const proxy = window.open(blank_url);
+  t.add_cleanup(() => proxy.close());
+  await promise_event(proxy, 'pageshow');
+  const devices = proxy.navigator.mediaDevices;
+  // Use another task so that another load creates a new session history entry.
+  await promise_new_task(t);
+
+  proxy.location = blank_url + search2;
+  await promise_event(proxy, 'pagehide');
+  // Use another task to ensure the first subdocument is no longer fully
+  // active and proxy refers to the realm of the second document.
+  await promise_new_task(t);
+  assert_equals(proxy.location.search, search2, 'navigated search');
+  // Enumerate from the inactive first Window.
+  const promise_enumerate = devices.enumerateDevices();
+  // `then()` is used rather than static Promise methods because microtasks
+  // for `PromiseResolve()` do not run when Promises from inactive realms are
+  // involved.  Whether microtasks for `then()` run depends on the realm of
+  // the handler rather than the realm of the Promise.
+  // Don't use `finally()`, because it uses `PromiseResolve()` and so
+  // microtasks don't run.
+  // See https://github.com/whatwg/html/issues/5319.
+  let promise_state = 'pending';
+  promise_enumerate.then(() => promise_state = 'resolved',
+                         () => promise_state = 'rejected');
+  // Enumerate in the active second Window to provide enough time to check
+  // that the Promise from the inactive Window does not settle.
+  await proxy.navigator.mediaDevices.enumerateDevices();
+
+  proxy.history.back();
+  await promise_event(proxy, 'pagehide');
+  // enumerateDevices() Promise resolution is triggered only in parallel
+  // steps, so manipulation of the Promise (if the first document was
+  // persisted) would occur through a queued task, which would run after
+  // the pagehide event is dispatched and so after the associated
+  // microtask that runs the following assert.
+  // https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-for-spec-authors
+  assert_equals(promise_state, 'pending', 'Promise state while inactive');
+  // If the first document is restored, then that will occur immediately after
+  // pagehide (and associated microtasks), before the next global task is run.
+  // https://html.spec.whatwg.org/multipage/history.html#traverse-the-history-by-a-delta
+  await promise_new_task(t);
+  if (proxy.navigator.mediaDevices == devices) {
+    // The first document was persisted and restored.
+    assert_equals(proxy.location.search, '', 'history search');
+    await promise_enumerate;
+  } else {
+    // The first document was not restored, but gets re-fetched.
+    await t.step_wait(() => proxy.location.search == '', 'navigation');
+    assert_not_equals(proxy.navigator.mediaDevices, devices, 'new realm')
+    await proxy.navigator.mediaDevices.enumerateDevices();
+    assert_equals(promise_state, 'pending', 'Promise state after discard');
+  }
+}, 'enumerateDevices with navigation');
+</script>

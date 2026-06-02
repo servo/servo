@@ -1,0 +1,20 @@
+<!doctype HTML>
+<html>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#borders">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<style>
+  td { border: 3px solid black; }
+  .composited { will-change: transform; }
+</style>
+<table style="border-collapse: collapse">
+  <tr class=composited>
+    <td style="border-color: green">First</td>
+    <td >Second</td>
+  </tr>
+  <tr class=composited>
+    <td>Third</td>
+    <td>Fourth</td>
+  </tr>
+</table>
+</html>

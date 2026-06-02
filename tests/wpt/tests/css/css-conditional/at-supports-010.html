@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+	<head>
+		<title>CSS Test (Conditional Rules): Combinations of conjuctions, disjunctions, and negations of simple conditions in @supports should work</title>
+		<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+		<link rel="author" href="http://opera.com" title="Opera Software ASA">
+		<link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports">
+		<link rel="match" href="at-supports-001-ref.html">
+		<style>
+			div {
+				background-color:red;
+				height:100px;
+				width:100px;
+			}
+			@supports ((yada: 2kg !trivial) or ((not (foo:bar)) and (((visibility:hidden))))) {
+				div { background-color:green; }
+			}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+		<div></div>
+	</body>
+</html>

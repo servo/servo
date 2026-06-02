@@ -1,0 +1,71 @@
+<!doctype html>
+<title>SVG CSS Selectors - Case-sensitivity</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/styling.html">
+<link rel="help" href="https://drafts.csswg.org/selectors/#case-sensitive">
+<link rel="help" href="https://drafts.csswg.org/selectors/#attribute-case">
+<link rel="help" href="https://crbug.com/1246296">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  [viewBox] { color: green }
+  [VIEWBOX] { background-color: green }
+  foreignObject { color: green }
+  FOREIGNOBJECT { background-color: green }
+</style>
+<div viewBox id="t1"></div>
+<div viewbox id="t2"></div>
+<svg viewBox="0 0 800 10" id="t3"></svg>
+<svg VIEWBOX="0 0 800 10" id="t4"></svg>
+<foreignObject id="t5"></div>
+<foreignobject id="t6"></div>
+<svg><foreignObject id="t7"></foreignObject></svg>
+<svg><FOREIGNOBJECT id="t8"></FOREIGNOBJECT></svg>
+<script>
+  test(() => {
+    assert_equals(t1.attributes[0].name, "viewbox");
+    assert_equals(t2.attributes[0].name, "viewbox");
+    assert_equals(t3.attributes[0].name, "viewBox");
+    assert_equals(t4.attributes[0].name, "viewBox");
+  }, "Normalization of viewBox on html and svg elements in html documents.");
+
+  test(() => {
+    assert_equals(t5.localName, "foreignobject");
+    assert_equals(t6.localName, "foreignobject");
+    assert_equals(t7.localName, "foreignObject");
+    assert_equals(t8.localName, "foreignObject");
+  }, "Normalization of foreignObject html and svg elements in html documents.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t1).backgroundColor, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t2).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t2).backgroundColor, "rgb(0, 128, 0)");
+  }, "viewBox attribute without namespace on html element matches case-insensitively in html document.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t3).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Camel-cased viewBox on svg in html document matches sensitively.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t4).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Normalized camel-cased viewBox on svg in html document matches case-sensitively.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t5).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t5).backgroundColor, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t6).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t6).backgroundColor, "rgb(0, 128, 0)");
+  }, "foreignObject html element matches case-insensitively in html document.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t7).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t7).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Camel-cased svg foreignObject in html document matches sensitively.");
+
+  test(() => {
+    assert_equals(getComputedStyle(t8).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(t8).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Normalized camel-cased svg foreignObject in html document matches case-sensitively.");
+</script>

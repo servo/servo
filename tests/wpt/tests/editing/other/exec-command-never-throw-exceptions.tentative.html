@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that execCommand and related methods never throw exceptions if HTML or XHTML document</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable=""></div>
+<script>
+"use strict";
+
+const editor = document.querySelector("div[contenteditable]");
+
+test(function execCommand_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let done = document.execCommand("unknown-command", false, "foo");
+    assert_equals(done, false,
+        "Should return false without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing execCommand with unknown command");
+
+test(function queryCommandEnabled_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let enabled = document.queryCommandEnabled("unknown-command");
+    assert_equals(enabled, false,
+        "Should return false without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing queryCommandEnabled with unknown command");
+
+test(function queryCommandIndeterm_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let indeterminate = document.queryCommandIndeterm("unknown-command");
+    assert_equals(indeterminate, false,
+        "Should return false without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing queryCommandIndeterm with unknown command");
+
+test(function queryCommandState_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let state = document.queryCommandState("unknown-command");
+    assert_equals(state, false,
+        "Should return false without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing queryCommandState with unknown command");
+
+test(function queryCommandSupported_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let supported = document.queryCommandSupported("unknown-command");
+    assert_equals(supported, false,
+        "Should return false without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing queryCommandSupported with unknown command");
+
+test(function queryCommandValue_with_unknown_command() {
+  editor.innerHTML = "abc";
+  editor.focus();
+  try {
+    let value = document.queryCommandValue("unknown-command");
+    assert_equals(value, "",
+        "Should return empty string without throwing exception");
+  } catch (e) {
+    assert_true(false,
+        "Shouldn't throw exception for unknown command");
+  }
+}, "Testing queryCommandValue with unknown command");
+</script>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='clip_ref.html'>
+<!-- Tests that various `clip` values per CSS 2.1 work. -->
+<style>
+section {
+    position: absolute;
+    padding: 32px;
+    width: 64px;
+    height: 64px;
+    background: green;
+    border: solid 32px red;
+}
+section:before {
+    content: "";
+    display: block;
+    padding: 0;
+    width: 64px;
+    height: 64px;
+    background: blue;
+}
+#a {
+    top: 0;
+    left: 0;
+    clip: rect(auto, auto, auto, auto);
+}
+#b {
+    top: 192px;
+    left: 0;
+    clip: rect(32px, auto, auto, 128px);
+}
+#c {
+    top: 0;
+    left: 192px;
+    clip: rect(32px, 128px, 64px, 0);
+}
+#d {
+    top: 192px;
+    left: 192px;
+    clip: rect(64px, 0, 64px, 0);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+<section id=d></section>
+</body>
+</html>
+
+

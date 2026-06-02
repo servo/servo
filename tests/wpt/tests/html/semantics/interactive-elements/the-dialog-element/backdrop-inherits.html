@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="match" href="backdrop-inherits-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<style>
+dialog {
+  --backdrop-bg: green;
+  visibility: hidden;
+}
+
+dialog::backdrop {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  height: 100px;
+  width: 100px;
+  visibility: visible;
+  background-color: var(--backdrop-bg);
+}
+</style>
+Test that ::backdrop inherits from its originating element. The test passes if
+there is a green box and no red.
+<dialog></dialog>
+<script>
+document.querySelector('dialog').showModal();
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body>
+<link rel='match' href='canvas_linear_gradient_ref.html'>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+  canvas {
+    background-color: green;
+  }
+</style>
+
+<canvas id="c" width="200" height="200">
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("c");
+var ctx = c.getContext("2d");
+
+var grd = ctx.createLinearGradient(10, 0, 190, 0);
+grd.addColorStop(0, "red");
+grd.addColorStop(1, "yellow");
+
+ctx.fillStyle = grd;
+ctx.fillRect(10, 10, 180, 180);
+</script>
+
+</body>
+</html>

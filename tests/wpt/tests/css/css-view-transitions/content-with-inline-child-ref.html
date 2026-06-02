@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>View transitions: element with inline child (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="author" href="mailto:bokan@chromium.org">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  overflow-clip-margin: 500px;
+  contain: paint;
+  view-transition-name: target;
+  background-color: grey;
+}
+
+#child {
+  position: relative;
+  left: 100px;
+  top: 100px;
+  color: lightgreen;
+  background-color: darkgreen;
+}
+
+#innerchild {
+  position: relative;
+  left: 100px;
+}
+</style>
+
+<div id="target" style="font: 25px/1 Ahem">
+  <span id="child">INLINE<br><span id="innerchild">BOX</span></span>
+</div>

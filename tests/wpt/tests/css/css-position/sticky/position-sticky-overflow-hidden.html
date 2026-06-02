@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>position:sticky elements should respect an overflow:hidden ancestor</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky elements adhere to an overflow:hidden ancestor" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="../resources/sticky-util.js"></script>
+
+<body></body>
+
+<script>
+test(() => {
+  const outer_scroller = document.createElement('div');
+  outer_scroller.style.width = '100px';
+  outer_scroller.style.height = '100px';
+  outer_scroller.style.overflow = 'scroll';
+
+  const inner_scroller = document.createElement('div');
+  inner_scroller.style.width = '80%';
+  inner_scroller.style.height = '200px';
+  inner_scroller.style.overflow = 'hidden';
+
+  const sticky = document.createElement('div');
+  sticky.style.width = '20px';
+  sticky.style.height = '20px';
+  sticky.style.position = 'sticky';
+  sticky.style.top = '0';
+  sticky.style.background = 'red';
+
+  const spacer = document.createElement('div');
+  spacer.style.height = '500px';
+
+  inner_scroller.appendChild(sticky);
+  inner_scroller.appendChild(spacer);
+  outer_scroller.appendChild(inner_scroller);
+  document.body.appendChild(outer_scroller);
+
+  outer_scroller.scrollTop = 50;
+
+  // The sticky should attach to the inner scroller, and so should not stick.
+  assert_equals(sticky.offsetTop, inner_scroller.offsetTop);
+}, 'A sticky element should attach to an overflow:hidden ancestor');
+
+// This tests a specific bug in Firefox where the sticky element incorrectly
+// started sticking when inside a table. See https://bugzilla.mozilla.org/show_bug.cgi?id=1488810
+test(() => {
+  const outer_scroller = document.createElement('div');
+  outer_scroller.style.width = '100px';
+  outer_scroller.style.height = '100px';
+  outer_scroller.style.overflow = 'scroll';
+
+  const table = document.createElement('div');
+  table.style.display = 'table';
+
+  const tr = document.createElement('div');
+  tr.style.display = 'table-row';
+
+  const inner_scroller = document.createElement('div');
+  inner_scroller.style.display = 'table-cell';
+  inner_scroller.style.overflow = 'hidden';
+
+  const sticky = document.createElement('div');
+  sticky.style.width = '20px';
+  sticky.style.height = '20px';
+  sticky.style.position = 'sticky';
+  sticky.style.top = '0';
+  sticky.style.background = 'red';
+
+  const spacer = document.createElement('div');
+  spacer.style.height = '500px';
+
+  inner_scroller.appendChild(sticky);
+  inner_scroller.appendChild(spacer);
+  tr.append(inner_scroller);
+  table.appendChild(tr);
+  outer_scroller.appendChild(table);
+  document.body.appendChild(outer_scroller);
+
+  outer_scroller.scrollTop = 50;
+
+  // The sticky should attach to the inner scroller, and so should not stick.
+  assert_equals(sticky.offsetTop, inner_scroller.offsetTop);
+}, 'A sticky element should attach to an overflow:hidden ancestor inside a table');
+</script>

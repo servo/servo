@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>history.pushState() with a whitespace URL</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/9343">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  location.hash = "test";
+
+  const before = location.pathname;
+
+  history.pushState(null, null, " ");
+  assert_equals(location.pathname, before, "pathname");
+  assert_equals(location.hash, "", "hash");
+});
+</script>

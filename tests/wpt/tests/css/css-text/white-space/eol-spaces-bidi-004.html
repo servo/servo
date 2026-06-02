@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Text 3 test: trailing collapsible spaces and bidi</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-wrap">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/eol-spaces-bidi-004-ref.html">
+<link rel="match" href="reference/eol-spaces-bidi-alt-004-ref.html">
+<meta name="assert" content="Hanging space should take paragraph direction and show at the end of the line (blue box to the left)">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+  div#test {
+      direction: rtl;
+      text-align: left;
+
+      font: 20px/1 Ahem;
+      margin-left: 20px;
+      background: green;
+      color: red;
+
+      width: 4ch;
+      white-space: pre-wrap;
+  }
+  span {
+      background: blue;
+  }
+  #green-cover {
+    position: absolute;
+    margin-left: 20px;
+    width: 60px;
+    height: 40px;
+    background:
+        linear-gradient(green, green) 0 0 / 60px 20px no-repeat,
+        linear-gradient(green, green) 0 20px / 20px 20px no-repeat;
+    z-index: 1;
+  }
+</style>
+<p>Test passes if a blue box (the white space) is visible at the left start in first line and <strong>no red</strong> is shown.</p>
+<div id="green-cover"></div>
+<div id="test"><span>XXX </span>X</div>

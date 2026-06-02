@@ -1,0 +1,30 @@
+<!doctype html>
+<title>compressedTexImage2D</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=https://www.khronos.org/registry/webgl/specs/latest/#5.14.8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+
+<div id=log></div>
+<script>
+test(function() {
+  var COMPRESSED_RGB_S3TC_DXT1_EXT = 0x83F0;
+  var gl = getGl();
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+
+  shouldGenerateGLError(gl, gl.INVALID_ENUM, function() {
+    gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_RGB_S3TC_DXT1_EXT, 4, 4, 0, new Uint8Array(8));
+  });
+  shouldGenerateGLError(gl, gl.INVALID_ENUM, function() {
+    gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_RGB_S3TC_DXT1_EXT, 4, 4, 0, new Uint8Array(8), null);
+  });
+  test(function() {
+    assert_throws_js(TypeError, function() {
+      gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_RGB_S3TC_DXT1_EXT, 4, 4, 0);
+    });
+  }, "Should throw a TypeError when passing too few arguments.");
+});
+</script>

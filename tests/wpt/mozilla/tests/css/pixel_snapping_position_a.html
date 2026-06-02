@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Pixel snapping position test</title>
+    <meta name=device-pixel-ratio content=2>
+    <meta name=viewport-size content=300x300>
+    <link rel=mismatch href=pixel_snapping_position_ref.html>
+    <style>
+      div {
+        position: absolute;
+        height: 100px;
+        width: 100px;
+        top: 11.5px;
+        background: red;
+        transform: scale(1);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

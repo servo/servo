@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel='match' href='simple_inline_absolute_containing_block_ref.html'>
+<style>
+main {
+    position: relative;
+    padding: 0 16px;
+    display: inline;
+}
+section {
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    left: 0;
+    right: 0;
+    background: red;
+}
+#coveritup {
+    position: relative;
+    background: white;
+    top: -20px;
+    display: inline;
+    color: white;
+}
+</style>
+<div>There should be no red.<main><section></section></main></div>
+<div>There should be no red.<div id=coveritup>XXXXX</div></div>
+

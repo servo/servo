@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: 'writing-mode: sideways-lr' set to &lt;body&gt; element propagates to viewport</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#principal-flow" title="8. The Principal Writing Mode">
+  <!--
+  Issue 3066: [css-writing-modes] Does vertical writing mode of an HTML body
+  element cause an orthogonal flow?
+  https://github.com/w3c/csswg-drafts/issues/3066
+  -->
+  <link rel="match" href="wm-propagation-body-035-ref.html">
+
+  <meta name="assert" content="This test checks that when the root element has a &lt;body&gt; child element, then the principal writing mode is instead taken from the values of writing-mode and direction on the first such child element instead of taken from the root element.">
+
+  <!--
+  Tests 032 to 035: html's writing-mode is not specified
+
+  Tests 036 to 039: html's writing-mode is specified as horizontal-tb
+
+  Tests 040 to 043: html's writing-mode is specified as vertical-rl
+
+  Tests 044 to 047: html's writing-mode is specified as vertical-lr
+
+  Tests 048 to 051: html's writing-mode is specified as sideways-rl
+
+  Tests 052 to 055: html's writing-mode is specified as sideways-lr
+  -->
+
+  <style>
+  html
+    {
+      writing-mode: horizontal-tb;
+    }
+
+  body
+    {
+      writing-mode: sideways-lr;
+    }
+
+  div
+    {
+      background-color: teal;
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+<body>
+
+  <div></div>
+
+  <p><img src="support/wm-propagation-body-035-exp-res.png" width="322" height="38" alt="Image download support must be enabled">
+
+  <!--
+  The image says:
+  Test passes if there is a teal square in
+  the <strong>lower-left corner</strong> of the page.
+  -->

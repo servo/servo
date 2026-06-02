@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+
+<style type="text/css">
+  div {
+      padding: 10px;
+      min-width: 10px;
+      min-height: 10px;
+  }
+  iframe {
+    border: 0;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+<div id="div_overlay">
+  <canvas>
+  </canvas>
+</div>
+<div id="div_other">
+  <p>test text</p>
+</div>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  supportedFeatures: ALL_FEATURES,
+};
+
+// This test verifies that WebXR DOM Overlay mode works when the document is
+// already in fullscreen mode when the session starts. (This should work both
+// for a fullscreen-based overlay implementation and for one that treats the
+// overlay as an independent output.)
+promise_test(
+  async (setup) => {
+    setup.add_cleanup(() => document.exitFullscreen());
+
+    // Fullscreen the <body> element before running the test. Currently, this
+    // can't be an arbitrary element because the simulateUserActivation call
+    // adds a button to <body> which is only clickable if it's visible.
+    await test_driver.bless("fullscreen",
+                            () => document.body.requestFullscreen());
+
+    const overlayElement = document.getElementById('div_overlay');
+
+    xr_session_promise_test(
+      "Check XR session from fullscreen",
+      (session, fakeDeviceController, t) => {
+        // The overlay element should have a transparent background.
+        assert_equals(window.getComputedStyle(overlayElement).backgroundColor,
+                      'rgba(0, 0, 0, 0)');
+
+        // Check that the pseudostyle is set.
+        assert_equals(document.querySelector(':xr-overlay'), overlayElement);
+
+        // Wait for one animation frame before exiting.
+        return new Promise((resolve) => session.requestAnimationFrame(resolve));
+      },
+      fakeDeviceInitParams, 'immersive-ar', {
+        requiredFeatures: ['dom-overlay'],
+        domOverlay: { root: overlayElement }
+      }
+    );
+
+    // The setup promise_test automatically succeeds if it gets here
+    // without raising an exception. It'll pass even on systems that
+    // don't support WebXR or DOM Overlay.
+  },
+  "fullscreen setup"
+);
+
+</script>

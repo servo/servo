@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/440874372">
+<link rel="help" href="https://dom.spec.whatwg.org/#xpath">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host">
+  <template shadowrootmode="open">
+    <span id="target"></span>
+  </template>
+</div>
+
+<script>
+test(function() {
+  const host = document.getElementById('host');
+  const span = host.shadowRoot.getElementById('target');
+  assert_true(!!span, "Span should exist in shadow DOM");
+
+  // evaluate xpath after attaching to shadow
+  const evaluator = new XPathEvaluator();
+  const result = evaluator.evaluate('//span', span, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE);
+
+  assert_equals(result.snapshotLength, 1, "Should find the span element");
+  assert_equals(result.snapshotItem(0), span, "Should find the correct span element");
+}, "XPath //span should find element in Declarative Shadow DOM when evaluated on the element itself");
+
+test(function() {
+  class MyCustomElement extends HTMLElement {
+    connectedCallback(){
+      const shadow = this.attachShadow({mode: 'open'});
+      const span = document.createElement('span');
+      shadow.appendChild(span);
+
+      // evaluate xpath after attaching to shadow
+      const evaluator = new XPathEvaluator();
+      const result = evaluator.evaluate('//span', span, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE);
+
+      assert_equals(result.snapshotLength, 1, "Should find the span element");
+      assert_equals(result.snapshotItem(0), span, "Should find the correct span element");
+    }
+  }
+  customElements.define('my-custom-element', MyCustomElement);
+
+  const el = document.createElement('my-custom-element');
+  document.body.appendChild(el);
+}, "XPath //span should find element in Imperative Shadow DOM when evaluated on the element itself");
+</script>

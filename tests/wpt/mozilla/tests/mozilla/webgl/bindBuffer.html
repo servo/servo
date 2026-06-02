@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>bindBuffer checks test (issue #20556)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+
+    // Simple bindings should work
+    var array_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, array_buffer);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    var element_array_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, element_array_buffer);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // Re-bindings should not work
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, array_buffer);
+    assert_equals(gl.INVALID_OPERATION, gl.getError());
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, element_array_buffer);
+    assert_equals(gl.INVALID_OPERATION, gl.getError());
+
+    // Binding buffers pending deletion should fail
+    var buffer = gl.createBuffer();
+    gl.deleteBuffer(buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    assert_equals(gl.INVALID_OPERATION, gl.getError());
+});
+</script>

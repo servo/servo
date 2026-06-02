@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: none</title>
+<script src=/common/get-host-info.sub.js></script>
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
+<link rel="match" href="reference/image-orientation-none-cross-origin-canvas-ref.html">
+<style>
+    img {display: none}
+    canvas {
+        width: 20px;
+        height: 20px;
+        margin: 10px;
+    }
+</style>
+<script>
+    const src1 = 'support/exif-orientation-1-ul.jpg';
+    const src2 = 'support/exif-orientation-3-lr.jpg';
+    function toCors(src) {
+        return src.replace(new URL(src).origin, get_host_info().HTTP_REMOTE_ORIGIN)
+    }
+    function createImage({cors, src, orientation, shouldBeRotated}) {
+        const img = document.createElement('img');
+        img.src = src
+        if (cors)
+            img.src = toCors(img.src)
+        img.style.imageOrientation = orientation
+        img.style.display = 'none'
+        img.dataset.shouldBeRotated = shouldBeRotated
+        document.body.appendChild(img)
+        return img
+    }
+
+    window.onload = () => {
+        const images = [
+            createImage({cors: true, src: src1, orientation: 'from-image', shouldBeRotated: false}),
+            createImage({cors: true, src: src1, orientation: 'none', shouldBeRotated: false}),
+            createImage({cors: true, src: src2, orientation: 'from-image', shouldBeRotated: true}),
+            createImage({cors: true, src: src2, orientation: 'none', shouldBeRotated: true}),
+            createImage({cors: false, src: src1, orientation: 'from-image', shouldBeRotated: false}),
+            createImage({cors: false, src: src1, orientation: 'none', shouldBeRotated: false}),
+            createImage({cors: false, src: src2, orientation: 'from-image', shouldBeRotated: true}),
+            createImage({cors: false, src: src2, orientation: 'none', shouldBeRotated: false}),
+        ]
+
+        const dimension = 1
+
+        images.forEach(image => {
+            const canvas = document.createElement('canvas')
+            canvas.width = canvas.height = dimension
+            // The source of image-orientation preference for canvas drawImage
+            // is currently not standardized.
+            // See https://github.com/w3c/csswg-drafts/issues/4666
+            canvas.style.imageOrientation = image.style.imageOrientation
+            document.body.appendChild(canvas)
+            const ctx = canvas.getContext('2d')
+            const sx = image.dataset.shouldBeRotated === 'true' ? image.width * .8 : 0
+            const sy = image.dataset.shouldBeRotated === 'true' ? image.height * .8 : 0
+            ctx.drawImage(image, sx, sy, 1, 1, 0, 0, dimension, dimension)
+        })
+    }
+
+</script>
+</head>
+<body>
+    <p>You should see 8 green rectangles, no red.</p>
+</body>
+<script>
+    [src1, src2].forEach(src => {
+        const img = document.createElement('img')
+        img.src = src
+        const imgCors = document.createElement('img')
+        imgCors.src = src
+        imgCors.src = toCors(imgCors.src)
+        document.body.appendChild(img)
+        document.body.appendChild(imgCors)
+    })
+</script>
+</html>

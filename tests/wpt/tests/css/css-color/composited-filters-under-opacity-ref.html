@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<style>
+div {
+  position: absolute;
+}
+.content {
+  width: 100px;
+  height: 150px;
+  position: absolute;
+  background: blue;
+}
+</style>
+Below should be a light blue square in uniform color.
+<div style="opacity: 0.5; will-change: opacity">
+  <div class="content" style="left: 0"></div>
+  <div class="content" style="left: 50px"></div>
+</div>

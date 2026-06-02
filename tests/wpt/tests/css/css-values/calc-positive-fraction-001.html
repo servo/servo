@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Test: calc() with positive fraction halfway between adjacent integers</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#combine-integers">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <style>
+  div
+    {
+      height: 100px;
+      position: absolute;
+      width: 100px;
+    }
+
+  div#red-overlapped
+    {
+      background-color: red;
+      z-index: 2;
+    }
+
+  div#green-overlapping
+    {
+      background-color: green;
+      z-index: calc(3 / 2);
+      /*
+      should resolve to 'z-index: 2' since "values
+      halfway between adjacent integers rounded
+      towards positive infinity" and since
+      div#green-overlapping is last in document
+      tree order, then it should overlap
+      div#red-overlapped
+      */
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="red-overlapped"></div>
+
+  <div id="green-overlapping"></div>

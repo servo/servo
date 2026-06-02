@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS List Images: invalid</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/list/list-style-image/001.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/list/list-style-image/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+  <link rel="match" href="list-style-image-004-ref.xht" />
+
+  <style type="text/css">
+   .no { list-style-image: url(404); }
+  </style>
+ </head>
+ <body>
+  <p>There should be a numbered list with three similarly formatted list items below.</p>
+  <ol>
+   <li> One.</li>
+   <li class="no"> Two.</li>
+   <li> Three.</li>
+  </ol>
+ </body>
+</html>

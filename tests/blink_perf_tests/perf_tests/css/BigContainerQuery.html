@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  #container {
+    width: 200px;
+  }
+  .inline_size {
+    container-type: inline-size;
+  }
+</style>
+<div id=container>
+  <div id=target></div>
+</div>
+<style id=style></style>
+<script>
+
+// Makes a big container query as follows:
+//
+// @container ((width = 1000px) or (width = 1001px) or ... (width = (1000+n)px) or (width = 200px)) {
+//   #target {}
+//   #target {}
+//   ... n times in total ...
+//   #target {}
+// }
+function makeQuery(n) {
+  let expressions = [];
+  let rules = [];
+  for (let i = 0; i < n; i++) {
+    expressions.push(`(width = ${1000+i}px)`);
+    rules.push('#target { }');
+  }
+  expressions.push(`(width = 200px)`);
+  return `@container (${expressions.join(' or ')}) { ${rules.join('\n') } }`;
+}
+
+function setup() {
+  style.textContent = makeQuery(1000);
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Big container query with many inner rules',
+    run: () => {
+      target.offsetTop;
+      container.classList.toggle('inline_size');
+      target.offsetTop;
+      container.classList.toggle('inline_size');
+    }
+});
+
+</script>
+

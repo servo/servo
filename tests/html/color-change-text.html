@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+.red  { color: red;  }
+.blue { color: blue; }
+</style>
+<script>
+window.setTimeout(function () {
+    window.document.getElementsByTagName('div')[0].setAttribute('class', 'blue');
+    window.document.getElementsByTagName('div')[1].setAttribute('style', 'color:red;');
+}, 1000);
+</script>
+</head>
+<body>
+    <div id="change" class="red">Hello, World!</div>
+    <div id="change" style="color:blue;">Hello, Servo!</div>
+</body>
+</html>

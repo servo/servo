@@ -1,0 +1,113 @@
+<!DOCTYPE HTML>
+<title>SVGLength interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  var length = svgElement.createSVGLength();
+
+  // Check initial length values.
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+  assert_equals(length.value, 0);
+  assert_equals(length.valueInSpecifiedUnits, 0);
+  assert_equals(length.valueAsString, "0");
+
+  // Set value to be 2px.
+  length.valueAsString = "2px";
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.valueAsString, "2px");
+
+  // Check invalid arguments for 'convertToSpecifiedUnits'.
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_UNKNOWN); });
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits(-1); });
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits(11); });
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits('aString'); });
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits(length); });
+  assert_throws_dom("NotSupportedError", function() { length.convertToSpecifiedUnits(svgElement); });
+  assert_throws_js(TypeError, function() { length.convertToSpecifiedUnits(); });
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.valueAsString, "2px");
+
+  // Check invalid arguments for 'newValueSpecifiedUnits'.
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_UNKNOWN, 4); });
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits(-1, 4); });
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits(11, 4); });
+  // ECMA-262, 9.3, "ToNumber".
+  length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, 'aString'); });
+  assert_equals(length.value, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, length); });
+  assert_equals(length.value, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, svgElement); });
+  assert_equals(length.value, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, NaN); });
+  assert_equals(length.value, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, Infinity); });
+  assert_equals(length.value, 0);
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX); });
+  // Reset to original value above.
+  length.valueAsString = "2px";
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits('aString', 4); });
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits(length, 4); });
+  assert_throws_dom("NotSupportedError", function() { length.newValueSpecifiedUnits(svgElement, 4); });
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits('aString', 'aString'); });
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(length, length); });
+  assert_throws_js(TypeError, function() { length.newValueSpecifiedUnits(svgElement, svgElement); });
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.valueAsString, "2px");
+
+  // Check setting invalid 'valueAsString' arguments.
+  assert_throws_dom("SyntaxError", function() { length.valueAsString = '10deg'; });
+  assert_equals(length.valueAsString, "2px");
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  length.valueAsString = '1pX'; // should not throw exception.
+  assert_equals(length.valueAsString, "1px");
+  assert_equals(length.value, 1);
+  assert_equals(length.valueInSpecifiedUnits, 1);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  length.valueAsString = "2px"; // reset to 2px.
+
+  assert_throws_dom("SyntaxError", function() { length.valueAsString = ',5 em'; });
+  assert_equals(length.valueAsString, "2px");
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  assert_throws_dom("SyntaxError", function() { length.valueAsString = null; });
+  assert_equals(length.valueAsString, "2px");
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  assert_throws_dom("SyntaxError", function() { length.valueAsString = ''; });
+  assert_equals(length.valueAsString, "2px");
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  // Check setting invalid 'value' arguments.
+  assert_throws_js(TypeError, function() { length.value = NaN; });
+  assert_throws_js(TypeError, function() { length.value = Infinity; });
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
+  // Check setting invalid 'valueInSpecifiedUnits' arguments.
+  assert_throws_js(TypeError, function() { length.valueInSpecifiedUnits = NaN; });
+  assert_throws_js(TypeError, function() { length.valueInSpecifiedUnits = Infinity; });
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+});
+</script>

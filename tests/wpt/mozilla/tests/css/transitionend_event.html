@@ -1,0 +1,27 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #test {
+    width: 10px;
+    height: 10px;
+    background: black;
+    transition: 1ms linear transform;
+  }
+  .transform {
+    transform:scale(1.2);
+  }
+</style>
+<div id="test" class="transform"></div>
+<script>
+  async_test(function(t) {
+      let d = document.querySelector('div');
+      // Verify that we only receive a single transitionend event once the transition is complete.
+      d.ontransitionend = t.step_func(() => {
+          d.ontransitionend = t.unreached_func();
+          t.step_timeout(() => t.done(), 100);
+      });
+      t.step_timeout(() => d.className = "", 10);
+  });
+</script>

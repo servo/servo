@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>background-clip:border-area on the root</title>
+<style>
+html, body {
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0;
+}
+html {
+  background-color: white;
+}
+body {
+  border: 20px solid green;
+  padding: 10px;
+}
+</style>
+
+There should be a 20px green border around the edge of the viewport. This text should be black on a white background.

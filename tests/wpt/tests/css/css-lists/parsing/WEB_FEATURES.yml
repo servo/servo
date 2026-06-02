@@ -1,0 +1,6 @@
+features:
+- name: counters
+  files:
+  - content-invalid.html
+  - counter-*
+  - counter-reset-*

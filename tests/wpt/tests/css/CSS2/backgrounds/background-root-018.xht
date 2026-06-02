@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background propagation on &lt;body&gt; and &lt;html&gt; - Tiling and positioning</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/15.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-018-ref.xht" />
+
+  <meta name="flags" content="image"/>
+<style type="text/css"><![CDATA[
+   body { border: solid gray; background: red url(support/cat.png); color: black; }
+   html { border: solid 5px blue; background: transparent; color: black; }
+   span { background: yellow; font-size: larger; }
+   * { margin: 1em; padding: 1em; }
+   em, span { margin: 0; padding: 0; }
+]]></style>
+
+</head>
+<body>
+<p><span>There should be lots of cats in the background, covering the
+entire page, excluding the yellow background of this text, but
+<em>including the area outside the blue box</em>.
+One of the cats should start exactly inside the top left
+corner of the blue box (the HTML box).</span></p>
+
+</body>
+</html>

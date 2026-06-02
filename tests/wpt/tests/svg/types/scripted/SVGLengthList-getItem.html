@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<title>SVGLengthList, getItem()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="200" height="200">
+    <text x="50 100 150" y="50">ABC</text>
+</svg>
+<script>
+test(function() {
+  // This is a test of the SVGLengthList::getItem() API.
+  var xList = document.querySelector("text").x.baseVal;
+
+  // Check lengths of text x item lists.
+  assert_equals(xList.numberOfItems, 3);
+
+  // Test with various index parameters.
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(-100); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(-1); });
+  assert_equals(xList.getItem(0).value, 50);
+  assert_equals(xList.getItem(1).value, 100);
+  assert_equals(xList.getItem(2).value, 150);
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(3); });
+  assert_throws_dom("IndexSizeError", function() { xList.getItem(100); });
+});
+</script>

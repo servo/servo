@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="reftest-wait">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+  <link rel="match" href="reference/hyphens-character-ref.html">
+    <meta charset="utf-8" />
+    <meta content="Checks that language tag works with mixed/non-canonical case" name="assert">
+    <!-- copied from hyphens-character.html with just the lang tag modified -->
+    <style>
+        @font-face {
+            font-family: roboto_hyphen;
+            src: url(resources/roboto_hyphenation_subset.ttf)
+        }
+
+        div {
+            display: block;
+            width: 40px;
+            hyphens: auto;
+            -webkit-hyphens: auto;
+            font-family: roboto_hyphen, cursive;
+        }
+    </style>
+  <body>
+    <div lang="De-dE">
+      Donaudampfschifffahrt
+    </div>
+
+    <script>
+    document.fonts.ready.then(
+      () => { document.documentElement.classList.remove("reftest-wait"); });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>foreignObject under scroll and transform, with nested stacked children</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#render-EstablishingStackingContex">
+<link rel="match" href="scroll-transform-nested-stacked-children-ref.html">
+<div style="height: 200px; overflow: scroll; background: white">
+  <svg width="300" height="300">
+    <g transform="translate(50, 50)">
+      <foreignObject width="100" height="100">
+        <div style="background: red; width: 100px; height: 100px; position: relative">
+          <div style="background: green; width: 100px; height: 100px; position: relative"></div>
+        </div>
+      </foreignObject>
+    </g>
+  </svg>
+</div>

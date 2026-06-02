@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Percentage rows resolution in a flex item grid container</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=617876">
+<link rel="match" href="../reference/flex-item-grid-container-percentage-rows-001-ref.html">
+<meta name="assert" content="This test ensures that percentage rows are properly resolved for a grid container that is a flex item with a definite height.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.flex {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  height: 200px;
+  border: 5px solid;
+}
+
+.flexitem {
+  flex: 1;
+  background: magenta;
+}
+
+.grid {
+  display: grid;
+  grid: 50% / 1fr;
+}
+
+.griditem {
+  background: cyan;
+}
+</style>
+
+<p>Test passes if you see a 200x200 box with top half cyan and bottom half magenta.</p>
+
+<div class="flex">
+  <div class="flexitem grid">
+    <div class="griditem"></div>
+  </div>
+</div>

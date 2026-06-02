@@ -1,0 +1,14 @@
+<file
+  xmlns:its="http://www.w3.org/2005/11/its" >
+ <its:rules version="2.0">
+  <its:targetPointerRule selector="//source" targetPointer="../target"/>
+ </its:rules>
+ <entry id="one">
+  <source>Remember last folder</source>
+  <target>lastFolder</target>
+ </entry>
+ <entry id="two">
+  <source>Custom file filter:</source>
+  <target>testFile.txt</target>
+ </entry>
+</file>

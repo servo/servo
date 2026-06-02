@@ -1,0 +1,38 @@
+arrows
+<link rel="help" href="https://w3c.github.io/webvtt/#cue-timings-and-settings-parsing">
+
+assert_equals(cues.length, 6);
+
+for (var i = 0; i < cues.length; i++) {
+    assert_equals(cues[i].id, '', 'Failed with cue ' + i);
+    assert_equals(cues[i].text, 'text' + i, 'Failed with cue ' + i);
+}
+
+===
+WEBVTT
+
+-->
+00:00:00.000 --> 00:00:01.000
+text0
+foo-->
+00:00:00.000 --> 00:00:01.000
+text1
+-->foo
+00:00:00.000 --> 00:00:01.000
+text2
+--->
+00:00:00.000 --> 00:00:01.000
+text3
+-->-->
+00:00:00.000 --> 00:00:01.000
+text4
+00:00:00.000 --> 00:00:01.000
+text5
+
+00:00:00.000 -a -->
+
+00:00:00.000 --a -->
+
+00:00:00.000 - -->
+
+00:00:00.000 -- -->

@@ -1,0 +1,69 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css" />
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+<title>Ternary Operators in Global Initializers</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+precision mediump float;
+const $(type) green = $(green);
+const $(type) black = $(black);
+$(type) var = (true) ? green : black;
+void main() {
+    gl_FragColor = $(asVec4);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies that ternary operators can be used in global initializers.");
+var tests = [];
+var wtu = WebGLTestUtils;
+var typeInfos = [
+    { type: 'float', green: '1.0',                         black: '0.0',                            asVec4: 'vec4(0.0,var,0.0,1.0)' },
+    { type: 'vec2',  green: 'vec2(0.0,1.0)',               black: 'vec2(0.0,0.0)',                  asVec4: 'vec4(var,0.0,1.0)' },
+    { type: 'vec3',  green: 'vec3(0.0,1.0,0.0)',           black: 'vec3(0.0,0.0,0.0)',              asVec4: 'vec4(var,1.0)' },
+    { type: 'vec4',  green: 'vec4(0.0,1.0,0.0,1.0)',       black: 'vec4(0.0,0.0,0.0,0.0)',          asVec4: 'var' },
+    { type: 'int',   green: '1',                           black: '0',                              asVec4: 'vec4(0.0,var,0.0,1.0)' },
+    { type: 'ivec2', green: 'ivec2(0,1)',                  black: 'ivec2(0,0)',                     asVec4: 'vec4(var,0.0,1.0)' },
+    { type: 'ivec3', green: 'ivec3(0,1,0)',                black: 'ivec3(0,0,0)',                   asVec4: 'vec4(var,1.0)' },
+    { type: 'ivec4', green: 'ivec4(0,1,0,1)',              black: 'ivec4(0,0,0,0)',                 asVec4: 'vec4(var)' },
+    { type: 'bool',  green: 'true',                        black: 'false',                          asVec4: 'vec4(0.0,var,0.0,1.0)' },
+    { type: 'bvec2', green: 'bvec2(false,true)',           black: 'bvec2(false,false)',             asVec4: 'vec4(var,0.0,1.0)' },
+    { type: 'bvec3', green: 'bvec3(false,true,false)',     black: 'bvec3(false,false,false)',       asVec4: 'vec4(var,1.0)' },
+    { type: 'bvec4', green: 'bvec4(false,true,false,true)',black: 'bvec4(false,false,false,false)', asVec4: 'vec4(var)' },
+];
+typeInfos.forEach(function (typeInfo) {
+    var replaceParams = {
+        type: typeInfo.type,
+        green: typeInfo.green,
+        black: typeInfo.black,
+        asVec4: typeInfo.asVec4,
+    };
+    tests.push({
+        fShaderSource: wtu.replaceParams(wtu.getScript('fragmentShader'), replaceParams),
+        passMsg: typeInfo.type,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        render: true
+    });
+});
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

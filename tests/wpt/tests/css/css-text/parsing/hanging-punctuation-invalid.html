@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing hanging-punctuation with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-hanging-punctuation">
+<meta name="assert" content="hanging-punctuation supports only the grammar 'none | [ first || [ force-end | allow-end ] || last ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("hanging-punctuation", "none first");
+test_invalid_value("hanging-punctuation", "last none");
+test_invalid_value("hanging-punctuation", "first first");
+test_invalid_value("hanging-punctuation", "force-end allow-end");
+test_invalid_value("hanging-punctuation", "allow-end last force-end");
+test_invalid_value("hanging-punctuation", "first allow-end last allow-end");
+test_invalid_value("hanging-punctuation", "last force-end last");
+</script>
+</body>
+</html>

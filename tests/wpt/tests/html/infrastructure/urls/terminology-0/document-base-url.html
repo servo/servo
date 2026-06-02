@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: document base URL</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe { display: none }
+</style>
+<body onload="on_load()">
+  <div id="log"></div>
+  <script>
+    function assert_resolve_url(doc, base) {
+      var img = doc.createElement("img");
+      img.src = "foo";
+      var actual = img.src;
+      var expected = base + "/foo";
+      assert_equals(actual, expected, "img src should resolve correctly");
+    }
+
+    var t1 = async_test("The document base URL of a document containing one or more base elements with href attributes is the frozen base URL of the first base element in the document that has an href attribute, in tree order.");
+
+    function on_load() {
+      t1.step(function () {
+        var base = document.createElement("base");
+        base.setAttribute("href", "/foo/bar");
+        document.head.appendChild(base);
+        t1.add_cleanup(function () {
+          document.head.removeChild(base);
+        });
+
+        assert_resolve_url(document, location.href.replace(location.pathname, "/foo"));
+        assert_equals(document.baseURI, base.href, "The document base URL should be URL of the first base element that has an href attribute.");
+      });
+      t1.done();
+    }
+
+    async_test(function() {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        assert_resolve_url(iframe.contentDocument, location.href.replace(location.pathname, "/common"));
+        assert_equals(iframe.contentDocument.baseURI, iframe.contentDocument.location.href, "The document base URL should be the document's address.");
+      });
+      iframe.setAttribute("src", "/common/blank.html");
+      document.body.appendChild(iframe);
+    }, "The fallback base URL of a document containing no base element is the document's address.");
+
+    async_test(function () {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        assert_resolve_url(iframe.contentDocument, location.href.replace("/document-base-url.html", ""));
+        assert_equals(iframe.contentDocument.baseURI, document.baseURI, "The document base URL should be the creator document's base URL.");
+      });
+      iframe.setAttribute("src", "about:blank");
+      document.body.appendChild(iframe);
+    }, "The fallback base URL of a document whose address is about:blank is the document base URL of the creator document.");
+
+    async_test(function () {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        var doc = iframe.contentDocument;
+        var base = doc.body.appendChild(doc.createElement("base"));
+        base.href = "sub/";
+        assert_resolve_url(doc, location.href.replace("/document-base-url.html", "/sub"));
+        assert_equals(doc.baseURI, document.baseURI.replace("/document-base-url.html", "/sub/"));
+      });
+      iframe.setAttribute("src", "about:blank");
+      document.body.appendChild(iframe);
+    }, "about:blank with a base element.");
+
+    async_test(function () {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        assert_resolve_url(iframe.contentDocument, location.href.replace("/document-base-url.html", ""));
+        assert_equals(iframe.contentDocument.baseURI, document.baseURI, "The document base URL should be the containing document's base URL.");
+      });
+      iframe.setAttribute("srcdoc", "<p>foobar</p>");
+      document.body.appendChild(iframe);
+    }, "The fallback base URL of an iframe srcdoc document is the document base URL of the document's browsing context's browsing context container's document.");
+
+    async_test(function () {
+      var iframe = document.createElement("iframe");
+      iframe.onload = this.step_func_done(function () {
+        var doc = iframe.contentDocument;
+        assert_resolve_url(doc, location.href.replace("/document-base-url.html", "/sub"));
+        assert_equals(doc.baseURI, document.baseURI.replace("/document-base-url.html", "/sub/"),
+                      "The srcdoc document's base URL should be set by the <base> tag.");
+      });
+      iframe.setAttribute("srcdoc", "<base href='sub/'><p>foobar</p>");
+      document.body.appendChild(iframe);
+    }, "The base URL of an iframe srcdoc document with a <base> tag should be set by that tag.");
+  </script>
+</body>

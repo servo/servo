@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Hit-test on a path whose x/y ranges have different magnitude</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/interact.html#hit-testing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  svg {
+    margin: 0px;
+    padding: 0px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+  }
+</style>
+<svg>
+  <svg x="-250000" width="500000" height="500">
+    <path id="path" d="M 250005 104 l 19 0 l 3 3 l -3 3 l -19 0 z"/>
+  </svg>
+</svg>
+<script>
+const pointsInPath = [
+  {x: 5, y: 104},
+  {x: 5, y: 107},
+  {x: 5, y: 110}
+];
+
+const pointsNotInPath = [
+  {x: 5, y: 103},
+  {x: 5, y: 111}
+];
+
+setup(() => {
+  window.pathElement = document.getElementById("path");
+});
+
+pointsInPath.forEach(point => {
+  test(t => {
+    assert_equals(pathElement, document.elementFromPoint(point.x, point.y));
+  }, `${document.title}, path contains point at (${point.x}, ${point.y})`);
+});
+
+pointsNotInPath.forEach(point => {
+  test(t => {
+    assert_not_equals(pathElement, document.elementFromPoint(point.x, point.y));
+  }, `${document.title}, path does not contain point at (${point.x}, ${point.y})`);
+});
+</script>

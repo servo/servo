@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.timing attributes after a reloaded navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+        <script>
+            setup({explicit_done: true});
+
+            // explicitly test the namespace before we start testing
+            test_namespace('navigation');
+
+            var reload_frame;
+            var initial_timing;
+
+            function onload_test()
+            {
+                reload_frame = document.getElementById("frameContext");
+
+                if (reload_frame.contentWindow.performance === undefined)
+                {
+                    // avoid script errors
+                    done();
+                    return;
+                }
+
+                reload_frame.onload = do_test;
+
+                // save frame's initial timings
+                initial_timing = {};
+                var timing = reload_frame.contentWindow.performance.timing;
+
+                for (var i = 0; i < timingAttributes.length; ++i)
+                {
+                    var property = timingAttributes[i];
+                    initial_timing[property] = timing[property];
+                }
+
+                step_timeout(reload_the_frame, 100);
+            }
+
+            function reload_the_frame()
+            {
+                reload_frame.contentWindow.location.reload(true);
+            }
+
+            function do_test()
+            {
+                reload_frame.onload = "";
+
+                // ensure the frame reloaded
+                test_equals(reload_frame.contentWindow.performance.navigation.type,
+                            performanceNamespace.navigation.TYPE_RELOAD,
+                            "window.performance.navigation.type == TYPE_RELOAD");
+
+                // ensure reload timings changed
+                var timing = reload_frame.contentWindow.performance.timing;
+                for (var i = 0; i < timingAttributes.length; ++i)
+                {
+                    var property = timingAttributes[i];
+
+                    // ignore any timings that were zero initially
+                    if (initial_timing[property] !== 0)
+                    {
+                        test_not_equals(timing[property], initial_timing[property],
+                                property + " is different after the reload.");
+                    }
+                }
+
+                done();
+            }
+        </script>
+    </head>
+    <body onload="onload_test();">
+        <h1>Description</h1>
+        <p>This test validates that the window.performance.timing attributes change when a page is reloaded.</p>
+
+        <p>This page should be loaded with a green background frame below.  The frame will be automatically reloaded
+        and then verified that the window.performance.timing attributes have been updated to the new reloaded navigation timings.</p>
+
+        <div id="log"></div>
+        <br />
+        <iframe id="frameContext" src="resources/blank_page_green.html" style="width: 250px; height: 250px;"></iframe>
+
+    </body>
+</html>

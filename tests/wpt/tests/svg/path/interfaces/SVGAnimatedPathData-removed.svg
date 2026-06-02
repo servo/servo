@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#changes-paths"/>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG11/paths.html#InterfaceSVGAnimatedPathData"/>
+    <h:meta name="assert" content="SVGAnimatedPathData interface is not supported."/>
+  </metadata>
+  <path id="track" d="m 10 20 h 30"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  test(function() {
+    assert_equals(window.SVGAnimatedPathData, undefined);
+
+    var track = document.getElementById('track');
+    assert_equals(Object.getPrototypeOf(track), SVGPathElement.prototype);
+    assert_equals(track.pathSegList, undefined);
+    assert_equals(track.normalizedPathSegList, undefined);
+    assert_equals(track.animatedPathSegList, undefined);
+    assert_equals(track.animatedNormalizedPathSegList, undefined);
+  });
+  ]]></script>
+</svg>

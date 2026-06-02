@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Changes to @keyframes rules</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+
+  const originalStyleElement = document.createElement("style");
+  originalStyleElement.textContent = '@keyframes anim-custom { from, to { left: 100px } }';
+  document.head.appendChild(originalStyleElement);
+
+  t.add_cleanup(() => originalStyleElement.remove());
+
+  div.style.animation = 'anim-custom 100s';
+
+  const computedStyle = getComputedStyle(div);
+  assert_equals(computedStyle.left, "100px", "The initial @keyframes rule is applied");
+
+  // Remove the original style element and add a new one with an animation with the same name.
+  const newStyleElement = document.createElement("style");
+  newStyleElement.textContent = '@keyframes anim-custom { from, to { left: 200px } }';
+  originalStyleElement.replaceWith(newStyleElement);
+
+  t.add_cleanup(() => newStyleElement.remove());
+
+  assert_equals(computedStyle.left, "200px", "The new @keyframes rule is applied");
+}, 'Replacing a <style> element with a new <style> element while both containing the different @keyframes rule with the same name dynamically updates running animations.');
+
+</script>

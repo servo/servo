@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<title>
+  Web Bundle fetching and the inner resouirce fetching should skip service
+  worker
+</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    async function registerServiceWorkerAndReturnActiveWorker(
+      t,
+      script,
+      scope
+    ) {
+      const reg = await navigator.serviceWorker.register(script, {
+        scope: scope,
+      });
+      t.add_cleanup(() => reg.unregister());
+      if (reg.active) return reg.active;
+      const worker = reg.installing || reg.waiting;
+      await new Promise((resolve) => {
+        worker.addEventListener("statechange", (event) => {
+          if (event.target.state == "activated") resolve();
+        });
+      });
+      return worker;
+    }
+
+    async function getRequestedUrls(worker) {
+      return new Promise((resolve) => {
+        navigator.serviceWorker.addEventListener(
+          "message",
+          (e) => {
+            resolve(e.data);
+          },
+          { once: true }
+        );
+        worker.postMessage(null);
+      });
+    }
+
+    promise_test(async (t) => {
+      const iframe_path = "./resources/service-worker-controlled-iframe.html";
+      const iframe_url = new URL(iframe_path, location).href;
+
+      // Register a service worker.
+      const worker = await registerServiceWorkerAndReturnActiveWorker(
+        t,
+        "./resources/service-worker-for-request-monitor.js",
+        iframe_path
+      );
+
+      // Load an iframe which is controlled by the service worker.
+      const iframe = await new Promise((resolve) => {
+        const frame = document.createElement("iframe");
+        t.add_cleanup(() => frame.remove());
+        frame.src = iframe_url;
+        frame.onload = () => {
+          resolve(frame);
+        };
+        document.body.appendChild(frame);
+      });
+      // The iframe request should be intercepted by the service worker.
+      assert_array_equals(await getRequestedUrls(worker), [iframe_url]);
+
+      // Add a web bundle element in the service worker controlled iframe.
+      const script_id = "uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720";
+
+      const element = createWebBundleElement(
+        "../../resources/wbn/uuid-in-package.wbn",
+        /*resources=*/ [script_id]
+      );
+
+      const element_load_promise = new Promise((resolve) => {
+        element.addEventListener("load", () => {
+          resolve();
+        });
+      });
+      iframe.contentDocument.body.appendChild(element);
+      await element_load_promise;
+      // The web bundle request should not be intercepted by the service worker.
+      assert_array_equals(await getRequestedUrls(worker), []);
+
+      // Add a uuid-in-package URL script element in the service worker
+      // controlled iframe.
+      const result_promise = new Promise((resolve) => {
+        // window.report_result() method will be called by the injected script.
+        iframe.contentWindow.report_result = resolve;
+      });
+      const script = iframe.contentDocument.createElement("script");
+      script.src = script_id;
+      iframe.contentDocument.body.appendChild(script);
+      assert_equals(await result_promise, "OK");
+      // The urn uuld URL script request should not be intercepted by the
+      // service worker.
+      assert_array_equals(await getRequestedUrls(worker), []);
+
+    }, "Both Web Bundle request and Subresource fetch requests inside the Web " + "Bundle should skip the service worker.");
+  </script>
+</body>

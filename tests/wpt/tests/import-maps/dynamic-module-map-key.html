@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const dynamicScript = document.createElement("script");
+  dynamicScript.type = "importmap";
+  dynamicScript.innerText = "{ \"imports\": { \"./resources/log.js?pipe=sub&name=A\": \"./resources/log.js?pipe=sub&name=B\" } }";
+  document.head.appendChild(dynamicScript);
+</script>
+
+<script>
+let log = [];
+
+promise_test(() => {
+  return import("./resources/log.js?pipe=sub&name=A")
+    .then(() => import("./resources/log.js?pipe=sub&name=B"))
+    .then(() => assert_array_equals(log, ["log:B"]))
+  },
+  "Module map's key is the URL after import map resolution");
+</script>
+
+<script>
+  // Ensure that the Already Started flag is passed through to clones,
+  // ensuring the type cannot be changed after it is set to true.
+  const dynamicScriptTypeStatic = document.createElement("script");
+  dynamicScriptTypeStatic.type = "text/javascript";
+  dynamicScriptTypeStatic.type = "importmap";
+  dynamicScriptTypeStatic.innerText = "{ \"imports\": { \"./resources/log.js?pipe=sub&name=C\": \"./resources/log.js?pipe=sub&name=D\" } }";
+  document.head.appendChild(dynamicScriptTypeStatic);
+
+  // Because the contents aren't empty, once it's connected as an import
+  // map, the Already Started flag is set to true and it can't be changed
+  // into a classic script.
+  document.head.removeChild(dynamicScriptTypeStatic);
+  dynamicScriptTypeStatic.type = "text/javascript";
+  dynamicScriptTypeStatic.innerText = "test(function() { assert_unreached('Script should not be able to execute after Already Started is set.'); }";
+  document.head.appendChild(dynamicScriptTypeStatic);
+
+  // The Already Started flag is copied through to clones, even though
+  // `type` is set to "text/javascript" when it is connected.
+  const clonedScriptNode = dynamicScriptTypeStatic.cloneNode(/*deep=*/true);
+  test(function() {
+    assert_equals(clonedScriptNode.type, "text/javascript");
+    assert_equals(clonedScriptNode.innerText, "test(function() { assert_unreached('Script should not be able to execute after Already Started is set.'); }");
+  }, "Cloned script node copies attribute and text content.");
+  document.head.appendChild(clonedScriptNode);
+
+  // Script tags with empty contents do not set Already Started to true,
+  // so the type can be changed later and on clones, even if they have
+  // been connected.
+  const dynamicScriptEmpty = document.createElement("script");
+  dynamicScriptEmpty.type = "importmap";
+  document.head.appendChild(dynamicScriptEmpty);
+  document.head.removeChild(dynamicScriptEmpty);
+
+  // The Already Started flag is copied onto clones.
+  dynamicScriptEmpty.type = "text/javascript";
+  const clonedEmptyScript = dynamicScriptEmpty.cloneNode(/*deep=*/true);
+  test(function() {
+    assert_equals(clonedEmptyScript.type, "text/javascript");
+    assert_equals(clonedEmptyScript.innerText, "");
+  }, "Cloned script node copies attributes and text content.");
+
+  // Because Already Started is false, The clone can be set to a different
+  // type than the original element and both can be inserted as their
+  // respective types.
+  clonedEmptyScript.setAttribute("type", "importmap");
+  clonedEmptyScript.innerText = "{ \"imports\": { \"./resources/log.js?pipe=sub&name=E\": \"./resources/log.js?pipe=sub&name=F\" } }";
+  document.head.appendChild(clonedEmptyScript);
+
+  const t_evaluate = async_test("The Already Started flag is set when a non-empty <script> tag is connected.");
+  dynamicScriptEmpty.innerText = "t_evaluate.done();";
+  document.head.appendChild(dynamicScriptEmpty);
+</script>
+
+<script>
+promise_test(() => {
+  return import("./resources/log.js?pipe=sub&name=C")
+    .then(() => import("./resources/log.js?pipe=sub&name=D"))
+    .then(() => import("./resources/log.js?pipe=sub&name=E"))
+    .then(() => assert_array_equals(log, ["log:B", "log:D", "log:F"]))
+  },
+  "The script tag's Already Started flag is passed to clones.");
+</script>
+</html>

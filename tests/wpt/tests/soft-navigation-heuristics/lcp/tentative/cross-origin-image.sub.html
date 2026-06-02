@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8" />
+<!--
+  The soft navigation version of the identically named test in
+  /largest-contentful-paint/cross-origin-image.sub.html.
+  Notes:
+  - Awaits trivial soft navigation with same page contents as original test.
+  - Uses promise_test and slightly revised HTML tags, to make it easy to
+    observe the initial LCP before the soft navigation (the click target)
+    and distinguish it from the interesting LCP after the soft navigation.
+-->
+<title>
+  Largest Contentful Paint after soft navigation: observe cross-origin images but without
+  renderTime.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+<script>
+  function clickHandler() {
+    document.body.innerHTML = `<img src="http://{{domains[www]}}:{{ports[http][1]}}/images/blue.png" id="image_id" />`;
+    history.pushState({}, "", "/test");
+  }
+  const beforeLoad = performance.now();
+</script>
+<body>
+  <div id="click-target" onclick="clickHandler()">Click!</div>
+</body>
+<script>
+  promise_test(async (t) => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const helper = new SoftNavigationTestHelper(t);
+    const lcpEntries =
+        await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
+    assert_equals(lcpEntries.length, 1);
+    assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
+    const softLcpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
+    if (test_driver) {
+      test_driver.click(document.getElementById("click-target"));
+    }
+    const softLcpEntries = await softLcpPromise;
+    assert_equals(softLcpEntries.length, 1);
+    const entry = softLcpEntries[0];
+    const url = "http://{{domains[www]}}:{{ports[http][1]}}/images/blue.png";
+    // blue.png is 133 x 106.
+    const size = 133 * 106;
+    checkImage(entry, url, "image_id", size, beforeLoad, ["renderTimeIs0"]);
+  }, "Cross-origin image is observable after soft navigation, with renderTime equal to 0.");
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<style id=style></style>
+<div id=root></div>
+<script>
+const SELECTORS = 1000;
+const DOM_WIDTH = 10;
+const DOM_DEPTH = 1000;
+
+function makeStyle() {
+  let selectors = [...Array(SELECTORS).keys()].map(x => `.a${x}`);
+  // Creates a selector list which is expensive to evaluate:
+  // (.a1, .a2, .a3 ... .a<n-1>, ...)
+  return `
+    @scope (:not(:is(${selectors.join(',')})).foo) {
+      div:empty:not(.bar) {
+        margin: 1px;
+      }
+    }
+  `;
+}
+
+function makeChain(n) {
+  if (n <= 0) {
+    return null;
+  }
+  let element = document.createElement('div');
+  let child = makeChain(n - 1);
+  if (child != null) {
+    element.appendChild(child);
+  }
+  return element;
+}
+
+let leaf_nodes = [];
+
+function setup() {
+  style.textContent = makeStyle();
+
+  for (let i = 0; i < DOM_WIDTH; ++i) {
+    root.appendChild(makeChain(DOM_DEPTH));
+  }
+
+  leaf_nodes = document.querySelectorAll('div:empty');
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Non-matching ancestor via :scope',
+    run: () => {
+      root.offsetTop;
+      for (let e of leaf_nodes) {
+        e.classList.toggle('bar');
+      }
+      root.offsetTop;
+      for (let e of leaf_nodes) {
+        e.classList.toggle('bar');
+      }
+      root.offsetTop;
+      for (let e of leaf_nodes) {
+        e.classList.toggle('bar');
+      }
+      root.offsetTop;
+    }
+});
+
+</script>
+

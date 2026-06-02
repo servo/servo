@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: border-shape with absolute positioning</title>
+<link rel="help" href="https://www.w3.org/TR/css-borders-4/#propdef-border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shape-function">
+<link rel="match" href="border-shape-absolute-coords-shape-ref.tentative.html">
+<style>
+  .bs-target {
+    position: absolute;
+    top: 200px;
+    left: 0px;
+    width: 190px;
+    height: 190px;
+    border-shape: shape(from 0% 0%, line to 100% 0%, line to 50% 100%, close);
+    border: 10px solid purple;
+    background: green;
+  }
+</style>
+<div class="bs-target"></div>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Gradient using "longer hue"</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<link rel="match" href="gradient-longer-hue-hsl-013-ref.html">
+<meta name="assert" content="Tests that gradient with 'longer hue' renders correctly">
+
+<style>
+div {
+  margin: 20px 0px 20px 50px;
+  height: 40px;
+  width: 100px;
+  position: relative;
+}
+/* the colors here will have to be converted to the interpolation color space */
+.test1 {
+  background: linear-gradient(to right in hsl longer hue, red, black);
+}
+.test2 {
+  background: linear-gradient(to right in hsl longer hue, red, white);
+}
+.test3 {
+  background: linear-gradient(to right in hsl longer hue, red, transparent);
+}
+</style>
+
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>

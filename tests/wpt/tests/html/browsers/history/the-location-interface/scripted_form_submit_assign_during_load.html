@@ -1,0 +1,21 @@
+<!doctype html>
+<title>Assignment to location with form submit during load</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>The popup blocker must be disabled for this test</p>
+<div id="log"></div>
+<script>
+setup({timeout:3600000});
+var t = async_test();
+var win = window.open("scripted_form_submit_assign_during_load-1.html");
+
+var history_length;
+test_initial_history_length = t.step_func(function(new_length) {
+  history_length = new_length;
+  assert_equals(history_length, 1, "Should have inital history");
+});
+test_assign_during_load = t.step_func(function(new_length) {
+  assert_equals(new_length, history_length, "Assigning to Location during load should replace");
+  t.done();
+});
+</script>

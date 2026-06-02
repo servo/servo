@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-forms-1">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/10857">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/11486">
+<link rel=match href="input-text-base-appearance-rendering-ref.html">
+
+<input value=value style="appearance:base">
+
+<style>
+body {
+  font-family: monospace;
+  background-color: black;
+  color: green;
+}
+input {
+  /* Without setting the width, we would be relying on intrinsic sizing which
+   * is not specified or interoperable. */
+  width: 150px;
+}
+</style>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Ruby whitespace handling</title>
+<link rel="author" title="Sam Bowen" href="mailto:sgbowen8@gmail.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#white-space">
+<link rel="match" href="ruby-whitespace-001-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+body { line-height: 5em; }
+</style>
+
+<p>
+  <ruby>
+    <rbc>       <rb>   </rb>    <rb>Base three</rb>   </rbc>
+    <rtc>    <rt>   </rt>   <rt>Text three</rt>   </rtc>    <rtc><rt></rt></rtc>
+    <rbc><rb>Segment two</rb></rbc><rtc><rt></rt></rtc>
+  </ruby>
+</p>
+
+<p>
+  <ruby>
+    <rb>Base one</rb>  <rb>Base three</rb>
+    <rt>Text one</rt>  <rt>Text three</rt>
+  </ruby>
+</p>
+
+<p>
+  <rb>Segment one</rb>  <rbc>   <rb>  </rb>    <rb>Base three</rb>  </rbc
+    >   <rtc><rt>  </rt>     <rt>Text three</rt></rtc>
+
+  <rb>Base one</rb>   <rb>Base three</rb>   <rt>Text one</rt><rt>Text two/three</rt>
+</p>

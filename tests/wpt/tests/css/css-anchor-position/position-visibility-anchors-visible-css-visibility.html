@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="assert" content="Position-visibility: anchors-visible should hide an element with an anchor that has visibility: hidden." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-css-visibility-ref.html">
+<style>
+  #container {
+    visibility: hidden;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-visibility: anchors-visible;
+    position-area: bottom right;
+    width: 100px;
+    height: 100px;
+    background: red;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="container">
+  <div id="anchor">anchor</div>
+</div>
+<div id="target">target</div>

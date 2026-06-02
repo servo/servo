@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation: OOF static position and alignment
+  w/ vertical writing-mode.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    block-size: 200px;
+    position: relative;
+    align-items: flex-end;
+  }
+  #flex > div {
+    inline-size: 100px;
+    block-size: 100px;
+    flex: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode: vertical-rl;">
+  <div style="margin-top: -50px; inline-size: 100px; block-size: 100px; columns: 2; column-fill: auto; column-gap: 0;">
+      <div id="flex">
+        <div style="position: absolute; background: green;"></div>
+        <div style="background: red;"></div>
+      </div>
+    </div>
+  </div>
+</div>

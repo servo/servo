@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1267276">
+
+<table>foo</table>
+<details open=true>
+  <dialog open=true>
+    <table>
+      <tr></tr>
+    </table>
+  </dialog>
+</details>
+
+<script>
+  const dialog = document.querySelector('dialog');
+  dialog.close();
+  dialog.showModal();
+  const cell = document.querySelector('tr').insertCell();
+  document.querySelector('details').appendChild(cell);
+  document.body.attachShadow({mode: 'closed'});
+</script>

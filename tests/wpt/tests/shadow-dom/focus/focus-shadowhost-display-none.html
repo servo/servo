@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#host:focus { display: none; }
+</style>
+<div id='sandbox'></div>
+<script>
+'use strict';
+
+// Check if shadow host with display:none CSS rule for :focus works.  crbug.com/482830
+
+var host;
+var root;
+var input;
+
+function setupShadowDOM(delegatesFocus) {
+    sandbox.innerHTML = '';
+    host = sandbox.appendChild(document.createElement('div'));
+    host.id = 'host';
+
+    root = host.attachShadow({mode: 'open', delegatesFocus: delegatesFocus});
+    input = document.createElement('input');
+    root.appendChild(input);
+
+    host.tabIndex = 0;
+}
+
+promise_test(() => {
+    setupShadowDOM(false);
+    return new Promise(
+        function(resolve) {
+            host.focus();
+            assert_equals(window.getComputedStyle(host).display, 'none');
+            assert_equals(document.activeElement, host);
+            assert_equals(root.activeElement, null);
+
+            function onBlur() {
+                assert_equals(window.getComputedStyle(host).display, 'block');
+                assert_equals(document.activeElement, document.body);
+                assert_equals(root.activeElement, null);
+                host.removeEventListener('blur', onBlur);
+                resolve();
+            }
+            host.addEventListener('blur', onBlur);
+        });
+}, 'when shadow host itself is focused, it should match display:none, lose focus then becomes display:block again.');
+
+promise_test(() => {
+    setupShadowDOM(true);
+    return new Promise(
+        function(resolve) {
+            input.focus();
+            assert_equals(window.getComputedStyle(host).display, 'none');
+            assert_equals(document.activeElement, host);
+            assert_equals(root.activeElement, input);
+
+            function onBlur() {
+                assert_equals(window.getComputedStyle(host).display, 'block');
+                assert_equals(document.activeElement, document.body);
+                assert_equals(root.activeElement, null);
+                input.removeEventListener('blur', onBlur);
+                resolve();
+            }
+            input.addEventListener('blur', onBlur);
+        });
+}, 'when shadow host with delegatesFocus=true has focused element inside the shadow, it should also match display:none, then lose focus and become display:block again.');
+</script>

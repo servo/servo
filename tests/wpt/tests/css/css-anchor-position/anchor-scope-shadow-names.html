@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor-scope name match is tree-scoped</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10526">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Tests that an anchor-scope placed into the shadow tree by ::part
+     does not affect anchor name lookup local to the shadow tree. -->
+<div id=test_part>
+  <style>
+    #test_part {
+      .host::part(scope) {
+        /* This should have no effect, because --a is specified in a different
+           tree-scope than the --a inside the shadow. */
+        anchor-scope: --a;
+      }
+    }
+  </style>
+  <div class=host>
+    <template shadowrootmode=open>
+      <style>
+        .anchored {
+          background: coral;
+          position: absolute;
+          top: anchor(bottom, 1px);
+          position-anchor: --a;
+          width: 5px;
+          height: 5px;
+        }
+        .anchor {
+          background: skyblue;
+          height: 10px;
+          anchor-name: --a;
+        }
+        .cb {
+          position: relative;
+          width: 50px;
+          height: 50px;
+          border: 1px solid black;
+        }
+        .scope {
+          anchor-scope: --a;
+        }
+      </style>
+      <div class=cb>
+        <div class=anchor></div>
+        <div part=scope>
+          <div class=anchored></div>
+        </div>
+      </div>
+    </template>
+  </div>
+  <script>
+    test((t) => {
+      let host = document.querySelector('#test_part .host');
+      let e = host.shadowRoot.querySelector('.anchored');
+      assert_equals(getComputedStyle(e).top, '10px');
+    }, 'anchor-scope matches tree-scoped names');
+  </script>
+</div>
+
+<!-- Tests that a slotted-in element is not affected by any anchor-scope
+     in the shadow tree. -->
+<hr>
+<div id=test_slot>
+  <style>
+    #test_slot {
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border: 1px solid black;
+      }
+      .anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+    }
+  </style>
+  <div class=cb>
+    <div class=anchor></div>
+    <div class=host>
+      <template shadowrootmode=open>
+        <style>
+          .scope {
+            anchor-scope: --a;
+          }
+        </style>
+        <div class=scope>
+          <slot></slot>
+        </div>
+      </template>
+      <div class=anchored></div>
+    </div>
+  </div>
+  <script>
+    test((t) => {
+      let e = document.querySelector('#test_slot .anchored');
+      assert_equals(getComputedStyle(e).top, '10px');
+    }, 'anchor-scope in shadow does not affect slotted-in element');
+  </script>
+</div>
+
+<!-- Tests that anchor-scope in ::slotted() rule does not affect
+     anchoring on the outside of the shadow. -->
+<hr>
+<div id=test_slotted>
+  <style>
+    #test_slotted {
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border: 1px solid black;
+      }
+      .anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+    }
+  </style>
+  <div class=cb>
+    <div class=anchor></div>
+    <div class=host>
+      <template shadowrootmode=open>
+        <style>
+          ::slotted(div) {
+            anchor-scope: --a;
+          }
+        </style>
+        <slot></slot>
+      </template>
+      <div class=anchored></div>
+    </div>
+  </div>
+  <script>
+    test((t) => {
+      let e = document.querySelector('#test_slotted .anchored');
+      assert_equals(getComputedStyle(e).top, '10px');
+    }, 'anchor-scope in ::slotted() rule does not affect anchoring outside');
+  </script>
+</div>
+
+<!-- Same as #test_slot, but anchor-scope is specified on :host. -->
+<hr>
+<div id=test_host>
+  <style>
+    #test_host {
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border: 1px solid black;
+      }
+      .anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+    }
+  </style>
+  <div class=cb>
+    <div class=anchor></div>
+    <div class=host>
+      <template shadowrootmode=open>
+        <style>
+          :host {
+            anchor-scope: --a;
+          }
+        </style>
+        <slot></slot>
+      </template>
+      <div class=anchored></div>
+    </div>
+  </div>
+  <script>
+    test((t) => {
+      let e = document.querySelector('#test_host .anchored');
+      assert_equals(getComputedStyle(e).top, '10px');
+    }, 'anchor-scope in shadow does not affected slotted-in element (:host)');
+  </script>
+</div>
+
+<!-- Tests that anchor-scope in a ::part() rule *does* affect
+     anchoring of slotted-in elements. -->
+<hr>
+<div id=test_part_slotted_in>
+  <style>
+    #test_part_slotted_in {
+      .host::part(scope) {
+        anchor-scope: --a;
+      }
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border: 1px solid black;
+      }
+      .anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+    }
+  </style>
+  <div class=cb>
+    <div class=anchor></div>
+    <div class=host>
+      <template shadowrootmode=open>
+        <div part=scope>
+          <slot></slot>
+        </div>
+      </template>
+      <div class=anchored></div>
+    </div>
+  </div>
+  <script>
+    test((t) => {
+      let e = document.querySelector('#test_part_slotted_in .anchored');
+      assert_equals(getComputedStyle(e).top, '1px'); // anchor() fallback
+    }, 'anchor-scope in ::part() affects slotted-in element');
+  </script>
+</div>

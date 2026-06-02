@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1874705">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+#dut {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#dut:has(span) {
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="dut"></div>
+<script>
+function raf() {
+  return new Promise(resolve => {
+    requestAnimationFrame(resolve);
+  });
+}
+
+async function go() {
+  await raf();
+  await raf();
+  const df = document.createDocumentFragment();
+  const t = document.createTextNode('\n');
+  df.appendChild(t);
+  const s = document.createElement("span");
+  df.appendChild(s);
+  dut.appendChild(df);
+  document.documentElement.className = '';
+}
+
+go();
+</script>
+</html>

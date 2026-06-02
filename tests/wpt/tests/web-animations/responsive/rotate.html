@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    container.style.rotate = 'none';
+    var player = element.animate([{rotate: 'inherit'}, {rotate: '100deg'}], 10);
+    player.pause();
+    player.currentTime = 2;
+    container.style.rotate = '200deg';
+    assert_equals(getComputedStyle(element).rotate, '180deg');
+}, 'Rotate responsive to inherited rotate changes');
+
+</script>

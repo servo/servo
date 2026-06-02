@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Gradient test: gradients to/from transparent</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#interpolation">
+<meta name="assert" content="Gradient to/from transparent ignores the color components of the transparent stop">
+<link rel="match" href="gradient-to-transparent-ref.html">
+
+<style>
+.test {
+  display: inline-block;
+  width: 25px;
+  height: 100px;
+  margin: 10px;
+}
+.a {
+  background: linear-gradient(transparent, 75%, red);
+}
+.b {
+  background: linear-gradient(rgba(255 0 0 / 0), 75%, red);
+}
+.c {
+  background: linear-gradient(rgba(0 0 255 / 0), 75%, red);
+}
+.d {
+  background: linear-gradient(blue, 75%, transparent);
+}
+.e {
+  background: linear-gradient(blue, 75%, rgba(0 0 255 / 0));
+}
+.f {
+  background: linear-gradient(blue, 75%, rgba(0 255 0 / 0));
+}
+</style>
+
+<p>All three gradients should look the same:</p>
+<div class="test a"></div>
+<div class="test b"></div>
+<div class="test c"></div>
+
+<p>All three gradients should look the same:</p>
+<div class="test d"></div>
+<div class="test e"></div>
+<div class="test f"></div>

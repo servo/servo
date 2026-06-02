@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-024-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#emphasis-marks">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#contenteditable">
+<meta name="assert" content="Checks ::marker in a multi-column can have emphasis marks and doesn't crash when made editable.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+ol {
+  margin: 0;
+  padding-left: 25px;
+  font: 25px/1 Ahem;
+}
+li {
+  width: 150px;
+  column-count: 2;
+  column-gap: 0;
+  text-emphasis-style: circle;
+  -webkit-text-emphasis-style: circle;
+}
+li + li {
+  list-style-position: inside;
+}
+::marker {
+  content: 'X';
+}
+</style>
+<ol>
+  <li>É<br>Ép<br>pÉ<br>pp</li>
+  <li>É<br>Ép<br>pÉ<br>pp</li>
+</ol>
+<script>
+// Force layout
+document.body.offsetLeft;
+// Enabling editability shouldn't crash
+document.querySelector("ol").contentEditable = "true";
+</script>

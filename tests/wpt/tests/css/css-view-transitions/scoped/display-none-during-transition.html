@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Display none during transition</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    background-color: teal;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    view-transition-name: target;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  ::view-transition-group(*) {
+    animation: unset;
+  }
+
+  ::view-transition-old(target) {
+    animation: -ua-view-transition-fade-out 300s;
+  }
+
+  ::view-transition-new(target) {
+    animation: -ua-view-transition-fade-in 300s;
+  }
+
+</style>
+<body>
+  <div id="target")></div>
+</body>
+<script>
+  function animationsCanceledPromise() {
+    const animations = document.getAnimations();
+    const promises = animations.map(a => a.finished);
+    return new Promise(async (resolve) => {
+      const values = await Promise.allSettled(promises);
+      values.forEach((result) => {
+        assert_equals(result.status, 'rejected');
+      });
+      resolve();
+    });
+  }
+
+  promise_test(async t => {
+    const target = document.getElementById('target');
+    const vt = target.startViewTransition(() => {
+      target.style.backgroundColor = 'orange';
+    });
+    await vt.ready;
+    const animations = document.getAnimations();
+    assert_equals(animations.length, 2,
+                  'View transition has running animations');
+    // wait for all animations to start running before hiding target.
+    await Promise.all([...animations.map(a => a.ready)]);
+    target.classList.toggle('hidden');
+    // Verify that the finished promise is rejected for each of the started
+    // animations.
+    await animationsCanceledPromise();
+    // Verify finished promise is resolved even though the transition did not
+    // run to completion.
+    return vt.finished;
+  }, 'Display none during a view transition skips the transition.');
+</script>
+</html>

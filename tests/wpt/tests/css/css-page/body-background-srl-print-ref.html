@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<style>
+:root {
+  print-color-adjust: exact;
+}
+body {
+  margin: 20px;
+  background: linear-gradient(to bottom, white 0%, white 50%, lightgray 50%, lightgray 100%);
+  padding-bottom: 480px;
+}
+@page {
+  size: 800px 600px;
+  margin: 0;
+}
+</style>
+<div style="position:absolute; left:0; top:0; width:200px;">
+  There should be a right-aligned blue box on the first page, and a
+  right-aligned hotpink box on the second page.
+  The background of the first page is lightgray, and the background of the
+  second page is white.
+</div>
+<!-- Right-align with auto left margin. -->
+<div style="margin-left:auto; width:600px; height:100px; background:blue;"></div>
+<!-- Retain the inline-start margin in the test by setting the top margin to
+     20px. Cancel out the block-start body margin (shouldn't be repeated on
+     every page) in the test, by setting the left margin to -20px. -->
+<div style="break-before:page; width:800px; height:100px; margin:20px 0 0 -20px; background:hotpink;"></div>

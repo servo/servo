@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Percentage inset/margin/padding in position-area</title>
+
+<style>
+  .container {
+    width: 100px; height: 100px;
+    border: solid gray;
+    margin: 6px;
+    position: relative;
+    float: left;
+  }
+
+  .anchor {
+    position: absolute;
+    background: silver;
+    inset: 20px 20px 40px 20px;
+  }
+
+  .anchored {
+    border: solid blue 2px;
+    position: absolute;
+    place-self: stretch;
+    inset: 60px 0 0 20px; /* occupy the bottom center-right area */
+    background: content-box aqua;
+  }
+
+  /* insets (top / left margins here) compute against their own axis */
+  /* margins (bottom / right margins here) and padding compute against inline axis */
+  .horizontal { /* margin/padding computes against horizontal */
+    margin: 8px 4px 4px 16px;
+    padding: 8px;
+  }
+  .vertical { /* margin/padding computes against vertical */
+    margin: 8px 2px 2px 16px;
+    padding: 4px;
+  }
+</style>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored horizontal"></div>
+</div>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored horizontal"></div>
+</div>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored vertical"></div>
+</div>
+
+<div class=container>
+  <div class="anchor"></div>
+  <div class="anchored vertical"></div>
+</div>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Test `frame-sizing` values and `writing-mode`s.</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<meta name="variant" content="?value=,300,150">
+<meta name="variant" content="?value=content-height,300,200">
+<meta name="variant" content="?value=content-block-size,300,200">
+<meta name="variant" content="?value=content-inline-size,300,200,vertical-rl">
+<meta name="variant" content="?value=content-width,400,150">
+<meta name="variant" content="?value=content-inline-size,400,150">
+<meta name="variant" content="?value=content-block-size,400,150,vertical-rl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe id="target" frameborder=0 src="resources/iframe-contents-400x200root.html">
+</iframe>
+<script>
+const target = document.getElementById('target');
+const params = new URLSearchParams(window.location.search);
+const values = params.get('value');
+const [value, width, height, writing_mode] = values.split(',');
+if (value) {
+  target.style.setProperty('frame-sizing', value);
+}
+if (writing_mode) {
+  target.style.writingMode = writing_mode;
+}
+
+async_test(t => {
+  window.addEventListener('load', t.step_func_done(() => {
+    assert_array_equals([target.offsetWidth, target.offsetHeight],
+                        [parseInt(width), parseInt(height)]);
+  }));
+}, `Measure target with value=${value} and wm=${writing_mode}`);
+</script>

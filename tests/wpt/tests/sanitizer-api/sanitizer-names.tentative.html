@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  // Quick sanity tests for namespaced elements.
+  // Each test case is a duo or triplet:
+  // - a Sanitizer config string for an element.
+  // - an HTML probe string.
+  // - the expected result. (If different from the probe.)
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+  [
+    [ "p", "<p>Hello</p>" ],
+    [ "svg", "<svg>Hello</svg>", "" ],
+    [ { name: "svg", namespace: SVG_NS }, "<svg>Hello</svg>" ],
+    [ "math", "<math>Hello</math>", "" ],
+    [ { name: "math", namespace: SVG_NS }, "<math>Hello</math>", "" ],
+    [ { name: "math", namespace: MATHML_NS }, "<math>Hello</math>" ],
+  ].forEach(([elem, probe, expected], index) => {
+    test(t => {
+      const div = document.createElement("div");
+      div.setHTML(probe, {sanitizer: {elements: [elem]}});
+      assert_equals(div.innerHTML, expected ?? probe);
+    }, `Namespaced elements #${index}: elements: [${JSON.stringify(elem)}]`);
+  });
+
+  // Same for attributes:
+  const XLINK_NS = "http://www.w3.org/1999/xlink";
+  [
+    [ { name: "style"}, "<p style=\"bla\"></p>" ],
+    [ { name: "href"}, "<p href=\"bla\"></p>" ],
+
+    // In HTML content, the HTML parser parses "xlink:href" as an attribute
+    // named "xlink:href" in the null namespace.
+    [ { name: "xlink:href"}, "<p xlink:href=\"bla\"></p>" ],
+    [ { name: "href", namespace: XLINK_NS}, "<p xlink:href=\"bla\"></p>", "<p></p>" ],
+    [ { name: "href", namespace: XLINK_NS}, "<p href='bla'></p>", "<p></p>" ],
+    [ { name: "href"}, "<p xlink:href='bla'></p>", "<p></p>" ],
+
+    // For "foreign elements" like <svg>, the HTML parser parses "xlink:href" as
+    // an attribtue named "href" in the XLink namespace.
+    [ { name: "xlink:href"}, "<svg xlink:href=\"bla\"></svg>", "<svg></svg>" ],
+    [ { name: "href", namespace: XLINK_NS}, "<svg xlink:href=\"bla\"></svg>" ],
+    [ { name: "href", namespace: XLINK_NS}, "<svg href='bla'></svg>", "<svg></svg>" ],
+    [ { name: "href"}, "<svg xlink:href='bla'></svg>", "<svg></svg>" ],
+  ].forEach(([attr, probe, expected], index) => {
+    test(t => {
+      const options = {attributes: [attr],
+                       elements: ["p", {name: "svg", namespace: SVG_NS}]};
+      const template = document.createElement("template");
+      template.setHTML(probe, {sanitizer: options});
+      assert_equals(template.content.firstElementChild.outerHTML, expected ?? probe);
+    }, `Namespaced attributes #${index}: attributes: [${JSON.stringify(attr)}]`);
+  });
+
+  // Test for namespaced attribute inside namespace element
+  test(t => {
+    const probe = `<svg><a xlink:href="bla"></a></svg>`;
+
+    const options = {
+      elements: [
+        {name: "svg", namespace: SVG_NS},
+        {name: "a", namespace: SVG_NS, attributes: [
+          { name: "href", namespace: XLINK_NS }
+        ]}
+      ]};
+    const template = document.createElement("template");
+    template.setHTML(probe, {sanitizer: options});
+    assert_equals(template.innerHTML, probe);
+  }, "Namespaced attribute xlink:href inside SVG tree");
+
+  // Names are case-senstive. Most element and attribute names are
+  // lower-cased, but "foreign content" like SVG and MathML have some
+  // mixed-cased names. Check this is supported.
+  [
+    [ "feBlend", "<feBlend></feBlend>" ],
+    [ "feColorMatrix", "<feColorMatrix></feColorMatrix>" ],
+    [ "textPath", "<textPath></textPath>" ],
+  ].forEach(([elem, probe], index) => {
+    const sanitize = (elem, probe) => {
+      const options = {elements: [
+          { name: "svg", namespace: SVG_NS },
+          { name: elem, namespace: SVG_NS }
+        ]};
+      const template = document.createElement("template");
+      template.setHTML(`<svg>${probe}</svg>`, {sanitizer: options});
+      return template.content.firstElementChild.innerHTML;
+    };
+    test(t => {
+      assert_equals(sanitize(elem, probe), probe);
+    }, `Mixed-case element names #${index}: "svg:${elem}"`);
+  });
+</script>
+</body>
+</html>

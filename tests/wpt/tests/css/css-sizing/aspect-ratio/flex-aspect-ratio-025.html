@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS aspect-ratio: Test flex item's resolved width/min-width with border-box box-sizing in a row flex container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+  <link rel="match" href="../../reference/ref-filled-green-200px-square.html" />
+  <style>
+  .flexContainer {
+    display: flex;
+    flex-direction: row;
+    width: 1px;
+  }
+  .item {
+    background: green;
+    padding-top: 15px;
+    padding-left: 10px;
+    box-sizing: border-box;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <!-- In all of the subtests here, each flex item's automatic minimum width is
+       resolved directly from its content size suggestion. Notably, these items
+       *do not* get a "transferred size suggestion", because they are all
+       *non-replaced* elements; and "transferred size suggestion" is only used
+       for resolving automatic minimum sizes on *replaced* elements. However,
+       note that we do "transfer" sizes through the aspect ratio, as part of
+       computing the content size suggestion and/or flex base size. -->
+
+  <!-- In the following four flex containers, the aspect-ratio works with border-box. -->
+  <div class="flexContainer" style="width: auto;">
+    <!-- The border-box height 25px is transferred to the main axis,
+         yielding a resolved flex base size (border-box) of 200px. -->
+    <div class="item" style="min-width:0; height: 25px; aspect-ratio: 8/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (border-box) is 200px because the
+         border-box height 25px is transferred to the main axis. -->
+    <div class="item" style="height: 25px; aspect-ratio: 8/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (border-box) is 200px because the
+         border-box height 25px (enforced by min-height) is transferred to the
+         main axis. -->
+    <div class="item" style="min-height: 25px; aspect-ratio: 8/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (border-box) is 200px because the
+         border-box height 25px (clamped by max-height) is transferred to the
+         main axis. -->
+    <div class="item" style="max-height: 25px; height: 100px; aspect-ratio: 8/1;"></div>
+  </div>
+
+  <!-- In the following four flex containers, the aspect-ratio works with content-box
+       because its value contains 'auto'. -->
+  <div class="flexContainer" style="width: auto;">
+    <!-- The content-box height 10px is transferred to the main axis,
+         yielding a resolved flex base size (content-box) of 190px. -->
+    <div class="item" style="min-width:0; height: 25px; aspect-ratio: auto 19/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (content-box) is 190px because the
+         content-box height 10px is transferred to the main axis. -->
+    <div class="item" style="height: 25px; aspect-ratio: auto 19/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (content-box) is 190px because the
+         content-box height 10px (enforced by min-height) is transferred to the
+         main axis. -->
+    <div class="item" style="min-height: 25px; aspect-ratio: auto 19/1;"></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content size suggestion (content-box) is 190px because the
+         content-box height 10px (clamped by max-height) is transferred to the
+         main axis. -->
+    <div class="item" style="max-height: 25px; height: 100px; aspect-ratio: auto 19/1;"></div>
+  </div>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder Blob event timecode</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../mediacapture-streams/permission-helper.js"></script>
+</head>
+<body>
+
+<script>
+  promise_test(async t => {
+    await setMediaPermission();
+    const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(tr => tr.stop()));
+    const recorder = new MediaRecorder(stream);
+
+    // Sets 0 timeslice will call the first chunk to be triggered immediately.
+    recorder.start(0);
+    let combinedSize = 0;
+    let previous_timecode = 0;
+    while (combinedSize < 2000) {
+      const {data, timecode} = await new Promise(r => recorder.ondataavailable = r);
+      if (combinedSize === 0) {
+        assert_equals(timecode, 0, "first chunk timecode must be 0");
+      } else {
+        assert_greater_than(timecode, previous_timecode, "timecode must increase monotonically");
+      }
+      previous_timecode = timecode;
+      combinedSize += data.size;
+    }
+    recorder.stop();
+  }, "MediaRecorder Blob timecode for first chunk must be 0 and monotonically increasing");
+
+</script>
+</body>
+</html>

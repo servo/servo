@@ -1,0 +1,101 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  exclude-paths:
+    - "tests/blink_perf/**"
+    - "tests/wpt/**"
+  schedule:
+    interval: daily
+    # default timezone is UTC
+    # CI is usually busiest during european daytime.
+    time: "00:00"
+  open-pull-requests-limit: 7
+  allow:
+  - dependency-type: direct
+  - dependency-type: indirect
+  groups:
+    accesskit-related:
+      patterns:
+        - "accesskit*"
+    egui-related:
+      patterns:
+        - "ecolor"
+        - "egui"
+        - "egui-file-dialog"
+        - "egui-winit"
+        - "egui_glow"
+        - "emath"
+        - "epaint"
+        - "epaint_default_fonts"
+    gstreamer-related:
+      patterns:
+        - "gio*"
+        - "glib*"
+        - "gobject*"
+        - "gstreamer*"
+    napi-ohos-related:
+      patterns:
+        - "napi-ohos*"
+        - "napi-*-ohos*"
+    objc2-related:
+      patterns:
+        - "objc2*"
+    sea-query-related:
+      patterns:
+        - "sea-query"
+        - "sea-query-rusqlite"
+    serde-related:
+      patterns:
+        - "serde"
+        - "serde_core"
+    servo-media-related:
+      patterns:
+        - "servo-media*"
+    strum-related:
+      patterns:
+        - "strum"
+        - "strum_macros"
+    tokio-rs-related:
+      # DO NOT add "tokio-rustls" below, which is from a separate repository.
+      patterns:
+        - "tokio"
+        - "tokio-stream"
+        - "tokio-util"
+    tungstenite-related:
+      patterns:
+        - "async-tungstenite"
+        - "tungstenite"
+    wayland-related:
+      patterns:
+        - "wayland-*"
+    zbus-related:
+      # From zbus repository
+      patterns:
+        - "zbus"
+        - "zbus_macros"
+        - "zbus_names"
+        - "zbus_xml"
+        - "zbus_xmlgen"
+        - "zvariant"
+        - "zvariant_derive"
+        - "zvariant_utils"
+    zbus-lockstep-related:
+      # From zbus-lockstep repository
+      patterns:
+        - "zbus-lockstep"
+        - "zbus-lockstep-macros"
+  ignore:
+  # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
+  - dependency-name: selectors
+  - dependency-name: servo_arc
+  - dependency-name: stylo
+  - dependency-name: stylo_atoms
+  - dependency-name: stylo_config
+  - dependency-name: stylo_derive
+  - dependency-name: stylo_dom
+  - dependency-name: stylo_malloc_size_of
+  - dependency-name: stylo_static_prefs
+  - dependency-name: stylo_traits
+  - dependency-name: to_shmem
+  - dependency-name: to_shmem_derive

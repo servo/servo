@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9093">
+<link rel=help href="https://drafts.csswg.org/css-position-4/#overlay">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>CSS Position Test: User agent style for overlay</title>
+
+<style>
+div {
+  overlay: auto;
+}
+</style>
+
+<body>
+<script>
+test(() => {
+  const div = document.createElement('div');
+  document.body.appendChild(div);
+  div.style.overlay = 'auto';
+  assert_equals(getComputedStyle(div).overlay, 'none');
+}, 'HTML elements should have overlay:none !important from the user-agent.');
+
+test(() => {
+  const svg = document.createElement('svg');
+  document.body.appendChild(svg);
+  svg.style.overlay = 'auto';
+  assert_equals(getComputedStyle(svg).overlay, 'none');
+}, 'SVG elements should have overlay:none !important from the user-agent.');
+
+test(() => {
+  const nullNamespace = document.createElementNS(null, 'div');
+  document.body.appendChild(nullNamespace);
+  assert_equals(getComputedStyle(nullNamespace).overlay, 'none');
+}, 'Null namespace elements should have overlay:none !important from the user-agent.');
+
+test(() => {
+  const weirdNamespace = document.createElementNS('hello world', 'div');
+  document.body.appendChild(weirdNamespace);
+  assert_equals(getComputedStyle(weirdNamespace).overlay, 'none');
+}, 'Arbitrary namespace elements should have overlay:none !important from the user-agent.');
+</script>

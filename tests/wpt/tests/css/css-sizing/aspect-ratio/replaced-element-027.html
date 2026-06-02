@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS aspect-ratio: video with aspect-ratio and contain:size</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5550">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="This test verifies aspect-ratio's <ratio> is used to determine the video's size because contain:size enforces no intrinsic aspect ratio.">
+
+  <style>
+  video {
+    width: 100px;
+    aspect-ratio: 1/1;
+    object-fit: fill;
+    contain: size;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <video poster="support/20x50-green.png"></video>
+</html>

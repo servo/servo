@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>hebrew, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name="assert" content="list-style: hebrew produces numbers up to 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol>
+<div><bdi dir=ltr>א. </bdi>א</div>
+<div><bdi dir=ltr>ב. </bdi>ב</div>
+<div><bdi dir=ltr>ג. </bdi>ג</div>
+<div><bdi dir=ltr>ד. </bdi>ד</div>
+<div><bdi dir=ltr>ה. </bdi>ה</div>
+<div><bdi dir=ltr>ו. </bdi>ו</div>
+<div><bdi dir=ltr>ז. </bdi>ז</div>
+<div><bdi dir=ltr>ח. </bdi>ח</div>
+<div><bdi dir=ltr>ט. </bdi>ט</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

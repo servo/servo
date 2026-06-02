@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Text 3 test reference</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+  div#test {
+      font: 20px/1 Ahem;
+      margin-left: 20px;
+      background: green;
+
+      width: 4ch;
+      white-space: pre;
+  }
+</style>
+<p>Test passes if a blue box (the white space) is visible at the left start in first line and <strong>no red</strong> is shown.</p>
+<div id="test"> <br> </div>

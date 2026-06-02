@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas">
+</canvas>
+<script>
+
+function createAudioTrack() {
+  ac = new AudioContext();
+  var osc = ac.createOscillator();
+  var dest = ac.createMediaStreamDestination();
+  osc.connect(dest);
+  audio_track = dest.stream.getAudioTracks()[0];
+
+  assert_equals(audio_track.kind, "audio");
+  return audio_track;
+}
+
+function createVideoTrack() {
+  canvas = document.getElementById("canvas");
+  video_track = canvas.captureStream().getVideoTracks()[0];
+
+  assert_equals(video_track.kind, "video");
+  return video_track;
+}
+
+test(t => {
+  audio_track = createAudioTrack();
+  assert_equals("", audio_track.contentHint);
+
+  video_track = createVideoTrack();
+  assert_equals("", video_track.contentHint);
+}, "Tracks have empty default content hint");
+
+test(t => {
+  audio_track = createAudioTrack();
+  audio_track.contentHint = "speech";
+  assert_equals(audio_track.contentHint, "speech");
+  audio_track.contentHint = "music";
+  assert_equals(audio_track.contentHint, "music");
+  audio_track.contentHint = "";
+  assert_equals(audio_track.contentHint, "");
+}, "Accepts valid audio contentHints");
+
+test(t => {
+  audio_track = createAudioTrack();
+  audio_track.contentHint = "speech";
+  assert_equals(audio_track.contentHint, "speech");
+  audio_track.contentHint = "motion";
+  assert_equals(audio_track.contentHint, "speech",
+                "Audio tracks should ignore video-only contentHints.");
+  audio_track.contentHint = "bogus";
+  assert_equals(audio_track.contentHint, "speech",
+                "Audio tracks should ignore garbage contentHints");
+}, "Audio tracks ignore invalid/video contentHints");
+
+test(t => {
+  video_track = createVideoTrack();
+  video_track.contentHint = "motion";
+  assert_equals(video_track.contentHint, "motion");
+  video_track.contentHint = "detail";
+  assert_equals(video_track.contentHint, "detail");
+  video_track.contentHint = "text";
+  assert_equals(video_track.contentHint, "text");
+  video_track.contentHint = "";
+  assert_equals(video_track.contentHint, "");
+}, "Accepts valid video contentHints");
+
+test(t => {
+  video_track = createVideoTrack();
+  video_track.contentHint = "motion";
+  assert_equals(video_track.contentHint, "motion");
+  video_track.contentHint = "speech";
+  assert_equals(video_track.contentHint, "motion",
+                "Video tracks should ignore audio-only contentHints.");
+  video_track.contentHint = "bogus";
+  assert_equals(video_track.contentHint, "motion",
+                "Video tracks should ignore garbage contentHints");
+}, "Video tracks ignore invalid/audio contentHints");
+
+test(t => {
+  video_track = createVideoTrack();
+  video_track.contentHint = "motion";
+  assert_equals(video_track.contentHint, "motion");
+
+  // Cloning a track should preserve contentHint.
+  video_track_clone = video_track.clone();
+  assert_equals(video_track_clone.contentHint, "motion");
+
+  // Changing a cloned track's contentHint should not change the original.
+  video_track_clone.contentHint = "detail";
+  assert_equals(video_track_clone.contentHint, "detail");
+  assert_equals(video_track.contentHint, "motion");
+}, "Cloned video tracks have separate contentHints");
+
+test(t => {
+  audio_track = createAudioTrack();
+  audio_track.contentHint = "speech";
+  assert_equals(audio_track.contentHint, "speech");
+
+  // Cloning a track should preserve contentHint.
+  audio_track_clone = audio_track.clone();
+  assert_equals(audio_track_clone.contentHint, "speech");
+
+  // Changing a cloned track's contentHint should not change the original.
+  audio_track_clone.contentHint = "music";
+  assert_equals(audio_track_clone.contentHint, "music");
+  assert_equals(audio_track.contentHint, "speech");
+}, "Cloned audio tracks have separate contentHints");
+
+</script>

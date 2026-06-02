@@ -1,0 +1,24 @@
+<!-- quirks mode -->
+<link rel="author" title="Martin Robinson" href="mrobinson@igalia.com">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+<link rel="help" href="https://drafts.csswg.org/css-text/#valdef-white-space-pre-line">
+<link rel="match" href="../css/reference/ref-filled-green-100px-square.xht">
+
+<style>
+    .container {
+        width: 100px;
+        background: green;
+        white-space: pre-line;
+    }
+
+    .inline-box {
+        line-height: 100px;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+    <!-- The preserved segment break in the span should mean that "The line height calculation
+    quirk" does not apply. -->
+  <div class="container"><span class="inline-box">&#xA;</span></div>
+</div>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Delegate-CH meta-equiv injection test</title>
+  <meta http-equiv="Delegate-CH" content="">
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+// Even though the next line injects an "Delegate-CH" meta-equiv header, the
+// browser should NOT attach the specified client hints in the request headers
+// because javascript injected delegate-ch meta-equiv headers are not trusted.
+document.getElementsByTagName('meta')[0].setAttribute("content", "dpr;sec-ch-dpr;device-memory;sec-ch-device-memory;viewport-width;sec-ch-viewport-width;rtt;downlink;ect");
+document.head.outerHTML += '<meta http-equiv="Delegate-CH" content="sec-ch-ua-arch;sec-ch-ua-platform;sec-ch-ua-model">';
+document.head.innerHTML += '<meta http-equiv="Delegate-CH" content="sec-ch-ua-full-version;sec-ch-ua-bitness;sec-ch-ua-full-version-list">';
+document.write('<meta http-equiv="Delegate-CH" content="sec-ch-ua-platform-version;sec-ch-prefers-color-scheme;sec-ch-prefers-reduced-motion;sec-ch-viewport-height;sec-ch-prefers-reduced-transparency">');
+
+// resources/echo-client-hints-received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
+promise_test(t => {
+  return fetch("/client-hints/resources/echo-client-hints-received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser does not include client hints for javascript
+    // injected headers on the XHR.
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_false(r.headers.has("device-memory-deprecated-received"), "device-memory-deprecated-received");
+    assert_false(r.headers.has("dpr-received"), "dpr-received");
+    assert_false(r.headers.has("dpr-deprecated-received"), "dpr-deprecated-received");
+    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("viewport-width-deprecated-received"), "viewport-width-deprecated-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
+    assert_false(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
+    assert_false(r.headers.has("prefers-reduced-transparency-received"), "prefers-reduced-transparency-received");
+  });
+}, "Delegate-CH meta-equiv injection test");
+
+</script>
+</body>
+</html>

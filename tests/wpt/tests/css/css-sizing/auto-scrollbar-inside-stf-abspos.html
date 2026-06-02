@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#valdef-width-fit-content-length-percentage">
+<link rel="match" href="auto-scrollbar-inside-stf-abspos-ref.html">
+<style>
+  /* Set non-auto overflow on the viewport, so that the UA is more likely to get
+     the size right the first time. Otherwise, a re-layout might hide the bug
+     that we're trying to test. */
+  body { overflow:hidden; }
+</style>
+<p>The word PASS should be visible below.</p>
+<div style="position:absolute;">
+  <div style="height:5em; overflow-y:auto;">
+    <div style="height:15em;">PASS</div>
+  </div>
+</div>

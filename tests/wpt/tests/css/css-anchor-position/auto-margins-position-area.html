@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: position-area vs margins</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-area">
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position/#anchor-center">
+
+<link rel="match" href="auto-margins-position-area-ref.html">
+
+<style>
+  .container {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    margin: 0 auto;
+    border: 2px solid;
+  }
+  .anchor {
+    margin-top: 100px;
+    margin-left: 100px;
+    width: 150px;
+    height: 75px;
+    anchor-name: --anchor;
+    border: solid 1px;
+  }
+
+  .anchored {
+    position: absolute;
+    position-anchor: --anchor;
+    inset: 0;
+    width: 20px;
+    height: 20px;
+    border: solid 1px;
+    opacity: 30%;
+    margin: auto 0 0 auto;
+  }
+</style>
+<div class="container">
+  <div class="anchored" style="background: silver"></div>
+  <div class="anchored" style="position-area: span-all; background: maroon"></div>
+  <div class="anchored" style="position-area: top center; background: orange"></div>
+  <div class="anchored" style="position-area: left center; background: yellow"></div>
+  <div class="anchored" style="position-area: bottom right; background: lime"></div>
+  <div class="anchored" style="position-area: span-right; background: green"></div>
+  <div class="anchored" style="position-area: span-bottom; background: teal"></div>
+  <div class="anchored" style="position-area: right; background: blue"></div>
+  <div class="anchored" style="position-area: bottom; background: purple"></div>
+  <div class="anchored" style="align-self: anchor-center; background: fuchsia"></div>
+  <div class="anchored" style="justify-self: anchor-center; background: aqua"></div>
+  <div class="anchor"></div>
+</div>

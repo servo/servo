@@ -1,0 +1,8 @@
+features:
+- name: gamepad
+  files:
+  - "*"
+  - "!*-rumble-effect-*"
+- name: gamepad-haptics
+  files:
+  - "*-rumble-effect-*"

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Color Leaks Between Seams</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties"/>
+  <link rel="match" href="reference/border-seams-001.xht"/>
+  <meta name="assert" content="Test checks that graphical seams don't leak underlying colors"/>
+  <style type="text/css"><![CDATA[
+   #outer { width: 250px;
+            border: 50px solid;
+            border-color: #FEFEFE #FDFDFD #FEFEFE #FEFEFE;
+            background: red;
+            }
+   #inner { background: white;
+            border: 20px solid;
+            border-color: #FCFCFC; #FCFCFC; #FDFDFD #FCFCFC;
+            }
+  ]]></style>
+ </head>
+ <body>
+
+<div id="outer">
+<div id="inner">
+  There must be no red, not even when printing.
+</div>
+</div>
+</body>
+</html>

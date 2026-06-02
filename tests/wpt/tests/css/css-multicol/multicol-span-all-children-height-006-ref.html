@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test the borders drawing for a block split by column-span</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  article {
+    column-count: 2;
+    width: 400px;
+    background-color: lightgreen;
+  }
+  div.container {
+    background-color: pink;
+    border: 20px solid purple;
+  }
+  div.block {
+    /* This block spreads evenly into two columns, each has 100px height. */
+    width: 100px;
+    height: 200px;
+    background-color: yellow;
+  }
+  div.column-span {
+    width: 400px;
+    height: 50px;
+    background-color: lightblue;
+  }
+  </style>
+
+  <article>
+    <div class="container" style="border-bottom: none; height: 200px; margin-top: 1em;">
+      <div class="block">block1</div>
+    </div>
+  </article>
+  <div class="column-span">column-span1</div>
+  <article>
+    <div class="container" style="border-top: none; height: 50px; margin-bottom: 1em;">
+      <div class="block">block2</div>
+    </div>
+  </article>
+</html>

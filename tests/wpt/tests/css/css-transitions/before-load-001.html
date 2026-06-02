@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions Test: Transitioning before load event</title>
+<meta name="assert" content="Test checks that transitions are run even before the load event fires">
+<!-- NOTE: This test covers unspecified behavior and should probably be
+     removed. It this behavior *were* specified, it would probably be
+     specified here: -->
+<link rel="help" title="5. Transition Events" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="author" title="Rodney Rehm" href="http://rodneyrehm.de/en/">
+
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+
+</head>
+<body>
+
+<script>
+// Make sure a transition can run before the load event fires.
+
+let loadEventFired = false;
+window.addEventListener('load', () => {
+  loadEventFired = true;
+}, false);
+
+async_test(t => {
+  const div = addDiv(t, { style: 'transition: height .01s linear; ' +
+                                 'height: 1px' });
+  getComputedStyle(div).height;
+  div.style.height = '100px';
+
+  div.addEventListener('transitionrun', t.step_func_done(() => {
+    assert_false(
+      loadEventFired,
+      'load event should not have fired yet'
+    );
+    document.getElementById('cat').src = '';
+  }));
+});
+</script>
+
+<img src="support/cat.png?pipe=trickle(d1)" id="cat">
+</body>
+</html>

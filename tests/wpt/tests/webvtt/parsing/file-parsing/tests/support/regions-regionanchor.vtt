@@ -1,0 +1,149 @@
+WEBVTT
+
+NOTE valid
+
+REGION
+id:0
+
+REGION
+id:1
+regionanchor:0%,0%
+
+REGION
+id:2
+regionanchor:1%,1%
+
+REGION
+id:3
+regionanchor:100%,0%
+
+REGION
+id:4
+regionanchor:0%,100%
+
+REGION
+id:5
+regionanchor:100%,100%
+
+NOTE invalid
+
+REGION
+id:6
+regionanchor:0,0
+
+REGION
+id:7
+regionanchor:0%,0
+
+REGION
+id:8
+regionanchor:0,0%
+
+REGION
+id:9
+regionanchor:1%
+
+REGION
+id:10
+regionanchor:,1%
+
+REGION
+id:11
+regionanchor:101%,1%
+
+REGION
+id:12
+regionanchor:1%,101%
+
+REGION
+id:13
+regionanchor:-0%,0%
+
+REGION
+id:14
+regionanchor:0%,-0%
+
+REGION
+id:15
+regionanchor:65536%,65536%
+
+REGION
+id:16
+regionanchor:4294967296%,4294967296%
+
+REGION
+id:17
+regionanchor:18446744073709552000%,18446744073709552000%
+
+REGION
+id:18
+regionanchor:10000000000000000000000000000000000%,10000000000000000000000000000000000%
+
+REGION
+id:19
+regionanchor: 100%,100%
+regionanchor :100%,100%
+regionanchor:100% ,100%
+regionanchor:100%, 100%
+regionanchor:100 %,100%
+regionanchor:100%,100 %
+
+00:00:00.000 --> 00:00:01.000 region:0
+text
+
+00:00:00.000 --> 00:00:01.000 region:1
+text
+
+00:00:00.000 --> 00:00:01.000 region:2
+text
+
+00:00:00.000 --> 00:00:01.000 region:3
+text
+
+00:00:00.000 --> 00:00:01.000 region:4
+text
+
+00:00:00.000 --> 00:00:01.000 region:5
+text
+
+00:00:00.000 --> 00:00:01.000 region:6
+text
+
+00:00:00.000 --> 00:00:01.000 region:7
+text
+
+00:00:00.000 --> 00:00:01.000 region:8
+text
+
+00:00:00.000 --> 00:00:01.000 region:9
+text
+
+00:00:00.000 --> 00:00:01.000 region:10
+text
+
+00:00:00.000 --> 00:00:01.000 region:11
+text
+
+00:00:00.000 --> 00:00:01.000 region:12
+text
+
+00:00:00.000 --> 00:00:01.000 region:13
+text
+
+00:00:00.000 --> 00:00:01.000 region:14
+text
+
+00:00:00.000 --> 00:00:01.000 region:15
+text
+
+00:00:00.000 --> 00:00:01.000 region:16
+text
+
+00:00:00.000 --> 00:00:01.000 region:17
+text
+
+00:00:00.000 --> 00:00:01.000 region:18
+text
+
+00:00:00.000 --> 00:00:01.000 region:19
+text

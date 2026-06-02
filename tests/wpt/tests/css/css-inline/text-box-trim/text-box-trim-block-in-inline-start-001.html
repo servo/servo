@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>text-box-trim: trim-start is propagated to the last formatted line,
+even if it's within a block-in-inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="match" href="text-box-trim-block-in-inline-start-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  background: lightgray;
+  block-size: 50px;
+}
+.target {
+  font: 50px/2 Ahem;
+  text-box-trim: trim-start;
+  text-box-edge: text;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <span>
+    <div>
+      A<br>
+      B
+    </div>
+  </span>
+  C
+</div>
+<div class="spacer"></div>

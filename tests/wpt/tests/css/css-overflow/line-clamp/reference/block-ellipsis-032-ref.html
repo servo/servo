@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: test reference</title>
+<style>
+.clamp {
+  border: 1px solid black;
+  font-family: monospace;
+  width: 29ch;
+  text-wrap: nowrap;
+  margin-bottom: 1em;
+}
+.right {
+    text-align: right;
+}
+.justified {
+    text-align-last: justify;
+}
+.green {
+    color: green;
+    font-weight: bold;
+}
+</style>
+
+<p>Test passes if the text in the following blocks, including the ellipsis, is aligned to the proper
+margin, and if they all have some green text and no red.</p>
+
+<div class="clamp">
+    This text is <span class="green">left-aligned</span>…
+</div>
+<div class="clamp right">
+    This text is <span class="green">right-aligned</span>…
+</div>
+<div class="clamp justified">
+    This text is <span class="green">justified</span>…
+</div>

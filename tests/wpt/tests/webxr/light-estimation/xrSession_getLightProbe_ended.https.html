@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    xr_session_promise_test(
+      "getLightProbe rejects on an ended session",
+      (session, controller, t) => {
+        return session.end().then(() => {
+          return promise_rejects_dom(t, "InvalidStateError", session.requestLightProbe())
+        })
+      },
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar',
+      {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

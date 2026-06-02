@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: use snapshot containing block for absolute position (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<style>
+:root {
+  background-color: red;
+}
+
+body {
+  height: 400vh;
+}
+
+#target {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 100px;
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+
+  background: darkseagreen;
+}
+
+#view-transition {
+  position: absolute;
+  left: 20px;
+  top: 640px;
+  width: 700px;
+  height: 500px;
+  background-color: limegreen;
+}
+
+</style>
+
+<div id="view-transition">
+  <div id="target">TARGET</div>
+</div>
+
+<script>
+onload = () => {
+  const scrollTargetY = 600;
+  window.scrollTo(0, scrollTargetY);
+}
+</script>

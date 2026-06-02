@@ -1,0 +1,20 @@
+WEBVTT
+Valid vertical direction settings.
+
+1
+00:00:00.000 --> 00:00:30.500 vertical:rl
+Bear is Coming!!!!!
+Renders on the right side of the video viewport, middle aligned,
+top to bottom, growing left.
+
+2
+00:00:31.000 --> 00:01:00.500 vertical:lr
+I said Bear is coming!!!!
+Renders on the left side of the video viewport, middle aligned,
+top to bottom, growing right.
+
+3
+00:01:01.000 --> 00:02:00.500 vertical:rl align:start position:0%
+I said Bear is coming now!!!!
+Renders on the right side of the video viewport, top aligned both
+for the cue box and the text within, text from top to bottom, growing left.

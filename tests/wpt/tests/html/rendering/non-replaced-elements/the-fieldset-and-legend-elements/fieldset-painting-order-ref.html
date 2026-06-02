@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Reference for fieldset painting order</title>
+<style>
+div { width: 200px; height: 200px; }
+#a { background: green; }
+#b { background: lime; position: relative; top: -100px; left: 100px; }
+</style>
+<p>There should be no red.</p>
+<div id=a></div>
+<div id=b></div>

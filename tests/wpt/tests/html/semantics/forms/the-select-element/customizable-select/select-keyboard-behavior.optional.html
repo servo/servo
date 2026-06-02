@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<meta name=timeout content=long>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
+<link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
+<link rel=help href="https://github.com/openui/open-ui/issues/386#issuecomment-1452469497">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- This test is optional because the HTML spec does not require that specific
+  behaviors are mapped to specific keyboard buttons. -->
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<form></form>
+
+<div id=notform>
+  <select id=defaultbutton>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+
+  <select id=custombutton>
+    <button>custom button</button>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<script>
+const Enter = '\uE007';
+const Escape = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+const Space = ' ';
+const Tab = '\uE004';
+const Shift = '\uE008';
+const form = document.querySelector('form');
+const notform = document.getElementById('notform');
+
+for (const id of ['defaultbutton', 'custombutton']) {
+  const select = document.getElementById(id);
+
+  async function closeListbox() {
+    await test_driver.click(select);
+    select.focus();
+    await new Promise(requestAnimationFrame);
+  }
+
+  function addCloseCleanup(t) {
+    t.add_cleanup(async () => {
+      if (select.matches(':open')) {
+        await closeListbox();
+      }
+      if (select.matches(':open')) {
+        throw new Error('select failed to close!');
+      }
+      select.value = 'one';
+    });
+  }
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    select.focus();
+    assert_false(select.matches(':open'),
+      'The select should initially be closed.');
+    await test_driver.send_keys(document.activeElement, Space);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'The select should be open after pressing space.');
+
+    await test_driver.send_keys(document.activeElement, Escape);
+    assert_equals(document.activeElement, select,
+      'After dismissing the popover, the invoker button should be focused again.');
+  }, `${id}: When the listbox is closed, spacebar should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    select.value = 'two';
+    select.focus();
+    assert_false(select.matches(':open'),
+      'The select should initially be closed.');
+
+    await test_driver.send_keys(document.activeElement, ArrowLeft);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'Arrow left should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow left should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'Arrow up should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow up should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowRight);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'Arrow right should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow right should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'Arrow down should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow down should not change the selected value.');
+  }, `${id}: When the listbox is closed, all arrow keys should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    form.appendChild(select);
+    let formWasSubmitted = false;
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      formWasSubmitted = true;
+    }, {once: true});
+    await test_driver.send_keys(select, Enter);
+    await new Promise(requestAnimationFrame);
+    assert_false(formWasSubmitted,
+      'Enter should not submit the form when the listbox is closed.');
+    if (navigator.platform.startsWith('Mac')) {
+      assert_false(select.matches(':open'),
+        'Enter should not open the listbox on Mac platforms.');
+    } else {
+      assert_true(select.matches(':open'),
+        'Enter should open the listbox on non-Mac platforms.');
+    }
+  }, `${id}: When the listbox is closed, the enter key should not trigger form submission.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    const optionOne = select.querySelector('.one');
+    const optionTwo = select.querySelector('.two');
+    const optionThree = select.querySelector('.three');
+
+    select.value = 'two';
+    await test_driver.click(select);
+    await new Promise(requestAnimationFrame);
+    assert_true(select.matches(':open'),
+      'The select should open when clicked.');
+    assert_equals(document.activeElement, optionTwo,
+      'The selected option should receive initial focus.');
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    await new Promise(requestAnimationFrame);
+    assert_equals(document.activeElement, optionThree,
+      'The next option should receive focus when the down arrow key is pressed.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
+    assert_equals(document.activeElement, optionTwo,
+      'The previous option should receive focus when the up arrow key is pressed.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
+    assert_equals(document.activeElement, optionOne,
+      'The first option should be selected.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    let firedInput = false;
+    let firedChange = false;
+    select.addEventListener('input', () => firedInput = true);
+    select.addEventListener('change', () => firedChange = true);
+    await test_driver.send_keys(document.activeElement, Enter);
+    await new Promise(requestAnimationFrame);
+    assert_false(select.matches(':open'),
+      'The listbox should be closed after pressing enter.');
+    assert_equals(select.value, 'one',
+      'The selects value should change after pressing enter on a different option.');
+    assert_true(firedInput, 'The input event should be fired when choosing an option.');
+    assert_true(firedChange, 'The change event should be fired when choosing an option.');
+  }, `${id}: When the listbox is open, the enter key should commit the selected option.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+
+    select.focus();
+    await test_driver.send_keys(select, Space);
+    assert_true(select.matches(':open'),
+      'Space should open the listbox.');
+    assert_equals(document.activeElement, select.querySelector('.one'),
+      'The first option should be focused when opening the listbox.');
+
+    await test_driver.send_keys(document.activeElement, Tab);
+    assert_false(select.matches(':open'),
+      'Tab should close the listbox.');
+
+    // TODO(crbug.com/40263709): Remove this blur when focus on close is improved.
+    document.activeElement.blur();
+
+    await test_driver.send_keys(select, Space);
+    assert_true(select.matches(':open'),
+      'Second space should open the listbox.');
+    assert_equals(document.activeElement, select.querySelector('.one'),
+      'The first option should be focused when opening the listbox.');
+
+    const actions = new test_driver.Actions()
+      .keyDown(Shift)
+      .keyDown(Tab)
+      .keyUp(Tab)
+      .keyUp(Shift);
+    await actions.send();
+    assert_false(select.matches(':open'),
+      'Shift+tab should close the listbox.');
+  }, `${id}: When the listbox is open, the tab key should close the listbox.`);
+}
+</script>

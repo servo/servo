@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCSctpTransport.prototype.maxChannels</title>
+<link rel="help" href="https://w3c.github.io/webrtc-pc/#rtcsctptransport-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+  pc.createDataChannel('test');
+  const offer = await pc.createOffer();
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxChannels, null, 'maxChannels must not be set');
+}, 'An unconnected peerconnection must not have maxChannels set');
+
+promise_test(async (t) => {
+    const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  exchangeIceCandidates(pc1, pc2);
+  pc1.createDataChannel('');
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  const pc1ConnectedWaiter = waitForState(pc1.sctp, 'connected');
+  await pc2.setRemoteDescription(offer);
+  const pc2ConnectedWaiter = waitForState(pc2.sctp, 'connected');
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  assert_equals(null, pc1.sctp.maxChannels);
+  assert_equals(null, pc2.sctp.maxChannels);
+  await pc1ConnectedWaiter;
+  await pc2ConnectedWaiter;
+  assert_not_equals(null, pc1.sctp.maxChannels);
+  assert_not_equals(null, pc2.sctp.maxChannels);
+  assert_equals(pc1.sctp.maxChannels, pc2.sctp.maxChannels);
+}, 'maxChannels gets instantiated after connecting');
+</script>

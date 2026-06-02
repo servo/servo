@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>SVG &lt;view>-based sprites in background-image, background-size: contain</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-size">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-image: url('support/sprite-view-no-viewbox.svg#rect');
+    background-repeat: no-repeat;
+    background-position: 50%;
+    border: 25px solid green;
+    box-sizing: border-box;
+    background-origin: border-box;
+    background-size: contain;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target"></div>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async () => {
+      const worker = new Worker("resources/worker-navigation-id.js");
+
+      const navigationId = await new Promise(resolve => {
+        worker.onmessage = (e) => {
+          resolve(e.data);
+        };
+        worker.postMessage('');
+      });
+
+      assert_equals(navigationId, 0, '0 indicates the absence of a navigation id.');
+    }, 'Navigation id of performance entries created by workers should be 0.');
+  </script>
+</body>
+
+</html>

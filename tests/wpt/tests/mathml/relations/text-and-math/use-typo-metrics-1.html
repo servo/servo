@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>Open Font Format: USE_TYPO_METRICS</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#text-layout"/>
+<link rel="match" href="use-typo-metrics-1-ref.html"/>
+<meta name="assert" content="Verify that the USE_TYPO_METRICS flag from the OS/2 table is taken into account to calculate line height.">
+<style>
+  @font-face {
+    font-family: TestFont;
+    src: url("/fonts/math/lineheight5000-typolineheight2300.woff");
+  }
+  .green {
+     position: absolute;
+     background: green;
+     width: 115px;
+  }
+  .red {
+     position: absolute;
+     background: red;
+     width: 115px;
+  }
+  .forceHeight {
+    height: 230px;
+  }
+  .leftSide {
+    left: 10px;
+  }
+  .rightSide {
+    left: 125px;
+  }
+  span {
+    /* em=1000, lineHeight=5000, typoLineHeight=2300 and font-size=100px
+       implies typoLineHeightPx = 230px < 500px = lineHeightPx */
+     font-family: TestFont;
+     font-size: 100px;
+     color: transparent;
+  }
+</style>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+
+  <div>
+    <!-- Left side verifies that typoLineHeightPx <= 230px -->
+    <div class="leftSide red"><span>O</span></div>
+    <div class="leftSide green forceHeight"></div>
+
+    <!-- Right side verifies that typoLineHeightPx => 230px -->
+    <div class="rightSide red forceHeight"></div>
+    <div class="rightSide green"><span>O</span></div>
+  </div>
+</body>

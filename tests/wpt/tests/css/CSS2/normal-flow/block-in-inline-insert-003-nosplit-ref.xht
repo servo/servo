@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+  <title>CSS Test Reference</title>
+  <link rel="match" href="block-in-inline-insert-003-ref.xht"/>
+  <style type="text/css">
+   body &gt; span { border: 3px solid blue }
+   .notstart { border-left: none; }
+   .notend { border-right: none; }
+  </style>
+ </head>
+ <body>
+  <span class="notend">
+    <span>One</span><span>Two</span><span>Three</span>
+  </span>
+  <div>Four</div>
+  <span class="notstart notend"></span>
+  <div>Five</div>
+  <span class="notstart notend">
+    <span>Six</span>
+  </span>
+  <div>Seven</div>
+  <span class="notstart notend"></span>
+  <div>Eight</div>
+  <span class="notstart">
+    <span>Nine</span>
+  </span>
+
+
+</body></html>

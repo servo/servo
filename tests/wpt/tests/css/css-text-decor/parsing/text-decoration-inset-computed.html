@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Computed value of text-decoration-inset</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<meta name="assert" content="text-decoration-inset supports the full grammar '<length>{1,2} | auto'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#target { font: 20px Ahem; }
+</style>
+<body>
+<div id="target"></div>
+<script>
+// Ensure Ahem is loaded so that the 'ch' unit resolves as expected;
+// without this the load may be asynchronous, and the value will initially
+// resolve against the default font instead.
+document.fonts.load("20px Ahem").then(() => {
+  test_computed_value("text-decoration-inset", "0px");
+  test_computed_value("text-decoration-inset", "0", "0px");
+  test_computed_value("text-decoration-inset", "0px 0px", "0px");
+  test_computed_value("text-decoration-inset", "0.5em", "10px");
+  test_computed_value("text-decoration-inset", "-1em", "-20px");
+  test_computed_value("text-decoration-inset", "-1ch -1ch", "-20px");
+  test_computed_value("text-decoration-inset", "1px 2px");
+  test_computed_value("text-decoration-inset", "1ch -1ch", "20px -20px");
+  test_computed_value("text-decoration-inset", "calc(1em / 4) calc(-1ch)", "5px -20px");
+  test_computed_value("text-decoration-inset", "auto");
+});
+</script>

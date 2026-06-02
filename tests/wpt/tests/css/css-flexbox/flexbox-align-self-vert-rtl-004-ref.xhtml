@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for align-items / align-self behavior in a vertical
+     "direction: rtl" flex container, using blocks in place of flex items and
+     using float and width keywords to emulate the align-items / align-self
+     properties. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        border: 1px dashed blue;
+        width: 4px;
+        float: left;
+        direction: rtl;
+        font-family: sans-serif;
+        font-size: 10px;
+        margin-left: 80px;
+      }
+
+      .flex-start, .flex-end, .center, .baseline, .stretch {
+        clear: both;
+        margin:       1px 2px 3px 4px;
+        border-width: 2px 3px 4px 5px;
+        padding:      3px 4px 5px 6px;
+        border-style: dotted;
+      }
+
+      div.big {
+        font-size: 18px;
+        width: 50px;
+      }
+
+      /* Classes for each of the various align-self values */
+      .flex-start {
+        background: lime;
+        float: right;
+      }
+      .flex-end {
+        background: orange;
+        float: left;
+      }
+      <!-- We center shrinkwrapped text by putting it into an inline-block, and
+           then wrapping that inline-block in a helper-div that has
+           "text-align:center" set. For this to work, the parent has to be at
+           least as wide as the centered content inside of it, so we make it
+           large with a negative margin such that its center aligns with the
+           4px-wide container's center. -->
+      .centerParent {
+        text-align: center;
+        width: 100px;
+        margin-right: -48px;
+      }
+      .center {
+        background: lightblue;
+        display: inline-block;
+        text-align: right; /* Keep parent's centering from tweaking my text */
+      }
+      .baselineParent {
+        float: right;
+      }
+      .baseline {
+        background: teal;
+        float: left;
+      }
+      .stretch {
+        background: pink;
+      }
+      .clearFloats { clear: both }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b</div>
+      <div class="clearFloats"></div>
+      <div class="stretch">stretch</div>
+      <!-- Force a 3px + 1px = 4px margin between this and the previous div
+           (to thwart the effects of margin-collapsing). This is the only
+           place we need this hack, because everywhere else in this test
+           we use floats or inline-blocks, whose margins don't collapse. -->
+      <div class="stretch big" style="margin-top: 4px">a b</div>
+      <div class="centerParent">
+        <div class="center">center</div>
+      </div>
+      <div class="centerParent">
+        <div class="center big">a b</div>
+      </div>
+    </div>
+    <div class="flexbox">
+      <div class="baselineParent">
+        <div class="baseline">base</div>
+        <div class="baseline big">abc</div>
+      </div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b</div>
+    </div>
+  </body>
+</html>

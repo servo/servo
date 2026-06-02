@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>inline block ::before styles should apply inside ::first-line</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#generated-content">
+<link rel="match" href="first-line-with-inline-block-before-ref.html">
+<style>
+  #target::first-line {
+    color: red;
+  }
+  #target::before {
+    content: "green";
+    color: green;
+    display: inline-block;
+  }
+</style>
+<div id="target">red</div>

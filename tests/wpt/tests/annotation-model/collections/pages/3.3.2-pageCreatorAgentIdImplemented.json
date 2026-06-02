@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-pageCreatorAgentIdImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Single id for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key)  not found for any Creator. Agents should have exactly one id of format uri.",
+  "title": "Implements Annotation Page-level creator (Agent) (i.e., in description of Collection included using partOf key) **_id_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when at least one Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) has exactly one id (Section 3.3.2)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+           { "$ref": "#/definitions/creatorAgentIdFound" }
+  },
+  "required": [ "partOf" ],
+  "definitions": {
+   "creatorAgentIdFound":
+   {
+    "properties":
+    {  "creator":
+      { "oneOf":
+        [
+         { "$ref": "id.json#/definitions/idValueFound" },
+         { "type": "array",
+           "minItems": 1,
+           "not":
+           { "items": { "not": { "$ref": "id.json#/definitions/idValueFound" } } }
+         }
+        ]
+      }
+    },
+    "required": ["creator"]
+   }
+  }
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP sign-in status API tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        alt_manifest_origin,
+        alt_request_options_with_mediation_required,
+        fedcm_get_and_select_first_account,
+        mark_signed_out} from '../support/fedcm-helper.sub.js';
+
+async function createIframeWithPermissionPolicyAndWaitForMessage(test, iframeUrl) {
+  const messageWatcher = new EventWatcher(test, window, "message");
+  let iframe = document.createElement("iframe");
+  iframe.src = iframeUrl;
+  iframe.allow = "identity-credentials-get";
+  document.body.appendChild(iframe);
+  let message = null;
+  // Ignore internal "testdriver-complete" messages.
+  do {
+      message = await messageWatcher.wait_for("message");
+  } while (!("result" in message.data));
+  return message.data;
+}
+
+fedcm_test(async t => {
+  await mark_signed_out();
+  const config = request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'FedCM request should fail because we are marked as not logged in');
+
+fedcm_test(async t => {
+  // Log in so that the browser allows the later user info request.
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
+  assert_equals(cred.token, "token");
+
+  await mark_signed_out(alt_manifest_origin);
+
+  const iframe_in_idp_scope = `${alt_manifest_origin}/\
+fedcm/support/fedcm/userinfo-iframe.html`;
+  const message = await createIframeWithPermissionPolicyAndWaitForMessage(t, iframe_in_idp_scope);
+  assert_equals(message.result, "Fail");
+
+}, 'User info request should fail because we are marked as not logged in');
+</script>

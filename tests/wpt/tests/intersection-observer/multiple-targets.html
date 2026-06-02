@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+.target {
+  width: 100px;
+  height: 100px;
+  margin: 10px;
+  background-color: green;
+}
+</style>
+
+<div class="spacer"></div>
+<div id="target1" class="target"></div>
+<div id="target2" class="target"></div>
+<div id="target3" class="target"></div>
+
+<script>
+var entries = [];
+var target1, target2, target3;
+
+runTestCycle(function() {
+  target1 = document.getElementById("target1");
+  assert_true(!!target1, "target1 exists.");
+  target2 = document.getElementById("target2");
+  assert_true(!!target2, "target2 exists.");
+  target3 = document.getElementById("target3");
+  assert_true(!!target3, "target3 exists.");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target1);
+  observer.observe(target2);
+  observer.observe(target3);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.");
+}, "One observer with multiple targets.");
+
+function step0() {
+  document.scrollingElement.scrollTop = 150;
+  runTestCycle(step1, "document.scrollingElement.scrollTop = 150");
+  assert_equals(entries.length, 3, "Three initial notifications.");
+  assert_equals(entries[0].target, target1, "entries[0].target === target1");
+  assert_equals(entries[1].target, target2, "entries[1].target === target2");
+  assert_equals(entries[2].target, target3, "entries[2].target === target3");
+}
+
+function step1() {
+  document.scrollingElement.scrollTop = 10000;
+  runTestCycle(step2, "document.scrollingElement.scrollTop = 10000");
+  assert_equals(entries.length, 4, "Four notifications.");
+  assert_equals(entries[3].target, target1, "entries[3].target === target1");
+}
+
+function step2() {
+  document.scrollingElement.scrollTop = 0;
+  runTestCycle(step3, "document.scrollingElement.scrollTop = 0");
+  assert_equals(entries.length, 6, "Six notifications.");
+  assert_equals(entries[4].target, target2, "entries[4].target === target2");
+  assert_equals(entries[5].target, target3, "entries[5].target === target3");
+}
+
+function step3() {
+  assert_equals(entries.length, 9, "Nine notifications.");
+  assert_equals(entries[6].target, target1, "entries[6].target === target1");
+  assert_equals(entries[7].target, target2, "entries[7].target === target2");
+  assert_equals(entries[8].target, target3, "entries[8].target === target3");
+}
+</script>

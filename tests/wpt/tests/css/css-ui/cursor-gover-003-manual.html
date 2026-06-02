@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor, :hover and inheritance</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="Checks that a cursor set on an ancestor with the :hover pseudo class is properly inherited to the hovered child.">
+<style>
+#d1 {
+  width: 0;
+  height: 0;
+  position: relative;
+  cursor: url("support/cursors/fail.png"), help;
+}
+#d2 {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100px;
+  height: 100px;
+  border: solid blue;
+}
+#d1:hover {
+  cursor: crosshair;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the blue box, the cursor looks like a crosshair (e.g. short line segments resembling a "+" sign).</p>
+  <div id=d1><div id=d2></div></div>
+</body>

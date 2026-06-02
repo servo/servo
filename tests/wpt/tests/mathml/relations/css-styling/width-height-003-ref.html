@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>content position with width/height (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body, math {
+      font: 25px/1 Ahem;
+      color: black;
+  }
+  .test {
+      margin: .5em;
+  }
+  .box {
+      width: 7em;
+      height: 3em;
+      border: 1px solid blue;
+      display: inline-block;
+  }
+  .center {
+      text-align: center;
+  }
+</style>
+</head>
+<body>
+
+  <div class="test">
+    <div class="box center">
+      <math>
+        <munder>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </munder>
+      </math>
+    </div>
+    <div class="box center" dir="rtl">
+      <math dir="rtl">
+        <munder>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </munder>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box center">
+      <math>
+        <mover>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </mover>
+      </math>
+    </div>
+    <div class="box center" dir="rtl">
+      <math dir="rtl">
+        <mover>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </mover>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box center">
+      <math>
+        <munderover>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </munderover>
+      </math>
+    </div>
+    <div class="box center" dir="rtl">
+      <math dir="rtl">
+        <munderover>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </munderover>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box">
+      <math>
+        <msub>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msub>
+      </math>
+    </div>
+    <div class="box" dir="rtl">
+      <math dir="rtl">
+        <msub>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msub>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box">
+      <math>
+        <msup>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msup>
+      </math>
+    </div>
+    <div class="box" dir="rtl">
+      <math dir="rtl">
+        <msup>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msup>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box">
+      <math>
+        <msubsup>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msubsup>
+      </math>
+    </div>
+    <div class="box" dir="rtl">
+      <math dir="rtl">
+        <msubsup>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </msubsup>
+      </math>
+    </div>
+  </div>
+
+  <div class="test">
+    <div class="box">
+      <math>
+        <mmultiscripts>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mprescripts/>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </mmultiscripts>
+      </math>
+    </div>
+    <div class="box" dir="rtl">
+      <math dir="rtl">
+        <mmultiscripts>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+          <mprescripts/>
+          <mtext>X</mtext>
+          <mtext>X</mtext>
+        </mmultiscripts>
+      </math>
+    </div>
+  </div>
+
+</body>
+</htmL>

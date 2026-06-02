@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="support/dropEffect-test-helper.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Text input selection drag and drop: allowed effects
+    'copy','move','link'</title>
+  <style type="text/css">
+    div {
+      display: inline-block;
+      vertical-align: top;
+      background-color: olive;
+      color: white;
+      padding: 20px;
+      width: 100px;
+      height: 100px;
+    }
+    div:nth-child(2) {
+      background-color: green;
+    }
+    div:nth-child(3) {
+      background-color: teal;
+    }
+  </style>
+</head>
+<body>
+  <p>
+    Drag the text from these input fields. Each has a different effectAllowed.
+  </p>
+  <p>
+    <input id="copy-drag" value="Copy me"
+      ondragstart="event.dataTransfer.effectAllowed = 'copy'" />
+    <input id="move-drag" value="Move me"
+      ondragstart="event.dataTransfer.effectAllowed = 'move'" />
+    <input id="link-drag" value="Link me"
+      ondragstart="event.dataTransfer.effectAllowed = 'link'" />
+  </p>
+  <p>
+    Drop targets for each effect:
+  </p>
+  <p>
+  <div id="copy-drop" ondragover="onDragOver(event, 'copy')">copy</div>
+  <div id="move-drop" ondragover="onDragOver(event, 'move')">move</div>
+  <div id="link-drop" ondragover="onDragOver(event, 'link')">link</div>
+  </p>
+</body>
+<script>
+  function onDragOver(event, effect) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = effect;
+  }
+
+  async function test() {
+    await new Promise(loaded => window.addEventListener("load", loaded));
+
+    for (const effect of ['copy', 'move', 'link']) {
+      // Run tests sequentially due to text selection requirements.
+      promise_test(async (t) => {
+        const dragInput = document.getElementById(effect + '-drag');
+        const dropDiv = document.getElementById(effect + '-drop');
+
+        // Select the text before drag
+        dragInput.select();
+        dragInput.focus();
+
+        await new Promise(async (resolve, reject) => {
+          dropDiv.addEventListener('drop', t.step_func((
+            event) => {
+            try {
+              dropEffectOnDropCallBack(event);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          }));
+          try {
+            let actions = new test_driver.Actions();
+            actions = movePointerToCenter(dragInput, /*iframe=*/
+                null, actions)
+              .pointerDown();
+            actions = movePointerToCenter(dropDiv, /*iframe=*/
+                null, actions)
+              .pointerUp();
+            await actions.send();
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+    }
+  }
+  test();
+</script>
+</html>

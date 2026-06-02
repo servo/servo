@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Fonts reference</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+body { background: white; }
+p { font: 16px/3 serif; }
+span { color: white; font: 25px Ahem; }
+span span { color: initial; font-variant-emoji: emoji; }
+</style>
+
+<h4>Only lines 3 and 4 should show a keycap numeral:</h4>
+
+<p>1. text: <span>X</span></p>
+
+<p>2. unicode: <span>X</span></p>
+
+<p>3. emoji: <span>X<span>3&#xfe0f;&#x20e3;</span>X</span></p>
+
+<p>4. with VS16: <span>X<span>4&#xfe0f;&#x20e3;</span>X</span></p>
+
+<p>5. emoji, with VS15: <span>X</span></p>

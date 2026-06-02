@@ -1,0 +1,12 @@
+{
+    "name": "theme_color member WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../theme_color-member-rgbhex3-manual.html",
+    "display": "fullscreen",
+    "theme_color": "#0F0"
+}

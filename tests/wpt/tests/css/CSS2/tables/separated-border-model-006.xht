@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Row and column backgrounds in the separated borders model</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="assert" content="Table row, column, row group and column group backgrounds are invisible in the space between borders." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: separate;
+                border-spacing: 25px;
+                background: blue;
+            }
+            colgroup
+            {
+                background-color: orange;
+            }
+            col
+            {
+                background-color: orange;
+            }
+            tbody
+            {
+                background-color: black;
+            }
+            tr
+            {
+                background-color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if all four black boxes below are surrounded on all sides by blue.</p>
+        <table>
+            <colgroup>
+                <col />
+                <col />
+            </colgroup>
+            <colgroup>
+                <col />
+                <col />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td>X</td>
+                    <td>X</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>X</td>
+                    <td>X</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

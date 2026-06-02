@@ -1,0 +1,46 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestorKey = token();
+  const perOriginBitLimit = 3;
+  const numUrls = 8;
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [ancestorKey]);
+  const bitsPerCall = Math.log2(numUrls);
+
+  for (let i = 0; i < Math.floor(perOriginBitLimit / bitsPerCall); ++i) {
+    let worklet = await sharedStorage.createWorklet("/shared-storage/resources/simple-module.js");
+    let config = await worklet.selectURL(
+      "test-url-selection-operation", urls,
+      {data: {'mockResult': 1}, keepAlive: true, resolveToConfig: true});
+    assert_true(config instanceof FencedFrameConfig);
+    attachFencedFrame(config, 'opaque-ads');
+    const result = await nextValueFromServer(ancestorKey);
+    assert_equals(result, "frame1_loaded",
+                 `for index ${i} when budget should remain;`);
+  }
+
+  // The per-origin per-pageload bit limit for `selectURL()` has been
+  // reached. The next call should return the default URL.
+  let worklet = await sharedStorage.createWorklet("/shared-storage/resources/simple-module.js");
+  let config = await worklet.selectURL(
+      "test-url-selection-operation", urls,
+      {data: {'mockResult': 1}, resolveToConfig: true});
+  assert_true(config instanceof FencedFrameConfig);
+  attachFencedFrame(config, 'opaque-ads');
+  const result = await nextValueFromServer(ancestorKey);
+  assert_equals(result, "frame0_loaded", 'when budget should be exhausted;');
+
+}, 'selectURL() called on multiple worklets, with per-origin per-pageload limit');
+</script>
+</body>

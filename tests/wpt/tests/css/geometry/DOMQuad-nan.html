@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DOMRect's handling of NaN in top/bottom/left/right</title>
+<link rel=help href="https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrect-top">
+<link rel=help href="https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrect-bottom">
+<link rel=help href="https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrect-left">
+<link rel=help href="https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrect-right">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+for (const i of [1, 2, 3, 4]) {
+  for (const comp of ["x", "y"]) {
+    test(() => {
+      const args = [{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }];
+      args[i - 1][comp] = NaN;
+      const quad = new DOMQuad(...args);
+      const bounds = quad.getBounds();
+      if (comp === "x") {
+        assert_equals(bounds.x, NaN, "x coordinate");
+        assert_equals(bounds.y, 0, "y coordinate");
+        assert_equals(bounds.width, NaN, "width");
+        assert_equals(bounds.height, 0, "height");
+      } else {
+        assert_equals(bounds.x, 0, "x coordinate");
+        assert_equals(bounds.y, NaN, "y coordinate");
+        assert_equals(bounds.width, 0, "width");
+        assert_equals(bounds.height, NaN, "height");
+      }
+    }, `Setting DOMQuad's p${i}.${comp} to NaN`);
+  }
+}
+</script>

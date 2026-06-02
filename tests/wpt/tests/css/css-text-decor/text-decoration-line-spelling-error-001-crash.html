@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8">
+<title>CSS Text Decoration Test: spelling error with very small zoom</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://crbug.com/1393709">
+<meta name="assert" value="Checks that spelling error decorations will not cause a crash, even if the ‘zoom’ property is set to a very small value.">
+<body style="text-decoration: spelling-error; zoom: 0.18511807360331467;">quikc

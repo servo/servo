@@ -1,0 +1,11 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#details-content-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1959597">
+
+<!-- This test passes if it does not crash. -->
+
+<style>
+  :is([open],) {}
+</style>
+<details open></details>

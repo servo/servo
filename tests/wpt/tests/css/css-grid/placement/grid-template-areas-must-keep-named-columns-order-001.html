@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-placement-slot">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-template-columns">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-rows">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-template-areas">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-column">
+<link rel="help" href="https://crbug.com/733577">
+<link rel="match" href="../reference/grid-template-areas-must-keep-named-columns-order-001-ref.html">
+<meta name="assert" content="A grid item located in a named line will be placed in the first one associated to that name"/>
+<style>
+.grid {
+  display: inline-grid;
+  background: grey;
+  grid-template-columns: [col] 50px [col] 50px [col] 50px [col] 50px;
+  grid-auto-rows: 50px;
+  grid-template-areas: "A . . .";
+}
+.grid > :nth-child(1) { background: magenta; }
+.grid > :nth-child(2) { background: blue; }
+.grid > :nth-child(3) { background: yellow; }
+.grid > :nth-child(4) { background: green; }
+.grid > :nth-child(5) { background: black; }
+</style>
+<p>This test passes if the black item is positioned in the first column of the second row, since the spec states that we must select the first one among several equally named grid lines.</p>
+<div class="grid">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div style="grid-column: col"></div>
+</div>

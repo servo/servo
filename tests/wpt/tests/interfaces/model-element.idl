@@ -1,0 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: The <model> element (https://immersive-web.github.io/model-element/)
+
+[Exposed=Window]
+interface HTMLModelElement : HTMLElement {
+
+  readonly attribute Promise<HTMLModelElement> ready;
+  readonly attribute DOMPointReadOnly boundingBoxCenter;
+  readonly attribute DOMPointReadOnly boundingBoxExtents;
+  attribute DOMMatrixReadOnly entityTransform;
+
+};

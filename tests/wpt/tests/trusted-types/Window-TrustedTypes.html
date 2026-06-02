@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  test(t => {
+    let factory = window.trustedTypes;
+    assert_true(factory instanceof TrustedTypePolicyFactory);
+  }, "factory = window.trustedTypes");
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      let factory = new TrustedTypePolicyFactory();
+    });
+  }, "factory construction fails");
+</script>

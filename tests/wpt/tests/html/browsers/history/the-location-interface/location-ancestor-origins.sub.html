@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<title>
+  Location#ancestorOrigins test
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="./resources/location-ancestor-origins-create-iframe.js"></script>
+
+<body>
+  <script>
+    function waitFor(action, frameName) {
+      return new Promise((resolve) => {
+        window.addEventListener("message", function listener(e) {
+          if (e.data.event === action && e.data.name === frameName) {
+            window.removeEventListener("message", listener);
+            resolve(event.data);
+          }
+        });
+      });
+    }
+
+    const frameCreatorPath = "html/browsers/history/the-location-interface/resources/location-ancestor-origins-recursive-iframe.html"
+
+    const createOrigin = (src) => {
+      const url = new URL(src);
+      return {
+        src: src,
+        origin: url.origin,
+        // change referrer policy value in header
+        withHeaders: (policyValue) => {
+          if (!policyValue)
+            return src;
+          return `${src}&pipe=header(Referrer-Policy,${policyValue})`;
+        }
+      }
+    }
+
+    // iframeSources[0] origins shares origin with top level
+    let iframeSources = [
+      createOrigin(`http://{{hosts[][]}}:{{ports[http][0]}}/${frameCreatorPath}?a`),
+      createOrigin(`http://{{hosts[alt][]}}:{{ports[http][0]}}/${frameCreatorPath}?b`),
+      createOrigin(`http://{{hosts[][www]}}:{{ports[http][0]}}/${frameCreatorPath}?c`)
+    ];
+
+    const A = iframeSources[0]
+    const B = iframeSources[1];
+    const C = iframeSources[2];
+
+    const policy = {
+      Default: "",
+      NoRef: "no-referrer",
+      SameOrigin: "same-origin"
+    }
+
+    // options takes optional values for iframe attribute, or a pre-configure
+    // step before creating the iframe that a call to `config` configures,
+    // like changing iframe referrer policy of a frame in a specific target.
+    // options is created by calling mutatePolicyOf, insertMetaForWithPolicyOf
+    // or an object containing { sandbox: boolean }
+    // The options argument can specify something that should happen before
+    // the creation of the frame this configures.
+
+    // for example: config("B2", B.src, policy.Default, mutatePolicyOf("B1", "")) means
+    // create a frame named B2 in the inner-most frame, with src=B.src, referrerPolicy = the default
+    // but before the frame is bound to the tree,
+    // perform an action in "B1" that mutates B1's referrer policy attribute (in this case to the default, i.e. the empty string)
+    const config = (name, src, iframeRefPolicyAttr, options = null) => ({ name: name, src, referrerPolicy: iframeRefPolicyAttr, options })
+
+    const mutatePolicyOf = (target, value) => {
+      return { target, action: Actions.changeReferrerPolicy, value }
+    }
+
+    const insertMetaForWithPolicyOf = (target, value) => {
+      return { target, action: Actions.insertMetaElement, value }
+    }
+
+    // Top-level === A1
+    // Only referrerpolicy on the element (e.g. iframe) should affect the ancestorOrigins list.
+    // Some of these tests may seem counterintuitive/not useful, but they are to make sure that nothing but
+    // that attribute, has effect.
+    const testCases = [
+      {
+        description: "test A1 -> B1 (no-referrer in response header) -> C1 -> B2",
+        frames: [
+          config("B1", B.withHeaders(policy.NoRef), policy.Default),
+          config("C1", C.src, policy.Default),
+          config("B2", B.src, policy.Default),
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+          [C.origin, B.origin, A.origin],
+        ]
+      },
+      {
+        description: "test A1 -> A2 (no-referrer in response header) -> B1 -> C1",
+        frames: [
+          config("A2", A.withHeaders(policy.NoRef), policy.Default),
+          config("B1", B.src, policy.Default),
+          config("C1", C.src, policy.Default),
+        ],
+        expected: [
+          [A.origin],
+          [A.origin, A.origin],
+          [B.origin, A.origin, A.origin],
+        ]
+      },
+      {
+        description: "test no-referrer attribute on iframe for iframe containing B1",
+        frames: [
+          config("B1", B.src, policy.NoRef)
+        ],
+        expected: [
+          ["null"]
+        ]
+      },
+      {
+        description: "test default referrer policy, A1 -> B1 -> A2",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("A2", A.src, policy.Default)
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin]
+        ]
+      },
+      {
+        description: "test toggle of masked A1 -> B1 iframe for A2 sets no-referrer -> A2",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("A2", A.src, policy.NoRef)
+        ],
+        expected: [
+          [A.origin],
+          ["null", A.origin]
+        ]
+      },
+      {
+        description: "test of toggle of masked at first origin != parentDocOrigin, A1 -> B1 -> B2 -> A2",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("B2", B.src, policy.Default),
+          config("A2", A.src, policy.NoRef)
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+          ["null", "null", A.origin]
+        ]
+      },
+      {
+        description: "test sandboxed iframe in A1, A1 iframe attribute sandbox -> C1 -> B1 -> C2",
+        frames: [
+          config("C1", C.src, policy.Default, { sandbox: true }),
+          config("B1", B.src, policy.Default),
+          config("C2", C.src, policy.Default),
+        ],
+        expected: [
+          [A.origin],
+          ["null", A.origin],
+          ["null", "null", A.origin],
+        ]
+      },
+      {
+        description: "Test same-origin referrer policy, A1 -> B1 -> A2 iframe attribute same-origin -> B2",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("A2", A.src, policy.Default),
+          config("B2", B.src, policy.SameOrigin)
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+          ["null", B.origin, A.origin]
+        ]
+      },
+      {
+        description: "Test that mutating the iframe referrerpolicy attribute of B1 before creation of B2 does not impact the hiding/non-hiding when creating a grandchild browsing context (keep null)",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("C1", C.src, policy.NoRef),
+          // change <iframe src=C1> in B1, referrer policy to default, before creating this context
+          config("B2", B.src, policy.Default, mutatePolicyOf("B1", "")),
+        ],
+        expected: [
+          [A.origin],
+          ["null", A.origin],
+          [C.origin, "null", A.origin]
+        ],
+      },
+      {
+        description: "Test that mutating the iframe referrerpolicy attribute does not impact the hiding/non-hiding when creating a grandchild browsing context (keep origins)",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("C1", C.src, policy.Default),
+          // change <iframe src=C1> in B1, referrer policy to no-referrer, before creating this context
+          config("B2", B.src, policy.Default, mutatePolicyOf("B1", "no-referrer")),
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+          [C.origin, B.origin, A.origin]
+        ],
+      },
+      {
+        description: "Test that tightening policy using meta, does not affect list",
+        frames: [
+          config("B1", B.src, policy.Default),
+          config("C1", C.src, policy.Default, insertMetaForWithPolicyOf("B1", "no-referrer")),
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+        ],
+      },
+      {
+        description: "Test that loosening policy in policy container has no effect.",
+        frames: [
+          config("B1", B.withHeaders("no-referrer"), policy.Default),
+          config("C1", C.src, policy.Default, insertMetaForWithPolicyOf("B1", "strict-origin-when-cross-origin")),
+        ],
+        expected: [
+          [A.origin],
+          [B.origin, A.origin],
+        ],
+      },
+    ]
+
+    testCases.forEach((cfg, index) => {
+      promise_test(async (t) => {
+        assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+        const iframeDetails = cfg.frames[0];
+
+        const topFrameAncestorOrigins = waitFor("sentOrigins", iframeDetails.name);
+        const iframe = document.createElement("iframe");
+        await configAndNavigateIFrame(iframe, iframeDetails);
+        const res = await topFrameAncestorOrigins;
+
+        t.add_cleanup(() => {
+          iframe.remove();
+        });
+
+        let results = [res];
+
+        for (let i = 1; i < cfg.frames.length; ++i) {
+          // name of frame, that shall create a new frame
+          const parentName = cfg.frames[i - 1].name;
+          const { target, action, value } = cfg.frames[i].options ?? {};
+          if (target) {
+            iframe.contentWindow.postMessage({ action: action, request: { value: value }, name: target }, "*");
+          }
+          iframe.contentWindow.postMessage({ action: Actions.addFrame, request: cfg.frames[i], name: parentName }, "*");
+          const res = await waitFor("sentOrigins", cfg.frames[i].name);
+          results.push(res);
+        }
+
+        let i = 0;
+        for (const { event, name, origins } of results) {
+          assert_equals(origins.length, cfg.expected[i].length, `[test configuration ${index}, frame ${name}]`);
+          assert_array_equals(origins, cfg.expected[i]);
+          i += 1;
+        }
+      }, cfg.description);
+    });
+
+    [{ policy: null, expected: [A.origin] }, { policy: "no-referrer", expected: ["null"] }].forEach(test => {
+      promise_test(async t => {
+        assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+        const iframe = document.createElement("iframe");
+        t.add_cleanup(() => {
+          iframe.remove();
+        })
+        iframe.referrerPolicy = test.policy;
+        document.body.appendChild(iframe);
+        assert_array_equals(Array.from(iframe.contentWindow.location.ancestorOrigins), test.expected);
+      }, `about:blank's location.ancestorOrigin policy=${test.policy}`)
+    })
+
+    // Tests bottom-most frame's results only.
+    const expectedAboutBlankResults = [
+      {
+        description: "A -> about:blank -> B1 -> B2",
+        expected: [B.origin, A.origin, A.origin],
+        setNoreferrer: false
+      },
+      {
+        description: "A -> about:blank, that set iframe referrer policy=no-referrer -> B1 -> B2",
+        expected: [B.origin, "null", "null"],
+        setNoreferrer: true
+      }
+    ].forEach(test => {
+      promise_test(async (t) => {
+        assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+
+        const iframe1 = document.createElement("iframe");
+        // top level document's origin = A1.
+        iframe1.name = "A2";
+        t.add_cleanup(() => {
+          iframe1.remove();
+        });
+        document.body.appendChild(iframe1);
+
+        let iframe2 = document.createElement("iframe");
+        iframe2.name = "B1";
+
+        if (test.setNoreferrer) {
+          iframe2.referrerPolicy = "no-referrer";
+        }
+
+        let p = new Promise((resolve) => {
+          iframe2.addEventListener("load", resolve, { once: true });
+          iframe2.src = B.src;
+        });
+        iframe1.contentDocument.body.appendChild(iframe2);
+        await p;
+
+        let resPromise = waitFor("sentOrigins", "B2");
+        iframe2.contentWindow.postMessage({ action: Actions.addFrame, request: config("B2", B.src, policy.Default), name: "B1" }, "*")
+        let res = await resPromise;
+
+        assert_array_equals(Array.from(res.origins), test.expected);
+      }, test.description);
+    })
+  </script>
+</body>

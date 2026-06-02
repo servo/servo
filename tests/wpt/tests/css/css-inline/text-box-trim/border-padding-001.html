@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Border/padding on the trim-establishing container itself isn't considered to be "intervening"</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:absolute; margin-top:30px; width:100px; height:40px; background:green;"></div>
+<div style="text-box-trim:trim-both; border:10px solid green; width:80px; font:20px/60px Ahem; color:green; background:red;">
+  xxxx<br>
+  xxxx<br>
+</div>

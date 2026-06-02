@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<title>Button value of corresponding pointerup/pointerdown are equivalent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<input id="target" style="margin: 20px">
+
+<script>
+  'use strict';
+  const target = document.getElementById("target");
+
+  promise_test(async test => {
+    const test_pointer = "testPointer";
+
+    let actions = new test_driver.Actions();
+    actions = actions.addPointer(test_pointer, "mouse")
+      .pointerMove(0,0, {sourceName:test_pointer, origin:target})
+      .pointerDown({sourceName:test_pointer, button:actions.ButtonType.RIGHT})
+      .pointerUp({sourceName:test_pointer, button:actions.ButtonType.RIGHT});
+    target.addEventListener("contextmenu", event => { event.preventDefault(); });
+    let pointerdown_promise = getEvent("pointerdown", target, test);
+    let pointerup_promise = getEvent("pointerup", target, test);
+
+    await actions.send();
+    let pointerdown_event = await pointerdown_promise;
+    let pointerup_event = await pointerup_promise;
+
+    assert_equals(pointerup_event.button, pointerdown_event.button, "The 'button' property of a pointerup event should match the 'button' property of the corresponding pointerdown event");
+  }, "Test that the 'button' property of a pointerup event matches the 'button' property of the corresponding pointerdown event");
+</script>

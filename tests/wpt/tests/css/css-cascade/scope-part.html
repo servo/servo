@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-parts/#part">
+<link rel="match" href="scope-part-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1908279">
+<meta name="assert" content="Implicit @scope rule lets ::part selector to match inside the shadow tree">
+<template id="custom-element">
+  <style>
+    :host {
+      display: block;
+    }
+    div {
+      padding: 5px;
+    }
+  </style>
+  <slot></slot>
+  <div part="a"></div>
+  <div part="b"></div>
+</template>
+<template id="custom-element-wrapper">
+  <style>
+    :host {
+      display: block;
+    }
+    div {
+      padding: 5px;
+    }
+  </style>
+  <custom-element exportparts="a"></custom-element>
+</template>
+<custom-element>
+  <style>
+    @scope {
+      :scope {
+        background: red;
+      }
+    }
+  </style>
+</custom-element>
+<custom-element>
+  <style>
+    @scope {
+      :scope::part(a), :scope::part(b) {
+        background: blue;
+      }
+    }
+  </style>
+</custom-element>
+<custom-element>
+  <style>
+    @scope {
+      :scope::part(a), :scope::part(b) {
+        background: red;
+      }
+    }
+  </style>
+  <custom-element>
+    <style>
+      @scope {
+        :scope::part(a), :scope::part(b) {
+          background: blue;
+        }
+      }
+    </style>
+  </custom-element>
+</custom-element>
+<custom-element-wrapper>
+  <style slot="s">
+    @scope {
+      :scope::part(a) {
+        background: blue;
+      }
+      :scope::part(b) {
+        background: red;
+      }
+    }
+  </style>
+</custom-element-wrapper>
+<div>
+  <template shadowrootmode=open>
+    <!-- Inside a shadow root -->
+    <custom-element-wrapper>
+      <style slot="a">
+        @scope {
+          :scope::part(a) {
+            background: blue;
+          }
+        }
+      </style>
+    </custom-element-wrapper>
+  </template>
+</div>
+<div>
+  <template shadowrootmode=open>
+    <!-- Shadow root & host at the same time -->
+    <div style="padding: 5px;">
+      <template shadowrootmode=open>
+        <div></div>
+      </template>
+      <style>
+        @scope {
+          :scope {
+            background: red;
+          }
+        }
+      </style>
+    </div>
+  </template>
+</div>
+<script>
+customElements.define(
+  "custom-element",
+  class extends HTMLElement {
+    constructor() {
+      super();
+      let template = document.getElementById("custom-element");
+      let templateContent = template.content;
+
+      const shadowRoot = this.attachShadow({ mode: "open" });
+      shadowRoot.appendChild(templateContent.cloneNode(true));
+    }
+  },
+);
+customElements.define(
+  "custom-element-wrapper",
+  class extends HTMLElement {
+    constructor() {
+      super();
+      let template = document.getElementById("custom-element-wrapper");
+      let templateContent = template.content;
+
+      const shadowRoot = this.attachShadow({ mode: "open" });
+      shadowRoot.appendChild(templateContent.cloneNode(true));
+    }
+  },
+);
+</script>

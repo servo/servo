@@ -1,0 +1,20 @@
+<!doctype html>
+<title>img select an image source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=common.js></script>
+<div id=log></div>
+<!-- dup entries -->
+<img srcset='data:,a 1x, data:,b 1x' data-expect='data:,a'>
+<img srcset='data:,a , data:,b 1x' data-expect='data:,a'>
+<img srcset='data:,a 1x, data:,b' data-expect='data:,a'>
+<img srcset='data:,a 1w, data:,b 1w' data-expect='data:,a'>
+<img srcset='data:,a 1w 1h, data:,b 1w' data-expect='data:,a'>
+<img srcset='data:,a 1w, data:,b 1w 1h' data-expect='data:,a'>
+<img srcset='data:,a 1w 1h, data:,b 1w 2h' data-expect='data:,a'>
+<img srcset='data:,a 1w 2h, data:,b 1w 1h' data-expect='data:,a'>
+<img srcset='data:,a , data:,b' data-expect='data:,a'>
+<img srcset='data:,a 1w, data:,b 1x' sizes='1px' data-expect='data:,a'>
+<img srcset='data:,a 1x, data:,b 1w' sizes='1px' data-expect='data:,a'>
+<img srcset='data:,a 1w, data:,b 2x' sizes='0.5px' data-expect='data:,a'>
+<img srcset='data:,a 2x, data:,b 1w' sizes='0.5px' data-expect='data:,a'>

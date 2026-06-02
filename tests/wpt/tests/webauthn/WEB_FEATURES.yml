@@ -1,0 +1,14 @@
+features:
+- name: webauthn
+  files:
+  - '*'
+  - '!createcredential-getpublickey.https.html'
+  - '!signal-*'
+- name: webauthn-public-key-easy
+  files:
+  - createcredential-getpublickey.https.html
+- name: webauthn-signals
+  files:
+  - signal-all-accepted-credentials.https.html
+  - signal-current-user-details.https.html
+  - signal-unknown-credential.https.html

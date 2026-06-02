@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cell borders are set by a cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="Borders on every edge (top, right, bottom, left) of a cell can be set by the cell's border properties, which can vary in width, style and color." />
+        <style type="text/css">
+            td
+            {
+                border-bottom: 8px dashed orange;
+                border-left: 16px double purple;
+                border-right: 12px dotted yellow;
+                border-top: 4px solid blue;
+                height: 6em;
+                width: 6em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is an outline of a box with each edge looking different from the other edges.</p>
+        <table>
+            <tr>
+               <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

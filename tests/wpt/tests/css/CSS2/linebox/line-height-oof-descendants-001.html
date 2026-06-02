@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: line-height is not affected by out-of-flow descendants</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visudet.html#line-height">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1426760">
+<link rel="match" href="line-height-oof-descendants-001-ref.html">
+<style>
+p {
+  font-size: 20px;
+  line-height: 0;
+}
+</style>
+<p><span style="position: absolute;"></span>Some paragraph</p>
+<p><span style="float: left;"></span>Some paragraph</p>
+<p><span style="position: fixed;"></span>Some paragraph</p>
+<p>Some other paragraph</p>

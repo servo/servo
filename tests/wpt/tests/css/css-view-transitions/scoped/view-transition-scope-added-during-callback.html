@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>view-transition-scope: auto + display: contents</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #outer {
+    view-transition-name: outer;
+  }
+
+  #inner {
+    view-transition-name: inner;
+  }
+
+  .scoped {
+    view-transition-scope: auto;
+  }
+
+  .display-contents {
+    display: contents;
+  }
+
+</style>
+<body>
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</body>
+<script>
+  function capturedNames(prefix) {
+    const names = document.getAnimations()
+                     .map(a => a.effect.pseudoElement)
+                     .filter(name => name.startsWith(prefix));
+    return [...new Set(names)].sort();
+  }
+
+  promise_test(async t => {
+    const outer = document.getElementById('outer');
+    const inner = document.getElementById('inner');
+
+    let vt = document.startViewTransition(() => {
+      inner.classList.add('scoped');
+    });
+    await vt.ready;
+    assert_array_equals(
+        capturedNames('::view-transition-old'),
+        [
+          "::view-transition-old(inner)",
+          "::view-transition-old(outer)",
+          "::view-transition-old(root)"
+        ],
+        'outer and inner both participate in the capture of the old state');
+    assert_array_equals(
+        capturedNames('::view-transition-new'),
+        ["::view-transition-new(outer)", "::view-transition-new(root)"],
+        'only outer is a participant in the capture of the new state ');
+    vt.skipTransition();
+  }, 'Setting view-transition-scope to auto blocks propagation of name ' +
+     'discovery.');
+</script>
+</html>

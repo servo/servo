@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="reftest-wait foo">
+<title>View transitions: ensure :only-child is supported on view-transition-new</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+::view-transition {
+  background-color: black;
+}
+html:only-child {
+  background-color: black;
+}
+:root:only-child {
+  background-color: black;
+}
+:only-child {
+  background-color: black;
+}
+.foo:only-child {
+  background-color: black;
+}
+
+::view-transition-new(root) {
+  background-color: blue;
+}
+::view-transition-new(target) {
+  background-color: blue;
+}
+::view-transition-new(*) {
+  color: blue;
+}
+
+::view-transition-new(root):only-child {
+  background-color: red;
+}
+::view-transition-new(target):only-child {
+  background-color: red;
+}
+::view-transition-new(*):only-child {
+  color: red;
+}
+
+</style>
+<div id="target"></div>
+
+<script>
+let matchedColor = "rgb(255, 0, 0)";
+let notMatchedColor = "rgb(0, 0, 255)";
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    document.documentElement.style.viewTransitionName = "none";
+    target.style.viewTransitionName = "none";
+    let transition = document.startViewTransition(() => {
+      document.documentElement.style.viewTransitionName = "root";
+    });
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(root)");
+      if (style.backgroundColor == matchedColor && style.color == matchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should match because ::view-transition-old is not generated (none to root)");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    document.documentElement.style.viewTransitionName = "root";
+    target.style.viewTransitionName = "none";
+    let transition = document.startViewTransition();
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(root)");
+      if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-old is generated (root to root)");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    document.documentElement.style.viewTransitionName = "none";
+    target.style.viewTransitionName = "root";
+    let transition = document.startViewTransition(() => {
+       document.documentElement.style.viewTransitionName = "root";
+       target.style.viewTransitionName = "none";
+    });
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(root)");
+      if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-old is generated (element to root)");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    target.style.viewTransitionName = "none";
+    document.documentElement.style.viewTransitionName = "none";
+    let transition = document.startViewTransition(() => {
+      target.style.viewTransitionName = "target";
+    });
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(target)");
+      if (style.backgroundColor == matchedColor && style.color == matchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should match because ::view-transition-old is not generated (none to element)");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    target.style.viewTransitionName = "none";
+    document.documentElement.style.viewTransitionName = "root";
+    let transition = document.startViewTransition(() => {
+      document.documentElement.style.viewTransitionName = "none";
+      target.style.viewTransitionName = "element";
+    });
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(root)");
+      if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-old is generated (root to element)");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    target.style.viewTransitionName = "target";
+    document.documentElement.style.viewTransitionName = "none";
+    let transition = document.startViewTransition();
+
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-new(target)");
+      if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-old is generated (element to element)");
+</script>

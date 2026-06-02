@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8"/>
+<title>Fixed positioned (reference)</title>
+<style>
+  body { overflow: hidden; }
+</style>
+<body>
+  <div style="position: absolute; left: 100px; top: 200px;
+              height: 3000px; width: 3000px;">
+    <math>
+      <mrow>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mspace width="100px" height="300px" style="background: green"/>
+      </mrow>
+    </math>
+    <p>Test passes if you see a green square and no red.</p>
+  </div>
+  <script>
+    requestAnimationFrame(() => {
+      window.scrollTo(50, 100);
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</body>
+</html>

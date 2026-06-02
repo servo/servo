@@ -1,0 +1,21 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: container (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+</style>
+
+<p>Test passes if the light blue box below has focus.
+<div id=container tabindex=0></div>
+
+<script>
+onload = () => container.focus();
+</script>

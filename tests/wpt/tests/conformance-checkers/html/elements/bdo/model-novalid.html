@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;bdo&gt;</title>
+</head>
+<body>
+  <!-- not a block -->
+  <bdo dir="ltr">text</bdo>
+
+  <!-- 'dir' attribute required -->
+  <p><bdo>text</bdo></p>
+
+  <!-- cannot contain structured inline -->
+  <p><bdo dir="ltr"><ul><li>text</li></ul></bdo></p>
+
+  <!-- cannot contain interactive if parent forbids interactive -->
+  <p><a><bdo dir="ltr"><a>text</a></bdo></a></p>
+  <p><a><dfn><bdo dir="ltr"><a>text</a></bdo></dfn></a></p>
+</body>
+</html>

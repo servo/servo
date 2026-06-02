@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Painting grid gaps with bi-directional `rule-color` shorthand.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#propdef-rule-color">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    height: 100px;
+    width: 100px;
+    background: red;
+    rule-color: green;
+    rule-width: 10px;
+    rule-style: solid;
+  }
+
+  .grid-item {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+</div>

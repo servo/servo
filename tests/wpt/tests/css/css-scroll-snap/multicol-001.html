@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#overview">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<meta name="assert" content="Scroll snapping on fragmented block inside multicol">
+<div id="scrollable" style="overflow:hidden; margin:100px; scroll-snap-type:x mandatory; columns:3; width:340px; column-gap:20px; column-fill:auto; height:100px;">
+  <div style="height:200px; background:blue;"></div>
+  <div id="target" style="scroll-snap-align:start; height:120px; background:cyan;"></div>
+  <div style="height:200px; background:gray;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(scrollable.scrollLeft, 240);
+  }, "scroll-snap-align: start");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "end";
+    assert_equals(scrollable.scrollLeft, 120);
+  }, "scroll-snap-align: end");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "center";
+    assert_equals(scrollable.scrollLeft, 180);
+  }, "scroll-snap-align: center");
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>::column::scroll-marker without content should not crash</title>
+<link rel="help" href="https://crbug.com/386415620">
+<style>
+  #container {
+    overflow: hidden;
+    width: 10px;
+    column-count: 1;
+    scroll-marker-group: before;
+  }
+  #container::column::scroll-marker {
+    display: inline;
+  }
+</style>
+<p>PASS if no crash.</p>
+<div id="container">Two columns</div>

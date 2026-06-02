@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body></body>
+<script>
+'use strict';
+
+const BACKSPACE = '\uE003';
+const DELETE = '\uE017';
+const controls = ['input', 'textarea'];
+
+function setup(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  element.focus();
+  return element;
+}
+
+async function typeKeys(element, text) { await test_driver.send_keys(element, text); }
+
+function makeRange(element, start, end) {
+  const range = new FormControlRange();
+  range.setFormControlRange(element, start, end);
+  return range;
+}
+
+controls.forEach(control => {
+  [
+    {
+      name: 'at start boundary keeps start; end extends (multi-char)',
+      init: { value:'ABCDE', s:1, e:3, caret:1, ins:'pq' },
+      exp:  { s:1, e:5, text:'pqBC' }
+    },
+    {
+      name: 'inside range extends end by length',
+      init: { value:'ABCDE', s:1, e:4, caret:2, ins:'pq' },
+      exp:  { s:1, e:6, text:'BpqCD' }
+    },
+    {
+      name: 'at end boundary leaves offsets unchanged (multi-char)',
+      init: { value:'ABCDE', s:1, e:3, caret:3, ins:'pq' },
+      exp:  { s:1, e:3, text:'BC' }
+    },
+  ].forEach(({ name, init, exp }) => {
+    promise_test(async t => {
+      const element = setup(control, init.value);
+      const range = makeRange(element, init.s, init.e);
+      element.setSelectionRange(init.caret, init.caret);
+      await typeKeys(element, init.ins);
+      assert_equals(range.startOffset, exp.s, 'startOffset');
+      assert_equals(range.endOffset, exp.e, 'endOffset');
+      assert_equals(range.toString(), exp.text, 'range text');
+    }, `Insertion: ${name} (${control}).`);
+  });
+
+  [
+    { name: 'single char inside range',
+      init:{ value:'ABCDE', s:1, e:4, a:2, b:3, text:'q' },
+      exp:{ s:1, e:4, text:'BqD' }
+    },
+  ].forEach(({ name, init, exp }) => {
+    promise_test(async t => {
+      const element = setup(control, init.value);
+      const range = makeRange(element, init.s, init.e);
+      element.setSelectionRange(init.a, init.b);
+      await typeKeys(element, init.text);
+      assert_equals(range.startOffset, exp.s);
+      assert_equals(range.endOffset, exp.e);
+      assert_equals(range.toString(), exp.text);
+    }, `Equal-length replacement: ${name} (${control}).`);
+  });
+
+  [
+    { name:'backspace before range shifts both left',
+      init:{ value:'ABCDE', s:2, e:5, caret:2, key:BACKSPACE },
+      exp:{ value:'ACDE', s:1, e:4, text:'CDE' } },
+    { name:'forward delete inside range contracts end by 1',
+      init:{ value:'ABCDE', s:1, e:4, caret:2, key:DELETE },
+      exp:{ value:'ABDE', s:1, e:3, text:'BD' } },
+    { name:'forward delete at end boundary no effect on range',
+      init:{ value:'ABCDE', s:1, e:3, caret:3, key:DELETE },
+      exp:{ value:'ABCE', s:1, e:3, text:'BC' } },
+    { name:'backspace at control start is no-op',
+      init:{ value:'ABCDE', s:0, e:2, caret:0, key:BACKSPACE },
+      exp:{ value:'ABCDE', s:0, e:2, text:'AB' } },
+  ].forEach(({ name, init, exp }) => {
+    promise_test(async t => {
+      const element = setup(control, init.value);
+      const range = makeRange(element, init.s, init.e);
+      element.setSelectionRange(init.caret, init.caret);
+      await typeKeys(element, init.key);
+      assert_equals(element.value, exp.value);
+      assert_equals(range.startOffset, exp.s);
+      assert_equals(range.endOffset, exp.e);
+      assert_equals(range.toString(), exp.text);
+    }, `Deletion: ${name} (${control}).`);
+  });
+});
+</script>

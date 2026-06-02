@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+const SEARCH_PARAMS = new URLSearchParams(window.location.search);
+const EARLY_HINTS_POLICY = SEARCH_PARAMS.get("early-hints-policy");
+const FINAL_POLICY = SEARCH_PARAMS.get("final-policy");
+
+promise_test(async (t) => {
+    const resource_url = SEARCH_PARAMS.get("resource-url");
+    if (FINAL_POLICY === "require-corp") {
+        assert_equals(EARLY_HINTS_POLICY, "unsafe-none");
+        await promise_rejects_js(t, Error, fetchScript(resource_url));
+    } else {
+        assert_equals(EARLY_HINTS_POLICY, "require-corp");
+        await fetchScript(resource_url);
+        assert_false(isPreloadedByEarlyHints(resource_url));
+    }
+}, `Early Hints COEP mismatch: Early Hints policy = ${EARLY_HINTS_POLICY}, final response policy = ${FINAL_POLICY}.`);
+</script>
+</body>

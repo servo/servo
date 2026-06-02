@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: Reference</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+  a::target-text {
+    color: lime;
+    background: green;
+  }
+</style>
+
+<p>Test passes if the link below has lime color and green background.</p>
+<a href="">visited</a>
+
+<script>
+  window.location.hash = "#:~:text=visited";
+</script>

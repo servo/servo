@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/476169479">
+<style>
+.placeholder:first-line { }
+.inner {
+  float: inherit;
+}
+.inner::after {
+  position: absolute;
+  float: inherit;
+  content: open-quote;
+}
+</style>
+<div id="target" style="float: left;">
+  <div class="inner"></div>
+</div>
+<script>
+document.body.offsetTop;
+target.style.float = '';
+</script>

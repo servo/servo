@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Test about:blank iframes prerendering state</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const channel = new PrerenderChannel('test-channel', uid);
+
+  const gotMessage = new Promise(resolve => {
+    channel.addEventListener('message', e => {
+      resolve(e.data);
+    }, {once: true});
+  });
+
+  // Make the window to start the prerender.
+  const url = `resources/about-blank-iframes.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const msg = await gotMessage;
+  assert_equals(msg, 'PASS');
+}, 'about:blank iframes');
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, bidi U+06E9 no strong direction</title>
+<link rel="match" href="u06E9_no_strong_dir-ref.html">
+<!--
+06E9          ; ON # So       ARABIC PLACE OF SAJDAH
+http://www.unicode.org/Public/UNIDATA/extracted/DerivedBidiClass.txt
+-->
+<style>
+html { overflow:hidden }
+body { margin:0 }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../support/u06E9_no_strong_dir.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Crash with anchor functions in calc() with number fallback</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1998106">
+<style>
+.anchor {
+  anchor-name: --a;
+  width: 100px;
+  height: 100px;
+  background: magenta;
+}
+.positioned {
+  position: absolute;
+  position-anchor: --a;
+  width: 10px;
+  height: 10px;
+  background: purple;
+}
+</style>
+<div class=anchor></div>
+<div class=positioned style="left: calc(anchor(left, Infinity) + 1px);"></div>
+<div class=positioned style="left: calc(anchor(left, 0) + 1px);"></div>
+<div class=positioned style="left: calc(anchor(left, 1) + 1px);"></div>
+<div class=positioned style="width: calc(anchor-size(width, Infinity) + 1px);"></div>
+<div class=positioned style="width: calc(anchor-size(width, 0) + 1px);"></div>
+<div class=positioned style="width: calc(anchor-size(width, 1) + 1px);"></div>

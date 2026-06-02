@@ -1,0 +1,38 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 Methods Test for OffscreenCanvas in a worker</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/canvas-tests-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+description("This test ensures that the WebGL context has all the methods in the specification.");
+
+if (!window.OffscreenCanvas) {
+  testPassed("No OffscreenCanvas support");
+} else {
+  if (testAPIs('webgl2')) {
+    testPassed("All WebGL2 methods found");
+  } else {
+    testFailed("Some WebGL2 methods not found");
+  }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

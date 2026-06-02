@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Multiple specifiers in shadowrootadoptedstylesheets</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<!-- Use a dataURI + import map so this can be performed in-document. -->
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span {color:blue}",
+    "bar": "data:text/css,span {text-decoration: underline}"
+  }
+}
+</script>
+
+<div id="host">
+  <template shadowrootmode="open" shadowrootadoptedstylesheets="foo bar">
+    <span id="test_element">Test content</span>
+  </template>
+</div>
+
+<script>
+  const host = document.getElementById("host");
+  test(function (t) {
+    assert_equals(
+      host.shadowRoot.adoptedStyleSheets.length,
+      2,
+      "The shadowrootadoptedstylesheets will declaratively import all space-separated specifiers into the adoptedStyleSheets array.",
+    );
+
+   }, "adoptedStyleSheets is populated from a <template> element's shadowrootadoptedstylesheets attribute.");
+  const test_element = host.shadowRoot.getElementById("test_element");
+
+  test(function (t) {
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 255)",
+              "The first specifier's style was applied.");
+    assert_equals(getComputedStyle(test_element)
+              .textDecoration, "underline",
+              "The second specifier's style was applied.");
+
+  }, "Styles from the sheets applied via shadowrootadoptedstylesheets are applied to elements.");
+</script>

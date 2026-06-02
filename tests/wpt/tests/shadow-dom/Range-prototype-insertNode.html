@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  var range = document.createRange();
+  var rangeContainer = document.createElement('div');
+  range.setStart(rangeContainer, 0);
+  range.setEnd(rangeContainer, 0);
+  var shadowRoot = document.createElement('span').attachShadow({mode: "open"});
+  var h1 = shadowRoot.appendChild(document.createElement('h1'));
+
+  range.insertNode(shadowRoot);
+  assert_equals(rangeContainer.firstChild, h1);
+}, 'Test if Range.prototype.insertNode() should accept ShadowRoot input.');
+</script>
+</body>

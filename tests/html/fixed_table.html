@@ -1,0 +1,36 @@
+<!-- This test creates one table, one caption, three rows, three header cells, and five data cells.
+     The table uses the fixed table layout algorithm and the table's width specified to 600px.
+     Each column's width will be assigned as follows:
+       - 1st column: 200px (because it is defined in col element)
+       - 2nd column: 100px (because it is defined in first row)
+       - 3rd column: remaining width (becuase it is not defined so the remaining width is assigned)
+     And table, caption, td, th elements have border. -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fixed Table</title>
+    <style>
+      table {
+        table-layout: fixed;
+        width: 600px;
+        border: solid black 2px;
+      }
+      caption { border: solid blue 1px; }
+      td { border: solid red 1px; }
+      th { border: solid red 1px; }
+    </style>
+  </head>
+  <body>
+    <table>
+        <caption>This is a 3x3 fixed table</caption>
+        <colgroup>
+          <col style="width: 200px" />
+        </colgroup>
+        <tbody>
+          <tr><th style="width: 100px">Header 1</th><td style="width: 100px">Cell 1</td><td>Cell 2</td></tr>
+          <tr><th style="width: 300px">Header 2</th><td style="width: 300px">Cell 3</th><td>Cell 4</td></tr>
+          <tr><th>Header 3</th><td>Cell 5</th></tr>
+        </tbody>
+    </table>
+  </body>
+<html>

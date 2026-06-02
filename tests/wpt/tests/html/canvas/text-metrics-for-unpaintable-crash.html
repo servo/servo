@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<!-- https://github.com/servo/servo/issues/36845 -->
+<canvas id="canvas" height="0"></canvas>
+<script>
+  canvas.getContext("2d").measureText("1");
+</script>

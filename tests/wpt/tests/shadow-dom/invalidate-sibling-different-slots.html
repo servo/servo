@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Invalidation works properly across siblings on different slots</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1794720">
+<link rel="match" href="invalidate-sibling-different-slots-ref.html">
+<style>
+.x { display: table-header-group; }
+.x + * { color: green }
+</style>
+<details open="">
+  <summary id="a">Main summary</summary>
+  <summary>Should be green</summary>
+</details>
+<script>
+onload = function() {
+  let a = document.getElementById("a");
+  a.getBoundingClientRect();
+  a.setAttribute("class", "x")
+  a.getBoundingClientRect();
+};
+</script>

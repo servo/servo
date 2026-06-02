@@ -1,0 +1,138 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Animations and Web Animations on view transition pseudos</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-animatable-animate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+<style>
+/* Override UA stylesheet to avoid any impact on our tests */
+:root {
+  view-transition-name: none;
+}
+:root::view-transition,
+:root::view-transition-group(*),
+:root::view-transition-image-pair(*),
+:root::view-transition-old(*),
+:root::view-transition-new(*) {
+  animation: unset;
+}
+
+@keyframes css-anim {
+  from { margin-left: 100px; }
+  to { margin-left: 100px; }
+}
+</style>
+<div id="log"></div>
+<script>
+"use strict";
+
+promise_test(async t => {
+  document.documentElement.style.viewTransitionName = "test";
+  const ruleText =
+    ":root::view-transition, :root::view-transition-group(test) {" +
+    "  animation: css-anim 10s;"
+    "}";
+  const index = document.styleSheets[0].cssRules.length;
+  document.styleSheets[0].insertRule(ruleText, index);
+
+  let viewTransition = document.startViewTransition(() => {});
+  await viewTransition.ready;
+
+  let anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 2, "Has 2 CSS Animations.");
+  let style = getComputedStyle(document.documentElement,
+    "::view-transition-group(test)");
+  assert_equals(style.marginLeft, "100px");
+
+  viewTransition.skipTransition();
+  document.styleSheets[0].deleteRule(index);
+  document.documentElement.style.viewTransitionName = "none";
+}, "The specified CSS Animations work on view transition pseudos.");
+
+promise_test(async t => {
+  document.documentElement.style.viewTransitionName = "test";
+  const ruleText =
+    ":root::view-transition, :root::view-transition-group(test) {" +
+    "animation: css-anim 10s;"
+    "}";
+  const index = document.styleSheets[0].cssRules.length;
+  document.styleSheets[0].insertRule(ruleText, index);
+
+  let viewTransition = document.startViewTransition(() => {});
+  await viewTransition.ready;
+
+  let anim1 = document.documentElement.animate(
+    { opacity: [0.5, 0.5] },
+    { duration: 10000, pseudoElement: '::view-transition-group(test)' }
+  );
+  await anim1.ready;
+
+  let kf = new KeyframeEffect(
+    document.documentElement,
+    { translate: ["200px", "200px"] },
+    { duration: 10000, pseudoElement: '::view-transition-old(test)' }
+  );
+  let anim2 = new Animation(kf, document.timeline);
+  anim2.play();
+  await anim2.ready;
+
+  let anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 4,
+    "Has 2 CSS Animations and 2 script animations.");
+
+  let style = getComputedStyle(document.documentElement,
+    "::view-transition-group(test)");
+  assert_equals(style.marginLeft, "100px");
+  assert_equals(style.opacity, "0.5");
+  assert_equals(
+    getComputedStyle(document.documentElement,
+      "::view-transition-old(test)").translate,
+    "200px"
+  );
+
+  anim1.finish();
+  anim2.finish();
+  viewTransition.skipTransition();
+  document.styleSheets[0].deleteRule(index);
+  document.documentElement.style.viewTransitionName = "none";
+}, "The specified CSS Animations and script animations work on view "+
+   "transition pseudos");
+
+promise_test(async t => {
+  document.documentElement.style.viewTransitionName = "test";
+  let ruleText =
+    ":root::view-transition, " +
+    ":root::view-transition-group(test), " +
+    ":root::view-transition-image-pair(test) {" +
+    "  animation: css-anim 10s;"
+    "}";
+  const index = document.styleSheets[0].cssRules.length;
+  document.styleSheets[0].insertRule(ruleText, index);
+
+  let viewTransition = document.startViewTransition(() => {});
+  await viewTransition.ready;
+
+  let anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 3, "Has 3 CSS Animations.");
+
+  // Make the pseudo-element display:none.
+  ruleText = ":root::view-transition-image-pair(test) { display: none; }";
+  document.styleSheets[0].insertRule(ruleText, index + 1);
+  anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 2, "One CSS Animation was removed.");
+
+  // Destroy all frames.
+  document.documentElement.style.display = "none";
+  anims = document.documentElement.getAnimations({ subtree: true });
+  assert_equals(anims.length, 0, "All CSS Animation were removed.");
+
+  viewTransition.skipTransition();
+  document.styleSheets[0].deleteRule(index + 1);
+  document.styleSheets[0].deleteRule(index);
+  document.documentElement.style.viewTransitionName = "none";
+  document.documentElement.style.display = "inline";
+}, "The specified CSS Animations are removed if setting display:none.");
+
+</script>

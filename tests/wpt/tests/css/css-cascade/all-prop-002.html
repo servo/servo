@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: all:inherit includes display:inherit</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#all-shorthand">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#all-shorthand">
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="all:inherit should cause display:inherit so the red divs will display inline/horizontal (like their parent span) rather than block/vertical (like the default UA style for a div).">
+  <style>
+.inline {
+  all: inherit;/* inherit display:inline from span */
+}
+.half-red-sq {
+  /* half of a red square */
+  display: inline-block;
+  width: 50px;
+  height: 100px;
+  background-color: red;
+}
+#positioned {
+  position: relative;
+}
+#green-sq {
+  position: absolute;/* put higher on Z axis */
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="positioned">
+    <div id="green-sq"></div>
+    <span>
+      <div class="inline"><div class="half-red-sq"></div></div><div class="inline"><div class="half-red-sq"></div></div>
+    </span>
+  </div>
+</body>
+</html>

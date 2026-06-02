@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <title>region with name</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_LANDMARK"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:region"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXGroup"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXLandmarkRegion"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "region"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:region"
+               ],
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "IA2_ROLE_LANDMARK"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Group",
+                  "is",
+                  "Group"
+               ],
+               [
+                  "property",
+                  "localizedControlType",
+                  "is",
+                  "region"
+               ],
+               [
+                  "property",
+                  "landmarkType",
+                  "is",
+                  "Custom"
+               ],
+               [
+                  "property",
+                  "localizedLandmarkType",
+                  "is",
+                  "region"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "region with name"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for region with name.</p>
+    <section role="region" aria-label="foobar" id="test">
+    <article>This is article 1</article>
+  </section>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

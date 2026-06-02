@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html>
+<meta charset="utf-8">
+<title>CSS Reference File</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+body {
+  font:10px/1 monospace;
+}
+
+rbb, ruby { background:lightblue; }
+ruby { display: ruby; }
+rbb { display: block ruby; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+  font-size: 200%;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+  ruby-position: under;
+}
+x { display:block; width:3em; overflow:hidden; background:lightblue; }
+</style>
+
+<div>zzzzzzzzzzzz</div>
+<ruby class=mbp>X<div>zzzzzzzzzzzz</div></ruby>
+<grid>A<x class=mbp><rbb><div>zzzzzzzzzzzz</div></rbb></x>B</grid>
+<grid>A<x class=mbp><rbb>X<div>zzzzzzzzzzzz</div></rbb></x>B</grid>
+<grid>A<x><rbb>X<div>zzzzzzzzzzzz</div></rbb></x><x><rbb><rbc></rbc><div>zzzzzzzzzzzz</div></rbb></x>B</grid>
+<grid>A<x><rbb><div>zzzzzzzzzzzz</div></rbb></x><x><rbb><rbc>X</rbc><div>zzzzzzzzzzzz</div></rbb></x>B</grid>
+<ruby><rt><ruby>X<div>zzzzzzzzzzzz</div></ruby></rt><div>zzzzzzzzzzzz</div></ruby>
+<ruby><rbc><ruby>X<div>zzzzzzzzzzzz</div></ruby></rbc><div>zzzzzzzzzzzz</div></ruby>
+<ruby><rtc><ruby>X<div>zzzzzzzzzzzz</div></ruby></rtc><div>zzzzzzzzzzzz</div></ruby>
+<x class=mbp><rbb><div>zzzzzzzzzzzz</div></rbb></x>
+<x class=mbp><rbb>X<div>zzzzzzzzzzzz</div></rbb></x>
+<x class=mbp><rbb><rt>X</rt><div>zzzzzzzzzzzz</div></rbb></x>
+<x class=mbp><rbb><rb>X</rb><div>zzzzzzzzzzzz</div></rbb></x>
+
+</html>

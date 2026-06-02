@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<title>focus() and scroll-margin with snapping off (y-axis)</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-scroll-snap-1/#scroll-margin'>
+<link rel='match' href='scroll-target-001-ref.html'>
+<meta name="flags" content="should">
+<meta name='assert'
+      content="Test passes if scroll-margin is honored
+               on a scroll container with 'scroll-snap-type: none'
+               when scrolling an element into view
+               even if that operation is implied (in this case, by .focus()).">
+<style type='text/css'>
+  .container {
+    border: solid blue 4px;
+    height: 4em;
+    overflow: auto;
+
+    /* to make failing more obvious */
+    background: 0 1em / 100% 1em linear-gradient(red, red) repeat-x;
+    /* avoid anti-aliasing issues */
+    font: 20px/1 sans-serif;
+    scrollbar-width: none;
+  }
+  .container > div, a {
+    height: 1em;
+    display: block;
+    outline: none;
+  }
+  #target    { scroll-margin: 2em 0 1em; } /* snap area is exact fit for snapport */
+  #stripe    { background: green;        } /* color part of the snap area         */
+  .fail      { color: red;               } /* make failing more obvious           */
+
+  /* emulate `scrollbar-width: none` for browsers that don't support it yet */
+  ::-webkit-scrollbar { display: none; }
+</style>
+
+<div id='instructions'>Test passes if there is a green stripe across the second quarter of the box below and no red.</div>
+
+<div class="container">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div class="fail">FAIL</div>
+  <div></div>
+  <div id="stripe"></div>
+  <a href="" id="target"></a>
+  <div></div>
+  <div class="fail">FAIL</div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<script>
+  document.getElementById('target').focus();
+</script>

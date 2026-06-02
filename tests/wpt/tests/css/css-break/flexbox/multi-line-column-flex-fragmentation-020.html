@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation with break-after: avoid.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 5;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    background: red;
+  }
+  .abs {
+    position: absolute;
+    width: 5px;
+    background: green;
+  }
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+  }
+  #flex > div {
+    background: green;
+    width: 5px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="abs" style="top: 50px; height: 50px;"></div>
+  <div class="abs" style="top: 50px; left: 25px; height: 50px;"></div>
+  <div id="flex">
+    <div style="height: 50px;"></div>
+    <div style="height: 50px; break-after: avoid;"></div>
+    <div style="height: 350px;"></div>
+    <div style="height: 100px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="height: 50px; break-after: avoid;"></div>
+    <div style="height: 250px;"></div>
+    <div style="height: 400px; break-after: avoid;"></div>
+    <div style="height: 100px; break-after: avoid;"></div>
+    <div style="height: 500px;"></div>
+  </div>
+</div>

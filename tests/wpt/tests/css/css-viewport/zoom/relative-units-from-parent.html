@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1892676">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="match" href="relative-units-from-parent-ref.html">
+<!--
+  The font-size and line-height use the parent sizes, but should still
+  multiply by our own zoom.
+-->
+<div style="zoom: 2; font-size: 2em; line-height: 2lh">ABC</div>

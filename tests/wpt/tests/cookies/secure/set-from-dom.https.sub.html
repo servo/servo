@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Set 'secure' cookie from `document.cookie` on a secure page</title>
+  <meta name=help href="https://tools.ietf.org/html/draft-west-leave-secure-cookies-alone">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+</head>
+<body>
+<div id=log></div>
+<script>
+  var tests = [
+    [
+      "'secure' cookie visible in `document.cookie`",
+      function () {
+        document.cookie = "secure_from_secure_dom=1; secure; path=/";
+        assert_not_equals(document.cookie.match(/secure_from_secure_dom=1/), null);
+        this.done();
+      }
+    ],
+    [
+      "'secure' cookie visible in HTTP request",
+      function () {
+        document.cookie = "secure_from_secure_dom=1; secure; path=/";
+        assert_not_equals(document.cookie.match(/secure_from_secure_dom=1/), null);
+        fetch("https://{{host}}:{{ports[https][0]}}/cookies/resources/echo-json.py",
+              { "credentials": "include" })
+          .then(this.step_func(function (r) {
+            return r.json();
+          }))
+          .then(this.step_func_done(function (j) {
+            assert_equals(j["secure_from_secure_dom"], "secure_from_secure_dom=1");
+          }));
+      }
+    ]
+  ];
+
+  function clearKnownCookie() {
+    document.cookie = "secure_from_secure_dom=0; Secure; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
+  }
+
+  executeTestsSerially(tests, clearKnownCookie, clearKnownCookie);
+</script>
+</body>
+</html>

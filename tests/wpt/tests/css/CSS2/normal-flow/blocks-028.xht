@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Block Box Model: overconstrained horizontal box model and minimum widths</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/mozilla/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth"/>
+  <style type="text/css">
+   .test { border-left: none; padding-left: 2em; width: 3em; padding-right: 2em; border-right: none; box-sizing: border-box; }
+   .control { border-left: none; padding-left: 0; width: 4em; padding-right: 0; border-right: none; }
+   body div { background: navy; height: 1em; }
+  </style>
+ </head>
+ <body class="body">
+  <p>There must be a perfectly rectangular blue box below.</p>
+  <div class="test"></div>
+  <div class="control"></div>
+ </body>
+</html>

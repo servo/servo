@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+const TEN_SECONDS = 10000; // 10k ms in ten seconds
+const ONE_MINUTE = 60000; // 60k ms in one minute
+
+let immersiveTestName = "XRFrame getViewerPose updates on the next frame for immersive";
+let nonImmersiveTestName = "XRFrame getViewerPose updates on the next frame for non-immersive";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('viewer')
+    .then((referenceSpace) => new Promise((resolve, reject) => {
+      let counter = 0;
+      let windowFrameTime = 0;
+      let frameTime = 0;
+      let lastFrameTime = 0;
+
+      let firstFrame = true;
+
+      function onFrameFirst(time, xrFrame) {
+        lastFrameTime = frameTime;
+        frameTime = time;
+        let now = performance.now();
+
+        t.step( () => {
+          if(firstFrame) {
+            // This callback must be the first one called.
+            assert_equals(counter, 0);
+          } else {
+            // If it's a second animation frame, the timestamp must be greater
+            // than the timestamp on a previous frame.
+            assert_greater_than(frameTime, lastFrameTime);
+            // ... but not grater than 10 seconds.
+            assert_approx_equals(frameTime, lastFrameTime, TEN_SECONDS);
+          }
+
+          // There's going to be some disparity between performance.now() and
+          // the timestamp passed into the callback, but it shouldn't be huge.
+          // If they're more than ten seconds apart something has gone horribly
+          // wrong.
+          assert_approx_equals(frameTime, now, TEN_SECONDS);
+        });
+
+        if (firstFrame) {
+          // We also want this method to run for the second animation frame.
+          session.requestAnimationFrame(onFrameFirst);
+        } else {
+          resolve();
+        }
+
+        firstFrame = false;
+        counter++;
+      }
+
+      function onFrameSubsequent(time, xrFrame) {
+        t.step( () => {
+          // The timestamp passed to this callback should be exactly equal to
+          // the one passed to the first callback in this set.
+          assert_equals(time, frameTime);
+        });
+
+        counter++;
+      }
+
+      function onFrameLast(time, xrFrame) {
+        t.step( () => {
+          // Make sure all the previous callbacks fired as expected.
+          assert_equals(counter, 11);
+        });
+      }
+
+      session.requestAnimationFrame(onFrameFirst);
+      // Queue up several callbacks
+      for (let i = 0; i < 10; ++i) {
+        session.requestAnimationFrame(onFrameSubsequent);
+      }
+      session.requestAnimationFrame(onFrameLast);
+
+    }));
+};
+
+xr_session_promise_test(
+  immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(
+  nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+
+</script>

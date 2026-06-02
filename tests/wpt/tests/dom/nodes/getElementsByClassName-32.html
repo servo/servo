@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Node.prototype.getElementsByClassName tests imported from jsdom</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div class="df-article" id="1">
+</div>
+<div class="df-article" id="2">
+</div>
+<div class="df-article" id="3">
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const p = document.createElement("p");
+  p.className = "unknown";
+  document.body.appendChild(p);
+
+  const elements = document.getElementsByClassName("first-p");
+  assert_array_equals(elements, []);
+
+}, "cannot find the class name");
+
+test(() => {
+
+  const p = document.createElement("p");
+  p.className = "first-p";
+  document.body.appendChild(p);
+
+  const elements = document.getElementsByClassName("first-p");
+  assert_array_equals(elements, [p]);
+
+}, "finds the class name");
+
+
+test(() => {
+
+  const p = document.createElement("p");
+  p.className = "the-p second third";
+  document.body.appendChild(p);
+
+  const elements1 = document.getElementsByClassName("the-p");
+  assert_array_equals(elements1, [p]);
+
+  const elements2 = document.getElementsByClassName("second");
+  assert_array_equals(elements2, [p]);
+
+  const elements3 = document.getElementsByClassName("third");
+  assert_array_equals(elements3, [p]);
+
+}, "finds the same element with multiple class names");
+
+test(() => {
+
+  const elements = document.getElementsByClassName("df-article");
+
+  assert_equals(elements.length, 3);
+  assert_array_equals(Array.prototype.map.call(elements, el => el.id), ["1", "2", "3"]);
+
+}, "does not get confused by numeric IDs");
+
+</script>

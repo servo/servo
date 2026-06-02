@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<style>
+
+#scope {
+  position: relative; width: 100px; height: 100px;
+  background: #ddd; contain: strict;
+}
+#part {
+  position: absolute; top: 10px; left: 10px;
+  width: 80px; height: 80px; background: #8cf;
+  z-index: 1; view-transition-name: foo;
+}
+
+</style>
+</head>
+<body>
+<div id=scope><div id=part></div></div>
+<script>
+
+onload = async () => {
+  t = scope.startViewTransition(() => {});
+  await t.finished;
+  document.documentElement.classList.remove('test-wait');
+};
+
+</script>
+</body>
+</html>

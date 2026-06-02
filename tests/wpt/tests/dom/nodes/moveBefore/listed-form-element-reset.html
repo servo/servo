@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Form owner is reset when new form is moved before a listed form element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<form id=form1></form>
+<button form=form1></button>
+
+<script>
+test(t => {
+  const form = document.querySelector('form');
+  const button = document.querySelector('button');
+
+  assert_equals(button.form, form, "button.form is correctly associated");
+  const form2 = document.createElement('form');
+  form2.id = 'form1';
+  document.body.append(form2);
+  assert_equals(button.form, form,
+      "button.form is still associated with the original form, after form2 " +
+      "(with a competing ID) is inserted into the DOM");
+
+  // Atomically moving `form2` closer before `button` must reset `button`'s
+  // `form` IDL attribute's return value, to the new "moved" `form2`.
+  document.body.moveBefore(form2, form);
+  assert_equals(button.form, form2, "button.form is correctly reset to form2");
+}, "Listed form element form owner is reset when a new form is moved closer " +
+   "before the listed element");
+</script>

@@ -1,0 +1,23 @@
+<html>
+<head>
+  <title></title>
+  <script src="../content/harness.js"></script>
+</head>
+<body>
+<script>
+window.addEventListener("resize", function (aEvent) {
+    // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
+    is_a(aEvent, UIEvent, "event should be UIEvent.");
+    is(aEvent.bubbles, false, "Bubbles should be No.");
+    is(aEvent.cancelable, false, "Cancelable should be No.");
+
+    is(aEvent.target, window, "Target should be defaultView.");
+    is_a(aEvent.target, Window, "UIEvent.target should be instance of Window.");
+
+    //is(aEvent.view, document.defaultView, "UIEvent.view should be defaultView.");
+    is_a(aEvent.view, Window, "UIEvent.view should be instance of Window.");
+    is(aEvent.detail, 0, "UIEvent.detail should be 0.");
+}, false);
+</script>
+</body>
+</html>

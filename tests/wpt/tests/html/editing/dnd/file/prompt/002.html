@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for server name and document.domain</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  if( location.protocol != 'http:' && location.protocol != 'https:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over http or https.';
+    return;
+  }
+  if( !location.hostname.match(/[^\.]\.[^\.]+\.[^\.]/) ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded from a subdomain that allows document.domain to be set to a parent domain (try using a server name that contains at least two or three dots, for example www.example.org).';
+    return;
+  }
+  var realhost = location.hostname, newdomain = location.hostname.replace(/^[^.]+\./,'');
+  try {
+    document.domain = location.hostname.replace(/^[^.]+\./,'');
+  } catch(e) {
+    document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded from a subdomain that allows document.domain to be set to a parent domain.';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
+  };
+  document.getElementsByTagName('span')[0].innerHTML = realhost;
+};
+</script>
+
+<div></div>
+
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, identifying the server name as <span></span></p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

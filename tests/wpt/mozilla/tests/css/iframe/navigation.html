@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel=match href=navigation_ref.html>
+<style>
+iframe {
+    display: block;
+    border: 1px solid black;
+    width: 500px;
+    height: 300px;
+    margin-left: 10px;
+    margin-top: 0px;
+}
+</style>
+<body>
+<iframe src="data:text/html,Foo"></iframe>
+<script>
+var iframe = document.getElementsByTagName('iframe')[0];
+iframe.addEventListener('load', function first() {
+    iframe.removeEventListener('load', first);
+    iframe.src = "data:text/html,Hello%20world";
+    iframe.addEventListener('load', function() {
+      document.documentElement.classList.remove("reftest-wait");
+    }, false);
+}, false);
+</script>
+</body>
+</html>
+

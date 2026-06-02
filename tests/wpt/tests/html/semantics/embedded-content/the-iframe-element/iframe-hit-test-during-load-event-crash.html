@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<div style="visibility: hidden;">
+  <iframe id="iframe"></iframe>
+</div>
+<script>
+  window.addEventListener("load", _ =>
+    iframe.contentDocument.elementFromPoint(0, 0)
+  );
+</script>

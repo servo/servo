@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Labelledby</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<h1>SVG-AAM: Labelledby Tests</h1>
+
+<p>Tests SVG-specific aria-labelledby rules in <a href="https://w3c.github.io/svg-aam/#mapping_additional_nd">SVG-AAM §8.1 Name and Description</a>, but note the open issues in <a href="https://github.com/w3c/svg-aam/issues/31">SVG-AAM #31</a>.
+
+<span id="huey">Huey</span>
+<span id="dewey">Dewey</span>
+<span id="louie">Louie</span>
+<span id="scrooge">Scrooge</span>
+
+<h2>SVG a[aria-labelledby]</h2>
+<svg viewbox="0 0 300 100">
+  <a href="#" aria-labelledby="huey" data-expectedlabel="Huey" xlink:title="circle link label" data-testname="[aria-labelledby] > circle" class="ex"><circle cx="26" cy="26" r="25"></circle></a>
+  <a href="#" aria-labelledby="dewey" data-expectedlabel="Dewey" xlink:title="rect link label" data-testname="[aria-labelledby] > rect" class="ex"><rect x="60" y="1" width="50" height="50"></rect></a>
+  <a href="#" aria-labelledby="louie" data-expectedlabel="Louie" xlink:title="polygon link label" data-testname="[aria-labelledby] > polygon" class="ex"><polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black"></polygon></a>
+</svg><br>
+<svg viewbox="0 0 200 90">
+  <a href="#" aria-labelledby="scrooge" data-expectedlabel="Scrooge" xlink:title="group link label" data-testname="[aria-labelledby] > g" class="ex">
+  <g fill="white" stroke="green" stroke-width="5">
+    <circle cx="40" cy="40" r="25" />
+    <circle cx="60" cy="60" r="25" />
+  </g>
+  </a>
+</svg>
+<br>
+
+<h2>SVG a[aria-label][aria-labelledby]</h2>
+<svg viewbox="0 0 300 100">
+  <a href="#" aria-labelledby="huey" aria-label="Athos" data-expectedlabel="Huey" xlink:title="circle link label" data-testname="[aria-label][aria-labelledby] > circle" class="ex"><circle cx="26" cy="26" r="25"></circle></a>
+  <a href="#" aria-labelledby="dewey" aria-label="Porthos" data-expectedlabel="Dewey" xlink:title="rect link label" data-testname="[aria-label][aria-labelledby] > rect" class="ex"><rect x="60" y="1" width="50" height="50"></rect></a>
+  <a href="#" aria-labelledby="louie" aria-label="Aramis" data-expectedlabel="Louie" xlink:title="polygon link label" data-testname="[aria-label][aria-labelledby] > polygon" class="ex"><polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black"></polygon></a>
+</svg><br>
+<svg viewbox="0 0 200 90">
+  <a href="#" aria-labelledby="scrooge" aria-label="D’Artagnan" data-expectedlabel="Scrooge" xlink:title="group link label" data-testname="[aria-label][aria-labelledby] > g" class="ex">
+  <g fill="white" stroke="green" stroke-width="5">
+    <circle cx="40" cy="40" r="25" />
+    <circle cx="60" cy="60" r="25" />
+  </g>
+  </a>
+</svg>
+<br>
+
+<h2>SVG a[aria-labelledby="{[aria-label]} {[aria-label]} {[xlink:title]} {* > [title]}"]</h2>
+<svg viewbox="0 0 300 100">
+  <a id="nolan" href="#" aria-label="Nolan"><circle cx="26" cy="26" r="25"></circle></a>
+  <a id="gilliam" href="#" aria-label="Gilliam"><ellipse cx="250" cy="50" rx="30" ry="15"></ellipse></a>
+  <a id="kaufman" href="#" xlink:title="Kaufman"><rect x="60" y="1" width="50" height="50"></rect></a>
+  <polygon id="villeneuve" points="100,100 150,25 150,75 200,0" fill="none" stroke="black"><title>Villeneuve</title></polygon>
+</svg><br>
+<svg viewbox="0 0 200 90">
+  <a href="#" aria-labelledby="nolan gilliam kaufman villeneuve" data-expectedlabel="Nolan Gilliam Kaufman Villeneuve" xlink:title="group link label" data-testname="[aria-labelledby=&quot;{[aria-label]} {[xlink:title]} {* > [title]}&quot;] > g" class="ex">
+  <g fill="white" stroke="green" stroke-width="5">
+    <circle cx="40" cy="40" r="25" />
+    <circle cx="60" cy="60" r="25" />
+  </g>
+  </a>
+</svg>
+<br>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+a { visibility: hidden; }
+</style>
+
+<div id='container'>
+    <div id='child'></div>
+</div>
+<div id='element'></div>
+<svg>
+    <rect id='svgElement'></rect>
+</svg>
+
+<a href='example.com/unvisited' id='unvisited'><div id='unvisitedchild'>Unvisited</div></a>
+<a href='' id='visited'><div id='visitedchild'>Visited</div></a>
+
+<script>
+'use strict';
+var container = document.getElementById('container');
+var child = document.getElementById('child');
+var element = document.getElementById('element');
+var unvisited = document.getElementById('unvisited');
+var visited = document.getElementById('visited');
+var unvisitedChild = document.getElementById('unvisitedchild');
+var visitedChild = document.getElementById('visitedchild');
+
+test(function() {
+    var keyframes = [
+        {backgroundColor: 'currentColor'},
+        {backgroundColor: 'rgb(0, 68, 0)'}
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(element).backgroundColor, 'rgb(0, 34, 102)');
+}, 'Background color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {fill: 'currentColor'},
+        {fill: 'rgb(0, 68, 0)'}
+    ];
+
+    svgElement.style.color = 'rgb(204, 0, 0)';
+    var player = svgElement.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    svgElement.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(svgElement).fill, 'rgb(0, 34, 102)');
+}, 'Fill color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {backgroundColor: 'rgba(250, 240, 220, 0.431372549)'},
+        {backgroundColor: 'currentColor'}
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 3;
+    element.style.color = 'rgba(160, 190, 180, 0.980392157)';
+    assert_equals(getComputedStyle(element).backgroundColor, 'rgba(206, 215, 200, 0.596)');
+}, 'Color interpolation uses pre-multiplied colors');
+
+test(function() {
+    var keyframes = [
+        {
+            borderBottomColor: 'currentColor',
+            borderLeftColor: 'currentColor',
+            borderRightColor: 'currentColor',
+            borderTopColor: 'currentColor',
+            offset: 0
+        },
+        {
+            borderBottomColor: 'rgb(0, 68, 0)',
+            borderLeftColor: 'rgb(0, 70, 0)',
+            borderRightColor: 'rgb(0, 72, 0)',
+            borderTopColor: 'rgb(0, 74, 0)',
+            offset: 1
+        }
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(element).borderBottomColor, 'rgb(0, 34, 102)');
+    assert_equals(getComputedStyle(element).borderLeftColor, 'rgb(0, 35, 102)');
+    assert_equals(getComputedStyle(element).borderRightColor, 'rgb(0, 36, 102)');
+    assert_equals(getComputedStyle(element).borderTopColor, 'rgb(0, 37, 102)');
+}, 'Border color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {
+            borderBottomColor: 'currentColor',
+            borderLeftColor: 'currentColor',
+            borderRightColor: 'currentColor',
+            borderTopColor: 'currentColor',
+            offset: 0
+        },
+        {
+            borderBottomColor: 'rgb(0, 68, 0)',
+            borderLeftColor: 'rgb(0, 70, 0)',
+            borderRightColor: 'rgb(0, 72, 0)',
+            borderTopColor: 'rgb(0, 74, 0)',
+            offset: 1
+        }
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.color = 'rgb(0, 0, 200)';
+    assert_equals(getComputedStyle(element).borderBottomColor, 'rgb(0, 34, 100)');
+    assert_equals(getComputedStyle(element).borderLeftColor, 'rgb(0, 35, 100)');
+    assert_equals(getComputedStyle(element).borderRightColor, 'rgb(0, 36, 100)');
+    assert_equals(getComputedStyle(element).borderTopColor, 'rgb(0, 37, 100)');
+}, 'Border color responsive to currentColor changes again');
+
+test(function() {
+    var keyframes = [
+        {outlineColor: 'currentColor'},
+        {outlineColor: 'rgb(0, 68, 0)'}
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(element).outlineColor, 'rgb(0, 34, 102)');
+}, 'Outline color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {stroke: 'rgb(0, 68, 0)'},
+        {stroke: 'currentColor'}
+    ];
+
+    svgElement.style.color = 'rgb(204, 0, 0)';
+    var player = svgElement.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    svgElement.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(svgElement).stroke, 'rgb(0, 34, 102)');
+}, 'Stroke color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {textDecorationColor: 'rgb(0, 68, 0)'},
+        {textDecorationColor: 'currentColor'}
+    ];
+
+    element.style.color = 'rgb(204, 0, 0)';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(element).textDecorationColor, 'rgb(0, 34, 102)');
+}, 'Text decoration color responsive to currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {color: 'currentColor'},
+        {color: 'rgb(0, 68, 0)'}
+    ];
+
+    child.style.color = 'rgb(10, 10, 10)'; // Should be ignored
+    container.style.color = 'rgb(204, 0, 0)';
+    var player = child.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 34, 102)');
+    player.currentTime = 7.5;
+    container.style.color = 'rgb(136, 0, 136)';
+    assert_equals(getComputedStyle(child).color, 'rgb(34, 51, 34)');
+}, 'Color responsive to parent currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {color: 'rgb(0, 68, 0)'},
+        {color: 'currentColor'}
+    ];
+
+    child.style.color = 'rgb(10, 10, 10)'; // Should be ignored
+    container.style.color = 'rgb(204, 0, 0)';
+    var player = child.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.color = 'rgb(0, 0, 204)';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 34, 102)');
+    player.currentTime = 7.5;
+    container.style.color = 'rgb(136, 0, 68)';
+    assert_equals(getComputedStyle(child).color, 'rgb(102, 17, 51)');
+}, 'Color responsive to repeated parent currentColor changes');
+
+test(function() {
+    var keyframes = [
+        {backgroundColor: 'currentColor'},
+        {backgroundColor: 'rgb(100, 150, 200)'}
+    ];
+
+    var player1 = unvisited.animate(keyframes, 10);
+    var player2 = visited.animate(keyframes, 10);
+    player1.pause();
+    player2.pause();
+    player1.currentTime = 5;
+    player2.currentTime = 5;
+    assert_equals(getComputedStyle(unvisited).backgroundColor, getComputedStyle(visited).backgroundColor);
+}, 'Color animations do not expose visited status');
+
+test(function() {
+    var keyframes = [
+        {color: 'rgb(100, 150, 200)'},
+        {color: 'currentColor'}
+    ];
+
+    var player1 = unvisitedChild.animate(keyframes, 10);
+    var player2 = visitedChild.animate(keyframes, 10);
+    player1.pause();
+    player2.pause();
+    player1.currentTime = 5;
+    player2.currentTime = 5;
+    assert_equals(getComputedStyle(unvisitedChild).color, getComputedStyle(visitedChild).color);
+}, 'Color animations do not expose parent visited status');
+
+test(function() {
+    var keyframes = [
+        {columnRuleColor: 'inherit'},
+        {columnRuleColor: 'rgb(70, 70, 170)'}
+    ];
+
+    container.style.columnRuleColor = 'rgb(170, 70, 70)';
+    var player = child.animate(keyframes, 10);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(child).columnRuleColor, 'rgb(120, 70, 120)');
+
+    container.style.columnRuleColor = 'rgb(70, 170, 70)';
+    assert_equals(getComputedStyle(child).columnRuleColor, 'rgb(70, 120, 120)');
+}, 'Color animations respond to inherited changes');
+</script>

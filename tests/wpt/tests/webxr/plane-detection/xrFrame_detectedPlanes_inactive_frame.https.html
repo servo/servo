@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "Accessing detectedPlanes on inactive frame throws InvalidStateError";
+
+xr_session_promise_test(
+  testName,
+  (session, controller, t) => {
+    return new Promise((resolve) => {
+      session.requestAnimationFrame((time, frame) => {
+        // Access during rAF is fine.
+        let planes = frame.detectedPlanes;
+
+        // The frame is only active during the requestAnimationFrame callback.
+        // We use step_timeout to queue a task that runs after this callback
+        // has completed and the frame has become inactive.
+        t.step_timeout(() => {
+          t.step(() => {
+            assert_throws_dom("InvalidStateError", () => frame.detectedPlanes);
+          });
+          resolve();
+        }, 0);
+      });
+    });
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+</script>

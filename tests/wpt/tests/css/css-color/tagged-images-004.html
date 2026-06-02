@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Color Space of Tagged Images. CSS background property</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#tagged-images">
+<link rel="help" href="https://w3c.github.io/PNG-spec/#11iCCP">
+<link rel="help" href="https://w3c.github.io/PNG-spec/#11sRGB">
+<meta name="assert" content="Image formats may also use other, equivalent methods, often for brevity.
+For example, PNG specifies a means (the sRGB chunk) ">
+<link rel="match" href="./greensquare-090-ref.html">
+<style>
+    div { width: 12em; height: 6em; margin-top: 0; margin-bottom: 0}
+    .test { background-color: red; }
+
+    /* solid color #990000 PNG image, iCCP with v2 ICC swapped red-green sRGB profile */
+    .ref { background: url(./support/swap-990000-iCCP.png); }
+
+    /* solid color #009900 PNG image, sRGB chunk */
+    .test { background: url(./support/009900-sRGB.png); }
+</style>
+<body>
+    <p>Test passes if you see a green square, and no red.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+
+</body>

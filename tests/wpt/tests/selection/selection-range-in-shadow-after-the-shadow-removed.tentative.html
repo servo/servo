@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?mode=closed">
+<meta name="variant" content="?mode=open">
+<title>Selection range in shadow after removing the shadow</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const mode = (new URLSearchParams(document.location.search)).get("mode");
+  const container = document.querySelector("div");
+  test(() => {
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    container.appendChild(host);
+    getSelection().collapse(root.firstChild.firstChild, 2);
+    const range = getSelection().getRangeAt(0);
+    host.remove();
+    // The range should be kept in the shadow because it's referred by JS as
+    // a range.
+    assert_equals(range.startContainer, root.firstChild.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 2, "startOffset should not be changed");
+    // It may be reasonable to just remove the range in removed shadow.
+    // This matches with move-selection-range-into-different-root.tentative.html
+    assert_equals(getSelection().rangeCount, 0, "Selection should not have the range in removed shadow");
+  }, "Selection range in shadow should not be as a selection range after the host is removed");
+
+  test(() => {
+    const wrapper = document.createElement("div");
+    wrapper.id = "wrapper";
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    wrapper.appendChild(host);
+    container.appendChild(wrapper);
+    getSelection().collapse(root.firstChild.firstChild, 2);
+    const range = getSelection().getRangeAt(0);
+    wrapper.remove();
+    // The range should be kept in the shadow because it's referred by JS as
+    // a range.
+    assert_equals(range.startContainer, root.firstChild.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 2, "startOffset should not be changed");
+    // It may be reasonable to just remove the range in removed shadow.
+    // This matches with move-selection-range-into-different-root.tentative.html
+    assert_equals(getSelection().rangeCount, 0, "Selection should not have the range in removed shadow");
+  }, "Selection range in shadow should not be as a selection range after the host parent is removed");
+
+  test(() => {
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    container.appendChild(host);
+    getSelection().collapse(root.firstChild.firstChild, 2);
+    const range = getSelection().getRangeAt(0);
+    host.replaceWith(host);
+    // The range should be kept in the shadow because it's referred by JS as
+    // a range.
+    assert_equals(range.startContainer, root.firstChild.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 2, "startOffset should not be changed");
+    // It may be reasonable to just remove the range in removed shadow.
+    // This matches with move-selection-range-into-different-root.tentative.html
+    assert_equals(getSelection().rangeCount, 0, "Selection should not have the range in removed shadow");
+    host.remove();
+  }, "Selection range in shadow should not be as a selection range after the host is replaced with itself (.replaceWith)");
+
+  test(() => {
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    container.appendChild(host);
+    getSelection().collapse(root.firstChild.firstChild, 2);
+    const range = getSelection().getRangeAt(0);
+    container.replaceChild(host, host);
+    // The range should be kept in the shadow because it's referred by JS as
+    // a range.
+    assert_equals(range.startContainer, root.firstChild.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 2, "startOffset should not be changed");
+    // It may be reasonable to just remove the range in removed shadow.
+    // This matches with move-selection-range-into-different-root.tentative.html
+    assert_equals(getSelection().rangeCount, 0, "Selection should not have the range in removed shadow");
+    host.remove();
+  }, "Selection range in shadow should not be as a selection range after the host is replaced with itself (.replaceChild");
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Set location from a function called from a parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe src="support/location-set.html"></iframe>
+<script>
+async_test(function() {
+  onload = this.step_func(function() {
+    var fr = document.querySelector("iframe")
+    var url = fr.contentDocument.URL
+    fr.contentWindow.go()
+    fr.onload = this.step_func_done(function() {
+      assert_equals(fr.contentDocument.referrer, url)
+    })
+  })
+})
+</script>

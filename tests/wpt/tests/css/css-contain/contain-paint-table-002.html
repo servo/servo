@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: paint' applies to 'table' elements</title>
+
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-paint">
+  <link rel="match" href="reference/contain-paint-047-ref.html">
+
+  <meta content="This test checks that paint containment applies to table elements. Therefore the content of the table element (including its caption) should be clipped to the padding edge of its principal box." name="assert">
+
+  <style>
+  div#table
+    {
+      display: table;
+      font-family: monospace;
+      font-size: 100px;
+      table-layout: fixed;
+      width: 4ch;
+      contain: paint;
+    }
+  div.caption
+    {
+      display: table-caption;
+      color: green;
+      /* We have to limit the width of the caption here, or else the caption's
+         intrinsic width (including the "FAIL" span) would "prop up" the width
+         of the table to be a size that'd be larger than its specified width.
+         Really, we want the table to be *only* 4 characters wide (as wide as
+         the text "PASS"), with "FAIL" overflowing and getting clipped by
+         "contain:paint" on the table wrapper box. */
+      width: 4ch;
+    }
+  span
+    {
+      background-color: red;
+      color: yellow;
+    }
+  </style>
+
+  <p>Test passes if there is <strong>no red</strong>.
+
+  <div id="table">
+    <div class="caption">
+      PASS<span>FAIL</span>
+    </div>
+  </div>

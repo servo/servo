@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter on bidi text</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="If the first letter of the block is not at the start of the line (for example due to bidirectional reordering), then the user agent need not create the pseudo-element." />
+        <style type="text/css">
+            div
+            {
+                direction: rtl;
+            }
+            div:first-letter
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letter "F" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

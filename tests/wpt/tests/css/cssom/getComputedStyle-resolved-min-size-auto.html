@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: resolved value of min-width and min-height:auto should be 0 except in certain defined cases</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-auto">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11716">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<!-- OVERVIEW:
+     * Elements to be tested here must include an 'id'.
+     * We use a "preservesAuto" attribute to tag the elements
+       are expected to preserve "auto" in the resolved value of
+       min-width and min-height.
+  -->
+
+<!-- The test content is in a scrollable div for cosmetic reasons, so that it
+     can be inspected but also doesn't push the testharness output off the
+     bottom of the screen: -->
+<div style="overflow: scroll; width: 300px; height: 200px">
+  <div id="block-box"></div>
+  <div id="inline-box"></div>
+
+  <!-- Elements with a nondefault aspect-ratio preserve 'auto': -->
+  <div id="block-with-valid-aspect-ratio" style="aspect-ratio: 1/1"
+       preservesAuto></div>
+  <div id="block-with-degenerate-aspect-ratio" style="aspect-ratio: 0/1"
+     preservesAuto></div>
+  <div id="block-with-two-part-valid-aspect-ratio"
+       style="aspect-ratio: auto 1/1" preservesAuto></div>
+  <div id="block-with-two-part-degenerate-aspect-ratio"
+       style="aspect-ratio: auto 0/1" preservesAuto></div>
+
+  <!-- Note: aspect-ratio doesn't apply to inline boxes, but we treat it as
+       toggling getComputedStyle to return the true 'min-width:auto' value
+       regardless. -->
+  <span id="inline-with-valid-aspect-ratio" style="aspect-ratio: 1/1"
+        preservesAuto></span>
+  <span id="inline-with-degenerate-aspect-ratio" style="aspect-ratio: 0/1"
+        preservesAuto></span>
+
+  <!-- flex and grid items should preserve 'auto': -->
+  <div style="display: flex">
+    <div id="flex-item-row" preservesAuto></div>
+  </div>
+  <div style="display: flex; flex-direction: column;">
+  <div id="flex-item-column" preservesAuto></div>
+  </div>
+  <div style="display: grid">
+    <div id="grid-item" preservesAuto></div>
+  </div>
+
+  <!-- Per https://drafts.csswg.org/css-sizing/#valdef-width-auto
+       the min-width/min-height:auto value "resolves to zero when no box is
+       generated" (regardless of aspect-ratio & flex/grid-item special cases)
+       -->
+  <div id="display-none" style="display: none"></div>
+  <div id="display-none-valid-aspect-ratio"
+       style="display: none; aspect-ratio:2/1"></div>
+  <div style="display:none">
+    <div id="display-none-subtree-valid-aspect-ratio"
+         style="aspect-ratio:2/1"></div>
+  </div>
+  <div style="display: none">
+    <div style="display: flex">
+      <div id="display-none-subtree-flex-item"></div>
+    </div>
+  </div>
+  <div style="display: none">
+    <div style="display: grid">
+      <div id="display-none-subtree-grid-item"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+for (const e of document.querySelectorAll("[id]")) {
+  test(function() {
+    const cs = getComputedStyle(e);
+    const doesPreserveAuto = e.hasAttribute("preservesAuto");
+    const expectedVal = doesPreserveAuto ?  "auto" : "0px";
+    const expectationMessage = doesPreserveAuto ?
+          "should round-trip through getComputedStyle" :
+          `should be converted to ${expectedVal} in getComputedStyle`;
+
+    for (const prop of ["min-width", "min-height"]) {
+      assert_equals(cs[prop], expectedVal, `${e.id}: '${prop}:auto' ${expectationMessage} (as initial value)`);
+      e.style.setProperty(prop, "auto");
+      assert_equals(cs[prop], expectedVal, `${e.id}: '${prop}:auto' ${expectationMessage} (as specified value)`);
+      e.style.removeProperty(prop);
+    }
+  }, `Resolved value of min-width & min-height 'auto' keyword behaves as expected on element with id="${e.id}"`);
+}
+</script>

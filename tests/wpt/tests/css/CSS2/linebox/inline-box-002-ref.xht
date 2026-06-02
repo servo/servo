@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div {width: 192px;}
+
+  div#yellow
+  {
+  background-color: yellow;
+  height: 192px;
+  }
+
+  span.blue {background-color: blue;}
+
+  div#orange {background-color: orange;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if an orange stripe is between two shorter blue stripes and all three stripes are below a yellow square.</p>
+
+  <div id="yellow"></div>
+
+  <div><span class="blue">Filler Text</span></div>
+
+  <div id="orange">Filler Text</div>
+
+  <div><span class="blue">Filler Text</span></div>
+
+ </body>
+</html>

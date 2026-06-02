@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Two levels of writing mode roots with text inside, no constraints</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic" title="4. Intrinsic Size Determination">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto" title="7.3.1. Available Space in Orthogonal Flows">
+<link rel="match" href="reference/two-levels-of-orthogonal-flows.html">
+<p>There should be three lines below. The middle line should have a
+  yellow background (but otherwise be exactly like the two others,
+  i.e. no extra height or anything like that)</p>
+A B C D E F G
+<div style="writing-mode:vertical-rl; background:yellow;">
+  <div style="writing-mode:horizontal-tb;">
+    A B C D E F G
+  </div>
+</div>
+A B C D E F G

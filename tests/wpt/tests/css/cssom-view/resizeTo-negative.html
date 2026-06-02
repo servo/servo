@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-resizeto">
+<link rel="help" href="https://github.com/servo/servo/pull/39204">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+"use strict";
+promise_test(async t => {
+  const w = window.open("/css/reference/blank.html", "", "width=600,height=450");
+  assert_not_equals(w, null, "Popup isn't null");
+  t.add_cleanup(() => w.close());
+
+  // Try as early as possible, when probably we only have about:blank.
+  w.resizeTo(-1, -1);
+
+  // Try again after load, some browser might ignore the former one.
+  if (w.location.href === "about:blank" || w.document.readyState !== "complete") {
+    await new Promise(resolve => w.addEventListener("load", resolve, {once: true}));
+    w.resizeTo(-1, -1);
+  }
+
+  // Wait a bit, so that the resize can finish. Note that listening for a "resize"
+  // event would result in a timeout if no resize occurred.
+  await waitForAtLeastOneFrame();
+  await waitForAtLeastOneFrame();
+
+  assert_greater_than(w.outerWidth, 0, "Popup width is positive");
+  assert_greater_than(w.outerHeight, 0, "Popup height is positive");
+}, "resizeTo(-1, -1) might shrink window size, but it stays positive");
+</script>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Entities in the cue text</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var getCueAsHTMLContent = function(cue) {
+  return cue.getCueAsHTML().textContent;
+};
+
+check_cues_from_track("resources/entities.vtt", function(track) {
+    var expected = [
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has an ampersand & character." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a less than < character." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a greater than > character." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a Left-to-Right Mark \u200e." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a Right-to-Left Mark \u200f." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a non-breaking space \u00a0." },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This & is parsed to the same as &." }
+    ];
+
+    assert_cues_html_content(track.cues, expected);
+});
+
+check_cues_from_track("resources/entities-wrong.vtt", function(track) {
+    var expected = [
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a less than ", },
+        { innerHTML: getCueAsHTMLContent,
+          expected: "This cue has a greater than > character.\nSince it's not related to a < character,\nit's just interpreted as text.", }
+    ];
+
+    assert_cues_html_content(track.cues, expected);
+});
+</script>

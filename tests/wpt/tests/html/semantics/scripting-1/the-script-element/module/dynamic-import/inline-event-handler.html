@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='div' onmousedown='import("./../imports-a.js").then(window.continueTest);'></div>
+<script>
+const div = document.getElementById('div');
+
+promise_test(t => {
+  const promise = new Promise(resolve => window.continueTest = resolve);
+
+  const event = new MouseEvent('mousedown', {'button': 1});
+  div.dispatchEvent(event);
+
+  return promise.then(() => {
+    assert_true(window.evaluated_imports_a);
+    div.parentNode.removeChild(div);
+  });
+}, "dynamic import should work when triggered from inline event handlers");
+</script>

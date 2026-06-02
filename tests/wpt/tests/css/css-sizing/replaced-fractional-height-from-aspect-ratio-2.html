@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1239395">
+<meta name="assert" content="The height of a replaced element can depend on the default natural width 300." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<div id=log></div>
+<!-- 915977 = 299013.12 * (919 / 300) -->
+<canvas height="919" style="width:299013.12px" data-expected-height="915977"></canvas>
+
+<script>
+checkLayout('canvas');
+</script>

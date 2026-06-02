@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!doctype html>
+<meta charset="utf-8">
+<html class="reftest-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1993226">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+.c {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+.b:not(.ancestor:has(+ .sibling) .a) .c {
+  background: red;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=ancestor>
+  <div id=dut class=b>
+    <div class=c></div>
+  </div>
+</div>
+<div class=sibling></div>
+<script>
+onload = () => {
+  dut.classList.toggle('a');
+  dut.getBoundingClientRect(); // Ensure layout flush.
+  document.documentElement.classList.remove('reftest-wait');
+};
+</script>

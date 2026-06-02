@@ -1,0 +1,50 @@
+[package]
+name = "servo-media-gstreamer"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_gstreamer"
+path = "lib.rs"
+
+[features]
+glx = ["servo-media-gstreamer-render-unix/gl-x11"]
+wayland = ["servo-media-gstreamer-render-unix/gl-wayland"]
+
+[dependencies]
+byte-slice-cast = "1"
+glib = { workspace = true }
+glib-sys = { workspace = true }
+gstreamer = { workspace = true }
+gstreamer-app = { workspace = true }
+gstreamer-audio = { workspace = true }
+gstreamer-video = { workspace = true }
+gstreamer-base = { workspace = true }
+gstreamer-play = { workspace = true }
+gstreamer-webrtc = { workspace = true }
+gstreamer-sdp = { workspace = true }
+gstreamer-sys = { workspace = true }
+ipc-channel = { workspace = true }
+log = "0.4"
+mime = "0.3.13"
+once_cell = "1.18.0"
+servo-media = { path = "../../servo-media" }
+servo-media-audio = { path = "../../audio" }
+servo-media-gstreamer-render = { path = "render" }
+servo-media-player = { path = "../../player" }
+servo-media-streams = { path = "../../streams" }
+servo-media-traits = { path = "../../traits" }
+servo-media-webrtc = { path = "../../webrtc" }
+url = "2.0"
+
+[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
+servo-media-gstreamer-render-unix = { path = "render-unix", features = [
+    "gl-egl",
+] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+servo-media-gstreamer-render-android = { path = "render-android" }

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>:scope Selector Cannot be Featureless Outside of @scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1904228">
+<link rel="match" href="scope-featureless-ref.html">
+<style>
+:root {
+  background: white;
+  color: white;
+}
+
+:scope {
+  --font-color: black;
+}
+
+#dut {
+  color: var(--font-color);
+}
+</style>
+<div id="dut">Test</div>

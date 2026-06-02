@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1221036">
+
+<div>
+  <template shadowrootmode=open>
+    <slot style="content-visibility: hidden; display: block"></slot>
+  </template>
+  a
+</div>
+<iframe src="resources/slot-content-visibility.html"></iframe>
+<div>
+  <template shadowrootmode=open>
+    <slot style="content-visibility: hidden; display: block"></slot>
+  </template>
+  a
+</div>
+<iframe src="resources/slot-content-visibility.html"></iframe>
+<div>
+  <template shadowrootmode=open>
+    <slot style="content-visibility: hidden; display: block"></slot>
+  </template>
+  a
+</div>
+
+<script>
+  const range = new Range();
+  range.setStartBefore(document.body.firstChild);
+  range.setEndAfter(document.body.lastChild);
+  range.getBoundingClientRect();
+</script>

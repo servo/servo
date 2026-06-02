@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Test: flex order affects painting order of absolutely positioned boxes inside flex</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#propdef-order">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1489495">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test check that relative positioned boxes that are grandchildren of two flexboxes don't sort paint order relative to each other.">
+<style>
+  #test {
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+
+  #test2 {
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+
+  #order-1 {
+    order: 1;
+  }
+
+  #order-2 {
+    order: 2;
+  }
+
+  .inner {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+
+  #order-1 .inner {
+    background-color: green;
+  }
+
+  #order-2 .inner {
+    background-color: red;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="test">
+  <div id="order-2">
+    <div class="inner"></div>
+  </div>
+</div>
+<div id="test2" style="margin-top: -100px">
+  <div id="order-1">
+    <div class="inner"></div>
+  </div>
+</div>

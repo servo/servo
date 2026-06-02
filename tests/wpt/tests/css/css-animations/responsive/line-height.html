@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Animations: line-height animations respond to style changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline/#line-height-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    animation-name: line-height-animation;
+    animation-duration: 4s;
+    animation-timing-function: linear;
+    animation-delay: -2s;
+    animation-play-state: paused;
+  }
+  @keyframes line-height-animation {
+    from { line-height: inherit; }
+    to { line-height: 20px; }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+'use strict';
+const container = document.getElementById('container');
+const target = document.getElementById('target');
+
+test(() => {
+  container.style.lineHeight = '100px';
+  assert_equals(getComputedStyle(target).lineHeight, '60px');
+
+  container.style.lineHeight = '50px';
+  assert_equals(getComputedStyle(target).lineHeight, '35px');
+
+  container.style.lineHeight = '100px';
+  assert_equals(getComputedStyle(target).lineHeight, '60px');
+}, 'line-height responds to inherited changes');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Hit-test of clip-path polygon combined with box-shadow</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  box-shadow: -100px 0px red;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+</style>
+<div class="box"></div>
+<script>
+function assert_element_at(element, pointlist) {
+  for (let point of pointlist) {
+    let result = document.elementFromPoint(point[0], point[1]);
+    assert_equals(result, element, point.join(','));
+  }
+}
+
+test(function() {
+  let div = document.querySelector('.box');
+
+  // Points inside clip-path.
+  assert_element_at(div, [[50, 50], [50, 25], [50, 75], [25, 50], [75, 50]]);
+
+  // Points outside clip-path.
+  assert_element_at(document.body, [[20, 20], [80, 20], [20, 80], [80, 80]]);
+});
+</script>

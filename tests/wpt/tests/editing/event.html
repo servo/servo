@@ -1,0 +1,224 @@
+<!doctype html>
+<title>Editing event tests</title>
+<style>body { font-family: serif }</style>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=test></div>
+<div id=log></div>
+<script>
+"use strict";
+
+var div = document.querySelector("#test");
+add_completion_callback(function() { div.parentNode.removeChild(div) });
+
+function copyEvent(e) {
+    var ret = {};
+    ret.original = e;
+    ["type", "target", "currentTarget", "eventPhase", "bubbles", "cancelable",
+    "defaultPrevented", "isTrusted", "command", "value"].forEach(function(k) {
+        ret[k] = e[k];
+    });
+    return ret;
+}
+
+var tests = [
+    {
+        name: "Simple editable div",
+        html: "<div contenteditable>foo<b>bar</b>baz</div>",
+        initRange: function(range) {
+            range.setStart(div.querySelector("b").firstChild, 0);
+            range.setEnd(div.querySelector("b"), 1);
+        },
+        target: function() { return div.firstChild },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "Editable b",
+        html: "foo<b contenteditable>bar</b>baz",
+        initRange: function(range) {
+            range.setStart(div.querySelector("b").firstChild, 0);
+            range.setEnd(div.querySelector("b"), 1);
+        },
+        target: function() { return div.querySelector("b") },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "No editable content",
+        html: "foo<b>bar</b>baz",
+        initRange: function(range) {
+            range.setStart(div.querySelector("b").firstChild, 0);
+            range.setEnd(div.querySelector("b"), 1);
+        },
+        target: function() { return null },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "Partially-selected editable content",
+        html: "foo<b contenteditable>bar</b>baz",
+        initRange: function(range) {
+            range.setStart(div.querySelector("b").firstChild, 0);
+            range.setEnd(div, 3);
+        },
+        target: function() { return null },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "Selection spans two editing hosts",
+        html: "<div contenteditable>foo</div><div contenteditable>bar</div>",
+        initRange: function(range) {
+            range.setStart(div.querySelector("div").firstChild, 2);
+            range.setEnd(div.querySelector("div + div").firstChild, 1);
+        },
+        target: function() { return null },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "Selection includes two editing hosts",
+        html: "foo<div contenteditable>bar</div>baz<div contenteditable>quz</div>qoz",
+        initRange: function(range) {
+            range.setStart(div.firstChild, 2);
+            range.setEnd(div.lastChild, 1);
+        },
+        target: function() { return null },
+        command: "bold",
+        value: "",
+    },
+    {
+        name: "Changing selection from handler",
+        html: "<div contenteditable>foo</div><div contenteditable>bar</div>",
+        initRange: function(range) {
+            range.setStart(div.querySelector("div").firstChild, 0);
+            range.setEnd(div.querySelector("div").firstChild, 3);
+        },
+        target: function() { return div.firstChild },
+        finalTarget: function() { return div.lastChild },
+        command: "bold",
+        value: "",
+    },
+];
+
+var commandTests = {
+    backColor: ["green"],
+    createLink: ["http://www.w3.org/community/editing/"],
+    fontName: ["serif", "Helvetica"],
+    fontSize: ["6", "15px"],
+    foreColor: ["green"],
+    hiliteColor: ["green"],
+    italic: [],
+    removeFormat: [],
+    strikeThrough: [],
+    subscript: [],
+    superscript: [],
+    underline: [],
+    unlink: [],
+    delete: [],
+    formatBlock: ["p"],
+    forwardDelete: [],
+    indent: [],
+    insertHorizontalRule: ["id"],
+    insertHTML: ["<b>hi</b>"],
+    insertImage: ["../images/green.png"],
+    insertLineBreak: [],
+    insertOrderedList: [],
+    insertParagraph: [],
+    insertText: ["abc"],
+    insertUnorderedList: [],
+    justifyCenter: [],
+    justifyFull: [],
+    justifyLeft: [],
+    justifyRight: [],
+    outdent: [],
+    redo: [],
+    selectAll: [],
+    styleWithCSS: [],
+    undo: [],
+    useCSS: [],
+};
+
+Object.keys(commandTests).forEach(function(command) {
+    commandTests[command] = ["", "quasit"].concat(commandTests[command]);
+    commandTests[command].forEach(function(value) {
+        tests.push({
+            name: "Command " + command + ", value " + format_value(value),
+            html: "<div contenteditable>foo<b>bar</b>baz</div>",
+            initRange: function(range) {
+                range.setStart(div.querySelector("b").firstChild, 0);
+                range.setEnd(div.querySelector("b"), 1);
+            },
+            target: function() {
+                return ["redo", "selectAll", "styleWithCSS", "undo", "useCSS"]
+                    .indexOf(command) == -1 ? div.firstChild : null;
+            },
+            command: command,
+            value: value,
+        });
+    });
+});
+
+tests.forEach(function(obj) {
+    // Kill all event handlers first
+    var newDiv = div.cloneNode(false);
+    div.parentNode.insertBefore(newDiv, div);
+    div.parentNode.removeChild(div);
+    div = newDiv;
+
+    div.innerHTML = obj.html;
+
+    var originalContents = div.cloneNode(true);
+
+    getSelection().removeAllRanges();
+    var range = document.createRange();
+    obj.initRange(range);
+    getSelection().addRange(range);
+
+    var target = obj.target();
+    var finalTarget = "finalTarget" in obj ? obj.finalTarget() : target;
+    var command = obj.command;
+    var value = obj.value;
+
+    var inputEvents = [];
+    div.addEventListener("input", function(e) { inputEvents.push(copyEvent(e)) });
+
+    var exception = null;
+    try {
+        document.execCommand(command, false, value);
+    } catch(e) {
+        exception = e;
+    }
+
+    test(function() {
+        assert_equals(exception, null, "Unexpected exception");
+    }, obj.name + ": execCommand() must not throw");
+
+    test(function() {
+        assert_equals(inputEvents.length, target ? 1 : 0,
+            "number of input events fired");
+        if (!target) {
+            assert_true(originalContents.isEqualNode(div),
+                "div contents must not be changed");
+            return;
+        }
+        var e = inputEvents[0];
+        assert_equals(e.type, "input", "event.type");
+        assert_equals(e.target, finalTarget, "event.target");
+        assert_equals(e.currentTarget, div, "event.currentTarget");
+        assert_equals(e.eventPhase, Event.BUBBLING_PHASE, "event.eventPhase");
+        assert_equals(e.bubbles, true, "event.bubbles");
+        assert_equals(e.cancelable, false, "event.cancelable");
+        assert_equals(e.defaultPrevented, false, "event.defaultPrevented");
+        assert_own_property(window, "InputEvent",
+            "window.InputEvent must exist");
+        assert_equals(Object.getPrototypeOf(e.original), InputEvent.prototype,
+            "event prototype");
+        assert_equals(e.isTrusted, true, "event.isTrusted");
+    }, obj.name + ": input event");
+});
+
+// Thanks, Gecko.
+document.body.bgColor = "";
+</script>

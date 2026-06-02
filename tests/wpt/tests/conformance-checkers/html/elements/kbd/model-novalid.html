@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;kbd&gt;</title>
+</head>
+<body>
+  <!-- not a block -->
+  <kbd>text</kbd>
+
+  <!-- cannot contain structured inline -->
+  <p><kbd><ul><li>text</li></ul></kbd></p>
+
+  <!-- cannot contain interactive if parent forbids interactive -->
+  <p><a><kbd><a>text</a></kbd></a></p>
+  <p><a><dfn><kbd><a>text</a></kbd></dfn></a></p>
+</body>
+</html>

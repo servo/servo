@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>setRangeText: Should not crash when setting text range intersects UTF-16 code units</title>
+<link rel="help" href="https://github.com/servo/servo/issues/36719">
+<script>
+  textarea = document.createElement("textarea");
+  textarea.defaultValue = String.fromCodePoint(806453);
+  textarea.setRangeText("", 0, 1);
+</script>

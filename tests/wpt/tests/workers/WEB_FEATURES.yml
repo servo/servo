@@ -1,0 +1,49 @@
+features:
+- name: hardware-concurrency
+  files:
+  - WorkerNavigator-hardware-concurrency.any.js
+- name: request-animation-frame-workers
+  files:
+  - WorkerGlobalScope_requestAnimationFrame.worker.js
+- name: setinterval
+  files:
+  - 'WorkerGlobalScope_setInterval.htm'
+- name: settimeout
+  files:
+  - 'WorkerGlobalScope_setTimeout.htm'
+- name: ua-client-hints
+  files:
+  - WorkerNavigator_userAgentData.http.html
+  - WorkerNavigator_userAgentData.https.html
+- name: online
+  files:
+  - WorkerNavigator_onLine.htm
+- name: postmessage
+  files:
+  - Worker-postMessage-happens-in-parallel.https.html
+  - postMessage_*
+- name: user-agent-sniffing
+  files:
+  - WorkerNavigator_userAgent.htm
+- name: shared-workers
+  files:
+  - data-url-shared.html
+  - SharedWorker-*
+  - shared-worker-*
+- name: dedicated-workers
+  files:
+  - '*'
+  - '!WorkerNavigator-hardware-concurrency.any.js'
+  - '!WorkerGlobalScope_requestAnimationFrame.worker.js'
+  - '!WorkerGlobalScope_setInterval.htm'
+  - '!WorkerGlobalScope_setTimeout.htm'
+  - '!WorkerNavigator_userAgentData.http.html'
+  - '!WorkerNavigator_userAgentData.https.html'
+  - '!WorkerNavigator_onLine.htm'
+  - '!Worker-postMessage-happens-in-parallel.https.html'
+  - '!postMessage_*'
+  - '!WorkerNavigator_userAgent.htm'
+  - '!data-url-shared.html'
+  - '!SharedWorker-*'
+  - '!shared-worker-*'
+  - '!*.any.*'

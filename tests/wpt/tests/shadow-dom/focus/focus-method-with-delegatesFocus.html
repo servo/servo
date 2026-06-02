@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/shadow-dom.js"></script>
+
+<template id='ShadowTemplate'>
+  <ul>
+    <li tabindex='0' id='one'>One</li>
+    <li tabindex='0' id='two'>Two</li>
+    <li id='three'>Three</li>
+  </ul>
+</template>
+<template id='NoFocusableShadowTemplate'>
+  <ul>
+    <li id='one'>One</li>
+    <li id='two'>Two</li>
+    <li id='three'>Three</li>
+  </ul>
+</template>
+<body>
+<input id='input0'>
+<x-shadow id='xshadow0'></x-shadow>
+<x-shadow id='xshadow1' tabindex='0'></x-shadow>
+<x-shadow id='xshadow2' tabindex='0' delegatesFocus></x-shadow>
+<x-shadow-nofocus id='xshadow3'></x-shadow-nofocus>
+<x-shadow-nofocus id='xshadow4' tabindex='0'></x-shadow-nofocus>
+<x-shadow-nofocus id='xshadow5' tabindex='0' delegatesFocus></x-shadow-nofocus>
+</body>
+<script>
+'use strict';
+
+function registerShadow(templateId, tagName) {
+    const template = document.getElementById(templateId);
+
+    customElements.define(tagName, class extends HTMLElement {
+        connectedCallback() {
+            const delegatesFocus = this.hasAttribute('delegatesFocus');
+            this.attachShadow({mode: 'open', delegatesFocus: delegatesFocus})
+                .appendChild(document.importNode(template.content, true));
+        }
+    });
+}
+
+registerShadow('ShadowTemplate', 'x-shadow');
+registerShadow('NoFocusableShadowTemplate', 'x-shadow-nofocus');
+
+test(() => {
+    xshadow0.focus();
+    assert_equals(document.activeElement.tagName, 'BODY');
+    assert_equals(xshadow0.shadowRoot.activeElement, null);
+}, 'xshadow0 is not focusable without tabindex.');
+
+test(() => {
+    xshadow1.focus();
+    assert_equals(document.activeElement.id, 'xshadow1');
+    assert_equals(xshadow1.shadowRoot.activeElement, null);
+}, 'xshadow1 becomes focusable with tabindex.');
+
+test(() => {
+    xshadow2.focus();
+    assert_equals(document.activeElement.id, 'xshadow2');
+    assert_equals(xshadow2.shadowRoot.activeElement.id, 'one');
+}, 'on focus(), focusable xshadow2 with delegatesFocus=true delegates focus into its inner element.');
+
+test(() => {
+    xshadow2.shadowRoot.querySelector('#two').focus();
+    assert_equals(document.activeElement.id, 'xshadow2');
+    assert_equals(xshadow2.shadowRoot.activeElement.id, 'two');
+}, 'if an element within shadow is focused, focusing on shadow host should not slide focus to its inner element.');
+
+test(() => {
+    xshadow2.focus();
+    assert_equals(document.activeElement.id, 'xshadow2');
+    assert_equals(xshadow2.shadowRoot.activeElement.id, 'two');
+}, 'xshadow2.focus() shouldn\'t move focus to #one when its inner element is already focused.');
+
+test(() => {
+    // Focus outside shadow DOMs.
+    input0.focus();
+
+    // within shadow root.  This is different from mouse click behavior.
+    xshadow1.shadowRoot.querySelector('#three').focus();
+    assert_equals(document.activeElement.id, 'input0');
+    xshadow2.shadowRoot.querySelector('#three').focus();
+    assert_equals(document.activeElement.id, 'input0');
+}, 'focus() inside shadow DOM should not focus its shadow host, nor focusable siblings.');
+
+test(() => {
+    xshadow3.focus();
+    assert_equals(document.activeElement.id, 'input0');
+}, 'If any element including shadow host is not focusable, focus doesn\'t change.');
+
+test(() => {
+    xshadow4.focus();
+    assert_equals(document.activeElement.id, 'xshadow4');
+    xshadow5.focus();
+    assert_equals(document.activeElement.id, 'xshadow4');
+}, 'If no element is focusable within a delegatesFocus shadow root, the host can\'t get focus regardless of host\'s tabIndex.');
+</script>

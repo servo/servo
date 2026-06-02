@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Interpolation of a color-mix function with currentcolor should not crash</title>
+<!-- crbug.com/1493430 -->
+<style type="text/css">
+  @keyframes colorize {
+     from { color: forestgreen; }
+     to { color: plum; }
+  }
+  #target {
+    animation: colorize 1s Infinite alternate;
+    border: 1px solid transparent;
+    transition: border-color 1s ease-in-out;
+  }
+  #target.update {
+    border-color:
+        color-mix(in hsl longer hue, hsl(120 100% 50%) 20%,
+                  currentcolor);
+  }
+</style>
+<body>
+  <div id="target">Hello world</div>
+</body>
+<script src="../testcommon.js"></script>
+<script>
+  window.onload = async () => {
+    await waitForNextFrame();
+    target.classList.add('update');
+    await Promise.all(document.getAnimations().map(a => a.resolve));
+    await waitForNextFrame();
+    await waitForNextFrame();
+    document.documentElement.classList.remove('test-wait');
+  };
+</script>
+</html>

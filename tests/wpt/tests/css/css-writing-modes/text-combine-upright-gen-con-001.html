@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Writing Modes test: text-combine-upright with generated content</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright"/>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1604327"/>
+<link rel="match" href="text-combine-upright-gen-con-001-ref.html"/>
+<meta name="assert" content="text-combine-upright renders multipe generated content items"/>
+
+<style>
+div {
+  writing-mode: vertical-rl;
+  font: 32px serif;
+  margin: 1em;
+  padding: .25em;
+  border: 1px solid gray;
+}
+div#test {
+  counter-set: a 3 b 1;
+}
+p#a::before {
+  text-combine-upright: all;
+  content: '1';
+}
+p#b::before {
+  text-combine-upright: all;
+  content: '(' '2' ')';
+}
+p#c::before {
+  text-combine-upright: all;
+  content: '(' counter(a, decimal) '.' counter(b, lower-alpha) ')';
+}
+p#d::after {
+  text-combine-upright: all;
+  content: 'h' 'e' 'll' 'o';
+}
+span {
+  text-combine-upright: all;
+}
+</style>
+
+Both boxes should render the same:
+
+<div>
+<p><span>1</span>test</p>
+<p><span>(2)</span>test</p>
+<p><span>(3.a)</span>test</p>
+<p>你好<span>hello</span></p>
+</div>
+
+<div id=test>
+<p id=a>test</p>
+<p id=b>test</p>
+<p id=c>test</p>
+<p id=d>你好</p>
+</div>

@@ -1,0 +1,110 @@
+<title>Test Encode VideoFrame from CanvasImageSource.</title>
+<img src="four-colors.png"/>
+<svg width="320" height="240" xmlns="http://www.w3.org/2000/svg">
+<image href="four-colors.png" height="320" width="240"/>
+</svg>
+<canvas id=""></canvas>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webcodecs/utils.js"></script>
+<script>
+promise_test(() => {
+  return new Promise(resolve => onload = resolve);
+}, "Wait for onload event to get access to image data");
+
+promise_test(async t => {
+  const img = document.querySelector('img');
+  const frame = new VideoFrame(img, {timestamp: 0});
+  assert_equals(frame.codedWidth, img.width);
+  assert_equals(frame.codedHeight, img.height);
+
+  let outputs = 0;
+  const codecInit = getDefaultCodecInit(t);
+  codecInit.output = (chunk, metadata) => {
+    outputs += 1;
+  }
+
+  const encoder = new VideoEncoder(codecInit);
+  encoder.configure({
+    codec: 'vp8',
+    width: frame.codedWidth,
+    height: frame.codedHeight,
+  });
+  encoder.encode(frame);
+  frame.close();
+  await encoder.flush();
+  encoder.close();
+
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test encode ImageElement-constructed VideoFrame');
+
+promise_test(async t => {
+  const svg = document.querySelector('svg');
+  const svgImage = document.querySelector('image');
+  const frame = new VideoFrame(svgImage, {timestamp: 0});
+  assert_equals(frame.codedWidth, svg.width.baseVal.value);
+  assert_equals(frame.codedHeight, svg.height.baseVal.value);
+
+  let outputs = 0;
+  const codecInit = getDefaultCodecInit(t);
+  codecInit.output = (chunk, metadata) => {
+    outputs += 1;
+  }
+
+  const encoder = new VideoEncoder(codecInit);
+  encoder.configure({
+    codec: 'vp8',
+    width: frame.codedWidth,
+    height: frame.codedHeight,
+  });
+  encoder.encode(frame);
+  frame.close();
+  await encoder.flush();
+  encoder.close();
+
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test encode SVGImageElement-constructed VideoFrame');
+
+function drawFourColors(canvas) {
+  let ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFF00'; // yellow
+  ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#FF0000'; // red
+  ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#0000FF'; // blue
+  ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#00FF00'; // green
+  ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2,
+               canvas.height / 2);
+}
+
+promise_test(async t => {
+  const canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+  drawFourColors(canvas);
+
+  const frame = new VideoFrame(canvas, {timestamp: 0});
+  assert_equals(frame.codedWidth, canvas.width);
+  assert_equals(frame.codedHeight, canvas.height);
+
+  let outputs = 0;
+  const codecInit = getDefaultCodecInit(t);
+  codecInit.output = (chunk, metadata) => {
+    outputs += 1;
+  }
+
+  const encoder = new VideoEncoder(codecInit);
+  encoder.configure({
+    codec: 'vp8',
+    width: canvas.width,
+    height: canvas.height,
+  });
+  encoder.encode(frame);
+  frame.close();
+  await encoder.flush();
+  encoder.close();
+
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test encode canvas-element-constructed VideoFrame');
+</script>

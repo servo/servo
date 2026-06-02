@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Test: getComputedStyle on blocks with auto margins</title>
+  <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle" />
+  <meta name="assert" content="getComputedStyle produces pixel values for margin: auto blocks">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+  <style>
+    x {
+      display: block;
+      position: relative;
+      background: grey;
+      width: 60px;
+      height: 10px;
+    }
+    y {
+      display: block;
+      background: blue;
+      width: 40px;
+      height: 10px;
+      margin: auto;
+    }
+
+    #absolute {
+      position: absolute;
+      left: 0;
+      right: 0;
+    }
+    #relative {
+      position: relative;
+    }
+  </style>
+ </head>
+ <body>
+ <div id="log"></div>
+ <x><y id="absolute"></y></x>
+ <x><y id="relative"></y></x>
+ <script type="text/javascript">
+   let idsToTest = [
+     "absolute",
+     "relative",
+   ];
+
+   for (let id of idsToTest) {
+     let elem = document.getElementById(id);
+     let elemStyle = window.getComputedStyle(elem);
+
+     // positioned element's auto margins should be resolved to 10px.
+     test(function() {
+       assert_equals(elemStyle.getPropertyValue("margin-left"), "10px");
+       assert_equals(elemStyle.getPropertyValue("margin-right"), "10px");
+     }, id + "_computed_margins");
+
+     // positioned element should have a left and right of 0px (as authored).
+     test(function() {
+       assert_equals(elemStyle.getPropertyValue("left"), "0px");
+       assert_equals(elemStyle.getPropertyValue("right"), "0px");
+     }, id + "_computed_left_and_right");
+   }
+ </script>
+ </body>
+</html>

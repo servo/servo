@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Calc in font-size with ch / ex units across lang changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-values/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-values/#ex">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1431031">
+<link rel="match" href="calc-ch-ex-lang-ref.html">
+<style>
+div[lang] {
+  font-size: calc(1ex + 1ch + 1em);
+}
+</style>
+<div lang="en">
+  <div style="width: 1em; height: 1em; background: green;"></div>
+</div>

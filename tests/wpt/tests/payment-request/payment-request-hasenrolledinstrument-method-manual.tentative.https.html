@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Manual tests for PaymentRequest.hasEnrolledInstrument() method</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#hasenrolledinstrument-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+});
+
+const defaultMethods = Object.freeze([
+  {
+    supportedMethods: "basic-card",
+    data: {
+      supportedNetworks: [ 'visa' ],
+    },
+  }
+]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+function testHasNoEnrolledInstrument() {
+  promise_test(async t => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    assert_false(
+      await request.hasEnrolledInstrument(),
+      "No test enrolled in the test profile."
+    );
+  }, `hasEnrolledInstrument() resolves to false when user has no enrolled instrument.`);
+}
+
+function testHasEnrolledInstrument() {
+  promise_test(async t => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    assert_true(
+      await request.hasEnrolledInstrument(),
+      "A card is enrolled in the test profile."
+    );
+  }, `hasEnrolledInstrument() resolves to true when user has an enrolled instrument.`);
+}
+
+function testHasEnrolledInstrumentAgain() {
+  promise_test(async t => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    assert_true(
+      await request.hasEnrolledInstrument(),
+      "A card is enrolled in the test profile."
+    );
+  }, `hasEnrolledInstrument() can be called multiple times if the payment method details are identical.`);
+}
+</script>
+
+<h2>Manual tests for hasEnrolledInstrument() method</h2>
+<p>
+  Follow the instructions from top to bottom. Click on each button in sequence
+  without refreshing the page. Some of the tests will bring up the Payment
+  Request UI and close them automatically. If a payment sheet stays open, the
+  test has failed.
+</p>
+<ol>
+  <li>Follow browser-specific instructions to remove all cards from the test profile.</li>
+  <li>
+    <button onclick="testHasNoEnrolledInstrument()">
+      hasEnrolledInstrument() resolves to false when user has no enrolled instrument.
+    </button>
+  </li>
+  <li>Add a test Visa card to your test profile, e.g. 4012888888881881.</li>
+  <li>
+    <button onclick="testHasEnrolledInstrument()">
+      hasEnrolledInstrument() resolves to true when user has an enrolled instrument.
+    </button>
+  </li>
+  <li>
+    <button onclick="testHasEnrolledInstrumentAgain()">
+      hasEnrolledInstrument() can be called multiple times if the payment method
+      details are identical.
+    </button>
+  </li>
+  <li>
+    <button onclick="done()">Done!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

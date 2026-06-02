@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight painting: soft hyphens near atomic inlines</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="help" href="https://crbug.com/1367860">
+<meta name="assert" value="Checks that selecting a soft hyphen near an atomic inline will not cause a crash.">
+<img><s>aaaaaaaaaaaaa&#xAD;a
+<script>
+    document.body.style.width = 0;
+    document.execCommand("selectall");
+</script>

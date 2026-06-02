@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<link id=light-link rel=stylesheet href=resources/link-rel-attribute.css>
+<div id=light-div class=green></div>
+
+<script>
+
+function testLinkRelModification(testDiv, testLink) {
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
+  testLink.setAttribute("rel", "test\u000Bstylesheet");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
+  testLink.setAttribute("rel", "test\u000Cstylesheet");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
+  testLink.removeAttribute("rel");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
+  testLink.setAttribute("rel", "\u0009\u000A\u000C\u000D\u0020stylesheet");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
+  testLink.removeAttribute("rel");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 0)");
+  testLink.setAttribute("rel", "\u0009\u000A\u000C\u000D\u0020stylesheet\u0009\u000A\u000C\u000D\u0020††††");
+  assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
+}
+
+test (() => {
+  testLinkRelModification(document.querySelector("#light-div"),
+                          document.querySelector("#light-link"));
+}, "The rel attribute needs to handle ASCII whitespace correctly");
+
+</script>

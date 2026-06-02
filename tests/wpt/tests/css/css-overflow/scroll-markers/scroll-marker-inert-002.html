@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Originating element inertness not applied to ::scroll-marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-markers">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#inertness">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11746">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0; }
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow-y: scroll;
+    scroll-marker-group: before;
+  }
+  #scroller::scroll-marker-group {
+    height: 100px;
+  }
+  .item {
+    height: 100px;
+    background-color: lime;
+    interactivity: inert;
+  }
+  .item::scroll-marker {
+    content: "X";
+    display: block;
+    width: 20px;
+    height: 20px;
+  }
+  #filler {
+    height: 400px;
+  }
+</style>
+<div id="scroller">
+  <div class="item"></div>
+  <div id="filler"></div>
+  <div id="target" class="item"></div>
+</div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(10, 30)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(scroller.scrollTop, 500);
+  }, "::scroll-marker is not inert because its ::scroll-marker-group isn't");
+</script>

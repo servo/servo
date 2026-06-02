@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>reftests support testdriver.js</title>
+<link rel="match" href="green.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  :root {
+    background-color: red;
+  }
+</style>
+<button>Turn green</button>
+<script>
+  const button = document.querySelector("button");
+  button.addEventListener("click", () => {
+    button.remove();
+    document.documentElement.style.backgroundColor = "green";
+    document.documentElement.classList.remove("reftest-wait");
+  });
+  test_driver.click(button);
+</script>

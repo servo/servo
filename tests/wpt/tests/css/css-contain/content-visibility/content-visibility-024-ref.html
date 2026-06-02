@@ -1,0 +1,24 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden image (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+div {
+  background: blue;
+  color: white;
+}
+img {
+  width: 400px;
+  height: 200px;
+  background: lightblue;
+  border: 1px solid black;
+}
+</style>
+
+<div>Test passes if there are two pictures below: one of colored dices over a checkered background, and one of a bunch of circles.</div>
+<img src="resources/dice.png"></img>
+<img src="resources/circles.svg"></img>
+<div>Lorem ipsum consectetur adipiscing elit</div>

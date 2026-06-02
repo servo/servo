@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Testcase for bug 1526567</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#behave-auto">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1526567">
+  <link rel="match" href="grid-item-overflow-auto-max-height-percentage-ref.html">
+  <meta name="assert" content="Check that max-height:100% has no effect on a grid item's max-content contribution, since the percentage basis is indefinite in this case.">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+.webconsole-app {
+  display: grid;
+  height: 200px;
+}
+
+.sidebar {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  height: 100%;
+  background: blue;
+}
+
+.controlled {
+  display: flex;
+  overflow: auto;
+}
+
+.sidebar-wrapper {
+  display: grid;
+  grid-template-columns: 100px;
+  grid-template-rows: 50px 1fr;
+  overflow: hidden;
+}
+
+.sidebar-contents {
+  grid-row: 2 / 3;
+  overflow: auto;
+  max-height: 100%;
+}
+
+  </style>
+</head>
+<body>
+
+<div class="webconsole-app">
+  <div class="sidebar">
+    <div class="controlled">
+      <div class="sidebar-wrapper">
+        <div></div>
+        <div class="sidebar-contents">
+          <div style="height:400px; background: grey"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

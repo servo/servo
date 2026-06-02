@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=background_clip_ref.html>
+<style>
+div {
+    background: green;
+    width: 200px;
+    height: 200px;
+    padding: 20px;
+    border-width: 10px 20px 30px 40px;
+    border-style: dotted;
+    border-color: red;
+}
+#foo1 {
+    background-clip: border-box;
+}
+#foo2 {
+    background-clip: padding-box;
+}
+#foo3 {
+    background-clip: content-box;
+}
+</style>
+</head>
+<body>
+<p>background-clip: border-box;</p>
+<div id=foo1></div>
+<p>background-clip: padding-box;</p>
+<div id=foo2></div>
+<p>background-clip: content-box;</p>
+<div id=foo3></div>
+</body>
+</html>
+

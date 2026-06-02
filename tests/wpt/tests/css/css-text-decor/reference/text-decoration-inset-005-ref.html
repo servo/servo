@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div {
+  position: relative;
+}
+h1 {
+  position: absolute;
+}
+u {
+  text-decoration-color: black;
+}
+</style>
+
+<p>The underline for "ultra-quick brown" should be extended by .25em at each end;
+super- and sub-scripts should be unaffected:</p>
+
+<div>
+  <h1>
+    the <u>ultra-<sup>quick</sup> b<sub>row</sub>n</u> fox
+  </h1>
+  <h1 style="left: -.25em; color: transparent">
+    the <u>ultra</u>-<sup>quick</sup> b<sub>row</sub>n fox
+  </h1>
+  <h1 style="left: .25em; color: transparent">
+    the ultra-<sup>quick</sup> b<sub>row</sub><u>n</u> fox
+  </h1>
+</div>

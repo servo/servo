@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>mfrac linethickness</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Test dynamically removing a linethickness larger than 100%">
+    <link rel="match" href="frac-linethickness-005-ref.html">
+    <script type="text/javascript">
+      function doTest() {
+        document.getElementById("testMfrac").removeAttribute("linethickness");
+        document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("TestRendered",doTest);
+    </script>
+  </head>
+  <body>
+    <math>
+      <mfrac id="testMfrac" style="font-size: 300%" linethickness="200%">
+        <mi>a</mi>
+        <mi>b</mi>
+      </mfrac>
+    </math>
+  </body>
+</html>

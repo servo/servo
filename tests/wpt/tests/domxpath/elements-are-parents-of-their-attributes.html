@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Relationship between elements and their attributes</title>
+        <link rel="author" title="Simon Wülker" href="mailto:simon.wuelker@arcor.de">
+        <link rel="help" href="https://www.w3.org/TR/1999/REC-xpath-19991116/#attribute-nodes">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="context" foo="bar"></div>
+        <script>
+          const context = document.getElementById("context");
+
+          test(() => {
+              const result = document.evaluate(
+                "@foo/parent::*",
+                context,
+                null,
+                XPathResult.ORDERED_NODE_ITERATOR_TYPE,
+                null
+              );
+
+              assert_equals(result.iterateNext(), context);
+              assert_equals(result.iterateNext(), null);
+          }, "Elements are parents of their attributes");
+
+          test(() => {
+              const result = document.evaluate(
+                "node()",
+                context,
+                null,
+                XPathResult.ORDERED_NODE_ITERATOR_TYPE,
+                null
+              );
+
+              assert_equals(result.iterateNext(), null);
+          }, "Attributes are not children of their parents");
+      </script>
+    </body>
+</html>

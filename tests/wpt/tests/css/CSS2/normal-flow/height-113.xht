@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Nested heights with percentages and borders</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/height/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="match" href="height-113-ref.xht" />
+
+  <style type="text/css">
+   .a { height: 10em; width: 10em; background: red; border: 5em white solid; }
+   .b { height: 100%; background: green; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="a">
+   <div class="b">
+   </div>
+  </div>
+ </body>
+</html>

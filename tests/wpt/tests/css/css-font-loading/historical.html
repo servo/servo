@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<link rel=help href="https://drafts.csswg.org/css-font-loading/">
+
+<div id=log></div>
+<script>
+"use strict";
+
+// https://github.com/w3c/csswg-drafts/commit/b03a8c9721b56774723ed7804ca6f3f04a922d69
+test(function() {
+  // Get the FontFaceSet interface object, even in Chrome where it isn't exposed.
+  const FontFaceSet = "FontFaceSet" in self ? self.FontFaceSet : document.fonts.constructor;
+  assert_throws_js(TypeError, function() {
+    new FontFaceSet([]);
+  });
+}, "FontFaceSet constructor should not be supported");
+</script>

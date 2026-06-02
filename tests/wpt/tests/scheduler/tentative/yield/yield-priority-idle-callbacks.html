@@ -1,0 +1,54 @@
+<!doctype html>
+<title>Scheduler: yield inheritance in requestIdleCallback</title>
+<link rel="help" href="https://github.com/WICG/scheduling-apis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+'use strict';
+
+// Queues a requestIdleCallback that schedules 2 user-visible tasks, 2
+// background tasks, another requestIdleCallback, and then yields 3 times using
+// `yieldParams`.
+//
+// Returns {tasks, ids} where `tasks` is an array of promises associated with
+// the tasks and `ids` is an array of task ids appended to by the scheduled
+// tasks.
+function postTestTasks() {
+  const ids = [];
+  const task = new Promise(resolve => {
+    requestIdleCallback(async () => {
+      ids.push('i1');
+
+      const subtasks = [];
+      subtasks.push(scheduler.postTask(() => { ids.push('uv1'); }));
+      subtasks.push(scheduler.postTask(() => { ids.push('uv2'); }));
+      subtasks.push(scheduler.postTask(() => { ids.push('bg1'); }, {priority: 'background'}));
+      subtasks.push(scheduler.postTask(() => { ids.push('bg2'); }, {priority: 'background'}));
+      subtasks.push(new Promise(resolve => {
+        requestIdleCallback(() => {
+          ids.push('i2');
+          resolve();
+        });
+      }));
+
+      for (let i = 1; i <= 3; i++) {
+        await scheduler.yield();
+        ids.push('y' + i);
+      }
+      await Promise.all(subtasks);
+      resolve();
+    });
+  });
+  return {task, ids};
+}
+
+const expected_inherited_task_order = 'i1,uv1,uv2,y1,y2,y3,bg1,bg2,i2';
+
+promise_test(async t => {
+  const {task, ids} = postTestTasks();
+  await task;
+  assert_equals(ids.join(), expected_inherited_task_order);
+}, 'requestIdleCallback() yields at background priority when inheriting signal');
+
+</script>

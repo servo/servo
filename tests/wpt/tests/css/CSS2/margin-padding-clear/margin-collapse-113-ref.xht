@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border: solid 3px;
+  border-spacing: 0;
+  font-size: 50px;
+  }
+
+  td {padding: 0;}
+
+  div {width: 3em;}
+
+  .a {border-top: yellow solid 1em;}
+
+  .b {border-top: orange solid 2em;}
+
+  .c {border-top: lime solid 1em;}
+
+  .d {border-top: aqua solid 1em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a stack of 4 bands which are <strong>from top to bottom: yellow, orange, lime, aqua</strong> and with no red.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+     <div class="d"></div>
+    </td>
+   </tr>
+  </table>
+
+ </body>
+</html>

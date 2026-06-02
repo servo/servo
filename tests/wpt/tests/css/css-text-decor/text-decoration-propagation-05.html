@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Test: text-decoration propagation - Tables</title>
+<link rel="author" title="Timothy Loh" href="mailto:timloh@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#line-decoration">
+<link rel="match" href="reference/text-decoration-propagation-05-ref.html">
+<style>
+div { text-decoration: underline }
+</style>
+<div>
+  <table>
+    <tr>
+      <td>This should be underlined</td>
+    </tr>
+  </table>
+</div>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-api-box-tree">
+<link rel="match" href="box-tree-registered-ref.html">
+<meta name="assert" content="This test checks that a registered layout() has children which are blockified and new formatting contexts." />
+<style>
+@supports (display: layout(registered)) {
+  .test {
+    display: layout(registered);
+  }
+}
+
+.container {
+  margin: 20px 0;
+  border: solid 2px;
+  width: 100px;
+}
+
+.float {
+  float: left;
+  width: 50%;
+  height: 50px;
+}
+
+.pink {
+  background: hotpink;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="container">
+  <!-- This tests that the "layout()" grandchildren floats within the don't interact with each other. -->
+  <div class="test">
+    <div class="inflow">
+      <div class="float pink"></div>
+    </div>
+    <div class="inflow">
+      <div class="float pink"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- This tests that the "layout()" children margins interact as if they are new formatting contexts. -->
+  <div class="test">
+    <div class="inflow pink">
+      <div style="margin-bottom: 50px;"></div>
+    </div>
+    <div class="inflow pink">
+      <div style="margin-top: 50px;"></div>
+    </div>
+  </div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('registered', class {
+  async intrinsicSizes() {}
+  async layout() { throw Error(); }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

@@ -1,0 +1,28 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: auto container in an iframe</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-auto-in-iframe-ref.html">
+<meta name="assert" content="content-visibility: auto shows on screen iframe contents">
+
+<iframe id="frame" srcdoc='
+  <style>
+  #container {
+    width: 200px;
+    height: 200px;
+    content-visibility: auto;
+  }
+  #child {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  </style>
+  <div id="container">
+    <div id="child"></div>
+  </div>
+  hello
+'></iframe>
+</html>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: text-combine-upright ignores letter-spacing</title>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#text-combine-layout">
+<link rel="match" href="text-combine-upright-letter-spacing-001-ref.html">
+<meta name="assert" content="text-combine-upright should ignore letter-spacing when composing text horizontally.">
+<style>
+span { text-combine-upright: all; }
+</style>
+<p style="writing-mode: vertical-rl">test <span style="letter-spacing: 2px">this</span> <span>this</span></p>

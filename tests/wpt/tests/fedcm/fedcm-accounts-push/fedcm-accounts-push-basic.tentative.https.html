@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Accounts Push tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        fedcm_select_account_promise,
+        fedcm_get_dialog_type_promise,
+        select_manifest,
+        setup_accounts_push, mark_signed_out} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  // Opens a window that then invokes navigator.login.setStatus with two pushed
+  // accounts with different picture URLs; one successful picture response, and
+  // one uncacheable response. Register the cleanup handler, which uses the
+  // setStatus API to set the state to 'logged-out'
+  t.add_cleanup(() => {
+    mark_signed_out();
+  });
+  await setup_accounts_push();
+
+  const test_options = request_options_with_mediation_required("manifest_accounts_push.json");
+  await select_manifest(t, test_options);
+
+  const cred_promise = navigator.credentials.get(test_options);
+  const type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  const accounts = await window.test_driver.get_fedcm_account_list();
+  assert_equals(accounts.length, 2);
+
+  assert_equals(accounts[0].accountId , "john_doe");
+  assert_equals(accounts[0].givenName, "John");
+  assert_equals(accounts[0].name, "John Doe");
+  assert_equals(accounts[0].email, "john_doe@idp.example");
+
+  assert_equals(accounts[1].accountId , "jane_doe");
+  assert_equals(accounts[1].givenName, "Jane");
+  assert_equals(accounts[1].name, "Jane Doe");
+  assert_equals(accounts[1].email, "jane_doe@idp.example");
+
+
+  await fedcm_select_account_promise(t, 0);
+
+  const cred = await cred_promise;
+  assert_equals(cred.token, "account_id=john_doe");
+  assert_equals(cred.isAutoSelected, false);
+}, "Successfully obtaining token should resolve the promise.");
+
+</script>

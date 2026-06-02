@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Layout Instability: sticky positioned layout no change</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<div style="height: 3000px"></div>
+<div id="sticky" style="position: sticky; width: 200px; height: 300px; bottom: 0">
+  <div style="will-change: transform; height: 3000px; background: yellow"></div>
+</div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // This doesn't change layout because the sticky element sticks to the bottom.
+  sticky.style.marginTop = "-1000px";
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, 'Sticky layout no change.');
+
+</script>

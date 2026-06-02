@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin Basic and Latin-1 lowercase</title>
+<meta name="assert" content="For the Latin Basic and Latin-1 blocks, text-transform: lowercase puts all letters in lowercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-002-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: lowercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span>A a</span> <span>B b</span> <span>C c</span> <span>D d</span> <span>E e</span> <span>F f</span> <span>G g</span> <span>H h</span> <span>I i</span> <span>J j</span> <span>K k</span> <span>L l</span> <span>M m</span> <span>N n</span> <span>O o</span> <span>P p</span> <span>Q q</span> <span>R r</span> <span>S s</span> <span>T t</span> <span>U u</span> <span>V v</span> <span>W w</span> <span>X x</span> <span>Y y</span> <span>Z z</span> <span title="U+00C0">&#x00C0; &#x00E0;</span> <span title="U+00C1">&#x00C1; &#x00E1;</span> <span title="U+00C2">&#x00C2; &#x00E2;</span> <span title="U+00C3">&#x00C3; &#x00E3;</span> <span title="U+00C4">&#x00C4; &#x00E4;</span> <span title="U+00C5">&#x00C5; &#x00E5;</span> <span title="U+00C6">&#x00C6; &#x00E6;</span> <span title="U+00C7">&#x00C7; &#x00E7;</span> <span title="U+00C8">&#x00C8; &#x00E8;</span> <span title="U+00C9">&#x00C9; &#x00E9;</span> <span title="U+00CA">&#x00CA; &#x00EA;</span> <span title="U+00CB">&#x00CB; &#x00EB;</span> <span title="U+00CC">&#x00CC; &#x00EC;</span> <span title="U+00CD">&#x00CD; &#x00ED;</span> <span title="U+00CE">&#x00CE; &#x00EE;</span> <span title="U+00CF">&#x00CF; &#x00EF;</span> <span title="U+00D0">&#x00D0; &#x00F0;</span> <span title="U+00D1">&#x00D1; &#x00F1;</span> <span title="U+00D2">&#x00D2; &#x00F2;</span> <span title="U+00D3">&#x00D3; &#x00F3;</span> <span title="U+00D4">&#x00D4; &#x00F4;</span> <span title="U+00D5">&#x00D5; &#x00F5;</span> <span title="U+00D6">&#x00D6; &#x00F6;</span> <span title="U+00D8">&#x00D8; &#x00F8;</span> <span title="U+00D9">&#x00D9; &#x00F9;</span> <span title="U+00DA">&#x00DA; &#x00FA;</span> <span title="U+00DB">&#x00DB; &#x00FB;</span> <span title="U+00DC">&#x00DC; &#x00FC;</span> <span title="U+00DD">&#x00DD; &#x00FD;</span> <span title="U+00DE">&#x00DE; &#x00FE;</span></div>
+</body>
+</html>

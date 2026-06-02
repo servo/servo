@@ -1,0 +1,18 @@
+<!doctype html>
+<body>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+const prerenderChannel = new PrerenderChannel('iframe-channel');
+
+const initial_prerendering = document.prerendering;
+
+document.addEventListener('prerenderingchange', () => {
+  prerenderChannel.postMessage('document.prerendering changes to '  +
+    `${document.prerendering} from ${initial_prerendering}`, '*');
+  prerenderChannel.close();
+});
+
+prerenderChannel.postMessage('onload');
+</script>
+foobar
+</body>

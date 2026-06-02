@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Filter primitive (feConvolveMatrix) with filter reference</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feConvolveMatrixElement">
+<link rel="match" href="reference/feconvolve-region-ref.html">
+<meta name="fuzzy" content="0-38;0-30004" />
+<style>
+  body { background-color: lightgreen; }
+</style>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800" height="250">
+  <defs>
+   <!-- feConvolveMatrix should convolve the filter primitive subregion
+         so the output should be a 200x200 two-shaded rectangle.
+    -->
+    <filter id="f3" filterUnits="userSpaceOnUse"
+            x="50" y="50" width="200" height="200">
+      <!-- produce input for convolve -->
+      <feFlood flood-color="blue"
+               x="100" y="100" width="100" height="100" />
+      <feConvolveMatrix kernelMatrix="1 1 1  1 1 1  1 1 1"
+                        x="50" y="50" width="200" height="200"
+                        preserveAlpha="false" bias=".5" />
+    </filter>
+  </defs>
+
+  <rect x="1" y="1" width="1" height="1" filter="url(#f3)" />
+</svg>

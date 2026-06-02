@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: The ident() function in @position-try/position-try</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-rule">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id=target></div>
+<script>
+  let actual_ident = 'ident("--myident" calc(42 * sign(1em - 1px)))';
+  let expected_ident = '--myident42';
+
+  // https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks
+  test_computed_value('position-try-fallbacks', actual_ident, expected_ident);
+  test_computed_value('position-try-fallbacks', `flip-block, ${actual_ident}`,
+    `flip-block, ${expected_ident}`);
+
+  // https://drafts.csswg.org/css-anchor-position-1/#position-try-prop
+  test_computed_value('position-try', actual_ident, expected_ident);
+  test_computed_value('position-try', `most-width ${actual_ident}`,
+    `most-width ${expected_ident}`);
+</script>

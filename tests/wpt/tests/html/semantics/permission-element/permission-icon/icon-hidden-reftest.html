@@ -1,0 +1,11 @@
+<!doctype html>
+<title>The icon of the camera usermedia element should not be visibe if it is set to display:none</title>
+<!-- TODO: Update the link to the usermedia icon spec -->
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="mismatch" href="standard-camera-usermedia-element-ref.html">
+<style>
+  ::permission-icon {
+    display: none;
+  }
+</style>
+<usermedia id="camera" type="camera"></usermedia>

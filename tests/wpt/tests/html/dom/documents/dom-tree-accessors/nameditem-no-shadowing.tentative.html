@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: property names don't shadow</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- interface Document -->
+<img name="constructor">
+<img name="currentScript">
+<img name="forms">
+<img name="onreadystatechange">
+
+<!-- interface Node -->
+<img name="firstChild">
+<img name="isSameNode">
+
+<!-- Object.prototype -->
+<img name="__proto__">
+
+<img name="foobar">
+
+<script id="this-script">
+test(function() {
+  assert_equals(document.constructor, HTMLDocument);
+}, "document.constructor is not shadowed");
+
+test(function() {
+  assert_equals(document.currentScript, document.getElementById("this-script"));
+}, "document.currentScript is not shadowed");
+
+test(function() {
+  assert_true(document.forms instanceof HTMLCollection);
+  assert_equals(document.forms.length, 0);
+}, "document.forms is not shadowed");
+
+test(function() {
+  assert_equals(document.onreadystatechange, null);
+}, "document.onreadystatechange is not shadowed");
+
+test(function() {
+  assert_true(document.firstChild instanceof DocumentType);
+  assert_equals(document.firstChild, document.childNodes[0]);
+}, "document.firstChild is not shadowed");
+
+test(function() {
+  assert_true(document.isSameNode instanceof Function);
+  assert_true(document.isSameNode(document));
+}, "document.isSameNode() is not shadowed");
+
+test(function() {
+  assert_equals(document.__proto__, HTMLDocument.prototype);
+}, "document.__proto__ is not shadowed");
+
+test(function() {
+  assert_true(document.foobar instanceof HTMLImageElement);
+}, "document.foobar works (sanity check)");
+</script>

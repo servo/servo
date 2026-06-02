@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation does not apply to mask-image</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-mask-image-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-27">
+<style>
+div {
+  width: 100px;
+  height: 50px;
+  background: blue;
+  mask-image: url(support/exif-orientation-2-ur.jpg);
+  mask-mode: luminance;
+}
+.no-orient { image-orientation: none; }
+</style>
+<div></div>
+<div class="no-orient"></div>

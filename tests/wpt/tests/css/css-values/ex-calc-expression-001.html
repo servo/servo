@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Calc expression using multiple ex operands</title>
+<link rel="match" href="ex-calc-expression-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<style>
+/*
+   This is a regression test for:
+     https://github.com/servo/servo/pull/18807
+     https://bugzilla.mozilla.org/show_bug.cgi?id=1407092
+ */
+div {
+  width: calc(1ex + 1ex);
+  height: calc(1ex + 1ex);
+  background: green;
+}
+</style>
+<div></div>

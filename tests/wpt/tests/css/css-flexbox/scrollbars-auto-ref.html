@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<head>
+
+<script src="support/scrollbars.js"></script>
+
+<style>
+.horizontal-header {
+  width: 120px;
+}
+.vertical-header {
+  width: 60px;
+}
+.container-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.container {
+  flex: none;
+  margin: 5px;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+.flipped-blocks {
+  writing-mode: vertical-rl;
+}
+.flipped-lines {
+  writing-mode: vertical-lr;
+}
+.flex {
+  border: 2px solid red;
+  overflow: auto;
+  max-width: 100px;
+  max-height: 100px;
+  white-space: nowrap;
+}
+.row > div, .row-reverse > div {
+  display: inline-flex;
+  margin: 3px;
+}
+.column > div, .column-reverse > div {
+  display: flex;
+  margin: 3px;
+}
+
+/* Adjust margins to account for collapsing. */
+.horizontal > .column > .leaf1, .horizontal > .column > .leaf2 {
+  margin: 3px 3px 6px 3px;
+}
+.flipped-blocks > .column > .leaf1, .flipped-blocks > .column > .leaf2 {
+  margin: 3px 3px 3px 6px;
+}
+.flipped-lines > .column > .leaf1, .flipped-lines > .column > .leaf2 {
+  margin: 3px 6px 3px 3px;
+}
+
+.horizontal > .column-reverse > .leaf1, .horizontal > .column-reverse > .leaf2 {
+  margin: 6px 3px 3px 3px;
+}
+.flipped-blocks > .column-reverse > .leaf1, .flipped-blocks > .column-reverse > .leaf2 {
+  margin: 3px 6px 3px 3px;
+}
+.flipped-lines > .column-reverse > .leaf1, .flipped-lines > .column-reverse > .leaf2 {
+  margin: 3px 3px 3px 6px;
+}
+
+.flex > div {
+  width: 30px;
+  height: 30px;
+  border: 2px solid blue;
+  flex-direction: column;
+  justify-content: center;
+}
+.flex > div > div {
+  font-size: 20px;
+  text-align: center;
+  flex: none;
+}
+</style>
+
+</head>
+
+<div class="container-row">
+  <div class="vertical-header ltr horizontal"></div>
+  <div class="horizontal-header ltr horizontal">ltr<br>horizontal-tb</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-rl</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-lr</div>
+  <div class="horizontal-header rtl horizontal">rtl<br>horizontal-tb</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-rl</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-lr</div>
+</div>
+
+<script>
+// Override createContentNode to emulate reverse flow direction.
+createContentNode = (flexDirection, textDirection, writingMode) => {
+  var flexNode = document.createElement("div");
+  flexNode.className = "flex " + flexDirection;
+  flexNode.title = "flex-direction: " + flexDirection + "; direction: " + textDirection + "; writing-mode: " + writingMode;
+  for (var i = 1; i < 4; i++)
+    flexNode.appendChild(createLeafNode(flexDirection.endsWith("reverse") ? 4 - i : i));
+  return flexNode;
+}
+
+flexDirections.forEach((flexDirection) => {
+  var containerRow = createContainerRow(flexDirection);
+  document.body.appendChild(containerRow);
+});
+
+// Scroll all {row,column}-reverse flex containers to the emulated beginning
+// of flow.
+// * "row-reverse" changes the initial scroll position of a flex container to
+// correspond to its *inline-end* edge. So in our emulation, we need to
+// scroll to the extreme inline-end position. For 'direction:ltr', this is a
+// positive scroll offset; for 'direction:rtl', it's a zero or negative offset.
+var nodes = document.querySelectorAll(".ltr.horizontal > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+}
+nodes = document.querySelectorAll(".ltr.flipped-blocks > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".ltr.flipped-lines > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollTop = 10000;
+}
+var nodes = document.querySelectorAll(".rtl.horizontal > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+}
+nodes = document.querySelectorAll(".rtl.flipped-blocks > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollTop = -10000;
+}
+nodes = document.querySelectorAll(".rtl.flipped-lines > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollTop = -10000;
+}
+// * "column-reverse" changes the initial scroll position of a flex container
+// to correspond to its *block-end* edge. So in our emulation, we need to
+// scroll to the extreme block-end position. For horizontal-tb and
+// vertical-lr, this is a positive scroll offset (since "tb" and "lr" indicate
+// progression in a positive direction along the underlying physical axis).
+// For vertical-rl, this is a zero or negative scroll offset (since "rl"
+// indicates progression in a negative direction (right-to-left) along the
+// underlying physical axis). Note that the 'direction:rtl/ltr' doesn't need to
+// be considered at all in this section, since that only impacts the inline
+// axis, which isn't the axis that we're emulating a reversal for here.
+nodes = document.querySelectorAll(".horizontal > .column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".flipped-blocks > .column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+}
+nodes = document.querySelectorAll(".flipped-lines > .column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+}
+</script>

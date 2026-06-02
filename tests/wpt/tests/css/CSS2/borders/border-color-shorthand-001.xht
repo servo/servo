@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color shorthand - one value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <link rel="match" href="border-color-shorthand-001-ref.xht" />
+
+        <meta name="assert" content="Specifying a single value on the 'border-color' property sets the value for all sides of the element." />
+        <style type="text/css">
+            div
+            {
+                border-style: solid;
+                border-color: blue;
+                border-width: 3px;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the border is the same color on all edges.</p>
+        <div></div>
+    </body>
+</html>

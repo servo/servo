@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" href="kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the writing-mode property">
+<link rel="match" href="reference/inline-box-border-vlr-001.html">
+<meta content="This test checks that block direciton borders applied to inline boxes do not affect the height of the line box, in vertical-lr writing-mode. The border is set to transparent to make this a ref-test.">
+<style>
+html {
+  margin: 0;
+  font-size: 20px;
+}
+body {
+  margin: 1em;
+  border: 1px solid blue;
+}
+body > div {
+  margin-bottom: 2em;
+  border: 1px solid black;
+}
+</style>
+<body>
+  <div style="writing-mode: vertical-lr; height: 1em">
+    <div><span>a</span></div>
+  </div>
+  <div style="writing-mode: vertical-lr; height: 1em">
+    <div><span style="border-left: 20px solid transparent">a</span></div>
+  </div>
+</body>

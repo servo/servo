@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>document.writeln with multiple arguments</title>
+<link rel="author" title="Sebmaster" href="mailto:wpt@smayr.name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-writeln%28%29">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#documents-in-the-dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  var doc = iframe.contentDocument;
+  doc.open();
+  doc.writeln('a', 'b');
+  doc.close();
+  assert_equals(doc.documentElement.textContent, "ab\n");
+}, "Calling document.writeln with multiple arguments");
+</script>

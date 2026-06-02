@@ -1,0 +1,95 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-intro-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#Introduction">
+      <p>
+        Test left-to-right aspect of internationalized text.
+      </p>
+      <p>
+        Various text strings in various languages appear. The main
+        purpose of the test is to verify that the correct characters
+        appear and that they appear in the correct order and orientation, even
+        though the first choice font does not have the right glyphs.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Correct rendering requires that each character is rendered. It may be rendered
+        with the 'missing glyph' if no
+        glyphs are found in the fonts listed in the content, or in any fallback font
+        that is available. The first choice font
+        is a special SVG font that only contains the 'missing glyph'. Missing glyph from
+        other fonts may conformantly be used, however.
+      </p>
+      <p>
+        The test is passed if the lines of text appear as follows:
+      </p>
+      <ul>
+        <li>Polish: Mogę jeść szkło, i mi ...</li>
+        <li>Russian: Я могу есть стекло, ...</li>
+        <li>Greek: Μπορώ να φάω ...</li>
+        <li>Hebrew: אני יכול לאכול זכוכית ...</li>
+        <li>Yiddish: איך קען עסן גלאָז און ...</li>
+        <li>Chinese:我能吞下玻璃而不伤身体。</li>
+        <li>Japanese: 私はガラスを食べます。</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-intro-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <font id="Missy" horiz-adv-x="5">
+        <font-face font-family="MissingInAction" font-weight="normal" font-style="normal" units-per-em="8" cap-height="8" x-height="4" ascent="8" descent="2" alphabetic="0" mathematical="4" ideographic="-2" hanging="8"/>
+        <missing-glyph d="M1,3h2v2h-2z"/>
+      </font>
+    </defs>
+    <text font-size="40" fill="blue" x="5" y="40">Test left-to-right text.</text>
+    <g font-size="17" font-family="MissingInAction, Georgia, 'Arial Hebrew', 'Arial Unicode MS', 'LucidaSansUnicode','MS-Gothic'">
+      <text x="10" y="75">Polish: Mogę jeść szkło, i mi ...</text>
+      <text x="10" y="110">Russian: Я могу есть стекло, ...</text>
+      <text x="10" y="145" font-size="17">Greek: Μπορώ να φάω ...</text>
+      <text x="10" y="180">Hebrew: אני יכול לאכול זכוכית ... </text>
+      <text x="10" y="215">Yiddish: איך קען עסן גלאָז און ...</text>
+    </g>
+    <g font-size="17" font-family="MissingInAction, 'MS Song', SimHei,'LucidaSansUnicode', 'Arial Unicode MS'">
+      <text x="10" y="250">Chinese:我能吞下玻璃而不伤身体。</text>
+    </g>
+    <g font-size="17" font-family="MissingInAction, 'MS-Gothic','LucidaSansUnicode', 'Arial Unicode MS'">
+      <text x="10" y="285" font-size="17">Japanese: 私はガラスを食べます。</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

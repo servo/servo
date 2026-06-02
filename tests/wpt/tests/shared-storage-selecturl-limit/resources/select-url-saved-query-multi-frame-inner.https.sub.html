@@ -1,0 +1,98 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+async function init() {
+  const url = new URL(location.href);
+  const queryName = url.searchParams.get("query") ?
+        url.searchParams.get("query") : "";
+  const mockResult = url.searchParams.get("mockresult") ?
+        parseInt(url.searchParams.get("mockresult")) : 1;
+  const innerKey = token();
+  let parentOrOpener = window.opener || window.parent;
+
+  // Note that we have set the site page bit limit to 3 and the overall page
+  // bit limit to 6. A single saved query with 8 URLs (i.e. log2(8) = 3 bits)
+  // will be permitted by a site's page budget, plus re-uses of the saved
+  // query. Two saved queries with 8 URLs (and their re-uses) will be
+  // permitted by the overall page budget.
+  const numUrls = 8;
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [innerKey]);
+
+  await sharedStorage.worklet.addModule(
+      "/shared-storage/resources/simple-module.js");
+
+  function processSavedQuery(optionalData = {}) {
+    return sharedStorage.selectURL(
+        "test-url-selection-operation", urls,
+        {data: optionalData, keepAlive: true, resolveToConfig: true,
+         savedQuery: queryName});
+  }
+
+  const expected_result = `frame${mockResult}_loaded`;
+  const message = {selectURLStatus: `success`, origin: `${location.origin}`,
+                   query: queryName, mockResultIndex: mockResult};
+
+  let config0 = await processSavedQuery({'mockResult': mockResult});
+  assert_true(config0 instanceof FencedFrameConfig);
+  attachFencedFrame(config0, 'opaque-ads');
+  try {
+    const result0 = await nextValueFromServer(innerKey);
+    assert_equals(result0, expected_result,
+        `for origin ${location.origin} when budget should remain;`);
+  } catch (error) {
+    message.selectURLStatus = `${error}`;
+    parentOrOpener.postMessage(message, "*");
+    return;
+  }
+
+  // Either the per-site per-pageload bit limit or the overall per-pageload
+  // bit limit for `selectURL()` has been reached. The next non-saved-query
+  // call should return the default URL.
+  let config1 = await sharedStorage.selectURL(
+      "test-url-selection-operation", urls,
+      {data: {'mockResult': mockResult}, keepAlive: true,
+       resolveToConfig: true});
+  assert_true(config1 instanceof FencedFrameConfig);
+  attachFencedFrame(config1, 'opaque-ads');
+  try {
+    const result1 = await nextValueFromServer(innerKey);
+    assert_equals(result1, "frame0_loaded",
+        `for origin ${location.origin} when budget should be exhausted;`);
+  } catch (error) {
+    message.selectURLStatus = `${error}`;
+    parentOrOpener.postMessage(message, "*");
+    return;
+  }
+
+  // Query should be saved and not cost any budget.
+  let config2 = await processSavedQuery();
+  assert_true(config2 instanceof FencedFrameConfig);
+  attachFencedFrame(config2, 'opaque-ads');
+  try {
+    const result2 = await nextValueFromServer(innerKey);
+    assert_equals(result2, expected_result,
+                  `for origin ${location.origin} when budget should remain`
+                  + ` for saved query ${queryName}.`);
+  } catch (error) {
+    message.selectURLStatus = `${error}`;
+    parentOrOpener.postMessage(message, "*");
+    return;
+  }
+
+  // No errors were caught, so this portion of the test succeeded.
+  parentOrOpener.postMessage(message, "*");
+}
+
+init();
+</script>
+</body>

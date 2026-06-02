@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Href - mpath element tests</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='testcommon.js'></script>
+<body>
+<div id='log'></div>
+<svg id='svg' width='100' height='100' viewBox='0 0 100 100'></svg>
+<script>
+'use strict';
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var path1 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath1', 'd': 'M 0,0 L 100,0' });
+  var path2 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath2', 'd': 'M 0,0 L 0,100' });
+  var rect = createSVGElement(t, 'rect', svg,
+                              { 'width': '10px', 'height': '10px' });
+  var animateMotion = createSVGElement(t, 'animateMotion', rect,
+                                       { 'dur': '10s' });
+  var mpath = createSVGElement(t, 'mpath', animateMotion);
+  mpath.setAttribute('href', '#MyPath1');
+  mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
+  assert_equals(mpath.href.baseVal, '#MyPath1');
+
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(1);
+    var ctm = rect.getCTM();
+    assert_equals(ctm.e, 10);
+    assert_equals(ctm.f, 0);
+
+    svg.setCurrentTime(5);
+    ctm = rect.getCTM();
+    assert_equals(ctm.e, 50);
+    assert_equals(ctm.f, 0);
+  });
+}, 'Test for mpath when setting both href and xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var path1 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath1', 'd': 'M 0,0 L 100,0' });
+  var path2 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath2', 'd': 'M 0,0 L 0,100' });
+  var rect = createSVGElement(t, 'rect', svg,
+                              { 'width': '10px', 'height': '10px' });
+  var animateMotion = createSVGElement(t, 'animateMotion', rect,
+                                       { 'dur': '10s' });
+  var mpath = createSVGElement(t, 'mpath', animateMotion);
+  mpath.setAttribute('href', '#MyPath1');
+  mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
+
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    var ctm = rect.getCTM();
+    assert_equals(ctm.e, 50);
+    assert_equals(ctm.f, 0);
+
+    mpath.removeAttribute('href');
+    assert_equals(mpath.href.baseVal, '#MyPath2');
+
+    ctm = rect.getCTM();
+    assert_equals(ctm.e, 0);
+    assert_equals(ctm.f, 50);
+  });
+}, 'Test for mpath when removing href but we still have xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var path1 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath1', 'd': 'M 0,0 L 100,0' });
+  var path2 = createSVGElement(t, 'path', svg,
+                               { 'id': 'MyPath2', 'd': 'M 0,0 L 0,100' });
+  var rect = createSVGElement(t, 'rect', svg,
+                              { 'width': '10px', 'height': '10px' });
+  var animateMotion = createSVGElement(t, 'animateMotion', rect,
+                                       { 'dur': '10s' });
+  var mpath = createSVGElement(t, 'mpath', animateMotion);
+  mpath.setAttribute('href', '#MyPath1');
+  mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
+
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    var ctm = rect.getCTM();
+    assert_equals(ctm.e, 50);
+    assert_equals(ctm.f, 0);
+
+    mpath.removeAttributeNS(XLINKNS, 'href');
+    assert_equals(mpath.href.baseVal, '#MyPath1');
+
+    ctm = rect.getCTM();
+    assert_equals(ctm.e, 50);
+    assert_equals(ctm.f, 0);
+  });
+}, 'Test for mpath when removing xlink:href but we still have href');
+
+</script>
+</body>

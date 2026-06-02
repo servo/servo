@@ -1,0 +1,27 @@
+.group {
+    inline-size: min-content;
+}
+
+.group-align-left {
+    /* Only the one that matches the inline axis will apply */
+    margin-bottom: auto;
+    margin-right: auto;
+}
+
+.group-align-right {
+    /* Only the one that matches the inline axis will apply */
+    margin-top: auto;
+    margin-left: auto;
+}
+
+.group-align-center {
+    margin-inline: auto;
+}
+
+.group-align-start {
+    margin-inline-end: auto;
+}
+
+.group-align-end {
+    margin-inline-start: auto;
+}

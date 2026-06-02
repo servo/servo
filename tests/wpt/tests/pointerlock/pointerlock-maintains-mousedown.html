@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta name="variant" content="?unadjustedmovement=true">
+<meta name="variant" content="?unadjustedmovement=false">
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pointer lock maintains button state during mouse move</title>
+  <link rel="help" href="https://w3c.github.io/pointerlock/" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body></body>
+<script>
+  // The test will do two mouse actions:
+  // 1. A simple click to request pointer lock via a gesture.
+  // 2. A drag to verify that mousemove events report correct button state.
+  let waiting_for_first_mouseup = true;
+  let pointer_locked = false;
+  const test_buttons_during_drag = async_test(
+    'Tests that mousemove events during pointer lock report correct button state'
+  );
+
+  document.addEventListener('mousemove', function(e) {
+    if (!pointer_locked) {
+      return;
+    }
+    test_buttons_during_drag.step(function() {
+      // e.buttons is a bitmask: 1 = left button down
+      assert_equals(e.buttons, 1,
+        'mousemove event should have left button (buttons=1) while dragging'
+      );
+    });
+  });
+
+  // We will use the first "mouseup" to request pointer lock, and the second one
+  // as the signal that the drag is complete and we can finish the test.
+  document.addEventListener('mouseup', function(e) {
+    if (waiting_for_first_mouseup) {
+      const urlSearch = new URLSearchParams(window.location.search);
+      document.body.requestPointerLock({
+        unadjustedMovement: urlSearch.get("unadjustedmovement") === "true"
+      });
+      waiting_for_first_mouseup = false;
+    } else {
+      test_buttons_during_drag.done();
+    }
+  });
+
+  document.addEventListener("pointerlockerror", function() {
+    test_buttons_during_drag.step(function() {
+      assert_unreached("Pointer lock error occurred");
+    });
+  });
+
+  // When pointer lock is acquired, run the drag test
+  document.addEventListener("pointerlockchange", async function() {
+    if (document.pointerLockElement) {
+      pointer_locked = true;
+      test_buttons_during_drag.step(function() {
+        assert_equals(document.pointerLockElement, document.body,
+          'Pointer should be locked to body');
+      });
+
+      var dragActions = new test_driver.Actions();
+      await dragActions
+        .pointerDown({button: dragActions.ButtonType.LEFT})
+        .pointerMove(10, 10)
+        .pointerMove(20, 20)
+        .pointerMove(30, 30)
+        .pointerUp({button: dragActions.ButtonType.LEFT})
+        .send();
+    } else {
+      pointer_locked = false;
+    }
+  }, {once: true});
+
+  // Step 0: Click to acquire pointer lock.
+  (async function() {
+    var actions = new test_driver.Actions();
+    await actions
+      .pointerMove(1, 1)
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  })();
+</script>
+</html>

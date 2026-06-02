@@ -1,0 +1,18 @@
+features:
+- name: broadcast-channel
+  files:
+  - broadcastchannel-*
+- name: channel-messaging
+  files:
+  - window-messagechannel*
+  - window-*-messagechannel*
+- name: postmessage
+  files:
+  - blob-data.https.html
+  - identity-not-preserved.https.html
+  - no-coop-coep.https.any.js
+  - no-transferring.https.html
+  - window-serviceworker-failure.https.html
+  - window-sharedworker-failure.https.html
+  - window-simple-success.https.html
+  - window-simple-success.https.html.headers

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: repeat(8, 50px);
+    width: 200px;
+    height: 500px;
+    gap: 10px;
+}
+
+.grid > div {
+    height: 50px;
+    width: 100px;
+    background-color: orange;
+}
+</style>
+<div class="grid">
+  <div style="grid-row: span 3; height: 150px;"></div>
+  <div style="grid-row: -1;"></div>
+</div>
+</html>

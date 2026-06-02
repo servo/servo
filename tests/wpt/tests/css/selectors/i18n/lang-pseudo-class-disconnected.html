@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/selectors/#lang-pseudo"/>
+<body>
+<div id="container" lang="zh"><span></span></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+    let target = container.querySelector('span');
+    assert_true(target.matches(":lang(zh)"));
+    target.parentNode.remove();
+    assert_true(target.matches(":lang(zh)"));
+
+    const anotherContainer = document.createElement('div');
+    anotherContainer.innerHTML = '<div lang="fr"><span></span></div>';
+    target = anotherContainer.querySelector('span');
+    assert_true(target.matches(":lang(fr)"));
+    document.body.append(target.parentNode);
+    assert_true(target.matches(":lang(fr)"));
+}, ":lang pseudo class should work in a disconnected subtree");
+</script>
+</body>
+</html>

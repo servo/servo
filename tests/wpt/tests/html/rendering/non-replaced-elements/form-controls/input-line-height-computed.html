@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>used value and computed value of 'line-height' on input elements as text entry widgets</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-input-element-as-a-text-entry-widget">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#computed-stylepropertymapreadonly-objects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  input { line-height: 1px; }
+</style>
+<p><input type=text value=text>
+<p><input type=tel value=tel>
+<p><input type=search value=search>
+<p><input type=url value=url>
+<p><input type=email value=email>
+<p><input type=password value=password></p>
+<script>
+const inputs = document.querySelectorAll('input');
+for (const input of inputs) {
+  test(() => {
+    const usedLineHeight = getComputedStyle(input).lineHeight;
+    assert_not_equals(usedLineHeight, '1px', 'usedLineHeight');
+    assert_not_equals(usedLineHeight, 'normal', 'usedLineHeight');
+  }, `getComputedStyle(<input type=${input.type}>).lineHeight should return a used value that is no smaller than 'normal' (but should not literally be 'normal')`);
+  test(() => {
+    const computedLineHeight = input.computedStyleMap().get('line-height');
+    assert_equals(computedLineHeight.value, 1, 'computedLineHeight.value');
+    assert_equals(computedLineHeight.unit, 'px', 'computedLineHeight.unit');
+  }, `<input type=${input.type}>.computedStyleMap().get('line-height') should not be affected by the used value clamping`);
+}
+</script>

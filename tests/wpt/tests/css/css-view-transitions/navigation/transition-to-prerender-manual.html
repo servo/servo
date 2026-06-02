@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: prerender navigation</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<!-- TODO(crbug.com/1418681). This test should work automatically,
+     but doesn't due to the referenced bug.
+<link rel="match" href="transition-to-prerender-ref.html">
+-->
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition { navigation: auto; }
+html { background: red; }
+#target {
+  width: 200px;
+  height: 200px;
+  background: black;
+  color: white;
+  position: absolute;
+  top: 40px;
+  view-transition-name: target;
+}
+</style>
+<div id="target"></div>
+<script>
+const uid = token();
+
+function startTest() {
+  const old_url = "/transition-to-prerender-manual.html";
+  const new_url = `/resources/transition-to-prerender.html?uid=${uid}`;
+  window.location.href = window.location.href.replace(old_url, new_url);
+}
+
+async function waitForPrerender() {
+  const channel = new PrerenderChannel('prerender-channel', uid);
+
+  const gotMessage = new Promise(resolve => {
+      channel.addEventListener('message', resolve)
+    }, {
+      once: true
+  });
+
+  startPrerendering(`resources/transition-to-prerender.html?uid=${uid}`);
+  await gotMessage;
+  startTest();
+}
+
+onload = waitForPrerender;
+</script>
+</html>

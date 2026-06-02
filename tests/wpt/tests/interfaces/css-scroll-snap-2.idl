@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Scroll Snap Module Level 2 (https://drafts.csswg.org/css-scroll-snap-2/)
+
+dictionary SnapEventInit : EventInit {
+  Node? snapTargetBlock;
+  Node? snapTargetInline;
+};
+
+[Exposed=Window]
+interface SnapEvent : Event {
+  constructor(DOMString type, optional SnapEventInit eventInitDict = {});
+  readonly attribute Node? snapTargetBlock;
+  readonly attribute Node? snapTargetInline;
+};
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler onsnapchanged;
+  attribute EventHandler onsnapchanging;
+};

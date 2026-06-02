@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS status</title>
+<link rel=help href=https://fetch.spec.whatwg.org/>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js?pipe=sub"></script>
+
+<h1>The returned status code in different scenarios</h1>
+
+<script>
+
+    var counter = 0
+
+    function testit(allow, preflight, response, status) {
+        async_test(
+            (++counter) + '. ' +
+            (allow ? 'CORS allowed' : 'CORS disallowed') +
+            (preflight ? ', preflight status '+preflight : '') +
+            (response ? ', response status '+response : '') +
+            '.'
+        ).step(function() {
+            var client = new XMLHttpRequest()
+            client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?' + counter +
+                (allow ? '&headers=x-custom': '&origin=none') +
+                (response ? '&code='+response : '') +
+                (preflight ? '&preflight='+preflight : '')
+            )
+
+            if (preflight)
+                client.setRequestHeader('X-Custom', 'preflight')
+
+            client.onload = this.step_func(function() {
+                if (!status)
+                    assert_unreached("load event")
+
+                /* Allow spurious error events to fire */
+                this.step_timeout(() => {
+                    assert_equals(client.status, status, "status")
+                    this.done()
+                }, 10)
+            })
+
+            client.onerror = this.step_func(function() {
+                if (status)
+                    assert_unreached("error event")
+
+                assert_equals(client.readyState, client.DONE, 'readyState')
+                assert_equals(client.status, 0, 'status')
+                this.done()
+            })
+
+            client.send()
+
+        })
+    }
+
+    /*     allow  pref  resp  status */
+    testit(false, null, 400,  0)
+    testit(false, 200,  null, 0)
+    testit(true,  null, 400,  400)
+    testit(true,  200,  400,  400)
+    testit(true,  400,  null, 0)
+
+</script>
+
+<pre>
+   allowed  preflight  response  | status |
+   -------  ---------  --------  | ------ |
+ 1      no          x       400  |      0 |
+ 2      no        200         x  |      0 |
+ 3     yes          x       400  |    400 |
+ 4     yes        200       400  |    400 |
+ 5     yes        400         x  |      0 |
+</pre>
+
+<div id=log></div>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - image from external stylesheet inserted via a ProcessingInstruction</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <meta name="referrer" content="never">
+  </head>
+  <body>
+    <p>Check that resources from external stylesheets (referenced from a
+    ProcessingInstruction) are loaded with the referrer and referrer policy
+    from the external stylesheet.</p>
+
+    <div class="styled"></div>
+
+    <script>
+      promise_test(function(css_test) {
+        var id = token();
+        var url_prefix = location.protocol + "//www1." + location.hostname + ":" + location.port;
+        var css_url = url_prefix + "/common/security-features/subresource/stylesheet.py?id=" + id;
+        var img_url = url_prefix + "/common/security-features/subresource/image.py" +
+                      "?id=" + id + "&report-headers";
+
+        var processingInstruction = document.createProcessingInstruction("xml-stylesheet", "href=\"" + css_url + "\" type=\"text/css\"");
+        document.insertBefore(processingInstruction, document.firstChild);
+        return timeoutPromise(css_test, 1000)
+          .then(() => requestViaXhr(img_url))
+          .then(function(message) {
+              assert_own_property(message, "headers");
+              assert_own_property(message, "referrer");
+              assert_equals(message.referrer, css_url);
+            });
+      }, "Image from external stylesheet (from ProcessingInstruction).");
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

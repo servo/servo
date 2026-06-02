@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-incompatible-shapes2-ref.html">
+<meta name=fuzzy content="0-255;0-300">
+<style>
+.container {
+  width: 300px;
+  height: 300px;
+  background-color: green;
+  /* Use a long animation that start at 60% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: clippath 1000000s cubic-bezier(0,1,1,0) -600000s;
+}
+@keyframes clippath {
+  0%   { clip-path: circle(50% at 50% 50%); }
+  100% { clip-path: path('M 100 100 L 200 0 L 200 200 L 0 120 z'); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container"></div>
+
+<script>
+// This test ensures that when selected keyframe shapes are incompatible
+// and progress >= 0.5, "to" keyframe is selected as a result.
+document.getAnimations()[0].ready.then(() => {
+  takeScreenshot();
+});
+</script>
+</body>
+</html>

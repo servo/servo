@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<style>
+.container {
+  margin: 4px;
+  display: inline-block;
+  border: 1px solid blue;
+}
+.vscroller {
+  overflow-y: overlay;
+  max-height: 300px;
+  border: 2px solid black;
+  padding: 2px;
+  background-color: white;
+}
+.item-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  contain: paint;
+}
+.item {
+  font-size: 18px;
+  flex: 0;
+  margin: 1px 0;
+}
+</style>
+
+<body></body>
+
+<script src='../resources/runner.js'></script>
+<script src='../resources/generate-chrome-class-name.js'></script>
+<script>
+
+// To generate profile data for analysis with pprof, set generateProfile to
+// 'true' and run chrome with "--enable-gpu-benchmarking --no-sandbox".
+const generateProfile = false;
+
+// How many observed list items.
+const numItems = 100000;
+// How many levels of DOM hierarchy between the scrolling root and list items.
+const containerDepth = 100;
+// How far to scroll on each frame.
+const velocity = 1000;
+
+let scroller = document.createElement('div');
+scroller.classList.add('vscroller');
+document.body.appendChild(scroller);
+let parent = scroller;
+for (let i = 0; i < containerDepth; i++) {
+  let container = document.createElement('div');
+  container.classList.add('container');
+  parent.appendChild(container);
+  parent = container;
+}
+let itemContainer = document.createElement('div');
+itemContainer.classList.add('item-container');
+parent.appendChild(itemContainer);
+parent = itemContainer;
+
+let observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.intersectionRatio > 0) {
+      entry.target.classList.add('visible');
+    } else {
+      entry.target.classList.remove('visible');
+    }
+  });
+}, { root: scroller });
+
+for (let i = 0; i < numItems; i++) {
+  let item = document.createElement('div');
+  item.classList.add('item');
+  parent.appendChild(item);
+  item.innerText = generateChromeClassName();
+  observer.observe(item);
+}
+
+PerfTestRunner.measureFrameTime({
+  description: 'Frame time with one IntersectionObserver with a scrolling root element, observing many items.',
+  tracingCategories: 'blink',
+  traceEventsToMeasure: ['LocalFrameView::UpdateViewportIntersectionsForSubtree'],
+  setup: () => {
+    let max_scroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = (scroller.scrollTop + velocity) % max_scroll;
+    if (generateProfile && self.chrome && chrome.gpuBenchmarking) {
+      chrome.gpuBenchmarking.startProfiling('perf.data');
+    }
+  },
+  run: () => {},
+  done: () => {
+    if (generateProfile && self.chrome && chrome.gpuBenchmarking) {
+      chrome.gpuBenchmarking.stopProfiling();
+    }
+  }
+});
+
+</script>

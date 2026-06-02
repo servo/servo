@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes: parsing unicode-bidi: isolate, isolate-override, plaintext</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#unicode-bidi">
+<meta name="assert" content="This test asserts the parser and getComputedStyle works correctly for the unicode-bidi: isolate, isolate-override, plaintext.">
+<meta name="flags" content="dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="unicode-bidi: isolate"
+  data-expected="isolate"></div>
+<div style="unicode-bidi: isolate-override"
+  data-expected="isolate-override"></div>
+<div style="unicode-bidi: plaintext"
+  data-expected="plaintext"></div>
+
+<script>
+Array.prototype.forEach.call(document.querySelectorAll("[data-expected]"), function (element) {
+  test(function () {
+    var actual = getComputedStyle(element).unicodeBidi;
+    assert_equals(actual, element.dataset.expected);
+  }, element.title || element.getAttribute("style"));
+});
+</script>

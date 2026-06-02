@@ -1,0 +1,120 @@
+<!doctype html>
+<title>Image width and height attributes are used to infer aspect-ratio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/aspect-ratio.js"></script>
+<style>
+  img {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<img src="/images/green.png">
+<img src="/images/green.png" width=100 height=125>
+<img src="" width=100 height=125>
+<img src="error.png" width=100 height=125>
+<img src="error.png">
+<img src="error.png" alt="Alt text" width=100 height=500>
+<script>
+let guard = async_test("Image width and height attributes are used to infer aspect-ratio");
+let cookie = Math.random();
+function assert_ratio(img, expected, description) {
+  let epsilon = 0.001;
+  assert_approx_equals(parseFloat(getComputedStyle(img).width, 10) / parseFloat(getComputedStyle(img).height, 10),
+                       expected, epsilon, description);
+}
+
+function test_computed_style(width, height, expected) {
+  test_computed_style_aspect_ratio("img", {width: width, height: height}, expected);
+  test_computed_style_aspect_ratio("input", {type: "image", width: width, height: height}, expected);
+  // input type=submit should not do this mapping.
+  test_computed_style_aspect_ratio("input", {type: "submit", width: width, height: height}, "auto");
+}
+
+// Create and append a new image and immediately check the ratio.
+// We append a random query to the URL(s) to avoid matching something in the 'list
+// of available images' (step 6 of the algorithm below) and thus have the actual
+// load run in a microtask.
+// https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data
+test(function() {
+  // This img will be tested again after loaded. In order to locate it correctly, body should append it first.
+  var img = new Image();
+  img.width = 250;
+  img.height = 100;
+  img.src = "/images/blue.png?" + cookie;
+  document.body.appendChild(img);
+  assert_ratio(img, 2.5);
+}, "Create, append and test immediately: <img> with attributes width=250, height=100");
+
+test(function () {
+  img = new Image();
+  img.setAttribute("width", "0.8");
+  img.setAttribute("height", "0.2");
+  img.src = "/images/blue.png?" + (cookie + 1);
+  document.body.appendChild(img);
+  assert_ratio(img, 4);
+}, "Create, append and test immediately: <img> with attributes width=0.8, height=0.2");
+
+test(function () {
+  img = new Image();
+  img.setAttribute("width", "50%");
+  img.setAttribute("height", "25%");
+  img.src = "/images/blue.png?" + (cookie + 2);
+  document.body.appendChild(img);
+  // Percentages should be  ignored.
+  assert_equals(getComputedStyle(img).height, "0px");
+}, "Create, append and test immediately: <img> with attributes width=50% height=25%");
+
+test(function () {
+  img = new Image();
+  img.setAttribute("width", "50pp");
+  img.setAttribute("height", "25xx");
+  img.src = "/images/blue.png?" + (cookie + 3);
+  document.body.appendChild(img);
+  assert_ratio(img, 2);
+}, "Create, append and test immediately: <img> with invalid trailing attributes width=50pp height=25xx");
+
+test_computed_style("10", "20", "auto 10 / 20");
+test_computed_style("0", "1", "auto 0 / 1");
+test_computed_style("1", "0", "auto 1 / 0");
+test_computed_style("0", "0", "auto 0 / 0");
+test_computed_style("0.5", "1.5", "auto 0.5 / 1.5");
+test_computed_style(null, null, "auto");
+test_computed_style("10", null, "auto");
+test_computed_style(null, "20", "auto");
+test_computed_style("xx", "20", "auto");
+test_computed_style("10%", "20", "auto");
+
+onload = function() {
+  let images = document.querySelectorAll("img");
+  // Tests for images finished loading.
+  test(function() {
+    assert_ratio(images[0], 2.0, "2.0 is the original aspect ratio of green.png");
+  }, "Loaded images test: <img> without width height attributes");
+
+  test(function() {
+    assert_ratio(images[1], 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio.");
+  }, "Loaded images test: <img> with width and height attributes, but conflicting to the original aspect ratio");
+
+  test(function () {
+    assert_ratio(images[2], 100 / 125, "aspect-ratio should override intrinsic size of images that don't have any src.");
+  }, "Loaded images test: <img> with width, height and empty src attributes");
+
+  test(function () {
+    assert_ratio(images[3], 100 / 125, "aspect-ratio should affect the size of error images.");
+  }, "Loaded images test: Error image with width and height attributes");
+
+  test(function () {
+    assert_not_equals(images[5].offsetHeight, 500, "Images with alt text should be inline and ignore the aspect ratio");
+    // Though aspect-ratio is ignored, its value does not change.
+    assert_equals(getComputedStyle(images[5]).aspectRatio, "auto 100 / 500");
+  }, "Loaded images test: Error image with width, height and alt attributes");
+
+  test(function () {
+    assert_ratio(images[6], 133 / 106, "The original aspect ratio of blue.png");
+  }, "Loaded images test: <img> with width and height attributes, but not equal to the original aspect ratio");
+
+  guard.done();
+};
+</script>

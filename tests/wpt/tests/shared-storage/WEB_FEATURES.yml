@@ -1,0 +1,8 @@
+features:
+- name: shared-storage
+  files:
+  - "*"
+  - "!web-locks*"
+- name: shared-storage-locks
+  files:
+  - web-locks*

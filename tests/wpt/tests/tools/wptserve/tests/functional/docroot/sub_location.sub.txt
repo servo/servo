@@ -1,0 +1,8 @@
+host: {{location[host]}}
+hostname: {{location[hostname]}}
+path: {{location[path]}}
+pathname: {{location[pathname]}}
+port: {{location[port]}}
+query: {{location[query]}}
+scheme: {{location[scheme]}}
+server: {{location[server]}}

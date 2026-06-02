@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hit-test of an element with position: fixed should discard scroll offset</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html, body { margin: 0; padding: 0; }
+.hitme {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+
+.hitme:hover { background: green }
+
+.container {
+  width: 100%;
+  background: red;
+  /* Ensure we can scroll */
+  height: 2000px;
+  /* FIXME: Uncomment when servo supports this properly
+  height: calc(100vh + 200px); */
+}
+</style>
+<div class="container">
+  <div class="hitme"></div>
+</div>
+<script>
+async_test(function(t) {
+  window.onload = t.step_func(function() {
+    window.scrollTo(0, 200);
+    var elements = document.elementsFromPoint(10, 10);
+    assert_true(elements.length > 0, "Should be elements");
+    assert_true(elements[0].className == "hitme",
+                "should be able to hit the fixed-positioned element");
+    t.done();
+  });
+});
+</script>

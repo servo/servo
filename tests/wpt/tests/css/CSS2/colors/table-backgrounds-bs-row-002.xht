@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: background-position - table-row</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layers"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties"/>
+  <meta name="flags" content="image"/>
+  <meta name="assert" content="Positioning a background image on a table row
+    positions it within a box that extends from the left edge of its leftmost
+    table cell to the right edge of its rightmost tabel cell."/>
+  <style type="text/css">
+  #test{
+  display:table;
+  width:500px;
+  }
+  .table-row{
+  background:url(support/swatch-red.png) repeat-y 50% 0;
+  display:table-row;
+  }
+  .table-cell{
+  display:table-cell;
+  height:100px;
+  }
+  .border-left{
+  border-left:8px solid green;
+  }
+  .border-right{
+  border-right:8px solid green;
+  }
+  </style>
+ </head>
+ <body>
+  <p>To pass, there <strong>must not</strong> be any red below.</p>
+  <div id="test">
+   <div class="table-row">
+    <div class="table-cell border-right"></div>
+    <div class="table-cell border-left"></div>
+   </div>
+  </div>
+ </body>
+</html>

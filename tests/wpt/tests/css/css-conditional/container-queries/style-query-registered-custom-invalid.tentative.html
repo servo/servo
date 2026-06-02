@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with IACVT value for registered custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11143">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root { container-name: --root; }
+  @property --prop {
+    syntax: "a";
+    initial-value: a;
+    inherits: true;
+  }
+  #target { background-color: green; }
+  @container --root style(--prop: b) {
+    #target { background-color: red; }
+  }
+</style>
+<div id="target"></div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)");
+  }, "Querying IACVT value for registered custom property should evaluate to false");
+
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#font"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body {font-size: 12px; color: navy;}
+   .six {font: italic small-caps 100 150%/300% sans-serif;}
+   span.dummy {color: silver;}
+   span.color {background-color: silver;}
+   span.color span.dummy {color: gray;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" title="15.8 Shorthand font property: the 'font' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" title="15.3 Font family: the 'font-family' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-styling" title="15.4 Font styling: the 'font-style' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#small-caps" title="15.5 Small-caps: the 'font-variant' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" title="15.6 Font boldness: the 'font-weight' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" title="15.7 Font size: the 'font-size' property"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-variant-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+
+ </head>
+ <body>
+  <p class="six">
+   This text should be 18px sans-serif, in small-caps, italicized, and very light.
+   There should be 54px between baselines (36px gap between lines).
+  <span class="dummy"> dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text </span>
+  </p>
+ </body>
+</html>

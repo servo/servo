@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: capitalize, Armenian</title>
+<meta name="assert" content="For the ArmenianUnicode block, text-transform: capitalize puts the first typographic letter unit of each word in titlecase; other characters are unaffected.">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-capitalize-022-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/NotoSansArmenian-Regular') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Noto Sans Armenian', webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: capitalize; }
+</style>
+</head>
+<body>
+<p class="instructions">The text is arranged in pairs of three-letter 'words'. Test passes if the words in each pair match<br>
+If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+0561">&#x0561;&#x0561;&#x0561; &#x0531;&#x0561;&#x0561;</span> <span title="U+0562">&#x0562;&#x0562;&#x0562; &#x0532;&#x0562;&#x0562;</span> <span title="U+0563">&#x0563;&#x0563;&#x0563; &#x0533;&#x0563;&#x0563;</span> <span title="U+0564">&#x0564;&#x0564;&#x0564; &#x0534;&#x0564;&#x0564;</span> <span title="U+0565">&#x0565;&#x0565;&#x0565; &#x0535;&#x0565;&#x0565;</span> <span title="U+0566">&#x0566;&#x0566;&#x0566; &#x0536;&#x0566;&#x0566;</span> <span title="U+0567">&#x0567;&#x0567;&#x0567; &#x0537;&#x0567;&#x0567;</span> <span title="U+0568">&#x0568;&#x0568;&#x0568; &#x0538;&#x0568;&#x0568;</span> <span title="U+0569">&#x0569;&#x0569;&#x0569; &#x0539;&#x0569;&#x0569;</span> <span title="U+056A">&#x056A;&#x056A;&#x056A; &#x053A;&#x056A;&#x056A;</span> <span title="U+056B">&#x056B;&#x056B;&#x056B; &#x053B;&#x056B;&#x056B;</span> <span title="U+056C">&#x056C;&#x056C;&#x056C; &#x053C;&#x056C;&#x056C;</span> <span title="U+056D">&#x056D;&#x056D;&#x056D; &#x053D;&#x056D;&#x056D;</span> <span title="U+056E">&#x056E;&#x056E;&#x056E; &#x053E;&#x056E;&#x056E;</span> <span title="U+056F">&#x056F;&#x056F;&#x056F; &#x053F;&#x056F;&#x056F;</span> <span title="U+0570">&#x0570;&#x0570;&#x0570; &#x0540;&#x0570;&#x0570;</span> <span title="U+0571">&#x0571;&#x0571;&#x0571; &#x0541;&#x0571;&#x0571;</span> <span title="U+0572">&#x0572;&#x0572;&#x0572; &#x0542;&#x0572;&#x0572;</span> <span title="U+0573">&#x0573;&#x0573;&#x0573; &#x0543;&#x0573;&#x0573;</span> <span title="U+0574">&#x0574;&#x0574;&#x0574; &#x0544;&#x0574;&#x0574;</span> <span title="U+0575">&#x0575;&#x0575;&#x0575; &#x0545;&#x0575;&#x0575;</span> <span title="U+0576">&#x0576;&#x0576;&#x0576; &#x0546;&#x0576;&#x0576;</span> <span title="U+0577">&#x0577;&#x0577;&#x0577; &#x0547;&#x0577;&#x0577;</span> <span title="U+0578">&#x0578;&#x0578;&#x0578; &#x0548;&#x0578;&#x0578;</span> <span title="U+0579">&#x0579;&#x0579;&#x0579; &#x0549;&#x0579;&#x0579;</span> <span title="U+057A">&#x057A;&#x057A;&#x057A; &#x054A;&#x057A;&#x057A;</span> <span title="U+057B">&#x057B;&#x057B;&#x057B; &#x054B;&#x057B;&#x057B;</span> <span title="U+057C">&#x057C;&#x057C;&#x057C; &#x054C;&#x057C;&#x057C;</span> <span title="U+057D">&#x057D;&#x057D;&#x057D; &#x054D;&#x057D;&#x057D;</span> <span title="U+057E">&#x057E;&#x057E;&#x057E; &#x054E;&#x057E;&#x057E;</span> <span title="U+057F">&#x057F;&#x057F;&#x057F; &#x054F;&#x057F;&#x057F;</span> <span title="U+0580">&#x0580;&#x0580;&#x0580; &#x0550;&#x0580;&#x0580;</span> <span title="U+0581">&#x0581;&#x0581;&#x0581; &#x0551;&#x0581;&#x0581;</span> <span title="U+0582">&#x0582;&#x0582;&#x0582; &#x0552;&#x0582;&#x0582;</span> <span title="U+0583">&#x0583;&#x0583;&#x0583; &#x0553;&#x0583;&#x0583;</span> <span title="U+0584">&#x0584;&#x0584;&#x0584; &#x0554;&#x0584;&#x0584;</span> <span title="U+0585">&#x0585;&#x0585;&#x0585; &#x0555;&#x0585;&#x0585;</span> <span title="U+0586">&#x0586;&#x0586;&#x0586; &#x0556;&#x0586;&#x0586;</span></div>
+</body>
+</html>

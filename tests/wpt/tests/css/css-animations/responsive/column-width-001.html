@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Animations: column-width animations respond to style changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#cw">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .paused {
+    animation-duration: 4s;
+    animation-timing-function: linear;
+    animation-delay: -2s;
+    animation-play-state: paused;
+  }
+  #container {
+    column-width: 40px;
+    font-size: 10px;
+  }
+  #first {
+    animation-name: first-anim;
+  }
+  #second {
+    animation-name: second-anim;
+  }
+  #third {
+    animation-name: third-anim;
+  }
+  @keyframes first-anim {
+    from { column-width: 3em; }
+    to { column-width: 5em; }
+  }
+  @keyframes second-anim {
+    from { column-width: 40px; }
+    to { column-width: calc(40px - 2em); }
+  }
+  @keyframes third-anim {
+    from { column-width: 20px; }
+    to { column-width: inherit; }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="first" class="paused"></div>
+  <div id="second" class="paused"></div>
+  <div id="third" class="paused"></div>
+</div>
+<script>
+'use strict';
+var container = document.getElementById('container');
+
+test(() => {
+  const first = document.getElementById('first');
+  assert_equals(getComputedStyle(first).columnWidth, '40px');
+  first.style.fontSize = '20px';
+  assert_equals(getComputedStyle(first).columnWidth, '80px');
+}, 'column-width responds to font-size changes');
+
+test(() => {
+  const second = document.getElementById('second');
+  assert_equals(getComputedStyle(second).columnWidth, '30px');
+  second.style.fontSize = '90px';
+  assert_equals(getComputedStyle(second).columnWidth, '20px');
+}, 'column-width clamps to 0px');
+
+test(() => {
+  const container = document.getElementById('container');
+  const third = document.getElementById('third');
+  assert_equals(getComputedStyle(third).columnWidth, '30px');
+  container.style.columnWidth = 'auto';
+  assert_equals(getComputedStyle(third).columnWidth, 'auto');
+}, 'column-width responds to inherited changes');
+</script>
+</body>
+</html>

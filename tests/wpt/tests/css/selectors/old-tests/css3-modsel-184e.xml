@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED starts-with attribute selector with empty value</title>
+  <style type="text/css"><![CDATA[
+p { color: red; }
+p:not([class^=""]) { color: lime; }
+]]></style>
+  <link rel="author" title="Lachlan Hunt" href="http://lachy.id.au/about/contact"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="css3-modsel-184-ref.xht"/>
+ </head>
+ <body>
+<p class="">This text should be green.</p>
+<p>This text should be green.</p>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Reporting works with report-only frame-ancestors even if frame is blocked by X-Frame-Options</title>
+</head>
+<body>
+    <iframe src="./support/not-embeddable-frame.py?reportID={{$id:uuid()}}&reportOnly=true&xFrameOptions=DENY"></iframe>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-ancestors&reportID={{$id}}'></script>
+</body>
+</html>

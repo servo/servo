@@ -1,0 +1,42 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+    "name": "A test that has an 'or' clause",
+    "description": "This is a complex test that uses or-ing among a list of assertions.",
+    "ref": "https://www.w3.org/TR/annotation-model/#model",
+    "testType": "manual",
+    "assertions":
+      { "title": "Condition Object",
+        "description": "A pseudo-test that will get a result from the aggregate of its children",
+        "assertionType": "must",
+        "expectedResult": "valid",
+        "errorMessage": "Error: None of the various options were present",
+        "compareWith": "or",
+        "assertions": [
+        {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "title": "'The Annotation must have 1 or more @context values' (Section 3.1)",
+          "assertionType": "must",
+          "expectedResult": "valid",
+          "errorMessage": "Error: Annotation does not have an @context property.",
+          "type": "object",
+          "properties": {
+            "@context": {}
+          },
+          "required": ["@context"]
+        },
+        {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "title": "'An Annotation should have exactly 1 id' (Section 3.1)",
+          "assertionType": "should",
+          "expectedResult": "valid",
+          "errorMessage": "Warning: The Annotation is not identified using the id key (Section 3.1).",
+          "type": "object",
+          "properties": {
+            "id": {}
+          },
+          "required": ["id"]
+        }
+        ]
+      }
+
+}

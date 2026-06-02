@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid items with relative offsets</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-item-sizing">
+<meta name="assert" content="Checks that relative offests work for grid items.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+  position: relative;
+  grid: 90px 60px 30px / 200px 150px 100px;
+  inline-size: 600px;
+  block-size: 300px;
+}
+
+.grid > div { position: relative; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<h3>Direction LTR</h3>
+
+<div class="grid">
+  <div class="firstRowFirstColumn" style="left: 10px; top: 9px;"
+    data-offset-x="10" data-offset-y="9" data-expected-width="200" data-expected-height="90"></div>
+  <div class="secondRowSecondColumn" style="left: -15px; top: -12px;"
+    data-offset-x="185" data-offset-y="78" data-expected-width="150" data-expected-height="60"></div>
+  <div class="thirdRowThirdColumn" style="right: 30px; bottom: 21px;"
+    data-offset-x="320" data-offset-y="129" data-expected-width="100" data-expected-height="30"></div>
+</div>
+
+<h3>Direction RTL</h3>
+
+<div class="grid directionRTL">
+  <div class="firstRowFirstColumn" style="left: 10px; top: 9px;"
+    data-offset-x="410" data-offset-y="9" data-expected-width="200" data-expected-height="90"></div>
+  <div class="secondRowSecondColumn" style="left: -15px; top: -12px;"
+    data-offset-x="235" data-offset-y="78" data-expected-width="150" data-expected-height="60"></div>
+  <div class="thirdRowThirdColumn" style="right: 30px; bottom: 21px;"
+    data-offset-x="120" data-offset-y="129" data-expected-width="100" data-expected-height="30"></div>
+</div>
+
+<h2>Writing Mode vertical-lr</h2>
+
+<h3>Direction LTR</h3>
+
+<div class="grid verticalLR">
+  <div class="firstRowFirstColumn" style="left: 9px; top: 10px;"
+    data-offset-x="9" data-offset-y="10" data-expected-width="90" data-expected-height="200"></div>
+  <div class="secondRowSecondColumn" style="left: -12px; top: -15px;"
+    data-offset-x="78" data-offset-y="185" data-expected-width="60" data-expected-height="150"></div>
+  <div class="thirdRowThirdColumn" style="right: 21px; bottom: 30px;"
+    data-offset-x="129" data-offset-y="320" data-expected-width="30" data-expected-height="100"></div>
+</div>
+
+<h3>Direction RTL</h3>
+
+<div class="grid verticalLR directionRTL">
+  <div class="firstRowFirstColumn" style="left: 9px; top: 10px;"
+    data-offset-x="9" data-offset-y="410" data-expected-width="90" data-expected-height="200"></div>
+  <div class="secondRowSecondColumn" style="left: -12px; top: -15px;"
+    data-offset-x="78" data-offset-y="235" data-expected-width="60" data-expected-height="150"></div>
+  <div class="thirdRowThirdColumn" style="right: 21px; bottom: 30px;"
+    data-offset-x="129" data-offset-y="120" data-expected-width="30" data-expected-height="100"></div>
+</div>
+
+<h2>Writing Mode vertical-rl</h2>
+
+<h3>Direction LTR</h3>
+
+<div class="grid verticalRL">
+  <div class="firstRowFirstColumn" style="left: 9px; top: 10px;"
+    data-offset-x="219" data-offset-y="10" data-expected-width="90" data-expected-height="200"></div>
+  <div class="secondRowSecondColumn" style="left: -12px; top: -15px;"
+    data-offset-x="138" data-offset-y="185" data-expected-width="60" data-expected-height="150"></div>
+  <div class="thirdRowThirdColumn" style="right: 21px; bottom: 30px;"
+    data-offset-x="99" data-offset-y="320" data-expected-width="30" data-expected-height="100"></div>
+</div>
+
+<h3>Direction RTL</h3>
+
+<div class="grid verticalRL directionRTL">
+  <div class="firstRowFirstColumn" style="left: 9px; top: 10px;"
+    data-offset-x="219" data-offset-y="410" data-expected-width="90" data-expected-height="200"></div>
+  <div class="secondRowSecondColumn" style="left: -12px; top: -15px;"
+    data-offset-x="138" data-offset-y="235" data-expected-width="60" data-expected-height="150"></div>
+  <div class="thirdRowThirdColumn" style="right: 21px; bottom: 30px;"
+    data-offset-x="99" data-offset-y="120" data-expected-width="30" data-expected-height="100"></div>
+</div>

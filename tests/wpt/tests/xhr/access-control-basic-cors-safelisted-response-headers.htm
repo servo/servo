@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that CORS-safelisted response headers are permitted in cross-origin request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    test(function() {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/xhr/resources/access-control-basic-cors-safelisted-response-headers.py", false);
+      xhr.send();
+
+      assert_not_equals(xhr.getResponseHeader("cache-control"), null);
+      assert_not_equals(xhr.getResponseHeader("content-language"), null);
+      assert_not_equals(xhr.getResponseHeader("content-type"), null);
+      assert_not_equals(xhr.getResponseHeader("content-length"), null);
+      assert_not_equals(xhr.getResponseHeader("expires"), null);
+      assert_not_equals(xhr.getResponseHeader("last-modified"), null);
+      assert_not_equals(xhr.getResponseHeader("pragma"), null);
+      assert_equals(xhr.getResponseHeader("x-webkit"), null);
+
+      assert_not_equals(xhr.getAllResponseHeaders().match("en"), null);
+      assert_equals(xhr.getAllResponseHeaders().match("foobar"), null);
+    }, "Response with CORS-safelisted headers");
+    </script>
+  </body>
+</html>

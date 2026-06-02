@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>border collapse dynamic change to rowgroup border style</title>
+<link rel="author" title="Bernd Mielke" href="mailto:bmlk@gmx.de" />
+<style type="text/css"><![CDATA[
+td { border: 10px green outset;}
+table {margin: 30px; border-collapse:collapse}
+tbody#reference {border:solid green 10px}
+]]></style>
+</head>
+<body>
+
+<p>There should be a continuous solid green border around the middle row. All other borders should look as though they are coming out of the canvas.</p>
+
+<table>
+<tbody><tr><td>c11</td><td>c12</td><td>c13</td></tr></tbody>
+ <tbody id="reference">
+ <tr><td>c21</td><td>c22</td><td>c23</td></tr>
+
+ </tbody>
+ <tbody>
+ <tr><td>c31</td><td>c32</td><td>c33</td></tr>
+ </tbody>
+</table>
+
+</body></html>

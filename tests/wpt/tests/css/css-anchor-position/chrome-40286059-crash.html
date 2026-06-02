@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/40286059">
+<p>Pass if no crash</p>
+<div id="pop" style="position-try-fallbacks: --foo" popover></div>
+<script>
+  getComputedStyle(pop).left;
+</script>

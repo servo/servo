@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/util.js"></script>
+<body></body>
+<script>
+'use strict';
+
+const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+const PATH = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+const IFRAME_PATH = PATH + 'resources/iframe-helper.html';
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'');
+  await promise_rejects_dom(t, 'NotAllowedError', run_iframe_test(iframe, 'LanguageModelCreate'));
+  iframe.remove();
+}, 'Throw a \'NotAllowedError\' when creating LanguageModel within cross-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'language-model');
+  assert_equals(await run_iframe_test(iframe, 'LanguageModelCreate'), 'Success');
+  iframe.remove();
+}, 'LanguageModel can be created within cross-origin iframe with permission policy');
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'');
+  assert_equals(await run_iframe_test(iframe, 'LanguageModelCreate'), 'Success');
+  iframe.remove();
+}, 'LanguageModel can be used within same-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'');
+  assert_equals(await run_iframe_test(iframe, 'LanguageModelAvailability'), 'unavailable');
+  iframe.remove();
+}, 'LanguageModel is unavailable within cross-origin iframe');
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'language-model');
+  assert_in_array(await run_iframe_test(iframe, 'LanguageModelAvailability'), kAvailableAvailabilities);
+  iframe.remove();
+}, 'LanguageModel is available within cross-origin iframe with permission policy');
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permissionPolicy=*/'');
+  assert_in_array(await run_iframe_test(iframe, 'LanguageModelAvailability'), kAvailableAvailabilities);
+  iframe.remove();
+}, 'LanguageModel is available within same-origin iframe');
+
+</script>

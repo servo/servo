@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta name="assert" content="Use the indicated color space when interpolating colors on the gradient line.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#linear-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color/#interpolation-space">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1910153">
+<link rel="mismatch" href="background-gradient-interpolation-002-notref.html">
+<style>
+:root {
+  --space: ;
+}
+
+.has-gradient {
+  background-image: linear-gradient(
+    90deg var(--space),
+    yellow 30%,
+    purple 95%
+  );
+}
+
+.hsl {
+  --space: in hsl;
+}
+
+.oklch {
+  --space: in oklch;
+}
+
+.text {
+  font: 50px/1 Ahem;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  width: fit-content;
+  margin: 0;
+}
+</style>
+</head>
+
+<body>
+  <h4>These three gradients should NOT look the same</h4>
+
+  <p>Interpolating in sRGB (default)</p>
+  <p class="text has-gradient">ABCD</p>
+
+  <p>Interpolating in HSL</p>
+  <p class="text has-gradient hsl">ABCD</p>
+
+  <p>Interpolating in Oklch</p>
+  <p class="text has-gradient oklch">ABCD</p>
+</body>
+</html>

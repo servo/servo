@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- In this reference case, we use floated fixed-sized divs to mimic the
+     testcases's flex items.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.container {
+      width: 100px;
+      height: 20px;
+      border: 2px solid black;
+    }
+    div.item {
+      width:  48px;
+      height: 15px;
+      float: left;
+      border: 1px dotted blue;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+features:
+- name: layout-direction-override
+  files:
+  - "direction-unicode-bidi-*"

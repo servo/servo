@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+    <head>
+        <meta charset=utf-8>
+        <title>Dynamically growing an iframe element</title>
+        <link rel=match href=/_mozilla/mozilla/iframe/resize_after_load_ref.html>
+    </head>
+
+    <body>
+        <iframe style="border: 0px; display: block; height: 100px; width: 50px" src="resources/green_inner_frame.html"></iframe>
+        <script>
+            var iframe = document.getElementsByTagName('iframe')[0];
+            iframe.onload = function() {
+                document.querySelector('iframe').style.width = "100px";
+
+                // We do this in a timeout, so that the compositor has a chance
+                // to update the layer tree.
+                setTimeout(function() {
+                    document.documentElement.classList.remove("reftest-wait");
+                }, 0);
+            }
+        </script>
+    </body>
+</html>

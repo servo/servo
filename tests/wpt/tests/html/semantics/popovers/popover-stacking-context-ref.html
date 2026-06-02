@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="stylesheet" href="resources/popover-styles.css">
+
+<div class="fake-popover">
+  Inside popover
+  <div class=z style="z-index: 2; background:lightgreen">z-index 2
+    <div class=z style="z-index: 3; background:lightblue; left: 20px;">z-index 3</div>
+    <div class=z style="z-index: 1; background:pink; top:-20px; left: 10px;">z-index 1</div>
+  </div>
+  <div class=z style="background:green; top:-100px; left: 250px; width: 100px;">Outside</div>
+  Bottom of popover
+</div>
+
+<style>
+  .fake-popover {
+    width: 200px;
+    height: 230px;
+    border: 1px solid red;
+    top:50px;
+    left:50px;
+  }
+  .z {
+    position: relative;
+    border: 1px solid black;
+    padding: 1em;
+  }
+</style>

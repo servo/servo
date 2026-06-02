@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/dictionary-helper.js"></script>
+<script src="../webrtc/RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video', {
+      sendEncodings: [{
+        active: false,
+        priority: 'low',
+        networkPriority: 'low',
+        maxBitrate: 8,
+        maxFramerate: 25,
+        rid: 'foo'
+      }]
+    });
+    await doOfferAnswerExchange(t, pc);
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = param.encodings[0];
+
+    assert_equals(encoding.active, false);
+    assert_equals(encoding.priority, 'low');
+    assert_equals(encoding.networkPriority, 'low');
+  }, `sender.getParameters() should return sendEncodings set by addTransceiver()`);
+
+  test_modified_encoding('audio', 'active', false, true,
+    'setParameters() with modified encoding.active should succeed');
+
+  test_modified_encoding('audio', 'priority', 'very-low', 'high',
+    'setParameters() with modified encoding.priority should succeed');
+
+  test_modified_encoding('audio', 'networkPriority', 'very-low', 'high',
+    'setParameters() with modified encoding.networkPriority should succeed');
+
+</script>

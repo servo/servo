@@ -1,0 +1,73 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Default precision qualifiers should only work with int, float and sampler types</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!-- See ESSL 3.00 section 4.5.4 -->
+<script id="precisionVec" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump vec2;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="precisionVoid" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump void;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="precisionUint" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+precision mediump uint;
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+GLSLConformanceTester.runTests([
+  {
+    fShaderId: "precisionVec",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with vec2"
+  },
+  {
+    fShaderId: "precisionVoid",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with void"
+  },
+  {
+    fShaderId: "precisionUint",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "default precision qualifier shouldn't work with uint"
+  }
+], 2);
+</script>
+</body>
+</html>

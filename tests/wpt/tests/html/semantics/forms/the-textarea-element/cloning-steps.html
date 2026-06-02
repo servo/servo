@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cloning of textarea elements</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-node-clonenode">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-clone">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-clone-ext">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-node-clone-ext">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(function() {
+  var textarea = document.createElement("textarea");
+  textarea.value = "foo bar";
+
+  var copy = textarea.cloneNode();
+  assert_equals(copy.value, "foo bar");
+}, "textarea element's value should be cloned");
+
+test(function() {
+  var textarea = document.createElement("textarea");
+  textarea.value = "foo bar";
+
+  var copy = textarea.cloneNode();
+  copy.setAttribute("value", "something else");
+
+  assert_equals(copy.value, "foo bar");
+}, "textarea element's dirty value flag should be cloned, so setAttribute doesn't affect the cloned textarea's value");
+
+</script>

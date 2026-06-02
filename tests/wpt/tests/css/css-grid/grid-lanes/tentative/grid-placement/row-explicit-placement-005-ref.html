@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<style>
+#grid {
+    display: grid;
+    grid-template-columns: 200px 200px;
+    background: gray;
+    height: 200px;
+    width: 200px;
+    gap: 20px;
+    padding: 20px;
+}
+
+.first-track {
+    background: lightskyblue;
+    grid-row-start: 1;
+}
+
+.second-track {
+    background: lightcoral;
+    grid-row-start: 2;
+    height: 200%;
+}
+
+.third-track {
+    background: lightgreen;
+    grid-row-start: 3;
+}
+</style>
+<body>
+  <p>Test that grid-lanes items with explicit placement are correctly positioned within the grid axis.</p>
+  <div id="grid">
+    <div id="first-item" class="first-track" style="width: fit-content">This is some text</div>
+    <div class="second-track">Some larger words in this sentence</div>
+    <div class="third-track">The cat cannot be separated from milk</div>
+    <div id="fourth-item" class="first-track" style="position: relative;">Some larger words in this sentence</div>
+    <div class="second-track">The cat cannot be separated from milk</div>
+  </div>
+  <script>
+    const grid = document.getElementById('grid');
+    const gridrect = grid.getBoundingClientRect();
+     // Width of the grid, minus padding.
+    const gridwidth = gridrect.width - 40;
+
+    const first_item = document.getElementById('first-item');
+    const width = first_item.getBoundingClientRect().width;
+
+    const fourth_item = document.getElementById('fourth-item');
+    const translation = gridwidth - width;
+    fourth_item.style.left = '-' + translation + 'px';
+  </script>
+</body>
+</html>

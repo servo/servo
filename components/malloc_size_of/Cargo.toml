@@ -1,0 +1,46 @@
+[package]
+name = "servo_malloc_size_of"
+license = "MIT OR Apache-2.0"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+accountable-refcell = { workspace = true }
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+content-security-policy = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+http = { workspace = true }
+indexmap = { workspace = true }
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
+markup5ever = { workspace = true }
+mime = { workspace = true }
+parking_lot = { workspace = true }
+resvg = { workspace = true }
+servo_allocator = { path = "../allocator" }
+servo_arc = { workspace = true }
+smallvec = { workspace = true }
+string_cache = { workspace = true }
+stylo = { workspace = true }
+stylo_dom = { workspace = true }
+stylo_malloc_size_of = { workspace = true }
+taffy = { workspace = true }
+tendril = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+unicode-bidi = { workspace = true }
+unicode-script = { workspace = true }
+url = { workspace = true }
+urlpattern = { workspace = true }
+utf-8 = { workspace = true }
+uuid = { workspace = true }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
+wr_malloc_size_of = { workspace = true }

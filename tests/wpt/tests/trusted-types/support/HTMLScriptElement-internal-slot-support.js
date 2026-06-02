@@ -1,0 +1,2 @@
+window.postMessage("script url", "*");
+

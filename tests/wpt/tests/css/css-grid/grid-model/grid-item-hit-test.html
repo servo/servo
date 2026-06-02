@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1029371">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="display: grid;">
+  <div style="height: 100px;">
+    <div style="float: left; width: 50%; height: 400px; background: hotpink;"></div>
+  </div>
+  <div id="target" style="height: 100px; background: cyan;"></div>
+</div>
+<script>
+test(() => {
+  assert_equals(document.elementFromPoint(150, 150), document.getElementById('target'));
+});
+</script>
+

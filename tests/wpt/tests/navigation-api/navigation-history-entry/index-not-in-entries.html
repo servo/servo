@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(t.step_func_done(() => {
+    // Remove the entry by replacing it.
+    let replaced_entry = navigation.currentEntry;
+    assert_equals(replaced_entry.index, start_index);
+    navigation.navigate("#0", { history: "replace" });
+    assert_equals(replaced_entry.index, -1);
+
+    // Remove the entry by detaching its window.
+    let iframe_entry = i.contentWindow.navigation.currentEntry;
+    assert_equals(iframe_entry.index, 0);
+    i.remove();
+    assert_equals(iframe_entry.index, -1);
+    t.done();
+  }), 0);
+}, "entry.index should return -1 when not in navigation.entries()");
+</script>

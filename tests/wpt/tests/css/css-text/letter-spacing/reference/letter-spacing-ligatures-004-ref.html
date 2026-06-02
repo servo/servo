@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter spacing and ligatures</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<style>
+div {
+    font-size: 2em;
+    width: 12ch;
+    font-kerning: none;
+}
+span {
+    padding-left: 20px;
+}
+.ref {
+    color: blue;
+}
+</style>
+<p>Test passes if the black text looks like the blue one.
+<div lang=km>&#x179F;&#x17B6;<span></span>&#x17A0;&#x17B6;</div>
+<div lang=km class=ref>&#x179F;&#x17B6;<span></span>&#x17A0;&#x17B6;</div>

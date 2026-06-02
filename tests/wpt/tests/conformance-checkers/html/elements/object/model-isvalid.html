@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;object&gt;</title>
+</head>
+<body>
+  <map name="idref"></map>
+  <!-- is structured inline -->
+  <p><object
+      data="uri"
+      height="40"
+      usemap="#idref"
+      width="40"
+      class="class"
+      lang="en"></object></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><object
+      data="uri"
+      height="40"
+      usemap="#idref"
+      width="40"
+      class="class"
+      lang="en"></object></dfn></p>
+
+
+  <!-- can contain strictly inline while in strictly inline context, but param must come first -->
+  <p><dfn>strictly inline
+    <object data='f'>
+        <em>text</em>
+    </object>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <object data='f'>
+        <param name="foo" value='bar'><param name="bar" value='foo'>
+        <em>text</em>
+    </object>
+  </dfn></p>
+
+  <!-- can contain blocks while in block context, but param must come first -->
+<!-- REVISIT
+  <object>
+    <p>text</p>
+  </object>
+  <object>
+    <param name="foo" value='bar'><param name="bar" value='foo'>
+    <p>text</p>
+  </object>
+-->
+  <!-- can contain interactive if ancestor does not forbid it, but param must come first -->
+  <p>paragraph
+    <object data='f'>
+      <a>link</a>
+    </object>
+  </p>
+  <p>paragraph
+    <object data='f'>
+      <param name="foo" value='bar'><param name="bar" value='foo'>
+      <a>link</a>
+    </object>
+  </p>
+  <p><dfn>strictly inline
+    <object data='f'>
+      <a>link</a>
+    </object>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <object data='f'>
+     <param name="foo" value='bar'><param name="bar" value='foo'>
+     <a>link</a>
+    </object>
+  </dfn></p>
+
+  <!-- object with flow content and flow parent -->
+  <div><object data=foo><p>foo</p></object></div>
+
+</body>
+</html>

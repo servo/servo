@@ -1,0 +1,51 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+async function test() {
+  const url = new URL(location.href);
+  const cross_origin = url.searchParams.get('cross_origin');
+  const ancestor_token = url.searchParams.get('ancestor_token');
+  const mock_select_url_result_index = url.searchParams.get('mock_select_url_result_index');
+  const set_key = url.searchParams.get('set_key');
+  const set_value = url.searchParams.get('set_value');
+
+  const script_url = cross_origin +
+                     `/shared-storage/resources/simple-module.js`;
+
+  const worklet = await sharedStorage.createWorklet(
+    script_url,
+    { credentials: "omit", dataOrigin: "script-origin" });
+
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_token]);
+
+  let select_url_result_urn = await worklet.selectURL(
+    "test-url-selection-operation",
+    [{ url: url0 }], {
+      data: {
+        'mockResult': mock_select_url_result_index,
+        'setKey': set_key,
+        'setValue': set_value
+      },
+      resolveToConfig: false,
+      keepAlive: true
+    });
+
+  assert_true(validateSelectURLResult(select_url_result_urn, /*resolve_to_config=*/false));
+
+  let parentOrOpener = window.opener || window.parent;
+  parentOrOpener.postMessage({success: true, selectUrlResultUrn: select_url_result_urn}, "*");
+}
+
+test();
+
+</script>
+</body>

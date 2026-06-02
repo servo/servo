@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden canvas</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-canvas-ref.html">
+<meta name="assert" content="content-visibility hidden canvas element does not paint replaced content">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+canvas {
+  width: 200px;
+  height: 200px;
+  background: green;
+  border: 1px solid black;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<canvas id="canvas">
+</canvas>
+
+<script>
+async function runTest() {
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  canvas.classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

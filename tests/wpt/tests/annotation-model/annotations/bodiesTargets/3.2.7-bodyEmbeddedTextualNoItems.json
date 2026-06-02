@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.7-bodyEmbeddedTextualNoItems.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "An Embedded Textual body cannot include an items key. items key is only valid with Choice or Set.",
+    "title": "If an **Embedded Textual Body** is a body, it does NOT have an **_items_ key** - [model 3.2.7](https://www.w3.org/TR/annotation-model/#choice-of-bodies-and-targets)",
+    "description": "True when no Embedded Textual bodies or when none of the Embedded Textual bodies include the items key. (Section 4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextualBodyWithItems" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextualBodyWithItems" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/itemETBWithItems" }  },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemETBWithItems" } } }
+                     ]
+         }
+     }
+}

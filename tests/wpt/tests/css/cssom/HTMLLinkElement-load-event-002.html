@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Link element load event doesn't block the parser.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let NUM_LOADS = 0;
+
+  function sheetUrl(token) {
+    return "stylesheet-same-origin.css?" + token;
+  }
+
+  function createLink(token) {
+    let link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = sheetUrl(token);
+    return link;
+  }
+
+  function waitForEnoughTimeToLoadSheet(token) {
+    return new Promise(resolve => {
+      let link = createLink(token);
+      link.onload = resolve;
+      document.head.appendChild(link);
+    });
+  }
+
+  promise_test(async function (t) {
+    let link = createLink("removed");
+    link.addEventListener("load", t.unreached_func("got unexpected load event"));
+    link.addEventListener("error", t.unreached_func("got unexpected error event"));
+    document.head.appendChild(link);
+    link.remove();
+
+    await waitForEnoughTimeToLoadSheet("removed-wait");
+  }, "Load event doesn't fire on removed link");
+
+  promise_test(async function (t) {
+    let link = createLink("changed-initial");
+    let sawLoad = false;
+    let load = new Promise(resolve => {
+      link.addEventListener("load", function(e) {
+        assert_false(sawLoad, "Should only see load event once");
+        sawLoad = true;
+        resolve();
+      });
+    });
+    link.addEventListener("error", t.unreached_func("got unexpected error event"));
+    document.head.appendChild(link);
+    link.href = sheetUrl("changed-change");
+
+    await waitForEnoughTimeToLoadSheet("changed-wait");
+    await load;
+
+    assert_true(sawLoad, "Should've seen the load event only once");
+  }, "Load event doesn't fire for removed sheet");
+</script>

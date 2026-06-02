@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>non-scaling-stroke with outer viewport transform</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintingVectorEffects" />
+<link rel="match" href="green-100x100.svg" />
+<body>
+  <style>
+    body {
+      border: none;
+      margin: 0;
+      width: 200px;
+      height: 200px;
+    }
+    svg {
+      transform-origin: center;
+      transform-bxox: fill-box;
+    }
+    #outer {
+      width: 100px;
+      height: 100px;
+      transform: scale(2);
+    }
+    #inner {
+      transform: scale(0.5);
+    }
+    rect {
+      fill: red;
+      stroke: green;
+      stroke-width: 75px;
+      vector-effect: non-scaling-stroke;
+    }
+  </style>
+  <svg id="outer">
+    <svg id="inner">
+      <rect width="75" height="75"/>
+    </svg>
+  </svg>
+</body>
+</html>

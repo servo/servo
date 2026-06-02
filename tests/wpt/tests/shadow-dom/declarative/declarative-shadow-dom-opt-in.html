@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Shadow DOM</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/dom/issues/831">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='../../html/resources/common.js'></script>
+
+<body>
+<style>
+  * { white-space: pre; }
+  iframe { display:none; }
+</style>
+<div id=log></div>
+
+<div id=mainpage style="display:none">
+  <div class=wrapper>
+    <div class=host>
+      <template shadowrootmode=open>
+        <span class=content>Content</span>
+      </template>
+    </div>
+  </div>
+</div>
+
+<script>
+const content = `
+  <html><body>
+  <div class=wrapper>
+    <div class=host>
+      <template shadowrootmode=open>
+        <span class=content>Content</span>
+      </template>
+    </div>
+  </div>
+  </body></html>
+`;
+
+function assert_dsd(el,shouldHaveShadow) {
+  const wrapper = el.querySelector('.wrapper');
+  assert_true(!!wrapper,'Unable to find wrapper element');
+  const host = wrapper.querySelector('.host');
+  assert_true(!!host,'Unable to find host element');
+  if (shouldHaveShadow) {
+    assert_true(!!host.shadowRoot, 'Shadow root NOT FOUND.');
+    assert_true(!!host.shadowRoot.querySelector('.content'),'Unable to locate content');
+  } else {
+    assert_true(!host.shadowRoot, 'Shadow root FOUND - none should be present.');
+    const tmpl = host.querySelector('template');
+    assert_true(!!tmpl, 'The template should be left as a <template> element');
+    assert_equals(tmpl.getAttribute('shadowrootmode'),'open','The shadowrootmode attribute should still be present');
+    assert_true(!!tmpl.content.querySelector('.content'),'Unable to locate content');
+  }
+}
+
+test(() => {
+  const div = document.getElementById('mainpage');
+  assert_dsd(div,true);
+}, 'Non-fragment parsing needs no opt-in');
+
+const noChildElements = ['iframe','noscript','script','select','style','template','textarea','title','colgroup'];
+const elements = HTML5_ELEMENTS.filter(el => !noChildElements.includes(el));
+for (let elementName of elements) {
+  var t = test(function() {
+    const el1 = document.createElement(elementName);
+    el1.innerHTML = content;
+    assert_dsd(el1,false);
+
+    const templateContent = `<template id=tmpl>${content}</template>`;
+    const el2 = document.createElement('div');
+    el2.innerHTML = templateContent;
+    assert_dsd(el2.querySelector('#tmpl').content,false);
+  }, `innerHTML on a <${elementName}>`);
+}
+
+test(() => {
+  const temp = document.createElement('template');
+  temp.innerHTML = content;
+  assert_dsd(temp.content,false, 'innerHTML should not allow declarative shadow content');
+}, 'innerHTML on template');
+
+test(() => {
+  const templateContent = `<template id=tmpl>${content}</template>`;
+  const temp = document.createElement('template');
+  temp.innerHTML = templateContent;
+  assert_dsd(temp.content.querySelector('#tmpl').content,false);
+}, 'innerHTML on template, with nested template content');
+
+test(() => {
+  const div = document.createElement('div');
+  const shadow = div.attachShadow({mode: 'open'});
+  shadow.innerHTML = content;
+  assert_dsd(shadow,false);
+}, 'innerHTML on shadowRoot');
+
+test(() => {
+  const parser = new DOMParser();
+  let fragment = parser.parseFromString(content, 'text/html');
+  assert_dsd(fragment.body,false);
+  fragment = parser.parseFromString(content, 'text/html', {includeShadowRoots: false});
+  assert_dsd(fragment.body,false);
+  fragment = parser.parseFromString(content, 'text/html', {includeShadowRoots: true});
+  assert_dsd(fragment.body,false);
+}, 'DOMParser (includeShadowRoots is historical)');
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.body.innerHTML = content;
+  assert_dsd(doc.body,false);
+}, 'createHTMLDocument with innerHTML - not supported');
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument('');
+  let range = doc.createRange();
+  range.selectNode(doc.body);
+  let documentFragment = range.createContextualFragment(content);
+  assert_dsd(documentFragment,false);
+}, 'createContextualFragment - not supported');
+
+async_test((t) => {
+  let client = new XMLHttpRequest();
+  client.addEventListener('load', t.step_func_done(() => {
+    assert_true(client.status == 200 && client.responseXML != null);
+    assert_dsd(client.responseXML.body,false);
+    t.done();
+  }));
+  client.open("GET", `data:text/html,${content}`);
+  client.responseType = 'document';
+  client.send();
+}, 'XMLHttpRequest - not supported');
+
+test(() => {
+  const div = document.createElement('div');
+  div.insertAdjacentHTML('afterbegin',content);
+  assert_dsd(div,false);
+}, 'insertAdjacentHTML on element - not supported');
+
+test(() => {
+  const id = 'doc-write-1';
+  document.write(`<div id=${id} style="display:none">${content}</div>`);
+  assert_dsd(document.getElementById(id),true);
+}, 'document.write allowed from synchronous script loaded from main document');
+
+test(() => {
+  const id = 'doc-write-2';
+  const doc = document.implementation.createHTMLDocument('');
+  doc.write(`<div id=${id}>${content}</div>`);
+  assert_dsd(doc.getElementById(id),false);
+}, 'document.write disallowed on fresh document');
+
+
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = "none";
+  iframe.sandbox = "allow-same-origin";
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', t.step_func_done(() => {
+    assert_dsd(iframe.contentDocument.body,true);
+    t.done();
+  }));
+  iframe.srcdoc = content;
+}, 'iframe');
+
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', t.step_func_done(() => {
+    assert_dsd(iframe.contentDocument.body,true);
+    t.done();
+  }));
+  iframe.srcdoc = content;
+}, 'iframe, no sandbox');
+
+function getHandler(t, name, shouldHaveShadow) {
+  return (e) => {
+    t.step(() => {
+      if (e.data.name == name) {
+        assert_false(e.data.error,e.data.msg);
+        assert_true(e.data.hasShadow == shouldHaveShadow);
+        t.done();
+      }
+    });
+  };
+}
+async_test((t) => {
+  window.addEventListener('message', getHandler(t, 'iframe-sandbox', true));
+}, 'sandboxed iframe allows declarative Shadow DOM');
+
+async_test((t) => {
+  window.addEventListener('message', getHandler(t,'iframe-no-sandbox', true));
+}, 'iframe with no sandbox allows declarative Shadow DOM');
+
+</script>
+
+<iframe name="iframe-sandbox" sandbox="allow-scripts" src="support/declarative-child-frame.html" ></iframe>
+<iframe name="iframe-no-sandbox" src="support/declarative-child-frame.html"></iframe>

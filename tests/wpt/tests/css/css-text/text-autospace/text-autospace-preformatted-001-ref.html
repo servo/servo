@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<style>
+    .container {
+        font: 40px sans-serif;
+        text-autospace: none;
+    }
+    .mono {
+        font-family: monospace;
+    }
+    .space {
+        margin-left: 0.125ic;
+    }
+</style>
+
+<div class=container>
+    <!-- simulate autospace being applied -->
+    <p>A<span class=space></span>水<span class=space></span>Z</p>
+
+    <p class=mono>A<span class=space></span>水<span class=space></span>Z</p>
+
+    <!-- no autospace in these elements -->
+    <pre>A水Z</pre>
+
+    <div><code>A水Z</code></div>
+
+    <div><kbd>A水Z</kbd></div>
+
+    <div><samp>A水Z</samp></div>
+
+    <div><tt>A水Z</tt></div>
+</div>

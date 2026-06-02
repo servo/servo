@@ -1,0 +1,223 @@
+<!DOCTYPE HTML>
+<link rel="help"
+  href="https://w3c.github.io/pointerevents/#firing-events-using-the-pointerevent-interface">
+<title>Pointerevents fired after a slotted element is removed</title>
+<meta name="variant" content="?mouse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    display: block;
+  }
+</style>
+
+<div id="host">
+  <template id="template" shadowrootmode="open">
+    <style>
+      div {
+        width: 100px;
+        height: 100px;
+      }
+    </style>
+    <div id="parent">
+      <slot id="slot">
+        <div></div>
+      </slot>
+    </div>
+  </template>
+
+  <div id="filler"></div>
+</div>
+<div id="done"></div>
+
+<script>
+  "use strict";
+
+  const pointer_type = location.search.substring(1);
+
+  const host = document.getElementById("host");
+  const parent = host.shadowRoot.getElementById("parent");
+  const slot = parent.firstElementChild;
+  const filler = document.getElementById("filler");
+  const done = document.getElementById("done");
+
+  let event_log = [];
+
+  function logEvent(e) {
+    if (e.eventPhase == e.AT_TARGET) {
+      event_log.push(e.type + "@" + e.target.id);
+    }
+  }
+
+  const modifier_methods = {
+    "remove-slot": {
+      "remover": () => { slot.remove(); event_log.push("(removed)"); },
+      "restorer": () => { parent.appendChild(slot); }
+    },
+    "remove-filler": {
+      "remover": () => { filler.remove(); event_log.push("(removed)"); },
+      "restorer": () => { host.appendChild(filler); }
+    },
+    "change-slotname": {
+      "remover": () => { filler.slot = "xyz"; event_log.push("(removed)"); },
+      "restorer": () => { filler.slot = ""; }
+    }
+  }
+
+  function setup() {
+    const events = ["pointerover", "pointerout",
+          "pointerenter", "pointerleave", "pointerdown", "pointerup"];
+    let targets = [host, parent, slot, filler];
+    for (let i = 0; i < targets.length; i++) {
+      events.forEach(event => targets[i].addEventListener(event, logEvent));
+    }
+  }
+
+  function addPromiseTest(remover_event, removal_type,
+        expected_events) {
+    assert_true(Object.keys(modifier_methods).includes(removal_type),
+        "[sanity check] Unknown removal_type param");
+
+    const test_name = `${pointer_type} events with ${removal_type} ` +
+          `at ${remover_event}`;
+
+    promise_test(async test => {
+      event_log = [];
+
+      filler.addEventListener(remover_event,
+          modifier_methods[removal_type].remover,
+          { once: true });
+      test.add_cleanup(modifier_methods[removal_type].restorer);
+
+      // TODO(mustaq@chromium.org): It would be more robust if we could remove
+      // the event listener above through `test.add_cleanup()` but strangely the
+      // cleanup call fails after the test that removes the filler!  This
+      // happens even if we make the shadow DOM construction dynamic inside this
+      // `promise_test`!!!
+
+      let done_click_promise = getEvent("click", done);
+
+      let actions = new test_driver.Actions()
+          .addPointer("TestPointer", pointer_type)
+          .pointerMove(-30, -30, {origin: host})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(30, 30, {origin: host})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(0, 0, {origin: done})
+          .pointerDown()
+          .pointerUp();
+
+      await actions.send();
+      await done_click_promise;
+
+      let removal_in_event_log = event_log.indexOf("(removed)");
+      assert_true(removal_in_event_log != -1,
+          "(removed) in event log");
+
+      let removal_in_expected_list = expected_events.indexOf("(removed)");
+      assert_true(removal_in_expected_list != -1,
+          "[sanity check] (removed) in expected events");
+
+      assert_equals(event_log.slice(0, removal_in_event_log).toString(),
+          expected_events.slice(0, removal_in_expected_list).toString(),
+          "events received before removal");
+      assert_equals(event_log.slice(removal_in_event_log+1).toString(),
+          expected_events.slice(removal_in_expected_list+1).toString(),
+          "events received after removal");
+    }, test_name);
+  }
+
+  setup();
+
+  addPromiseTest(
+    "pointerdown",
+    "remove-slot",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "(removed)",
+      "pointerout@filler", "pointerleave@filler",
+      "pointerover@parent", "pointerover@host", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+  addPromiseTest(
+    "pointerdown",
+    "remove-filler",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "(removed)",
+      "pointerover@slot", "pointerup@slot",
+      "pointerdown@slot", "pointerup@slot",
+      "pointerout@slot",
+      "pointerleave@slot", "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+  addPromiseTest(
+    "pointerdown",
+    "change-slotname",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "(removed)",
+      "pointerout@filler", "pointerleave@filler",
+      "pointerover@parent", "pointerover@host", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+  addPromiseTest(
+    "pointerup",
+    "remove-slot",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "pointerup@filler", "(removed)",
+      "pointerout@filler", "pointerleave@filler",
+      "pointerover@parent", "pointerover@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+  addPromiseTest(
+    "pointerup",
+    "remove-filler",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "pointerup@filler", "(removed)",
+      "pointerover@slot",
+      "pointerdown@slot", "pointerup@slot",
+      "pointerout@slot",
+      "pointerleave@slot", "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+  addPromiseTest(
+    "pointerup",
+    "change-slotname",
+    [
+      "pointerover@filler",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@filler",
+      "pointerdown@filler", "pointerup@filler", "(removed)",
+      "pointerout@filler", "pointerleave@filler",
+      "pointerover@parent", "pointerover@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
+    ]
+  );
+</script>

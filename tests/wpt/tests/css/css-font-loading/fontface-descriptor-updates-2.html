@@ -1,0 +1,66 @@
+<!doctype html>
+<title>CSS Font Loading test: modification of descriptors reflects in FontFaceSet</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+function snapshotFontFaces() {
+  const faces = Array.from(document.fonts);
+  return {
+    families: faces.map(f => f.family),
+    weights: faces.map(f => f.weight),
+    ranges: faces.map(f => f.unicodeRange),
+  };
+}
+
+function applyUpdates(updates) {
+  for (const [fontFace, props] of updates) {
+    for (const [key, value] of Object.entries(props)) {
+      fontFace[key] = value;
+    }
+  }
+}
+
+function assertSnapshot(snapshot, expectations) {
+  for (const [field, { present = [], absent = [] }] of Object.entries(expectations)) {
+    present.forEach(v =>
+      assert_in_array(v, snapshot[field], `${field}: expected ${v} to be present`)
+    );
+    absent.forEach(v =>
+      assert_false(snapshot[field].includes(v), `${field}: expected ${v} to be absent`)
+    );
+  }
+}
+
+promise_test(async () => {
+  const f1 = new FontFace("originalFamily", "url(resources/GenR102.woff2)");
+  const f2 = new FontFace("weightTest", "url(resources/GenR102.woff2)", { weight: "700" });
+  const f3 = new FontFace("unicodeTest", "url(resources/GenR102.woff2)", { unicodeRange: "U+0020-007F" });
+
+  [f1, f2, f3].forEach(f => document.fonts.add(f));
+
+  const before = snapshotFontFaces();
+
+  assertSnapshot(before, {
+    families: { present: ["originalFamily"] },
+    weights:  { present: ["700"] },
+    ranges:   { present: ["U+20-7F"] },
+  });
+
+  applyUpdates([
+    [f1, { family: "updatedFamily" }],
+    [f2, { weight: "400" }],
+    [f3, { unicodeRange: "U+0000-00FF" }],
+  ]);
+
+  const after = snapshotFontFaces();
+
+  assertSnapshot(after, {
+    families: { present: ["updatedFamily"], absent: ["originalFamily"] },
+    weights:  { present: ["400"], absent: ["700"] },
+    ranges:   { present: ["U+0-FF"], absent: ["U+20-7F"] },
+  });
+}, "FontFace descriptor mutations are reflected in FontFaceSet");
+</script>

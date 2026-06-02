@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>getAnimations in dirty iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+  iframe {
+    width: 200px;
+    height: 40px;
+  }
+</style>
+<body>
+<script>
+
+  const createFrame = async test => {
+      const iframe = createElement(test, "iframe");
+      const contents = "" +
+        "<style>" +
+        "  div { color: red; }" +
+        "  @keyframes test {" +
+        "    from { color: green; }" +
+        "    to { color: green; }" +
+        "  }" +
+        "  @media (min-width: 300px) {" +
+        "    div { animation: test 1s linear forwards; }" +
+        "  }" +
+        "</style>" +
+        "<div id=div>Green</div>";
+      iframe.setAttribute("srcdoc", contents);
+      await new Promise(resolve => iframe.addEventListener("load", resolve));
+      return iframe;
+  };
+
+  const iframeTest = (getAnimations, interfaceName) => {
+      promise_test(async test => {
+        const frame = await createFrame(test);
+        const inner_div = frame.contentDocument.getElementById('div');
+        assert_equals(getComputedStyle(inner_div).color, 'rgb(255, 0, 0)');
+
+        frame.style.width = '400px';
+        const animations = getAnimations(inner_div);
+        assert_equals(animations.length, 1);
+        assert_equals(getComputedStyle(inner_div).color, 'rgb(0, 128, 0)');
+      }, `Calling ${interfaceName}.getAnimations updates layout of parent frame if needed`);
+  }
+
+  iframeTest(element => element.getAnimations(), 'Element');
+  iframeTest(element => element.ownerDocument.getAnimations(), 'Document');
+
+</script>
+</body>

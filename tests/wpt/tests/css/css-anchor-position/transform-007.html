@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Anchor with changing transform</title>
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+  <style>
+    .anchored {
+      position: absolute;
+      position-anchor: --a;
+      background: green;
+    }
+    #anchor {
+      width: 20px;
+      height: 20px;
+      margin-left: 20px;
+      transform: scale(3);
+      transform-origin: top left;
+      anchor-name: --a;
+      background: green;
+    }
+  </style>
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div style="position:relative; width:100px; height:100px; background:red;">
+    <div style="height:30px;"></div>
+    <div id="anchor"></div>
+    <div class="anchored" style="position-area:left span-all; width:100%; height:100px;"></div>
+    <div class="anchored" style="position-area:right span-all; width:40px; height:100%;"></div>
+    <div class="anchored" style="position-area:top center; width:40px; height:100%;"></div>
+    <div class="anchored" style="position-area:bottom center; width:100%; height:100%;"></div>
+  </div>
+  <script>
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        anchor.style.transform = "scale(2)";
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</html>

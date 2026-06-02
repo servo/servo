@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <title>Check async script state matches attribute</title>
+    <link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <svg>
+      <script id="script" async href="data:text/javascript, // Do nothing."></script>
+      <script>
+        test(function() {
+          let script = document.getElementById("script");
+          script.remove();
+          assert_true(script.async, "script is async");
+          script.removeAttribute("async");
+          assert_false(script.async, "script is no longer async");
+        }, "async script state");
+      </script>
+    </svg>
+  </body>
+</html>

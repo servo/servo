@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes myAnim {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(5); }
+      }
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .subject {
+        view-timeline: --viewtimeline;
+      }
+      .target {
+        animation: myAnim linear 0.5s forwards;
+        timeline-trigger: --trigger --viewtimeline 150px 200px;
+        animation-trigger: --trigger play-once;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #wrapper {
+        timeline-scope: --viewtimeline;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="subject" class="subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target" class="target"></div>
+    </div>
+    <script>
+      target = document.getElementById("target");
+
+      function changePlayStateTo(state) {
+        target.style.animationPlayState = state;
+      }
+
+      // The trigger and exit ranges are the same for this test.
+      const CSS_TRIGGER_START_PX = 150;
+      const CSS_TRIGGER_END_PX = 200;
+
+      async function testPlayStateChange(test, rangeBoundaries) {
+        const initial_transform = getComputedStyle(target).transform;
+        // This enters the trigger range and should play the animation. Changing
+        // animation-play-state to "paused" should pause the animation, so we
+        // should not see an animationend event.
+        await testAnimationTrigger(test, async () => {
+            await rangeBoundaries.enterTriggerRange();
+            // Make a little progess.
+            await waitForAnimationFrames(5);
+            changePlayStateTo("paused");
+          }, target, ["animationstart", "animationend"], [true, false]);
+        await waitForAnimationFrames(5);
+        const partial_transform = getComputedStyle(target).transform;
+        assert_not_equals(partial_transform, initial_transform,
+          "animation made progress before pause.");
+
+        await waitForAnimationFrames(5);
+        assert_equals(getComputedStyle(target).transform, partial_transform,
+          "animation is paused and progress is not being made.");
+
+        await testAnimationTrigger(test, async () => {
+            await rangeBoundaries.exitExitRangeAbove();
+            await waitForAnimationFrames(5);
+            // check that exiting the exit range did not affect the animation.
+            assert_equals(getComputedStyle(target).transform, partial_transform,
+              "animation still paused after exiting the exit range.");
+            changePlayStateTo("running");
+          }, target, ["animationstart", "animationend"], [false, true]);
+
+        const final_transform = getComputedStyle(target).transform;
+        assert_not_equals(final_transform, initial_transform,
+          "animation is at the end, not the start");
+        assert_not_equals(final_transform, partial_transform,
+          "animation is at the end, beyond partial progress.");
+      }
+
+      promise_test(async (test) => {
+        scroller = document.getElementById("scroller");
+        target = document.getElementById("target");
+
+        const COVER_START_OFFSET = 100;
+        const rangeBoundaries = getRangeBoundariesForTest(
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      scroller);
+        await testPlayStateChange(test, rangeBoundaries);
+      }, "once trigger respects animation-play-state.");
+    </script>
+  </body>
+</html>

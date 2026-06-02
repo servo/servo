@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: initial computed value of content for elements is not none</title>
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1605803">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(getComputedStyle(document.documentElement, "::before").content, "none");
+  assert_not_equals(getComputedStyle(document.documentElement).content, "none");
+}, "initial computed value of content for elements is not none");
+</script>

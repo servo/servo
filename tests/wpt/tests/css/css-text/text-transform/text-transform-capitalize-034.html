@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Test: text-transform ignores out of flow</title>
+<link rel="author" href="mailto:jkew@mozilla.com" title="Jonathan Kew">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1837272">
+<link rel="match" href="text-transform-capitalize-034-ref.html">
+<style>
+.caps{
+  text-transform: capitalize;
+}
+.abs{
+  position: absolute;
+}
+</style>
+All "a" characters in "Abc" below should be capitalized.
+<br><br>
+No spaces before abspos:<br>
+<span class="caps">abc</span><span class="abs"></span>
+<span class="caps">abc</span>
+<br><br>
+
+<span class="caps">abc<span class="abs"></span></span>
+<span class="caps">abc</span>
+<br><br>
+
+Space before abspos:<br>
+<span class="caps">abc</span> <span class="abs"></span>
+<span class="caps">abc</span>
+<br><br>
+
+<span class="caps">abc <span class="abs"></span></span>
+<span class="caps">abc</span>
+<br><br>

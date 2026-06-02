@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<style>
+  #masked {
+    width: 0px;
+    height: 100px;
+    -webkit-mask-image: url(../resources/circle.svg);
+    mask-image: url(../resources/circle.svg);
+  }
+</style>
+<div id='masked'></div>
+<script>
+setup({"hide_test_state": true});
+promise_test(async t => {
+  const onload = new Promise(r => window.addEventListener('load', r));
+  await onload;
+  return assertNoFirstContentfulPaint(t).then(() => {
+    document.getElementById('masked').style.width = '100px';
+  }).then(() => {
+    return assertFirstContentfulPaint(t);
+  });
+}, 'Mask image triggers First Contentful Paint.');
+</script>
+</body>

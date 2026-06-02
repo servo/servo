@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+    'use strict';
+    var same_origin_src = '/permissions-policy/resources/permissions-policy-payment-extension.html';
+    var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    var feature_name = 'WebAuthn "payment" extension';
+    var header = 'allow="payment" attribute';
+
+    promise_test(t => {
+      return test_feature_availability_with_post_message_result(
+          t, cross_origin_src, "NotSupportedError");
+    }, feature_name + ' is not supported in cross-origin iframe without ' + header);
+
+    promise_test(t => {
+      return test_feature_availability_with_post_message_result(
+          t, cross_origin_src, 'OK', 'payment');
+    }, feature_name + ' can be enabled in cross-origin iframe using ' + header);
+  </script>
+</body>

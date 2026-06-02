@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror - compile error in &lt;body onerror></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var t = async_test();
+    var ran = false;
+    window.onerror = t.step_func(function(){
+        ran = true;
+    });
+  </script>
+ </head>
+ <body onerror="{"><!-- sets the event handler to null before compiling -->
+  <div id=log></div>
+  <script>
+   for(;) {}
+  </script>
+  <script>
+    t.step(function(){
+        assert_false(ran, 'ran');
+        t.done();
+    });
+  </script>
+ </body>
+</html>

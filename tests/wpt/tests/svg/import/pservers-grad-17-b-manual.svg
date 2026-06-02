@@ -1,0 +1,92 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AE" author="ED" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: pservers-grad-17-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+        <p>
+          This test has a gradient with gradientUnits='objectBoundingBox' which is a fade from black to white.
+          The gradient is used for the stroke of a line. Vertical and horizontal lines don't have a boundingbox,
+          since they are one-dimensional, even though the
+          stroke-width makes it look like they should have a boundingbox with non-zero width and height.
+          See the coordinate chapter, last paragraph of 7.11.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[
+        Describe how to use the here. The instructions should specify any
+        steps requied to run the test or any manual operation that need
+        to be performed to run the test.
+        ]]
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The left rectangle has four 'line' elements rotated in different ways. The stroke for the lines have a green solid stroke fallback which
+        should be used if the gradient should be ignored. For this sub-test to pass there must be three lines with solid green stroke, and one line
+        (from bottom left to top right) with a gradient stroke, visible in the rectangle.
+      </p>
+      <p>
+        The right rectangle is the same as the left rectangle except that the stroke paintservers don't have a fallback specified.
+        For this sub-test to pass only the line from bottom left to top right must be visible in the rectangle, and it must have a gradient stroke.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-17-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <linearGradient id="grad">
+        <stop offset="0" stop-color="black"/>
+        <stop offset="1" stop-color="white"/>
+      </linearGradient>
+    </defs>
+
+    <!-- sub-test 1: stroke with solid color fallback -->
+    <g transform="translate(50, 100) scale(0.3)">
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad) #0f0" stroke-width="20"/>
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad) #0f0" stroke-width="20" transform="rotate(45 240 180)"/>
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad) #0f0" stroke-width="20" transform="rotate(90 240 180)"/>
+      <line x1="410" y1="10" x2="70" y2="350" stroke="url(#grad) #0f0" stroke-width="20"/>
+      <rect x="0" y="-60" width="480" height="480" fill="none" stroke="black"/>
+    </g>
+    <text x="120" y="250" text-anchor="middle">With fallback</text>
+
+    <!-- sub-test 2: stroke without a fallback -->
+    <g transform="translate(280,100) scale(0.3)">
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad)" stroke-width="20"/>
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad)" stroke-width="20" transform="rotate(45 240 180)"/>
+      <line x1="0" y1="180" x2="480" y2="180" stroke="url(#grad)" stroke-width="20" transform="rotate(90 240 180)"/>
+      <line x1="410" y1="10" x2="70" y2="350" stroke="url(#grad)" stroke-width="20"/>
+      <rect x="0" y="-60" width="480" height="480" fill="none" stroke="black"/>
+    </g>
+    <text x="350" y="250" text-anchor="middle">Without fallback</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

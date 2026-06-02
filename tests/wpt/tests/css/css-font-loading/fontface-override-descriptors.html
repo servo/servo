@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Tests that the ascentOverride, descentOverride and lineGapOverride attributes of FontFace work</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<link rel="match" href="fontface-override-descriptors-ref.html">
+<script>
+const face = new FontFace(
+    'Ahem',
+    'local("Ahem"), url("/fonts/Ahem.ttf")',
+    {ascentOverride: '100%', descentOverride: '100%', lineGapOverride: '100%'});
+document.fonts.add(face);
+
+// Line height is ascent + descent + lineGap = 3em
+// Baseline is placed at lineGap * 0.5 + ascent = 1.5em below line box top
+// Since each Ahem 'X' glyph has 0.8em above baseline, the top of each glyph
+// should be placed at 0.7em below line box top
+</script>
+<style>
+#target {
+  position: absolute;
+  font-family: Ahem;
+  font-size: 20px;
+}
+</style>
+
+<div id="target">
+  XXXXX<br>
+  XXXXX
+</div>

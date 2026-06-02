@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>background-blend-mode: plus-lighter test</title>
+<link rel="author" title="Jake Archibald" href="mailto:jakearchibald@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-2/#background-blend-mode">
+<link rel="match" href="reference/background-blend-mode-plus-lighter-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-4294967295">
+<style>
+  .test {
+    width: 100px;
+    height: 100px;
+    background-blend-mode: plus-lighter;
+  }
+</style>
+<script type="module">
+  import { tests } from '../support/plus-lighter.js';
+  import { toCSSColor } from '../support/utils.js';
+
+  // Create a solid color CSS image.
+  const colorImage = (pixel) =>
+    `linear-gradient(to right, ${toCSSColor(pixel)}, ${toCSSColor(pixel)})`;
+
+  const createBackgrounds = (colors) => colors
+    // Backgrounds are top first
+    .slice().reverse()
+    .map((color) => colorImage(color))
+    .join(', ');
+
+  for (const colors of tests) {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="test" style="background-image: ${createBackgrounds(colors)}"></div>
+    `);
+  }
+</script>

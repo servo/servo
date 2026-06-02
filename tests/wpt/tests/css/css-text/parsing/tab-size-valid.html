@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing tab-size with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-tab-size">
+<meta name="assert" content="tab-size supports the full grammar '<number> | <length>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("tab-size", "0");
+test_valid_value("tab-size", "2.5");
+
+test_valid_value("tab-size", "0px");
+test_valid_value("tab-size", "10px");
+test_valid_value("tab-size", "calc(2em + 3ex)");
+</script>
+</body>
+</html>

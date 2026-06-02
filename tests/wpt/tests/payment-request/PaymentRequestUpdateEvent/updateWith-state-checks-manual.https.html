@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://www.w3.org/TR/payment-request/#updatewith()-method">
+<title>updateWith() method - state machine checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethod = Object.freeze({ supportedMethods: "basic-card" });
+const validMethods = Object.freeze([validMethod, applePay]);
+const validAmount = Object.freeze({ currency: "USD", value: "5.00" });
+const validTotal = Object.freeze({
+  label: "label",
+  amount: validAmount,
+});
+const validShippingOption = Object.freeze({
+  id: "a-shipping-option",
+  label: "A shipping option",
+  amount: validAmount,
+  selected: true,
+});
+const validDetails = Object.freeze({
+  total: validTotal,
+  shippingOptions: [validShippingOption],
+});
+const validOptions = Object.freeze({
+  requestShipping: true,
+});
+
+function getPaymentPromises() {
+  const request = new PaymentRequest(validMethods, validDetails, validOptions);
+  const eventPromise = new Promise(resolve => {
+    request.addEventListener("shippingaddresschange", resolve);
+  });
+  const responsePromise = request.show();
+  return { eventPromise, responsePromise };
+}
+
+function testRequestIsClosed(button) {
+  button.disabled = "true";
+  promise_test(async t => {
+    const { eventPromise, responsePromise } = getPaymentPromises();
+    const event = await eventPromise;
+    // We are going to abort the responsePromise, so we can ignore error.
+    responsePromise.catch(err => err);
+    // Set request.[[state]] to closed
+    await event.target.abort();
+    assert_throws_dom(
+      "InvalidStateError",
+      () => {
+        event.updateWith(validDetails);
+      },
+      "request.[[state]] is not interactive, must throw an InvalidStateError."
+    );
+    responsePromise.catch(err => err);
+  }, button.textContent.trim());
+}
+
+function testRequestIsUpdating(button) {
+  button.disabled = "true";
+  promise_test(async t => {
+    const { eventPromise, responsePromise } = getPaymentPromises();
+    const event = await eventPromise;
+    // We are going to put a promise into a pending state
+    // check that a second call to updateWith() throws,
+    // then resolve the pending promise below.
+    let resolver;
+    const pendingPromise = new Promise(resolve => {
+      resolver = resolve;
+    });
+    // Set request.[[updating]] to true
+    event.updateWith(pendingPromise);
+    assert_throws_dom(
+      "InvalidStateError",
+      () => {
+        event.updateWith(validDetails);
+      },
+      "request.[[updating]] to true, must throw an InvalidStateError."
+    );
+    // We got the error we wanted, so let's resolve with valid details.
+    resolver(validDetails);
+    await pendingPromise;
+    await event.target.abort();
+    responsePromise.catch(err => err);
+  }, button.textContent.trim());
+}
+
+</script>
+<h2>updateWith() method - state machine checks</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When the payment sheet is shown, select a different shipping address once. Then pay.
+</p>
+<ol>
+  <li id="test-0">
+    <button onclick="testRequestIsClosed(this);">
+      When updateWith() is called, if request.[[state]] is not "interactive", then throw an " InvalidStateError" DOMException.
+    </button>
+  </li>
+  <li id="test-1">
+    <button onclick="testRequestIsUpdating(this);">
+      When updateWith() is called, If request.[[updating]] is true, then throw an "InvalidStateError" DOMException.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">Done!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

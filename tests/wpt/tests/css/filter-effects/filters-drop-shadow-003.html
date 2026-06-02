@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Filters: drop-shadow filter on element in outside of the view</title>
+<link rel="author" title="Fujii Hironori" href="mailto:Hironori.Fujii@sony.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://webkit.org/b/236800">
+<link rel="match" href="reference/filters-drop-shadow-003-ref.html">
+<meta name="assert" content="Check that a drop-shadow of an element with drop-shadow filter placed in the outside of the view appears"/>
+<style>
+div {
+    width: 300px;
+    height: 300px;
+    top: -1000px;
+    left: -1000px;
+    background-color: red;
+    position: relative;
+    filter: drop-shadow(1000px 1000px 0 green);
+}
+</style>
+You should see a green box.
+<div></div>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test that *:not(:link):not(:visited) does not match links</title>
+<link rel="match" href="not-links-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#negation">
+<style>
+  * {
+    /* Browsers typically ignore the :visited alpha and use the unvisited
+       alpha instead, which by default is 0, in which case a failure would
+       not be detected. */
+    background-color: white;
+  }
+  div *:not(:link):not(:visited) {
+    background-color: green;
+  }
+</style>
+<body>
+  <div>
+    <a href="#">Unvisited (<span>Green</span>)</a>
+    <a href="#">Visited (<span>Green</span>)</a>
+    <span>Green</span>
+  </div>
+  <p>
+    Only "Green" should have green backgrounds.
+  </p>
+</body>

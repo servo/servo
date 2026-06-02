@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Accounts Push tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        setup_accounts_push, mark_signed_out,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+const successful_picture_counter_path = `/fedcm/support/account_picture_get_count.py`;
+const uncached_picture_counter_path = `/fedcm/support/account_picture_uncached_get_count.py`;
+
+async function wait_for_fetch_count(counter_path) {
+  const counter_response = await fetch(counter_path);
+  const counter_text = await counter_response.text();
+  return counter_text === "1";
+}
+
+fedcm_test(async t => {
+  // Get and clear the count to ensure the counters start at 0.
+  await fetch(successful_picture_counter_path);
+  await fetch(uncached_picture_counter_path);
+
+  // Opens a window that then invokes navigator.login.setStatus with two pushed
+  // accounts with different picture URLs; one successful picture response, and
+  // one uncacheable response. Register the cleanup handler, which uses the
+  // setStatus API to set the state to 'logged-out'
+  t.add_cleanup(() => {
+    mark_signed_out();
+  });
+  await setup_accounts_push();
+
+  await t.step_wait(() => wait_for_fetch_count(successful_picture_counter_path),
+                "Cacheable picture should be retrieved when " +
+                "navigator.login.setStatus is called",
+                /*timeout=*/1_000, /*interval=*/200);
+  await t.step_wait(() => wait_for_fetch_count(uncached_picture_counter_path),
+                "Uncacheable picture should be retrieved when " +
+                "navigator.login.setStatus is called",
+                /*timeout=*/1_000, /*interval=*/200);
+
+  const cred = await fedcm_get_and_select_first_account(t,
+    request_options_with_mediation_required("manifest_accounts_push.json"));
+  assert_equals(cred.token, "account_id=john_doe");
+  assert_equals(cred.isAutoSelected, false);
+
+  const successful_counter_response = await fetch(successful_picture_counter_path);
+  const successful_counter_text = await successful_counter_response.text();
+  assert_equals(successful_counter_text, "0",
+                "Cacheable picture should not be requested when " +
+                "navigator.credentials.get is called");
+
+  // ... even if the response during navigator.login.setStatus was uncacheable.
+  const error_counter_response = await fetch(uncached_picture_counter_path);
+  const error_counter_text = await error_counter_response.text();
+  assert_equals(error_counter_text, "0",
+                "Picture should not be requested even on a cache miss when " +
+                "navigator.credentials.get is called");
+}, "Pictures should be retrieved when accounts are pushed, not when " +
+   "credential request is made.");
+
+</script>

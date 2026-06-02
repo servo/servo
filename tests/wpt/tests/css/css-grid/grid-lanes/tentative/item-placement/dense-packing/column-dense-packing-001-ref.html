@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<style>
+html,body {
+    font:15px/1 monospace;
+}
+.grid {
+    display: grid;
+    position: relative;
+    grid-template-columns: repeat(3, 50px);
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items correctly in grid-lanes.</p>
+  <div class="grid">
+    <div>
+      <div style="background: lightskyblue; height: 20px;" >
+        1
+      </div>
+      <div style="background: red; height: 40px;">
+        5
+      </div>
+    </div>
+    <div style="background: lightcoral; height: 60px;" >
+      2
+    </div>
+    <div style="background: lightgreen; height: 60px;">
+      3
+    </div>
+    <div>
+      <div style="background: brown; height: 15px; width: 100px;">
+        4
+      </div>
+      <div style="background: yellow; height: 40px;">
+        7
+      </div>
+    </div>
+    <div style="background: pink; height: 45px; grid-column: 3;">
+      6
+    </div>
+    <div style="background: brown; height: 60px; grid-column: 2 / span 2; margin-top: -10px;">
+      8
+    </div>
+    <div style="margin-top: 15px;">
+      <div style="background: blueviolet; height: 12px; grid-column: 2; margin-top: 3px;">
+        9
+      </div>
+      <div style="background: orange; height: 15px; grid-column: 2;">
+        10
+      </div>
+    </div>
+    <div style="background: pink; height: 20px; width: 150px; transform: translateY(50px);">
+      11
+    </div>
+    <div style="background: green; height: 60px; transform: translateY(20px);">
+      14
+    </div>
+    <div style="background: brown; height: 60px; width: 100px; transform: translateY(20px);">
+      12
+    </div>
+    <div style="background: pink; height: 20px; width: 150px; transform: translateY(20px); grid-column-start: 1">
+      13
+    </div>
+  </div>
+</body>
+</html>

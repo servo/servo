@@ -1,0 +1,15 @@
+{
+  "default_applications": ["can-make-payment-event-manifest.json"],
+  "name": "Test Payment Handler",
+  "icons": [
+    {
+      "src": "/images/rgrg-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "serviceworker": {
+    "src": "app-can-make-payment.js",
+    "scope": "can-make-payment-event-payment-app/"
+  }
+}

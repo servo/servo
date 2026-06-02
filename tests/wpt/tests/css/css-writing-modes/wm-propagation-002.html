@@ -1,0 +1,21 @@
+<html>
+  <meta chartset=utf-8>
+  <title>CSS-Writing Modes Test: propagation of the direction property from body to root</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <link rel=help href="https://drafts.csswg.org/css-writing-modes-3/#principal-flow">
+  <link rel="match" href="wm-propagation-002-ref.html">
+  <meta name=assert content="the 'direction' of the body must be propagated to the root, but the computed value must not change.">
+<style>
+body {
+  direction: rtl;
+  height: 0;
+}
+html::before {
+  content: "This text must be on the right";
+}
+html::after {
+  content: "This text must be on the left";
+  display: block;
+}
+</style>
+<body></body>

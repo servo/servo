@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SVGGraphicsElement.getScreenCTM</title>
+  <metadata>
+    <link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGraphicsElement"/>
+  </metadata>
+  <script src="../../linking/scripted/testcommon.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<style>
+  body {
+    margin: 8px;
+  }
+  .absPosAtTopLeft {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .absPosMegaOffset {
+    position: absolute;
+    left: 1px;
+    top: 2px;
+    margin-left: 3px;
+    margin-top: 4px;
+    padding-left: 5px;
+    padding-top: 6px;
+  }
+  .svgMegaOffset {
+    margin-left: 7px;
+    margin-top: 8px;
+    padding-left: 9px;
+    padding-top: 10px;
+  }
+</style>
+<div style="transform: translate(50px, 50px)">
+  <svg id="svg1" width="150" height="150">
+    <rect id="rect1" fill="lime" x="50" y="50" width="100" height="100"/>
+  </svg>
+</div>
+<script>
+/* Utility function to append an unstyled div to the body, with the
+ * div containing a 200x120 SVG element. */
+function make_subtree() {
+  let container = document.createElement("div");
+  // Pass in "null" for test param, since we don't want this <svg> element
+  // to get autoremoved at cleanup time. (It's easier to debug test failures
+  // if we leave it in the DOM, for manual inspection in devtools.)
+  let svg = createSVGElement(null, "svg", container,
+                            {width: 200, height: 120});
+  document.body.appendChild(container);
+  return container;
+}
+
+/* Utility function for checking a CTM matrix's components: */
+function assert_ctm_equals(actualCTM, expectedCTM) {
+  // Check every component for which an expected value was provided:
+  for (let key in expectedCTM) {
+    let actualVal = actualCTM[key];
+    let expectedVal = expectedCTM[key];
+
+    // Special-case: browsers sometimes get `-0` in CTMs which
+    // is ~fine since it's numerically equivalent; but assert_equals
+    // treats it as different, which is why it needs special handling here
+    // (pretending the -0 was in fact 0), to avoid a spurious test-failure.
+    if (Object.is(expectedVal, 0) && Object.is(actualVal, -0)) {
+      actualVal = 0;
+    }
+    assert_equals(actualVal, expectedVal, `CTM component ${key}`);
+  }
+}
+
+test(function() {
+  let pt = DOMPoint.fromPoint({x: 58, y: 58});
+  let screenCTM = svg1.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1,  b: 0,
+                                 c: 0,  d: 1,
+                                 e: 58, f: 58 });
+
+  let transformedPoint = pt.matrixTransform(screenCTM.inverse());
+  assert_equals(transformedPoint.x, 0);
+  assert_equals(transformedPoint.y, 0);
+}, "<svg> should give correct screen CTM for transform:translate(...) on " +
+   "ancestor elem, combined with margin on <body>");
+
+test(function() {
+  let screenCTM = document.getElementById("rect1").getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1,  b: 0,
+                                 c: 0,  d: 1,
+                                 e: 58, f: 58 });
+}, "<rect> should give correct screen CTM for transform:translate(...) on " +
+   "ancestor elem, combined with margin on <body>");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+  container.style.transform = "scale(2,1)";
+
+  // First four CTM components should encode the scaleX=2 and scaleY=1.
+  // (The other two depend on where the SVG ended up on the page and
+  // are dependent on its in-flow position, so we're not bothering to
+  // check them here, but we will in the next part.)
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 2, b: 0,
+                                 c: 0, d: 1 });
+
+  // Now we make the container abspos so that we can reliably predict the
+  // position:
+  container.classList.add("absPosAtTopLeft");
+
+  // First four CTM components should still encode those same scale factors.
+  // The last two components should now encode a -100px translateX, since
+  // (starting with the SVG positioned at the screen's origin) we've scaled up
+  // the container by 2x in the horizontal axis, about its own center point,
+  // which shifts half of its original width (100px) off the left side of the
+  // screen.
+  screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 2,    b: 0,
+                                 c: 0,    d: 1,
+                                 e: -100, f: 0 });
+}, "<svg> should give correct screen CTM for transform:scale(2,1) on ancestor");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+
+  container.classList.add("absPosAtTopLeft");
+  svg.style.transform = "scale(0.5)";
+
+  // First four CTM components should encode the scale(0.5). The last two
+  // components should encode a translation inwards by 1/4 of the <svg>'s
+  // size in each axis, since we're shrinking by 1/2 about the center point.
+  // (1/4 of the 200px width is 50px, and 1/4 of the 120px height is 30px)
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 0.5, b: 0,
+                                 c: 0,   d: 0.5,
+                                 e: 50,  f: 30 });
+}, "<svg> should give correct screen CTM for transform:scale(0.5) on self");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+
+  container.classList.add("absPosMegaOffset");
+  container.style.transform = "translate(20px, 30px)";
+  svg.classList.add("svgMegaOffset");
+  svg.style.transform = "translate(40px, 50px)";
+
+  // Expecting CTM to have:
+  // * identity matrix for scale components
+  // * translateX component of 1+3+5+7+9+20+40 = 85
+  // * translateY component of 2+4+6+8+10+30+50 = 110
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1,  b: 0,
+                                 c: 0,  d: 1,
+                                 e: 85, f: 110 });
+}, "<svg> should give correct screen CTM with many forms of offsets on " +
+   "ancestor and self");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+  // Note: in cases where the SVG is rotated, we have to override
+  // the default 'vertical-align:baseline' to avoid having our flipped
+  // y-position be influenced by baseline-related offsets that come from
+  // the line box.
+  svg.style.verticalAlign = "top";
+  container.classList.add("absPosAtTopLeft");
+
+  container.style.transform = "rotate(90deg)";
+  svg.style.transform = "rotate(270deg)";
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1, b: 0,
+                                 c: 0, d: 1,
+                                 e: 0, f: 0 });
+
+  container.style.transform = "rotate(270deg)";
+  svg.style.transform = "rotate(90deg)";
+  screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1, b: 0,
+                                 c: 0, d: 1,
+                                 e: 0, f: 0 });
+
+  container.style.transform = "rotate(180deg)";
+  svg.style.transform = "rotate(180deg)";
+  screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: 1, b: 0,
+                                 c: 0, d: 1,
+                                 e: 0, f: 0 });
+}, "<svg> should give identity screen CTM with friendly rotations on " +
+   "ancestor and self that add up to 360deg");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+  container.classList.add("absPosAtTopLeft");
+  svg.classList.add("svgMegaOffset");
+  container.style.transform = "rotate(180deg)";
+  svg.style.verticalAlign = "top";
+
+  // Expecting CTM to have:
+  // * "flip" matrix for scale components (-1 instead of 1)
+  // * translateX component of 200px, which comes from our 200px width.
+  // * translateY component of 70px, which comes from our 120px height.
+  // Note that our "svgMegaOffset" offsets have no effect on our CTM, because
+  // they end up on the right side when the SVG rotates about its border-box's
+  // center point, so they don't influence where the SVG geometry actually ends
+  // up in the screen's coordinate space and are hence irrelevant to the CTM.
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: -1,   b: 0,
+                                 c: 0,    d: -1,
+                                 e: 200,  f: 120 });
+}, "<svg> should give correct screen CTM with many forms of offsets on " +
+   "self, and rotated self");
+
+test(function() {
+  let container = make_subtree();
+  let svg = container.firstChild;
+  container.classList.add("absPosAtTopLeft");
+  container.style.transform = "rotate(180deg)";
+  svg.classList.add("svgMegaOffset");
+  svg.style.transform = "translate(40px, 50px)";
+  svg.style.verticalAlign = "top";
+
+  // Expecting CTM to have:
+  // * "flip" matrix for scale components (-1 instead of 1)
+  // * translateX component of 160px, which comes from the 40px in our
+  //   "translate(40px,50px), taken as a reduction from our 200px width.
+  // * translateY component of 70px, which comes from the 50px in our
+  //   "translate(40px,50px), taken as a reduction from our 120px height.
+  // Note that our "svgMegaOffset" offsets have no effect on our CTM, because
+  // they end up on the right side when our ancestor rotates about its center
+  // point, so they end up irrelevant to our CTM.
+  let screenCTM = svg.getScreenCTM();
+  assert_ctm_equals(screenCTM, { a: -1,   b: 0,
+                                 c: 0,    d: -1,
+                                 e: 160,  f: 70 });
+}, "<svg> should give correct screen CTM with many forms of offsets on " +
+   "self, and rotated ancestor");
+
+</script>
+</body>
+</html>

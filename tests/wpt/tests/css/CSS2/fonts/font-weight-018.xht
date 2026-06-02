@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: sanity tests for relative keyword values of font-weight</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/weight/002.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/weight/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+  <style type="text/css">
+   /* Chains should be followed all the way. If a chain causes reentrancy, fail. */
+   .fw100 { font-weight: 100; } /* defaults to 200 */
+   .fw200 { font-weight: 200; } /* defaults to 100, failing to 300 */
+   .fw300 { font-weight: 300; } /* defaults to 200, failing to 400 */
+   .fw400 { font-weight: 400; } /* normal */
+   .fw500 { font-weight: 500; } /* defaults to 400 */
+   .fw600 { font-weight: 600; } /* defaults to 700, failing to 500 */
+   .fw700 { font-weight: 700; } /* bold - defaults to 800, failing to 600 */
+   .fw800 { font-weight: 800; } /* defaults to 900, failing to 700 */
+   .fw900 { font-weight: 900; } /* defaults to 800 */
+
+   /* Test */
+   .l { font-weight: lighter; }
+   .b { font-weight: bolder; }
+
+   /* prettiness */
+   p { margin: 1em 0 0.4em 0; }
+   p.w, p.x { font-family: Verdana, sans-serif; font-variant: normal; font-style: normal; font-size: 1em; }
+   p.w { margin: 0 0 0.2em 2em; }
+   p.x { margin: 0.75em 0 0.2em 2em; }
+  </style>
+ </head>
+ <body>
+  <p>The following lines should always be light on the left and bold
+  on the right and should all be identical (assuming your font only
+  has two font weights).</p>
+
+  <!-- simple -->
+  <p class="x fw100">light<span class="b">bold</span></p>
+  <p class="w fw200">light<span class="b">bold</span></p>
+  <p class="w fw300">light<span class="b">bold</span></p>
+  <p class="w fw400">light<span class="b">bold</span></p>
+  <p class="w fw500">light<span class="b">bold</span></p>
+  <p class="w fw600"><span class="l">light</span>bold</p>
+  <p class="w fw700"><span class="l">light</span>bold</p>
+  <p class="w fw800"><span class="l">light</span>bold</p>
+  <p class="w fw900"><span class="l">light</span>bold</p>
+
+  <!-- two level lighter/bolder -->
+  <p class="x fw100"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw200"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw300"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw400"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw500"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw600"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw700"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw800"><span class="l">light<span class="b">bold</span></span></p>
+  <p class="w fw900"><span class="l">light<span class="b">bold</span></span></p>
+
+  <!-- two level bolder/lighter -->
+  <p class="x fw100"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw200"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw300"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw400"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw500"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw600"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw700"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw800"><span class="b"><span class="l">light</span>bold</span></p>
+  <p class="w fw900"><span class="b"><span class="l">light</span>bold</span></p>
+
+ </body>
+</html>

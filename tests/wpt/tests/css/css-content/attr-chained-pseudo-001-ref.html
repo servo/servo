@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <meta charset="utf8">
+    <style>
+      div {
+        margin-left: 4em;
+      }
+      .ref {
+        display: list-item;
+      }
+      .ref::marker {
+        content: "PASS ";
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The line "World" should have "PASS" (in blue) to its left as a list-item marker:</p>
+    <div>Hello</div>
+    <div class=ref>World</div>
+  </body>
+</html>

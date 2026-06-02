@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>
+  On-going subresource loading should fail immediately when the web bundle
+  element is removed
+</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    promise_test(async () => {
+      const element = createWebBundleElement(
+        "/xhr/resources/delay.py?ms=100000",
+        ["/xhr/resources/dummy"]
+      );
+      document.body.appendChild(element);
+      const waitUntilFail = new Promise((resolve) => {
+        fetch("/xhr/resources/dummy").then(() => {}, resolve);
+      });
+      document.body.removeChild(element);
+      await waitUntilFail;
+    }, "On-going subresource loading should fail immediately when the element is " + "removed.");
+  </script>
+</body>

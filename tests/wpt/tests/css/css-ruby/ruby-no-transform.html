@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Ruby should not support transform</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="match" href="ruby-no-transform-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+ruby, rbc, rb, rtc, rt {
+  transform: translateX(50px);
+}
+</style>
+<ruby>
+  <rbc><rb>a</rb><rb>b</rb></rbc>
+  <rtc><rt>A</rt><rt>B</rt></rtc>
+</ruby>
+
+<ruby>a<rt>A</rt>b<rt>B</rt></ruby>

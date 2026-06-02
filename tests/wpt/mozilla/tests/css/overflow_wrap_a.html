@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='overflow_wrap_ref.html'>
+<!-- Tests that `overflow-wrap: break-word` breaks words if it needs to, but only when
+     necessary. -->
+<link rel="stylesheet" type="text/css" href="css/ahem.css">
+<style>
+html, body {
+    margin: 0;
+}
+section {
+    word-wrap: break-word;
+    width: 300px;
+    color: purple;
+}
+</style>
+</head>
+<body>
+<section>X XXXXXX</section>
+</body>
+</html>
+

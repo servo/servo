@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient in LCH space</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 100px;
+            margin: 10px;
+        }
+
+        div.a {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 0deg),
+                                              lch(50% 100% 20deg),
+                                              lch(50% 100% 40deg),
+                                              lch(50% 100% 60deg),
+                                              lch(50% 100% 80deg));
+        }
+
+        div.b {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 80deg),
+                                              lch(50% 100% 150deg),
+                                              lch(50% 100% 220deg),
+                                              lch(50% 100% 290deg),
+                                              lch(50% 100% 360deg));
+        }
+
+        div.c {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 0deg),
+                                              lch(50% 100% 90deg),
+                                              lch(50% 100% 180deg),
+                                              lch(50% 100% 270deg));
+        }
+
+        div.d {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 270deg),
+                                              lch(50% 100% 300deg),
+                                              lch(50% 100% 330deg),
+                                              lch(50% 100% 360deg));
+        }
+    </style>
+</head>
+
+<body>
+    <div class=a></div>
+    <div class=b></div>
+    <div class=c></div>
+    <div class=d></div>
+</body>
+</html>

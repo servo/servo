@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page Breaks and Bottom Margin (with bg/border)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#allowed-page-breaks" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#allowed-pg-brk" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="Page breaks are not allowed between the last child of a block and its parent." />
+  <style type="text/css">
+
+    div {
+        background: #eee;
+        border: thick solid orange;
+    }
+    p {
+        margin-bottom: 15in;
+        white-space: nowrap;
+        color: blue;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces multiple pages on paged media. The words
+   SECOND PAGE TOP below must appear at the top of the second page.
+     <p>
+     SECOND PAGE TOP
+     </p>
+   </div>
+ </body>
+</html>

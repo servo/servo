@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test MediaSource behavior when the decoder is starved.</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+    <meta name="timeout" content="long">
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="mediasource-util.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+    mediasource_test(function (test, video, mediaSource) {
+        if (!MediaSource.isTypeSupported('video/mp4; codecs="avc1.4d001e"')) {
+            // Format not supported, nothing to test in this platform.
+            test.done();
+            return;
+        }
+
+        let initSegment;
+        let mediaSegment;
+
+        const videoSB = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.4d001e"');
+
+        MediaSourceUtil.loadBinaryData(test, "mp4/h264-starvation-init.mp4", initDownloaded);
+
+        function initDownloaded(data) {
+            initSegment = data;
+            MediaSourceUtil.loadBinaryData(test, "mp4/h264-starvation-media.mp4", mediaDownloaded);
+        }
+
+        function mediaDownloaded(data) {
+            mediaSegment = data;
+            videoSB.appendBuffer(initSegment);
+            videoSB.addEventListener("updateend", initSegmentAppended);
+        }
+
+        function initSegmentAppended() {
+            videoSB.removeEventListener("updateend", initSegmentAppended);
+            videoSB.appendBuffer(mediaSegment);
+            videoSB.addEventListener("updateend", mediaSegmentAppended)
+        }
+
+        function mediaSegmentAppended() {
+            video.play();
+
+            video.addEventListener('timeupdate', function onTimeUpdate() {
+                if (video.currentTime >= 2)
+                    test.done();
+            });
+        }
+    }, "Enough frames are played when the decoder is starved.")
+</script>
+</body>
+</html>

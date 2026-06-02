@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text — reference</title>
+<link rel=author title="Jonathan Kew" href="jkew@mozilla.com">
+<style>
+.outer { float: left; padding: 0 1em; margin: 1em; border: 1px solid silver; }
+
+.outer div { font-family: monospace; line-height: 2; margin: 1em 0; border: 1px dotted silver; }
+
+.test20 div { width: 20ch; }
+.test27 div { width: 27ch; }
+.test30 div { width: 30ch; }
+
+b { color: blue; border-left: 2px solid red; border-right: 2px solid green; }
+</style>
+
+<div>Test passes if all the examples in each group render the same:</div>
+
+<div class="outer test30">
+  <div>
+  Preceding text <b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text <b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text <b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text <b>target element</b><br>following text.
+  </div>
+</div>
+
+<div class="outer test27">
+  <div>
+  Preceding text <b>target<br>element</b> following text.
+  </div>
+  <div>
+  Preceding text <b>target<br>element</b> following text.
+  </div>
+  <div>
+  Preceding text <b>target<br>element</b> following text.
+  </div>
+  <div>
+  Preceding text <b>target<br>element</b> following text.
+  </div>
+</div>
+
+<div class="outer test20">
+  <div>
+  Preceding text<br><b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text<br><b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text<br><b>target element</b><br>following text.
+  </div>
+  <div>
+  Preceding text<br><b>target element</b><br>following text.
+  </div>
+</div>

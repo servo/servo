@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<video autoplay controls id="output"></video>
+<script>
+
+// Run captureStream() on cross-origin <video> content
+  async_test(function() {
+    const video = document.createElement('video');
+    video.src = location.origin.replace("//", "//www1.") + "/media/white.webm";
+    video.onerror = this.unreached_func("<video> error");
+    video.loop = true;
+    video.play();
+
+    const stream = video.captureStream();
+    assert_not_equals(stream, null, "error generating stream");
+    const output = document.getElementById("output");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext('2d');
+
+    stream.onaddtrack = this.step_func_done(function() {
+      canvas.width = output.videoWidth || 320;
+      canvas.height = output.videoHeight || 240;
+      // The stream got a (number of) MediaStreamTracks added.
+      assert_equals(stream.getVideoTracks().length, 1, 'video tracks');
+      assert_equals(stream.getAudioTracks().length, 0, 'audio');
+      assert_true(stream.getVideoTracks()[0].muted, 'cross-origin video is muted');
+      ctx.drawImage(output, 0, 0, canvas.width, canvas.height);
+
+      const pixels = ctx.getImageData(0,0,canvas.width, canvas.height);
+      assert_equals(pixels.data[canvas.width*canvas.height*4 - 4], 0, "cross-origin content appears black");
+     }, "<video>.captureStream() returns muted/black stream");
+  }, "Capturing stream from cross-origin video");
+
+</script>
+</body>
+</html>

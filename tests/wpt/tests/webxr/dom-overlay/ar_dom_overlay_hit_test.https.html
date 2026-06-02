@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+
+<style type="text/css">
+  div {
+      padding: 10px;
+      min-width: 10px;
+      min-height: 10px;
+  }
+  iframe {
+    border: 0;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+<div id="div_overlay">
+  <div id="inner_b">
+  </div>
+  <!-- This SVG iframe is treated as cross-origin content. -->
+  <iframe id="iframe" src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect height="20" width="20" fill="red" fill-opacity="0.3"/></svg>'>
+  </iframe>
+  <canvas>
+  </canvas>
+</div>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // see webxr_test_constants_fake_world.js for details
+};
+
+const hitTestOptionsInit = {
+  profile: "generic-touchscreen",
+  offsetRay: new XRRay(),
+};
+
+const SCREEN_POINTER_TRANSFORM = {
+    position: [0, 0, 0],      // middle of the screen
+    orientation: [0, 0, 0, 1] // forward-facing
+};
+
+const screen_controller_init = {
+    handedness: "none",
+    targetRayMode: "screen",
+    pointerOrigin: SCREEN_POINTER_TRANSFORM,  // aka mojo_from_pointer
+    profiles: ["generic-touchscreen",]
+};
+
+const testCrossOriginContent = function(overlayElement, session, fakeDeviceController, t) {
+  const iframe = document.getElementById('iframe');
+  const inner_b = document.getElementById('inner_b');
+
+  let debug = xr_debug.bind(this, 'testCrossOriginContent');
+
+  const input_source =
+      fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
+  debug('start');
+  return session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    debug('got viewerSpace');
+    return session.requestHitTestSourceForTransientInput(hitTestOptionsInit)
+                  .then((hitTestSource) => {
+      debug('got hitTestSource');
+      return new Promise((resolve) => {
+        // Press the primary input button and then release it a short time later.
+        session.requestAnimationFrame((time, xrFrame) => {
+          debug('got rAF 1');
+          input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
+                                                 iframe.offsetTop + 1);
+          input_source.startSelection();
+
+          session.requestAnimationFrame((time, xrFrame) => {
+            input_source.endSelection();
+
+            // There should be no results for transient input for cross origin content:
+            const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
+            t.step(() => {
+              assert_equals(results.length, 0, "Hit test results should be suppressed for cross-origin content");
+            });
+
+            session.requestAnimationFrame((time, xrFrame) => {
+              debug('got rAF 2');
+              // Need to process one more frame to allow select to propagate
+
+              session.requestAnimationFrame((time, xrFrame) => {
+                debug('got rAF 3');
+                input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
+                                                       inner_b.offsetTop + 1);
+                input_source.startSelection();
+
+                session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 4');
+                  input_source.endSelection();
+
+                  const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
+                  t.step(() => {
+                    // TODO(bialpio): this assertion is currently failing, FIXME
+                    assert_equals(results.length, 1, "Hit test results should be available for same-origin content");
+                  });
+                  debug('resolving');
+                  resolve();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  "Ensures DOM Overlay interactions on cross origin iframe do not cause hit test results to come up",
+  testCrossOriginContent.bind(this, document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar', {
+    requiredFeatures: ['dom-overlay', 'hit-test'],
+    domOverlay: { root: document.getElementById('div_overlay') }
+  });
+
+</script>

@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+            test(function() {
+                assert_not_equals(document.head, null, "test1-0, existing document's head");
+                assert_true(document.head instanceof HTMLHeadElement, "test1-1, exising document's head: should be HTMLHeadElement");
+                assert_equals(document.head && document.head.tagName, "HEAD", "test1-2, existing document's head");
+            }, "existing document's head");
+
+            test(function() {
+                var new_document = new Document();
+                new_document.appendChild(new_document.createElementNS('http://www.w3.org/1999/xhtml', "html"));
+                var new_head = new_document.createElementNS('http://www.w3.org/1999/xhtml', 'head');
+
+                assert_not_equals(new_head, null, "test2-0, append head to a new document");
+                assert_true(new_head instanceof HTMLHeadElement, "test2-1, append head to a new document: should be HTMLHeadElement");
+                assert_equals(new_head && new_head.tagName, "head", "test2-2, append head to a new document");
+
+                // Document::head is read-only.
+                new_document.head = new_head;
+                assert_equals(new_document.head, null, "test2-3, append head to a new document");
+
+                new_document.documentElement.appendChild(new_head);
+                assert_equals(new_document.head, new_head, "test2-4, append head to a new document");
+            }, "append head to a new document");
+
+            test(function() {
+                var new_document = new Document();
+                var html = new_document.createElementNS('http://www.w3.org/1999/xhtml', "html");
+                var foo = new_document.createElementNS('http://www.w3.org/1999/xhtml', "foo");
+                var head = new_document.createElementNS('http://www.w3.org/1999/xhtml', "head");
+                new_document.appendChild(html);
+                html.appendChild(foo);
+                foo.appendChild(head);
+                assert_equals(new_document.head, null, "test3-0, head's parent should be document element");
+            }, "head's parent should be document element");
+        </script>
+    </body>
+</html>

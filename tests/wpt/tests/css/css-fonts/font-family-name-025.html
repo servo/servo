@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Test: font family name should not match postscript font name</title>
+<link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop" />
+<link rel="match" href="font-family-name-025-ref.html" />
+<meta name="assert" content="The 'font-family' property set to and installed font renders the appropriate font. Postscript name should not match." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body { font-size: 36px; }
+span#verify { font-family: CSSTest Verify; }
+p.test {
+  /* Verdana-Bold is a standard supplied font on Windows, Mac, and Linux
+     allowing this test to actually work on most systems without the CSS
+     test fonts. */
+  font-family: CSSTestBasic-Bold, Verdana-Bold, ahem, monospace;
+}
+p {
+  font-family: ahem, monospace;
+}
+</style>
+<div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+<p class="test">These two lines should use the same font.</p>
+<p>These two lines should use the same font.</p>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>View Transitions: @view-transition opt out in new document.</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: none;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
+
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "no viewTransition");
+  });
+  break;
+case "old":
+  location.replace("resources/at-rule-opt-in-auto.html");
+}
+</script>

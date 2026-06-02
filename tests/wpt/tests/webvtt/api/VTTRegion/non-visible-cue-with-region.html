@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Box-less VTTCue attached to VTTRegion</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video></video>
+<script>
+setup(function() {
+  window.video = document.querySelector('video');
+  video.src = getVideoURI('/media/test');
+});
+async_test(function(t) {
+  let track = video.addTextTrack('subtitles');
+  let cue = new VTTCue(0, 1, '');
+  cue.region = new VTTRegion();
+  cue.onexit = t.step_func_done(function() {
+    video.pause();
+  });
+  track.addCue(cue);
+  video.onloadedmetadata = t.step_func(function() {
+    video.currentTime = 0.8;
+    video.play();
+  });
+  video.onended = t.unreached_func('test ends before video');
+});
+</script>

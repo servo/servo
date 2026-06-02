@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+
+ <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: box-shadow inset without border-radius</title>
+
+  <link rel="author" title="Zhang Xiaochong" href="mailto:joy.xczhang@gmail.com">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow">
+  <link rel="match" href="reference/box-shadow-inset-without-border-radius-ref.html">
+
+  <meta content="" name="flags">
+
+  <!--
+
+  Reviewed by Gérard Talbot on April 9th 2023
+
+  More info: https://github.com/web-platform-tests/wpt/issues/10013
+
+  https://github.com/web-platform-tests/wpt/pull/39445
+
+  -->
+
+  <style>
+  div
+    {
+      border: transparent solid 8px;
+      display: inline-block;
+      height: 32px;
+      margin: 0px 8px 8px 0px;
+      padding: 16px;
+      vertical-align: top;
+      width: 32px;
+    }
+
+  /*
+
+  An inner box-shadow casts a shadow as if everything outside
+  the padding edge were opaque. Assuming a spread distance of
+  zero, its perimeter has the exact same size and shape as the
+  padding box. The shadow is drawn inside the padding edge only:
+  it is clipped outside the padding box of the element.
+
+  If a spread distance is defined, the shadow perimeter
+  defined above is contracted inward (for inner box-shadows)
+  by insetting the shadow’s straight edges by the spread
+  distance (and flooring the resulting width/height at zero).
+
+  */
+
+  div#first-subtest /* inset with NO spread */
+    {
+      box-shadow: black 10px 10px 0px 0px inset;
+    }
+
+  div#second-subtest /* inset with a 15px spread */
+    {
+      box-shadow: black 10px 10px 0px 15px inset;
+    }
+
+  div#third-subtest /* inset with NO spread */
+    {
+      box-shadow: black 10px -10px 0px 0px inset;
+    }
+
+  div#fourth-subtest /* inset with a 15px spread */
+    {
+      box-shadow: black 10px -10px 0px 15px inset;
+    }
+
+  div#fifth-subtest /* inset with NO spread */
+    {
+      box-shadow: black -10px 10px 0px 0px inset;
+    }
+
+  div#sixth-subtest /* inset with a 15px spread */
+    {
+      box-shadow: black -10px 10px 0px 15px inset;
+    }
+
+  div#seventh-subtest /* inset with NO spread */
+    {
+      box-shadow: black -10px -10px 0px 0px inset;
+    }
+
+  div#eighth-subtest /* inset with a 15px spread */
+    {
+      box-shadow: black -10px -10px 0px 15px inset;
+    }
+  </style>
+
+  <div id="first-subtest"></div><div id="second-subtest"></div><div id="third-subtest"></div><div id="fourth-subtest"></div><br>
+
+  <div id="fifth-subtest"></div><div id="sixth-subtest"></div><div id="seventh-subtest"></div><div id="eighth-subtest"></div>

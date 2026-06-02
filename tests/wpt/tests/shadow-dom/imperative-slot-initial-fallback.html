@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Imperative Slot API: intial fallback should be correctly set up</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1292292">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <div id="host1"></div>
+  <div id="host2"></div>
+</div>
+
+<script>
+test(() => {
+  const host = document.getElementById('host1');
+  const shadow = host.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  shadow.innerHTML = '<slot>fallback</slot>';
+  const slot = shadow.firstChild;
+  assert_array_equals(slot.assignedNodes(), []);
+  assert_greater_than(host.offsetHeight, 0, 'Fallback content should be rendered');
+}, 'Unassigned imperative slot can render text node as the initial fallback');
+
+test(() => {
+  const host = document.getElementById('host2');
+  const shadow = host.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  shadow.innerHTML = '<slot><span>fallback</span></slot>';
+  const slot = shadow.firstChild;
+  assert_array_equals(slot.assignedNodes(), []);
+  assert_greater_than(host.offsetHeight, 0, 'Fallback content should be rendered');
+}, 'Unassigned imperative slot can render element as the initial fallback');
+</script>

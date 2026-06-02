@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.bluetooth.handle_request_device_prompt method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/bidi-bluetooth-helper.js"></script>
+
+<script>
+    promise_setup(async () => {
+        await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+    });
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise =
+            test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
+                (promptEvent) => {
+                    assert_greater_than_equal(promptEvent.devices.length, 0);
+                    return test_driver.bidi.bluetooth.handle_request_device_prompt({
+                        prompt: promptEvent.prompt,
+                        accept: true,
+                        device: promptEvent.devices[0].id
+                    });
+                });
+        const [device] = await Promise.all([requestDeviceWithTrustedClick({
+            acceptAllDevices: true
+        }), handle_prompt_promise]);
+        assert_equals(device.name, DEVICE_NAME);
+    }, "accept upon request_device_prompt_updated event");
+
+    bluetooth_test(async (t) => {
+        const handle_prompt_promise =
+            test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
+                (promptEvent) => {
+                    return test_driver.bidi.bluetooth.handle_request_device_prompt({
+                        prompt: promptEvent.prompt,
+                        accept: false,
+                        device: ''
+                    });
+                });
+        return Promise.all([
+            promise_rejects_dom(t, 'NotFoundError',
+                requestDeviceWithTrustedClick(
+                    { acceptAllDevices: true })
+            ), handle_prompt_promise]);
+    }, "cancel upon request_device_prompt_updated event");
+</script>

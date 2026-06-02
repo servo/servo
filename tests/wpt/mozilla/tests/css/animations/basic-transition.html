@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Transition test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#check-me, #check-me-2 {
+  background-color: #F00;
+  width: 10px;
+  height: 10px;
+  transition: background-color 1s linear;
+}
+#check-me-2 {
+  background-color: #000;
+}
+</style>
+<div id=check-me><span>a</span></div>
+<script>
+var div = document.getElementById('check-me');
+var span = div.childNodes[0];
+async_test(function(t) {
+  window.addEventListener('load', function() {
+    var test = new window.TestBinding();
+
+    div.addEventListener("transitionstart", () => {
+      // The transition should have just started so the current value of the style should
+      // not be the value expected after the transition.
+      assert_not_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
+      test.advanceClock(2000);
+    });
+
+    div.addEventListener("transitionend", () => {
+      // The transition should be finished so the value of the style should be the final one.
+      assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
+      t.done();
+    });
+
+    // The starting value should be the one set in the style.
+    assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(255, 0, 0)');
+
+    // Start the transition.
+    div.id = "check-me-2";
+  })
+})
+</script>

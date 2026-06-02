@@ -1,0 +1,161 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Overlapping keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function assert_opacity_value(opacity, expected, description) {
+  return assert_approx_equals(
+    parseFloat(opacity),
+    expected,
+    0.0001,
+    description
+  );
+}
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { opacity: 0.3 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  // Sanity check
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+
+  // animA is now removed so if we cancel animB, we should go back to the
+  // underlying value
+  animB.cancel();
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.1,
+    'Opacity should be the un-animated value'
+  );
+}, 'Removed animations do not contribute to animated style');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { opacity: 0.3, composite: 'add' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  // Sanity check
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+
+  // animA has been removed so the final result should be 0.1 + 0.3 = 0.4.
+  // (If animA were not removed it would be 0.2 + 0.3 = 0.5.)
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.4,
+    'Opacity value should not include the removed animation'
+  );
+}, 'Removed animations do not contribute to the effect stack');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { opacity: 0.3 },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  await animA.finished;
+
+  animA.persist();
+
+  animB.cancel();
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.2,
+    "Opacity should be the persisted animation's value"
+  );
+}, 'Persisted animations contribute to animated style');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { opacity: 0.3, composite: 'add' },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  await animA.finished;
+
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.4,
+    'Opacity value should NOT include the contribution of the removed animation'
+  );
+
+  animA.persist();
+
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.5,
+    'Opacity value should include the contribution of the persisted animation'
+  );
+}, 'Persisted animations contribute to the effect stack');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  // Persist the animation before it finishes (and before it would otherwise be
+  // removed).
+  animA.persist();
+
+  const animB = div.animate(
+    { opacity: 0.3, composite: 'add' },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  await animA.finished;
+
+  assert_opacity_value(
+    getComputedStyle(div).opacity,
+    0.5,
+    'Opacity value should include the contribution of the persisted animation'
+  );
+}, 'Animations persisted before they would be removed contribute to the'
+   + ' effect stack');
+
+</script>
+</body>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<style>
+    .body {
+      position:  relative;
+      nargin:  0;
+      padding:  0;
+    }
+    .block {
+      width:  100px;
+      height:  100px;
+      padding:  0;
+      display:  inline-block;
+      position:  absolute;
+      top:  10px;
+      margin:  0;
+      padding:  0;
+    }
+
+    .block1 {
+      background:  rgb(127, 0, 0);
+      left:  10px;
+    }
+
+    .block2 {
+      background:  rgb(0, 127, 0);
+      left:  120px;
+    }
+
+    .block3 {
+      background:  rgb(0, 0, 127);
+      left:  230px;
+    }
+</style>
+<body>
+  <div class = "block block1"></div>
+  <div class = "block block2"></div>
+  <div class = "block block3"></div>
+</body>
+</html>

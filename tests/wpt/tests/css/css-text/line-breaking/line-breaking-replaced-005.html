@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — replaced elements line break before and after, even with keep-all</title>
+<meta name=assert content="There is a soft wrap opportunity before and after a replaced element even with word-break: keep-all">
+<link rel=match href="reference/line-breaking-replaced-004-ref.html">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+div {
+  width: 0;
+  word-break: keep-all;
+}
+</style>
+
+<p>Test passes if “B” is below “A”.
+
+<div>A<br><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="><br>B</div>

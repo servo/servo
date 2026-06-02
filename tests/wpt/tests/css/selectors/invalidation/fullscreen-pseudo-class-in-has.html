@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: :fullscreen pseudo class in :has()</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+    #subject:has(#target:fullscreen) { color: green; }
+</style>
+
+<div id="subject">
+    This is some text.
+    <div id="target">This is going to be fullscreened</div>
+</div>
+
+<script>
+let waitForFullscreenChange = () => {
+    return new Promise((resolve) => {
+      document.addEventListener("fullscreenchange", resolve, { once: true });
+    });
+};
+
+promise_test(async function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    test_driver.bless("fullscreen", () => target.requestFullscreen());
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since target is fullscreen");
+    document.exitFullscreen();
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since target is no longer fullscreen");
+}, ":fullscreen pseudo-class invalidation with requestFullscreen + exitFullscreen");
+
+promise_test(async function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    test_driver.bless("fullscreen", () => target.requestFullscreen());
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since target is fullscreen");
+    target.remove();
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since target is removed");
+}, ":fullscreen pseudo-class invalidation with requestFullscreen + remove");
+</script>

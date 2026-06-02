@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>checkIntersection()</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__checkIntersection"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <g id="g_outer">
+    <g id="g_inner_top">
+      <rect id="r_top_left" width="50" height="50"/>
+      <rect x="50" width="50" height="50"/>
+    </g>
+    <g transform="translate(0, 50)">
+      <rect width="50" height="50"/>
+      <rect x="50" width="50" height="50"/>
+    </g>
+  </g>
+  <script>
+    function makeRect(x, y, width, height) {
+      const svg = document.documentElement;
+      return Object.assign(svg.createSVGRect(), {x, y, width, height});
+    }
+    test(t => {
+      [
+        { element: 'r_top_left', rect: [10, 10, 10, 10], expected: true },
+        { element: 'r_top_left', rect: [10, 10, 80, 10], expected: true },
+        { element: 'r_top_left', rect: [60, 10, 10, 10], expected: false },
+        { element: 'g_inner_top', rect: [10, 10, 80, 10], expected: true },
+        { element: 'g_inner_top', rect: [60, 10, 10, 10], expected: false },
+        { element: 'g_outer', rect: [10, 10, 80, 10], expected: false },
+        { element: 'g_outer', rect: [10, 10, 80, 80], expected: true },
+      ].forEach(testcase => {
+        const element = document.getElementById(testcase.element);
+        const rect = makeRect(...testcase.rect);
+        const svg = document.documentElement;
+        assert_equals(svg.checkIntersection(element, rect), testcase.expected,
+                      `${document.title}, element ${testcase.element} rect ${testcase.rect}`);
+      });
+    });
+  </script>
+</svg>

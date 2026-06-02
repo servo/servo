@@ -1,0 +1,62 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+    const origin = window.location.origin;
+    const rawSetHeader = 'set;key=hello;value=world';
+    const setHeader = encodeURIComponent(rawSetHeader);
+
+    promise_test(async t => {
+      let frame = document.createElement('iframe');
+      const promise = new Promise((resolve, reject) => {
+        window.addEventListener('message', async function handler(evt) {
+          if (evt.source === frame.contentWindow &&
+              evt.data.sharedStorageWritableLoadStatus) {
+            document.body.removeChild(frame);
+            window.removeEventListener('message', handler);
+            resolve(evt.data.sharedStorageWritableLoadStatus);
+          }
+        });
+        window.addEventListener('error', (error) => {
+          reject(error);
+        });
+      });
+
+      const imageUrl =
+        `${origin}\\/shared-storage\\/resources\\/shared-storage-writable-`
+        + `pixel-write.png?write=${setHeader}`;
+      const innerCode = `
+let parentOrOpener = window.opener || window.parent;
+let image = document.createElement('img');
+window.addEventListener('load', async (evt) => {
+  parentOrOpener.postMessage({sharedStorageWritableLoadStatus:
+                              'loaded'}, '*');
+});
+window.addEventListener('error', (error) => {
+  parentOrOpener.postMessage({sharedStorageWritableLoadStatus: error.message},
+                             '*');
+});
+image.src = '${imageUrl}';
+image.sharedStorageWritable = true;
+document.body.appendChild(image);
+`;
+
+      const dataURL = 'data:text/html;base64,'
+        + btoa(unescape('%3Chtml%3E%3Cbody%3E%3Cscript%3E'
+                        + encodeURIComponent(innerCode) +
+                        '%3C%2Fscript%3E%3C%2Fbody%3E%3C%2Fhtml%3E'));
+      frame.src = dataURL;
+      document.body.appendChild(frame);
+
+      const result = await promise;
+      assert_equals(result, "loaded");
+      await verifyKeyNotFoundForOrigin('hello', origin);
+
+    }, 'shared storage iframe request disallowed in opaque origin from data URL');
+  </script>
+</body>

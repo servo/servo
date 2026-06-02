@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<meta name="assert" content="Test how a float inside a block with cloned box decoration behaves.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:4; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <!-- #container takes up exactly two columns (2 * 40px of box decorations in
+       each column, plus 40px of content box height). The float will steer clear
+       of its cloned border at the bottom of the first column and at the start
+       of the second column, but the border at the end of the second column is
+       just a regular end border, not a cloned one, so the float will overlap
+       with it. -->
+  <div id="container" style="box-decoration-break:clone; border:solid green; border-width:40px 0; height:40px;">
+    <div style="float:left; width:100%; height:280px; background:green;"></div>
+  </div>
+</div>

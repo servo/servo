@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>XMLHttpRequest</title>
+</head>
+<body>
+    <script type="text/javascript">
+        xhrRequest = new XMLHttpRequest();
+
+        xhrRequest.onreadystatechange = function () {
+            if (xhrRequest.readyState == 4 && xhrRequest.status == 200) {
+            //xhr successful
+            parent.window.postMessage("access to window.XMLHttpRequest", "*");
+            }
+        }
+
+        xhrRequest.open("GET", "standalone-pass.htm", true);
+        xhrRequest.send();
+
+    </script>
+</body>
+</html>

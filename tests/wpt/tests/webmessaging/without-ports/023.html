@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Object cloning: own properties only, don't follow prototype</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var Parent = function(){
+  this.c = "xyz";
+};
+
+var Child = function(a, b) {
+  this.a = a;
+  this.b = b;
+};
+Child.prototype = new Parent;
+
+async_test(function() {
+  var obj = new Child(1, 2);
+  var ch = new MessageChannel();
+  ch.port1.onmessage = this.step_func(function(e) {
+    for (var i in e.data.obj)
+      assert_not_equals(i, 'c');
+    this.done();
+   });
+  ch.port2.start();
+  ch.port2.postMessage({obj: obj});
+});
+
+</script>

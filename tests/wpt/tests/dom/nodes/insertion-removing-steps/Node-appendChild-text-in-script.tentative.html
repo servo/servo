@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting two text nodes in an empty script</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+  <script id="script"></script>
+<script>
+const happened = [];
+test(() => {
+  const script = document.getElementById("script");
+  const df = document.createDocumentFragment();
+  df.appendChild(new Text("happened.push('t1');"));
+  df.appendChild(new Text("happened.push('t2');"));
+  assert_array_equals(happened, []);
+  script.appendChild(df);
+  assert_array_equals(happened, ["t1", "t2"]);
+  // At this point it's already executed so further motifications are a no-op
+  script.appendChild(new Text("happened.push('t3');"));
+  script.textContent = "happened.push('t4');"
+  script.text = "happened.push('t5');"
+  assert_array_equals(happened, ["t1", "t2"]);
+});
+</script>

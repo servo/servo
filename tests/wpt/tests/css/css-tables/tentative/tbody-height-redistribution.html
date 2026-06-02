@@ -1,0 +1,144 @@
+<!doctype html>
+<title>TBODY redistribution</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel='stylesheet' href='../support/base.css' />
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#height-distribution-algorithm" />
+<style>
+  main table {
+    border-collapse: collapse;
+    background: #DDD;
+  }
+  main td {
+    padding: 0;
+  }
+  main td .empty {
+    line-height: 0;
+  }
+  main tbody tr:nth-child(1)  {
+    background: rgba(255, 156, 0, 0.5);
+  }
+  main tbody tr:nth-child(2)  {
+    background: rgba(255, 255, 0, 0.5);
+  }
+  main tbody tr:nth-child(3) {
+    background: rgba(0, 255, 0, 0.5);
+  }
+</style>
+<main>
+<h1>TBODY/THEAD/TFOOT height redistribution.</h1>
+<li>FF passes most of the tests.
+<li>Legacy Chrome does not distribute TBODY height to rows.
+<li>At the time this test was written, there was no spec. Currently, spec is in the process of being written.
+
+<p>1) Empty row group's size is 0 with collapsed borders</p>
+<table id="one" style="border-collapse: collapse;border-spacing: 10px 10px;border:10px solid green"
+  data-expected-width="0" data-expected-height="0">
+  <tbody>
+    <tr> </tr>
+  </tbody>
+</table>
+<p>2) Empty row group's size is 0 with separate borders.</p>
+<table id="two" style="border-collapse: separate;border-spacing: 10px 10px;border:10px solid green"
+  data-expected-width="20" data-expected-height="20">
+  <tbody>
+    <tr> </tr>
+  </tbody>
+</table>
+<p>3) Row group height is redistributed to unconstrained rows in proportion to their size.</p>
+<table id="three">
+  <tbody style="height:100px" data-expected-height="100">
+    <tr data-expected-height="25">
+      <td><div style="height:10px" >0,0</div></td>
+    </tr>
+    <tr data-expected-height="75">
+      <td><div style="height:30px" >0,0</div></td>
+    </tr>
+  </tbody>
+</table>
+<p>4) Constrained fixed rows do not grow if there are unconstrained rows</p>
+<table id="four">
+  <tbody style="height:100px">
+    <tr style="height: 10px" data-expected-height="10">
+      <td></td>
+    </tr>
+    <tr data-expected-height="90">
+      <td>0,1</td>
+    </tr>
+  </tbody>
+</table>
+<p>5) Constrained percentage are resolved against row group height.</p>
+<table id="five">
+  <tbody style="height:100px">
+    <tr style="height:25%" data-expected-height="25">
+      <td>0,0</td>
+    </tr>
+    <tr style="height:50%" data-expected-height="50">
+      <td>0,0</td>
+    </tr>
+    <tr data-expected-height="25">
+      <td>0,2</td>
+    </tr>
+  </tbody>
+</table>
+<p>6) Row group height is treated as min-height.</p>
+<table id="six">
+  <tbody style="height:100px" data-expected-height="125">
+    <tr style="height:125px">
+      <td>0,0</td>
+    </tr>
+  </tbody>
+</table>
+<p>7) Constrained/unconstrained mix: row group height is distributed to unconstrained cells.</p>
+<table id="seven">
+  <tbody style="height:100px">
+    <tr style="height:20px" data-expected-height="20"><td>0,0</td></tr>
+    <tr style="height:30px" data-expected-height="30"><td>0,1</td></tr>
+    <tr data-expected-height="25"><td>0,2</td></tr>
+    <tr data-expected-height="25"><td>0,3</td></tr>
+  </tbody>
+</table>
+<p>8) Unconstrained empty rows grow to fill table if all other rows are constrained. Not in FF.</p>
+<table id="eight">
+  <tbody style="height:100px">
+    <tr style="height:20px" data-expected-height="20"><td>0,0</td></tr>
+    <tr style="height:30px" data-expected-height="30"><td>0,1</td></tr>
+    <tr data-expected-height="50"><td></td></tr>
+  </tbody>
+</table>
+<br>
+<table id="eightplus">
+  <tbody style="height:100px">
+    <tr data-expected-height="50"><td></td></tr>
+    <tr style="height:20px" data-expected-height="20"><td>0,1</td></tr>
+    <tr style="height:30px" data-expected-height="30"><td>0,2</td></tr>
+  </tbody>
+</table>
+<p>9) Empty section height is not ignored</p>
+<table id="nine" >
+  <tbody style="height:75px"  data-expected-height="75">
+  </tbody>
+</table>
+<p>10) Section with empty rows is not considered empty.</p>
+<p>In FF, empty section height is 100, but table's height is 0?</p>
+<table id="nine" >
+  <tbody style="height:75px"  data-expected-height="75">
+    <tr data-expected-height="25"></tr>
+    <tr data-expected-height="25"></tr>
+    <tr data-expected-height="25"></tr>
+  </tbody>
+</table>
+<p>11) Mixed constrained and unconstrained empty rows: only unconstrained rows grow.</p>
+  <table id="ten" style="width:50px">
+  <tbody style="height:50px"  data-expected-height="50">
+    <tr style="height:0" data-expected-height="0"><td></td></tr>
+    <tr data-expected-height="25"><td></td></tr>
+    <tr data-expected-height="25"><td></td></tr>
+  </tbody>
+</table>
+</main>
+<script>
+  checkLayout("table");
+</script>

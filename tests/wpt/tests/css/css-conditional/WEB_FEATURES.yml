@@ -1,0 +1,11 @@
+features:
+- name: supports
+  files:
+  - "*"
+  - "!at-supports-selector-webkit-slider-thumb.tentative.html"
+  - "!at-supports-selector-003.html"
+- name: supports-compat
+  files:
+  - at-supports-selector-webkit-slider-thumb.tentative.html
+  - at-supports-selector-003.html
+

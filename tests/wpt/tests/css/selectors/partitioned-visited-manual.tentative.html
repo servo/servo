@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>:visited links are partitioned by top-level site and frame origin</title>
+<link rel="author" title="Kyra Seevers" href="mailto:kyraseevers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#visited-privacy">
+
+<!-- Import scripts to build same- and cross-origin URLs -->
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+    <h2>Description</h2>
+    <p>The goal of this manual test is to ensure that :visited links are
+    partitioned by link URL, top-level site, and frame origin. </p>
+    <br/>
+    <p>(1) Clear any browsing data, including history.</p>
+    <br/>
+    <p>(2) Click on the link in the first iframe. The link in this
+    top-level frame should turn purple. The link in the second iframe
+    should remain blue.</p>
+    <br/>
+    <!-- This link's triple key is:
+    Link URL: https://drafts.csswg.org/selectors-4,
+    Top-Level Site: http://localhost,
+    Frame Origin: http://localhost:8000 -->
+    <a href = "https://drafts.csswg.org/selectors-4">I should turn purple!</a>
+    <br/>
+    <p>(3) Finally, click on the browser's back arrow.
+    </p>
+    <br/>
+    <p>Test PASSES if: the top-level link (I should turn purple!) is purple,
+    the first iframe link (Click me! (Then I should turn purple)) is purple,
+    and the second iframe link (I should stay blue) is blue. All other
+    conditions: the test FAILS.
+    </p>
+    <br/> <br/>
+    <script>
+	// Associate our local HTML resources with an origin that is
+	// same- or cross-origin to the top-level page. This is
+	// important so that we can accurately compare our
+	// triple-partition keys.
+	const { HTTP_ORIGIN, HTTP_REMOTE_ORIGIN } = get_host_info();
+	let same_origin_url = HTTP_ORIGIN + '/css/selectors/resources/partitioned-visited-same-site-iframe.html';
+	let cross_origin_url = HTTP_REMOTE_ORIGIN + '/css/selectors/resources/partitioned-visited-cross-site-iframe.html';
+	// Construct the same-origin iframe. This link's triple key is:
+	// Link URL: https://drafts.csswg.org/selectors-4,
+	// Top-Level Site: http://localhost,
+	// Frame Origin: http://localhost:800
+	let same_origin_iframe = document.createElement("iframe");
+        same_origin_iframe.setAttribute("src", same_origin_url);
+	document.body.appendChild(same_origin_iframe);
+	// Construct the cross-origin iframe. This link's triple key is:
+	// Link URL: https://drafts.csswg.org/selectors-4,
+	// Top-Level Site: http://localhost,
+	// Frame Origin: http://www1.localhost:800
+	let cross_origin_iframe = document.createElement("iframe");
+	cross_origin_iframe.setAttribute("src", cross_origin_url);
+	document.body.appendChild(cross_origin_iframe);
+    </script>
+</body>

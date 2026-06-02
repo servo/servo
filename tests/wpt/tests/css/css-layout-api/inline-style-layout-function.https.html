@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#valdef-display-layout">
+<meta name="assert" content="This test checks that a layout() function is parses and serializes correctly from inline style." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=test1></div>
+<div id=test2></div>
+<div id=test3></div>
+<script>
+test(function() {
+  const test1 = document.getElementById('test1');
+  assert_equals(test1.style.display, '');
+
+  test1.style.display = 'layout(test1)';
+  assert_equals(test1.style.display, 'layout(test1)');
+});
+
+test(function() {
+  const test2 = document.getElementById('test2');
+  assert_equals(test2.style.display, '');
+
+  // layout() should fail to parse.
+  test2.style.display = 'layout()';
+  assert_equals(test2.style.display, '');
+});
+
+test(function() {
+  const test3 = document.getElementById('test3');
+  assert_equals(test3.style.display, '');
+
+  // layout(test3, invalid) should fail to parse.
+  test3.style.display = 'layout(test3, invalid)';
+  assert_equals(test3.style.display, '');
+});
+</script>

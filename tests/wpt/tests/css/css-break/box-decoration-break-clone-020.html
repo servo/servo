@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<meta name="assert" content="Cloned box decorations on flex container with item with forced break in column flow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="display:flex; flex-flow:column; box-decoration-break:clone; border:solid green; border-width:20px 0 10px; background:green;">
+    <div style="height:20px;"></div>
+    <div style="break-before:column; height:70px;"></div>
+  </div>
+</div>

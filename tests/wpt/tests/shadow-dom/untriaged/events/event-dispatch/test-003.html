@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_05_05_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#event-path-trimming">
+<meta name="assert" content="Event Path Trimming: In cases where both relatedTarget and target of a trusted event are part of the same shadow tree, the conforming UAs must stop events at the shadow root to avoid the appearance of spurious mouseover and mouseout events firing from the same node.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_05_03_T01 = async_test('A_05_05_03_T01');
+
+A_05_05_03_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.setAttribute('id', 'host');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+    s.id = 'shadow';
+
+    var input1 = d.createElement('input');
+    input1.setAttribute('id', 'input1');
+    s.appendChild(input1);
+
+    var input2 = d.createElement('input');
+    input2.setAttribute('id', 'input2');
+    s.appendChild(input2);
+
+    input1.addEventListener('focusin', A_05_05_03_T01.step_func(function(event) {
+        assert_equals(event.composed, true);
+        assert_equals(event.composedPath().length, 7);
+        assert_equals(event.composedPath()[0].id, 'input1');
+        assert_equals(event.composedPath()[1].id, 'shadow');
+        assert_equals(event.composedPath()[2].id, 'host');
+        assert_equals(event.composedPath()[3].tagName, 'BODY');
+        assert_equals(event.composedPath()[4].tagName, 'HTML');
+        assert_equals(event.composedPath()[5], d);
+        assert_equals(event.composedPath()[6], ctx.iframes[0].contentWindow);
+    }), false);
+
+    input1.addEventListener('focusout',  A_05_05_03_T01.step_func(function(event) {
+        assert_equals(event.composed, true);
+    }), false);
+
+    input2.addEventListener('focusin', A_05_05_03_T01.step_func(function(event) {
+        assert_equals(event.composedPath().length, 2);
+        assert_equals(event.composedPath()[0].id, 'input2');
+        assert_equals(event.composedPath()[1].id, 'shadow');
+        A_05_05_03_T01.done();
+    }), false);
+
+    // Expected event path for #input1:
+    // <input>, #shadow-root, <div>, <body>, <html>, #document, window
+    input1.focus();
+
+    // Causes a "focusin" event, from #input1 to #input2
+    // In this case, original relatedTarget is #input1, and original target
+    // is #input2.
+    // It should be viewed outside the shadow as "target == relatedTarget"
+    // after event retargeting, therefore, event.composedPath() above the shadow
+    // host will be trimmed.
+    // Expected event path for #input2:
+    // <input>, #shadow-root
+    input2.focus();
+}));
+</script>
+</body>
+</html>

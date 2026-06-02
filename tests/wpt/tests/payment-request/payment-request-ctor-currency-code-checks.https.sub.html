@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test currency code usage in PaymentRequest Constructor</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#constructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const defaultMethods = [
+  Object.freeze({
+    supportedMethods: "https://{{domains[nonexistent]}}",
+  }),
+];
+const defaultAmount = Object.freeze({
+  currency: "USD",
+  value: "1.00",
+});
+const defaultTotal = Object.freeze({
+  label: "Total",
+  amount: defaultAmount,
+});
+
+const defaultDetails = Object.freeze({
+  total: Object.freeze({
+    label: "",
+    amount: defaultAmount,
+  }),
+});
+
+// The following are the same set of valid/invalid codes that are used in
+// the ECMAScript Internationalization API Specification (ECMA-402) test suite.
+const wellFormedCurrencyCodes = [
+  "BOB",
+  "EUR",
+  "usd", // currency codes are case-insensitive
+  "XdR",
+  "xTs",
+];
+
+const invalidCurrencyCodes = [
+  "",
+  "€",
+  "$",
+  "SFr.",
+  "DM",
+  "KR₩",
+  "702",
+  "ßP",
+  "ınr",
+];
+
+const RANGE_ERROR = RangeError;
+
+const invalidAmount = Object.freeze({
+  currency: "¡INVALID!",
+  value: "1.00",
+});
+
+const invalidTotal = {
+  total: {
+    label: "Invalid total",
+    amount: invalidAmount,
+  },
+};
+
+// Ensure we don't get false positives
+function smokeTest() {
+  new PaymentRequest(defaultMethods, invalidTotal);
+}
+
+// Process the total:
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const validCurrency of wellFormedCurrencyCodes) {
+    const amount = {
+      currency: validCurrency,
+      value: "1.00",
+    };
+    const total = {
+      label: "Total",
+      amount,
+    };
+    const details = {
+      total,
+    };
+    try {
+      new PaymentRequest(defaultMethods, details);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected exception for details.total.amount "${validCurrency}": ${err.message}`
+      );
+    }
+  }
+}, "Check and canonicalize valid details.total.amount");
+
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const invalidCurrency of invalidCurrencyCodes) {
+    const amount = {
+      currency: invalidCurrency,
+      value: "1.00",
+    };
+    const total = {
+      label: "Total",
+      amount,
+    };
+    const details = {
+      total,
+    };
+    assert_throws_js(
+      RANGE_ERROR,
+      () => {
+        new PaymentRequest(defaultMethods, details);
+      },
+      `Expected RangeError for details.total.amount given ("${invalidCurrency}").`
+    );
+  }
+}, "Check and canonicalize invalid details.total.amount and rethrow any exceptions.");
+
+// If the displayItems member of details is present, then for each item in details.displayItems:
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  const displayItems = [];
+  for (const validCurrency of wellFormedCurrencyCodes) {
+    const amount = {
+      currency: validCurrency,
+      value: "123",
+    };
+    const displayItem = {
+      amount,
+      label: "valid currency",
+    };
+    const details = {
+      total: defaultTotal,
+      displayItems: [displayItem],
+    };
+    try {
+      new PaymentRequest(defaultMethods, details);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected error with displayItem that had a valid currency "${validCurrency}": ${err.message}`
+      );
+    }
+    displayItems.push(displayItem);
+  }
+  // Let's make sure it doesn't throw given a list of valid displayItems
+  try {
+    const details = Object.assign({}, defaultDetails, { displayItems });
+    new PaymentRequest(defaultMethods, details);
+  } catch (err) {
+    assert_unreached(
+      `Unexpected error with multiple valid displayItems: ${err.message}`
+    );
+  }
+}, "Check and canonicalize valid details.displayItems amount");
+
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const invalidCurrency of invalidCurrencyCodes) {
+    const amount = {
+      currency: invalidCurrency,
+      value: "123",
+    };
+    const displayItem = {
+      amount,
+      label: "invalid currency",
+    };
+    const details = {
+      total: defaultTotal,
+      displayItems: [displayItem],
+    };
+    assert_throws_js(
+      RANGE_ERROR,
+      () => {
+        new PaymentRequest(defaultMethods, details);
+      },
+      `Expected RangeError with invalid displayItem currency "${invalidCurrency}".`
+    );
+  }
+}, "Check and canonicalize invalid details.displayItems amount and rethrow RangeError.");
+
+// Process shipping options:
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  const shippingOptions = [];
+  for (const validCurrency of wellFormedCurrencyCodes) {
+    const shippingOption = {
+      id: `test` + Math.random(),
+      label: "shipping option",
+      amount: { currency: validCurrency, value: "5.00" },
+      selected: !shippingOptions.length,
+    };
+    const details = {
+      total: defaultTotal,
+      shippingOptions: [shippingOption],
+    };
+    try {
+      new PaymentRequest(defaultMethods, details, { requestShipping: true });
+    } catch (err) {
+      assert_unreached(
+        `Unexpected exception with valid shippingOption currency code "${validCurrency}": ${err.message}.`
+      );
+    }
+    shippingOptions.push(shippingOption);
+  }
+  try {
+    const details = Object.assign({}, defaultDetails, { shippingOptions });
+    new PaymentRequest(defaultMethods, details, { requestShipping: true });
+  } catch (err) {
+    assert_unreached(
+      `Unexpected error with multiple valid shppingOptions: ${err.message}.`
+    );
+  }
+}, "Check and canonicalize valid details.shippingOptions amount.");
+
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const invalidCurrency of invalidCurrencyCodes) {
+    const shippingOption = {
+      id: "test",
+      label: "shipping option",
+      amount: { currency: invalidCurrency, value: "5.00" },
+      selected: true,
+    };
+    const details = {
+      total: defaultTotal,
+      shippingOptions: [shippingOption],
+    };
+    assert_throws_js(
+      RANGE_ERROR,
+      () => {
+        new PaymentRequest(defaultMethods, details, { requestShipping: true });
+      },
+      `Expected RangeError with invalid shippingOption currency code "${invalidCurrency}".`
+    );
+  }
+}, "Check and canonicalize invalid details.shippingOptions amount and rethrow RangeError.");
+
+// Process payment details modifiers:
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const validCurrency of wellFormedCurrencyCodes) {
+    const modifier = {
+      supportedMethods: "https://{{domains[nonexistent]}}",
+      total: {
+        label: "Total due",
+        amount: { currency: validCurrency, value: "68.00" },
+      },
+    };
+    const details = {
+      total: defaultTotal,
+      modifiers: [modifier],
+    };
+    try {
+      new PaymentRequest(defaultMethods, details);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected error with valid modifier currency code "${validCurrency}": ${err.message}`
+      );
+    }
+  }
+}, "Check and canonicalize valid modifiers[n].total amount.");
+
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const invalidCurrency of invalidCurrencyCodes) {
+    const modifier = {
+      supportedMethods: "https://{{domains[nonexistent]}}",
+      total: {
+        label: "Total due",
+        amount: { currency: invalidCurrency, value: "68.00" },
+      },
+    };
+    const details = {
+      total: defaultTotal,
+      modifiers: [modifier],
+    };
+    assert_throws_js(
+      RANGE_ERROR,
+      () => {
+        new PaymentRequest(defaultMethods, details);
+      },
+      `Expected RangeError with invalid modifier currency code "${invalidCurrency}".`
+    );
+  }
+}, "Check and canonicalize invalid modifiers[n].total amount and rethrow RangeError.");
+
+// Process payment details modifiers:
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const validCurrency of wellFormedCurrencyCodes) {
+    const additionalItem = {
+      label: "additionalItem",
+      amount: { currency: validCurrency, value: "3.00" },
+    };
+    const modifier = {
+      supportedMethods: "https://{{domains[nonexistent]}}",
+      total: defaultTotal,
+      additionalDisplayItems: [additionalItem],
+    };
+    const details = {
+      total: defaultTotal,
+      modifiers: [modifier],
+    };
+    try {
+      new PaymentRequest(defaultMethods, details);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected error with valid additionalDisplayItems[n] currency code "${validCurrency}": ${err.message}`
+      );
+    }
+  }
+}, "Check and canonicalize valid modifiers[n].additionaDisplayItem amount.");
+
+test(() => {
+  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
+  for (const invalidCurrency of invalidCurrencyCodes) {
+    const additionalItem = {
+      label: "additionalItem",
+      amount: { currency: invalidCurrency, value: "3.00" },
+    };
+    const modifier = {
+      supportedMethods: "https://{{domains[nonexistent]}}",
+      total: defaultTotal,
+      additionalDisplayItems: [additionalItem],
+    };
+    const details = {
+      total: defaultTotal,
+      modifiers: [modifier],
+    };
+    assert_throws_js(
+      RANGE_ERROR,
+      () => {
+        new PaymentRequest(defaultMethods, details);
+      },
+      `Expected RangeError with invalid additionalDisplayItems[n] currency code "${invalidCurrency}".`
+    );
+  }
+}, "Check and canonicalize invalid modifiers[n].additionaDisplayItem amount and rethrow RangeError.");
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: paint' and clipping at padding edge</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-paint">
+  <link rel="match" href="reference/contain-paint-047-ref.html">
+
+  <meta content="This test checks that an element with 'contain: paint' that has its content overflowing will clip at padding edge." name="assert">
+
+
+  <style>
+  div
+    {
+      color: green;
+      contain: paint;
+      font-family: monospace;
+      font-size: 100px;
+      width: 4ch;
+    }
+
+  span
+    {
+      background-color: red;
+      color: yellow;
+    }
+  </style>
+
+  <p>Test passes if there is <strong>no red</strong>.
+
+  <div>PASS<span>FAIL</span></div>
+

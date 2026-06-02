@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Construction of Web Workers is deferred</title>
+<script src="utils.js"></script>
+<body>
+<script type="module">
+
+const bc = new PrerenderChannel('test-channel');
+const worker = new Worker('worker-post-timeOrigin.js');
+worker.onerror = e => bc.postMessage('Fail');
+await new Promise(resolve => worker.onmessage = resolve);
+bc.postMessage('Success');
+
+</script>
+</body>
+</html>

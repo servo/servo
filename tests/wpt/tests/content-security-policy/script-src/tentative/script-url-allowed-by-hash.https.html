@@ -1,0 +1,229 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Scripts should be allowed if a matching URL hash is present</title>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'c'></script>
+  <script src='support/util.js' nonce='abc'></script>
+</head>
+
+<body>
+  <script>
+    const { ORIGIN, REMOTE_ORIGIN } = get_host_info();
+    const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
+    const dynamicScriptUrl = new URL("./support/add_dynamic_script.js", document.location).toString();
+    const redirectUrl = new URL("/common/redirect.py?location=" + scriptUrl, document.location).toString();
+
+    // This is the hash of the string 'foo.js':
+    const wrongHash = "LJVNbdCJGjP5027dMuLOQeMEiDI8JvMr5zMiXqW5tzs=";
+
+    function get_iframe_url(test_type, policy, script_url) {
+      return test_type == "header" ?
+        `support/iframe.sub.html?pipe=header(Content-Security-Policy,${policy})&script_url=${script_url}`:
+        `support/iframe_meta.sub.html?policy=${policy}&script_url=${script_url}`;
+    }
+
+    function get_iframe_url_with_inline_script(test_type, policy) {
+      return test_type == "header" ?
+        `support/iframe_inline.sub.html?pipe=header(Content-Security-Policy,${policy})`:
+        `support/iframe_inline_meta.sub.html?policy=${policy}`;
+    }
+
+    function get_iframe_url_in_child_dir(test_type, policy, script_url) {
+      return test_type == "header" ?
+        `support/child_dir/iframe.sub.html?pipe=header(Content-Security-Policy,${policy})&script_url=${script_url}`:
+        `support/child_dir/iframe_meta.sub.html?policy=${policy}&script_url=${script_url}`;
+    }
+
+    for (let test_type of ["header", "metatag"]) {
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src should allow script by its url hash - " + test_type);
+
+      promise_test(async t => {
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${wrongHash}' ${ORIGIN} ${REMOTE_ORIGIN}`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'CSP_VIOLATION');
+      }, "A parseable url-hash should ignore hostname allowlists - " + test_type);
+
+      // TODO(crbug.com/414459670): Add a test with an invalid url-hash.
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        const policy = `default-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "default-src should allow script by its url hash - " + test_type);
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        const policy = `script-src-elem 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src-elem should allow script by its url hash - " + test_type);
+
+      promise_test(async t => {
+        // externalScript.js isn't allowlisted:
+        const dynamicScriptUrlHash = await sha256ofURL(dynamicScriptUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${dynamicScriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'add_dynamic_script.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'CSP_VIOLATION');
+      }, "url hashes should not allow dynamically inserted script transitively - " + test_type);
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        const dynamicScriptUrlHash = await sha256ofURL(dynamicScriptUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${dynamicScriptUrlHash}' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'add_dynamic_script.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "url hashes should allow dynamically inserted script if allowlisted - " + test_type);
+
+      promise_test(async t => {
+        // externalScript.js isn't explicitly allowlisted but it should be allowed:
+        const redirectUrlHash = await sha256ofURL(redirectUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${redirectUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, redirectUrl);
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "url hashes should allow redirected scripts - " + test_type);
+
+      // Tests for strict-dynamic-url keyword:
+
+      promise_test(async t => {
+        // add_dynamic_script.js isn't allowlisted but strict-dynamic-url should allow it:
+        const dynamicScriptUrlHash = await sha256ofURL(dynamicScriptUrl);
+        const policy = `script-src 'nonce-forinlinescript' 'strict-dynamic-url' 'url-sha256-${dynamicScriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'add_dynamic_script.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "dynamically inserted parser-inserted script should be allowed if strict-dynamic-url is present - " + test_type);
+
+      promise_test(async t => {
+        // externalScript.js isn't allowlisted but strict-dynamic-url should allow it:
+        const scriptUrlHash = await sha256ofURL(scriptUrl);
+        // This is the hash of the inline script that dynamically inserts externalScript.js.
+        const inlineScriptHash = "F8UqObF6TSi2W4dDcDzAOAplJkYovBE6JpJjsZJy5HA=";
+        const policy = `script-src 'nonce-forinlinescript' 'strict-dynamic-url' 'sha256-${inlineScriptHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url_with_inline_script(test_type, policy);
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "dynamically inserted script inserted by an inline script should be allowed if strict-dynamic-url is present - " + test_type);
+
+      // Relative URL tests:
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL("externalScript.js");
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src should allow script by its relative url's hash - " + test_type);
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL("child_dir/externalScript.js");
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'child_dir/externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src should allow script by its relative url's hash in child directory - " + test_type);
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL("./externalScript.js");
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'CSP_VIOLATION');
+      }, "script-src should disallow script with incorrect relative url hash - " + test_type);
+
+      // Relative URL tests with iframes in support/child_dir.
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL("externalScript.js");
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url_in_child_dir(test_type, policy, 'externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src should allow script by its relative url's hash in an iframe in child dir - " + test_type);
+
+      promise_test(async t => {
+        const scriptUrlHash = await sha256ofURL("../externalScript.js");
+        const policy = `script-src 'nonce-forinlinescript' 'url-sha256-${scriptUrlHash}'`
+
+        let frame = document.createElement('iframe');
+        frame.src = get_iframe_url_in_child_dir(test_type, policy, '../externalScript.js');
+        document.body.appendChild(frame);
+
+        const msgEvent = await new Promise(resolve => window.onmessage = resolve);
+        assert_equals(msgEvent.data, 'SCRIPT_RAN');
+      }, "script-src should allow script in parent dir by its relative url's hash in an iframe in child dir - " + test_type);
+
+    }
+
+  </script>
+</body>
+
+</html>

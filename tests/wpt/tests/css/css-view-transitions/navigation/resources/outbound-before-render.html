@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+  <style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<script id="blocker" async src="common.js?pipe=trickle(d10)" blocking="render"></script>
+<script src="/resources/testharness.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const bc_channel = new BroadcastChannel(params.get("channel"));
+
+window.addEventListener("pagereveal", e => {
+  if (params.get("phase") === "old") {
+    bc_channel.postMessage(`did reveal old page`);
+  } else {
+    bc_channel.postMessage(`did reveal new page ${e.viewTransition ? "with" : "without"} transition`);
+  }
+});
+
+if (params.get("phase") === "new") {
+  document.getElementById("blocker").remove();
+} else {
+  step_timeout(() => {
+    location.href = `?phase=new&channel=${bc_channel.name}`;
+  }, 100);
+}
+</script>
+</head>
+
+<body>
+  Content
+</body>

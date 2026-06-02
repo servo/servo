@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inline image element blocks load</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var img_loaded = false;
+</script>
+<img src="/images/blue.png?pipe=trickle(d2)" onload="img_loaded = true;">
+<script>
+test(function() {
+  assert_false(img_loaded);
+}, "script execution doesn't wait for the image to load");
+
+async_test(function(t) {
+  document.addEventListener("DOMContentLoaded", t.step_func_done(function() {
+    assert_false(img_loaded);
+  }));
+}, "DOMContentLoaded doesn't wait for images");
+
+async_test(function(t) {
+  window.addEventListener("load", t.step_func_done(function() {
+    assert_true(img_loaded);
+  }));
+}, "Image element delays window's load event");
+</script>

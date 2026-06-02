@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.6-collectionRightsValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Collection Collection has one or more values for the rights key that are not strings of format uri.",
+  "title": "If present the Annotation Collection Collection-level **_rights_ key** has values that are all **strings of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+  "description": "True when no Annotation Collection Collection rights key present or when all values of rights key are strings of format uri (Section 3.3.6)",
+  "type": "object",
+  "allOf": [
+  { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" }
+  ]
+}

@@ -1,0 +1,363 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "8286410671712e636f6d847a514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30533f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38510e656e2d55532c656e3b713d302e3590400a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "qq.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "8286410e6d6174312e6774696d672e636f6d041f2f7777772f696d616765732f7171323031322f666f6c6c6f776d652e706e67c25321696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35c190c07312687474703a2f2f7777772e71712e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/followme.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "8286c0041f2f7777772f696d616765732f7171323031322f736f736f6c6f676f2e706e67c4bfc290c1be",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/sosologo.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "8286c0042a2f7777772f696d616765732f7171323031322f666573746976616c2f646131387365617263682e706e67c4bfc290c1be",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/festival/da18search.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "8286c0042c2f7777772f696d616765732f7171323031322f666573746976616c2f64613138626f6479626730352e706e67c4bfc290c1be",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/festival/da18bodybg05.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "8286c004232f7777772f696d616765732f7171323031322f6c6f67696e616c6c5f312e322e706e67c4bfc290c1be",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/loginall_1.2.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "8286c004262f7777772f696d616765732f7171323031322f61696b616e4c6f6164696e67312e312e676966c4bfc290c1be",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/aikanLoading1.1.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "8286c004192f6a6f6b652f4b6f616c612f5166617374312e302e312e6a73c453032a2f2ac390c2bf",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/joke/Koala/Qfast1.0.1.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "8286c104212f7777772f696d616765732f7171323031322f6d6f62696c654e6577732e706e67c5c0c390c2bf",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mat1.gtimg.com"
+                },
+                {
+                    ":path": "/www/images/qq2012/mobileNews.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "8286410e696d67312e6774696d672e636f6d04252f762f706963732f6876312f3234312f3131372f313138362f37373134393732362e6a7067c6c1c490c3c0",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "img1.gtimg.com"
+                },
+                {
+                    ":path": "/v/pics/hv1/241/117/1186/77149726.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.qq.com/"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Linear - static table=yes, header table=yes, huffman=no"
+}

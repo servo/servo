@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Reference: Test the percentage resolution of a child in a flex item that has an indefinite main size</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  .container {
+    display: inline-block;
+    width: 100px;
+    vertical-align: top;
+  }
+
+  .item {
+    height: 200px;
+    background: red;
+    width: 100px;
+  }
+
+  .child {
+    background: green
+  }
+
+  .tall {
+    height: 250px;
+  }
+  </style>
+
+  <p>You should not see any red (except perhaps as the background of a vertical scrollbar)</p>
+
+  <div class="container">
+    <div class="item" style="overflow:hidden">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:auto">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:scroll">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:visible">
+      <div class="child" >
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Test: :focus-visible always match on text inputs</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+<meta name="assert" content="This test checks that even if the active element does not match ':focus-visible' and a script causes focus to move into a text input, the text input should  match ':focus-visible'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @supports not selector(:focus-visible) {
+    :focus {
+      outline: red solid 5px;
+      background-color: red;
+    }
+  }
+
+  div:focus-visible {
+    background: red;
+  }
+
+  div:focus:not(:focus-visible) {
+    background-color: lime;
+  }
+
+  input:focus-visible {
+    background: lime;
+  }
+
+  input:focus:not(:focus-visible) {
+    background-color: red;
+  }
+</style>
+
+<div id="initial" tabindex="0">Initial</div>
+<input id="target" />
+
+<script>
+  setup({ explicit_done: true });
+
+  async_test(function(t) {
+    initial.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(initial).backgroundColor, "rgb(0, 255, 0)", `backgroundColor for ${initial.tagName}#${initial.id} should be lime`);
+      target.focus();
+    }));
+
+    target.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 255, 0)", `backgroundColor for ${target.tagName}#${target.id} should be lime`);
+      t.done();
+    }));
+
+    test_driver.click(initial).then(() => done());
+  }, ":focus-visible always match on text inputs");
+</script>
+

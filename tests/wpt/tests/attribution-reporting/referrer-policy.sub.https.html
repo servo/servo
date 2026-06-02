@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<meta name=variant content="?method=a">
+<meta name=variant content="?method=a&noreferrer">
+<meta name=variant content="?method=img">
+<meta name=variant content="?method=img&noreferrer">
+<meta name=variant content="?method=open">
+<meta name=variant content="?method=open&noreferrer">
+<meta name=variant content="?method=script">
+<meta name=variant content="?method=script&noreferrer">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body>
+<script>
+const waitForRequest = async () => {
+  const url = blankURL();
+  url.searchParams.set('get-requests', 'true');
+
+  for (let i = 0; i < 20; i++) {
+    const resp = await fetch(url);
+    const payload = await resp.json();
+    if (payload !== null && payload.length > 0) {
+      return payload;
+    }
+    await delay(100);
+  }
+  throw new Error('Timeout polling requests');
+};
+
+const searchParams = new URLSearchParams(location.search);
+
+promise_test(async t => {
+  const noreferrer = searchParams.has('noreferrer');
+
+  registerAttributionSrc({
+    method: 'variant',
+    extraQueryParams: {'store-request': 'true'},
+    referrerPolicy: noreferrer ? 'no-referrer' : '',
+  });
+
+  const requests = await waitForRequest();
+  assert_equals(requests.length, 1);
+
+  if (noreferrer) {
+    assert_not_own_property(requests[0], 'referer');
+  } else {
+    assert_own_property(requests[0], 'referer');
+    assert_equals(requests[0].referer, location.toString());
+  }
+
+}, 'attributionsrc referrer policy is propagated.');
+</script>

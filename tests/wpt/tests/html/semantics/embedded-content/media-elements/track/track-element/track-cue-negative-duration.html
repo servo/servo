@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Enter, Exit events for a cue with negative duration</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+  <script>
+  async_test(function(t) {
+    var video = document.querySelector("video");
+    var track = video.addTextTrack("subtitles");
+
+    // Add a cue with negative duration.
+    var cue = new VTTCue(1, -10, "Sausage?");
+    track.addCue(cue);
+    assert_equals(track.cues.length, 1);
+
+    // Verify that enter and exit events are fired.
+    var enterEvent = false;
+    cue.onenter = t.step_func(function() {
+      enterEvent = true;
+    });
+    cue.onexit = t.step_func_done(function() {
+      assert_true(enterEvent);
+    });
+
+    video.src = getVideoURI("/media/test");
+    video.play();
+  });
+  </script>
+</video>

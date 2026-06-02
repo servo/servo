@@ -1,0 +1,34 @@
+<!doctype html>
+<title>HTML Test: Browsing context name - _top (current is top)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<div id="log"></div>
+<script>
+var prefixedStorage;
+setup (() => prefixedStorage = new PrefixedLocalStorageTest());
+
+async_test(t => {
+  t.add_cleanup(() => prefixedStorage.cleanup());
+
+  var testFunc = (function (t) {
+    var completed = 0;
+    var testCount = 2;
+    return function (actual, expected) {
+      assert_equals(actual, expected);
+      if (++completed >= testCount) {
+        t.done();
+      }
+    }
+  }(t));
+
+  prefixedStorage.onSet('isTop', t.step_func(e => {
+    testFunc(e.newValue, 'true');
+  }));
+  prefixedStorage.onSet('name', t.step_func(e => {
+    testFunc(e.newValue, 'topWin1');
+  }));
+
+  window.open(prefixedStorage.url('resources/open-in-_top.html'), '_blank');
+}, 'Should choose current browsing context for "_top" if current is top');
+</script>

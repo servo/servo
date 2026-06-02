@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>object element containing param element specifying a URL</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+<style>
+  div {
+    width:300px;
+    height:80px;
+    border:1px solid black;
+    margin: 5px;
+    overflow: hidden;
+  }
+</style>
+<body>
+<script>
+const smallPdf = 'JVBERi0xLjIgCjkgMCBvYmoKPDwKPj4Kc3RyZWFtCkJULyA5IFRmKFRlc3QpJyBFVAplbmRzdHJlYW0KZW5kb2JqCjQgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCA1IDAgUgovQ29udGVudHMgOSAwIFIKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0tpZHMgWzQgMCBSIF0KL0NvdW50IDEKL1R5cGUgL1BhZ2VzCi9NZWRpYUJveCBbIDAgMCA5OSA5IF0KPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1BhZ2VzIDUgMCBSCi9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iagp0cmFpbGVyCjw8Ci9Sb290IDMgMCBSCj4+CiUlRU9G';
+const dataUrl = `data:application/pdf;base64,${smallPdf}`;
+
+function addOne(html) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  const objectElement = wrapper.querySelector('object');
+  document.body.appendChild(wrapper);
+}
+
+// This should be one <object> that loads a PDF, and the rest that don't.
+addOne(`<object data=${dataUrl}></object>`);
+addOne(`<object></object>`);
+addOne(`<object></object>`);
+addOne(`<object></object>`);
+addOne(`<object></object>`);
+addOne(`<object></object>`);
+
+// Not a great way to tell when any <object> that might load has loaded.
+setTimeout(() => document.documentElement.classList.remove("reftest-wait"),2000);
+
+</script>

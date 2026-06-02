@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test inline size against percentage</title>
+<style>
+#container {
+    width: 500px;
+    height: 500px;
+    background: white;
+}
+#container > div {
+    display: flex;
+    background: red;
+}
+#container > div > div {
+    background: green;
+}
+#flex-container0 {
+    flex-direction: column;
+    height: 20%;
+    width: 10%;
+}
+#flex-item0 {
+    width: 10%;
+}
+#flex-container1 {
+    flex-direction: row;
+    height: 20%;
+    width: 10%;
+}
+#flex-item1 {
+    width: 10%;
+    background: green;
+}
+</style>
+    </head>
+    <body>
+        <div id="container">
+            <div id="flex-container0">
+                <div id="flex-item0">
+                </div>
+            </div>
+            <div id="flex-container1">
+                <div id="flex-item1">
+                </div>
+            </div>
+        </div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var flex_container0 = document.getElementById("flex-container0");
+    var flex_item0 = document.getElementById("flex-item0");
+
+    var flex_container1 = document.getElementById("flex-container1");
+    var flex_item1 = document.getElementById("flex-item1");
+
+    assert_equals(flex_container0.clientWidth, 50);
+    assert_equals(flex_item0.clientWidth, 5);
+
+    assert_equals(flex_container1.clientWidth, 50);
+    assert_equals(flex_item1.clientWidth, 5);
+});
+</script>
+</body>
+</html>

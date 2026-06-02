@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Anchor in RTL</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/454646303">
+<style>
+  .anchored {
+    position: absolute;
+    inset-inline-start: anchor(self-start);
+    inset-block-start: anchor(self-end);
+    width: 100px;
+    height: 50px;
+    background: green;
+  }
+  .ib {
+    display: inline-block;
+    width: 100px;
+    height: 50px;
+  }
+</style>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div dir="rtl" style="width:200px;">
+    <div class="ib"></div><div class="ib" style="anchor-name:--a; background:green;"></div>
+    <div class="anchored" style="position-anchor:--a;"></div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Set location.pathname to ?</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe src=/common/blank.html></iframe>
+<script>
+async_test((t) => {
+  onload = t.step_func(() => {
+    self[0].frameElement.onload = t.step_func_done(() => {
+      assert_equals(self[0].location.pathname, "/%3F")
+    })
+    self[0].location.pathname = "?"
+  })
+})
+</script>

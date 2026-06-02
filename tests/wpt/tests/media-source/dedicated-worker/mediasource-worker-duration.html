@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<title>Test MediaSource-in-Worker duration updates before and after HAVE_METADATA</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<body>
+<script>
+
+function awaitDuration(t, video, worker, requestingMessage, expectedDuration) {
+  let durationAwaiter = t.step_func(() => {
+    if ((!Number.isNaN(expectedDuration) && video.duration === expectedDuration) ||
+        (Number.isNaN(expectedDuration) && Number.isNaN(video.duration))) {
+      worker.postMessage({ subject: messageSubject.ACK_VERIFIED, info: requestingMessage });
+      return;
+    }
+
+    // Otherwise, wait for one or more 'durationchange' events to see if video
+    // eventually has the expectedDuration.
+    video.addEventListener('durationchange', durationAwaiter, { once: true });
+  });
+
+  durationAwaiter();
+}
+
+async_test(t => {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  const video = document.createElement("video");
+  document.body.appendChild(video);
+  video.onerror = t.unreached_func("video element error");
+  video.onended = t.unreached_func("video element ended");
+  assert_equals(video.duration, NaN, "initial video duration before attachment should be NaN");
+  assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING, "initial video readyState before attachment should be HAVE_NOTHING");
+
+  let worker = new Worker("mediasource-worker-duration.js");
+  worker.onerror = t.step_func(e => {
+    assert_unreached("worker error: [" + e.filename + ":" + e.lineno + ":" + e.colno + ":" + e.error + ":" + e.message + "]");
+  });
+  worker.onmessage = t.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject !== undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        assert_equals(video.duration, NaN, "initial video duration before attachment should still be NaN");
+        assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING,
+                      "initial video readyState before attachment should still be HAVE_NOTHING");
+        video.srcObject = handle;
+        break;
+      case messageSubject.VERIFY_DURATION:
+        assert_equals(video.duration, e.data.info, "duration should match expectation");
+        worker.postMessage({ subject: messageSubject.ACK_VERIFIED, info: e.data });
+        break;
+      case messageSubject.AWAIT_DURATION:
+        awaitDuration(t, video, worker, e.data, e.data.info);
+        break;
+      case messageSubject.VERIFY_HAVE_NOTHING:
+        assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING, "readyState should match expectation");
+        worker.postMessage({ subject: messageSubject.ACK_VERIFIED, info: e.data });
+        break;
+      case messageSubject.VERIFY_AT_LEAST_HAVE_METADATA:
+        assert_greater_than_equal(video.readyState, HTMLMediaElement.HAVE_METADATA, "readyState should match expectation");
+        worker.postMessage({ subject: messageSubject.ACK_VERIFIED, info: e.data });
+        break;
+      case messageSubject.WORKER_DONE:
+        // This test is a worker-driven set of verifications, and it will send
+        // this message when it is complete. See comment in the worker script
+        // that describes the phases of this test case.
+        assert_not_equals(video.srcObject, null, "test should at least have set srcObject.");
+        t.done();
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
+    }
+  });
+}, "Test worker MediaSource duration updates before and after HAVE_METADATA");
+
+</script>
+</body>
+</html>

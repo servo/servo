@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Scope view transitions run in parallel</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css">
+  .block {
+    background-color: blue;
+    position: relative;
+    height: 100px;
+    width: 100px;
+    margin: 50px;
+  }
+
+  #target1 {
+    view-transition-name: a;
+  }
+
+  #target2 {
+    view-transition-name: b;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*) {
+    animation: unset;
+  }
+
+  ::view-transition-old(*) {
+    opacity: 0;
+  }
+
+  @keyframes stylize {
+    from {
+      opacity: 0.5;
+    }
+    to {
+      opacity: 1.0;
+    }
+  }
+  ::view-transition-new(*) {
+    animation: stylize 1s paused;
+  }
+
+</style>
+<body>
+  <div id="target1" class="block"></div>
+  <div id="target2" class="block"></div>
+</body>
+<script type="text/javascript">
+
+  async function run_parallel_scoped_view_transition_test(
+      transition_update_callback,
+      message) {
+    promise_test(async t => {
+      const vt1 = target1.startViewTransition(() => {});
+      const vt2 = target2.startViewTransition(() => {});
+      await Promise.all([vt1.ready, vt2.ready]);
+
+      let list = document.getAnimations().map(a => {
+        return `${a.effect.pseudoElement}:${a.animationName}`;
+      });
+      let expected = [
+        '::view-transition-new(a):stylize',
+        '::view-transition-new(b):stylize'
+      ];
+      assert_array_equals(list, expected, 'Before callback');
+      assert_equals(
+        getComputedStyle(target1, "::view-transition-new(a)")
+                             .getPropertyValue("opacity"),
+                         "0.5");
+      assert_equals(
+        getComputedStyle(target2, "::view-transition-new(b)")
+                             .getPropertyValue("opacity"),
+                         "0.5");
+
+      transition_update_callback(vt1);
+      await vt1.finished.then(
+        () => {},
+        () => {
+          // The only case where the finished promise should not be resolved is
+          // when the DOM update callback returns a rejected promise.
+          assert_unreached('Finished promise should have been resolved');
+        });
+
+      list = document.getAnimations().map(a => {
+        return `${a.effect.pseudoElement}:${a.animationName}`;
+      });
+      assert_array_equals(list, [`::view-transition-new(b):stylize`],
+                          'After callback');
+      assert_equals(
+        getComputedStyle(target2, "::view-transition-new(b)")
+                             .getPropertyValue("opacity"),
+                         "0.5");
+    }, message);
+  }
+
+  run_parallel_scoped_view_transition_test(
+      (vt) => {
+        vt.skipTransition();
+      },
+      'Concurrent transition keeps running after transition skipped');
+
+  run_parallel_scoped_view_transition_test(
+      () => {
+        document.getAnimations().filter(a => {
+          return a.effect.target.id == 'target1';
+        }).forEach(a => {
+          a.finish();
+        });
+      }, 'Concurrent transition keeps running after transition finished');
+
+  run_parallel_scoped_view_transition_test(
+      () => {
+        document.getAnimations().filter(a => {
+          return a.effect.target.id == 'target1';
+        }).forEach(a => {
+          a.cancel();
+        });
+      }, 'Concurrent transition keeps running after transition canceled');
+</script>
+</html>

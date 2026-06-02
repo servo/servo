@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Geometry Properties: getComputedStyle().width</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#Sizing"/>
+    <h:link rel="help" href="https://drafts.csswg.org/css-sizing-3/#preferred-size-properties"/>
+    <h:link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values"/>
+  </metadata>
+  <rect id="target"></rect>
+  <style>
+    #target {
+      font-size: 40px;
+    }
+  </style>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("width", "10px");
+test_computed_value("width", "0.5em", "20px");
+test_computed_value("width", "calc(10px + 0.5em)", "30px");
+test_computed_value("width", "calc(10px - 0.5em)", "0px");
+test_computed_value("width", "40%", "320px");
+test_computed_value("width", "calc(50% + 1.5em)", "460px");
+
+test_computed_value("height", "10px");
+test_computed_value("height", "0.5em", "20px");
+test_computed_value("height", "calc(10px + 0.5em)", "30px");
+test_computed_value("height", "calc(10px - 0.5em)", "0px");
+test_computed_value("height", "40%", "320px");
+test_computed_value("height", "calc(50% + 1.5em)", "460px");
+
+test(() => {
+  const target = document.getElementById('target');
+  target.style.width = 'calc(50% + 1.5em)';
+  target.style.display = 'none';
+  assert_equals(getComputedStyle(target).width, 'calc(50% + 60px)');
+  target.style.width = '';
+  target.style.display = '';
+}, "resolved value is computed value when display is none");
+
+test(() => {
+  const target = document.getElementById('target');
+  target.style.height = 'calc(50% + 1.5em)';
+  target.style.display = 'none';
+  assert_equals(getComputedStyle(target).height, 'calc(50% + 60px)');
+  target.style.height = '';
+  target.style.display = '';
+}, "resolved value is computed value when display is contents");
+
+  ]]></script>
+}
+</svg>

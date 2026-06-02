@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test Reference File</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  @font-face
+    {
+      font-family: IcTestFullWidth;
+      src: url(/css/css-values/resources/IcTestFullWidth.woff2);
+    }
+
+  div
+    {
+      float: left;
+      font-family: IcTestFullWidth;
+      font-size: 80px; /* arbitrary font size */
+      line-height: 1.8; /* arbitrary line-height */
+      writing-mode: vertical-rl;
+    }
+
+  div#blue
+    {
+      background-color: blue;
+      color: blue;
+    }
+
+  div#orange
+    {
+      background-color: orange;
+      color: orange;
+    }
+  </style>
+
+  <p>Test passes if there is a blue rectangle with the <strong>same height</strong> as an orange rectangle.
+
+  <div id="blue">&#27700;&#27700;&#27700;&#27700;&#27700;</div>
+
+  <div id="orange">&#27700;&#27700;&#27700;&#27700;&#27700;</div>
+
+  <!--
+
+  水 (CJK water ideograph, U+6C34) glyph == &#27700;
+
+  水 (CJK water ideograph, U+6C34) glyph == &#x6C34;
+
+  -->

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Document.getElementsByName: liveness</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var input = document.createElement("input"),
+      embed = document.createElement("embed");
+  input.setAttribute("name", "test");
+  input.setAttribute("type", "text");
+  embed.setAttribute("name", "test");
+  document.body.appendChild(input);
+  this.add_cleanup(function() { document.body.removeChild(input) });
+  var e = document.getElementsByName("test");
+  assert_true(e instanceof NodeList);
+  assert_equals(e.length, 1);
+
+  document.body.appendChild(embed);
+  assert_equals(e.length, 2);
+
+  document.body.removeChild(embed);
+  assert_equals(e.length, 1);
+}, "Document.getElementsByName() should be a live collection");
+</script>

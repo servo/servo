@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that setting "onselectionchange" content attribute adds an event listener</title>
+<link rel="help" href="https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<div id="testElement" onselectionchange="window.handlerSetFromParserWasFired()"></div>
+<script>
+  promise_test(() => {
+    return new Promise(resolve => {
+      window.handlerSetFromParserWasFired = resolve;
+      testElement.dispatchEvent(new Event("selectionchange"));
+    });
+  }, "handler set from parser");
+
+  promise_test(() => {
+    const el = document.createElement("div");
+    el.setAttribute("onselectionchange", "window.handlerSetViaSetAttributeWasFired()");
+    document.body.append(el);
+
+    return new Promise(resolve => {
+      window.handlerSetViaSetAttributeWasFired = resolve;
+      el.dispatchEvent(new Event("selectionchange"));
+    });
+  }, "handler set via setAttribute()");
+</script>

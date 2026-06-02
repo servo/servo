@@ -1,0 +1,14 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return promise_rejects_dom(
+        t, 'NotFoundError',
+        window.navigator.bluetooth.requestDevice({
+            filters: [{name: '', services: [heart_rate.name] }]}));
+}, 'A named device is not matched by a filter with an empty name.');
+</script>

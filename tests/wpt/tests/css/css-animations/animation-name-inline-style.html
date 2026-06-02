@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target { color: red }
+@keyframes green {
+    from, to { color: green }
+}
+</style>
+<div id=target style="animation-duration: 1s"></div>
+<script>
+test(t => {
+    target.style.animationName = "none";
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    target.style.animationName = "green";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+}, "Animation starts when the name is mutated via inline style");
+</script>

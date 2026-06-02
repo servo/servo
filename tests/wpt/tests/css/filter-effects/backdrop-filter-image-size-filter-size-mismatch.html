@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta name=fuzzy content="maxDifference=0-6;totalPixels=0-8000">
+<title>backdrop-filter: image size / filter size mismatch</title>
+<link rel="author" href="mailto:clchambers@microsoft.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-image-size-filter-size-mismatch-ref.html">
+
+<div>
+  <p>This test passes if the blue rectangle appears only slightly blurry on both sides, and fails if there if there is any pronounced 'extra' blur or other artifacts on the far side of the filter.</p>
+</div>
+
+<style>
+    div#outer {
+        display: inline-block;
+        will-change: backdrop-filter;
+    }
+
+    div#inner {
+        width: 200px;
+        height: 200px;
+        background-color: blue;
+    }
+
+    div#filter {
+        width: 200%;
+        height: 100%;
+        backdrop-filter: blur(10px);
+        transform: translate(-25%, 0);
+    }
+</style>
+
+<div id="outer">
+  <div id="inner">
+    <div id="filter">
+    </div>
+  </div>
+</div>

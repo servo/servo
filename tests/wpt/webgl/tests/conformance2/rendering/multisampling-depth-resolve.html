@@ -1,0 +1,181 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL framebuffer to texture conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Test resolving multisample depth buffer");
+debug('Reduced test case for <a href="https://bugs.webkit.org/show_bug.cgi?id=238118">https://bugs.webkit.org/show_bug.cgi?id=238118</a>');
+
+// Reproduces an inconistent behavior where if:
+// 1) You render into a multisampling frame buffer
+// 2) Geometry is drawn with DEPTH_TEST disabled and then enabled
+// 3) More than one frame is rendered via requestAnimationFrame
+
+const size = 64;
+const halfSize = size / 2;
+
+let wtu = WebGLTestUtils;
+let canvas = document.getElementById("canvas");
+canvas.width = size;
+canvas.height = size;
+
+let gl = wtu.create3DContext("canvas", {}, 2);
+
+function createTexture(res, format, bytes) {
+    let texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, format, res, res);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return texture;
+}
+
+function createRenderBuffer(res, format, samples) {
+    let rb = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    if (samples > 1)
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, format, res, res);
+    else
+        gl.renderbufferStorage(gl.RENDERBUFFER, format, res, res);
+    return rb;
+}
+
+let yellowQuadVAO = gl.createVertexArray();
+gl.bindVertexArray(yellowQuadVAO);
+let yellowQuadProgram = wtu.setupColorQuad(gl, 0, { scale: 0.75 });
+
+let blueQuadVAO = gl.createVertexArray();
+gl.bindVertexArray(blueQuadVAO);
+let blueQuadProgram = wtu.setupColorQuad(gl, 0, { scale: 0.5 });
+
+let fsVAO = gl.createVertexArray();
+gl.bindVertexArray(fsVAO);
+let fsProgram = wtu.setupTexturedQuad(gl, 0, 1);
+gl.useProgram(fsProgram);
+let fsTexLoc = gl.getUniformLocation(fsProgram, "tex");
+gl.uniform1i(fsTexLoc, 0);
+
+// An incorrect render can occur if...
+
+// 1) You use renderbufferStorageMultisample.
+const msaaSamples = 4;
+const colorRB = createRenderBuffer(size, gl.RGBA8, msaaSamples);
+const depthRB = createRenderBuffer(size, gl.DEPTH_COMPONENT16, msaaSamples);
+const resolveTex = createTexture(size, gl.RGBA8);
+
+let renderFBO = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, renderFBO);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorRB);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRB);
+
+let resolveFBO = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, resolveFBO);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, resolveTex, 0);
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+gl.disable(gl.CULL_FACE);
+gl.disable(gl.BLEND);
+
+var frameCount = 0;
+function runTest() {
+    // 2) Render from requestAnimationFrame, only starting with the 2nd frame.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderFBO);
+
+    // Clear background red
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+    // 3) You disable gl.DEPTH_TEST
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+
+    gl.bindVertexArray(yellowQuadVAO);
+    gl.useProgram(yellowQuadProgram);
+    wtu.drawUByteColorQuad(gl, [ 255, 255, 0, 255 ]);
+
+    // 4) And re-enable gl.DEPTH_TEST
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(true);
+
+    gl.bindVertexArray(blueQuadVAO);
+    gl.useProgram(blueQuadProgram);
+    wtu.drawUByteColorQuad(gl, [ 0, 0, 255, 255 ]);
+
+    // Resolve the multisample framebuffer to a texture
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, renderFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, resolveFBO);
+    gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.0, 0.0, 0.0]);
+    gl.blitFramebuffer(0, 0, size, size,
+        0, 0, size, size,
+        gl.COLOR_BUFFER_BIT, gl.LINEAR);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    // Draw the resolved texture to the backbuffer
+    gl.bindTexture(gl.TEXTURE_2D, resolveTex);
+    gl.useProgram(fsProgram);
+    gl.bindVertexArray(fsVAO);
+    wtu.drawUnitQuad(gl);
+
+    // 5) The incorrect render can occur on the second rendered frame, called from
+    // requestAnimationFrame.
+    frameCount++;
+    if (frameCount == 2) {
+        checkRenderingResults("multisampling-depth-resolve");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors at the end of the test.");
+        finishTest();
+    } else {
+        requestAnimationFrame(runTest);
+    }
+}
+
+requestAnimationFrame(runTest);
+
+function checkRenderingResults(prefix) {
+    // Outer color should be red
+    wtu.checkCanvasRect(gl,
+                        1, 1,
+                        2, 2,
+                        [255, 0, 0, 255],
+                        prefix + ": outer pixels should be red");
+
+    // Outer quad should be rendered yellow.
+    wtu.checkCanvasRect(gl,
+                        10, 10,
+                        2, 2,
+                        [255, 255, 0, 255],
+                        prefix + ": outer quad should be yellow");
+
+    // Center quad should be rendered blue.
+    wtu.checkCanvasRect(gl,
+                        halfSize / 2 + 1, halfSize / 2 + 1,
+                        2, 2,
+                        [0, 0, 255, 255],
+                        prefix + ": center quad should be blue");
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

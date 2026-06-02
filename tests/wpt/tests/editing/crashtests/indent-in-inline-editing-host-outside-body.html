@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const samp = document.createElement("samp");
+  samp.innerText = "ABC";
+  samp.contentEditable = true;
+  document.documentElement.appendChild(samp);
+  getSelection().selectAllChildren(samp);
+  document.execCommand("indent");
+});
+</script>
+</head>
+<body>
+</body>
+</html>

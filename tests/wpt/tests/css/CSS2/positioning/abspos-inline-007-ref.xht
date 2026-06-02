@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>reference for abspos-inline-007</title>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+   .block-container {
+    font: 20px Ahem;
+    height: 20px;
+    position: relative;
+    top: -1px;
+   }
+   .inline-container {
+    position: relative;
+    border: 1px solid black;
+    display: inline-block;
+   }
+   .parent-block {
+    display: inline-block;
+    width: 30px;
+    height: 10px;
+   }
+   .abspos {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: green;
+    display: inline-block;
+    vertical-align: baseline;
+   }
+   .br {
+    right: 0;
+    bottom: 0;
+   }
+   .tl {
+    top: 0;
+    left: 0;
+   }
+   .filler {
+    display: inline-block;
+    width: 30px;
+    height: 10px;
+   }
+
+  </style>
+ </head>
+ <body>
+ <div class="block-container">
+   x
+    <div class="inline-container">
+     tl
+      <div class="abspos tl"></div>
+      <div class="parent-block"></div>
+      <div class="filler"></div>&nbsp;
+    </div>x
+    <div class="inline-container">
+     br
+      <div class="abspos br"></div>
+      <div class="parent-block"></div>
+      <div class="filler"></div>&nbsp;
+    </div>x
+    <div class="inline-container">
+      static
+      <div class="abspos" style="position:static"></div><div class="parent-block"></div>
+      <div class="filler" style="width: 20px;"></div>
+    </div>
+  </div>
+<p>Tests abspos positioning of an Element that 1) has an inline containing
+block, and 2) is not a child of the inline containing block, but a descendant.</p>
+ </body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Tests anchor positioned scrolling with fragmented containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+#multicol {
+  column-count: 3;
+  column-width: 90px;
+  column-gap: 10px;
+  width: 300px;
+  height: 100px;
+}
+
+#cb {
+  height: 300px;
+  background: yellow;
+  position: relative;
+}
+
+#spacer {
+  height: 110px;
+}
+
+#scroller {
+  overflow-y: scroll;
+  height: 80px;
+  background: blue;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 50px;
+  background: orange;
+  position: relative;
+  top: 80px;
+}
+
+#target {
+  position: absolute;
+  left: anchor(left);
+  bottom: anchor(top);
+  position-anchor: --a;
+  width: 50px;
+  height: 50px;
+  background: lime;
+}
+</style>
+
+<div id=multicol>
+  <div id=cb>
+    <div id=spacer></div>
+    <div id=scroller>
+      <div id=anchor></div>
+    </div>
+    <div id=target></div>
+  </div>
+</div>
+
+<script>
+promise_test(async () => {
+  scroller.scrollTop = 10;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  let targetRect = target.getBoundingClientRect();
+  assert_equals(targetRect.top, 30);
+}, 'Scrolling should work in fragmented containing block');
+</script>

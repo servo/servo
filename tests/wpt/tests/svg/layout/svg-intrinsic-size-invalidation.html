@@ -1,0 +1,30 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1730351">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#valdef-width-max-content">
+<link rel="match" href="svg-intrinsic-size-invalidation-ref.html">
+<style>
+#avatar {
+  width: 128px;
+  display: block;
+}
+#container {
+  width: max-content;
+  border: 10px solid green;
+}
+</style>
+<div id="ancestor">
+  <div id="container">
+    <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" id="avatar">
+      <rect height="100%" width="100%" fill="blue"></rect>
+    </svg>
+  </div>
+</div>
+<script>
+  onload = function() {
+    let avatar = document.getElementById("avatar");
+    let ancestor = document.getElementById("ancestor");
+    avatar.getBoundingClientRect();
+    avatar.style.maxWidth = "100px";
+    ancestor.style.padding = "10px";
+  }
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test forced colors mode on table styles</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-01-ref.html">
+<style>
+  table {
+    border-collapse: collapse;
+  }
+
+  td, th {
+    border: 1px solid;
+    border-bottom-color: black !important;
+    border-left-color: purple !important;
+    border-right-color: orange !important;
+    border-top-color: green !important;
+    padding: 8px;
+    text-align: left;
+  }
+
+  tr:nth-child(even) {
+    background-color: blue !important;
+    color: red !important;
+  }
+</style>
+<body>
+  <table>
+    <tr>
+      <th>Column1</th>
+      <th>Column2</th>
+      <th>Column3</th>
+    </tr>
+    <tr>
+      <td>Entry1</td>
+      <td>Entry1</td>
+      <td>Entry1</td>
+    </tr>
+    <tr>
+      <td>Entry2</td>
+      <td>Entry2</td>
+      <td>Entry2</td>
+    </tr>
+  </table>
+</body>

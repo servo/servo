@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-round invalid values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-round">
+<meta name="assert" content="Invalid values for block-step-round should not be parsed">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+    test_invalid_value("block-step-align", "up up");
+    test_invalid_value("block-step-align", "up down");
+    test_invalid_value("block-step-align", "up nearest");
+    test_invalid_value("block-step-align", "down down");
+    test_invalid_value("block-step-align", "down up");
+    test_invalid_value("block-step-align", "down nearest");
+    test_invalid_value("block-step-align", "nearest nearest");
+    test_invalid_value("block-step-align", "nearest up");
+    test_invalid_value("block-step-align", "nearest down");
+    test_invalid_value("block-step-align", "-1px");
+    test_invalid_value("block-step-align", "min-content");
+    test_invalid_value("block-step-align", "10%");
+    test_invalid_value("block-step-align", "20");
+    test_invalid_value("block-step-align", "none");
+    test_invalid_value("block-step-align", "border-box");
+    test_invalid_value('block-step-align', "margin");
+    test_invalid_value("block-step-align", "padding")
+    test_invalid_value("block-step-align", "content")
+</script>
+</body>
+</html>

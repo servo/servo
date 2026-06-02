@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with object-fit:none</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-fit-none-__NAME__-ref.html">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+.view_box_subset {
+  width: 50px;
+  height: 100px;
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: none;
+  background-color: grey;
+  margin: 5px;
+}
+
+.view_box_subset_with_position {
+  width: 50px;
+  height: 100px;
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: none;
+  background-color: grey;
+  margin: 5px;
+  object-position: 10px 10px;
+}
+</style>
+</body>
+<__TAG__ class="view_box_subset"></__TAG__>
+<__TAG__ class="view_box_subset_with_position"></__TAG__>
+</body>
+<script>
+  populateElements("__IMAGE_SOURCE__");
+</script>

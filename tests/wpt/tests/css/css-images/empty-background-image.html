@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Empty url shouldn't try to load a subresource.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#url-empty">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1302991">
+<style>
+@import url();
+@import url('');
+@import url("");
+</style>
+<div style="background-image: url()"></div>
+<div style="background-image: url('')"></div>
+<div style='background-image: url("")'></div>
+<script>
+let t = async_test("Empty url shouldn't try to load a subresource.");
+onload = t.step_func_done(function() {
+  for (let entry of performance.getEntriesByType("resource")) {
+    assert_not_equals(entry.name, location.href, "Shouldn't have tried to request ourselves as a subresource")
+  }
+});
+</script>

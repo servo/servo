@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid paint positioned children</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="grid-paint-positioned-children-001-ref.html">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+  border: 2px solid black;
+  position: relative;
+  width: 100px;
+
+  grid-template-columns: 10px 20px 30px 40px;
+
+  padding-top: 10px;
+}
+
+.abs {
+  height: 5px;
+  position: absolute;
+  width: 100%;
+}
+
+#item {
+  width: 90px;
+  height: 30px;
+}
+
+</style>
+
+<p>This test passes if you see a gray box with a black border color with 5 rectangles inside. The first line contains a purple, orange, yellow and magenta boxes. Bellow them you should see a 90px cyan box.</p>
+
+<div class="grid">
+  <div id="item" style="grid-column: 1 / -1; background: cyan;"></div>
+  <div class="abs" style="grid-column: 1 / 2; background: purple;"></div>
+  <div class="abs" style="grid-column: 2 / 3; background: orange;"></div>
+  <div class="abs" style="grid-column: 3 / 4; background: yellow;"></div>
+  <div class="abs" style="grid-column: 4 / 5; background: magenta;"></div>
+</div>

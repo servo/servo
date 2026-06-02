@@ -1,0 +1,64 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Nested View Transitions: Rounded border clipper</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="rounded-border-clipper-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+:root { view-transition-name: none }
+
+#clipper {
+  view-transition-group: contain;
+  view-transition-name: clipper;
+  overflow: clip;
+  height: 200px;
+  width: 100px;
+  border-radius: 20px;
+}
+
+.item {
+  will-change: transform;
+  view-transition-name: item;
+  background: green;
+  position: relative;
+  height: 50px;
+}
+
+.lower {
+  top: 50px;
+}
+
+::view-transition-group(clipper) {
+  animation-play-state: paused;
+  overflow: clip;
+  border-radius: 20px;
+}
+</style>
+
+<div id=clipper>
+  <div id=item class=item></div>
+</div>
+
+<script>
+
+async function runTest() {
+  await document.startViewTransition(() => item.classList.add("lower")).ready;
+
+  let anims = document.documentElement.getAnimations({ subtree: true });
+  let promises = anims.map(anim => {
+    if (anim.playState != "paused") {
+      return anim.finished;
+    }
+  });
+  Promise.all(promises).then(takeScreenshot);
+}
+
+onload = () => {
+  waitForCompositorReady().then(runTest);
+}
+</script>
+
+

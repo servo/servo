@@ -1,0 +1,10 @@
+features:
+- name: window
+  files:
+  - '*'
+  - '!BarProp.window.js'
+  - '!noopener-noreferrer-BarProp.window.js'
+- name: barprop
+  files:
+  - BarProp.window.js
+  - noopener-noreferrer-BarProp.window.js

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>Test that non-transitioned style is responsive to transitioning properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target1 {
+    transition: font-size steps(2, start) 1000s;
+    font-size: 10px;
+    width: 1em;
+  }
+  #target1.change {
+    font-size: 20px;
+  }
+  #ref1 {
+    width: 15px;
+  }
+
+  #target2 {
+    transition: font-size steps(2, start) 1000s;
+    font-size: 10px;
+    width: 1ex;
+  }
+  #target2.change {
+    font-size: 20px;
+  }
+  #ref2 {
+    font-size: 15px;
+    width: 1ex;
+  }
+
+  #target3 {
+    transition: --x steps(2, start) 1000s;
+    --x: 10px;
+    width: var(--x);
+  }
+  #target3.change {
+    --x: 20px;
+    font-size: 20px;
+  }
+  #ref3 {
+    width: 20px;
+  }
+
+</style>
+<div id="targets">
+  <div id="target1"></div>
+  <div id="target2"></div>
+  <div id="target3"></div>
+</div>
+<div id="refs">
+  <div id="ref1"></div>
+  <div id="ref2"></div>
+  <div id="ref3"></div>
+</div>
+<script>
+
+// Test that the computed value of the given property is equal on
+// 'target' and 'ref', after applying the transition to 'target'.
+function test_ref(target, ref, property, description) {
+  test(() => {
+    let unused = getComputedStyle(target).getPropertyValue(property);
+    target.className = 'change';
+    let actual = getComputedStyle(target).getPropertyValue(property);
+    let expected = getComputedStyle(ref).getPropertyValue(property);
+    assert_equals(actual, expected);
+  }, description);
+}
+
+test_ref(target1, ref1, 'width', 'em units respond to font-size transition');
+test_ref(target2, ref2, 'width', 'ex units respond to font-size transition');
+test_ref(target3, ref3, 'width', 'var() references respond to custom property transition');
+
+</script>

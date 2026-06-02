@@ -1,0 +1,51 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL User-Defined Properties Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body onload="initialize()">
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<script>
+"use strict";
+description("This test ensures that if user-defined properties are set on the WebGL context object, that they don't disappear after garbage collection.");
+
+var gl2 = null;
+
+function initialize() {
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("canvas");
+  var gl1 = wtu.create3DContext(canvas);
+  if (!gl1) {
+    testFailed("WebGL context does not exist");
+    finishTest();
+  } else {
+    testPassed("WebGL context exists");
+    gl1.myProperty = 2;
+    wtu.requestAnimFrame(runTest);
+  }
+}
+
+function runTest() {
+  webglHarnessCollectGarbage();
+  var wtu = WebGLTestUtils;
+  var canvas = document.getElementById("canvas");
+  gl2 = wtu.create3DContext(canvas);
+  shouldBe('gl2.myProperty', '2');
+  finishTest();
+}
+</script>
+</body>
+</html>

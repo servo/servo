@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Background Synchronization (https://wicg.github.io/background-sync/spec/)
+
+partial interface ServiceWorkerRegistration {
+  readonly attribute SyncManager sync;
+};
+
+[Exposed=(Window,Worker)]
+interface SyncManager {
+  Promise<undefined> register(DOMString tag);
+  Promise<sequence<DOMString>> getTags();
+};
+
+partial interface ServiceWorkerGlobalScope {
+  attribute EventHandler onsync;
+};
+
+[Exposed=ServiceWorker]
+interface SyncEvent : ExtendableEvent {
+  constructor(DOMString type, SyncEventInit init);
+  readonly attribute DOMString tag;
+  readonly attribute boolean lastChance;
+};
+
+dictionary SyncEventInit : ExtendableEventInit {
+  required DOMString tag;
+  boolean lastChance = false;
+};

@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Selection dragging should drag minimal HTML context</title>
+    <style type="text/css">
+p + div {
+  background: orange;
+  width: 4em;
+}
+div + div {
+  border: 1px solid black;
+  min-height: 5em;
+}
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  var output = document.getElementsByTagName('div')[1];
+  output.ondragenter = output.ondragover = function (e) { e.preventDefault(); };
+  output.ondrop = function (e) {
+    e.preventDefault();
+    var drophtml = e.dataTransfer.getData('text/html').toUpperCase().replace(/\sSTYLE="[^"]*"/g,'').replace(/[\r\n]+/g,'\\n');
+    var droptext = e.dataTransfer.getData('text/plain').replace(/[\r\n]+/g,'\\n');
+    var expectedhtml = '<P><SPAN>C</SPAN>D</P><P>E<SPAN>F</SPAN></P>';
+    var expectedtext = 'CD\\nEF';
+    if( drophtml != expectedhtml ) {
+      output.innerHTML = 'FAIL - normalised dropped HTML was:<br>'+drophtml.replace(/</g,'&lt;');
+    } else if( droptext != expectedtext ) {
+      output.innerHTML = 'FAIL - normalised dropped text was:<br>'+droptext.replace(/</g,'&lt;');
+    } else {
+      output.innerHTML = 'PASS';
+    }
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <p>Select the text from &quot;C&quot; to &quot;F&quot; (including both of those characters) in the text below.</p>
+    <div>
+      <p><span>A</span><span>BC</span>D</p><p>E<span>FG</span><span>H</span></p>
+    </div>
+    <div>Drag the selection and drop it here.</div>
+
+  </body>
+</html>

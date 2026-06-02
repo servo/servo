@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+ <html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: ::selection overlay drawn over the ::grammar-error overlay</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="reference/selection-overlay-and-grammar-001-ref.html">
+
+  <meta name="assert" content="In this test, the div::selection pseudo-element must be drawn over the div::grammar-error overlay.">
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      font-size: 60px;
+      line-height: 90px;
+    }
+
+  div::selection
+    {
+      background-color: rgba(0%, 50%, 100%, 0.5);
+      /*
+      a very lite blue color
+      according to
+      https://www.colorhexa.com/7fbfff
+      */
+      color: yellow;
+    }
+
+  div::grammar-error
+    {
+      background-color: yellow;
+      color: red;
+    }
+  </style>
+
+  <script src="support/selections.js"></script>
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module. If it does not, then this test does not apply to such user agent.
+
+  <p>Test passes
+
+  <ul>
+    <li>if each glyph of the sentence is yellow
+    <li>if "thing" has a desaturated lime green background
+    <li>if the other words have a very lite blue background and
+    <li>if there is no red.
+  </ul>
+
+  <!--
+    The grammar mistakes in the text below are intentional and part of this test.
+
+    https://html.spec.whatwg.org/multipage/interaction.html#spelling-and-grammar-checking
+    • contenteditable makes the text “checkable for the purposes of [spelling and grammar checking]”
+    • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
+    • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
+  -->
+  <div id="test" class="highlight_reftest" contenteditable="true" spellcheck="true" lang="en">Many thing can happen.</div>
+
+  <script>
+  const test = document.querySelector("#test");
+  selectNodeContents(test);
+  trySpellcheck(test);
+  </script>

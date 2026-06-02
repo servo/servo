@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<angle>",
+  from: "100deg",
+  to: "200deg",
+  expected: "150deg"
+}, 'A custom property of type <angle> can yield a CSS Transition');
+
+</script>

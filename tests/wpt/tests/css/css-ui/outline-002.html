@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline - inherit (basic)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. 'outline' property" href="http://www.w3.org/TR/css3-ui/#outline">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test checks that the outline property inherits the parent's value when outline set inherit">
+<style>
+  #container {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+  #parent {
+    background-color: red;
+    height: 80px;
+    left: 10px;
+    outline: 10px green solid;
+    position: relative;
+    top: 10px;
+    width: 80px;
+  }
+  #child {
+    background-color: green;
+    height: 60px;
+    left: 10px;
+    outline: inherit;
+    position: relative;
+    top: 10px;
+    width: 60px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="parent">
+      <div id="child"></div>
+    </div>
+  </div>
+</body>

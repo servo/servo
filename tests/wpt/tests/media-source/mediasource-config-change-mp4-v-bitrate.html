@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>MP4 video-only bitrate change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("mp4", "v-128k-320x240-30fps-10kfr", "v-256k-320x240-30fps-10kfr", "Tests mp4 video-only bitrate changes.");
+        </script>
+    </body>
+</html>

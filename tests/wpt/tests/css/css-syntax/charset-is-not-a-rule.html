@@ -1,0 +1,17 @@
+<!doctype html>
+<title>@charset isn't a valid rule and should be dropped</title>
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#charset-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@charset "utf-8";
+@charset "utf-8";
+foo { color: blue; }
+@charset "utf-8";
+</style>
+<script>
+test(()=>{
+    assert_equals(document.styleSheets[0].cssRules.length, 1)
+}, "@charset isn't a valid rule and shouldn't show up in the OM");
+</script>

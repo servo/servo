@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is origin-keyed, child1 is site-keyed, child1 navigates to a different site, child2 gets inserted and is origin-keyed, child1 navigates back</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  navigateIframe,
+  waitForIframe,
+  setBothDocumentDomains,
+  testDifferentAgentClusters,
+  testSameAgentCluster,
+} from "./resources/helpers.mjs";
+
+let frame1;
+promise_setup(async () => {
+  frame1 = await insertIframe("{{hosts[][www]}}");
+});
+
+// Since they're different-origin, the parent's origin-keying request is
+// respected, as is the child's non-request. So the parent ends up in the
+// origin-keyed agent cluster and the child ends up in the site-keyed one.
+testDifferentAgentClusters([self, 0], "Before navigation: parent to child1");
+
+// Navigate the iframe to a different site. These, of course, must not be in the
+// same agent cluster.
+
+promise_test(async () => {
+  await navigateIframe(frame1, "{{hosts[alt][]}}");
+}, "Navigation");
+
+// Now insert a second iframe, pointing to the same place as the first one
+// originally did, but this time with origin-keying requested. Because of the
+// historical map of agent cluster keys for the browsing context group, the new
+// iframe should still end up in the site-keyed agent cluster.
+
+promise_test(async () => {
+  await insertIframe("{{hosts[][www]}}", "?1");
+}, "Inserting a second iframe");
+
+testDifferentAgentClusters([self, 1], "After navigation: parent to child2");
+
+// Now navigate the first iframe back. The resulting Document should be put in
+// the site-keyed agent cluster, together with the second iframe's Document.
+
+promise_test(async () => {
+  const waitPromise = waitForIframe(frame1);
+  history.back();
+  await waitPromise;
+
+  await setBothDocumentDomains(frames[0]);
+}, "Going back in history (navigating back the first iframe)");
+
+testDifferentAgentClusters([self, 0], "After back: parent to child1");
+testDifferentAgentClusters([self, 1], "After back: parent to child2");
+testSameAgentCluster([0, 1], "child1 to child2");
+testSameAgentCluster([1, 0], "child2 to child1");
+</script>

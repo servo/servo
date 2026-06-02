@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>SVG Geometry Properties: parsing x with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#X"/>
+    <h:meta name="assert" content="x supports only the grammar '&lt;length-percentage&gt;'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("x", "10");
+test_invalid_value("x", "auto");
+test_invalid_value("x", "10px 20px");
+
+  ]]></script>
+</svg>

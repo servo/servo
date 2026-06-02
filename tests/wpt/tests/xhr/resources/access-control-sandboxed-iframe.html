@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <body>
+  <script type="text/javascript">
+window.addEventListener("message", (evt) => {
+  const url = evt.data;
+  const xhr = new XMLHttpRequest;
+
+  xhr.open("GET", url, false);
+
+  try {
+    xhr.send();
+  } catch(e) {
+    parent.postMessage("Exception thrown. Sandboxed iframe XHR access was denied in 'send'.", "*");
+    return;
+  }
+
+  parent.postMessage(xhr.responseText, "*");
+}, false);
+
+parent.postMessage("ready", "*");
+  </script>
+  </body>
+</html>

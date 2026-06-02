@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Window object named properties: Frames</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The nodes and named elements are not accessible from Window object named properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+    var host = document.createElement('div');
+    try {
+        host.style.display = 'none';
+        document.body.appendChild(host);
+        var shadowRoot = host.attachShadow({mode: 'open'});
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.name = 'test-name';
+        shadowRoot.appendChild(iframe);
+        assert_false('test-name' in window);
+    } finally {
+        if (host.parentNode)
+            host.parentNode.removeChild(host);
+    }
+},
+    'An iframe element in a shadow tree should not be accessible from ' +
+    'window\'s named properties with its "name" attribute value.'
+);
+</script>
+</body>
+</html>

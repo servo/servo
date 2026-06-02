@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid hex color notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#hex-notation">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<link rel="author" title="Chris Nardi" href="mailto:csnardi1@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+tests = [
+    ["#", "Should not parse invalid hex"],
+    ["#f", "Should not parse invalid hex"],
+    ["#ff", "Should not parse invalid hex"],
+    ["#ffg", "Should not parse invalid hex"],
+    ["#fffg", "Should not parse invalid hex"],
+    ["#fffff", "Should not parse invalid hex"],
+    ["#fffffg", "Should not parse invalid hex"],
+    ["#fffffff", "Should not parse invalid hex"],
+    ["#fffffffg", "Should not parse invalid hex"],
+    ["#fffffffff", "Should not parse invalid hex"],
+];
+
+for (const test of tests) {
+    test_invalid_value("color", test[0]);
+}
+</script>
+</body>
+</html>

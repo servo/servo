@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+ <head>
+  <title>{audio,video}.preload - reflection test</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p><a href="https://html.spec.whatwg.org/multipage/#dom-media-preload">spec reference</a></p>
+  <audio id="audio" autoplay preload="none">
+  </audio>
+  <video id="video" autoplay preload="none">
+  </video>
+  <div id="log"></div>
+  <script>
+test(function() {
+ assert_equals(
+  document.getElementById("audio").preload,
+  "none",
+  "audioElement.preload reflects 'none' value even if autoplay attribute is present");
+}, "audio.preload - reflection test");
+
+test(function() {
+ assert_equals(
+  document.getElementById("video").preload,
+  "none",
+  "videoElement.preload reflects 'none' value even if autoplay attribute is present");
+}, "video.preload - reflection test");
+  </script>
+ </body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Filter Effects: switching from hue-rotate() to url() on an SVG element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#filter-functions">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterElement">
+<link rel="match" href="reference/green-100x100.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<svg>
+  <filter id="hue" color-interpolation-filters="sRGB">
+    <feColorMatrix type="hueRotate" values="90"/>
+  </filter>
+  <rect width="100" height="100" fill="rgb(71.79%, 28.82%, 0%)" filter="hue-rotate(330deg)"/>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    let rect = document.querySelector("svg > rect");
+    rect.setAttribute("filter", "url(#hue)");
+    takeScreenshot();
+  });
+</script>

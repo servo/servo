@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<style>
+  #textarea,
+  #plaintext,
+  #richedit {
+    font-family: "Courier", monospace;
+    width: 10ch;
+  }
+  #plaintext,
+  #richedit {
+    border: 1px solid black;
+    white-space: pre-wrap;
+  }
+</style>
+<textarea id="textarea"></textarea>
+<div id="plaintext" contenteditable="plaintext-only"></div>
+<div id="richedit" contenteditable></div>
+<script>
+  async function runInElement(element, before, after) {
+    promise_test(async () => {
+      const utils = new EditorTestUtils(element);
+      let offset = before.length;
+      let acutal;
+      if (element.tagName === "TEXTAREA") {
+        element.value = before + after;
+        element.focus();
+        element.setSelectionRange(offset, offset);
+        await utils.sendKey(" ");
+        actual = element.value;
+      } else {
+        element.textContent = before + after;
+        let textNode = element.firstChild;
+        window
+          .getSelection()
+          .setBaseAndExtent(textNode, offset, textNode, offset);
+        await utils.sendKey(" ");
+        actual = element.textContent;
+      }
+      assert_equals(actual, before + " " + after);
+    }, `Typing space at "${before}|${after}" should insert a space in ${element.id}`);
+  }
+
+  function run(before, after) {
+    runInElement(textarea, before, after);
+    runInElement(plaintext, before, after);
+    runInElement(richedit, before, after);
+  }
+  run("123456789 ", "XY");
+  run("12345     ", "XY");
+  run("12345        ", "XY");
+  run("123456789-", "XY");
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift into viewport in inline direction with scroll</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+#j { position: absolute; width: 200px; height: 600px; top: 300px; left: -200px; background: blue; }
+</style>
+<div id='j'></div>
+<div style="width: 5000px; height: 5000px"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Move div into viewport horizontally.
+  document.querySelector("#j").style.left = '400px';
+  window.scrollTo(300, 300);
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift into viewport in inline direction with scroll.");
+
+</script>
+

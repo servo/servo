@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test showPicker() being rendered requirement with content-visibility</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div style="content-visibility: hidden">
+    <select id="select">
+        <option>Item 1</option>
+    </select>
+</div>
+<script>
+promise_test(async t => {
+    await test_driver.bless('show picker');
+    assert_throws_dom('NotSupportedError', () => { select.showPicker(); });
+
+    // Test that dynamically changing to actually being rendered works.
+    await test_driver.bless('show picker');
+    select.parentElement.style.contentVisibility = 'visible';
+    select.showPicker();
+    select.blur();
+}, 'select showPicker() throws when content-visibility hidden');
+</script>

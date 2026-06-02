@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Table among floats</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  The table needs to be at least 75px wide, but can grow up to 150px if there is enough space.
+  There are 125px available next to the 1st float, so the table can fit with a width of 125px.
+  However, in that case it needs a height of 200px, overlapping the 2nd float.
+  Therefore, the table needs to be 75px wide and 200px tall, thus fitting in the available
+  space next to both floats.
+">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 200px; overflow: hidden; position: relative; background: red">
+  <div style="width: 75px; height: 100px; float: left; clear: left; background: green"></div>
+  <div style="width: 125px; height: 100px; float: left; clear: left; background: green"></div>
+  <table cellpadding="0" cellspacing="0">
+    <td>
+      <div style="float: left; width: 75px; height: 100px; background: green"></div>
+      <div style="float: left; width: 75px; height: 100px; background: green"></div>
+    </td>
+  </table>
+  <div style="position: absolute; left: 75px; top: 0; width: 50px; height: 100px; background: green"></div>
+</div>

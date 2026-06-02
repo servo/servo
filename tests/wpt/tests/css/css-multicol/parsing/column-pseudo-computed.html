@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>CSS Multi-column Layout Test: Computed ::column style</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 20px;
+    scroll-margin-bottom: 4px;
+  }
+  #target::column {
+    font-size: 40px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    scroll-margin: 2px;
+    scroll-margin-top: 2em;
+    scroll-margin-bottom: inherit;
+  }
+</style>
+<div id="target"></div>
+<script>
+  const column_style = getComputedStyle(target, "::column");
+
+  test(() => {
+    assert_equals(column_style.fontSize, "40px");
+  }, "::column font-size applied");
+
+  test(() => {
+    assert_equals(column_style.scrollSnapAlign, "start");
+  }, "::column scroll-snap-align");
+
+  test(() => {
+    assert_equals(column_style.scrollSnapStop, "always");
+  }, "::column scroll-snap-stop");
+
+  test(() => {
+    assert_equals(column_style.scrollSnapMarginLeft, "2px");
+    assert_equals(column_style.scrollSnapMarginRight, "2px");
+    assert_equals(column_style.scrollSnapMarginTop, "80px");
+    assert_equals(column_style.scrollSnapMarginBottom, "4px");
+  }, "::column scroll-snap-margin");
+
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<title>scroll-snap-type does not propagate body to viewport</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding'>
+<link rel='match' href='no-red-ref.html'>
+<meta name='assert'
+      content="Test passes if scroll-snap-type on body is not applied to viewport.">
+
+<style type='text/css'>
+:root {
+  overflow: hidden; /* hide scrollbars for reftest analysis */
+}
+
+body {
+  scroll-snap-type: block mandatory;
+}
+
+#pass {
+  height: 120vh;
+}
+
+#target {
+  scroll-snap-align: start;
+  height: 100vh;
+  background: red;
+}
+</style>
+
+<p id="pass">Test passes if there is no red.
+
+<div id="target">
+  <div>FAIL</div>
+</div>

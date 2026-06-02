@@ -1,0 +1,70 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!-- author: Bill Baxter (wbaxter at google.com) -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Modulo Arithmetic Accuracy Bug</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform float divisor;
+varying vec4 vColor;
+void main(void) {
+  gl_Position = vPosition;
+  float index = 9.0;
+  // mod(x, y) is computed as x-y*floor(x/y).  There are no guarantees on
+  // the precision of floating point operations in WebGL shaders, but division
+  // should be accurate to at least 1 part in 10^5.
+  float value = mod(index * 1.00001, divisor);
+  vColor = (value < 1.) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 vColor;
+void main(void) {
+  gl_FragColor = vColor;
+}
+</script>
+<script>
+"use strict";
+
+description();
+debug("");
+// Reproduces bug seen on Mac OS X with AMD Radeon HD 6490 GPU
+debug("If things are working correctly, then the square will be green.");
+debug("If your card thinks mod(9,3) is not 0, then the square will be red.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  vShaderId: 'shader-vs',
+  vShaderSuccess: true,
+  fShaderId: 'shader-fs',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Test that mod(9/3) is 0',
+  uniforms: [{name: "divisor", functionName: "uniform1f", value: 3}]
+}
+]);
+</script>
+</body>
+</html>

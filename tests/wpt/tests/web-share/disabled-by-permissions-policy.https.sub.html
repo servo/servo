@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebShare Test: Can be disabled by permissions policy</title>
+    <link rel="help" href="https://w3c.github.io/web-share/#permissions-policy">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      promise_test(async (t) => {
+        await test_driver.bless("web share");
+        await promise_rejects_dom(t, "NotAllowedError", navigator.share({}));
+      }, "share() can be disabled by permissions policy");
+
+      test((t) => {
+        assert_false(
+          navigator.canShare({ text: "foo" }),
+          "not allowed to share"
+        );
+      }, "canShare() can be disabled by permissions policy");
+    </script>
+  </body>
+</html>

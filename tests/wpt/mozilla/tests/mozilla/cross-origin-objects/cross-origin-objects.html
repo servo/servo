@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Cross-origin behavior of Window and Location</title>
+<link rel="author" title="Bobby Holley (:bholley)" href="bobbyholley@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+
+/*
+ * This is a stripped down version of
+ * /html/browsers/origin/cross-origin-objects/cross-origin-objects.html,
+ * which runs the tests in a dissimilar-origin iframe.
+ * This is a temporary work-around until the web-platform-tests supports
+ * more than one domain.
+ */
+
+var UrlB = "/common/blank.html";
+var UrlC = "http://127.0.0.1:8000/common/blank.html";
+
+/*
+ * Parentage
+ */
+
+async_test(function(t) {
+  var IframeB = document.createElement("iframe");
+  var IframeC = document.createElement("iframe");
+  var B = null;
+  var C = null;
+  IframeC.onload = t.step_func(function() {
+    if (!B || !C) {
+      B = IframeB.contentWindow;
+      C = IframeC.contentWindow;
+      IframeB.src = UrlB;
+      IframeC.src = UrlC;
+    } else {
+      assert_equals(B.parent, window, "window.parent works same-origin");
+      assert_equals(C.parent, window, "window.parent works cross-origin");
+      assert_equals(B.top, window, "window.top works same-origin");
+      assert_equals(C.top, window, "window.top works cross-origin");
+      t.done();
+    }
+  });
+  document.body.appendChild(IframeB);
+  document.body.appendChild(IframeC);
+},"Parentage of cross-origin windows");
+
+/*
+ * Whitelist behavior.
+ *
+ * Also tests for [[GetOwnProperty]] and [[HasOwnProperty]] behavior.
+ */
+
+var whitelistedWindowIndices = ['0', '1'];
+var whitelistedWindowPropNames = ['location', 'postMessage', 'window', 'frames', 'self', 'top', 'parent',
+                                  'opener', 'closed', 'close', 'blur', 'focus', 'length'];
+whitelistedWindowPropNames = whitelistedWindowPropNames.concat(whitelistedWindowIndices);
+whitelistedWindowPropNames.sort();
+var whitelistedLocationPropNames = ['href', 'replace'];
+whitelistedLocationPropNames.sort();
+var whitelistedSymbols = [Symbol.toStringTag, Symbol.hasInstance,
+                          Symbol.isConcatSpreadable];
+var whitelistedWindowProps = whitelistedWindowPropNames.concat(whitelistedSymbols);
+
+async_test(function(t) {
+  var IframeB = document.createElement("iframe");
+  var IframeC = document.createElement("iframe");
+  var B = null;
+  var C = null;
+  IframeC.onload = t.step_func(function() {
+    if (!B || !C) {
+      B = IframeB.contentWindow;
+      C = IframeC.contentWindow;
+      IframeB.src = UrlB;
+      IframeC.src = UrlC;
+    } else {
+      for (var prop in window) {
+        if (whitelistedWindowProps.indexOf(prop) != -1) {
+          C[prop]; // Shouldn't throw.
+          Object.getOwnPropertyDescriptor(C, prop); // Shouldn't throw.
+          assert_true(Object.prototype.hasOwnProperty.call(C, prop), "hasOwnProperty for " + String(prop));
+        } else {
+          assert_throws_dom("SecurityError", function() { C[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
+          assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
+                        "Should throw when accessing property descriptor for " + prop + " on Window");
+          assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
+                        "Should throw when invoking hasOwnProperty for " + prop + " on Window");
+        }
+        if (prop != 'location')
+          assert_throws_dom("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Window");
+      }
+      for (var prop in location) {
+        if (prop == 'replace') {
+          C.location[prop]; // Shouldn't throw.
+          Object.getOwnPropertyDescriptor(C.location, prop); // Shouldn't throw.
+          assert_true(Object.prototype.hasOwnProperty.call(C.location, prop), "hasOwnProperty for " + prop);
+        }
+        else {
+          assert_throws_dom("SecurityError", function() { C[prop]; }, "Should throw when accessing " + prop + " on Location");
+          assert_throws_dom("SecurityError", function() { Object.getOwnPropertyDescriptor(C, prop); },
+                        "Should throw when accessing property descriptor for " + prop + " on Location");
+          assert_throws_dom("SecurityError", function() { Object.prototype.hasOwnProperty.call(C, prop); },
+                        "Should throw when invoking hasOwnProperty for " + prop + " on Location");
+        }
+        if (prop != 'href')
+          assert_throws_dom("SecurityError", function() { C[prop] = undefined; }, "Should throw when writing to " + prop + " on Location");
+      }
+      t.done();
+    }
+  });
+  document.body.appendChild(IframeB);
+  document.body.appendChild(IframeC);
+}, "Only whitelisted properties are accessible cross-origin");
+
+</script>

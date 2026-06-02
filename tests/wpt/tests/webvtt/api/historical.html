@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Historical WebVTT APIs must not be supported</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+// Also see /html/semantics/embedded-content/media-elements/historical.html
+
+[
+  // https://github.com/w3c/webvtt/pull/31
+  ['VTTCue', 'regionId'],
+  ['TextTrack', 'regions'],
+  ['TextTrack', 'addRegion'],
+  ['TextTrack', 'removeRegion'],
+  ['VTTRegion', 'track'],
+  // id re-introduced in https://github.com/w3c/webvtt/pull/349/files
+
+].forEach(function(feature) {
+  var interf = feature[0];
+  var member = feature[1];
+  test(function() {
+    assert_true(interf in window, interf + ' is not supported');
+    assert_false(member in window[interf].prototype);
+  }, interf + ' ' + member + ' member must be nuked');
+});
+
+[
+  // https://github.com/w3c/webvtt/pull/31
+  'VTTRegionList',
+
+].forEach(function(interf) {
+  test(function() {
+    assert_false(interf in window);
+  }, interf + ' interface must be nuked');
+});
+</script>

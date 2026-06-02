@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'corners'</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corners-shorthand">
+<meta name="assert" content="This test checks that the computed value of 'corners' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("corners", "0px round", "normal");
+test_computed_value("corners", "normal");
+test_computed_value("corners", "round 0rem", "normal");
+test_computed_value("corners", "round 0%", "normal");
+test_computed_value("corners", "4px 5% round");
+test_computed_value("corners", "scoop 100%", "100% scoop");
+test_computed_value("corners", "30px superellipse(0.4)");
+test_computed_value("corners", " 3% 5rem superellipse(0.4)", "3% 80px superellipse(0.4)");
+test_computed_value("corners", "8px round / 10% bevel");
+test_computed_value("corners", "10px 10% round / 10px 20% bevel / 16px round");
+test_computed_value("corners", "10px round / 33% superellipse(0.4) / superellipse(2) 6%/ 4px 12px scoop", "10px round / 33% superellipse(0.4) / 6% squircle / 4px 12px scoop");
+test_computed_value("corners", "4px round");
+test_computed_value("corners", "2% notch");
+test_computed_value("corners", "4px round / 2% notch");
+test_computed_value("corners", "4px round / 2% round / 1em squircle", "4px round / 2% round / 16px squircle");
+test_computed_value("corners", "4px round / normal / 1em round / 4% round", "4px round / normal / 16px round / 4% round");
+test_computed_value("corners", "4px superellipse(3) / 2px superellipse(-0.3)");
+test_computed_value("corners", "2% superellipse(1) / 2px superellipse(-1)", "2% round / 2px scoop");
+test_computed_value("corners", "4px 2% squircle / round 2px", "4px 2% squircle / 2px round");
+test_computed_value("corners", "4px bevel / superellipse(-3) 1em / 2px notch", "4px bevel / 16px superellipse(-3) / 2px notch");
+test_computed_value("corners", "4px bevel / superellipse(-3) 1em / 2px notch / normal", "4px bevel / 16px superellipse(-3) / 2px notch / normal");
+test_computed_value("corners", "4px superellipse(5) / notch 1em / 2px 13% round / bevel 10px", "4px superellipse(5) / 16px notch / 2px 13% round / 10px bevel");
+</script>

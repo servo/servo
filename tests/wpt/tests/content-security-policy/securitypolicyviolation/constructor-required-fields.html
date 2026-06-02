@@ -1,0 +1,232 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    // basic tests.
+    test(function() {
+      assert_throws_js(TypeError,
+                       function() { new SecurityPolicyViolationEvent(); });
+    }, "SecurityPolicyViolationEvent constructor should throw with no parameters");
+
+    test(function() {
+      assert_not_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }), undefined);
+    }, "SecurityPolicyViolationEvent constructor works with an init dict");
+
+    // missing optional members
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        // documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).documentURI, "");
+    }, "SecurityPolicyViolationEvent constructor does not require documentURI");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        // violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).violatedDirective, "");
+    }, "SecurityPolicyViolationEvent constructor does not require violatedDirective");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        // effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).effectiveDirective, "");
+    }, "SecurityPolicyViolationEvent constructor does not require effectiveDirective");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        // originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).originalPolicy, "");
+    }, "SecurityPolicyViolationEvent constructor does not require originalPolicy");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        // disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).disposition, "enforce");
+    }, "SecurityPolicyViolationEvent constructor does not require disposition");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        // statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).statusCode, 0);
+    }, "SecurityPolicyViolationEvent constructor does not require statusCode");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        // referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).referrer, "");
+    }, "SecurityPolicyViolationEvent constructor does not require referrer");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        // blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).blockedURI, "");
+    }, "SecurityPolicyViolationEvent constructor does not require blockedURI");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        // sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).sourceFile, "");
+    }, "SecurityPolicyViolationEvent constructor does not require sourceFile");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        // sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        columnNumber: 1,
+      }).sample, "");
+    }, "SecurityPolicyViolationEvent constructor does not require sample");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        // lineNumber: 1,
+        columnNumber: 1,
+      }).lineNumber, 0);
+    }, "SecurityPolicyViolationEvent constructor does not require lineNumber");
+
+    test(function() {
+      assert_equals(new SecurityPolicyViolationEvent("securitypolicyviolation", {
+        documentURI: "http://example.com",
+        referrer: "http://example.com",
+        blockedURI: "http://example.com",
+        violatedDirective: "default-src",
+        effectiveDirective: "default-src",
+        originalPolicy: "default-src 'none'",
+        sourceFile: "example.js",
+        sample: "<script>alert('1');</scr" + "ipt>",
+        disposition: "enforce",
+        statusCode: 200,
+        lineNumber: 1,
+        // columnNumber: 1,
+      }).columnNumber, 0);
+    }, "SecurityPolicyViolationEvent constructor does not require columnNumber");
+</script>

@@ -1,0 +1,20 @@
+[package]
+name = "profile_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "profile_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+ipc-channel = { workspace = true }
+profile = { path = "../../../components/profile" }
+profile_traits = { workspace = true }
+servo_config = { path = "../../../components/config" }
+time = { workspace = true }

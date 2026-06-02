@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Viewport units and scrollbars</title>
+<meta charset="UTF-8">
+<meta name="assert" content="100vw is reduced by scrollbar width when the scrollbars are unconditional">
+<link rel="author"  title="fantasai" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+
+<link rel="match" href="viewport-units-scrollbars-auto-ltr-001-ref.html">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+html {
+  background: red;
+  overflow: auto;
+  width: 200%;
+  height: 200%;
+}
+body {
+  background: white;
+  border-right: solid blue 4px;
+  border-bottom: solid blue 4px;
+}
+</style>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1880550">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#height-distribution">
+<link rel="match" href="table-cell-overflow-explicit-height-ref.html">
+<style>
+td {
+  height: 20px;
+  max-height: 20px;
+  border: 2px solid cyan;
+  overflow: hidden;
+}
+.tall {
+  height: 300px;
+  background: blue;
+  border: 2px solid black;
+}
+</style>
+<table border>
+  <td>
+    <div class="tall"></div>
+    Can you see this text?
+  </td>
+</table>

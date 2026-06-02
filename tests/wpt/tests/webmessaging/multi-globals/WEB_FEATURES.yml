@@ -1,0 +1,7 @@
+features:
+- name: broadcast-channel
+  files:
+  - broadcastchannel-*
+- name: channel-messaging
+  files:
+  - messageport-*

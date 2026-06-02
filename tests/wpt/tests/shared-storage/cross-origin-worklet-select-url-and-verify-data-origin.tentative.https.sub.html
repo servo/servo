@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/shared-storage/resources/util.sub.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+const scriptOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with default data origin, test selectURL() ' +
+    'and verify its data origin');
+
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'context-origin', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with dataOrigin "context-origin", test ' +
+    'selectURL() and verify its data origin');
+
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'script-origin', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with dataOrigin "script-origin", test ' +
+    'selectURL() and verify its data origin');
+
+</script>
+</body>

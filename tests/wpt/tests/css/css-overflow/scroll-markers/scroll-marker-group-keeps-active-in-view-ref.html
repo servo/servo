@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+    .scroller {
+      height: 500px;
+      width: 80vw;
+      border: solid 1px;
+      overflow-x: scroll;
+      justify-self: center;
+      white-space: nowrap;
+      padding-top: 50px;
+      scroll-behavior: smooth;
+      scroll-snap-type: x mandatory;
+      direction: rtl;
+      counter-set: markeridx -1;
+    }
+
+    .scroll-marker-group {
+      border: solid 1px black;
+      height: 40px;
+      width: 500px;
+      display: grid;
+      grid-auto-flow: column;
+      justify-self: center;
+      overflow-x: scroll;
+      white-space: nowrap;
+      direction: rtl;
+    }
+
+    .box {
+      height: 400px;
+      width: 40%;
+      border: 1px solid;
+      display: inline-block;
+      margin-left: 50px;
+      margin-right: 50px;
+      scroll-snap-align: center;
+      align-content: center;
+      text-align: center;
+      &::scroll-marker:target-current {
+        background-color: green;
+      }
+    }
+
+    .scroll-marker {
+      content: counter(markeridx);
+      counter-increment: markeridx;
+      width: 20px;
+      height: 20px;
+      background-color: red;
+      text-align: center;
+      margin-left: 100px;
+    }
+
+    .green {
+      background-color: green
+    }
+
+    </style>
+    <div class="scroller" id="carousel">
+      <div class="box" id="box15"><p>15</p></div>
+      <div class="box" id="box14"><p>14</p></div>
+      <div class="box" id="box13"><p>13</p></div>
+      <div class="box" id="box12"><p>12</p></div>
+      <div class="box" id="box11"><p>11</p></div>
+      <div class="box" id="box10"><p>10</p></div>
+      <div class="box" id="box9"><p>9</p></div>
+      <div class="box" id="box7"><p>7</p></div>
+      <div class="box" id="box8"><p>8</p></div>
+      <div class="box" id="box6"><p>6</p></div>
+      <div class="box" id="box5"><p>5</p></div>
+      <div class="box" id="box4"><p>4</p></div>
+      <div class="box" id="box3"><p>3</p></div>
+      <div class="box" id="box2"><p>2</p></div>
+      <div class="box" id="box1"><p>1</p></div>
+      <div class="box" id="box0"><p>0</p></div>
+    </div>
+    <div class="scroll-marker-group" id="marker-group">
+      <div class="scroll-marker green" id="marker15"><a href="#">15</a></div>
+      <div class="scroll-marker" id="marker14"><a href="#">14</a></div>
+      <div class="scroll-marker" id="marker13"><a href="#">13</a></div>
+      <div class="scroll-marker" id="marker12"><a href="#">12</a></div>
+      <div class="scroll-marker" id="marker11"><a href="#">11</a></div>
+      <div class="scroll-marker" id="marker10"><a href="#">10</a></div>
+      <div class="scroll-marker" id="marker9"><a href="#">9</a></div>
+      <div class="scroll-marker" id="marker8"><a href="#">8</a></div>
+      <div class="scroll-marker" id="marker7"><a href="#">7</a></div>
+      <div class="scroll-marker" id="marker6"><a href="#">6</a></div>
+      <div class="scroll-marker" id="marker5"><a href="#">5</a></div>
+      <div class="scroll-marker" id="marker4"><a href="#">4</a></div>
+      <div class="scroll-marker" id="marker3"><a href="#">3</a></div>
+      <div class="scroll-marker" id="marker2"><a href="#">2</a></div>
+      <div class="scroll-marker" id="marker1"><a href="#">1</a></div>
+      <div class="scroll-marker" id="marker0"><a href="#">0</a></div>
+    </div>
+  </body>
+</html>

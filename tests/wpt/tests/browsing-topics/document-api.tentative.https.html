@@ -1,0 +1,15 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    promise_test(async t => {
+      let topics = await document.browsingTopics();
+
+      // An empty result indicates that the request was eligible for topics.
+      // Currently, the web-platform-tests framework does not support actually
+      // handling the topics request.
+      assert_equals(topics.length, 0);
+    }, 'test document.browsingTopics()');
+  </script>
+</body>

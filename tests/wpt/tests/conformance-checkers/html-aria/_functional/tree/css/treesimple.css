@@ -1,0 +1,50 @@
+
+html, body {
+	color:#333;
+	background-color:#fff;
+	font-family:"helvetica neue", arial, helvetica, sans-serif;
+	font-size:12px;
+	line-height:1.4em;
+}
+h1{
+	font-size:14px;
+}
+[role="tree"]{
+	cursor:default;
+}
+ul[role="tree"], [role="tree"] li, [role="tree"] ul {
+	display:block;
+	list-style:none;
+	margin:0;
+	padding:0;
+}
+li[role="treeitem"] {
+	position:relative;
+	padding-left:15px;
+}
+.expander {
+	display:block;
+	position:absolute;
+	left:2px;
+	top:0.3em;
+	width:9px;
+	height:9px;
+	background:transparent url(./img/expander.gif) -9px 0 no-repeat;
+}
+[aria-expanded="false"] > * > .expander {
+	background-position:0 0;
+}
+[aria-expanded="false"] [role="group"] {
+	display:none;
+}
+[role="tree"] .activedescendant {
+	font-weight:bold;
+	color:#000;
+}
+[role="tree"]:focus .activedescendant{
+	color:#03c;
+}
+[role="tree"] .activedescendant [role="group"] {
+	font-weight:normal;
+	color:#000;
+}

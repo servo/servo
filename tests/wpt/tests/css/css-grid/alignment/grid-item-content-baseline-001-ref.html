@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: align-content/justify-content:baseline</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1256429">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style type="text/css">
+html,body {
+    color:black; background-color:white; font:20px/1 Ahem; padding:0; margin:0;
+}
+
+.grid {
+  display: grid;
+  grid: auto / repeat(4, auto);
+}
+.c {
+  grid: repeat(4, auto) / auto;
+}
+div {
+  float: left;
+  border:2px solid;
+  padding:1px;
+  margin:1px;
+}
+span {
+  background: lime;
+  display: inline-block;
+  border: 1px solid black;
+}
+
+span:nth-child(1) { font-size:20px; }
+span:nth-child(2) { font-size:30px; }
+span:nth-child(3) { font-size:10px; }
+.pbs { padding-block-start: 15px; margin-block-start: 5px; }
+.pbe { padding-block-end: 7px; margin-block-end: 3px; }
+
+.fb { align-self:baseline; justify-self:baseline; }
+.lb { align-self:last baseline; justify-self:last baseline; }
+.s  { align-self:self-stretch; justify-self:self-stretch; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; text-orientation: sideways; }
+.vr { writing-mode: vertical-rl; text-orientation: sideways; }
+.vlr { writing-mode: vertical-lr; direction:rtl; text-orientation: sideways; }
+.vrl { writing-mode: vertical-rl; direction:ltr; text-orientation: sideways; }
+
+</style>
+</head>
+<body>
+
+<div class="grid hl"><span style="padding-block-start:8px;" class="fb">A<br>B</span><span class="fb">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s">X<br>Z</span></div>
+<div class="grid hl"><span style="padding-block-start:8px;" class="fb pbe">A<br>B</span><span style="padding-block-start:0px;" class="fb">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s">X<br>Z</span></div>
+<div class="grid vl"><span style="padding-block-start:2px;" class="fb">A<br>B</span><span style="padding-block-start:0px;" class="fb">M<br>N</span><span style="padding-block-start:4px; padding-block-end:36px;" class="fb s">X<br>Z</span></div>
+<div class="grid vl"><span style="padding-block-start:15px;" class="fb pbs">A<br>B</span><span style="padding-block-start:18px;" class="fb">M<br>N</span><span style="padding-block-start:22px; padding-block-end:36px;" class="fb s">X<br>Z</span></div>
+<div class="grid vr"><span style="padding-block-start:8px;" class="fb">A<br>B</span><span style="padding-block-start:0px;" class="fb">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s">X<br>Z</span></div>
+<div class="grid vr"><span style="padding-block-start:8px;" class="fb pbe">A<br>B</span><span style="padding-block-start:0px;" class="fb">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s">X<br>Z</span></div>
+
+<br clear="all">
+
+<div class="grid hl"><span style="padding-block-end:2px;" class="lb">A<br>B</span><span style="padding-block-end:0px;" class="lb">M<br>N</span></div>
+<div class="grid hl"><span style="padding-block-end:7px;" class="lb pbe">A<br>B</span><span style="padding-block-end:8px;" class="lb">M<br>N</span></div>
+<div class="grid vl"><span style="padding-block-end:8px;" class="lb">A<br>B</span><span style="padding-block-end:0px;" class="lb">M<br>N</span></div>
+<div class="grid vl"><span style="padding-block-end:8px;" class="lb pbs">A<br>B</span><span style="padding-block-end:0px;" class="lb">M<br>N</span></div>
+<div class="grid vr"><span style="padding-block-end:2px;" class="lb">A<br>B</span><span style="padding-block-end:0px;" class="lb">M<br>N</span></div>
+<div class="grid vr"><span style="padding-block-end:7px;" class="lb pbe">A<br>B</span><span style="padding-block-end:8px;" class="lb">M<br>N</span></div>
+
+<br clear="all">
+
+<div class="grid c hl"><span style="padding-block-start:2px;" class="fb vl">A<br>B</span><span style="padding-block-start:0px;" class="fb vl">M<br>N</span><span style="padding-block-start:4px; padding-block-end:36px;" class="fb s vl">X<br>Z</span></div>
+<div class="grid c hl"><span style="padding-block-start:2px;" class="fb vl pbe">A<br>B</span><span style="padding-block-start:0px;" class="fb vl">M<br>N</span><span style="padding-block-start:4px; padding-block-end:36px;" class="fb s vl">X<br>Z</span></div>
+<div class="grid c vl"><span style="padding-block-start:8px;" class="fb hl">A<br>B</span><span style="padding-block-start:0px;" class="fb hl">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s hl">X<br>Z</span></div>
+<div class="grid c vl"><span style="padding-block-start:15px;" class="fb hl pbs">A<br>B</span><span style="padding-block-start:12px;" class="fb hl">M<br>N</span><span style="padding-block-start:28px; padding-block-end:24px;" class="fb s hl">X<br>Z</span></div>
+<div class="grid c vr"><span style="padding-block-start:8px;" class="fb hl">A<br>B</span><span style="padding-block-start:0px;" class="fb hl">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s hl">X<br>Z</span></div>
+<div class="grid c vr"><span style="padding-block-start:8px;" class="fb hl pbe">A<br>B</span><span style="padding-block-start:0px;" class="fb hl">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s hl">X<br>Z</span></div>
+
+<br clear="all">
+
+<div class="grid c hl"><span style="padding-block-end:8px;" class="lb vl">A<br>B</span><span style="padding-block-end:0;" class="lb vl">M<br>N</span></div>
+<div class="grid c hl"><span style="padding-block-end:7px;" class="lb vl pbe">A<br>B</span><span style="padding-block-end:2px;" class="lb vl">M<br>N</span></div>
+<div class="grid c vl"><span style="padding-block-end:2px;" class="lb hl">A<br>B</span><span style="padding-block-end:0px;" class="lb hl">M<br>N</span></div>
+<div class="grid c vl"><span style="padding-block-end:2px;" class="lb hl pbs">A<br>B</span><span style="padding-block-end:0px;" class="lb hl">M<br>N</span></div>
+<div class="grid c vr"><span style="padding-block-end:2px;" class="lb hl">A<br>B</span><span style="padding-block-end:0px;" class="lb hl">M<br>N</span></div>
+<div class="grid c vr"><span style="padding-block-end:7px;" class="lb hl pbe">A<br>B</span><span style="padding-block-end:8px;" class="lb hl">M<br>N</span></div>
+
+<br clear="all">
+
+<div class="grid c hl"><span style="padding-block-start:8px;" class="fb vr">A<br>B</span><span style="padding-block-start:0px;" class="fb vr">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s vr">X<br>Z</span></div>
+<div class="grid c hl"><span style="padding-block-start:5px;" class="fb vr pbe">A<br>B</span><span style="padding-block-start:0px;" class="fb vr">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s vr">X<br>Z</span></div>
+<div class="grid vl"><span style="padding-block-start:8px;" class="fb vr">A<br>B</span><span style="padding-block-start:0px;" class="fb vr">M<br>N</span><span style="padding-block-start:16px; padding-block-end:24px;" class="fb s vr">X<br>Z</span></div>
+<div class="grid vl"><span style="padding-block-start:15px;" class="fb vr pbs">A<br>B</span><span style="padding-block-start:7px;" class="fb vr">M<br>N</span><span style="padding-block-start:23px; padding-block-end:24px;" class="fb s vr">X<br>Z</span></div>
+<div class="grid vr"><span style="padding-block-start:2px;" class="fb vl">A<br>B</span><span style="padding-block-start:0px;" class="fb vl">M<br>N</span><span style="padding-block-start:4px; padding-block-end:36px;" class="fb s vl">X<br>Z</span></div>
+<div class="grid vr"><span style="padding-block-start:0;" class="fb vl pbe">A<br>B</span><span style="padding-block-start:1px;" class="fb vl">M<br>N</span><span style="padding-block-start:5px; padding-block-end:36px;" class="fb s vl">X<br>Z</span></div>
+
+<br clear="all">
+
+<div class="grid c hl"><span style="padding-block-end:2px;" class="lb vr">A<br>B</span><span style="padding-block-end:0px;" class="lb vr">M<br>N</span></div>
+<div class="grid c hl"><span style="padding-block-end:7px;" class="lb vr pbe">A<br>B</span><span style="padding-block-end:5px;" class="lb vr">M<br>N</span></div>
+<div class="grid vl"><span style="padding-block-end:2px;" class="lb vr">A<br>B</span><span style="padding-block-end:0px;" class="lb vr">M<br>N</span></div>
+<div class="grid vl"><span style="padding-block-end:0px;" class="lb vr pbs">A<br>B</span><span style="padding-block-end:3px;" class="lb vr">M<br>N</span></div>
+<div class="grid vr"><span style="padding-block-end:8px;" class="lb vl">A<br>B</span><span style="padding-block-end:0px;" class="lb vl">M<br>N</span></div>
+<div class="grid vr"><span style="padding-block-end:8px;" class="lb vl pbe">A<br>B</span><span style="padding-block-end:0px;" class="lb vl">M<br>N</span></div>
+
+
+</body>
+</html>

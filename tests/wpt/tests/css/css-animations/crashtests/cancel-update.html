@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/564354">
+<link rel="help" href="https://issues.chromium.org/issues/40447203">
+<title>Check that cancelling one running animation and updating another doesn't
+crash.</title>
+<style>
+  @keyframes anim {
+    from { background-color: blue; }
+    to { background-color: red; }
+  }
+
+  @keyframes anim2 {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+<div id="target"></div>
+<script>
+  window.onload = () => {
+    target.style.animation = "anim 1s, anim2 1s";
+    target.offsetTop;
+    target.style.animation = "anim2 2s";
+    target.offsetTop;
+  };
+</script>

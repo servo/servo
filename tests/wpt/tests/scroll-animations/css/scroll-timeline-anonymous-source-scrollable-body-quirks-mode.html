@@ -1,0 +1,48 @@
+<html>
+<title>The scroll() timeline source in quirks mode with a scrollable &lt;body> in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+
+@keyframes move {
+  to { margin-left: 100px }
+}
+
+html {
+  height: 100px;
+  padding: 20px;
+}
+
+body {
+  height: 110vh;
+  overflow: auto;
+
+  animation: 1s move linear, 1s move linear, 1s move linear;
+  animation-timeline: scroll(self), scroll(nearest), scroll(root);
+}
+
+body::after {
+  content: "";
+  display: block;
+  height: 110%;
+}
+</style>
+<body>
+<script>
+"use strict";
+
+const timelineSourceTest = data => {
+  test(() => {
+    assert_equals(document.body.getAnimations()[data.index].timeline.source, document.body);
+  }, `CSS animation correctly uses the <body> element as the source for the ${data.keyword} scroll() timeline in quirks mode`);
+};
+
+timelineSourceTest({ index: 0, keyword: "self" });
+timelineSourceTest({ index: 1, keyword: "nearest" });
+timelineSourceTest({ index: 1, keyword: "root" });
+
+</script>
+</body>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: polygon, evenodd</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="match" href="reference/shape-outside-polygon-010-ref.html">
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verifies that evenodd behaves the
+                                     same as nonzero for shape-outside and that text
+                                     will wraps around the outer edge of a polygon.">
+    </head>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+        body {
+            margin: 0;
+        }
+        #container {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            font: 20px/1 Ahem;
+            width: 240px;
+            height: 240px;
+            background-color: red;
+            color: green;
+        }
+        #test-shape {
+            float: left;
+            width: 200px;
+            height: 200px;
+            shape-outside: polygon(evenodd, 0px 200px, 200px 200px, 200px 40px, 50px 40px, 50px 100px, 150px 100px, 150px 150px, 100px 150px, 100px 0px, 0px 0px);
+        }
+        .ref-shape {
+            position: absolute;
+            background-color: green;
+            left: 10px;
+        }
+        #ref-1 {
+            top: 50px;
+            width: 100px;
+            height: 40px;
+        }
+        #ref-2 {
+            top: 90px;
+            width: 200px;
+            height: 160px;
+        }
+    </style>
+    <body>
+    <p>The test passes if there is green square and no red.</p>
+    <div id="container">
+        <div id="test-shape"></div>
+        XXXXXXX XXXXXXX XX XX XX XX XX XX XX XX XXXXXXXXXXXX XXXXXXXXXXXX
+    </div>
+    <div id="ref-1" class="ref-shape"></div>
+    <div id="ref-2" class="ref-shape"></div>
+    </div>
+    </body>
+</html>

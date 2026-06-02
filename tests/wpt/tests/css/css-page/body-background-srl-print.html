@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-page-3/">
+<meta name="assert" content="Body's background is fragmented correctly in sideways-rl writing mode.">
+<link rel="match" href="body-background-srl-print-ref.html">
+<style>
+:root {
+  print-color-adjust: exact;
+  writing-mode: sideways-rl;
+}
+body {
+  margin: 20px;
+  background: linear-gradient(to left, lightgray 0%, lightgray 50%, white 50%, white 100%);
+}
+@page {
+  size: 800px 600px;
+  margin: 0;
+}
+</style>
+<div style="writing-mode:horizontal-tb; position:absolute; left:0; top:0; width:200px;">
+  There should be a right-aligned blue box on the first page, and a
+  right-aligned hotpink box on the second page.
+  The background of the first page is lightgray, and the background of the
+  second page is white.
+</div>
+<div style="width:600px; height:100px; break-inside:avoid; background:blue;"></div>
+<div style="width:800px; height:100px; break-inside:avoid; background:hotpink;"></div>

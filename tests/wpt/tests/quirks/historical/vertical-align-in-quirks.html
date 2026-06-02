@@ -1,0 +1,56 @@
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: letter spacing after bidi</title>
+<link rel="author" href="kojii@chromium.org">
+<link rel="match" href="reference/vertical-align-in-quirks-ref.html">
+<meta name="assert" content="Tests some vertical-align values match in quirks and standard modes.">
+<style>
+div {
+  font-size: 10px;
+  line-height: 50px;
+  border: 1px solid blue;
+}
+img {
+  width: 1em;
+  height: 2em;
+  background: orange;
+  border: 1px solid black;
+}
+.text-top {
+  vertical-align: text-top;
+}
+.text-bottom {
+  vertical-align: text-bottom;
+}
+.top {
+  vertical-align: top;
+}
+.bottom {
+  vertical-align: bottom;
+}
+</style>
+<body>
+  <div>
+    <img class="text-top" src="/css/support/60x60-red.png">Y
+  </div>
+  <div>
+    <img class="text-bottom" src="/css/support/60x60-red.png">Y
+  </div>
+  <div>
+    <img class="top" src="/css/support/60x60-red.png">Y
+  </div>
+  <div>
+    <img class="bottom" src="/css/support/60x60-red.png">Y
+  </div>
+  <div>
+    <img class="text-top" src="/css/support/60x60-red.png"><span>Y</span>
+  </div>
+  <div>
+    <img class="text-bottom" src="/css/support/60x60-red.png"><span>Y</span>
+  </div>
+  <div>
+    <img class="top" src="/css/support/60x60-red.png"><span>Y</span>
+  </div>
+  <div>
+    <img class="bottom" src="/css/support/60x60-red.png"><span>Y</span>
+  </div>
+</body>

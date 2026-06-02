@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - mouse coordinates during drop</title>
+<style>
+  body > div {
+    height: 5px;
+    width: 5px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
+  };
+};
+</script>
+
+<div></div>
+
+<p>Save <a href="../resources/fail.png">this image</a> to your desktop. Minimise your browser. Use your pointing device to drag the saved file from your desktop <strong>via your browser's button on your operating system's taskbar</strong> (so that it maximises your browser), onto the small orange box above this text, and release it. If a confirmation dialog appears, accept it. Fail if the browser simply displays the image.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

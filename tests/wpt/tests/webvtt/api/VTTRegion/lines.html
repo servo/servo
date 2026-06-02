@@ -1,0 +1,36 @@
+<!doctype html>
+<title>VTTRegion.lines</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-lines">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true('lines' in region, 'lines is not supported');
+
+    for (var i = 1; i <= 100; i++) {
+        region.lines = i;
+        assert_equals(region.lines, i);
+    }
+
+    // https://webidl.spec.whatwg.org/#abstract-opdef-converttoint
+    [[0, 0],
+     [-0, 0],
+     [-1, 4294967295],
+     [-100, 4294967196],
+     [101, 101],
+     [-2147483648, 2147483648],
+     [2147483647, 2147483647],
+     [2147483648, 2147483648],
+     [NaN, 0],
+     [Infinity, 0],
+     [-Infinity, 0]].forEach(function (pair) {
+        var input = pair[0];
+        var expected = pair[1];
+        region.lines = input;
+        assert_equals(region.lines, expected);
+    });
+
+}, document.title + ' script-created region');
+</script>

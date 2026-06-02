@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/394133544">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select>
+  <option>option</option>
+</select>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+
+select.animate::picker(select) {
+  transition-property: display, color/*, overlay*/;
+  transition-behavior: allow-discrete;
+  transition-duration: 100s;
+  transition-timing-function: steps(2, start);
+  color: white;
+}
+
+select.animate option {
+  transition-property: background-color;
+  transition-duration: 100s;
+  transition-timing-function: steps(2, start);
+  background-color: black;
+}
+
+::picker(select) {
+  color: white;
+}
+option {
+  background-color: black;
+}
+
+select.animate:not(:open)::picker(select) {
+  color: black;
+}
+select.animate:not(:open) option {
+  background-color: white;
+}
+</style>
+
+<script>
+const select = document.querySelector('select');
+const option = document.querySelector('option');
+promise_test(async () => {
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  select.classList.add('animate');
+  await new Promise(requestAnimationFrame);
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  const style = getComputedStyle(option);
+  assert_equals(style.color, 'rgb(128, 128, 128)',
+    'color should transition based on the exit animation.');
+  assert_equals(style.backgroundColor, 'rgb(128, 128, 128)',
+    'background-color should transition based on the exit animation.');
+}, 'Top layer exit animations should work on ::picker(select) just like a popover.');
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const textarea = document.querySelector("textarea");
+  textarea.addEventListener("focus", () => {
+    textarea.select();
+    textarea.parentElement.setAttribute("hidden", "hidden");
+    setTimeout(() => document.documentElement.removeAttribute("class"), 0);
+  });
+  textarea.focus();
+});
+</script>
+<div><textarea>abc</textarea></div>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?cross-site">
+<meta name="variant" content="?same-site">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  // In https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate,
+  // `sourceDocument` (instead of `navigable`'s active document) should be
+  // used as the referring document for prefetch.
+  //
+  // Nonetheless, a prefetch in a top-level window is not suitable to use in an iframe.
+  // In particular, browsers partition storage and cache by top-level site.
+  // If a browser does start allowing these in narrower cases where the partition
+  // would nonetheless be the same, this test might need tweaking.
+  promise_test(async t => {
+    const win = await spawnWindow(t, { protocol: 'https' });
+
+    const hostname =
+      location.search === '?cross-site' ? '{{hosts[alt][www]}}' : undefined;
+    const nextUrl = win.getExecutorURL({ protocol: 'https', hostname, page: 2 });
+
+    await win.forceSinglePrefetch(nextUrl);
+
+    // In https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate,
+    // `sourceDocument` is the incumbent Document and thus `win`'s Document.
+    // `navigable`'s active document is `iframe`'s Document.
+    await win.execute_script((url) => {
+      window.executor.suspend(() => {
+        const iframe = document.createElement('iframe');
+        document.body.appendChild(iframe);
+        iframe.contentWindow.location.href = url;
+      });
+    }, [nextUrl]);
+
+    // Below, the scripts given to `win.execute_script()` are executed on the
+    // `nextUrl` page in the iframe, because `window.executor.suspend()` above
+    // made `win`'s original page stop processing `execute_script()`,
+    // while the new page of `nextUrl` in the iframe starts processing
+    // `execute_script()` for the same ID.
+    assert_equals(
+        await win.execute_script(() => location.href),
+        nextUrl.toString(),
+        "expected navigation to reach destination URL");
+
+    assert_not_prefetched(await win.getRequestHeaders());
+  }, `location.href across iframe`);
+</script>

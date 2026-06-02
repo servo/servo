@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Author-level CSS padding should apply to buttons with native appearance</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<button id="btn"></button>
+<script>
+test(() => {
+    let value = "10px";
+    btn.style.paddingLeft = value;
+    assert_equals(window.getComputedStyle(btn).paddingLeft, value);
+    btn.style.paddingTop = value;
+    assert_equals(window.getComputedStyle(btn).paddingTop, value);
+    btn.style.paddingRight = value;
+    assert_equals(window.getComputedStyle(btn).paddingRight, value);
+    btn.style.paddingBottom = value;
+    assert_equals(window.getComputedStyle(btn).paddingBottom, value);
+});
+</script>
+</body>
+</html>

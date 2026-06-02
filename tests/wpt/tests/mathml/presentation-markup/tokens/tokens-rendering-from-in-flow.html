@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>tokens rendering from in-flow children</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#token-elements">
+    <meta name="assert" content="Verify rendering of tokens is only affected by in-flow children.">
+    <style>
+      .oof1 {
+          position: absolute;
+      }
+      .oof2 {
+          position: fixed;
+      }
+      .box {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+      }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/mathml/support/layout-comparison.js"></script>
+    <script>
+      setup({ explicit_done: true });
+      window.addEventListener("load", runTests);
+
+      function runTests() {
+        let container = document.querySelector("#container");
+        const epsilon = 1;
+
+        for (let math of container.children) {
+          let tagName = math.id;
+          let element = math.firstElementChild;
+          let reference = element.nextElementSibling;
+
+          test(function() {
+            compareLayout(element, reference, epsilon);
+          }, `Rendering of ${tagName} should only be affected by in-flow children`);
+        }
+
+        done();
+      }
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="container">
+      <math id="mo">
+        <mo><span class="box" style="background: lightblue"></span><span class="oof1 box"></span><span class="oof2 box"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span><span class="oof1 box"></span><span class="oof2 box"></span></mo>
+        <mo><span class="box" style="background: lightblue"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span></mo>
+      </math>
+
+      <math id="mi">
+        <mi><span class="box" style="background: lightblue"></span><span class="oof1 box"></span><span class="oof2 box"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span><span class="oof1 box"></span><span class="oof2 box"></span></mi>
+        <mi><span class="box" style="background: lightblue"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span></mi>
+      </math>
+
+      <math id="mn">
+        <mn><span class="box" style="background: lightblue"></span><span class="oof1 box"></span><span class="oof2 box"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span><span class="oof1 box"></span><span class="oof2 box"></span></mn>
+        <mn><span class="box" style="background: lightblue"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span></mn>
+      </math>
+
+      <math id="ms">
+        <ms><span class="box" style="background: lightblue"></span><span class="oof1 box"></span><span class="oof2 box"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span><span class="oof1 box"></span><span class="oof2 box"></span></ms>
+        <ms><span class="box" style="background: lightblue"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span></ms>
+      </math>
+
+      <math id="mtext">
+        <mtext><span class="box" style="background: lightblue"></span><span class="oof1 box"></span><span class="oof2 box"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span><span class="oof1 box"></span><span class="oof2 box"></span></mtext>
+        <mtext><span class="box" style="background: lightblue"></span><span class="box" style="background: pink"></span><span class="box" style="background: yellow"></span></mtext>
+      </math>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Named lookup does not work with noopener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<link rel="help" href="https://github.com/whatwg/html/issues/11291">
+
+<body>
+<script>
+
+promise_test(async t => {
+  const windowName = 'named-window';
+
+  const rcHelper = new RemoteContextHelper();
+  const rcPopup1 = await rcHelper.addWindow(undefined, { target: windowName, features: 'noopener' });
+  const rcPopup2 = await rcHelper.addWindow(undefined, { target: windowName, features: 'noopener' });
+
+  // If both scripts execute, then the windows are separate, and the test passes.
+  // If the window is reused, then rcPopup1 will not be able to execute script, and so the test will timeout.
+
+  assert_equals(await rcPopup1.executeScript(() => window.name), windowName);
+  assert_equals(await rcPopup2.executeScript(() => window.name), windowName);
+}, 'Two noopener window.open() calls create separate windows');
+
+promise_test(async t => {
+  const windowName = 'named-window-2';
+
+  function executorCreator(url) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.rel = 'noopener';
+    a.target = windowName;
+    document.body.append(a);
+    a.click();
+  }
+
+  const rcHelper = new RemoteContextHelper();
+  const rcPopup1 = await rcHelper.createContext({ executorCreator });
+  const rcPopup2 = await rcHelper.createContext({ executorCreator });
+
+  // If both scripts execute, then the windows are separate, and the test passes.
+  // If the window is reused, then rcPopup1 will not be able to execute script, and so the test will timeout.
+
+  assert_equals(await rcPopup1.executeScript(() => window.name), windowName);
+  assert_equals(await rcPopup2.executeScript(() => window.name), windowName);
+}, 'Two rel=noopener <a href> clicks create separate windows');
+</script>

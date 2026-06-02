@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Width using percentages with a positive nominal value, +100%</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-06 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+        <link rel="match" href="max-width-006-ref.xht" />
+
+        <meta name="assert" content="The 'width' property sets a positive nominal length value in percentages." />
+        <style type="text/css">
+            #div1
+            {
+                width: 1in;
+            }
+            #div2
+            {
+                background: black;
+                height: 1in;
+                width: +100%;
+            }
+            #div3
+            {
+                border-left: 1in solid black;
+                height: 1in;
+                margin-top: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if 2 black squares have the <strong>same width</strong>.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS Test: Change display for the ::first-letter container while replacing text node</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-letter-pseudo">
+<link rel="match" href="../reference/pass_if_letter_uppercase.html">
+<style>
+  #container::first-letter { text-transform: uppercase }
+  #container.ib { display: inline-block }
+</style>
+<body>
+  <p>Test passes if the letter "F" in the words "Filler Text" below is in upper-case.</p>
+  <div id="container">Test not run</div>
+</body>
+<script>
+  container.offsetTop;
+  container.className = "ib";
+  container.appendChild(document.createTextNode("filler Text"));
+  container.firstChild.remove();
+</script>

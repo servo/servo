@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Helper page for testing preflight cache partitioning</title>
+<iframe id="iframe" src="http://{{host}}:{{ports[http][0]}}/cors/resources/preflight-cache-partitioning-iframe.sub.html"></iframe>
+<script>
+window.onmessage = (e) => {
+  switch (e.data.type || "") {
+    case "pass":
+    case "fail":
+    case "loaded":
+      opener.postMessage(e.data, "*");
+      break;
+    default:
+      let iframe = document.getElementById("iframe");
+      iframe.contentWindow.postMessage(e.data, "*");
+      break;
+  }
+};
+
+</script>

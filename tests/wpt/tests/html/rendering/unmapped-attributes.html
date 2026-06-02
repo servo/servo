@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test handling of attributes that should not be mapped into style, but
+  incorrectly were in some browsers</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<div id="container" style="display: none"></div>
+<iframe></iframe>
+<script>
+ /*
+  * We wand to test both quirks and standards mode.  We can use the fact that
+  * our document is in standards mode and the about:blank iframe we have is in
+  * quirks mode.
+  */
+test(() => {
+  assert_equals(document.compatMode, "CSS1Compat")
+}, "We should be in standards mode");
+const container = document.getElementById("container");
+
+const frameDoc = document.querySelector("iframe").contentDocument;
+test(() => {
+  assert_equals(frameDoc.compatMode, "BackCompat")
+}, "Subframe should be in quirks mode");
+const frameContainer = frameDoc.createElement("div");
+frameContainer.style.display = "none";
+frameDoc.body.appendChild(frameContainer);
+
+function newElem(name) {
+  return (parent) =>
+    parent.appendChild(parent.ownerDocument.createElement(name));
+}
+
+ /*
+  * Array of tests.  Each test consists of the following information:
+  *
+  * 1) An element creation function, which takes a parent element as an
+  *    argument.
+  * 2) The name of the attribute to set
+  * 3) The name of the CSS property to get.
+  */
+const tests = [
+  [ newElem("table"), "hspace", "marginLeft" ],
+  [ newElem("table"), "hspace", "marginRight" ],
+  [ newElem("table"), "vspace", "marginTop" ],
+  [ newElem("table"), "vspace", "marginBottom" ],
+  [ newElem("embed"), "border", "borderTopWidth" ],
+  [ newElem("embed"), "border", "borderRightWidth" ],
+  [ newElem("embed"), "border", "borderBottomWidth" ],
+  [ newElem("embed"), "border", "borderLeftWidth" ],
+  [ newElem("iframe"), "border", "borderTopWidth" ],
+  [ newElem("iframe"), "border", "borderRightWidth" ],
+  [ newElem("iframe"), "border", "borderBottomWidth" ],
+  [ newElem("iframe"), "border", "borderLeftWidth" ],
+  [ newElem("iframe"), "hspace", "marginLeft" ],
+  [ newElem("iframe"), "hspace", "marginRight" ],
+  [ newElem("iframe"), "vspace", "marginTop" ],
+  [ newElem("iframe"), "vspace", "marginBottom" ],
+  [ newElem("marquee"), "border", "borderTopWidth" ],
+  [ newElem("marquee"), "border", "borderRightWidth" ],
+  [ newElem("marquee"), "border", "borderBottomWidth" ],
+  [ newElem("marquee"), "border", "borderLeftWidth" ],
+  // Non-image input
+  [ newElem("input"), "border", "borderTopWidth" ],
+  [ newElem("input"), "border", "borderRightWidth" ],
+  [ newElem("input"), "border", "borderBottomWidth" ],
+  [ newElem("input"), "border", "borderLeftWidth" ],
+  [ newElem("input"), "width", "width" ],
+  [ newElem("input"), "height", "height" ],
+  [ newElem("input"), "hspace", "marginLeft" ],
+  [ newElem("input"), "hspace", "marginRight" ],
+  [ newElem("input"), "vspace", "marginTop" ],
+  [ newElem("input"), "vspace", "marginBottom" ],
+];
+
+function style(element) {
+  return element.ownerDocument.defaultView.getComputedStyle(element);
+}
+
+for (let [ctor, attr, prop] of tests) {
+  for (let parent of [container, frameContainer]) {
+    let elem = ctor(parent);
+    test(function() {
+      let default_elem = ctor(parent);
+      this.add_cleanup(() => {
+        elem.remove();
+        default_elem.remove();
+      });
+      elem.setAttribute(attr, "200");
+      assert_equals(elem.getAttribute(attr), "200");
+      assert_equals(style(elem)[prop], style(default_elem)[prop]);
+    }, `<${elem.localName} ${attr}> should not be mapped to style ${prop} in ${parent.ownerDocument.compatMode} mode`);
+  }
+}
+</script>

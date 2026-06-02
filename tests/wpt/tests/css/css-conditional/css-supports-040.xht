@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: An @supports rule condition with empty parentheses should evaluates to false</title>
+  <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports" />
+  <meta name="assert" content="An @supports rule condition that consists just of a pair of parentheses should evaluate to false."/>
+  <link rel="match" href="support/pass.xht" />
+  <style type="text/css"><![CDATA[
+    @supports not () {
+      html { background-color: green }
+    }
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

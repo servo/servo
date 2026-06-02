@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<title>MediaSource-in-Worker buffering test case with media element detachment at various places</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<body>
+<script>
+
+const AFTER_SETTING_SRCOBJECT = "after setting srcObject";
+const AFTER_STARTED_BUFFERING = "after receiving Started Buffering message from worker";
+const AFTER_FINISHED_BUFFERING = "after receiving Finished Buffering message from worker";
+
+[ AFTER_SETTING_SRCOBJECT, AFTER_STARTED_BUFFERING, AFTER_FINISHED_BUFFERING ].forEach(when => {
+  for (let timeouts = 0; timeouts < 5; ++timeouts) {
+    async_test(test => { startWorkerAndDetachElement(test, when, timeouts); },
+        "Test element detachment from worker MediaSource after at least " + timeouts +
+          " main thread setTimeouts, starting counting " + when);
+  }
+});
+
+function detachElementAfterMultipleSetTimeouts(test, element, timeouts_remaining) {
+  if (timeouts_remaining <= 0) {
+    // While not the best way to detach, this triggers interoperable logic that
+    // includes detachment.
+    element.srcObject = null;
+    test.step_timeout(() => { test.done(); }, 10);
+  } else {
+    test.step_timeout(() => {
+      detachElementAfterMultipleSetTimeouts(test, element, --timeouts_remaining);
+    }, 0);
+  }
+}
+
+function startWorkerAndDetachElement(test, when_to_start_timeouts, timeouts_to_await) {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  const worker = new Worker("mediasource-worker-detach-element.js");
+  worker.onerror = test.unreached_func("worker error");
+
+  const video = document.createElement("video");
+  document.body.appendChild(video);
+
+  worker.onmessage = test.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        video.srcObject = handle;
+        if (when_to_start_timeouts == AFTER_SETTING_SRCOBJECT) {
+          detachElementAfterMultipleSetTimeouts(test, video, timeouts_to_await);
+        }
+        break;
+      case messageSubject.STARTED_BUFFERING:
+        if (when_to_start_timeouts == AFTER_STARTED_BUFFERING)
+          detachElementAfterMultipleSetTimeouts(test, video, timeouts_to_await);
+        break;
+      case messageSubject.FINISHED_BUFFERING:
+        if (when_to_start_timeouts == AFTER_FINISHED_BUFFERING)
+          detachElementAfterMultipleSetTimeouts(test, video, timeouts_to_await);
+        break;
+      default:
+        assert_unreached("Unrecognized message subject: " + subject);
+    }
+  });
+}
+</script>
+</body>
+</html>

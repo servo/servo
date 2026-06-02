@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Referrer for module imports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>setup({ explicit_done: true })</script>
+</head>
+<body>
+<script type="module">
+
+import { referrerExternalStatic, referrerExternalDynamic } from "./module-import-referrer.js";
+
+// "name" parameter is necessary for bypassing the module map.
+import { referrer as referrerInlineStatic } from "./resources/referrer-checker.py?name=internal-static"
+const { referrer: referrerInlineDynamic } = await import("./resources/referrer-checker.py?name=internal-dynamic");
+
+const scriptURL = new URL("module-import-referrer.js", location.href)
+
+test(t => {
+  assert_equals(
+    referrerInlineStatic, location.href,
+      "Referrer should be the document URL");
+}, "Static imports from inline modules in the HTML document");
+
+test(t => {
+  assert_equals(
+    referrerInlineDynamic, location.href,
+      "Referrer should be the document URL");
+}, "Dynamic imports from inline modules in the HTML document");
+
+test(t => {
+  assert_equals(
+    referrerExternalStatic, scriptURL.href,
+      "Referrer should be the importer module URL");
+}, "Static imports from external modules");
+
+test(t => {
+  assert_equals(
+    referrerExternalDynamic, scriptURL.href,
+      "Referrer should be the document URL");
+}, "Dynamic imports from external modules");
+
+done();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:has-slotted(.class) negative test</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="host">
+    <template shadowrootmode="open">
+      <style>
+        slot {
+          display: block;
+          width: 100px;
+          height: 100px;
+          background-color: green;
+        }
+        :has-slotted(.not-slotted-element) {
+          background-color: red;
+        }
+      </style>
+      <slot></slot>
+    </template>
+    <div class="slotted-element"></div>
+</div>

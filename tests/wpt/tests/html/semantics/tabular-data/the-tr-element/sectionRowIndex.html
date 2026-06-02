@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTMLTableRowElement.sectionRowIndex</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<table>
+  <thead>
+    <tr id="ht1"></tr>
+  </thead>
+  <tr id="t1"></tr>
+  <tr id="t2">
+    <td>
+      <table>
+        <thead>
+          <tr id="nht1"></tr>
+        </thead>
+        <tr></tr>
+        <tr id="nt1"></tr>
+        <tbody>
+          <tr id="nbt1"></tr>
+        </tbody>
+      </table>
+    </td>
+  </tr>
+  <tbody>
+    <tr></tr>
+    <tr id="bt1"></tr>
+  </tbody>
+  <tfoot>
+    <tr></tr>
+    <tr></tr>
+    <tr id="ft1"></tr>
+  </tfoot>
+</table>
+
+<script>
+test(function() {
+  var tHeadRow = document.getElementById('ht1');
+  assert_equals(tHeadRow.sectionRowIndex, 0);
+}, "Row in thead in HTML");
+
+test(function() {
+  var tRow1 = document.getElementById('t1');
+  assert_equals(tRow1.sectionRowIndex, 0);
+}, "Row in implicit tbody in HTML");
+
+test(function() {
+  var tRow2 = document.getElementById('t2');
+  assert_equals(tRow2.sectionRowIndex, 1);
+}, "Other row in implicit tbody in HTML");
+
+test(function() {
+  var tBodyRow = document.getElementById('bt1');
+  assert_equals(tBodyRow.sectionRowIndex, 1);
+}, "Row in explicit tbody in HTML");
+
+test(function() {
+  var tFootRow = document.getElementById('ft1');
+  assert_equals(tFootRow.sectionRowIndex, 2);
+}, "Row in tfoot in HTML");
+
+test(function() {
+  var childHeadRow = document.getElementById('nht1');
+  assert_equals(childHeadRow.sectionRowIndex, 0);
+}, "Row in thead in nested table in HTML");
+
+test(function() {
+  var childRow = document.getElementById('nt1');
+  assert_equals(childRow.sectionRowIndex, 1);
+}, "Row in implicit tbody in nested table in HTML");
+
+test(function() {
+  var childBodyRow = document.getElementById('nbt1');
+  assert_equals(childBodyRow.sectionRowIndex, 0);
+}, "Row in explicit tbody in nested table in HTML");
+
+/* script create element test */
+var mkTrElm = function (elst) {
+  var elm = document.createElement("table");
+  elst.forEach(function(item) {
+    elm = elm.appendChild(document.createElement(item));
+  });
+  return elm.appendChild(document.createElement("tr"));
+};
+
+test(function() {
+  assert_equals(mkTrElm([]).sectionRowIndex, 0);
+}, "Row in script-created table");
+
+test(function() {
+  assert_equals(mkTrElm(["div"]).sectionRowIndex, -1);
+}, "Row in script-created div in table");
+
+test(function() {
+  assert_equals(mkTrElm(["thead"]).sectionRowIndex, 0);
+}, "Row in script-created thead in table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody"]).sectionRowIndex, 0);
+}, "Row in script-created tbody in table");
+
+test(function() {
+  assert_equals(mkTrElm(["tfoot"]).sectionRowIndex, 0);
+}, "Row in script-created tfoot in table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr"]).sectionRowIndex, -1);
+}, "Row in script-created tr in tbody in table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr", "td"]).sectionRowIndex, -1);
+}, "Row in script-created td in tr in tbody in table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr", "td", "table"]).sectionRowIndex, 0);
+}, "Row in script-created nested table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr", "td", "table", "thead"]).sectionRowIndex, 0);
+}, "Row in script-created thead in nested table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr", "td", "table", "tbody"]).sectionRowIndex, 0);
+}, "Row in script-created tbody in nested table");
+
+test(function() {
+  assert_equals(mkTrElm(["tbody", "tr", "td", "table", "tfoot"]).sectionRowIndex, 0);
+}, "Row in script-created tfoot in nested table");
+</script>

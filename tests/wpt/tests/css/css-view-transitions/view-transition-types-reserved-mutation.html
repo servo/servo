@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: active-view-transition-type reserved keywords</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="view-transition-types-reserved-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+  html:active-view-transition-type(foo) #positive1 {
+    background: green;
+  }
+
+  html:active-view-transition-type(none, NoNe) #negative1 {
+    background: red;
+  }
+
+  html:active-view-transition-type(-ua-foo, -UA-foo) #negative2 {
+    background: red;
+  }
+
+  .test {
+    width: 100px;
+    height: 100px;
+  }
+
+  #positive1 {
+    view-transition-name: positive1;
+    background: red
+  }
+
+  #negative1 {
+    view-transition-name: negative1;
+    background: green
+  }
+
+  #negative2 {
+    view-transition-name: negative2;
+    background: green
+  }
+
+  #container {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-gap: 10px;
+  }
+
+  html::view-transition-group(*) {
+    animation-play-state: paused;
+  }
+
+  html::view-transition-new(*) {
+    animation: unset;
+    opacity: 0;
+  }
+
+  html::view-transition-old(*) {
+    animation: unset;
+    opacity: 1;
+  }
+
+  html::view-transition-group(root) {
+    display: none;
+  }
+
+  html::view-transition {
+    background: red;
+  }
+
+  /* also test this type of construct */
+  html:active-view-transition::view-transition {
+    background: lightpink
+  }
+</style>
+
+<div id="container">
+  <div class="test" id="positive1"></div>
+  <div class="test" id="negative1"></div>
+  <div class="test" id="negative2"></div>
+</div>
+
+<script>
+  failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+  function runTest() {
+    let transition = document.startViewTransition();
+    for (const type of ["-ua-foo", "none", "foo", "NoNe", "-UA-foo"])
+      transition.types.add(type);
+    transition.ready.then(takeScreenshot);
+  }
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>

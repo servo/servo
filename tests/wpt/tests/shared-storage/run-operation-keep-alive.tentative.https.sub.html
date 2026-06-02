@@ -1,0 +1,34 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
+  await sharedStorage.run("operation1", {keepAlive: true});
+  return sharedStorage.run("operation1", {keepAlive: true});
+}, 'run() twice with keepAlive: true');
+
+promise_test(async () => {
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
+  await sharedStorage.run("operation1", {keepAlive: true});
+  await sharedStorage.run("operation1", {keepAlive: false});
+  try {
+    await sharedStorage.run("operation1");
+  } catch (e) {
+    assert_equals(e.name, 'OperationError');
+    assert_equals(e.message, 'The sharedStorage worklet cannot execute' +
+                             ' further operations because the previous' +
+                             ' operation did not include the option' +
+                             ' \'keepAlive: true\'.');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'run() with keepAlive: true, then keepAlive: false, then error');
+
+</script>
+</body>

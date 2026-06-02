@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    </head>
+    <body>
+        <video id="audio" autoplay playsInline></video>
+        <script src ="routines.js"></script>
+        <script>
+let sender, receiver;
+let key1, key2, key3, key4;
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+    const transform = new SFrameTransform;
+
+    await transform.setEncryptionKey(key);
+    await transform.setEncryptionKey(key, 1);
+
+    await transform.setEncryptionKey(key, BigInt('18446744073709551613'));
+    await transform.setEncryptionKey(key, BigInt('18446744073709551614'));
+    await transform.setEncryptionKey(key, BigInt('18446744073709551615'));
+    await transform.setEncryptionKey(key, BigInt('18446744073709551616')).then(assert_unreached, (e) => {
+        assert_true(e instanceof RangeError);
+        assert_equals(e.message, "Not a 64 bits integer");
+    });
+}, "Passing various key IDs");
+
+promise_test(async (test) => {
+    key1 = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+    key2 = await crypto.subtle.importKey("raw", new Uint8Array([144, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+    key3 = await crypto.subtle.importKey("raw", new Uint8Array([145, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+    key4 = await crypto.subtle.importKey("raw", new Uint8Array([146, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    await setMediaPermission("granted", ["microphone"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await new Promise((resolve, reject) => {
+        const connections = createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            let transform = new SFrameTransform;
+            transform.setEncryptionKey(key1);
+            sender.transform = transform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                let transform = new SFrameTransform;
+                transform.setEncryptionKey(key1);
+                transform.setEncryptionKey(key2);
+                transform.setEncryptionKey(key3, 1000);
+                transform.setEncryptionKey(key4, BigInt('18446744073709551615'));
+                receiver = trackEvent.receiver;
+                receiver.transform = transform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+
+        test.step_timeout(() => reject("Test timed out"), 5000);
+    });
+
+    audio.srcObject = stream;
+    await audio.play();
+}, "Audio exchange with SFrame setup");
+        </script>
+    </body>
+</html>

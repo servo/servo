@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations: Dependent property updates correctly when animating a declared custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@property --c {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: black;
+}
+@keyframes color-shift {
+    0% {
+        --c: black;
+    }
+    100% {
+        --c: white;
+    }
+}
+#target {
+    color: var(--c);
+    animation: color-shift 1s linear 1 forwards paused
+}
+</style>
+<div id=target></div>
+<div id="log"></div>
+<script>
+
+test(t => {
+  const animation = target.getAnimations()[0];
+
+  assert_equals(
+    getComputedStyle(target).color,
+    'rgb(0, 0, 0)'
+  );
+
+  animation.currentTime = 500;
+
+  assert_equals(
+    getComputedStyle(target).color,
+    'rgb(128, 128, 128)'
+  );
+
+  animation.currentTime = 1000;
+
+  assert_equals(
+    getComputedStyle(target).color,
+    'rgb(255, 255, 255)'
+  );
+
+}, 'Dependent property updates correctly');
+
+</script>

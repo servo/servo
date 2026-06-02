@@ -1,0 +1,77 @@
+<title>
+  COOP reports are to the opener when the opener used COOP-RO+COEP and then its
+  same-origin openee tries to access it.
+</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy";
+const redirect_path = directory + "/resources/redirect.py?";
+const same_origin = get_host_info().HTTPS_ORIGIN;
+
+let runTest = (openee_redirect, name) => promise_test(async t => {
+  // The test window.
+  const this_window_token = token();
+
+  // The "opener" window. This has COOP and a reporter.
+  const opener_report_token= token();
+  const opener_token = token();
+  const opener_reportTo = reportToHeaders(opener_report_token);
+  const opener_url = same_origin + executor_path + opener_reportTo.header +
+    opener_reportTo.coopReportOnlySameOriginHeader + coep_header +
+    `&uuid=${opener_token}`;
+
+  // The "openee" window. This is same origin with the "opener".
+  const openee_report_token= token();
+  const openee_token = token();
+  const openee_url = same_origin + executor_path + `&uuid=${openee_token}`;
+  const openee_redirect_url = same_origin + redirect_path + openee_url
+  const openee_requested_url = openee_redirect ? openee_redirect_url
+                                               : openee_url;
+
+  // 1. Create the opener window.
+  let opener_window_proxy = window.open(opener_url);
+  t.add_cleanup(() => send(opener_token, "window.close()"));
+
+  // 2. The opener opens its openee.
+  send(opener_token, `
+    openee = window.open("${openee_requested_url}");
+    send("${this_window_token}", "ACK 1");
+  `);
+  assert_equals("ACK 1", await receive(this_window_token));
+  t.add_cleanup(() => send(openee_token, "window.close()"));
+
+  // 3. The openee tries to access its opener.
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(opener);")
+  );
+
+  // 4. Check a report sent to the opener.
+  let report =
+    await receiveReport(opener_report_token, "access-to-coop-page-from-openee")
+  assert_equals(report.type, "coop");
+  assert_equals(report.url, opener_url.replace(/"/g, '%22'));
+  assert_equals(report.body.disposition, "reporting");
+  assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
+  assert_equals(report.body.property, "blur");
+  assert_source_location_missing(report);
+  assert_equals(report.body.openerURL, undefined);
+  assert_equals(report.body.openeeURL, openee_url);
+  assert_equals(report.body.otherDocumentURL, undefined);
+  assert_equals(report.body.referrer, undefined);
+  assert_equals(report.body.initialPopupURL, openee_requested_url);
+}, name);
+
+runTest(false, "access-to-coop-page-from-openee, same-origin");
+runTest(true , "access-to-coop-page-from-openee, same-origin + redirect");
+
+</script>

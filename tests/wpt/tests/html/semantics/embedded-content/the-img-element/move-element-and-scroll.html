@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+  <title>Images with loading='lazy' load being moved to another document
+         and then scrolled to</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <div id="tall_div" style="height:1000vh"></div>
+  <div id="below_viewport_div"></div>
+  <img id="below_viewport" src='resources/image.png?below_viewport' loading="lazy">
+
+  <script>
+    const tall_div = document.getElementById("tall_div");
+    const below_viewport_element = document.getElementById("below_viewport");
+    const below_viewport_div = document.getElementById("below_viewport_div");
+
+    async_test(function(t) {
+      below_viewport_element.onload =
+        t.unreached_func("The below viewport image should not load");
+      t.step_timeout(t.step_func_done(), 1000);
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute("style", "display:none");
+      iframe.srcdoc = "<body></body>";
+      iframe.onload = () => {
+        const adopted_img = iframe.contentDocument.adoptNode(below_viewport_element);
+        iframe.contentDocument.body.appendChild(adopted_img);
+        below_viewport_div.scrollIntoView();
+      };
+      document.body.insertBefore(iframe, tall_div);
+    }, "Test that <img> below viewport is not loaded when moved to another " +
+       "document and then scrolled to");
+</script>
+</body>

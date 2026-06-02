@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="../server-locations.sub.js"></script>
+<script>
+  try {
+    var w1 = new Worker(http_dir + "support/dedicated-worker-script.js");
+    w1.onmessage = function(e) {
+      parent.postMessage({ type: "http", error: false,
+                           isSecureContext: e.data }, "*");
+    };
+    w1.onerror = function(e) {
+      parent.postMessage({ type: "http", error: true }, "*");
+    };
+  } catch (e) {
+    // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+    // but isn't actually relevant to what we're testing here.
+    parent.postMessage({ type: "http", error: true }, "*");
+  }
+
+  try {
+    var w2 = new Worker(https_dir + "support/dedicated-worker-script.js");
+    w2.onmessage = function(e) {
+      parent.postMessage({ type: "https", error: false,
+                           isSecureContext: e.data }, "*");
+    };
+    w2.onerror = function(e) {
+      parent.postMessage({ type: "https", error: true }, "*");
+    }
+  } catch (e) {
+    // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+    // but isn't actually relevant to what we're testing here.
+    parent.postMessage({ type: "https", error: true }, "*");
+  }
+</script>

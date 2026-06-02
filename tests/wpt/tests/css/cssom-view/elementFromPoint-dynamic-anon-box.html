@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Hit testing on element previously hidden by an anonymous scroll box</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1433591">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+}
+/*
+  Create a hidden scrollbox that occupies the whole viewport, then give it
+  visibility: hidden dynamically. The link previously under the scrollbox
+  should be clickable.
+ */
+.scrollable {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: scroll;
+}
+
+.scrollable .inner {
+  display: table-cell;
+  width: 100vw;
+  height: 100vh;
+}
+</style>
+<div class="scrollable">
+  <div class="inner"></div>
+</div>
+<a href="#">Should be clickable</a>
+<script>
+test(function() {
+  assert_equals(document.elementFromPoint(10, 10).tagName, "DIV",
+                "Should hit the scrollbox contents");
+  document.querySelector('div').style.visibility = "hidden";
+  assert_equals(document.elementFromPoint(10, 10), document.querySelector('a'));
+}, "Link should be clickable after hiding a scrollbox with an anonymous table inside");
+</script>

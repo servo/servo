@@ -1,0 +1,47 @@
+<!doctype html>
+<input autofocus onfocus="autofocus_onfocus()"/>
+<script>
+  let autofocused = false;
+  function autofocus_onfocus() {
+    autofocused = true;
+  }
+
+  /**
+   * @param target object: Target to call |focus()| with.
+   * @param timeout integer | undefined: Timeout to wait for the focus event.
+   * If unspecified, a timeout will not be set.
+   * @param focus_target boolean | undefined: Wether to focus the target after
+   * listening for |onfocus| event.
+   */
+  function wait_focus_event(target, timeout, focus_target) {
+    return new Promise((resolve) => {
+      if (timeout)
+        setTimeout(() => resolve(false), timeout);
+
+      target.onfocus = () => resolve(true);
+      if (focus_target)
+        target.focus();
+    });
+  }
+
+  function post_result(destination, result) {
+    destination.postMessage({focused: result}, "*");
+  }
+
+  window.addEventListener("message", (e) => {
+    if (e.data.event === "autofocus") {
+      if (autofocused)
+        post_result(e.source, true);
+
+      wait_focus_event(document.querySelector("input"), e.data.timeout)
+        .then(result => post_result(e.source, result));
+    } else if (e.data.event === "focus-window") {
+      wait_focus_event(window, e.data.timeout, true /* focus_target */)
+        .then(result => post_result(e.source, result));
+    } else if (e.data.event === "focus-input") {
+      const input_element = document.querySelector("input");
+      wait_focus_event(input_element, e.data.timeout, true /* focus_target */)
+        .then(result => post_result(e.source, result));
+    }
+});
+</script>

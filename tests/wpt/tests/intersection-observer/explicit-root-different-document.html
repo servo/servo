@@ -1,0 +1,27 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://github.com/w3c/IntersectionObserver/issues/457">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    margin: 10px
+  }
+</style>
+<div id="root"></div>
+<script>
+let t = async_test("IntersectionObserver reports a (non-intersecting) entry if different-document from the doc");
+let doc = document.implementation.createHTMLDocument("");
+let target = doc.createElement("div");
+doc.body.appendChild(target);
+new IntersectionObserver(
+  t.step_func_done(function(records) {
+    assert_equals(records.length, 1);
+    assert_false(records[0].isIntersecting);
+  }),
+  { root: document.querySelector("#root") }
+).observe(target);
+</script>

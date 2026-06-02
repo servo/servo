@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that Japanese iroha ordering works in list items. -->
+<link rel=match href=ol_japanese_iroha_ref.html>
+<style>
+@font-face {
+    font-family: TakaoPGothic;
+    src: url(fonts/takao-p-gothic/TakaoPGothic.ttf);
+}
+body {
+    font-family: TakaoPGothic;
+}
+ol {
+    list-style-position: inside;
+    list-style-type: hiragana-iroha;
+}
+li {
+}
+</style>
+</head>
+<body>
+<ol>
+    <li>Gryffindor</li>
+    <li>Hufflepuff</li>
+    <li>Ravenclaw</li>
+    <li>Slytherin</li>
+</ol>
+</body>
+</html>
+
+

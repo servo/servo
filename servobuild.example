@@ -1,0 +1,59 @@
+# Copy this file to .servobuild in the Servo root directory
+
+# Paths starting with "./" are relative to the repo root
+
+# Tool options
+[tools]
+
+[build]
+# Set "mode = dev" or use `mach build --dev` to build the project with warning.
+# or Set "mode = release" or use `mach build --release` for optimized build.
+# Use `mode = <profile>` or `mach build --profile=<profile>` to build the given
+# profile. Check the `Cargo.toml` manifest for a complete list of custom profiles.
+# Defaults to prompting before building
+#mode = "dev"
+
+# Set "android = true" or use `mach build --android` to build the Android app.
+android = false
+
+# Enable `debug_assert!` macros in release mode
+debug-assertions = true
+
+# Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
+debug-mozjs = false
+
+# When a GL error occurs as a result of a WebGL operation, print the stack trace for the content
+# JS and native Rust code that triggered the failed operation. Warning: very slow.
+webgl-backtrace = false
+
+# When a DOM exception is reported, print the stack trace for the content JS and native Rust code
+# that triggered it.
+dom-backtrace = false
+
+# Pick a media stack based on the target. Other values are "gstreamer" and "dummy"
+media-stack = "auto"
+
+# Set to the path to your ccache binary to enable caching of compiler outputs
+#ccache = "/usr/local/bin/ccache"
+
+# Any optional flags that will be added to $RUSTFLAGS
+#rustflags = ""
+
+# Enable or disable rustc’s incremental compilation
+# Cargo’s default is to enable it in debug mode but not in release mode.
+# Leaving this key unspecified makes mach keep Cargo’s default.
+# It can be set to true or false in order to always enable or always disable
+# incremental compilation.
+#incremental = false
+#incremental = true
+
+# Android information
+[android]
+# Defaults to the value of $ANDROID_SDK_ROOT, $ANDROID_NDK_ROOT respectively
+#sdk = "/opt/android-sdk"
+#ndk = "/opt/android-ndk"
+
+# OpenHarmony
+[ohos]
+# Defaults to the value of $OHOS_SDK_NATIVE
+#ndk = "/path/to/ohos-sdk/<host-os>/native"

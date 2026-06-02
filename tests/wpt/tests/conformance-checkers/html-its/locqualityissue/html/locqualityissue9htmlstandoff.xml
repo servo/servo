@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<someDataFile xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+<its:locQualityIssues xml:id="lq1">
+ <its:locQualityIssue
+  locQualityIssueType="misspelling"
+  locQualityIssueComment="'c'es' is unknown. Could be 'c'est'"
+  locQualityIssueSeverity="50"/>
+ <its:locQualityIssue
+  locQualityIssueType="grammar"
+  locQualityIssueComment="Missing capital on the first word of a sentence."
+  locQualityIssueSeverity="30"/>
+</its:locQualityIssues>
+</someDataFile>

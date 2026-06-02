@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-inline-004-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body > div {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 10em;
+}
+.cb {
+  position: relative;
+}
+body > .cb {
+  margin-bottom: 20px;
+}
+.columns {
+  column-count: 3;
+  column-fill: auto;
+  column-gap: 1em;
+  column-width: 10em;
+  orphans: 1;
+  widows: 1;
+  width: 32em;
+  height: 50px;
+}
+.anchor1 {
+  anchor-name: --a1;
+  color: red;
+}
+.target {
+  position: absolute;
+}
+.target1-pos {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  right: anchor(--a1 right);
+  bottom: anchor(--a1 bottom);
+}
+.target1-size {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+}
+.target::before {
+  position: absolute;
+  background: green;
+  content: "";
+}
+.target.part1::before {
+  width: 30%;
+  height: 50%;
+}
+.target.part2::before {
+  left: 30%;
+  width: 30%;
+  height: 50%;
+}
+.target.part3::before {
+  left: 60%;
+  width: 40%;
+  height: 50%;
+}
+.target.part4::before {
+  top: 50%;
+  width: 30%;
+  height: 50%;
+}
+.target.part5::before {
+  top: 50%;
+  left: 30%;
+  width: 30%;
+  height: 50%;
+}
+.target.part6::before {
+  top: 50%;
+  left: 60%;
+  width: 40%;
+  height: 50%;
+}
+#mc_part1::before {
+  width: 40px;
+  height: 25px;
+}
+#mc_part2::before {
+  left: 40px;
+  width: 40px;
+  height: 25px;
+}
+#mc_part3::before {
+  top: 25px;
+  width: 40px;
+  height: 25px;
+}
+#mc_part4::before {
+  top: 25px;
+  left: 40px;
+  width: 40px;
+  height: 25px;
+}
+</style>
+<p>There should be no red below, only green.</p>
+
+<!-- The inline anchor appear in a single line inline containing block. -->
+<div class="cb" style="color:transparent;">
+  <div><br></div>
+  <div>
+    0
+    <span class="cb">
+      12
+      <span class="anchor1">a1</span>
+      34
+      <span class="target target1-pos part1"></span>
+      <span class="target target1-size part2"></span>
+    </span>
+    <span class="target target1-pos part3"></span>
+    <span class="target target1-size part4"></span>
+  </div>
+  <span class="target target1-pos part5"></span>
+  <span class="target target1-size part6"></span>
+</div>
+
+<!-- The inline anchor and inline containing block wrap to two lines. -->
+<div class="cb" style="color:red;">
+  <div>
+    0
+    <span class="cb">
+      12
+      <span class="anchor1">a1 a1 a1</span>
+      345
+      <span class="target target1-pos part1"></span>
+      <span class="target target1-size part2"></span>
+    </span>
+    <span class="target target1-pos part3"></span>
+    <span class="target target1-size part4"></span>
+  </div>
+  <span class="target target1-pos part5"></span>
+  <span class="target target1-size part6"></span>
+</div>
+
+<!-- The inline anchor and inline containing block have forced line breaks. -->
+<div class="cb" style="color:red;">
+  <div>
+    0
+    <span class="cb">
+      12
+      <span class="anchor1">a1<br>a1</span>
+      345
+      <span class="target target1-pos part1"></span>
+      <span class="target target1-size part2"></span>
+    </span>
+    <span class="target target1-pos part3"></span>
+    <span class="target target1-size part4"></span>
+  </div>
+  <span class="target target1-pos part5"></span>
+  <span class="target target1-size part6"></span>
+</div>
+
+<!-- The inline anchor and inline containing block wrap to two columns. -->
+<div class="cb columns" style="color:red;">
+  <div class="spacer" style="height: 90px"></div>
+  <div>
+    0
+    <span class="cb">
+      12
+      <!-- The anchor begins at the end of the last line in one column, and
+           ends on the first line in the next column.-->
+      <span class="anchor1">a1 a1 a1</span>
+      345
+      <!-- The containing block of the next two anchor-positioned elements are
+           part of the fragmentation context. The anchor rectangle is the
+           bounding box of the two fragments (one on each line) within the
+           fragmented flow, pretending that everything is stacked on top of
+           each other (the final visual position of the columns is not
+           something we can (or should) see from within the fragmentation
+           context. Fill the parts that are not filled by the final four
+           elements (see below). -->
+      <span class="target target1-pos" style="color: green;">
+        0 12
+      </span>
+      <span class="target target1-size" style="color:green;">
+        <br>&nbsp;&nbsp; 345
+      </span>
+    </span>
+    <!-- The containing block of the below anchor-positioned elements are not
+         part of the fragmentation context. -->
+    <span class="target target1-pos" id="mc_part1"></span>
+    <span class="target target1-size" id="mc_part2"></span>
+  </div>
+  <span class="target target1-pos" id="mc_part3"></span>
+  <span class="target target1-size" id="mc_part4"></span>
+</div>

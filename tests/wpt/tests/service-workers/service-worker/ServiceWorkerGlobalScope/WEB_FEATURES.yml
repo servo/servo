@@ -1,0 +1,10 @@
+features:
+- name: service-workers
+  files:
+  - '*'
+  # Keep exclusions synced with mappings below
+  - '!isSecureContext*'
+- name: is-secure-context
+  files:
+  # Keep in sync with `service-workers` mapping above
+  - isSecureContext*

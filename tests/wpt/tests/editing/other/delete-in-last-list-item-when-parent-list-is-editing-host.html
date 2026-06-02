@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?list=ul&action=Backspace">
+<meta name="variant" content="?list=ul&action=Delete">
+<meta name="variant" content="?list=ol&action=Backspace">
+<meta name="variant" content="?list=ol&action=Delete">
+<title>Delete in last list item should not delete parent list if it's editing host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const params = new URLSearchParams(location.search.substring(1));
+const backspace = params.get("action") == "Backspace";
+const list = params.get("list");
+
+addEventListener("load", () => {
+  document.body.innerHTML =`<${list} contenteditable></${list}>`;
+  const editingHost = document.querySelector("[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+
+  function addPromiseTest(aTest) {
+    promise_test(async () => {
+      editingHost.focus();
+      utils.setupEditingHost(aTest.innerHTML);
+      await (backspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+      utils.normalizeStyleAttributeValues();
+      if (Array.isArray(aTest.expectedResult)) {
+        assert_in_array(editingHost.innerHTML, aTest.expectedResult);
+      } else {
+        assert_equals(editingHost.innerHTML, aTest.expectedResult);
+      }
+      assert_equals(
+        document.body.childNodes.length,
+        1,
+        `The editing host should be the only child of <body> (got: "${document.body.innerHTML}")`
+      );
+      assert_equals(
+        document.body.firstChild,
+        editingHost,
+        `The editing host should be the only child of <body> (got: "${document.body.innerHTML}")`
+      );
+    }, `${backspace ? "Backspace" : "Delete"} in "<${list} contenteditable>${aTest.innerHTML}</${list}>"`);
+  }
+
+  addPromiseTest({
+    innerHTML: "<li>{}</li>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  addPromiseTest({
+    innerHTML: "<li><ul><li>{}</li></ul></li>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  addPromiseTest({
+    innerHTML: "<li><ol><li>{}</li></ol></li>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  // If only sub-list in the editing host list element, the sub-list should be
+  // replaced with a list item.
+  addPromiseTest({
+    innerHTML: "<ul><li>{}</li></ul>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  addPromiseTest({
+    innerHTML: "<ol><li>{}</li></ol>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  addPromiseTest({
+    innerHTML: "<dl><dt>{}</dt></dl>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+  addPromiseTest({
+    innerHTML: "<dl><dd>{}</dd></dl>",
+    expectedResult: ["<li></li>", "<li><br></li>"],
+  });
+}, {once:true});
+</script>
+</head>
+<body></body>
+</html>

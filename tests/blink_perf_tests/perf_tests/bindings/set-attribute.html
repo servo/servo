@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="foo"></div>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.getElementById("foo");
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers 'setAttribute' in Dromaeo/dom-attr.html and other DOM methods that return an undefined.",
+    run: function() {
+        var localDiv = div;
+        for (var i = 0; i < 10000; i++)
+            localDiv.setAttribute("id", "foo");
+}});
+</script>
+</body>
+</html>

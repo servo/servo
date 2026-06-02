@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>aspect-ratio flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-automatic">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="There's enough space for padding after transferring flex-imposed definite height through the aspect ratio for a border-box flex item.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; height: 50px;">
+  <div style="padding-left: 100px; box-sizing: border-box; aspect-ratio: 1/1; background: green;"></div>
+</div>
+<div style="width: 100px; height: 50px; background: green"></div>

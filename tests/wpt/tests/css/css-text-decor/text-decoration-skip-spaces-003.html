@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Decoration skipping spaces: preserved spaces with pre-wrap</title>
+<meta name="assert" content="underlining of preserved spaces (with pre-wrap) get skipped at the start/end of the line.">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#line-decoration">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="match" href="reference/text-decoration-skip-spaces-002-ref.html">
+<style>
+div {
+    /* Use separate longhands
+       as Safari does not support the full syntax of the text-decoration shorthand
+       at the time of writing,
+       but that's not what we're testing here.
+     */
+    text-decoration: underline;
+    text-decoration-color: blue;
+
+    text-decoration-skip-spaces: start end; /* Theoretically not needed, as that's the default behavior per L3 */
+    color: orange;
+    font-size: 2em;
+    white-space: pre-wrap;
+}
+</style>
+
+<p>Test passes if there is an blue underline below orange letters A through F below, <em>but no further</em>.
+
+<div>        ABCDEF        </div>

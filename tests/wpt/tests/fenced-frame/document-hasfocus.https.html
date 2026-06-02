@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test document.hasFocus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext();
+
+  assert_true(document.hasFocus(), "The main document should initially have " +
+      "focus.");
+  await fencedframe.execute(() => {
+    assert_false(document.hasFocus(), "The fenced frame should not initially " +
+        "have focus.");
+  })
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+
+  assert_true(document.hasFocus(), "The main document should have focus.");
+  await fencedframe.execute(() => {
+    assert_true(document.hasFocus(), "The fenced frame should have focus.");
+  })
+}, 'document.hasFocus should be the true when a fenced frame has focus');
+
+</script>
+</body>

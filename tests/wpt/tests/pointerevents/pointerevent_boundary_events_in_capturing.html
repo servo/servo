@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events boundary events in capturing tests</title>
+        <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
+        <meta name="variant" content="?pen">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events boundary events in capturing</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4 id="desc">
+            This automated test checks the boundary events of pointer events while the capturing
+            changes. This test cannot be run manually.
+        </h4>
+        <div id="target0" class="touchActionNone"></div>
+        <div id="capturer">Do not hover over or touch this element.</div>
+        <div id="log"></div>
+    </body>
+    <script>
+      let input_source = location.search.substring(1);
+
+      let events_received = [];
+      let log_events = false;
+
+      // The events are handled as follows:
+      // - When "target0" receives a "pointerdown", the pointer is captured to "capturer" and event
+      //   logging starts.
+      // - During event logging, all boundary events and "got/lostpointercapture" events to both
+      //   "target0" and "capturer" are logged.
+      // - The first "pointermove" at "capturer" releases the pointer capture, so that subsequent
+      //   "pointermove"/"pointerup" events go to "target0".
+      // - Event logging ends when "target0" receives a "pointerup".
+
+      function logEvent(event, element) {
+          if (log_events)
+              events_received.push(event.type + "@" + element.id);
+      }
+
+      let target0 = document.getElementById("target0");
+      let capturer = document.getElementById("capturer");
+
+      target0.addEventListener("pointerdown", event => {
+          capturer.setPointerCapture(event.pointerId);
+      });
+
+      capturer.addEventListener("pointermove", event => {
+          if (capturer.hasPointerCapture(event.pointerId))
+              capturer.releasePointerCapture(event.pointerId);
+      });
+
+      let other_event_types = [ "pointercancel",
+                                "pointerover", "pointerout", "pointerenter", "pointerleave",
+                                "gotpointercapture", "lostpointercapture" ];
+      other_event_types.forEach(event_name => {
+          [target0, capturer].forEach(target => {
+              target.addEventListener(event_name, event => logEvent(event, target));
+          });
+      });
+
+      promise_test(async () => {
+          // Start logging events after the pointerdown in the drag.
+          getEvent("pointerdown", target0).then(() => {
+              log_events = true;
+          });
+
+          let pointerup_promise = getEvent("pointerup", target0);
+          pointerup_promise.then(() => {
+              log_events = false;
+          });
+
+          await pointerDragInTarget(input_source, target0, "right");
+
+          // Wait for all events in the drag to have been dispatched.
+          await pointerup_promise;
+
+          const expected_events = [
+              "pointerout@target0", "pointerleave@target0",
+              "pointerover@capturer", "pointerenter@capturer",
+              "gotpointercapture@capturer",
+              "lostpointercapture@capturer",
+              "pointerout@capturer", "pointerleave@capturer",
+              "pointerover@target0", "pointerenter@target0"
+          ];
+          assert_array_equals(events_received, expected_events);
+
+          updateDescriptionComplete();
+      }, "Boundary events around pointer capture and release");
+    </script>
+</html>

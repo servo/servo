@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: Compute kind of widget - no fallback</title>
+<style>
+    #container { width: 500px; }
+    #container > #search-text-input { appearance: textfield; }
+    #container > #select-menulist-button { appearance: none; appearance: menulist-button; }
+</style>
+<div id="container">
+    <a>a</a>
+    <button>button</button>
+    <input type="button" value="input-button">
+    <input type="submit" value="input-submit">
+    <input type="reset" value="input-reset">
+
+    <input type="text" value="input-text">
+    <input id="search-text-input" type="search" value="input-search-text">
+    <input type="search" value="input-search">
+
+    <input type="range">
+    <input type="checkbox">
+    <input type="radio">
+    <input type="color">
+
+    <textarea>textarea</textarea>
+    <select multiple id="select-listbox"><option>select-listbox</option></select>
+    <select id="select-dropdown-box"><option>select-dropdown-box</option></select>
+    <select id="select-menulist-button"><option>select-menulist-button</option></select>
+    <meter value=0.5></meter>
+    <progress value=0.5></progress>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/324325525">
+
+<!-- Attempting to slot a child of <select> after initial slot assignment should not crash. -->
+
+<select size=1>
+  <optgroup></optgroup>
+</select>
+<script>
+requestAnimationFrame(() => {
+  document.querySelector('optgroup').setAttribute('slot', 'slot1');
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+});
+</script>

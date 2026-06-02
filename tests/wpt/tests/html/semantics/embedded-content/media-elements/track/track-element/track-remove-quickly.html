@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Removing a track element before it has been processed doesn't crash</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="video_container"></div>
+<script>
+var mediaFile = getVideoURI("/media/test");
+document.getElementById("video_container").innerHTML = "<video src='" + mediaFile + "' controls ><track kind='captions' src='resources/simple-captions.vtt' default ></video>";
+test(function() {
+// https://bugs.webkit.org/show_bug.cgi?id=85095
+// Test passes if it doesn't crash.
+});
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Display: getComputedStyle().readingOrder</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('reading-order', "-1");
+test_computed_value('reading-order', "0");
+test_computed_value('reading-order', "34");
+test_computed_value('reading-order', "calc(34.1)", "34");
+</script>
+</body>

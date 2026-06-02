@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Flex Layout Test: dynamic content alignment with abspos elements.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-content">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-content">
+<meta name="assert" content="Test that dynamically changing alignment for abspos flex items works as expected." />
+
+<style>
+body {
+  margin: 0px;
+  width: 800px;
+}
+
+.flex {
+  display: flex;
+  width: 100%;
+  height: 600px;
+  background: gray;
+  position: relative;
+}
+
+#item {
+  width: 140px;
+  height: 60px;
+  border: 1px solid purple;
+  position: absolute;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  function updateAlignmentAndCheckLayout() {
+    let item = document.getElementById("item");
+    item.style.alignSelf = "center";
+    let container = document.getElementById("container");
+    container.style.justifyContent = "center";
+    checkLayout('.flex');
+  }
+</script>
+</head>
+
+<body onload="updateAlignmentAndCheckLayout()">
+
+  <div class="flex" id="container" data-expected-width="800" data-expected-height="600">
+    <div id="item" data-offset-x="329" data-offset-y="269" data-expected-width="142" data-expected-height="62"></div>
+  </div>
+
+</body>
+</html>

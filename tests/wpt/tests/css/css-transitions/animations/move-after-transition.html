@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>move after transition</title>
+  <link rel="help" href="https://drafts.csswg.org/css-transitions/#transition-property-property">
+  <style>
+    #container {
+      position: relative;
+      width: 400px;
+      height: 100px;
+      border: 1px solid  black;
+    }
+    #box {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      transform-style: preserve-3d;
+      transition: transform 300ms linear;
+      transform: translateX(0);
+    }
+    #container.moved #box {
+      transform: translateX(300px);
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="box"></div>
+  </div>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<script type="text/javascript">
+  promise_test(async t => {
+    const container = document.getElementById('container');
+    const box = document.getElementById('box');
+
+    await waitForAnimationFrames(2);
+
+    container.classList.add('moved');
+    const animations = document.getAnimations();
+    assert_equals(animations.length, 1);
+    assert_equals(getComputedStyle(box).transform,
+                  "matrix(1, 0, 0, 1, 0, 0)");
+
+    animations[0].finish();
+    assert_equals(getComputedStyle(box).transform,
+                  "matrix(1, 0, 0, 1, 300, 0)");
+
+    // Verify that we do not create a second transform transition.
+    box.style.transitionProperty = 'none';
+    box.style.transform = 'translateX(150px)';
+
+    assert_equals(box.getAnimations().length, 0);
+    assert_equals(getComputedStyle(box).transform,
+                  "matrix(1, 0, 0, 1, 150, 0)");
+  }, 'Move after transition.');
+</script>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head><title>Frozen Child iframe</title></head>
+<body>
+<script>
+
+// This child removes itself from the parent on dispatch of the freeze event.
+// Regression test of https://crbug.com/994442
+window.document.addEventListener("freeze", () => {
+  window.frameElement.remove();
+});
+
+</script>
+</body>
+</html>

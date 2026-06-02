@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on multicol elements should cause them to be sized as if they had no contents</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-multicol-003-ref.html">
+  <style>
+  .contain {
+    contain: size;
+    border: 1em solid green;
+    background: red;
+    column-count: 3;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .col-width {
+    column-width: 20px;
+  }
+  .col-gap {
+    column-gap: 5px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  .min {
+    width: min-content;
+  }
+  .max {
+    width: max-content;
+  }
+  </style>
+</head>
+<body>
+  <!-- This test verifies that contain:size doesn't interfere with the
+       determination of a multicol element's baseline. -->
+  <div class="flexBaselineCheck">
+    outside before
+    <div class="contain">
+      <div class="innerContents">inner</div>
+    </div>
+    outside after
+  </div>
+  <br>
+
+  <!--The following tests are used to ensure column-gaps and column-widths continue to contribute to the minimum and maximum width of a size-contained multicol element. Each should render as if it had no contents.-->
+
+  <div class="contain min col-width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="contain max col-width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="contain min col-gap col-width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="contain max col-gap col-width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="min">
+    <div class="contain">
+      <div class="innerContents">inner</div>
+    </div>
+  </div>
+  <br>
+
+  <div class="max">
+    <div class="contain">
+      <div class="innerContents">inner</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a variable that consists of a function where all of the arguments and commas are made up of variable references.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+p {
+  color: red;
+}
+p {
+  color: orange;
+  --a: rgb(var(--b)var(--c)var(--d));
+  --b: 0,;
+  --c: 128,;
+  --d: 0;
+  color: var(--a);
+}
+</style>
+<p>This text must be green.</p>

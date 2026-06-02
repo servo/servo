@@ -1,0 +1,46 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-delay - liveness with
+  animationstart</title>
+<link rel="author" title="Brian Birtles" href="mailto:bbirtles@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<meta name="assert" content="Check that extending the animation-delay triggers
+an animationstart event">
+<meta name="flags" content="dom">
+<link rel="match" href="animation-common-ref.html">
+<style>
+@keyframes all-orange {
+  from { background-color: orange }
+  to   { background-color: orange }
+}
+div {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+<div></div>
+<script>
+// Set up animation with a negative delay such that it finishes very soon
+var div = document.querySelector('div');
+div.style.animation = 'all-orange 1000s -999.99s';
+
+// Wait for the animation to finish
+div.addEventListener('animationend', function() {
+  // Set up an animationstart event handler to change the background color
+  div.addEventListener('animationstart', function() {
+    div.style.animation = 'none';
+    div.style.backgroundColor = 'green';
+  });
+
+  // Then extend the delay so that the animation restarts
+  div.style.animationDelay = '0s';
+
+  // Wait a frame to allow the event handler to run
+  window.requestAnimationFrame(function() {
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>
+</html>

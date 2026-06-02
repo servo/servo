@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: javascript URL in iframe</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+  <div id="log">Not tested</div>
+  <script>
+    var t = async_test();
+    var iframe_onload = false;
+
+    t.step(function() {
+      log('inline script #1');
+      document.write("<iframe src='javascript:void(top.log(&quot;iframe script #1&quot;));'></iframe>");
+      log('inline script #2')
+    })
+
+    onload = t.step_func(function() {
+      assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "iframe script #1"]);
+      t.done();
+    });
+  </script>
+</body>

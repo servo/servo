@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Exposure or remote candidate address on stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../webrtc/RTCDataChannel-helper.js"></script>
+<script>
+promise_test(async (test) => {
+    const localPc = new RTCPeerConnection();
+    test.add_cleanup(() => localPc.close());
+    const remotePc = new RTCPeerConnection();
+    test.add_cleanup(() => remotePc.close());
+
+    const pairPromise = openChannelPair(localPc, remotePc, 'prflx_obfuscate');
+    localPc.addEventListener('icecandidate', event => {
+        if (event.candidate)
+            remotePc.addIceCandidate(event.candidate);
+    });
+    exchangeOfferAnswer(localPc, remotePc);
+
+    const [localChannel, remoteChannel] = await pairPromise;
+
+    localChannel.send("test");
+
+    await new Promise(resolve => {
+        remoteChannel.onmessage = resolve;
+    });
+
+    const remoteCandidateStats = [...(await localPc.getStats()).values()].find(({type}) => type === 'remote-candidate');
+    assert_equals(remoteCandidateStats.address, null, "address should be null");
+}, "Do not expose in stats remote addresses that are not known to be already exposed to JS");
+
+promise_test(async (test) => {
+    const localPc = new RTCPeerConnection();
+    test.add_cleanup(() => localPc.close());
+    const remotePc = new RTCPeerConnection();
+    test.add_cleanup(() => remotePc.close());
+
+    const pairPromise = openChannelPair(localPc, remotePc, 'prflx_obfuscate');
+    localPc.addEventListener('icecandidate', event => {
+        if (event.candidate)
+            remotePc.addIceCandidate(event.candidate);
+    });
+    exchangeOfferAnswer(localPc, remotePc);
+
+    const [localChannel, remoteChannel] = await pairPromise;
+
+    localChannel.send("test");
+
+    await new Promise(resolve => {
+        remoteChannel.onmessage = resolve;
+    });
+
+    const remoteCandidateStats = [...(await localPc.getStats()).values()].find(({type}) => type === 'remote-candidate');
+    assert_not_equals(remoteCandidateStats.address, null, "address should not be null");
+}, "Expose in stats remote addresses that are already exposed to JS");
+
+</script>

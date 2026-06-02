@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Setting both http-equiv and name attributes on a meta element</title>
+<meta http-equiv=content-language name=color-scheme content=dark>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="color-scheme/support/compute-root-color-scheme.js"></script>
+<!--
+  NOTE: This test assumes that the browser's default color-scheme is "light",
+  see https://github.com/web-platform-tests/wpt/pull/31268 for reasoning
+-->
+<script>
+  // This creates a test()
+  assert_root_color_scheme("dark", "<meta> set the color-scheme to dark");
+
+  // We can't test content-language against :lang(), because CSS Selectors 4
+  // references BCP 47 syntax and RFC4647 "Matching of Language Tags", but
+  // "dark" is not a well-formed BCP 47 tag and therefore cannot be matched.
+  // Therefore, the test that content-language gets set is split off to a
+  // separate testcase using a well-formed lang tag as the content.
+  // test(() => {
+  //   assert_equals(document.querySelector(":root:lang(dark)"), document.documentElement);
+  // }, "<meta> set the content-language to dark");
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+    <script>
+        test = async_test("A 'frame-ancestors' CSP directive with '*' should allow rendering.");
+
+        // Note that we can't distinguish blocked URLs from allowed cross-origin URLs due to the same-origin policy. This test passes if no console message declares that the frame was blocked.
+        crossOriginFrameShouldBeBlocked("*");
+    </script>
+</body>
+</html>

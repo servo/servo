@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta name="assert" content="This test checks that absolutely positioned elements are positioned correctly across various writing modes when their static position is used" />
+<link rel="match" href="abs-pos-border-offset-003-ref.html">
+<style>
+.htb {
+  writing-mode: horizontal-tb;
+}
+.vrl {
+  writing-mode: vertical-rl;
+}
+.vlr {
+  writing-mode: vertical-lr;
+}
+.srl {
+  writing-mode: sideways-rl;
+}
+.slr {
+  writing-mode: sideways-lr;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+
+.container {
+  position: relative;
+  width: 80px;
+  height: 100px;
+  background-color: green;
+  margin-bottom: 10px;
+}
+
+.parent {
+  border: solid transparent;
+  border-width: 10px 15px 20px 25px;
+}
+
+.sibling {
+  width: 10px;
+  height: 20px;
+}
+
+.item {
+  position: absolute;
+  width: 30px;
+  height: 35px;
+  background-color: blue;
+}
+</style>
+<div class="container vrl">
+  <div class="parent vlr">
+    <div class="sibling"></div>
+    <div class="item vlr"></div>
+  </div>
+</div>
+<div class="container vrl">
+  <div class="parent htb">
+    <div class="sibling"></div>
+    <div class="item vrl"></div>
+  </div>
+</div>
+<div class="container vrl">
+  <div class="parent htb">
+    <div class="sibling"></div>
+    <div class="item vlr"></div>
+  </div>
+</div>
+<div class="container vrl">
+  <div class="parent htb">
+    <div class="sibling"></div>
+    <div class="item vrl rtl"></div>
+  </div>
+</div>
+<div class="container vrl">
+  <div class="parent vlr rtl">
+    <div class="sibling"></div>
+    <div class="item vrl"></div>
+  </div>
+</div>
+<div class="container vrl rtl">
+  <div class="parent vlr ltr">
+    <div class="sibling"></div>
+    <div class="item vrl"></div>
+  </div>
+</div>

@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?1-10">
+<meta name="variant" content="?11-20">
+<meta name="variant" content="?21-30">
+<meta name="variant" content="?31-last">
+<title>Clipboard copy selection tests - Line breaks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="resources/user-activation.js"></script>
+<body>
+Body needed for test_driver.click()<br>
+<div id="paragraph"></div>
+<pre id="preformatted"></pre>
+<script>
+
+  const CASES = [
+    "\r",
+    "\n",
+    "\r\r",
+    "\r\n",
+    "\n\r",
+    "\n\n",
+    "\r\r\r",
+    "\r\r\n",
+    "\r\n\r",
+    "\r\n\n",
+    "\n\r\r",
+    "\n\r\n",
+    "\n\n\r",
+    "\n\n\n",
+    "\r \n",
+    "\n \r",
+  ];
+
+  function normalizeForPrinting(s) {
+    return s.replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+  }
+
+  function normalizeForComparison(s) {
+    // Convert LF to CRLF on Windows.
+    return navigator.platform.includes('Win') ? s.replace(/\r?\n/g, '\r\n') : s;
+  }
+
+  // Permissions are required in order to invoke navigator.clipboard functions in
+  // an automated test.
+  async function getPermissions() {
+    await tryGrantReadPermission();
+    await tryGrantWritePermission();
+    await waitForUserActivation();
+  }
+
+  async function selectTextAndCopy(id, text) {
+    const element = document.getElementById(id);
+    element.textContent = text;
+
+    await waitForUserActivation();
+
+    // Select the text.
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.selectAllChildren(element);
+
+    // Copy the selection to the clipboard.
+    await new Promise((resolve) => {
+      document.addEventListener("copy", e => {
+        assert_true(true, "selection copid to clipboard");
+        resolve();
+      }, { once: true });
+      document.execCommand("copy");
+    });
+  }
+
+  async function getTextFromPasteEvent() {
+    return new Promise((resolve) => {
+      document.addEventListener("paste", e => {
+        e.preventDefault();
+        resolve(e.clipboardData.getData("text/plain"));
+      }, { once: true });
+      sendPasteShortcutKey();
+    });
+  }
+
+  async function getTextFromClipboardReadText() {
+    await waitForUserActivation();
+    return navigator.clipboard.readText();
+  }
+
+  CASES.forEach(testCase => {
+    const text = `First${testCase}Second`;
+
+    subsetTest(promise_test, async t => {
+      await getPermissions();
+      await selectTextAndCopy("preformatted", text);
+      let clipboardText = await getTextFromPasteEvent();
+      assert_equals(clipboardText, normalizeForComparison(text), "Check result from DataTransfer in paste event");
+
+      clipboardText = await getTextFromClipboardReadText();
+      assert_equals(clipboardText, normalizeForComparison(text), "Check result from navigator.clipboard.readText()");
+    }, `test preformatted text with line breaks: "${normalizeForPrinting(testCase)}"`);
+
+    subsetTest(promise_test, async t => {
+      await getPermissions();
+      await selectTextAndCopy("paragraph", text);
+      let clipboardText = await getTextFromPasteEvent();
+      assert_equals(clipboardText, `First Second`, "Check result from DataTransfer in paste event");
+
+      clipboardText = await getTextFromClipboardReadText();
+      assert_equals(clipboardText, `First Second`, "Check result from navigator.clipboard.readText()");
+    }, `test paragraph text with line breaks: "${normalizeForPrinting(testCase)}"`);
+  });
+
+</script>
+</body>

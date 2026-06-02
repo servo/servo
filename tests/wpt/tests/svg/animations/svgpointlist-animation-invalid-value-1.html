@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Test SVGPointList animation with invalid values: String value in point list values for from and to attributes.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#FromAttribute">
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <polygon id="poly" points="0,0 200,0 200,200 0,200" fill="green">
+        <animate attributeName="points" begin="0s" dur="4s" from="0,0 200,0 200,200 A,C" to="0,0 100,0 100,100 0,0" />
+    </polygon>
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const poly = document.getElementById("poly");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_array_equals(
+            Array.from(poly.points).map(v => v.x),
+            [0, 200, 200, 0]
+          );
+          assert_array_equals(
+            Array.from(poly.points).map(v => v.y),
+            [0, 0, 200, 200]
+          );
+
+          assert_array_equals(
+            Array.from(poly.animatedPoints).map(v => v.x),
+            Array.from(poly.points).map(v => v.x)
+          );
+          assert_array_equals(
+            Array.from(poly.animatedPoints).map(v => v.y),
+            Array.from(poly.points).map(v => v.y)
+          );
+        }));
+    }));
+  });
+
+</script>

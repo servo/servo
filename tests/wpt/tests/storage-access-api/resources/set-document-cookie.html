@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script>
+    'use strict';
+
+    let query = window.location.search;
+    let cookieString = '';
+    if (query && query.length > 1)
+      cookieString = decodeURIComponent(query.slice(1));
+
+    document.cookie = cookieString;
+
+    window.opener.postMessage('set-document-cookie-complete', '*');
+    window.close();
+  </script>
+</body>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-color/#transparency">
+<link rel="help" href="https://drafts.csswg.org/css-position/#def-cb">
+<link rel="match" href="clip-opacity-out-of-flow-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-60000">
+<div style="overflow: hidden; width: 250px; height: 250px; will-change:transform">
+  <div style="overflow: hidden; width: 300px; height: 300px; transform: translateX(0)">
+    <div style="overflow: hidden; width: 200px; height: 200px">
+      <div style="width: 300px; height: 300px; background: red; opacity: 0.5">
+        <div style="width: 400px; height: 400px; background: yellow">
+        <!-- These out-of-flow positioned elements are not contained by the inner clip,
+             while the outer clip and the opacity still apply. The opacity should also
+             apply to all descendants as a single group. -->
+        <div style="position: absolute; width: 400px; height: 100px; background: blue"></div>
+        <div style="position: fixed; width: 100px; height: 400px; background: green"></div>
+      </div>
+    </div>
+  </div>
+</div>

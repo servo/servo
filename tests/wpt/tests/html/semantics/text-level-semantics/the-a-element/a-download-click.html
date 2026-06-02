@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking on an &lt;a> element with a download attribute must not throw an exception</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour">
+<link rel="help" href="https://github.com/whatwg/html/issues/2116">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+async_test(t => {
+    const frame = document.createElement("iframe");
+
+    frame.addEventListener("load", t.step_func(function () {
+        frame.contentWindow.addEventListener(
+            "beforeunload", t.unreached_func("Navigated instead of downloading"));
+        const string = "test";
+        const blob = new Blob([string], { type: "text/html" });
+
+        const link = frame.contentDocument.querySelector("#blob-url");
+        link.href = URL.createObjectURL(blob);
+
+        link.click();
+
+        t.step_timeout(() => t.done(), 1000);
+    }));
+    frame.src = "resources/a-download-click.html";
+    document.body.appendChild(frame);
+}, "Clicking on an <a> element with a download attribute must not throw an exception");
+</script>
+</body>

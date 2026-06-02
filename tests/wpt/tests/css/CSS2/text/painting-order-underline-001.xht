@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: 'underline' decoration painting order and descender</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order" title="E.2 Painting order" />
+  <link rel="help" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/text.html#lining-striking-props" title="16.3.1 Underlining, overlining, striking, and blinking: the 'text-decoration' property" />
+  <link rel="match" href="painting-order-underline-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that underlining painting is done before glyphs are painted; therefore, if the underlining crosses the descenders (glyphs like 'g', 'j', 'p', 'q', 'y' have a descender), then the descender part must overlap the underline." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+    {
+      color: red;
+      font: 12.5em/1 Ahem; /* computes to 200px/200px */
+      text-decoration: underline;
+    }
+
+  span
+    {
+      color: green;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a thick green bar and <strong>no red</strong>.</p>
+
+  <div><span>pp</span></div>
+
+ </body>
+</html>

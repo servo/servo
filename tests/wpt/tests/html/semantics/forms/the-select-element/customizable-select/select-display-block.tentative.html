@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-3;totalPixels=0-1">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-display-block-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+select {
+  width: 100px;
+}
+.block {
+  display: block;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+(async () => {
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.querySelector('select').classList.add('block');
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

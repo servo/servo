@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Newlines in strings</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#strings"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <style type="text/css">
+    p { color: red }
+    p[title="this is\
+ a test"] { color: green }
+  </style>
+ </head>
+ <body>
+  <p title="this is a test">This text should be green.</p>
+ </body>
+</html>

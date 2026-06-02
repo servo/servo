@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: getComputedStyle().alignItems</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<meta name="assert" content="align-items computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("align-items", "normal");
+test_computed_value("align-items", "stretch");
+
+test_computed_value("align-items", "baseline");
+test_computed_value("align-items", "last baseline");
+
+test_computed_value("align-items", "center");
+test_computed_value("align-items", "start");
+test_computed_value("align-items", "end");
+test_computed_value("align-items", "self-start");
+test_computed_value("align-items", "self-end");
+test_computed_value("align-items", "flex-start");
+test_computed_value("align-items", "flex-end");
+test_computed_value("align-items", "unsafe center");
+test_computed_value("align-items", "safe self-end");
+</script>
+</body>
+</html>

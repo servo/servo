@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Shape from image - shape-image-threshold - 0.9</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="author" title="Bem Jones-Bey" href="mailto:bemjb@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-image-threshold-property"/>
+    <meta name="flags" content="ahem dom"/>
+    <meta name="assert" content="This test verifies content flows around a shape that is
+                                 defined in the image's alpha channel and adjusted by the
+                                 image-threshold" />
+    <!-- This test is derived from Example 7 in this version of the spec:
+         http://www.w3.org/TR/2014/WD-css-shapes-1-20140211/ -->
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+        .container {
+          width: 400px;
+          font-family: Ahem;
+          font-size: 20px;
+          line-height: 2em;
+        }
+        #test {
+            color: green;
+        }
+        #test-image {
+            float: left;
+            shape-outside: url("support/circle-shadow.png");
+            shape-image-threshold: 0.9;
+        }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/spec-example-utils.js"></script>
+    <script>
+    setup({ single_test: true });
+    function checkFloats() {
+      approxShapeTest('test', 'line-', 2, [181, 199, 201, 199, 181, 0]);
+      done();
+    }
+    </script>
+</head>
+<body onload="checkFloats();">
+    <p>
+        The test passes if the short green horizontal bars are the right of the circle, all
+        intersect the shadow, none intersect the circle and the long green bar is beneath the
+        circle. There should be no red.
+    </p>
+    <div id="test" class="container">
+        <img id="test-image" src="support/circle-shadow.png"/>
+        <span id="line-0">XXXXXX</span>
+        <span id="line-1">XXXXXX</span>
+        <span id="line-2">XXXXXX</span>
+        <span id="line-3">XXXXXX</span>
+        <span id="line-4">XXXXXX</span>
+        <span id="line-5">XXXXXXXXXXXXXXX</span>
+    </div>
+    <div id="log"></div>
+</body>
+</html>

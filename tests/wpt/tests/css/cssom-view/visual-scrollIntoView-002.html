@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/action-utils.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1947470">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#perform-a-scroll">
+<style>
+html {
+  height: 10000px;
+}
+body {
+  margin: 0px;
+  padding: 0px;
+}
+#fixed {
+  position: fixed;
+  bottom: 0px;
+  height: 50vh;
+  width: 100vw;
+  overflow: scroll;
+  background-color: gray;
+}
+input {
+  height: 20px;
+}
+</style>
+<div id="fixed">
+  <div style="height: calc(80vh - 40px)"></div>
+  <input type="text" id="name" />
+</div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+  assert_equals(visualViewport.scale, 1.0);
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Pinch zoom in this document.
+  await pinch_zoom_action();
+
+  assert_greater_than(visualViewport.scale, 1.0);
+
+  // Scroll the root scroll container.
+  window.scrollTo(0, 1000);
+  assert_equals(window.scrollY, 1000);
+
+  const expectedPageTop = visualViewport.pageTop;
+
+  // Now trigger a scrollIntoView call to an element inside a position:fixed element.
+  scrollPromise =
+      new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector('#name').scrollIntoView({ behavior: "instant" });
+  await scrollPromise;
+
+  assert_greater_than(visualViewport.pageTop, expectedPageTop);
+}, "Element.scrollIntoView scrolls visually to a position: fixed element with non-zero layout scroll offset");
+</script>

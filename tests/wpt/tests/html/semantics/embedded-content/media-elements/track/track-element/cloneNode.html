@@ -1,0 +1,87 @@
+<!doctype html>
+<title>track element cloneNode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+    var elm = document.createElement('track');
+    assert_equals(elm.readyState, elm.NONE, 'elm.readyState after element creation');
+    var clone = elm.cloneNode(true);
+    assert_equals(clone.readyState, clone.NONE, 'clone.readyState after element creation');
+    assert_not_equals(clone.track, elm.track, 'clone.track and elm.track');
+}, document.title+', not loaded');
+
+async_test(function(t) {
+    var elm = document.createElement('track');
+    var video = document.createElement('video');
+    video.appendChild(elm);
+    elm.track.mode = 'showing';
+    assert_equals(elm.readyState, elm.NONE, 'elm.readyState after appening to video setting mode');
+    elm.src = 'resources/track.vtt?pipe=trickle(d1)';
+    assert_equals(elm.readyState, elm.NONE, 'elm.readyState after setting src');
+    t.step_timeout(function() {
+      assert_equals(elm.readyState, elm.LOADING, 'elm.readyState in setTimeout');
+      var clone = elm.cloneNode(true);
+      assert_equals(clone.readyState, clone.NONE, 'clone.readyState after element creation');
+      video.appendChild(clone);
+      clone.track.mode = 'showing';
+      assert_equals(clone.readyState, clone.NONE, 'clone.readyState after appending to video and setting mode');
+      assert_not_equals(clone.track, elm.track, 'clone.track and elm.track');
+      t.done();
+    }, 0);
+}, document.title+', loading');
+
+async_test(function(t) {
+    var elm = document.createElement('track');
+    var video = document.createElement('video');
+    video.appendChild(elm);
+    elm.track.mode = 'showing';
+    elm.src = 'data:text/vtt,'+encodeURIComponent('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nfoo');
+    assert_equals(elm.readyState, elm.NONE, 'elm.readyState after setting src');
+    elm.onload = this.step_func(function() {
+        assert_equals(elm.readyState, elm.LOADED, 'elm.readyState');
+        assert_equals(elm.track.cues.length, 1, 'elm.track.cues.length');
+        assert_equals(elm.track.cues[0].startTime, 0, 'elm.track.cues[0].startTime');
+        assert_equals(elm.track.cues[0].endTime, 1, 'elm.track.cues[0].endTime');
+        assert_equals(elm.track.cues[0].text, 'foo', 'elm.track.cues[0].text');
+        var clone = elm.cloneNode(true);
+        assert_equals(clone.readyState, clone.NONE, 'clone.readyState after element creation');
+        video.appendChild(clone);
+        clone.track.mode = 'showing';
+        assert_equals(clone.readyState, clone.NONE, 'clone.readyState after appending to video and setting mode');
+        assert_not_equals(clone.track, elm.track, 'clone.track and elm.track');
+        clone.onload = this.step_func(function(){
+            assert_equals(clone.readyState, clone.LOADED, 'clone.readyState');
+            assert_not_equals(clone.track, elm.track, 'clone.track and elm.track');
+            assert_not_equals(clone.track.cues, elm.track.cues, 'clone.track.cues and elm.track.cues');
+            assert_equals(clone.track.cues.length, 1, 'clone.track.cues.length');
+            assert_not_equals(clone.track.cues[0], elm.track.cues[0], 'cues[0]');
+            assert_equals(clone.track.cues[0].startTime, 0, 'clone.track.cues[0].startTime');
+            assert_equals(clone.track.cues[0].endTime, 1, 'clone.track.cues[0].endTime');
+            assert_equals(clone.track.cues[0].text, 'foo', 'clone.track.cues[0].text');
+            this.done();
+        });
+        clone.onerror = this.step_func(function() { assert_unreached('clone got error'); });
+    });
+    elm.onerror = this.step_func(function() { assert_unreached('elm got error'); });
+}, document.title+', loaded');
+
+async_test(function(t) {
+    var elm = document.createElement('track');
+    var video = document.createElement('video');
+    video.appendChild(elm);
+    elm.track.mode = 'showing';
+    elm.onerror = t.step_func(function() {
+      assert_equals(elm.readyState, elm.ERROR, 'elm.readyState in onerror');
+      var clone = elm.cloneNode(true);
+      assert_equals(clone.readyState, clone.NONE, 'clone.readyState after element creation');
+      video.appendChild(clone);
+      clone.track.mode = 'showing';
+      assert_equals(clone.readyState, clone.NONE, 'clone.readyState after appending to video and setting mode');
+      assert_not_equals(clone.track, elm.track, 'clone.track and elm.track');
+      clone.onerror = t.step_func_done();
+    });
+    elm.src = 'javascript:"network error"';
+}, document.title+', failed to load');
+</script>

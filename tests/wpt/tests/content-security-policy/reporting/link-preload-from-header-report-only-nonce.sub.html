@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A Report-Only policy with a nonce does not send a report for an allowed link preload</title>
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script nonce="abc">
+var testName = "Report should not be sent for an allowed link preload";
+addEventListener("load", () => {
+    const script = document.createElement("script");
+    script.nonce = "abc";
+    script.src = `../support/checkReport.sub.js?reportExists=false&testName=${encodeURIComponent(testName)}`;
+
+    document.body.appendChild(script);
+});
+</script>
+</body>
+</html>

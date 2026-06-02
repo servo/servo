@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: wrapping column flexbox with max-height don't overflow.</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
+<link rel="match" href="reference/multiline-column-max-height-ref.html">
+<meta name="assert" content="This test ensures that the flex line length is limited to max-height in a wrapping column flexbox."/>
+<style>
+.flex {
+  display: flex;
+  flex-flow: column wrap;
+  max-height: 200px;
+  background: blue;
+  color: blue;
+}
+
+.item {
+  flex: 0 0 auto;
+  line-height: 20px;
+}
+</style>
+There should only be a blue box below, and the word "FAIL" should not be seen.
+<div class="flex">
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+  <span class="item">FAIL</span>
+</div>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: fractional box with overflow children -- new content</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="fractional-box-with-overflow-children-ref.html">
+<!-- subpixel differences are ok in this test (in highdpi), but channel difference
+     should not be perceptible -->
+<meta name=fuzzy content="maxDifference=0-3; totalPixels=0-100">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.box {
+  position: relative;
+  margin: 15px;
+  background: green;
+  width: 100.125px;
+  height: 50.875px;
+}
+.shift {
+  left: 0.4px;
+}
+.child1 {
+  position: absolute;
+  left: -2px;
+  width: 110px;
+  height: 25px;
+  background: darkgreen;
+}
+.child2 {
+  position: absolute;
+  top: -3px;
+  width: 50px;
+  height: 55px;
+  background: darkgreen;
+}
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<div class="box" style="view-transition-name: one"><div class="child1"></div><div class="child2"></div></div>
+<div class="box shift" style="view-transition-name: two"><div class="child1"></div><div class="child2"></div></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

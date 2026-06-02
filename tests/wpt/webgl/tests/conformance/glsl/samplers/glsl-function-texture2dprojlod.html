@@ -1,0 +1,164 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture2D GLSL conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="256" height="256" style="width: 16px; height: 16px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader2dvec3" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 color;
+uniform sampler2D tex;
+uniform float divisor;
+uniform float lod;
+void main() {
+    gl_Position = vPosition;
+    color = texture2DProjLod(tex, vec3(0.75 * divisor, 0.25 * divisor, divisor), lod);
+}
+</script>
+<script id="vshader2dvec4" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 color;
+uniform sampler2D tex;
+uniform float divisor;
+uniform float lod;
+void main() {
+    gl_Position = vPosition;
+    color = texture2DProjLod(tex, vec4(0.75 * divisor, 0.25 * divisor, 123.0, divisor), lod);
+}
+</script>
+<script id="fshader2d" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 color;
+void main() {
+    gl_FragData[0] = color;
+}
+</script>
+<script>
+"use strict";
+description("tests GLSL texture2DProjLod function");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+
+shouldBe("canvas.width", "256");
+shouldBe("canvas.height", "256");
+
+var colors = [
+  {name: 'red', color:[255, 0, 0, 255]},
+  {name: 'green', color:[0, 255, 0, 255]},
+  {name: 'blue', color:[0, 0, 255, 255]},
+  {name: 'yellow', color:[255, 255, 0, 255]},
+  {name: 'magenta', color:[255, 0, 255, 255]},
+  {name: 'cyan', color:[0, 255, 255, 255]},
+  {name: 'pink', color:[255, 128, 128, 255]},
+  {name: 'gray', color:[128, 128, 128, 255]},
+  {name: 'light green', color:[128, 255, 128, 255]},
+];
+var contextTypes = ["2d", "webgl"];
+var vectorTypes = ["vec3", "vec4"];
+
+var gl = wtu.create3DContext(canvas);
+if (gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0) {
+  runTest();
+} else {
+  testPassed("MAX_VERTEX_TEXTURE_IMAGE_UNITS == 0, this is okay.");
+}
+
+
+function runTest() {
+  // Avoid creating a WebGL context for every test, as it causes:
+  // Too many active WebGL contexts. Oldest context will be lost.
+  var canvasWebGL = document.createElement("canvas");
+  var ctxWebGL = canvasWebGL.getContext("webgl");
+
+  // Might as well do the same for canvas 2d
+  var canvas2d = document.createElement("canvas");
+  var ctx2d = canvas2d.getContext("2d");
+
+  shouldBe("colors.length", "9");
+  contextTypes.forEach((context) => {
+    vectorTypes.forEach((vectorType) => {
+      debug("");
+      debug(`testing ${context} context with ${vectorType} vertex shader`);
+      var program = wtu.setupProgram(
+          gl, ['vshader2d' + vectorType, 'fshader2d'], ['vPosition', 'texCoord0'], [0, 1]);
+      wtu.setupUnitQuad(gl, 0, 1);
+
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(
+          gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+      // Fill the top right quadrant of each texture level with one of the colors
+      for (var ii = 0; ii < colors.length; ++ii) {
+        var color = colors[ii];
+        var size = Math.pow(2, colors.length - ii - 1);
+
+        if (context === "2d") {
+          canvas2d.width = size;
+          canvas2d.height = size;
+          ctx2d.fillStyle = "rgb(0,0,0)";
+          ctx2d.fillRect(0, 0, size, size);
+          ctx2d.fillStyle = "rgb(" + color.color[0] + "," + color.color[1] + "," + color.color[2] + ")";
+          ctx2d.fillRect(size / 2, 0, size / 2, size / 2);
+          gl.texImage2D(gl.TEXTURE_2D, ii, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d);
+        } else if (context === "webgl") {
+          canvasWebGL.width = canvasWebGL.height = size;
+          ctxWebGL.clearColor(0, 0, 0, 1);
+          ctxWebGL.clear(gl.COLOR_BUFFER_BIT);
+          ctxWebGL.enable(gl.SCISSOR_TEST);
+          ctxWebGL.scissor(size/2, size/2, size/2, size/2)
+          ctxWebGL.clearColor(color.color[0]/255, color.color[1]/255, color.color[2]/255, 1)
+          ctxWebGL.clear(gl.COLOR_BUFFER_BIT);
+          gl.texImage2D(gl.TEXTURE_2D, ii, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvasWebGL);
+        }
+      }
+
+      var lodLoc = gl.getUniformLocation(program, "lod");
+      var divLoc = gl.getUniformLocation(program, "divisor");
+
+      for (var div = 1; div < 4; ++div) {
+        for (var ii = 0; ii < colors.length - 1; ++ii) {
+          gl.uniform1f(lodLoc, ii);
+          gl.uniform1f(divLoc, div);
+          var lodColor = colors[ii];
+          var size = Math.pow(2, colors.length - ii - 1);
+          wtu.clearAndDrawUnitQuad(gl);
+          wtu.checkCanvas(
+              gl, lodColor.color,
+              "sampling with lod = " + ii +
+              " divider = " + div +
+              " should be " + lodColor.name);
+        }
+      }
+    });
+  });
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+}
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

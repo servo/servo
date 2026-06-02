@@ -1,0 +1,14 @@
+{
+  "description": "Tools for WebRTC testing",
+  "scripts": {
+    "lint": "eslint -c .eslintrc.js ../*.html ../*.js"
+  },
+  "devDependencies": {
+    "eslint": "^7.24.0",
+    "eslint-plugin-html": "^4.0.0",
+    "jscodeshift": "^0.5.1",
+    "jsdom": "^16.5.3"
+  },
+  "license": "BSD",
+  "private": true
+}

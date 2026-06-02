@@ -1,0 +1,5 @@
+features:
+- name: scroll-snap-events
+  files:
+  - snap-events-with-pseudo-target.tentative.html
+  - snapevents-at-document-bubble-to-window.html

@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Managed Configuration API (https://wicg.github.io/WebApiDevice/managed_config/)
+
+[
+  SecureContext
+] partial interface Navigator {
+  [SecureContext, SameObject]
+  readonly attribute NavigatorManagedData managed;
+};
+
+[
+  SecureContext,
+  Exposed=Window
+] interface NavigatorManagedData : EventTarget {
+  // Managed Configuration API.
+  Promise<record<DOMString, object>> getManagedConfiguration(sequence<DOMString> keys);
+  attribute EventHandler onmanagedconfigurationchange;
+};

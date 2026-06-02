@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: main frame and sibling frames transition at the same time</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="sibling-frames-transition-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#first {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+  view-transition-name: first;
+}
+
+#second {
+  position: fixed;
+  top: 50vh;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+  view-transition-name: second;
+}
+
+/* The main frame is showing the old screenshot for the root*/
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+::view-transition-new(root) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-old(root) {
+  animation: unset;
+  opacity: 1;
+}
+
+/* For the iframes, show the new screenshot */
+::view-transition-new(first), ::view-transition-new(second) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-old(first), ::view-transition-old(second) {
+  animation: unset;
+  opacity: 0;
+}
+</style>
+
+<iframe id="first" srcdoc="
+<style>
+  /* The iframe is showing new live DOM */
+  ::view-transition-group(root) {
+    animation-duration: 300s;
+  }
+  ::view-transition-new(root) {
+    animation: unset;
+    opacity: 1;
+  }
+  ::view-transition-old(root) {
+    animation: unset;
+    opacity: 0;
+  }
+</style>
+<body></body>"></iframe>
+<iframe id="second" srcdoc="
+<style>
+  /* The iframe is showing old DOM */
+  ::view-transition-group(root) {
+    animation-duration: 300s;
+  }
+  ::view-transition-new(root) {
+    animation: unset;
+    opacity: 0;
+  }
+  ::view-transition-old(root) {
+    animation: unset;
+    opacity: 1;
+  }
+</style>
+<body></body>"></iframe>
+<script>
+  onload = runTest;
+
+  async function startTransition(document, oldColor, newColor) {
+    document.documentElement.style.background = oldColor;
+    await document.startViewTransition(() => {
+      document.documentElement.style.background = newColor;
+    }).ready;
+  }
+
+  async function runTest() {
+    await startTransition(document, "green", "lightgreen");
+    await startTransition(first.contentDocument, "blue", "lightblue");
+    await startTransition(second.contentDocument, "magenta", "orange");
+
+    takeScreenshot();
+  }
+</script>
+

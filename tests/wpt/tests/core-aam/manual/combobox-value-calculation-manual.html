@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox value calculation</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "valuetext:Apple"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValue",
+                  "is",
+                  "Apple"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "accValue",
+                  "is",
+                  "Apple"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Value.Value",
+                  "is",
+                  "Apple"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for a combobox whose value is computed.</p>
+  <div id="combo1-label">Choose a fruit, with text content</div>
+  <div aria-controls="listbox1" id="test" aria-expanded="false" aria-haspopup="listbox" aria-labelledby="combo1-label" role="combobox" tabindex="0">Apple</div>
+  <div role="listbox" id="listbox1">
+    <div role="option" id="combo1-0" aria-selected="true">Apple</div>
+    <div role="option" id="combo1-1">Banana</div>
+    <div role="option" id="combo1-2">Cherry</div>
+  </div>
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

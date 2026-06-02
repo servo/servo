@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_complex_bgra8unorm_draw</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta
+    name="assert"
+    content="WebGPU canvas should have correct orientation, components, scaling, filtering, color space"
+  />
+  <link rel="match" href="./ref/canvas_complex-ref.html" />
+
+  <canvas id="cvs_draw_texture_sample" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_draw_vertex_color" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_draw_fragcoord" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+
+  <script type="module">
+    import { run } from './canvas_complex.html.js';
+    run('bgra8unorm', [
+      { cvs: cvs_draw_texture_sample, writeCanvasMethod: 'DrawTextureSample' },
+      { cvs: cvs_draw_vertex_color, writeCanvasMethod: 'DrawVertexColor' },
+      { cvs: cvs_draw_fragcoord, writeCanvasMethod: 'DrawFragcoord' },
+    ]);
+  </script>
+</html>

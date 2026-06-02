@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 300px;
+  height: 150px;
+  border: none;
+}
+#occluder {
+  will-change: transform;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/intersection-observer/resources/v2-subframe.html"></iframe>
+<div id="occluder"></div>
+
+<script>
+async_test(function(t) {
+  let iframe = document.querySelector("iframe");
+  let occluder = document.getElementById("occluder");
+
+  function step0(event) {
+    assert_equals(event.data,"");
+  }
+
+  function step1(event) {
+    occluder.style.marginTop = "-150px";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  function step2(event) {
+    occluder.style.marginTop = "";
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([false]));
+  }
+
+  function step3(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  let steps = [step0, step1, step2, step3];
+
+  window.addEventListener("message", event => {
+    if (steps.length) {
+      t.step(steps.shift(), t, event);
+      waitForFrame(t, () => {
+        iframe.contentWindow.postMessage("", "*");
+      });
+    } else {
+      t.done();
+    }
+  });
+
+}, "Intersection observer V2 test with occlusion of target in iframe.");
+</script>

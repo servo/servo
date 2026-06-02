@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: Dynamic change ::target-text background color</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<meta name="assert" content="This test checks that it's possible to modify dinamically the background color of a targeted text through ::target-text pseudo-element.">
+<link rel="match" href="target-text-dynamic-001-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  span::target-text {
+    background-color: cyan;
+  }
+
+  span {
+    background-color: cyan;
+  }
+</style>
+
+<p>The test passes if the following word has a magenta background.</p>
+<div><span>Example</span></div>
+
+<script>
+  location.href = "#:~:text=Example";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.styleSheets[0].cssRules[0].style.backgroundColor = "magenta";
+    takeScreenshot();
+  }));
+</script>
+</html>

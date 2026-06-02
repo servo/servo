@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Tests AudioChannelSplitter
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+
+      // Arbitrary power-of-two-length render so timing math is exact.
+      const sampleRate = 44100.0;
+      const lengthInSampleFrames = 512;
+
+      // checkResult() checks that the rendered buffer is stereo and that the
+      // left channel is all –1 and right channel all +1. In other words,
+      // we've reversed the order of the two channels.
+      function checkResult(buffer) {
+        assert_equals(
+            buffer.numberOfChannels,
+            2,
+            'Rendered buffer must be stereo');
+
+        const left = buffer.getChannelData(0);
+        const right = buffer.getChannelData(1);
+
+        assert_constant_value(left, -1, 'Left channel:');
+        assert_constant_value(right, 1, 'Right channel:');
+      }
+
+      function createStereoBufferWithDCOffset(context, length, sr, offset) {
+        const buffer = new AudioBuffer({
+          numberOfChannels: 2,
+          length: length,
+          sampleRate: sr
+        });
+        const channelL = buffer.getChannelData(0);
+        const channelR = buffer.getChannelData(1);
+
+        for (let i = 0; i < length; ++i) {
+          channelL[i] = offset;
+          channelR[i] = -offset;
+        }
+        return buffer;
+      }
+
+      test(t => {
+        // Create a stereo OfflineAudioContext.
+        const context = new OfflineAudioContext(
+            2, lengthInSampleFrames, sampleRate);
+
+        // Invalid splitter channel counts.
+        assert_throws_dom('IndexSizeError',
+                          () => context.createChannelSplitter(0),
+                          'createChannelSplitter(0) must throw');
+        assert_throws_dom('IndexSizeError',
+                          () => context.createChannelSplitter(33),
+                          'createChannelSplitter(33) must throw');
+
+        // Maximum valid splitter.
+        let splitter = context.createChannelSplitter(32);
+        assert_equals(splitter.numberOfOutputs, 32,
+                      'splitter.numberOfOutputs');
+        assert_equals(splitter.numberOfInputs, 1,
+                      'splitter.numberOfInputs');
+
+        // Default constructor should yield 6 outputs.
+        splitter = context.createChannelSplitter();
+        assert_equals(splitter.numberOfOutputs, 6,
+                      'Default output count should be 6');
+      }, 'Construction of ChannelSplitterNode');
+
+
+      promise_test(async t => {
+        // Create a stereo OfflineAudioContext.
+        const context = new OfflineAudioContext(
+            2, lengthInSampleFrames, sampleRate);
+
+        // Create a stereo buffer, with all +1 values in left channel, all
+        // –1 in right channel.
+        const srcBuffer = createStereoBufferWithDCOffset(
+            context, lengthInSampleFrames, sampleRate, 1);
+
+        const source = new AudioBufferSourceNode(context, {
+          buffer: srcBuffer
+        });
+        const splitter = new ChannelSplitterNode(context, {
+          numberOfOutputs: 2
+        });
+        const merger = new ChannelMergerNode(context);
+
+        source.connect(splitter);
+        splitter.connect(merger, 0, 1);
+        splitter.connect(merger, 1, 0);
+        merger.connect(context.destination);
+
+        source.start();
+
+        const renderedBuffer = await context.startRendering();
+        checkResult(renderedBuffer);
+      }, 'Functionality of ChannelSplitterNode (channel swap)');
+    </script>
+  </body>
+</html>

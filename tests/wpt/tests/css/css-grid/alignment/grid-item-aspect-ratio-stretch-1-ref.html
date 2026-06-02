@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reference: stretching works for replaced items with a fallback aspect ratio</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<style>
+  body {
+    line-height: 0;
+  }
+
+  div {
+    display: inline-block;
+    height: 250px;
+    width: 350px;
+    background: grey;
+    margin: 10px;
+    vertical-align: top;
+  }
+
+  img {
+    display: block;
+  }
+
+  .justify {
+    width: 350px;
+  }
+  .align {
+    height: 250px;
+  }
+</style>
+<div>
+  <img class="align justify">
+</div>
+<div>
+  <img class="align">
+</div>
+<div>
+  <img class="justify">
+</div>
+<div>
+  <img style="width:10px; height:20px">
+</div>
+
+<script>
+var url = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 100"><circle cx="50%" cy="50%" r="50%" fill="blue"/></svg>'
+var imgs = document.querySelectorAll('img');
+for (var i = 0; i < imgs.length; ++i) {
+  var img = imgs[i];
+  img.src = url;
+}
+</script>

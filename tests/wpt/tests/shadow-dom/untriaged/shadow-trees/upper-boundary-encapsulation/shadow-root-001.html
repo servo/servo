@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Shadow root's parentNode() and parentElement()</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The parentNode and parentElement attributes of the shadow root object must always return null.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    assert_equals(shadowRoot.parentNode, null);
+}, 'The parentNode attribute of a shadow root must always return null.');
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    assert_equals(shadowRoot.parentElement, null);
+}, 'The parentElement attribute of a shadow root must always return null.');
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var outerShadowRoot = doc.body.attachShadow({mode: 'open'});
+    var div = doc.createElement('div');
+    outerShadowRoot.appendChild(div);
+    var innerShadowRoot = div.attachShadow({mode: 'open'});
+    assert_equals(innerShadowRoot.parentNode, null);
+},
+    'The parentNode attribute of a shadow root must always return null, ' +
+    'even if the shadow root is nested inside another shadow root.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var outerShadowRoot = doc.body.attachShadow({mode: 'open'});
+    var div = doc.createElement('div');
+    outerShadowRoot.appendChild(div);
+    var innerShadowRoot = div.attachShadow({mode: 'open'});
+    assert_equals(innerShadowRoot.parentElement, null);
+},
+    'The parentElement attribute of a shadow root must always return null, ' +
+    'even if the shadow root is nested inside another shadow root.'
+);
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Non MathML namespace</title>
+    <link rel="help" href="https://www.w3.org/TR/mathml-core/#user-agent-stylesheet">
+    <link rel="match" href="non-mathml-namespace-001-ref.html">
+    <meta name="assert" content="Verify that MathML stylesheets only apply to its namespace.">
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      ["semantics", "maction"].forEach((tagName) => {
+        const nonMathMLNS = "http://www.w3.org/1999/xhtml";
+        let el = document.createElement(tagName, nonMathMLNS);
+        el.innerHTML = "<span>Hello</span> <span>World!</span>";
+        container.appendChild(el);
+      });
+    </script>
+  </body>
+</html>

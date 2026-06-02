@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(scrolled) multiple scrollers</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#scrolled">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    container-type: scroll-state;
+    overflow-y: scroll;
+  }
+  .filler {
+    height: 600px;
+  }
+  .target {
+    --top1: no;
+    --top2: no;
+    --bottom1: no;
+    --bottom2: no;
+  }
+  #target1 {
+    @container scroll-state(scrolled: top) {
+      --top1: yes;
+    }
+    @container scroll-state(scrolled: bottom) {
+      --bottom1: yes;
+    }
+  }
+  #target2 {
+    @container scroll-state(scrolled: top) {
+      --top2: yes;
+    }
+    @container scroll-state(scrolled: bottom) {
+      --bottom2: yes;
+    }
+  }
+</style>
+<div id="scroller1" class="scroller">
+  <div class="filler">
+    <div id="target1" class="target"></div>
+  </div>
+</div>
+<div id="scroller2" class="scroller">
+  <div class="filler">
+    <div id="target2" class="target"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_scroll_state_container_queries());
+
+  function touch_scroll(start_pos, end_pos) {
+    return new test_driver.Actions()
+        .addPointer("TestPointer", "touch")
+        .pointerMove(Math.round(start_pos.x), Math.round(start_pos.y))
+        .pointerDown()
+        .addTick()
+        .pause(200)
+        .pointerMove(Math.round(end_pos.x), Math.round(end_pos.y))
+        .addTick()
+        .pointerUp()
+        .send();
+  }
+
+  promise_test(async t => {
+    let scrollEndPromise1 = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller1);
+    let scrollEndPromise2 = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller2);
+
+    scroller1.addEventListener('scroll', () => {
+      scroller2.scrollTop = 300;
+      scroller2.scrollBy({top: -150, behavior: "smooth"});
+    }, { once: true });
+
+    // Scroll element position
+    const start = {
+      x: 100,
+      y: 100,
+    };
+    const end = { x: 100, y: 0 };
+    await touch_scroll(start, end);
+
+    await Promise.all([scrollEndPromise1, scrollEndPromise2]);
+    await waitForAnimationFrames(2);
+
+    assert_equals(getComputedStyle(target1).getPropertyValue("--top1"), "no");
+    assert_equals(getComputedStyle(target1).getPropertyValue("--bottom1"), "yes");
+    assert_equals(scroller2.scrollTop, 150);
+    assert_equals(getComputedStyle(target2).getPropertyValue("--top2"), "yes");
+    assert_equals(getComputedStyle(target2).getPropertyValue("--bottom2"), "no");
+  }, "User scroll caused programmatic relative scroll");
+
+</script>

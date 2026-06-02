@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{lineHeight: '3em'}, {lineHeight: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).lineHeight, '80px');
+}, 'lineHeight responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{lineHeight: '40px'}, {lineHeight: 'calc(40px - 2em)'}], 10);
+    player.pause();
+
+    player.currentTime = 5;
+    element.style.fontSize = '40px';
+    assert_equals(getComputedStyle(element).lineHeight, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).lineHeight, '10px');
+}, 'lineHeight clamped to 0px on keyframes');
+
+test(function() {
+    container.style.lineHeight = 'normal';
+    var player = element.animate([{lineHeight: 'inherit'}, {lineHeight: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).lineHeight, 'normal');
+
+    container.style.lineHeight = '100px';
+    assert_equals(getComputedStyle(element).lineHeight, '80px');
+
+    container.style.lineHeight = 'normal';
+    assert_equals(getComputedStyle(element).lineHeight, 'normal');
+}, 'lineHeight responsive to inherited changes from keyword');
+
+test(function() {
+    container.style.fontSize = '10px';
+    container.style.lineHeight = '1.0';
+    const expected = getComputedStyle(container).lineHeight;
+    var player = element.animate([{lineHeight: 'inherit'}, {lineHeight: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    getComputedStyle(element).lineHeight;
+
+    container.style.lineHeight = '100px';
+    assert_equals(getComputedStyle(element).lineHeight, '80px');
+}, 'lineHeight responsive to inherited changes from number');
+
+test(function() {
+    container.style.fontSize = '10px';
+    container.style.lineHeight = '1';
+    var player = element.animate([{lineHeight: 'inherit'}, {lineHeight: '2'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    const expected = getComputedStyle(element).lineHeight;
+
+    container.style.lineHeight = '97px';
+    assert_equals(getComputedStyle(element).lineHeight, '97px');
+
+    container.style.lineHeight = '1';
+    assert_equals(getComputedStyle(element).lineHeight, expected);
+}, 'lineHeight responsive to inherited changes from length');
+
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.createElement("div");
+for (var i = 0; i < 100000; i++)
+    div.appendChild(document.createElement("div"));
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers 'childNodes' in Dromaeo/dom-traverse.html, and other DOM attributes that access NodeList.",
+    run: function() {
+        var childNodes = div.childNodes;
+        var length = div.childNodes.length;
+        for (var i = 0; i < length; i++)
+            childNodes[i];
+}});
+</script>
+</body>
+</html>

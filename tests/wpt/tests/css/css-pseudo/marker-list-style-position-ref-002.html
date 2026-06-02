@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'list-style-position' property</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+body { color: black; background: white; }
+#t1 > li { list-style-position: inside; }
+#t2 > li { list-style-position: outside; }
+#t3 > li { list-style-position: inside; }
+#t4 > li { list-style-position: inside; }
+
+#t1, #t2, blue { color: blue; }
+black { color: black; }
+
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol id="t1"><li></li><li><black>B</black></li><li><span><black>C</black></span></li></ol>
+<ol id="t2"><li></li><li><black>B</black></li><li><span><black>C</black></span></li></ol>
+<ol id="t3"><li></li><li><blue>B</blue></li><li><span><blue>C</blue></span></li></ol>
+<ol id="t4"><li></li><li><blue>B</blue></li><li><span><blue>C</blue></span></li></ol>
+</body>
+</html>

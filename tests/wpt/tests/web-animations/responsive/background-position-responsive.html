@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animation with neutral keyframe is responsive to change in underlying style</title>
+  <link rel="help" href="https://www.w3.org/TR/web-animations-1/#the-effect-value-of-a-keyframe-animation-effect">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="responsive-test.js"></script>
+</head>
+<body></body>
+<script type="text/javascript">
+  promise_test(async t => {
+    const responsiveTest =
+        createResponsiveTest(t, {
+          property: 'backgroundPosition',
+          to: '100px 100px'
+        });
+    await responsiveTest.ready;
+    responsiveTest.underlyingValue = '20px 60px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: '40px 70px'},
+      {at: 0.75, is: '80px 90px'},
+    ]);
+    responsiveTest.underlyingValue = '60px 20px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: '70px 40px'},
+      {at: 0.75, is: '90px 80px'},
+    ]);
+  }, 'Animating from a neutral keyframe when the underlying style is ' +
+     'explicitly set');
+
+  promise_test(async t => {
+    const responsiveTest =
+        createResponsiveTest(t, {
+          property: 'backgroundPosition',
+          from: 'inherit',
+          to: '100px 100px'
+        });
+    await responsiveTest.ready;
+    responsiveTest.inheritedValue = '20px 60px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: '40px 70px'},
+      {at: 0.75, is: '80px 90px'},
+    ]);
+    responsiveTest.inheritedValue = '60px 20px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: '70px 40px'},
+      {at: 0.75, is: '90px 80px'},
+    ]);
+  }, 'Animating from a neutral keyframe when the underlying style is ' +
+     'inherited from the parent');
+</script>

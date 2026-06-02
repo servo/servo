@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Element.scroll* methods returning promises</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="author" title="Mustaq Ahmed" href="mailto:mustaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  .filler { height: 5000px }
+
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="scroller">
+  <div class="filler"></div>
+  <div class="filler"></div>
+</div>
+<script>
+  "use strict";
+
+  const scroller = document.getElementById("scroller");
+  const scroll_methods = ["scroll", "scrollTo", "scrollBy", "scrollIntoView"];
+
+  function reset() {
+    scroller.scrollTo({ top: 0 });
+    assert_equals(scroller.scrollTop, 0, "Sanity check starting position");
+  }
+
+  promise_setup(async () => {
+    await waitForCompositorReady();
+  });
+
+  for (const scroll_method of scroll_methods) {
+    for (const behavior of ["auto", "instant", "smooth"]) {
+      const test_label = `Element.${scroll_method}(${behavior})`;
+
+      promise_test(async () => {
+        let result = scroller[scroll_method]({ behavior: behavior });
+        assert_true(result instanceof Promise);
+      }, `${test_label}: return type`);
+
+      promise_test(async () => {
+        reset();
+        const offset = 5000;
+
+        let promise = (scroll_method != "scrollIntoView") ?
+              scroller[scroll_method]({ top: offset, behavior: behavior }) :
+              scroller.lastElementChild.scrollIntoView({ behavior: behavior });
+
+        if (behavior != "smooth") {
+          assert_equals(scroller.scrollTop, offset, "Position before await");
+        } else {
+          assert_true(0 <= scroller.scrollTop && scroller.scrollTop < offset,
+                "Position before await");
+        }
+
+        await promise;
+        assert_equals(scroller.scrollTop, offset, "Position after await");
+      }, `${test_label}: promise behavior`);
+    }
+  }
+</script>

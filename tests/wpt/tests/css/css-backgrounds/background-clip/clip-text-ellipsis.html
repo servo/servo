@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>background-clip:text with ellipsis</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-ellipsis-ref.html">
+<meta name="fuzzy" content="maxDifference=0-45; totalPixels=0-1350">
+<style>
+.clip {
+  font-size: 80px;
+  width: 4em;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+</style>
+<div class="clip">AAAAAAAAAAAAA</div>

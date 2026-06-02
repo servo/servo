@@ -1,0 +1,18 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH Persistence test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+// Make sure that cross origin iframes that gets redirected, and has Feature Policy delegation maintain their Client Hints.
+const test_name = "Iframe redirect with Feature Policy delegation";
+verify_iframe_state("resources/accept-ch-and-redir.py?url=" + get_host_info()["HTTPS_REMOTE_ORIGIN"] + "/client-hints/accept-ch-stickiness/resources/expect-received.py", test_name);
+
+</script>
+</body>
+</html>
+

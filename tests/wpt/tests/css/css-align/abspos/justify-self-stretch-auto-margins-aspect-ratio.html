@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11195#issuecomment-2824879710">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+.container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  left: -50px;
+}
+.abspos {
+  position: absolute;
+  inset: 50px 50px auto 50px;
+  margin: 0 auto 0 auto;
+  justify-self: stretch;
+  background: green;
+}
+.abspos::before {
+  content: '';
+  width: 100%;
+  min-height: 50px;
+  aspect-ratio: 1;
+  display: block;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container">
+  <div class="abspos"></div>
+</div>

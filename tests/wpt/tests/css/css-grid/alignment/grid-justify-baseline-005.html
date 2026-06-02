@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-rules">
+<style>
+#target {
+  display: grid;
+  grid-template: 50px 50px 50px 50px / 50px 50px 50px;
+  width: 200px;
+  border: solid 3px;
+  position: relative;
+  line-height: 20px;
+}
+#target > div {
+  writing-mode: vertical-rl;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#target > div')">
+
+<div id="target">
+  <div style="grid-row: 1; grid-column: 3; justify-self: baseline; margin-right: 10px;" data-offset-x="100">line1<br>line2</div>
+  <div style="grid-row: 2; grid-column: span 3; justify-self: baseline;" data-offset-x="100">line1<br>line2</div>
+  <div style="grid-row: 3; grid-column: 1; justify-self: last baseline; margin-left: 10px;" data-offset-x="10">line1<br>line2</div>
+  <div style="grid-row: 4; grid-column: span 3; justify-self: last baseline;" data-offset-x="10">line1<br>line2</div>
+</div>

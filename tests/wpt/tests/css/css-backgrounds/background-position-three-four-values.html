@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+<title>CSS Test: 'Background-position' with three and four values</title>
+<link rel="help" href="http://www.w3.org/TR/css3-background/#background-position" />
+<meta name="assert" content="If three or four values are given to 'background-position', then each percentage or length value represents an offset from the edge specified by the preceeding keyword." />
+<link rel="match" href="reference/background-position-three-four-values-ref.html">
+<style type="text/css">
+div {
+  width: 200px;
+  height: 200px;
+  border: 2px solid black;
+  background-image: url("support/blue_color.png");
+  background-repeat: no-repeat;
+  display: inline-block;
+}
+.test1  {
+  background-position: left 50px center;
+}
+.test2 {
+  background-position: right 25px top 75%;
+}
+.test3 {
+  background-position: left 25px bottom 75%;
+}
+.test4 {
+  background-position: right 25px bottom 25%;
+}
+</style>
+
+</head>
+<body>
+
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>
+<div class="test4"></div>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+features:
+- name: details-name
+  files:
+  - name-attribute.html

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>The :animated-image pseudo-class matches only elements with animated images</title>
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
+<link rel="help" href="https://webplatform.design/projects/image-animation/image-animation-property/spec/overview">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-pseudo-animated-image.tentative-ref.html">
+<style>
+  img {
+    display: block;
+    margin: 10px;
+    width: 20px;
+    height: 20px;
+  }
+
+  img {
+    outline: 5px solid red;
+  }
+
+  img:animated-image {
+    image-animation: paused;
+    outline: 5px solid green;
+  }
+</style>
+
+<img src="../../images/anim-gr.gif">
+
+<img src="../../images/green.png">
+
+<img src="../../images/anim-gr.png">
+
+<img src="../../images/computer.jpg">

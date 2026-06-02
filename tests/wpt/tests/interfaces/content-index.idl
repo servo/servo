@@ -1,0 +1,46 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Content Index (https://wicg.github.io/content-index/spec/)
+
+partial interface ServiceWorkerGlobalScope {
+  attribute EventHandler oncontentdelete;
+};
+
+partial interface ServiceWorkerRegistration {
+  [SameObject] readonly attribute ContentIndex index;
+};
+
+enum ContentCategory {
+  "",
+  "homepage",
+  "article",
+  "video",
+  "audio",
+};
+
+dictionary ContentDescription {
+  required DOMString id;
+  required DOMString title;
+  required DOMString description;
+  ContentCategory category = "";
+  sequence<ImageResource> icons = [];
+  required USVString url;
+};
+
+[Exposed=(Window,Worker)]
+interface ContentIndex {
+  Promise<undefined> add(ContentDescription description);
+  Promise<undefined> delete(DOMString id);
+  Promise<sequence<ContentDescription>> getAll();
+};
+
+dictionary ContentIndexEventInit : ExtendableEventInit {
+  required DOMString id;
+};
+
+[Exposed=ServiceWorker]
+interface ContentIndexEvent : ExtendableEvent {
+  constructor(DOMString type, ContentIndexEventInit init);
+  readonly attribute DOMString id;
+};

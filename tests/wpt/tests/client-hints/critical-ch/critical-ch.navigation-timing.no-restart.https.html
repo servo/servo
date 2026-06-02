@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  var navigationTiming = window.performance.getEntriesByType('navigation')[0];
+  assert_not_equals(navigationTiming, undefined);
+  assert_equals(navigationTiming.criticalCHRestart, 0, "This should be 0 as there was no restart.");
+}, "Critical-CH no-restart navigation timing test");
+</script>
+</body>
+</html>

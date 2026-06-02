@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-21 -->
+  <style type="text/css"><![CDATA[
+   p { color: navy; }
+   img { height: 50px; width: 50px; float: right; }
+   span { color: silver; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" title="9.5.1 Positioning the float: the 'float' property"/>
+ </head>
+ <body>
+  <p>
+   <img src="support/square-teal.png" alt="[FAIL: Image support required]"/>
+   This text should flow around the box on the right. &#x21E8;
+   <span>dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text dummy text dummy text dummy text dummy
+   text dummy text dummy text</span>
+  </p>
+ </body>
+</html>

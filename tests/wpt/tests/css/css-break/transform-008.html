@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="match" href="transform-008-ref.html">
+<style>
+  .relpos {
+      position: relative;
+      top: 50px;
+      left: 50px;
+      width: 50px;
+  }
+  .transform {
+      transform: rotate(45deg);
+      height: 200px;
+  }
+  .abspos {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: green;
+  }
+</style>
+<p>Below there should be two green squares, and one green rectangle between
+  them. They should all be rotated.</p>
+<div style="columns:3; column-gap:0; column-fill:auto; width:300px; height:100px;">
+  <div class="relpos" style="margin-top:50px;">
+    <div class="transform">
+      <div class="abspos"></div>
+    </div>
+  </div>
+</div>

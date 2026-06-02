@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Tests for :enabled and :disabled selectors</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <button id="button-1"></button>
+        <button id="button-2" disabled></button>
+
+        <input id="input-1"></input>
+        <input id="input-2" disabled></input>
+
+        <option id="option-1"></option>
+        <option id="option-2" disabled></option>
+
+        <select id="select-1"></select>
+        <select id="select-2" disabled></select>
+
+        <textarea id="textarea-1"></textarea>
+        <textarea id="textarea-2" disabled></textarea>
+
+        <optgroup disabled>
+            <option id="option-3"></option>
+        </optgroup>
+
+        <fieldset disabled>
+            <fieldset>
+                <button id="button-3"></button>
+                <input id="input-3"></input>
+                <select id="select-3"></select>
+                <textarea id="textarea-3"></textarea>
+            </fieldset>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend>
+                <button id="button-4"></button>
+                <input id="input-4"></input>
+                <select id="select-4"></select>
+                <textarea id="textarea-4"></textarea>
+            </legend>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend></legend>
+            <legend>
+                <button id="button-5"></button>
+                <input id="input-5"></input>
+                <select id="select-5"></select>
+                <textarea id="textarea-5"></textarea>
+            </legend>
+        </fieldset>
+        <script>
+            function check_selector(elem, selector, matches) {
+                assert_equals(elem.matches(selector), matches);
+            }
+
+            function check_disabled_selector(elem, disabled) {
+                check_selector(elem, ":disabled", disabled);
+                check_selector(elem, ":enabled", !disabled);
+            }
+
+            test(function() {
+                var list, i, elem;
+
+                // Examples of elements which are never :enabled or :disabled.
+                list = ['div', 'p', 'body', 'head', 'span'];
+                for(i = 0; i < list.length; i++) {
+                    elem = document.createElement(list[i]);
+                    check_selector(elem, ":enabled", false);
+                    check_selector(elem, ":disabled", false);
+                }
+
+                // Anchor, Area and Link elements are no longer :enabled with an href.
+                list = ["a", "area", "link"];
+                for(i = 0; i < list.length; i++) {
+                    elem = document.createElement(list[i]);
+                    elem.setAttribute("href", "");
+                    check_selector(elem, ":enabled", false);
+                    check_selector(elem, ":disabled", false);
+                }
+
+                // These are :enabled (and not :disabled) by default.
+                list = ['button', 'input', 'select', 'textarea', 'optgroup', 'option', 'fieldset'];
+                for(i = 0; i < list.length; i++) {
+                    elem = document.createElement(list[i]);
+                    check_disabled_selector(elem, false);
+                }
+            }, "Simple initialization checks");
+
+            test(function() {
+                var elem = document.createElement('menuitem');
+                check_disabled_selector(elem, false);
+            }, "menuitem initial state");
+
+            test(function() {
+                var click_count = 0;
+                var click_event = new Event('click', {bubbles: true, cancelable: true});
+                var list, elem1, elem2, elem3, elem4, elem5;
+
+                function on_click(ev) { click_count++; }
+
+                list = ['button', 'input', 'option', 'select', 'textarea'];
+                for(i = 0; i < list.length; i++) {
+                    click_count = 0;
+
+                    elem1 = document.getElementById(list[i] + "-1");
+                    assert_equals(elem1.disabled, false);
+
+                    elem1.addEventListener('click', on_click);
+                    elem1.dispatchEvent(click_event);
+                    assert_equals(click_count, 1);
+
+                    elem2 = document.getElementById(list[i] + "-2");
+                    assert_equals(elem2.disabled, true);
+
+                    // Only user-generated click events are prevented.
+                    elem2.addEventListener('click', on_click);
+                    elem2.dispatchEvent(click_event);
+                    assert_equals(click_count, 2);
+
+                    // This should look disabled, though - missing UA's CSS for :disabled?
+                    elem3 = document.getElementById(list[i] + "-3");
+                    assert_equals(elem3.disabled, false);
+
+                    if (list[i] == 'option') { continue; }
+
+                    elem4 = document.getElementById(list[i] + "-4");
+                    assert_equals(elem4.disabled, false);
+
+                    // This should look disabled, though - missing UA's CSS for :disabled?
+                    elem5 = document.getElementById(list[i] + "-5");
+                    assert_equals(elem5.disabled, false);
+                }
+            }, "Document elements tests")
+
+            test(function() {
+                var list = ['button', 'input', 'select', 'textarea'];
+                var fieldset = document.createElement("fieldset");
+                fieldset.disabled = true;
+                var div = document.createElement("div");
+                var elem;
+
+                for(i = 0; i < list.length; i++) {
+                    elem = document.createElement(list[i]);
+                    check_disabled_selector(elem, false);
+
+                    div.appendChild(elem);
+                    check_disabled_selector(elem, false);
+
+                    fieldset.appendChild(div);
+                    check_disabled_selector(elem, true);
+
+                    document.body.appendChild(fieldset);
+                    check_disabled_selector(elem, true);
+
+                    document.body.removeChild(fieldset);
+                    check_disabled_selector(elem, true);
+
+                    fieldset.removeChild(div);
+                    check_disabled_selector(elem, false);
+
+                    div.removeChild(elem);
+                    check_disabled_selector(elem, false);
+                }
+            }, "JS tests (Button, Input, Select, TextArea)");
+
+            test(function() {
+                var optgroup = document.createElement("optgroup");
+                optgroup.disabled = true;
+                check_disabled_selector(optgroup, true);
+
+                var option = document.createElement("option");
+                check_disabled_selector(option, false);
+
+                optgroup.appendChild(option);
+                check_disabled_selector(option, true);
+
+                document.body.appendChild(optgroup);
+                check_disabled_selector(option, true);
+
+                document.body.removeChild(optgroup);
+                check_disabled_selector(option, true);
+
+                optgroup.removeChild(option);
+                check_disabled_selector(option, false);
+            }, "JS tests (Option)");
+        </script>
+    </body>
+</html>

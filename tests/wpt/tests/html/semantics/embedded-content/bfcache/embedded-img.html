@@ -1,0 +1,10 @@
+<!doctype html>
+<link rel="help" href="http://crbug.com/1325192">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+
+<script type="module">
+import * as common from "./resources/common.js";
+common.runBfcacheTestForEmbeds({'type': 'image/png', 'src': '/images/blue.png'});
+</script>

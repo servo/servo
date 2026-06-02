@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const kRequiredDatagrams = 150;
+  const kRequiredBytes =
+    kRequiredDatagrams * (kRequiredDatagrams + 1) / 2;
+
+  const boundSocket = new UDPSocket({ localAddress: "127.0.0.1" });
+  const { localPort: boundLocalPort } = await boundSocket.opened;
+
+  const connectedSocket = new UDPSocket({
+    remoteAddress: "127.0.0.1",
+    remotePort: boundLocalPort,
+  });
+
+  const {
+    localAddress: clientAddress,
+    localPort: clientPort
+  } = await connectedSocket.opened;
+
+  const boundEchoLoop = (async() => {
+    let bytesEchoed = 0;
+
+    const { readable, writable } = await boundSocket.opened;
+    const reader = readable.getReader();
+    const writer = writable.getWriter();
+
+    while (bytesEchoed < kRequiredBytes) {
+      const { value: { data, remoteAddress, remotePort }, done } = await reader.read();
+      assert_false(done);
+      assert_equals(remoteAddress, clientAddress);
+      assert_equals(remotePort, clientPort);
+      for (let index = 0; index < data.length; index++) {
+        assert_equals(data[index], bytesEchoed % 256);
+        bytesEchoed++;
+      }
+      await writer.write({ data, remoteAddress, remotePort });
+    }
+
+    assert_equals(bytesEchoed, kRequiredBytes);
+    reader.releaseLock();
+    writer.releaseLock();
+  })();
+
+  const connectedSendLoop = (async () => {
+    let bytesWritten = 0;
+    let chunkLength = 0;
+
+    const { writable } = await connectedSocket.opened;
+    const writer = writable.getWriter();
+
+    while (bytesWritten < kRequiredBytes) {
+      chunkLength = Math.min(chunkLength + 1, kRequiredBytes - bytesWritten);
+      let chunk = new Uint8Array(chunkLength);
+      for (let index = 0; index < chunkLength; index++) {
+        chunk[index] = bytesWritten % 256;
+        bytesWritten++;
+      }
+      await writer.ready;
+      await writer.write({ data: chunk });
+    }
+    assert_equals(bytesWritten, kRequiredBytes);
+    writer.releaseLock();
+  })();
+
+  const connectedReadLoop = (async () => {
+    let bytesRead = 0;
+
+    const { readable } = await connectedSocket.opened;
+    const reader = readable.getReader();
+
+    while (bytesRead < kRequiredBytes) {
+      const { value: { data }, done } = await reader.read();
+      assert_false(done);
+      for (let index = 0; index < data.length; index++) {
+        assert_equals(data[index], bytesRead % 256);
+        bytesRead++;
+      }
+    }
+    assert_equals(bytesRead, kRequiredBytes);
+
+    reader.releaseLock();
+  })();
+
+  await connectedReadLoop;
+
+  await boundSocket.close();
+  await connectedSocket.close();
+}, "UDPSocket (connected) exchanges datagrams with UDPSocket (bound)");
+</script>

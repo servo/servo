@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="foo"></div>
+<script src="../resources/runner.js"></script>
+<script>
+for (var i = 0; i < 1000; i++) {
+    document.body.appendChild(document.createElement("div"));
+}
+var divs = document.getElementsByTagName("div");
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark measures performance of indexed property getters.",
+    run: function() {
+        var localDivs = divs;
+        for (var i = 0; i < 1000; i++)
+            localDivs[i];
+}});
+</script>
+</body>
+</html>

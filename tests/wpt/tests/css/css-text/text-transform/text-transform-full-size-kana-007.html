@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS3 Text, text transform: full-size-kana, full-size kanas, half-width katakana</title>
+<meta name="assert" content="For full-size kanas, text-transform: full-size-kana leaves all kanas unaltered (testing the half-wdith katakana subset).">
+<link rel='author' title='Diego Pino Garcia' href='mailto:dpino@igalia.com'>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-full-size-kana-007-ref.html">
+<style>
+div { font-size: 150%;}
+div > span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: full-size-kana; }
+</style>
+
+<p>Test passes if both characters in each pair are the same shape <strong>and size</strong>.<br>
+Any missing glyph should be ignored
+as long as it is missing for both the first and second characters in a pair.
+
+<div>
+  <span><span class=test>&#xFF65;</span> &#xFF65;</span>
+  <span><span class=test>&#xFF66;</span> &#xFF66;</span>
+  <span><span class=test>&#xFF70;</span> &#xFF70;</span>
+  <span><span class=test>&#xFF71;</span> &#xFF71;</span>
+  <span><span class=test>&#xFF72;</span> &#xFF72;</span>
+  <span><span class=test>&#xFF73;</span> &#xFF73;</span>
+  <span><span class=test>&#xFF74;</span> &#xFF74;</span>
+  <span><span class=test>&#xFF75;</span> &#xFF75;</span>
+  <span><span class=test>&#xFF76;</span> &#xFF76;</span>
+  <span><span class=test>&#xFF77;</span> &#xFF77;</span>
+  <span><span class=test>&#xFF78;</span> &#xFF78;</span>
+  <span><span class=test>&#xFF79;</span> &#xFF79;</span>
+  <span><span class=test>&#xFF7A;</span> &#xFF7A;</span>
+  <span><span class=test>&#xFF7B;</span> &#xFF7B;</span>
+  <span><span class=test>&#xFF7C;</span> &#xFF7C;</span>
+  <span><span class=test>&#xFF7D;</span> &#xFF7D;</span>
+  <span><span class=test>&#xFF7E;</span> &#xFF7E;</span>
+  <span><span class=test>&#xFF7F;</span> &#xFF7F;</span>
+  <span><span class=test>&#xFF80;</span> &#xFF80;</span>
+  <span><span class=test>&#xFF81;</span> &#xFF81;</span>
+  <span><span class=test>&#xFF82;</span> &#xFF82;</span>
+  <span><span class=test>&#xFF83;</span> &#xFF83;</span>
+  <span><span class=test>&#xFF84;</span> &#xFF84;</span>
+  <span><span class=test>&#xFF85;</span> &#xFF85;</span>
+  <span><span class=test>&#xFF86;</span> &#xFF86;</span>
+  <span><span class=test>&#xFF87;</span> &#xFF87;</span>
+  <span><span class=test>&#xFF88;</span> &#xFF88;</span>
+  <span><span class=test>&#xFF89;</span> &#xFF89;</span>
+  <span><span class=test>&#xFF8A;</span> &#xFF8A;</span>
+  <span><span class=test>&#xFF8B;</span> &#xFF8B;</span>
+  <span><span class=test>&#xFF8C;</span> &#xFF8C;</span>
+  <span><span class=test>&#xFF8D;</span> &#xFF8D;</span>
+  <span><span class=test>&#xFF8E;</span> &#xFF8E;</span>
+  <span><span class=test>&#xFF8F;</span> &#xFF8F;</span>
+  <span><span class=test>&#xFF90;</span> &#xFF90;</span>
+  <span><span class=test>&#xFF91;</span> &#xFF91;</span>
+  <span><span class=test>&#xFF92;</span> &#xFF92;</span>
+  <span><span class=test>&#xFF93;</span> &#xFF93;</span>
+  <span><span class=test>&#xFF94;</span> &#xFF94;</span>
+  <span><span class=test>&#xFF95;</span> &#xFF95;</span>
+  <span><span class=test>&#xFF96;</span> &#xFF96;</span>
+  <span><span class=test>&#xFF97;</span> &#xFF97;</span>
+  <span><span class=test>&#xFF98;</span> &#xFF98;</span>
+  <span><span class=test>&#xFF99;</span> &#xFF99;</span>
+  <span><span class=test>&#xFF9A;</span> &#xFF9A;</span>
+  <span><span class=test>&#xFF9B;</span> &#xFF9B;</span>
+  <span><span class=test>&#xFF9C;</span> &#xFF9C;</span>
+  <span><span class=test>&#xFF9D;</span> &#xFF9D;</span>
+  <span><span class=test>&#xFF9E;</span> &#xFF9E;</span>
+  <span><span class=test>&#xFF9F;</span> &#xFF9F;</span>
+</div>

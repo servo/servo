@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Href - animate element tests</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='testcommon.js'></script>
+<body>
+<div id='log'></div>
+<svg id='svg' width='100' height='100' viewBox='0 0 100 100'></svg>
+<script>
+'use strict';
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var rect1 = createSVGElement(t, 'rect', svg,
+                               { 'width': '10px',
+                                 'height': '10px',
+                                 'id': 'rect1' });
+  var rect2 = createSVGElement(t, 'rect', svg,
+                               { 'width': '10px',
+                                 'height': '10px',
+                                 'id': 'rect2' });
+  var animate = createSVGElement(t, 'animate', svg,
+                                 { 'attributeName': 'x',
+                                   'from': '0',
+                                   'to': '100',
+                                   'dur': '10s' });
+  animate.setAttribute('href', '#rect1');
+  animate.setAttributeNS(XLINKNS, 'xlink:href', '#rect2');
+  assert_equals(animate.targetElement, rect1);
+
+  return waitEvent(animate, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    assert_equals(rect1.x.animVal.value, 50);
+    assert_equals(rect2.x.animVal.value, 0);
+  });
+}, 'Test for animate element when setting both href and xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var rect1 = createSVGElement(t, 'rect', svg,
+                               { 'width': '10px',
+                                 'height': '10px',
+                                 'id': 'rect1' });
+  var rect2 = createSVGElement(t, 'rect', svg,
+                               { 'width': '10px',
+                                 'height': '10px',
+                                 'id': 'rect2' });
+  var transform = createSVGElement(t, 'animateTransform', svg,
+                                   { 'attributeName': 'transform',
+                                     'type': 'translate',
+                                     'from': '0',
+                                     'to': '100',
+                                     'dur': '10s' });
+
+  transform.setAttribute('href', '#rect1');
+  transform.setAttributeNS(XLINKNS, 'xlink:href', '#rect2');
+  assert_equals(transform.targetElement, rect1);
+
+  return waitEvent(transform, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    assert_equals(rect1.getCTM().e, 50);
+    assert_equals(rect2.getCTM().e, 0);
+  });
+}, 'Test for animateTransform element when setting both href and xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var circle1 = createSVGElement(t, 'circle', svg,
+                                 { 'cx': '50',
+                                   'cy': '50',
+                                   'r': '40',
+                                   'id': 'circle1' });
+  var circle2 = createSVGElement(t, 'circle', svg,
+                                 { 'cx': '50',
+                                   'cy': '50',
+                                   'r': '40',
+                                   'id': 'circle2' });
+  var animate = createSVGElement(t, 'animate', svg,
+                                 { 'attributeName': 'cx',
+                                   'from': '50',
+                                   'to': '150',
+                                   'dur': '10s' });
+  animate.setAttribute('href', '#circle1');
+  animate.setAttributeNS(XLINKNS, 'xlink:href', '#circle2');
+  assert_equals(animate.targetElement, circle1);
+
+  return waitEvent(animate, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    assert_equals(circle1.cx.animVal.value, 100);
+    assert_equals(circle2.cx.animVal.value, 50);
+
+    animate.removeAttribute('href');
+    assert_equals(animate.targetElement, circle2);
+    assert_equals(circle1.cx.animVal.value, 50);
+    assert_equals(circle2.cx.animVal.value, 100);
+  });
+}, 'Test for animate element when removing href but we still have xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var circle1 = createSVGElement(t, 'circle', svg,
+                                 { 'cx': '50',
+                                   'cy': '50',
+                                   'r': '40',
+                                   'id': 'circle1' });
+  var circle2 = createSVGElement(t, 'circle', svg,
+                                 { 'cx': '50',
+                                   'cy': '50',
+                                   'r': '40',
+                                   'id': 'circle2' });
+  var animate = createSVGElement(t, 'animate', svg,
+                                 { 'attributeName': 'cx',
+                                   'from': '50',
+                                   'to': '150',
+                                   'dur': '10s' });
+  animate.setAttribute('href', '#circle1');
+  animate.setAttributeNS(XLINKNS, 'xlink:href', '#circle2');
+  assert_equals(animate.targetElement, circle1);
+
+  return waitEvent(animate, 'beginEvent').then(function() {
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    assert_equals(circle1.cx.animVal.value, 100);
+    assert_equals(circle2.cx.animVal.value, 50);
+
+    animate.removeAttributeNS(XLINKNS, 'href');
+    assert_equals(animate.targetElement, circle1);
+    assert_equals(circle1.cx.animVal.value, 100);
+    assert_equals(circle2.cx.animVal.value, 50);
+  });
+}, 'Test for animate element when removing xlink:href but we still have href');
+
+</script>
+</body>

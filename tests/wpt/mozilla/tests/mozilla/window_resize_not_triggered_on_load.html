@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="author" title="Michael Howell" href="https://www.notriddle.com/">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#resizing-viewports">
+<script>
+<!-- This event handler needs to be registered before the first layout -->
+var resize_run = false;
+window.onresize = function() {
+    resize_run = true;
+};
+</script>
+<title>window.onresize should not be called when the window first loads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=d></div>
+<script>
+var t = async_test("window.onresize should not be called when the window first loads");
+var d = document.getElementById("d");
+window.getComputedStyle(d, null).getPropertyValue("width");
+d.style.width = "1px";
+window.onload = function() {
+    t.step(function() {
+        assert_true(!resize_run);
+        t.done();
+    });
+};
+</script>

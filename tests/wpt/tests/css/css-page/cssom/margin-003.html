@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-csspagerule-interface">
+<title>Add / remove margin rules inside an @page rule</title>
+<style id="sheet">
+  @page { }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let sheet = document.getElementById("sheet").sheet;
+  let pageRule = sheet.rules[0];
+
+  test(() => {
+    assert_equals(pageRule.cssRules.length, 0);
+    pageRule.insertRule("@top-center {}");
+    assert_equals(pageRule.cssRules.length, 1);
+    assert_equals(pageRule.cssRules[0].name, "top-center");
+
+    pageRule.insertRule("@top-right {}", 1);
+    assert_equals(pageRule.cssRules.length, 2);
+    assert_equals(pageRule.cssRules[0].name, "top-center");
+    assert_equals(pageRule.cssRules[1].name, "top-right");
+
+    pageRule.insertRule("@top-left {}", 0);
+    assert_equals(pageRule.cssRules.length, 3);
+
+    pageRule.insertRule("@top-left {}", 0);
+    assert_equals(pageRule.cssRules.length, 4);
+
+    // Invalid at-rule:
+    try { pageRule.insertRule("@page {}"); } catch (e) {}
+
+    // Another invalid at-rule:
+    try { pageRule.insertRule("@media print {}"); } catch (e) {}
+
+    // Style rules are not allowed here:
+    try { pageRule.insertRule("div {}"); } catch (e) {}
+
+    assert_equals(pageRule.cssRules.length, 4);
+
+    assert_equals(pageRule.cssRules[0].name, "top-left");
+    assert_equals(pageRule.cssRules[1].name, "top-left");
+    assert_equals(pageRule.cssRules[2].name, "top-center");
+    assert_equals(pageRule.cssRules[3].name, "top-right");
+  }, "Insert rules");
+
+  test(() => {
+    assert_equals(pageRule.cssRules.length, 4);
+
+    pageRule.deleteRule(3);
+    assert_equals(pageRule.cssRules.length, 3);
+    assert_equals(pageRule.cssRules[0].name, "top-left");
+    assert_equals(pageRule.cssRules[1].name, "top-left");
+    assert_equals(pageRule.cssRules[2].name, "top-center");
+
+    pageRule.deleteRule(1);
+    assert_equals(pageRule.cssRules.length, 2);
+    assert_equals(pageRule.cssRules[0].name, "top-left");
+    assert_equals(pageRule.cssRules[1].name, "top-center");
+
+    pageRule.deleteRule(0);
+    assert_equals(pageRule.cssRules.length, 1);
+
+    pageRule.deleteRule(0);
+    assert_equals(pageRule.cssRules.length, 0);
+  }, "Delete rules");
+</script>

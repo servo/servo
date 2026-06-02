@@ -1,0 +1,22 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <img src="/shared-storage/resources/shared-storage-writable-pixel.png?key=hello&value=world" sharedstoragewritable></img>
+  <img src="/shared-storage/resources/shared-storage-writable-pixel.png?key=wont&value=set"></img>
+  <img src="/shared-storage/resources/shared-storage-writable-pixel.png?key=goodnight&value=moon" sharedstoragewritable></img>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+
+    promise_test(async t => {
+      await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
+      await verifyKeyNotFoundForOrigin('wont', sameOrigin);
+      await verifyKeyValueForOrigin('goodnight', 'moon', sameOrigin);
+      await deleteKeyForOrigin('hello', sameOrigin);
+      await deleteKeyForOrigin('goodnight', sameOrigin);
+    }, 'test <img sharedstoragewritable src=[url]> for same origin img');
+  </script>
+</body>

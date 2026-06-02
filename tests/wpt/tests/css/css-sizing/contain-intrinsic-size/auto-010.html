@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7598">
+<meta name="assert" content="Tests that the last remembered size takes all fragments into account." />
+
+<style>
+#wrapper {
+  column-width: 100px;
+  width: max-content;
+  height: 100px;
+}
+#target {
+  width: max-content;
+  height: max-content;
+  background: orange;
+}
+#target::before {
+  content: "";
+  display: block;
+}
+.content-50-150::before {
+  width: 50px;
+  height: 150px;
+}
+.content-50-175::before {
+  width: 50px;
+  height: 175px;
+}
+.content-skip {
+  content-visibility: hidden;
+}
+.cis-auto {
+  contain-intrinsic-size: auto 1px;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="wrapper">
+  <div id="target"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+
+function checkSizes(expectedSizes, msg) {
+  const rects = target.getClientRects();
+  assert_equals(rects.length, expectedSizes.length, msg + " - fragments");
+  for (let i = 0; i < rects.length; ++i) {
+    assert_equals(rects[i].width, expectedSizes[i][0], `${msg} - fragment #${i+1} width`);
+    assert_equals(rects[i].height, expectedSizes[i][1], `${msg} - fragment #${i+1} height`);
+  }
+}
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+promise_test(async function() {
+  target.className = "cis-auto content-50-150";
+  checkSizes([[50, 100], [50, 50]], "Sizing normally");
+
+  await nextRendering();
+  target.className = "cis-auto content-skip";
+  checkSize(50, 150, "Using last remembered size");
+}, "Last remembered size supports multiple fragments");
+
+promise_test(async function() {
+  target.className = "cis-auto content-50-150";
+  checkSizes([[50, 100], [50, 50]], "Sizing normally");
+
+  await nextRendering();
+  target.className = "cis-auto content-50-175";
+  checkSizes([[50, 100], [50, 75]], "Sizing normally with new size");
+
+  await nextRendering();
+  target.className = "cis-auto content-skip";
+  checkSize(50, 175, "Using updated last remembered size");
+}, "Last remembered size is updated when 2nd fragment changes size");
+</script>

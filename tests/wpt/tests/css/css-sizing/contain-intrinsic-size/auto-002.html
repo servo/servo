@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>contain-intrinsic-size: auto with a vertical writing mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<div style="height: 2000px;"></div>
+
+<div style="contain-intrinsic-size: auto 1px;" id="test">
+  <div style="height: 50px; writing-mode: vertical-lr;"></div> <!-- make 'test' have a 50px height -->
+</div>
+
+<script>
+function finalize() {
+  el.style.contentVisibility = "auto";
+  log.innerText = el.offsetHeight;
+  assert_equals(el.offsetHeight, 50);
+}
+
+var t = async_test("contain-intrinsic-size: auto");
+
+var log = document.getElementById("log");
+var el = document.getElementById("test");
+var observer = new ResizeObserver(function() {
+  requestAnimationFrame(t.step_func_done(finalize));
+  observer.unobserve(el);
+});
+
+observer.observe(el);
+el.offsetWidth;
+
+</script>

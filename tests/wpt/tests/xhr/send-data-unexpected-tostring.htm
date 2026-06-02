@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>XMLHttpRequest: passing objects that interfere with the XHR instance to send()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol/li[4]" />
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-union" data-tested-assertations="following::ol/li[16]" />
+
+
+<div id="log"></div>
+
+<script>
+  var test1 = async_test('abort() called from data stringification')
+  test1.step(function() {
+    var client = new XMLHttpRequest()
+    var objAbortsOnStringification = {toString:function(){
+      client.abort();
+    }}
+    client.open('POST', 'resources/content.py')
+    client.send(objAbortsOnStringification)
+    assert_equals(client.readyState, 1)
+    test1.done()
+  });
+
+  var test2 = async_test('open() called from data stringification')
+  test2.step(function() {
+    var client = new XMLHttpRequest()
+    var objOpensOnStringification = {toString:function(){
+      client.open('POST', 'resources/status.py?text=second_open_wins');
+    }}
+    client.onloadend = test2.step_func(function(){
+      assert_equals(client.statusText, 'second_open_wins')
+      test2.done()
+    })
+    client.open('POST', 'resources/status.py?text=first_open_wins')
+    client.send(objOpensOnStringification)
+  });
+
+  var test3 = async_test('send() called from data stringification')
+  test3.step(function() {
+    var client = new XMLHttpRequest()
+    var objSendsOnStringification = {toString:function(){
+      client.send('bomb!');
+    }}
+    client.onload = test3.step_func(function(){
+      assert_equals(client.responseText, 'bomb!')
+      test3.done()
+    })
+    client.open('POST', 'resources/content.py')
+    assert_throws_dom('InvalidStateError', function(){
+      client.send(objSendsOnStringification)
+    })
+  });
+
+
+</script>

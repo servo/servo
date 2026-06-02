@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Floats and overflow</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/overflow/box/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <style type="text/css">
+   p { color: green; }
+   .container { border: solid white; position: relative; }
+   .overflow { overflow: auto; color: yellow; background: red; height: 0; }
+   .float { float: left; background: red; color: yellow; width: 10em; }
+   .pass { background: white; color: black; width: 10em; }
+   .fail { background: black; position: absolute; top: 1em; }
+  </style>
+ </head>
+ <body>
+  <p>It should say "PASS" below:</p>
+  <div class="container">
+   <div class="fail"> XXXX </div>
+   <div class="overflow"> <div class="float"> FAIL </div> FAIL </div>
+   <div class="pass"> PASS </div> <!-- the float should be contained inside the overflow block -->
+  </div>
+ </body>
+</html>

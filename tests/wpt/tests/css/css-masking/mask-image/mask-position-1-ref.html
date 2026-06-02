@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-position: position mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div.outer {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border: 1px solid black;
+      }
+
+      div.inner {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        background-color: purple;
+      }
+
+      #inner1 { right: 10px; bottom: 35px; }
+      #inner2 { right: 30px; bottom: 25px; }
+    </style>
+  </head>
+  <body>
+    <div class="outer"><div class="inner" id="inner1"></div></div>
+    <div class="outer"><div class="inner" id="inner1"></div></div>
+    <div class="outer"><div class="inner" id="inner2"></div></div>
+    <div class="outer"><div class="inner" id="inner2"></div></div>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: large flex-shrink value</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#scaled-flex-shrink-factor">
+<link rel="help" href="https://crbug.com/543614">
+<meta name="assert" content="This test ensures that large flex-shrink value does crash due to the lost of precision.">
+<style>
+.flex {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+}
+
+.fractional {
+    height: 50px;
+    width: 50.5px;
+    min-width: 50.5px;
+}
+
+.high-shrink {
+    flex-shrink: 130000000000000;
+    height: 40px;
+    width: 40px;
+    min-width: 40px;
+}
+</style>
+
+<div class="flex">
+    <div class="fractional"></div>
+    <div class="high-shrink"></div>
+</div>
+
+<p>The high flex shrink factor can lead to loss of precision as we calculate the
+<a href="https://drafts.csswg.org/css-flexbox/#scaled-flex-shrink-factor">sum of
+scaled flex shrink factors</a> as required by the spec, and as we later subtract
+the scaled flex factors for frozen violations, we can get to a negative value
+due to that lost precision.</p>

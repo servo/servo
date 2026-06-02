@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Scroll Anchoring: Anchor node can be an empty inline-block</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#anchor-node-selection">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4247">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1540203">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { height: 4000px }
+#ib1, #ib2 { display: inline-block; height: 100px; width: 100% }
+</style>
+<span id=ib1></span>
+<br><br>
+<span id=ib2></span>
+<script>
+
+// Tests anchoring to an empty inline-block.
+
+test(() => {
+  document.scrollingElement.scrollTop = 150;
+  document.querySelector("#ib1").style.height = "150px";
+  assert_equals(document.scrollingElement.scrollTop, 200);
+}, "Anchor selection can select empty inline-blocks");
+
+</script>

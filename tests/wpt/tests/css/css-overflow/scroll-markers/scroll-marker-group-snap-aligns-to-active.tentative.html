@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>CSS Test: active :scroll-markers is snap-aligned when scroll-marker-group is scrollable </title>
+    <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+    <link rel="match" href="scroll-marker-group-snap-aligns-to-active-ref.html">
+    <script src="/css/css-transitions/support/helper.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/common/reftest-wait.js"></script>
+  </head>
+  <body>
+    <style>
+    * {
+      margin: 0px;
+    }
+    .scroller {
+      height: 500px;
+      width: 80vw;
+      border: solid 1px;
+      overflow-x: scroll;
+      justify-self: center;
+      white-space: nowrap;
+      padding-top: 50px;
+      scroll-snap-type: x mandatory;
+      scroll-marker-group: after;
+      &::scroll-marker-group {
+        border: solid 1px black;
+        height: 40px;
+        width: 500px;
+        display: grid;
+        scroll-snap-type: x mandatory;
+        grid-auto-flow: column;
+        justify-self: center;
+        overflow-x: scroll;
+        white-space: nowrap;
+      }
+      counter-set: markeridx -1;
+    }
+
+    .box {
+      height: 400px;
+      width: 50%;
+      border: 1px solid;
+      display: inline-block;
+      margin-left: 100px;
+      margin-right: 100px;
+      scroll-snap-align: center;
+      align-content: center;
+      text-align: center;
+      &::scroll-marker {
+        content: counter(markeridx);
+        counter-increment: markeridx;
+        width: 20px;
+        height: 20px;
+        background-color: red;
+        margin-right: 100px;
+        scroll-snap-align: center;
+      }
+      &::scroll-marker:target-current {
+        background-color: green;
+      }
+    }
+
+    </style>
+    <div class="scroller" id="carousel">
+      <div class="box" id="box0"><p>0</p></div>
+      <div class="box" id="box1"><p>1</p></div>
+      <div class="box" id="box2"><p>2</p></div>
+      <div class="box" id="box3"><p>3</p></div>
+      <div class="box" id="box4"><p>4</p></div>
+      <div class="box" id="box5"><p>5</p></div>
+      <div class="box" id="box6"><p>6</p></div>
+      <div class="box" id="box7"><p>7</p></div>
+      <div class="box" id="box8"><p>8</p></div>
+      <div class="box" id="box9"><p>9</p></div>
+      <div class="box" id="box10"><p>10</p></div>
+      <div class="box" id="box11"><p>11</p></div>
+      <div class="box" id="box12"><p>12</p></div>
+      <div class="box" id="box13"><p>13</p></div>
+      <div class="box" id="box14"><p>14</p></div>
+      <div class="box" id="box15"><p>15</p></div>
+    </div>
+    <script>
+      async function runTest() {
+        const scrollend_promise =
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
+        // When box3 is scrolled into view, the scroll-marker-group should scroll
+        // to ensure that its corresponding marker is scrolled into view.
+        box3.scrollIntoView();
+        await scrollend_promise;
+        takeScreenshot();
+      }
+      waitForCompositorReady().then(runTest);
+    </script>
+  </body>
+</html>

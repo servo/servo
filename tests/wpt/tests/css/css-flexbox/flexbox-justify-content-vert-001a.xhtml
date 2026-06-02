@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with a series of vertical flex containers, testing each
+     possible value of the 'justify-content' property. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing 'justify-content' in a vertical flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#justify-content-property"/>
+    <link rel="match" href="flexbox-justify-content-vert-001-ref.xhtml"/>
+    <style>
+      div.flexbox {
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+        margin-right: 2px;
+        float: left;
+      }
+      div.a {
+        width: 20px;
+        flex: 0 10px;
+        background: lightgreen;
+      }
+      div.b {
+        width: 20px;
+        flex: 0 50px;
+        background: pink;
+      }
+      div.c {
+        width: 20px;
+        flex: 0 100px;
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- default (start) -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-start -->
+    <div class="flexbox" style="justify-content: flex-start">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: flex-start">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: flex-start">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-end -->
+    <div class="flexbox" style="justify-content: flex-end">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: flex-end">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: flex-end">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- center -->
+    <div class="flexbox" style="justify-content: center">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: center">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: center">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- space-between -->
+    <div class="flexbox" style="justify-content: space-between">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-between">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-between">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- space-around -->
+    <div class="flexbox" style="justify-content: space-around">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-around">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-around">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- space-evenly -->
+    <div class="flexbox" style="justify-content: space-evenly">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-evenly">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: space-evenly">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- left -->
+    <div class="flexbox" style="justify-content: left">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: left">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: left">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- right -->
+    <div class="flexbox" style="justify-content: right">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="justify-content: right">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="justify-content: right">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS mask-clip reference</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div {
+        position: absolute;
+        top: 10px;
+        background-color: purple;
+      }
+
+      div.border {
+        left: 10px;
+        margin: 1px 4px;
+        width: 60px;
+        height: 25px;
+      }
+
+      div.padding {
+        left: 110px;
+        margin: 9px 10px;
+        width: 52px;
+        height: 17px;
+      }
+
+      div.content {
+        left: 210px;
+        margin: 15px 13px;
+        width: 40px;
+        height: 11px;
+      }
+
+      div.no-clip {
+        left: 310px;
+        margin: 1px 4px;
+        width: 100px;
+        height: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="color border"></div>
+    <div class="color padding"></div>
+    <div class="color content"></div>
+    <div class="color no-clip"></div>
+  </body>
+</html>

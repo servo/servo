@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for static ECMAScript module import</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url) {
+    const script = document.createElement('script');
+    script.setAttribute('type', 'module');
+    script.setAttribute(
+      'src',
+      '/fetch/metadata/resources/es-module.sub.js?moduleId=' + encodeURIComponent(url)
+    );
+
+    return new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = () => reject('Failed to load script');
+        document.body.appendChild(script);
+      })
+      .then(() => script.remove());
+  }
+  {%- for subtest in subtests %}
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(
+          key, [% subtest.origins %], { mime: 'application/javascript' }
+        )
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%][%subtest.description | pad("start",  " - ")%]');
+
+  {%- endfor %}
+  </script>
+</html>

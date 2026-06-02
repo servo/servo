@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reference File</title>
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+        body {
+            overflow: hidden;
+        }
+        div {
+            width: 50px;
+            height: 200px;
+            position: relative;
+        }
+        .non-gradient-box {
+            background-color: green;
+        }
+        .gradient-box {
+            width: 100px;
+            background: linear-gradient(to right, green 50%, transparent 50%);
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if you see a green square. There should be no red.
+    </p>
+    <div class="gradient-box"></div>
+    <div class="non-gradient-box" style="left: 50px; top: -200px"></div>
+    <div class="non-gradient-box" style="top: -200px"></div>
+    <div class="gradient-box" style="top: -400px; left: 50px;"></div>
+</body>
+</html>

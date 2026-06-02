@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie path attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.4">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <script>
+      const pathTests = [
+        {
+          cookie: "test=1; Path",
+          expected: "test=1",
+          name: "Set cookie for bare Path",
+        },
+        {
+          cookie: "test=2; Path=",
+          expected: "test=2",
+          name: "Set cookie for Path=",
+        },
+        {
+          cookie: "test=3; Path=/",
+          expected: "test=3",
+          name: "Set cookie for Path=/",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=4; Path=/qux",
+          expected: "",
+          name: "No cookie returned for mismatched path",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=5; Path    =/qux",
+          expected: "",
+          name: "No cookie returned for path space equals mismatched path",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=6; Path=    /qux",
+          expected: "",
+          name: "No cookie returned for path equals space mismatched path",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=7; Path=/qux      ; taz",
+          expected: "",
+          name: "No cookie returned for mismatched path and attribute",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=8; Path=/qux; Path=/",
+          expected: "test=8",
+          name: "Set cookie for mismatched and root path",
+        },
+        {
+          cookie: "test=9; Path=/; Path=/qux",
+          expected: "",
+          name: "No cookie returned for root and mismatched path",
+          defaultPath: false,
+        },
+        {
+          cookie: "test=10; Path=/lol; Path=/qux",
+          expected: "",
+          name: "No cookie returned for multiple mismatched paths",
+          defaultPath: false,
+        },
+        {
+          cookie: ["testA=11; path=/", "testB=11; path=/cookies/attributes"],
+          expected: "testB=11; testA=11",
+          name: "Return 2 cookies sorted by matching path length (earlier name with shorter path set first)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["testB=12; path=/", "testA=12; path=/cookies/attributes"],
+          expected: "testA=12; testB=12",
+          name: "Return 2 cookies sorted by matching path length (later name with shorter path set first)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["testA=13; path=/cookies/attributes", "testB=13; path=/"],
+          expected: "testA=13; testB=13",
+          name: "Return 2 cookies sorted by matching path length (earlier name with longer path set first)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["testB=14; path=/cookies/attributes", "testA=14; path=/"],
+          expected: "testB=14; testA=14",
+          name: "Return 2 cookies sorted by matching path length (later name with longer path set first)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["test=15; path=/cookies/attributes/foo"],
+          expected: "",
+          name: "No cookie returned for partial path match",
+          defaultPath: false,
+        },
+        {
+          cookie: ["test=16", "test=0; path=/cookies/attributes/foo"],
+          expected: "test=16",
+          name: "No cookie returned for partial path match, return cookie for default path",
+        },
+        {
+          cookie: ["test=17; path= /"],
+          expected: "test=17",
+          name: "Return cookie for path= / (whitespace after equals)",
+        },
+        {
+          cookie: ["test=18; path=/cookies/ATTRIBUTES"],
+          expected: "",
+          name: "No cookie returned for case mismatched path",
+          defaultPath: false,
+        },
+        {
+          cookie: ["testA=19; 	path	=	/cookies/attributes", "testB=19; 	path	=	/book"],
+          expected: "testA=19",
+          name: "Return cookie A on path match, no cookie returned for path mismatch (plus whitespace)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["test=20; path=; path=/dog"],
+          expected: "",
+          name: "No cookie returned for mismatched path (after bare path=)",
+          defaultPath: false,
+        },
+        {
+          cookie: ["test=21; path=/dog; path="],
+          expected: "test=21",
+          name: "Return cookie for bare path= (after mismatched path)",
+        },
+      ];
+
+      for (const test of pathTests) {
+        httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+      }
+    </script>
+  </body>
+</html>

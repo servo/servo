@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>'self' keyword positive test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script nonce='abc'>
+      var t_spv = async_test("Should fire violation events for every failed violation");
+      window.addEventListener(
+        "securitypolicyviolation", t_spv.unreached_func("securitypolicyviolation should not be emitted"));
+
+      window.addEventListener("load", function() {
+        t_spv.done();
+      });
+    </script>
+    <script src='positiveTest.js'></script>
+    <script nonce='abc'>
+      test(function() {
+        assert_true(window.cspPositiveTest);
+      }, "Allows scripts from the same host.");
+    </script>
+</head>
+<body>
+    <h1>'self' keyword positive test</h1>
+    <div id='log'></div>
+</body>
+</html>

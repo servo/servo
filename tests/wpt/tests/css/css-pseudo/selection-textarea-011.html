@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and textarea element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="match" href="reference/selection-textarea-011-ref.html">
+
+
+  <style>
+  textarea
+    {
+      background-color: red;
+      color: yellow;
+      font-family: monospace;
+      font-size: 48px;
+      height: 112px;
+      line-height: 56px;
+      padding: 0px;
+      resize: none;
+      width: 8ch;
+      outline: none;
+    }
+
+  textarea::selection
+    {
+      background-color: yellow;
+      color: green;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  document.getElementById("test").select();
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if each glyph of both "Selected" is green with a yellow background and if there is <strong>no red</strong>.
+
+  <div><textarea id="test" rows="2" cols="8">Selected Selected </textarea></div>

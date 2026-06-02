@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection of contenteditable=false at the beginning and end of contenteditable element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable id="host">
+  <div contenteditable="false" id="beginning">&nbsp;</div>
+  <p id="paragraph">Lorem ipsum dolor sit amet.</p>
+  <div contenteditable="false" id="end">&nbsp;</div>
+</div>
+<script>
+test( () => {
+  const range = document.createRange();
+
+  range.setStartBefore( beginning );
+  range.setEndAfter( paragraph );
+  getSelection().removeAllRanges();
+  getSelection().addRange( range );
+
+  const selectedRange = getSelection().getRangeAt( 0 );
+
+  assert_equals( selectedRange.startContainer, host );
+  assert_equals( selectedRange.startOffset, 1 );
+  assert_equals( selectedRange.endContainer, host );
+  assert_equals( selectedRange.endOffset, 4 );
+}, 'Selection can start on cE=false element at the beginning of the cE=true element' );
+
+test( () => {
+  const range = document.createRange();
+
+  range.setStartBefore( paragraph );
+  range.setEndAfter( end );
+  getSelection().removeAllRanges();
+  getSelection().addRange( range );
+
+  const selectedRange = getSelection().getRangeAt( 0 );
+
+  assert_equals( selectedRange.startContainer, host );
+  assert_equals( selectedRange.startOffset, 3 );
+  assert_equals( selectedRange.endContainer, host );
+  assert_equals( selectedRange.endOffset, 6 );
+}, 'Selection can end on cE=false element at the end of the cE=true element' );
+
+test( () => {
+  const range = document.createRange();
+
+  range.setStartBefore( beginning );
+  range.setEndAfter( end );
+  getSelection().removeAllRanges();
+  getSelection().addRange( range );
+
+  const selectedRange = getSelection().getRangeAt( 0 );
+
+  assert_equals( selectedRange.startContainer, host );
+  assert_equals( selectedRange.startOffset, 1 );
+  assert_equals( selectedRange.endContainer, host );
+  assert_equals( selectedRange.endOffset, 6 );
+}, 'Selection can start and end on cE=false elements at the boundaries of cE=true element' );
+
+test( () => {
+  const range = document.createRange();
+
+  range.selectNodeContents( host );
+
+  const selectedRange = getSelection().getRangeAt( 0 );
+
+  assert_equals( selectedRange.startContainer, host );
+  assert_equals( selectedRange.startOffset, 1 );
+  assert_equals( selectedRange.endContainer, host );
+  assert_equals( selectedRange.endOffset, 6 );
+}, 'Range#selectNodeContents() correctly select contents of cE=true element with cE=false elements on boundaries' );
+</script>

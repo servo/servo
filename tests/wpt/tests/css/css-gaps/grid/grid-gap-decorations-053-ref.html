@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#outset">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .grid {
+        display: grid;
+        grid-template: repeat(auto-fill, 100px) / repeat(3, 100px);
+        grid-gap: 20px;
+        left: 0px;
+        top: 0px;
+    }
+    .item {
+        width: 100px;
+        height: 100px;
+        background: lightgray;
+    }
+    .row-decoration {
+        left: 0px;
+        height: 3px;
+        position: absolute;
+        background: grey;
+        width: 100px;
+    }
+    .column-decoration {
+        position: absolute;
+        top: 0px;
+        width: 3px;
+        background: red;
+        height: 108px;
+    }
+</style>
+<div class="column-decoration" style="left: 108.5px; top: 1px; height: 107px;"></div>
+<div class="column-decoration" style="left: 228.5px; top: 1px; height: 107px;"></div>
+<div class="column-decoration" style="left: 108.5px; top: 120px;"></div>
+<div class="column-decoration" style="left: 228.5px; top: 120px;"></div>
+<div class="column-decoration" style="left: 108.5px; top: 240px; height: 110px;"></div>
+<div class="column-decoration" style="left: 228.5px; top: 240px; height: 110px;"></div>
+<div class="row-decoration" style="top: 108.5px; width: 99px;"></div>
+<div class="row-decoration" style="top: 228.5px; width: 99px;"></div>
+<div class="row-decoration" style="top: 108.5px; width: 99px; left: 120px;"></div>
+<div class="row-decoration" style="top: 228.5px; width: 99px; left: 120px;"></div>
+<div class="row-decoration" style="top: 108.5px; left: 240px;"></div>
+<div class="row-decoration" style="top: 228.5px; left: 240px;"></div>
+<div class="grid">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

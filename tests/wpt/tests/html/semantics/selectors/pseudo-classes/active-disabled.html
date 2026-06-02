@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/7465">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<label id=buttonlabel for=disabledbutton>label for disabled button</label>
+<button id=disabledbutton disabled>disabled</button>
+
+<button id=buttonparent disabled>
+  <div id=buttonchild>child of disabled</div>
+</button>
+
+<input id=disabledinput disabled>
+
+<textarea id=disabledtextarea disabled>disabled textarea</textarea>
+
+<script>
+function testElement(description, clickElement, checkElement) {
+  promise_test(async () => {
+    if (!checkElement)
+      checkElement = clickElement;
+
+    await (new test_driver.Actions()
+      .pointerMove(2, 2, {origin: clickElement})
+      .pointerDown())
+      .send();
+
+    assert_true(checkElement.matches(':active'));
+
+    await (new test_driver.Actions()
+      .pointerUp())
+      .send();
+  }, description);
+}
+
+testElement('Clicking on a disabled button should make it match the :active selector.',
+    disabledbutton);
+
+testElement('Clicking the label for a disabled button should make the button match the :active selector.',
+    buttonlabel, disabledbutton);
+
+testElement('Clicking on a child of a disabled button should make the button match the :active selector.',
+    buttonchild, buttonparent);
+
+testElement('Clicking on a disabled input should make it match the :active selector.',
+    disabledinput);
+
+testElement('Clicking on a disabled textarea should make it match the :active selector.',
+    disabledtextarea);
+</script>

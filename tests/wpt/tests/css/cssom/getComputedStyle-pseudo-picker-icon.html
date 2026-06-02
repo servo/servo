@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: Correct resolution of resolved value for the picker-icon pseudo-element</title>
+
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon-pseudo-element">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style>
+select,
+select::picker(select) {
+  appearance: base-select;
+}
+
+#test-select {
+  width: 321px;
+}
+
+#test-select::picker-icon {
+  width: 13px;
+}
+</style>
+
+<select id="test-select">
+  <option>The only option</option>
+</select>
+
+<script>
+test(() => {
+  const test_select = document.getElementById('test-select');
+  assert_equals(getComputedStyle(test_select, "picker-icon").width, "321px");
+}, "Resolution of width is correct when pseudo-element argument is ignored (due to no colon)");
+
+test(() => {
+  const test_select = document.getElementById('test-select');
+  assert_equals(getComputedStyle(test_select, ":picker-icon").width, "");
+}, "Resolution of width is correct when pseudo-element argument is ignored (due to single-colon)");
+
+test(() => {
+  const test_select = document.getElementById('test-select');
+  assert_equals(getComputedStyle(test_select, "::picker-icon").width, "13px");
+}, "Resolution of width is correct for pseudo-element (due to double-colon)");
+</script>

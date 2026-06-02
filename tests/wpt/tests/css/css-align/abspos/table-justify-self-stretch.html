@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos">
+<style>
+body {
+  margin: 0;
+}
+
+.container {
+  writing-mode: horizontal-tb;
+  display: inline-block;
+  position: relative;
+  margin: 20px;
+  border: solid 4px;
+  width: 40px;
+  height: 40px;
+}
+
+.item {
+  writing-mode: horizontal-tb;
+  position: absolute;
+  background: green;
+  inset: 5px;
+  justify-self: stretch;
+  display: table;
+}
+
+.item::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 20px;
+}
+
+.big::before {
+  width: 50px;
+  height: 60px;
+}
+
+.vrl {
+  writing-mode: vertical-rl;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.item')">
+
+<body>
+
+<div class="container">
+  <div class="item" data-expected-width="30" data-expected-height="20"></div>
+</div>
+
+<div class="container">
+  <div class="item big" data-expected-width="50" data-expected-height="60"></div>
+</div>
+
+<div class="container">
+  <div class="item vrl" data-expected-width="30" data-expected-height="20"></div>
+</div>
+
+<div class="container">
+  <div class="item big vrl" data-expected-width="50" data-expected-height="60"></div>
+</div>
+
+<br>
+
+<div class="container vrl">
+  <div class="item" data-expected-width="10" data-expected-height="30"></div>
+</div>
+
+<div class="container vrl">
+  <div class="item big" data-expected-width="50" data-expected-height="60"></div>
+</div>
+
+<div class="container vrl">
+  <div class="item vrl" data-expected-width="10" data-expected-height="30"></div>
+</div>
+
+<div class="container vrl">
+  <div class="item big vrl" data-expected-width="50" data-expected-height="60"></div>
+</div>
+

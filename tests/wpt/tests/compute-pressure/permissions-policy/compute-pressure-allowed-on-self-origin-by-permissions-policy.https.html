@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+"use strict";
+
+const same_origin_src =
+  '/permissions-policy/resources/permissions-policy-compute-pressure.html';
+const cross_origin_src = get_host_info().HTTPS_REMOTE_ORIGIN + same_origin_src;
+const header = 'permissions policy header "compute-pressure=self"';
+
+promise_test(async () => {
+  try {
+    const observer = new PressureObserver(() => {});
+    await observer.observe("cpu");
+    observer.disconnect();
+  } catch (e) {
+    assert_unreached('expected promise to resolve.');
+  }
+}, `${header} allows the top-level document.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    same_origin_src,
+    expect_feature_available_default
+  );
+}, `${header} allows same-origin iframes.`);
+
+async_test(t => {
+  test_feature_availability(
+    'ComputePressure.observe()',
+    t,
+    cross_origin_src,
+    expect_feature_unavailable_default
+  );
+}, `${header} disallows cross-origin iframes.`);
+
+</script>
+</body>

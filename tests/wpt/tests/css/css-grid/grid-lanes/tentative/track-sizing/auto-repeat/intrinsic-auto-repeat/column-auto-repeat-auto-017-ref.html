@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(9, auto);
+    height: 200px;
+    width: 500px;
+    gap: 10px;
+}
+
+.grid-lanes > div {
+    width: 50px;
+    height: 100px;
+    background-color: orange;
+}
+</style>
+<div class="grid-lanes">
+  <div style="grid-column: span 4; width: 200px;">1</div>
+  <div style="grid-column: 4 / span 2; width: 100px;">2</div>
+  <div style="grid-column: 8 / span 2; width: 100px;">3</div>
+  <div style="grid-column: 7;">4</div>
+  <div style="grid-column: span 2; width: 100px;">5</div>
+  <div>6</div>
+</div>
+</html>

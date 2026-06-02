@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Focus without user activation container policy test</title>
+
+<body>
+  <script src="./resources/common.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <div id="log"></div>
+  <input id="before" />
+
+  <script>
+    var same_origin_src = '/permissions-policy/experimental-features/resources/permissions-policy-focus-without-user-activation-tab-focus.html';
+    var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    const header = 'permissions policy "focus-without-user-activation" set to "none"';
+
+    const tab_key = "\uE004";
+    const before = document.getElementById("before");
+
+    function subframe_focused() {
+      return new Promise((resolve, reject) => {
+        function tick() {
+          if (document.getElementById("log").innerHTML === "iframe focused") {
+            resolve();
+          } else {
+            requestAnimationFrame(tick.bind(this));
+          }
+        }
+        tick();
+      });
+    }
+
+    window.onmessage = m => {
+      document.getElementById("log").innerHTML = m.data;
+    };
+
+    promise_test(async function (t) {
+      const iframe = createIframe(document.body, {
+        src: same_origin_src,
+        allow: "focus-without-user-activation none"
+      });
+      await wait_for_load(iframe);
+
+      before.focus();
+      assert_equals(document.activeElement, before, "#before got outer focus");
+
+      await test_driver.send_keys(document.activeElement, tab_key);
+      await subframe_focused();
+      t.add_cleanup(() => {
+        iframe.remove();
+      });
+    }, 'Tab focus from parent frame into same-origin iframe is allowed with ' + header);
+  </script>
+</body>

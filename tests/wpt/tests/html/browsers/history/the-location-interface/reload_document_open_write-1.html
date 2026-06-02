@@ -1,0 +1,19 @@
+<!doctype html>
+1
+<script>
+function f() {
+  opener.postMessage("original", "*");
+  if (opener.data.length >= 2) {
+    // If we proceed here, then our document.write will be racing with the
+    // setTimeout in our opener.  Just stop.
+    return;
+  }
+  setTimeout(function () {
+    document.open();
+    document.write("<!doctype html>2<script>opener.postMessage('written', '*');<\/script>");
+    document.close();
+  });
+}
+
+window.onload = f
+</script>

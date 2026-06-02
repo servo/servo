@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>CSS Overflow: test scrollbar-gutter when dynamically update scrollbar-width</title>
+  <link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+  <link rel="match" href="scrollbar-gutter-dynamic-003-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+
+  <style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    block-size: 200px;
+    inline-size: 200px;
+    overflow: hidden;
+    margin: 10px;
+    background: deepskyblue;
+  }
+
+  .content {
+    inline-size: 100%;
+    block-size: 200%;
+    background: lightsalmon;
+  }
+
+  .width-auto {
+    scrollbar-width: auto;
+  }
+
+  .width-thin {
+    scrollbar-width: thin;
+  }
+
+  .width-none {
+    scrollbar-width: none;
+  }
+
+  .gutter-stable {
+    scrollbar-gutter: stable;
+  }
+
+  .gutter-both {
+    scrollbar-gutter: stable both-edges;
+  }
+  </style>
+
+  <div class="line">
+    <div id="stable-auto" class="container gutter-stable width-auto">
+      <div class="content"></div>
+    </div>
+    <div id="both-auto" class="container gutter-both width-auto">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div id="stable-thin" class="container gutter-stable width-thin">
+      <div class="content"></div>
+    </div>
+    <div id="both-thin" class="container gutter-both width-thin">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div id="stable-none" class="container gutter-stable width-none">
+      <div class="content"></div>
+    </div>
+    <div id="both-none" class="container gutter-both width-none">
+      <div class="content"></div>
+    </div>
+  </div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('stable-auto').style.scrollbarWidth = 'none';
+    document.getElementById('both-auto').style.scrollbarWidth = 'none';
+    document.getElementById('stable-thin').style.scrollbarWidth = 'auto';
+    document.getElementById('both-thin').style.scrollbarWidth = 'auto';
+    document.getElementById('stable-none').style.scrollbarWidth = 'thin';
+    document.getElementById('both-none').style.scrollbarWidth = 'thin';
+    takeScreenshot();
+  }));
+</script>
+</html>

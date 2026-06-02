@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Paged Media: parsing invalid @page selectors</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-page/#page-selectors"/>
+<meta name="assert" content="Test that @page selectors are parsed correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    @page 1 {
+        size: 1in;
+    }
+    @page -3 {
+        size: 2in;
+    }
+    @page --a {
+        size: 3in;
+    }
+    @page 7cm {
+        size: 4in;
+    }
+    @page 0.17 {
+        size: 5in;
+    }
+    @page a, 123 {
+        size: 6in;
+    }
+</style>
+
+<script>
+    const invalidSelectorTexts = [
+        "1",
+        "-3",
+        "--a",
+        "7cm",
+        "0.17",
+        "a, 123",
+    ];
+
+    let styleSheets = document.styleSheets;
+    for (let sheet of styleSheets) {
+        for (let rule of sheet.cssRules) {
+            test(function(){
+                assert_not_equals(rule.type, CSSRule.PAGE_RULE,
+                    "no @page rule should have been parsed");
+            }, "rule with invalid selector ['" + rule.selectorText + "']");
+        }
+    }
+
+    let ruleIndex = styleSheets[0].insertRule("@page{}");
+    let rule = styleSheets[0].cssRules[ruleIndex];
+    test(function() {
+        assert_equals(rule.selectorText, "", "Initial selector text should have been empty");
+        assert_equals(rule.type, CSSRule.PAGE_RULE, "unexpected rule type (not @page)");
+    }, "adding a blank @page rule");
+    for (let selectorText of invalidSelectorTexts){
+        test(function() {
+            // Clear the selector first
+            rule.selectorText = "";
+            rule.selectorText = selectorText;
+            assert_equals(rule.selectorText, "",
+                "should not be able to assign an invalid selector");
+        }, "assigning invalid selector text ['" + selectorText + "']");
+    }
+</script>

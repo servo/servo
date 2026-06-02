@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+
+        <title>CSS Conditional Test: Disjunction token `or` should not immediately precede its following opening paren.</title>
+
+        <link rel="author" title="Fabien Basmaison" href="https://arkhi.org/">
+        <link rel="help" href="https://www.w3.org/TR/css3-conditional/#at-supports">
+        <link rel="match" href="at-supports-001-ref.html">
+
+        <meta name="flags" content="invalid">
+        <meta name="assert" content="This tests that the `or` token requires at least one whitespace on its right hand. A string followed immediately by an opening paren is reserved for the functional notation syntax.">
+
+        <style>
+            div {
+                background-color: green;
+                height: 100px;
+                width: 100px;
+            }
+
+            @supports ( ( background-color: red ) or( background-color: green ) ) {
+                div { background-color: red; }
+            }
+        </style>
+    </head>
+
+    <body>
+        <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+        <div></div>
+    </body>
+</html>

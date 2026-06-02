@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Reference for CSS Test: overflow:hidden on table with caption overflowing downwards</title>
+<link rel="author" title="Simon Pieters" href="mailto:simonp@opera.com">
+<style>
+ table { overflow:hidden; border-spacing:0; margin-top:60px }
+ caption { margin-top:10px; caption-side:bottom }
+ td { padding:0; background:black; width:20px; height:20px }
+</style>
+<p>Test passes if there is a black square below.</p>
+<table>
+ <caption></caption>
+ <tr><td>
+</table>

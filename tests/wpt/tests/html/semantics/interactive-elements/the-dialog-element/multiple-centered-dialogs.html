@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  height: 10000px;
+}
+
+dialog {
+  padding: 0;
+  height: 50px;
+  width: 50px;
+}
+
+#console {
+  position: fixed;
+}
+</style>
+
+<dialog id="top-dialog"></dialog>
+<dialog id="first-middle-dialog"></dialog>
+<dialog id="second-middle-dialog" style="left: 100px"></dialog>
+<dialog id="bottom-dialog"></dialog>
+
+<script>
+test(() => {
+  function documentHeight() {
+    // clientHeight is an integer, but we want the correct floating point
+    // value.  Start a binary search at clientHeight-1 and clientHeight+1.
+    let min = document.documentElement.clientHeight;
+    let max = min + 1;
+    --min;
+
+    // binary search with media queries to find the correct height
+    for (let iter = 0; iter < 10; ++iter) {
+      let test = (min + max) / 2;
+      if (window.matchMedia(`(min-height: ${test}px)`).matches)
+        min = test;
+      else
+        max = test;
+    }
+    return min;
+  }
+  function expectedTop(dialog) {
+    let height = documentHeight();
+    return (height - dialog.getBoundingClientRect().height) / 2;
+  }
+
+  function showAndTest(id) {
+    dialog = document.getElementById(id);
+    dialog.showModal();
+    assert_approx_equals(dialog.getBoundingClientRect().top, expectedTop(dialog), 0.05, id);
+  }
+
+  showAndTest('top-dialog');
+
+  window.scroll(0, 100);
+  showAndTest('first-middle-dialog');
+  showAndTest('second-middle-dialog');
+
+  window.scroll(0, 200);
+  showAndTest('bottom-dialog');
+}, 'Test that multiple dialogs are centered properly.');
+</script>

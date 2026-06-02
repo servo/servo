@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<style>
+.grid {
+  display: grid;
+  border: solid thick;
+  margin: 10px;
+  grid-template-columns: repeat(auto-fill, 100px 100px);
+  grid-column-gap: 100px;
+  width: 300px;
+  background: pink;
+}
+.grid > div {
+  background: lime;
+  width: 50px;
+  height: 50px;
+}
+</style>
+<p>The test passes if it has the same visual effect as reference.</p>
+<div class="grid">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

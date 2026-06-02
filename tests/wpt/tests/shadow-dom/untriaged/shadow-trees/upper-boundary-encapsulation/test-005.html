@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_04_01_05</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation:The nodes with a unique id and named elements are not addressable from any attributes of elements in shadow host's document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+// check label.for attribute
+test(function () {
+    var d = newHTMLDocument();
+    var div = d.createElement('div');
+    d.body.appendChild(div);
+    var s = div.attachShadow({mode: 'open'});
+
+    // node in shadow with id
+    var input = d.createElement('input');
+    input.setAttribute('type', 'text');
+    input.setAttribute('id', 'input_id');
+    d.body.appendChild(input);
+    s.appendChild(input);
+
+    // node in host with a reference to host element with id
+    var label = d.createElement('label');
+    label.setAttribute('for', 'input_id');
+    d.body.appendChild(label);
+
+    assert_equals(label.control, null, 'Elements in shadow DOM must not be accessible from ' +
+        'owner\'s document label.for attribute');
+
+}, 'A_04_01_05_T01');
+
+// check form associated elements
+test(function () {
+
+    HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
+        var d = newHTMLDocument();
+        var div = d.createElement('div');
+        d.body.appendChild(div);
+        var s = div.attachShadow({mode: 'open'});
+
+        var form = d.createElement('form');
+        form.setAttribute('id', 'form_id');
+        d.body.appendChild(form);
+
+        var el = d.createElement(tagName);
+        el.setAttribute('form', 'form_id');
+        d.body.appendChild(el);
+
+        s.appendChild(form);
+
+        assert_equals(el.form, null, 'Elements in shadow DOM must not be accessible from ' +
+            'owner\'s document ' + tagName + '.form attribute');
+    });
+}, 'A_04_01_05_T02');
+</script>
+</body>
+</html>

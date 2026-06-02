@@ -1,0 +1,22 @@
+<!doctype html>
+<script type="module">
+import {alt_manifest_origin} from './../fedcm-helper.sub.js';
+
+// Invokes getUserInfo and immediately sends a message to the parent frame.
+window.onload = async () => {
+  try {
+    const manifest_path = `${alt_manifest_origin}/\
+fedcm/support/manifest.py`;
+    IdentityProvider.getUserInfo({
+      configURL: manifest_path,
+      // Approved client
+      clientId: '123',
+    });
+    window.top.postMessage("Pass", '*');
+  } catch (error) {
+    window.top.postMessage("Fail", '*');
+  }
+};
+
+</script>
+

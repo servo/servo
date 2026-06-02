@@ -1,0 +1,4 @@
+features:
+- name: hashchange
+  files:
+  - navigate-child-function-parent-then-fragment.html

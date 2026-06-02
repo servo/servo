@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Seeking forwards does not dispatch 'repeatEvent'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="red">
+    <set id="anim1" attributeName="fill" to="green" begin="5s" dur="1s" repeatCount="2" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+  const SMIL_EVENTS = ['beginEvent', 'repeatEvent', 'endEvent'];
+
+  promise_test(function(t) {
+    let svg = document.querySelector('svg');
+    svg.pauseAnimations();
+    svg.setCurrentTime(5.5);
+    let anim1_watcher = new EventWatcher(t, document.getElementById('anim1'), SMIL_EVENTS);
+    return anim1_watcher.wait_for('beginEvent').then(() => {
+      svg.setCurrentTime(6.5);
+      return new Promise(resolve => {
+        t.step_timeout(resolve);
+      });
+    });
+  });
+</script>

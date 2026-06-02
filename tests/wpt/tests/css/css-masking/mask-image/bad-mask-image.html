@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Invalid mask-image URL</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="about:blank">
+
+<style>
+  .bad-mask {
+    /* This invalid mask-image should fully-mask this element. */
+    mask-image: url("invalid://nonexistent");
+  }
+</style>
+
+<p class="bad-mask">Invalid mask-image</p>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>AT-SPI ONLY:  option within listbox exposed as ROLE_MENU:  option is exposed as ROLE_MENU_ITEM</title>
+   </head>
+   <body>
+      <h1>AT-SPI ONLY:  option within listbox exposed as ROLE_MENU:  option is exposed as ROLE_MENU_ITEM</h1>
+      <div role="combobox" aria-expanded="true" aria-label="Combobox for AT-SPI test of listbox/option mappings">
+        <input type="text" value="combobox entry field">
+        <div role="listbox" aria-label="Listbox child of combobox for AT-SPI test of listbox/option mappings">
+          <p role="option" id="test">Test option</p>
+          <p role="option">Another option</p>
+          <p role="option">A third option</p>
+        </div>
+      </div>
+   </body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `border-spacing` works. -->
+<link rel=match href=border_spacing_ref.html>
+<style>
+body, html {
+    margin: 0;
+}
+table {
+    border: none;
+    border-spacing: 6px;
+    padding: 0;
+}
+tr {
+    border-spacing: 64px;  /* should have no effect */
+    padding: 0;
+}
+td {
+    border: none;
+    border-spacing: 100px;  /* should have no effect */
+    padding: 0;
+    background: blue;
+}
+</style>
+</head>
+<body>
+<table>
+    <tr><td width=32 style="height: 32px;"></td><td width=64></td></tr>
+    <tr><td width=32 style="height: 32px;"></td><td width=64></td></tr>
+</table>
+</body>
+</html>
+

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored(fallback) matching &lt;try-tactic&gt;</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  .anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top;
+    width: 100px;
+    /* Too tall to fit over the anchor to trigger fallback */
+    height: 100px;
+    container-type: anchored;
+  }
+  #a1 {
+    position-try-fallbacks: flip-block;
+  }
+  #a2 {
+    position-try-fallbacks: flip-inline flip-block;
+  }
+  #a3 {
+    position-try-fallbacks: flip-x flip-y;
+  }
+  #t1, #t2, #t3 {
+    --flip-block: no;
+    --flip-inline: no;
+    --flip-inline-block: no;
+    --flip-block-inline: no;
+    --flip-x: no;
+    --flip-y: no;
+    --flip-x-y: no;
+    --flip-y-x: no;
+    @container anchored(fallback: flip-block) { --flip-block: yes; }
+    @container anchored(fallback: flip-inline) { --flip-inline: yes; }
+    @container anchored(fallback: flip-inline flip-block) { --flip-inline-block: yes; }
+    @container anchored(fallback: flip-block flip-inline) { --flip-block-inline: yes; }
+    @container anchored(fallback: flip-x) { --flip-x: yes; }
+    @container anchored(fallback: flip-y) { --flip-y: yes; }
+    @container anchored(fallback: flip-x flip-y) { --flip-x-y: yes; }
+    @container anchored(fallback: flip-y flip-x) { --flip-y-x: yes; }
+  }
+</style>
+<div id="anchor"></div>
+<div id="a1" class="anchored">
+  <div id="t1"></div>
+</div>
+<div id="a2" class="anchored">
+  <div id="t2"></div>
+</div>
+<div id="a3" class="anchored">
+  <div id="t3"></div>
+</div>
+<script>
+  test(() => {
+    const style = getComputedStyle(t1);
+    assert_equals(style.getPropertyValue("--flip-block"), "yes");
+    assert_equals(style.getPropertyValue("--flip-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-inline-block"), "no");
+    assert_equals(style.getPropertyValue("--flip-block-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-x"), "no");
+    assert_equals(style.getPropertyValue("--flip-y"), "no");
+    assert_equals(style.getPropertyValue("--flip-x-y"), "no");
+    assert_equals(style.getPropertyValue("--flip-y-x"), "no");
+  }, "@container anchored(fallback) matching flip-block");
+
+  test(() => {
+    const style = getComputedStyle(t2);
+    assert_equals(style.getPropertyValue("--flip-block"), "no");
+    assert_equals(style.getPropertyValue("--flip-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-inline-block"), "yes");
+    assert_equals(style.getPropertyValue("--flip-block-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-x"), "no");
+    assert_equals(style.getPropertyValue("--flip-y"), "no");
+    assert_equals(style.getPropertyValue("--flip-x-y"), "no");
+    assert_equals(style.getPropertyValue("--flip-y-x"), "no");
+  }, "@container anchored(fallback) matching flip-inline flip-block");
+
+  test(() => {
+    const style = getComputedStyle(t3);
+    assert_equals(style.getPropertyValue("--flip-block"), "no");
+    assert_equals(style.getPropertyValue("--flip-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-inline-block"), "no");
+    assert_equals(style.getPropertyValue("--flip-block-inline"), "no");
+    assert_equals(style.getPropertyValue("--flip-x"), "no");
+    assert_equals(style.getPropertyValue("--flip-y"), "no");
+    assert_equals(style.getPropertyValue("--flip-x-y"), "yes");
+    assert_equals(style.getPropertyValue("--flip-y-x"), "no");
+  }, "@container anchored(fallback) matching flip-x flip-y");
+</script>

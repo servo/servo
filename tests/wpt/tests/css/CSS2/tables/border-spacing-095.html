@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: Border-spacing: cell spanning multiple columns</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#propdef-border-spacing">
+<link rel="help" href="https://github.com/servo/servo/issues/38277">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The cell spans 3 columns and 2 gutters, each 20px wide.
+  The contents of the cell should be able to use the entire 100px, not just the 60px
+  of the columns.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table cellpadding="0" style="border-spacing: 20px; margin: -20px">
+  <tr>
+    <td colspan="3" style="width: 100px; background: red">
+      <div style="height: 100px; background: green"></div>
+    </td>
+  </tr>
+</table>

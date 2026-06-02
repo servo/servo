@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Test: Error recovery after an invalid reference in an unparsed declaration.</title>
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#invalid-variables">
+<link rel="help" href="https://crbug.com/364443009">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+p {
+  color: red;
+  transform: scale(var(--#invalid));
+}
+p {
+  color: green;
+}
+</style>
+<p>This text must be green.</p>

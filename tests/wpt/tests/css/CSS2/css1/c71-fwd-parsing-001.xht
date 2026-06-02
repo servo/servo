@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Forward-Compatible Parsing</title>
+  <meta name="flags" content="invalid" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#forward-compatible-parsing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c71-fwd-parsing-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   p.sixa {border-width: medium; border-style: solid;}
+   p.sixb {border-width: funny; border-style: solid;}
+   p.sixc {border-width: 50zu; border-style: solid;}
+   p.sixd {border-width: px; border-style: solid;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" title="4.2 Rules for handling parsing errors"/>
+ </head>
+ <body>
+  <p>The next four blocks should look identical, to the pixel.</p>
+  <p class="sixa">Text sample</p>
+  <p class="sixb">Text sample</p>
+  <p class="sixc">Text sample</p>
+  <p class="sixd">Text sample</p>
+ </body>
+</html>

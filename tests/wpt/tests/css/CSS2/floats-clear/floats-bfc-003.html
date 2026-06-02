@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Test: Floats with overflow:hidden next to them</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="help" href="https://github.com/servo/servo/issues/38365">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  The border box of #bfc must not overlap the margin box of #float1 nor #float2.
+  First we try laying it out next to #float1, so it becomes 200px wide, and then
+  its inner floats fit next to each other, so it becomes 50px tall.
+  However, that would overlap #float2.
+  Therefore, we try again, now with a width of 100px. Then its inner floats no
+  longer fit next to each other, so it becames 100px tall.
+">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="overflow: hidden">
+  <div style="width: 300px; height: 100px; margin-left: -200px; background: red">
+    <div id="float1" style="float: left; clear: left; width: 100px; height: 25px"></div>
+    <div id="float2" style="float: left; clear: left; width: 200px; height: 25px"></div>
+    <div id="bfc" style="overflow: hidden; background: green">
+      <div style="float: left; width: 100px; height: 50px"></div>
+      <div style="float: left; width: 100px; height: 50px"></div>
+    </div>
+  </div>
+</div>

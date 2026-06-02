@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.2-selectorValidIfPresent.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains one or more Specific Resources selectors having value(s) which is(are) not of format uri, nor an object having a type key with a single value which is one of 'FragmentSelector', 'CssSelector', 'XPathSelector', 'TextQuoteSelector', 'TextPositionSelector', 'DataPositionSelector', 'SvgSelector', 'RangeSelector'.",
+  "title": "If present **Specific Resource _selector_ key** has one or more values each of which is of **format uri** or an object having a **_type_ key** with a **single value** which is one of **'FragmentSelector', 'CssSelector', 'XPathSelector', 'TextQuoteSelector', 'TextPositionSelector', 'DataPositionSelector', 'SvgSelector', 'RangeSelector'** - [model 4.2](https://www.w3.org/TR/annotation-model/#selectors)",
+  "description": "True when no Specific Resources selector present or all Specific Resource selector values included in the Annotation (if any) are of format uri or or are objects having a type key with a single value which is one of 'FragmentSelector', 'CssSelector', 'XPathSelector', 'TextQuoteSelector', 'TextPositionSelector', 'DataPositionSelector', 'SvgSelector', 'RangeSelector'. (Section 4.2)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {"oneOf":
+     [
+      { "$ref": "id.json#/definitions/stringUri" },
+      { "type": "object",
+        "allOf":
+        [
+          { "$ref": "specificResource.json#/definitions/selectorDefined" },
+          { "$ref": "specificResource.json#/definitions/itemSelectorValidIfPresent" }
+        ]
+      },
+         { "type": "array",
+           "minItems": 1,
+           "items":
+            {"oneOf":
+              [
+                { "$ref": "id.json#/definitions/stringUri" },
+                { "type": "object",
+                  "allOf":
+                  [
+                   { "$ref": "specificResource.json#/definitions/selectorDefined" },
+                   { "$ref": "specificResource.json#/definitions/itemSelectorValidIfPresent" }
+                  ]
+                }
+              ]
+           }
+         }
+    ]
+   }
+  }
+}

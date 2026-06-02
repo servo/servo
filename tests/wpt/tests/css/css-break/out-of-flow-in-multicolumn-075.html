@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned in non-containing-block in multicol.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 4;
+    column-gap: 0px;
+    width: 100px;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+    height: 400px;
+    width: 25px;
+    top: 0;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="position: relative;">
+    <div style="height: 400px; background: red"></div>
+    <div style="will-change: opacity">
+      <div class="abs"></div>
+    </div>
+  </div>
+</div>

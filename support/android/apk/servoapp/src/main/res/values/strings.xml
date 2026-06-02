@@ -1,0 +1,5 @@
+<resources>
+  <string name="app_name">Servo</string>
+  <string name="media_channel_name">ServoMedia</string>
+  <string name="media_channel_description">Notication channel for multimedia activity</string>
+</resources>

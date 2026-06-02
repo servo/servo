@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - cross-document data drop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: blue;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  var blue = document.getElementsByTagName('div')[0], fails = [];
+  blue.ondragover = blue.ondragenter = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if( e.dataTransfer.getData('text') ) {
+      fails[fails.length] = '"' + e.dataTransfer.getData('text') + '" exposed during event ' + e.type;
+    }
+  };
+  blue.ondrop = function(e) {
+    e.preventDefault();
+    if( !e.dataTransfer.types.length ) {
+      fails[fails.length] = 'no types found during event drop';
+    }
+    var foundtext = false;
+    for( var i = 0; i < e.dataTransfer.types.length; i++ ) {
+      if( e.dataTransfer.types[i] == 'text/plain' ) {
+        foundtext = true;
+        break;
+      }
+    }
+    if( !foundtext ) {
+      fails[fails.length] = 'text/plain type not found during event drop';
+    }
+    if( e.dataTransfer.getData('text') != 'dummy text' ) {
+      fails[fails.length] = 'getData returned ' + e.dataTransfer.getData('text') + ' instead of "dummy text"';
+    }
+    document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL:<br>' + fails.join('<br>') ) : 'PASS';
+  };
+};
+</script>
+
+<p>Drag the orange square onto the blue square. Fail if this text does not change.</p>
+<div></div>
+
+<noscript><p>Enable JavaScript and reload</p></noscript>

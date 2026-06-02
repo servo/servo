@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>CSS Test: Properties allowed on ::first-line pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-styling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target::first-line {}
+  #target { visibility: hidden; }
+</style>
+<div id="target">text</div>
+<script>
+  let style;
+  const target = document.querySelector("#target");
+  const defaultComputedStyle = getComputedStyle(target);
+
+  test(() => {
+    var styleRule = document.styleSheets[0].cssRules[0];
+    assert_equals(styleRule.selectorText, "#target::first-line", "make sure we have the correct style rule");
+    style = styleRule.style;
+  }, "retrieve style rule");
+
+  const validProperties = {
+    backgroundAttachment: "fixed",
+    backgroundBlendMode: "hue",
+    backgroundClip: "padding-box",
+    backgroundColor: "rgb(10, 20, 30)",
+    backgroundImage: "linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255))",
+    backgroundOrigin: "border-box",
+    backgroundPosition: "50% 50%",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "10px 20px",
+    color: "rgba(10, 20, 30, 0.4)",
+    fontFamily: "sans-serif",
+    fontFeatureSettings: '"vert" 2',
+    fontKerning: "none",
+    fontSize: "30px",
+    fontSizeAdjust: "0.5",
+    fontStyle: "italic",
+    fontVariant: "small-caps",
+    fontWeight: "900",
+    fontVariationSettings: '"XHGT" 0.7',
+    letterSpacing: "12px",
+    opacity: "0.5",
+    textDecoration: "overline wavy rgb(10, 20, 30)",
+    textJustify: "none",
+    textShadow: "rgb(10, 20, 30) 10px 20px 30px",
+    textTransform: "capitalize",
+    textUnderlinePosition: "under",
+    verticalAlign: "12%",
+    wordSpacing: "12px"
+  };
+
+  const invalidProperties = {
+    border: "40px dotted rgb(10, 20, 30)",
+    borderImage: "linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255)) 10% / 20 / 30px repeat",
+    borderRadius: "10px 20px",
+    margin: "10px 20px 30px 40px",
+    padding: "10px 20px 30px 40px",
+    position: "absolute",
+    transition: "transform 1s",
+    transform: "rotate(45deg)",
+    wordBreak: "break-all"
+  };
+
+  function testFirstLineProperty(property, rule, expected, reason) {
+    test(function() {
+      style[property] = "";
+      style[property] = rule;
+      assert_equals(getComputedStyle(target, "::first-line")[property], expected);
+      style[property] = "";
+    }, reason);
+  }
+
+  for (let property in validProperties) {
+    testFirstLineProperty(property, validProperties[property], validProperties[property],
+                            property + " should be applied to first-line pseudo elements.");
+  }
+
+  for (let property in invalidProperties) {
+    testFirstLineProperty(property, invalidProperties[property], defaultComputedStyle[property],
+                            property + " should not be applied to first-line pseudo elements.");
+  }
+</script>

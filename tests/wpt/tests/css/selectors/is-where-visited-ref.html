@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>:is/:where combined with :visited/:link</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<style>
+  :visited, :link {
+    color: black;
+  }
+
+  #parent1 .a, #parent1 .b, #parent1 .c {
+    color: green;
+  }
+  #parent1 .d, #parent1 .f {
+    color: magenta;
+  }
+
+  #parent2 .b, #parent2 .e {
+    color: tomato;
+  }
+
+  #parent3 .c, #parent3 .f {
+    color: skyblue;
+  }
+
+  #parent4 .c, #parent4 .f {
+    color: blue;
+  }
+
+  #parent3 .b, #parent3 .e, #parent4 .b, #parent4 .e {
+    color: maroon;
+  }
+</style>
+<main>
+  <div id=parent1>
+    <a class=a href="">a</a>
+    <a class=b href="">b</a>
+    <a class=c href="">c</a>
+    <a class=d href="unvisited">d</a>
+    <a class=e href="unvisited">e</a>
+    <a class=f href="unvisited">f</a>
+  </div>
+  <div id=parent2>
+    <a class=a href="">a</a>
+    <a class=b href="">b</a>
+    <a class=c href="">c</a>
+    <a class=d href="unvisited">d</a>
+    <a class=e href="unvisited">e</a>
+    <a class=f href="unvisited">f</a>
+  </div>
+  <a id=parent3 href="">
+    <span class=a>a</span>
+    <span class=b>b</span>
+    <span class=c>c</span>
+    <span class=d>d</span>
+    <span class=e>e</span>
+    <span class=f>f</span>
+  </a>
+  <br>
+  <a id=parent4 href="unvisited">
+    <span class=a>a</span>
+    <span class=b>b</span>
+    <span class=c>c</span>
+    <span class=d>d</span>
+    <span class=e>e</span>
+    <span class=f>f</span>
+  </a>
+</main>
