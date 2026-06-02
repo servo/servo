@@ -202,7 +202,7 @@ fn find_or_claim_shared_worker(
 fn add_pending_connect_to_creating_entry(
     key: &SharedWorkerKey,
     pending: PendingSharedWorkerConnection,
-) -> Result<(), PendingSharedWorkerConnection> {
+) -> Option<PendingSharedWorkerConnection> {
     let mut workers = SHARED_WORKERS
         .lock()
         .expect("SharedWorker registry poisoned");
@@ -214,13 +214,13 @@ fn add_pending_connect_to_creating_entry(
             &key.name,
         )
     }) else {
-        return Err(pending);
+        return Some(pending);
     };
     let SharedWorkerRegistryState::Creating(creation) = &mut entry.state else {
-        return Err(pending);
+        return Some(pending);
     };
     creation.pending_connects.push(pending);
-    Ok(())
+    None
 }
 
 fn queue_pending_connect_or_error(
@@ -615,7 +615,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             // Include constructor origin in the key so `data:` SharedWorkers are not reused across origins.
             constructor_origin: constructor_origin.clone(),
             constructor_url: constructor_url.clone(),
-            name: worker_name_string.clone(),
+            name: worker_name_string,
         };
 
         // Step 11.2. For each scope in the list of all `SharedWorkerGlobalScope` objects:
@@ -746,7 +746,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             },
         };
 
-        if let Err(pending) =
+        if let Some(pending) =
             add_pending_connect_to_creating_entry(&shared_worker_key, initial_pending)
         {
             queue_pending_simple_error(pending);
@@ -827,9 +827,9 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             registration_id,
             credentials,
             extended_lifetime,
-            constructor_origin.clone(),
-            constructor_url.clone(),
-            outside_storage_key.clone(),
+            constructor_origin,
+            constructor_url,
+            outside_storage_key,
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context().cloned(),
@@ -855,7 +855,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             extended_lifetime,
             worker_is_secure_context,
             closing,
-            sender: sender.clone(),
+            sender,
             _control_sender: control_sender,
         };
 
