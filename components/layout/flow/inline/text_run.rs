@@ -662,9 +662,10 @@ impl TextRun {
         ifc_layout: &mut InlineFormattingContextLayout,
         bidi_level: Level,
     ) {
-        let advance = ifc_layout
-            .ifc
-            .next_tab_stop_after_inline_advance(ifc_layout.potential_line_size().inline);
+        let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
+            &self.inline_styles.style.borrow(),
+            ifc_layout.potential_line_size().inline,
+        );
         if advance.is_zero() {
             return;
         }

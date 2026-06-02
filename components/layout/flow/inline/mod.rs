@@ -187,8 +187,11 @@ pub(crate) struct InlineFormattingContext {
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
     shared_selection: Option<SharedSelection>,
 
-    /// The cached tab stop inline advance used when finding final tab stops for preserved tabs.
-    tab_stop_advance: OnceLock<Au>,
+    /// The cached multiplier for `tab-size: <number>`:
+    /// <https://drafts.csswg.org/css-text/#tab-size-property>
+    /// > the advance width of the space character (U+0020) of the nearest block container ancestor
+    /// > of the preserved tab, including its associated `letter-spacing` and `word-spacing`.
+    tab_size_multiplier: OnceLock<Au>,
 }
 
 /// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
@@ -1960,7 +1963,7 @@ impl InlineFormattingContext {
             is_single_line_text_input,
             has_right_to_left_content,
             shared_selection: builder.shared_selection,
-            tab_stop_advance: Default::default(),
+            tab_size_multiplier: Default::default(),
         }
     }
 
@@ -2211,12 +2214,16 @@ impl InlineFormattingContext {
         }
     }
 
-    pub(crate) fn next_tab_stop_after_inline_advance(&self, current_inline_advance: Au) -> Au {
+    pub(crate) fn next_tab_stop_after_inline_advance(
+        &self,
+        style: &AtomicRef<'_, ServoArc<ComputedValues>>,
+        current_inline_advance: Au,
+    ) -> Au {
         let Some(font) = self.default_font.as_ref() else {
             return Au::zero();
         };
 
-        let tab_stop_advance = *self.tab_stop_advance.get_or_init(|| {
+        let tab_size_multiplier = *self.tab_size_multiplier.get_or_init(|| {
             let root_style = self.shared_inline_styles.style.borrow();
             let inherited_text_style = root_style.get_inherited_text();
             let font_size = root_style.get_font().font_size.computed_size().into();
@@ -2226,17 +2233,18 @@ impl InlineFormattingContext {
                 .to_used_value(font_size);
             let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size);
 
-            match root_style.get_inherited_text().tab_size {
-                // Each "space" character in the tab is considered both a letter and a word separator for
-                // the purposes of applying word spacing and letter spacing.
-                style::values::generics::length::LengthOrNumber::Number(number_of_spaces) => {
-                    (font.metrics.space_advance + word_spacing + letter_spacing)
-                        .scale_by(number_of_spaces.0)
-                },
-                // When a length is provided we do not apply word spacing or letter spacing.
-                style::values::generics::length::LengthOrNumber::Length(length) => length.into(),
-            }
+            // Each "space" character in the tab is considered both a letter and a word separator for
+            // the purposes of applying word spacing and letter spacing.
+            font.metrics.space_advance + word_spacing + letter_spacing
         });
+
+        let tab_stop_advance = match style.get_inherited_text().tab_size {
+            style::values::generics::length::LengthOrNumber::Number(number_of_spaces) => {
+                tab_size_multiplier.scale_by(number_of_spaces.0)
+            },
+            // When a length is provided we do not apply word spacing or letter spacing.
+            style::values::generics::length::LengthOrNumber::Length(length) => length.into(),
+        };
 
         if tab_stop_advance.is_zero() {
             return Au::zero();
@@ -2956,9 +2964,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.commit_pending_whitespace();
 
         self.current_line.min_content += inline_formatting_context
-            .next_tab_stop_after_inline_advance(self.current_line.min_content);
+            .next_tab_stop_after_inline_advance(parent_style, self.current_line.min_content);
         self.current_line.max_content += inline_formatting_context
-            .next_tab_stop_after_inline_advance(self.current_line.max_content);
+            .next_tab_stop_after_inline_advance(parent_style, self.current_line.max_content);
         if parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap {
             self.line_break_opportunity();
         }
