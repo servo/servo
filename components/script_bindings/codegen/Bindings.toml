@@ -19,9 +19,9 @@
 realm = ["Abort"]
 
 [DOMInterfaces.AbortSignal]
-weakReferenceable = true
 canGc = ["Abort", "Any", "Timeout"]
 cx = ["ThrowIfAborted"]
+weakReferenceable = true
 
 [DOMInterfaces.AbstractRange]
 weakReferenceable = true
@@ -39,21 +39,41 @@ cx = ["Constructor", "CopyToChannel", "GetChannelData"]
 cx = ["Constructor"]
 
 [DOMInterfaces.AudioContext]
+cx = [
+    "Constructor",
+    "CreateMediaElementSource",
+    "CreateMediaStreamDestination",
+    "CreateMediaStreamSource",
+    "CreateMediaStreamTrackSource",
+]
 realm = ["Close", "Suspend"]
-cx = ["Constructor", "CreateMediaElementSource", "CreateMediaStreamDestination", "CreateMediaStreamSource", "CreateMediaStreamTrackSource"]
 
 [DOMInterfaces.BaseAudioContext]
-inRealms = ["DecodeAudioData", "Resume", "ParseFromString", "GetBounds", "GetClientRects"]
 canGc = ["Resume", "DecodeAudioData", "Destination"]
-cx = ["CreateBuffer", "CreateGain", "CreateOscillator", "CreatePanner", "CreateStereoPanner", "CreateBiquadFilter", "CreateIIRFilter", "CreateAnalyser", "CreateConstantSource", "CreateChannelMerger", "CreateChannelSplitter", "CreateBufferSource", "Listener"]
+cx = [
+    "CreateBuffer",
+    "CreateGain",
+    "CreateOscillator",
+    "CreatePanner",
+    "CreateStereoPanner",
+    "CreateBiquadFilter",
+    "CreateIIRFilter",
+    "CreateAnalyser",
+    "CreateConstantSource",
+    "CreateChannelMerger",
+    "CreateChannelSplitter",
+    "CreateBufferSource",
+    "Listener",
+]
+inRealms = ["DecodeAudioData", "Resume", "ParseFromString", "GetBounds", "GetClientRects"]
 
 [DOMInterfaces.BiquadFilterNode]
 cx = ["Constructor"]
 
 [DOMInterfaces.Blob]
-weakReferenceable = true
-realm = ["ArrayBuffer", "Bytes", "Text"]
 cx = ["Stream", "Slice", "Constructor"]
+realm = ["ArrayBuffer", "Bytes", "Text"]
+weakReferenceable = true
 
 [DOMInterfaces.Bluetooth]
 realm = ["GetAvailability", "RequestDevice"]
@@ -62,21 +82,33 @@ realm = ["GetAvailability", "RequestDevice"]
 cx = ["Constructor"]
 
 [DOMInterfaces.BluetoothDevice]
-realm = ["WatchAdvertisements"]
 cx = ["GetGatt"]
+realm = ["WatchAdvertisements"]
 
 [DOMInterfaces.BluetoothRemoteGATTCharacteristic]
-realm = ["ReadValue", "StartNotifications", "StopNotifications", "WriteValue", "GetDescriptor", "GetDescriptors"]
+realm = [
+    "ReadValue",
+    "StartNotifications",
+    "StopNotifications",
+    "WriteValue",
+    "GetDescriptor",
+    "GetDescriptors",
+]
 
 [DOMInterfaces.BluetoothRemoteGATTDescriptor]
 realm = ["ReadValue", "WriteValue"]
 
 [DOMInterfaces.BluetoothRemoteGATTServer]
-realm = ["Connect", "GetPrimaryService", "GetPrimaryServices"]
 cx = ["Disconnect"]
+realm = ["Connect", "GetPrimaryService", "GetPrimaryServices"]
 
 [DOMInterfaces.BluetoothRemoteGATTService]
-realm = ["GetCharacteristic", "GetCharacteristics", "GetIncludedService", "GetIncludedServices"]
+realm = [
+    "GetCharacteristic",
+    "GetCharacteristics",
+    "GetIncludedService",
+    "GetIncludedServices",
+]
 
 [DOMInterfaces.BroadcastChannel]
 cx = ["Constructor", "PostMessage"]
@@ -85,8 +117,14 @@ cx = ["Constructor", "PostMessage"]
 cx = ["GetSize"]
 
 [DOMInterfaces.CanvasRenderingContext2D]
-cx = ["GetTransform", "MeasureText", "CreateLinearGradient", "CreatePattern", "CreateRadialGradient"]
 canGc = ["CreateImageData", "GetImageData", "CreateImageData_"]
+cx = [
+    "GetTransform",
+    "MeasureText",
+    "CreateLinearGradient",
+    "CreatePattern",
+    "CreateRadialGradient",
+]
 
 [DOMInterfaces.ChannelMergerNode]
 cx = ["Constructor"]
@@ -95,7 +133,17 @@ cx = ["Constructor"]
 cx = ["Constructor"]
 
 [DOMInterfaces.CharacterData]
-cx = ["After", "AppendData", "Before", "DeleteData", "InsertData", "Remove", "ReplaceData", "ReplaceWith", "SetData"]
+cx = [
+    "After",
+    "AppendData",
+    "Before",
+    "DeleteData",
+    "InsertData",
+    "Remove",
+    "ReplaceData",
+    "ReplaceWith",
+    "SetData",
+]
 
 [DOMInterfaces.Client]
 cx = ["PostMessage", "PostMessage_"]
@@ -114,7 +162,23 @@ cx = ["Constructor"]
 cx = ["Constructor"]
 
 [DOMInterfaces.console]
-cx = ["Assert", "Count", "CountReset", "Debug", "Dir", "Error", "Group", "GroupCollapsed", "Info", "Log", "Time", "TimeEnd", "TimeLog", "Trace", "Warn"]
+cx = [
+    "Assert",
+    "Count",
+    "CountReset",
+    "Debug",
+    "Dir",
+    "Error",
+    "Group",
+    "GroupCollapsed",
+    "Info",
+    "Log",
+    "Time",
+    "TimeEnd",
+    "TimeLog",
+    "Trace",
+    "Warn",
+]
 
 [DOMInterfaces.ConstantSourceNode]
 cx = ["Constructor"]
@@ -156,19 +220,26 @@ cx = ["Item", "IndexedGetter"]
 cx = ["Style"]
 
 [DOMInterfaces.CSSStyleSheet]
+cx = [
+    "AddRule",
+    "DeleteRule",
+    "GetCssRules",
+    "GetRules",
+    "InsertRule",
+    "RemoveRule",
+]
 realm = ["Replace"]
-cx = ["AddRule", "DeleteRule", "GetCssRules", "GetRules", "InsertRule", "RemoveRule"]
 
 [DOMInterfaces.Crypto]
 cx = ["Subtle"]
 
 [DOMInterfaces.CSSStyleDeclaration]
-implicitCxSetters = true
 cx = ["RemoveProperty", "SetProperty", "Style"]
+implicitCxSetters = true
 
 [DOMInterfaces.CustomElementRegistry]
-inRealms = ["WhenDefined"]
 canGc = ["Define", "WhenDefined"]
+inRealms = ["WhenDefined"]
 
 [DOMInterfaces.DataTransfer]
 cx = ["Files", "Types"]
@@ -190,15 +261,84 @@ cx = ["PostMessage", "PostMessage_"]
 
 [DOMInterfaces.Document]
 additionalTraits = ["crate::interfaces::DocumentHelpers"]
-canGc = ["CreateRange", "ExitFullscreen", "StyleSheets", "Implementation", "CreateNodeIterator", "GetElementsByName", "AdoptedStyleSheets", "SetAdoptedStyleSheets"]
-cx = ["AdoptNode", "Append", "Close", "CreateAttribute", "CreateAttributeNS", "CreateCDATASection", "CreateComment", "CreateDocumentFragment", "CreateElement", "CreateElementNS", "CreateEvent", "CreateExpression", "CreateNSResolver", "CreateProcessingInstruction", "CreateRange", "CreateTextNode", "ExecCommand", "Evaluate", "Fonts", "GetLocation", "ImportNode", "MoveBefore", "Open", "Open_", "ParseHTMLUnsafe", "ParseHTML", "Prepend", "QueryCommandEnabled", "QueryCommandIndeterm", "QueryCommandState", "QueryCommandValue", "ReplaceChildren", "SetBody", "SetTitle", "Write", "Writeln", "GetElementsByTagName", "GetElementsByTagNameNS", "GetElementsByClassName", "Images", "Embeds", "Plugins", "Links", "Forms", "Scripts", "Anchors", "Applets", "Children", "GetSelection", "NamedGetter", "SetBgColor", "SetFgColor"]
+canGc = [
+    "CreateRange",
+    "ExitFullscreen",
+    "StyleSheets",
+    "Implementation",
+    "CreateNodeIterator",
+    "GetElementsByName",
+    "AdoptedStyleSheets",
+    "SetAdoptedStyleSheets",
+]
+cx = [
+    "AdoptNode",
+    "Append",
+    "Close",
+    "CreateAttribute",
+    "CreateAttributeNS",
+    "CreateCDATASection",
+    "CreateComment",
+    "CreateDocumentFragment",
+    "CreateElement",
+    "CreateElementNS",
+    "CreateEvent",
+    "CreateExpression",
+    "CreateNSResolver",
+    "CreateProcessingInstruction",
+    "CreateRange",
+    "CreateTextNode",
+    "ExecCommand",
+    "Evaluate",
+    "Fonts",
+    "GetLocation",
+    "ImportNode",
+    "MoveBefore",
+    "Open",
+    "Open_",
+    "ParseHTMLUnsafe",
+    "ParseHTML",
+    "Prepend",
+    "QueryCommandEnabled",
+    "QueryCommandIndeterm",
+    "QueryCommandState",
+    "QueryCommandValue",
+    "ReplaceChildren",
+    "SetBody",
+    "SetTitle",
+    "Write",
+    "Writeln",
+    "GetElementsByTagName",
+    "GetElementsByTagNameNS",
+    "GetElementsByClassName",
+    "Images",
+    "Embeds",
+    "Plugins",
+    "Links",
+    "Forms",
+    "Scripts",
+    "Anchors",
+    "Applets",
+    "Children",
+    "GetSelection",
+    "NamedGetter",
+    "SetBgColor",
+    "SetFgColor",
+]
 
 [DOMInterfaces.DissimilarOriginWindow]
 canGc = ["Location"]
 cx = ["PostMessage", "PostMessage_", "SetOpener", "Opener"]
 
 [DOMInterfaces.DocumentFragment]
-cx = ["Append", "Children", "Constructor", "MoveBefore", "Prepend", "ReplaceChildren"]
+cx = [
+    "Append",
+    "Children",
+    "Constructor",
+    "MoveBefore",
+    "Prepend",
+    "ReplaceChildren",
+]
 
 [DOMInterfaces.DocumentType]
 cx = ["After", "Before", "Remove", "ReplaceWith"]
@@ -210,8 +350,27 @@ cx = ["CreateDocument", "CreateDocumentType", "CreateHTMLDocument"]
 canGc = ["FromMatrix", "FromFloat32Array", "FromFloat64Array"]
 
 [DOMInterfaces.DOMMatrixReadOnly]
+canGc = [
+    "Multiply",
+    "Inverse",
+    "Scale",
+    "Translate",
+    "Rotate",
+    "RotateFromVector",
+    "FlipY",
+    "ScaleNonUniform",
+    "Scale3d",
+    "RotateAxisAngle",
+    "SkewX",
+    "SkewY",
+    "FlipX",
+    "FromFloat32Array",
+    "FromFloat64Array",
+    "FromMatrix",
+    "ToFloat32Array",
+    "ToFloat64Array",
+]
 cx = ["TransformPoint"]
-canGc = ["Multiply", "Inverse", "Scale", "Translate", "Rotate", "RotateFromVector", "FlipY", "ScaleNonUniform", "Scale3d", "RotateAxisAngle", "SkewX", "SkewY", "FlipX", "FromFloat32Array", "FromFloat64Array", "FromMatrix", "ToFloat32Array", "ToFloat64Array"]
 
 [DOMInterfaces.DOMParser]
 cx = ["Constructor", "ParseFromString"]
@@ -238,8 +397,106 @@ cx = ["NamedDeleter", "NamedSetter"]
 cx = ["SetValue", "Add", "Remove", "Toggle", "Replace"]
 
 [DOMInterfaces.Element]
-cx = ["GetHTML", "GetInnerHTML", "GetOuterHTML", "Part", "RemoveAttribute", "SetClassName", "SetHTMLUnsafe", "SetHTML", "SetId", "SetInnerHTML", "SetOuterHTML", "InsertAdjacentHTML", "ToggleAttribute", "SetAttribute", "SetAttributeNS", "SetAttributeNode", "SetAttributeNodeNS", "RemoveAttributeNS", "RemoveAttributeNode", "SetRole", "SetAriaAtomic", "SetAriaAutoComplete", "SetAriaBrailleLabel", "SetAriaBrailleRoleDescription", "SetAriaBusy", "SetAriaChecked", "SetAriaColCount", "SetAriaColIndex", "SetAriaColIndexText", "SetAriaColSpan", "SetAriaCurrent", "SetAriaDescription", "SetAriaDisabled", "SetAriaExpanded", "SetAriaHasPopup", "SetAriaHidden", "SetAriaInvalid", "SetAriaKeyShortcuts", "SetAriaLabel", "SetAriaLevel", "SetAriaLive", "SetAriaModal", "SetAriaMultiLine", "SetAriaMultiSelectable", "SetAriaOrientation", "SetAriaPlaceholder", "SetAriaPosInSet", "SetAriaPressed", "SetAriaReadOnly", "SetAriaRelevant", "SetAriaRequired", "SetAriaRoleDescription", "SetAriaRowCount", "SetAriaRowIndex", "SetAriaRowIndexText", "SetAriaRowSpan", "SetAriaSelected", "SetAriaSetSize", "SetAriaSort", "SetAriaValueMax", "SetAriaValueMin", "SetAriaValueNow", "SetAriaValueText", "ReplaceWith", "MoveBefore", "InsertAdjacentElement", "InsertAdjacentText", "Before", "After", "Prepend", "Remove", "ReplaceChildren", "Append", "AttachShadow", "GetElementsByTagName", "GetElementsByTagNameNS", "GetElementsByClassName", "Children", "GetClientRects", "GetBoundingClientRect", "ClassList", "GetAttributeNodeNS", "GetAttributeNS", "HasAttributeNS", "GetAttribute", "GetAttributeNode", "HasAttribute", "ScrollBy", "ScrollBy_", "Scroll", "Scroll_", "ScrollTo", "ScrollTo_", "SetScrollTop", "SetScrollLeft", "ScrollIntoView"]
 canGc = ["RequestFullscreen", "Attributes"]
+cx = [
+    "GetHTML",
+    "GetInnerHTML",
+    "GetOuterHTML",
+    "Part",
+    "RemoveAttribute",
+    "SetClassName",
+    "SetHTMLUnsafe",
+    "SetHTML",
+    "SetId",
+    "SetInnerHTML",
+    "SetOuterHTML",
+    "InsertAdjacentHTML",
+    "ToggleAttribute",
+    "SetAttribute",
+    "SetAttributeNS",
+    "SetAttributeNode",
+    "SetAttributeNodeNS",
+    "RemoveAttributeNS",
+    "RemoveAttributeNode",
+    "SetRole",
+    "SetAriaAtomic",
+    "SetAriaAutoComplete",
+    "SetAriaBrailleLabel",
+    "SetAriaBrailleRoleDescription",
+    "SetAriaBusy",
+    "SetAriaChecked",
+    "SetAriaColCount",
+    "SetAriaColIndex",
+    "SetAriaColIndexText",
+    "SetAriaColSpan",
+    "SetAriaCurrent",
+    "SetAriaDescription",
+    "SetAriaDisabled",
+    "SetAriaExpanded",
+    "SetAriaHasPopup",
+    "SetAriaHidden",
+    "SetAriaInvalid",
+    "SetAriaKeyShortcuts",
+    "SetAriaLabel",
+    "SetAriaLevel",
+    "SetAriaLive",
+    "SetAriaModal",
+    "SetAriaMultiLine",
+    "SetAriaMultiSelectable",
+    "SetAriaOrientation",
+    "SetAriaPlaceholder",
+    "SetAriaPosInSet",
+    "SetAriaPressed",
+    "SetAriaReadOnly",
+    "SetAriaRelevant",
+    "SetAriaRequired",
+    "SetAriaRoleDescription",
+    "SetAriaRowCount",
+    "SetAriaRowIndex",
+    "SetAriaRowIndexText",
+    "SetAriaRowSpan",
+    "SetAriaSelected",
+    "SetAriaSetSize",
+    "SetAriaSort",
+    "SetAriaValueMax",
+    "SetAriaValueMin",
+    "SetAriaValueNow",
+    "SetAriaValueText",
+    "ReplaceWith",
+    "MoveBefore",
+    "InsertAdjacentElement",
+    "InsertAdjacentText",
+    "Before",
+    "After",
+    "Prepend",
+    "Remove",
+    "ReplaceChildren",
+    "Append",
+    "AttachShadow",
+    "GetElementsByTagName",
+    "GetElementsByTagNameNS",
+    "GetElementsByClassName",
+    "Children",
+    "GetClientRects",
+    "GetBoundingClientRect",
+    "ClassList",
+    "GetAttributeNodeNS",
+    "GetAttributeNS",
+    "HasAttributeNS",
+    "GetAttribute",
+    "GetAttributeNode",
+    "HasAttribute",
+    "ScrollBy",
+    "ScrollBy_",
+    "Scroll",
+    "Scroll_",
+    "ScrollTo",
+    "ScrollTo_",
+    "SetScrollTop",
+    "SetScrollLeft",
+    "ScrollIntoView",
+]
+
 
 [DOMInterfaces.ElementInternals]
 canGc = ["GetLabels", "States"]
@@ -261,7 +518,13 @@ canGc = ["Disconnect"]
 weakReferenceable = true
 
 [DOMInterfaces.FileReader]
-cx = ["Abort", "ReadAsArrayBuffer", "ReadAsBinaryString", "ReadAsDataURL", "ReadAsText"]
+cx = [
+    "Abort",
+    "ReadAsArrayBuffer",
+    "ReadAsBinaryString",
+    "ReadAsDataURL",
+    "ReadAsText",
+]
 
 [DOMInterfaces.FileReaderSync]
 canGc = ["ReadAsArrayBuffer"]
@@ -279,8 +542,8 @@ cx = ["Constructor"]
 cx = ["Axes", "Buttons"]
 
 [DOMInterfaces.GamepadHapticActuator]
-inRealms = ["PlayEffect", "Reset"]
 canGc = ["PlayEffect", "Reset", "Effects"]
+inRealms = ["PlayEffect", "Reset"]
 
 [DOMInterfaces.Geolocation]
 cx = ["GetCurrentPosition", "WatchPosition"]
@@ -289,17 +552,17 @@ cx = ["GetCurrentPosition", "WatchPosition"]
 additionalTraits = ["crate::interfaces::GlobalScopeHelpers<Self>"]
 
 [DOMInterfaces.GPU]
-inRealms = ["RequestAdapter"]
 canGc = ["RequestAdapter", "WgslLanguageFeatures"]
+inRealms = ["RequestAdapter"]
 
 [DOMInterfaces.GPUAdapter]
-inRealms = ["RequestDevice"]
 canGc = ["RequestDevice"]
+inRealms = ["RequestDevice"]
 
 [DOMInterfaces.GPUBuffer]
-inRealms = ["MapAsync"]
-canGc = ["GetMappedRange", "MapAsync"]
 allowDropImpl = true
+canGc = ["GetMappedRange", "MapAsync"]
+inRealms = ["MapAsync"]
 
 [DOMInterfaces.GPUCanvasContext]
 weakReferenceable = true
@@ -308,13 +571,18 @@ weakReferenceable = true
 canGc = ["Messages"]
 
 [DOMInterfaces.GPUDevice]
+canGc = [
+    "CreateComputePipelineAsync",
+    "CreateRenderPipelineAsync",
+    "CreateShaderModule",
+    "PopErrorScope",
+]
 inRealms = [
     "CreateComputePipelineAsync",
     "CreateRenderPipelineAsync",
     "CreateShaderModule", # Creates promise for compilation info
     "PopErrorScope",
 ]
-canGc = ["CreateComputePipelineAsync", "CreateRenderPipelineAsync", "CreateShaderModule", "PopErrorScope"]
 weakReferenceable = true # for usage in GlobalScope https://github.com/servo/servo/issues/32519
 
 [DOMInterfaces.GPUQueue]
@@ -339,7 +607,13 @@ weakReferenceable = true
 implicitCxSetters = true
 
 [DOMInterfaces.HTMLButtonElement]
-cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "SetCustomValidity",
+    "Validity",
+    "ValidationMessage",
+]
 implicitCxSetters = true
 
 [DOMInterfaces.HTMLCanvasElement]
@@ -357,12 +631,28 @@ cx = ["Close", "Show", "ShowModal"]
 cx = ["GetLocation", "NamedGetter"]
 
 [DOMInterfaces.HTMLElement]
-canGc = ["AttachInternals", "Dataset", "GetOnblur", "GetOnerror", "GetOnfocus", "GetOnload", "GetOnresize", "GetOnscroll"]
+canGc = [
+    "AttachInternals",
+    "Dataset",
+    "GetOnblur",
+    "GetOnerror",
+    "GetOnfocus",
+    "GetOnload",
+    "GetOnresize",
+    "GetOnscroll",
+]
 cx = ["Blur", "Click", "Focus", "Style"]
 implicitCxSetters = true
 
 [DOMInterfaces.HTMLFieldSetElement]
-cx = ["CheckValidity", "Elements", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "Elements",
+    "ReportValidity",
+    "SetCustomValidity",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLFontElement]
 implicitCxSetters = true
@@ -371,7 +661,19 @@ implicitCxSetters = true
 cx = ["NamedGetter", "NamedItem"]
 
 [DOMInterfaces.HTMLFormElement]
-cx = ["CheckValidity", "ReportValidity", "RequestSubmit", "Submit", "Reset", "Elements", "IndexedGetter", "Length", "NamedGetter", "SetRel", "RelList"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "RequestSubmit",
+    "Submit",
+    "Reset",
+    "Elements",
+    "IndexedGetter",
+    "Length",
+    "NamedGetter",
+    "SetRel",
+    "RelList",
+]
 
 [DOMInterfaces.HTMLFrameSetElement]
 implicitCxSetters = true
@@ -387,7 +689,20 @@ implicitCxSetters = true
 cx = ["Decode", "Image", "ReportValidity", "SetCrossOrigin"]
 
 [DOMInterfaces.HTMLInputElement]
-cx = ["CheckValidity", "GetLabels", "ReportValidity", "SetChecked", "SetCustomValidity", "SetValue", "SetValueAsNumber", "SetValueAsDate", "StepUp", "StepDown", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "GetLabels",
+    "ReportValidity",
+    "SetChecked",
+    "SetCustomValidity",
+    "SetValue",
+    "SetValueAsNumber",
+    "SetValueAsDate",
+    "StepUp",
+    "StepDown",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLLIElement]
 implicitCxSetters = true
@@ -401,16 +716,39 @@ implicitCxSetters = true
 cx = ["Areas"]
 
 [DOMInterfaces.HTMLMediaElement]
-canGc = ["AddTextTrack", "AudioTracks", "Buffered", "Played", "Seekable", "TextTracks", "VideoTracks"]
+canGc = [
+    "AddTextTrack",
+    "AudioTracks",
+    "Buffered",
+    "Played",
+    "Seekable",
+    "TextTracks",
+    "VideoTracks",
+]
+cx = ["SetCrossOrigin", "SetSrcObject", "Load", "Pause"]
 realm = ["Play"]
 weakReferenceable = true
-cx = ["SetCrossOrigin", "SetSrcObject", "Load", "Pause"]
 
 [DOMInterfaces.HTMLMeterElement]
-cx = ["CheckValidity", "ReportValidity", "SetHigh", "SetLow", "SetMax", "SetMin", "SetOptimum", "SetValue"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "SetHigh",
+    "SetLow",
+    "SetMax",
+    "SetMin",
+    "SetOptimum",
+    "SetValue",
+]
 
 [DOMInterfaces.HTMLObjectElement]
-cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "SetCustomValidity",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLOptionElement]
 canGc = ["SetSelected"]
@@ -420,7 +758,15 @@ cx = ["Option", "SetText"]
 cx = ["Add", "IndexedSetter", "Remove", "SetLength", "SetSelectedIndex"]
 
 [DOMInterfaces.HTMLOutputElement]
-cx = ["CheckValidity", "ReportValidity", "SetCustomValidity", "SetDefaultValue", "SetValue", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "SetCustomValidity",
+    "SetDefaultValue",
+    "SetValue",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLPreElement]
 implicitCxSetters = true
@@ -429,10 +775,32 @@ implicitCxSetters = true
 cx = ["SetValue", "SetMax"]
 
 [DOMInterfaces.HTMLScriptElement]
-cx = ["Blocking", "SetAsync", "SetCrossOrigin", "SetInnerText", "SetSrc", "SetText", "SetTextContent"]
+cx = [
+    "Blocking",
+    "SetAsync",
+    "SetCrossOrigin",
+    "SetInnerText",
+    "SetSrc",
+    "SetText",
+    "SetTextContent",
+]
 
 [DOMInterfaces.HTMLSelectElement]
-cx = ["Add", "CheckValidity", "IndexedSetter", "Remove", "Remove_", "ReportValidity", "SelectedOptions", "SetCustomValidity", "SetLength", "SetSelectedIndex", "SetValue", "Validity", "ValidationMessage"]
+cx = [
+    "Add",
+    "CheckValidity",
+    "IndexedSetter",
+    "Remove",
+    "Remove_",
+    "ReportValidity",
+    "SelectedOptions",
+    "SetCustomValidity",
+    "SetLength",
+    "SetSelectedIndex",
+    "SetValue",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLSlotElement]
 cx_no_gc = ["AssignedNodes", "AssignedElements", "Assign"]
@@ -441,7 +809,19 @@ cx_no_gc = ["AssignedNodes", "AssignedElements", "Assign"]
 cx = ["Blocking"]
 
 [DOMInterfaces.HTMLTableElement]
-cx = ["CreateCaption", "CreateTBody", "CreateTFoot", "CreateTHead", "DeleteCaption", "DeleteRow", "DeleteTFoot", "DeleteTHead", "InsertRow", "Rows", "TBodies"]
+cx = [
+    "CreateCaption",
+    "CreateTBody",
+    "CreateTFoot",
+    "CreateTHead",
+    "DeleteCaption",
+    "DeleteRow",
+    "DeleteTFoot",
+    "DeleteTHead",
+    "InsertRow",
+    "Rows",
+    "TBodies",
+]
 implicitCxSetters = true
 
 [DOMInterfaces.HTMLTableCellElement]
@@ -461,7 +841,15 @@ cx = ["DeleteRow", "InsertRow", "Rows"]
 cx = ["Content"]
 
 [DOMInterfaces.HTMLTextAreaElement]
-cx = ["CheckValidity", "ReportValidity", "SetDefaultValue", "SetValue", "SetCustomValidity", "Validity", "ValidationMessage"]
+cx = [
+    "CheckValidity",
+    "ReportValidity",
+    "SetDefaultValue",
+    "SetValue",
+    "SetCustomValidity",
+    "Validity",
+    "ValidationMessage",
+]
 
 [DOMInterfaces.HTMLTitleElement]
 implicitCxSetters = true
@@ -487,7 +875,21 @@ cx = ["Lower", "Upper", "Only", "LowerBound", "UpperBound", "Bound", "Includes"]
 
 [DOMInterfaces.IDBObjectStore]
 canGc = ["IndexNames"]
-cx = ["CreateIndex", "Put", "Add", "Delete", "Clear", "Get", "GetKey", "GetAll", "GetAllKeys", "Count", "OpenCursor", "OpenKeyCursor", "KeyPath"]
+cx = [
+    "CreateIndex",
+    "Put",
+    "Add",
+    "Delete",
+    "Clear",
+    "Get",
+    "GetKey",
+    "GetAll",
+    "GetAllKeys",
+    "Count",
+    "OpenCursor",
+    "OpenKeyCursor",
+    "KeyPath",
+]
 
 [DOMInterfaces.IDBTransaction]
 canGc = ["ObjectStore"]
@@ -515,9 +917,9 @@ cx = ["Assign", "Reload", "Replace"]
 implicitCxSetters = true
 
 [DOMInterfaces.MediaDevices]
-realm = ["GetUserMedia"]
 cx = ["EnumerateDevices"]
 inRealms = ["GetUserMedia", "GetClientRects", "GetBoundingClientRect"]
+realm = ["GetUserMedia"]
 
 [DOMInterfaces.MediaElementAudioSourceNode]
 cx = ["Constructor"]
@@ -544,9 +946,9 @@ cx = ["Clone"]
 cx = ["Constructor", "Constructor_", "Constructor__", "Clone"]
 
 [DOMInterfaces.MessagePort]
-weakReferenceable = true
 canGc = ["GetOnmessage"]
 cx = ["Close", "PostMessage", "PostMessage_", "SetOnmessage", "Start"]
+weakReferenceable = true
 
 [DOMInterfaces.MessageEvent]
 canGc = ["Ports"]
@@ -555,15 +957,33 @@ canGc = ["Ports"]
 cx = ["Constructor"]
 
 [DOMInterfaces.NamedNodeMap]
-cx = ["GetNamedItem", "GetNamedItemNS", "Item", "IndexedGetter", "NamedGetter", "RemoveAttribute", "RemoveNamedItem", "RemoveNamedItemNS", "SetNamedItem", "SetNamedItemNS"]
+cx = [
+    "GetNamedItem",
+    "GetNamedItemNS",
+    "Item",
+    "IndexedGetter",
+    "NamedGetter",
+    "RemoveAttribute",
+    "RemoveNamedItem",
+    "RemoveNamedItemNS",
+    "SetNamedItem",
+    "SetNamedItemNS",
+]
 
 [DOMInterfaces.NavigationPreloadManager]
-inRealms = ["Disable", "Enable", "GetState", "SetHeaderValue"]
 canGc = ["Disable", "Enable", "GetState", "SetHeaderValue"]
+inRealms = ["Disable", "Enable", "GetState", "SetHeaderValue"]
 
 [DOMInterfaces.Navigator]
+cx = [
+    "Clipboard",
+    "Languages",
+    "SendBeacon",
+    "Storage",
+    "UserActivation",
+    "WakeLock",
+]
 inRealms = ["GetVRDisplays"]
-cx = ["Clipboard", "Languages", "SendBeacon", "Storage", "UserActivation", "WakeLock"]
 
 [DOMInterfaces.CredentialsContainer]
 realm = ["Get", "Store", "Create"]
@@ -572,7 +992,17 @@ realm = ["Get", "Store", "Create"]
 realm = ["Request"]
 
 [DOMInterfaces.Node]
-cx = ["AppendChild", "ChildNodes", "CloneNode", "InsertBefore", "Normalize", "RemoveChild", "ReplaceChild", "SetNodeValue", "SetTextContent"]
+cx = [
+    "AppendChild",
+    "ChildNodes",
+    "CloneNode",
+    "InsertBefore",
+    "Normalize",
+    "RemoveChild",
+    "ReplaceChild",
+    "SetNodeValue",
+    "SetTextContent",
+]
 
 [DOMInterfaces.NodeIterator]
 cx = ["NextNode", "PreviousNode"]
@@ -581,20 +1011,41 @@ cx = ["NextNode", "PreviousNode"]
 cx = ["Actions", "Constructor", "RequestPermission", "Vibrate"]
 
 [DOMInterfaces.OfflineAudioContext]
-inRealms = ["StartRendering"]
 canGc = ["StartRendering"]
+inRealms = ["StartRendering"]
 
 [DOMInterfaces.OffscreenCanvas]
-cx = ["Constructor", "ConvertToBlob", "GetContext", "SetHeight", "SetWidth", "TransferToImageBitmap"]
+cx = [
+    "Constructor",
+    "ConvertToBlob",
+    "GetContext",
+    "SetHeight",
+    "SetWidth",
+    "TransferToImageBitmap",
+]
 
 [DOMInterfaces.OffscreenCanvasRenderingContext2D]
-cx = ["CreateImageData", "CreateImageData_", "GetImageData", "GetTransform", "MeasureText", "CreateLinearGradient", "CreatePattern", "CreateRadialGradient"]
+cx = [
+    "CreateImageData",
+    "CreateImageData_",
+    "GetImageData",
+    "GetTransform",
+    "MeasureText",
+    "CreateLinearGradient",
+    "CreatePattern",
+    "CreateRadialGradient",
+]
 
 [DOMInterfaces.OscillatorNode]
 cx = ["Constructor"]
 
 [DOMInterfaces.PaintRenderingContext2D]
-cx = ["CreateLinearGradient", "CreatePattern", "CreateRadialGradient", "GetTransform"]
+cx = [
+    "CreateLinearGradient",
+    "CreatePattern",
+    "CreateRadialGradient",
+    "GetTransform",
+]
 
 [DOMInterfaces.PaintWorkletGlobalScope]
 cx = ["RegisterPaint"]
@@ -616,28 +1067,73 @@ cx = ["Observe"]
 cx = ["Query", "Request", "Revoke"]
 
 [DOMInterfaces.Promise]
-spiderMonkeyInterface = true
 additionalTraits = ["js::conversions::FromJSValConvertibleRc"]
 allowDropImpl = true
+spiderMonkeyInterface = true
 
 [DOMInterfaces.RadioNodeList]
 cx = ["SetValue"]
 
 [DOMInterfaces.Range]
+cx = [
+    "CloneContents",
+    "CloneRange",
+    "CreateContextualFragment",
+    "DeleteContents",
+    "ExtractContents",
+    "GetBoundingClientRect",
+    "GetClientRects",
+    "InsertNode",
+    "SurroundContents",
+]
 weakReferenceable = true
-cx = ["CloneContents", "CloneRange", "CreateContextualFragment", "DeleteContents", "ExtractContents", "GetBoundingClientRect", "GetClientRects", "InsertNode", "SurroundContents"]
 
 [DOMInterfaces.Request]
-cx = ["Constructor", "Constructor", "Headers", "Clone", "Text", "Blob", "FormData", "Json", "ArrayBuffer", "Bytes"]
+cx = [
+    "Constructor",
+    "Constructor",
+    "Headers",
+    "Clone",
+    "Text",
+    "Blob",
+    "FormData",
+    "Json",
+    "ArrayBuffer",
+    "Bytes",
+]
 
 [DOMInterfaces.Response]
 canGc = ["Headers"]
-cx = ["Constructor", "CreateFromJson", "Clone", "Error", "Redirect", "Text", "Blob", "FormData", "Json", "ArrayBuffer", "Bytes"]
+cx = [
+    "Constructor",
+    "CreateFromJson",
+    "Clone",
+    "Error",
+    "Redirect",
+    "Text",
+    "Blob",
+    "FormData",
+    "Json",
+    "ArrayBuffer",
+    "Bytes",
+]
 
 [DOMInterfaces.RTCPeerConnection]
-inRealms = ["AddIceCandidate", "CreateAnswer", "CreateOffer", "SetLocalDescription", "SetRemoteDescription"]
-canGc = ["AddIceCandidate", "CreateAnswer", "CreateOffer", "SetLocalDescription", "SetRemoteDescription"]
+canGc = [
+    "AddIceCandidate",
+    "CreateAnswer",
+    "CreateOffer",
+    "SetLocalDescription",
+    "SetRemoteDescription",
+]
 cx = ["Close"]
+inRealms = [
+    "AddIceCandidate",
+    "CreateAnswer",
+    "CreateOffer",
+    "SetLocalDescription",
+    "SetRemoteDescription",
+]
 weakReferenceable = true
 
 [DOMInterfaces.RTCRtpSender]
@@ -650,7 +1146,16 @@ cx = ["Constructor"]
 cx = ["Constructor", "AllowElement"]
 
 [DOMInterfaces.Selection]
-cx = ["Collapse", "CollapseToEnd", "CollapseToStart", "DeleteFromDocument", "Extend", "SelectAllChildren", "SetBaseAndExtent", "SetPosition"]
+cx = [
+    "Collapse",
+    "CollapseToEnd",
+    "CollapseToStart",
+    "DeleteFromDocument",
+    "Extend",
+    "SelectAllChildren",
+    "SetBaseAndExtent",
+    "SetPosition",
+]
 
 [DOMInterfaces.ServiceWorker]
 cx = ["PostMessage", "PostMessage_"]
@@ -662,9 +1167,9 @@ realm = ["GetRegistration", "Register"]
 cx = ["Unregister"]
 
 [DOMInterfaces.ServoInternals]
-inRealms = ["ReportMemory"]
-canGc = ["ReportMemory"]
 additionalTraits = ["crate::interfaces::ServoInternalsHelpers"]
+canGc = ["ReportMemory"]
+inRealms = ["ReportMemory"]
 
 [DOMInterfaces.ServoTestUtils]
 cx = ["ForceLayout", "ForceAccessibilityUpdate"]
@@ -680,25 +1185,57 @@ weakReferenceable = true
 cx = ["Constructor"]
 
 [DOMInterfaces.StorageManager]
-inRealms = ["Persisted", "Persist", "Estimate"]
 canGc = ["Persisted", "Persist", "Estimate"]
+inRealms = ["Persisted", "Persist", "Estimate"]
 
 [DOMInterfaces.StyleSheet]
 cx = ["Media"]
 
 [DOMInterfaces.SubtleCrypto]
-realm = ["Encrypt", "Decrypt", "Sign", "Verify", "GenerateKey", "DeriveKey", "DeriveBits", "Digest", "ImportKey", "ExportKey", "WrapKey", "UnwrapKey", "EncapsulateKey", "EncapsulateBits", "DecapsulateKey", "DecapsulateBits", "GetPublicKey"]
 cx = ["Supports", "Supports_"]
+realm = [
+    "Encrypt",
+    "Decrypt",
+    "Sign",
+    "Verify",
+    "GenerateKey",
+    "DeriveKey",
+    "DeriveBits",
+    "Digest",
+    "ImportKey",
+    "ExportKey",
+    "WrapKey",
+    "UnwrapKey",
+    "EncapsulateKey",
+    "EncapsulateBits",
+    "DecapsulateKey",
+    "DecapsulateBits",
+    "GetPublicKey",
+]
 
 [DOMInterfaces.SVGElement]
 cx = ["Blur", "Focus", "SetAutofocus", "SetTabIndex", "Style"]
 
 #FIXME(jdm): This should be 'register': False, but then we don't generate enum typesP
 [DOMInterfaces.TestBinding]
-inRealms = ["PromiseAttribute"]
-canGc = ["PromiseAttribute", "PromiseResolveNative", "PromiseRejectNative", "PromiseRejectWithTypeError"]
 additionalTraits = ["crate::interfaces::TestBindingHelpers"]
-cx = ["Constructor", "Constructor_", "Constructor__", "GetInterfaceAttributeNullable", "InterfaceAttribute", "ReceiveInterface", "ReceiveInterfaceSequence", "ReceiveNullableInterface"]
+canGc = [
+    "PromiseAttribute",
+    "PromiseResolveNative",
+    "PromiseRejectNative",
+    "PromiseRejectWithTypeError",
+]
+cx = [
+    "Constructor",
+    "Constructor_",
+    "Constructor__",
+    "GetInterfaceAttributeNullable",
+    "InterfaceAttribute",
+    "ReceiveInterface",
+    "ReceiveInterfaceSequence",
+    "ReceiveNullableInterface",
+]
+inRealms = ["PromiseAttribute"]
 realm = ["PromiseNativeHandler"]
 
 [DOMInterfaces.TestWorklet]
@@ -722,7 +1259,15 @@ cx = ["Constructor"]
 cx = ["Constructor"]
 
 [DOMInterfaces.TreeWalker]
-cx = ["ParentNode", "PreviousNode", "NextNode", "FirstChild", "LastChild", "PreviousSibling", "NextSibling"]
+cx = [
+    "ParentNode",
+    "PreviousNode",
+    "NextNode",
+    "FirstChild",
+    "LastChild",
+    "PreviousSibling",
+    "NextSibling",
+]
 
 [DOMInterfaces.TrustedTypePolicy]
 cx = ["CreateHTML", "CreateScript", "CreateScriptURL"]
@@ -731,8 +1276,8 @@ cx = ["CreateHTML", "CreateScript", "CreateScriptURL"]
 cx = ["CreatePolicy", "EmptyHTML", "EmptyScript"]
 
 [DOMInterfaces.URL]
-weakReferenceable = true
 cx = ["Constructor", "Parse", "SearchParams"]
+weakReferenceable = true
 
 [DOMInterfaces.URLPattern]
 cx = ["Constructor", "Constructor_"]
@@ -755,10 +1300,41 @@ weakReferenceable = true
 cx = ["Focus", "Navigate"]
 
 [DOMInterfaces.Window]
-canGc = ["CookieStore", "GetVisualViewport", "Screen"]
 additionalTraits = ["crate::interfaces::WindowHelpers"]
-realm = ["CreateImageBitmap", "CreateImageBitmap_", "WebdriverCallback", "GetOpener", "Fetch"]
-cx = ["Focus", "FetchLater", "GetComputedStyle", "GetLocalStorage", "GetSelection", "GetSessionStorage", "Location", "NamedGetter", "Open", "PostMessage", "PostMessage_", "ReportError", "Scroll", "Scroll_", "ScrollBy", "ScrollBy_", "ScrollTo", "ScrollTo_", "SetInterval", "SetTimeout", "Stop", "StructuredClone", "TrustedTypes", "WebdriverException"]
+canGc = ["CookieStore", "GetVisualViewport", "Screen"]
+realm = [
+    "CreateImageBitmap",
+    "CreateImageBitmap_",
+    "WebdriverCallback",
+    "GetOpener",
+    "Fetch",
+]
+cx = [
+    "Focus",
+    "FetchLater",
+    "GetComputedStyle",
+    "GetLocalStorage",
+    "GetSelection",
+    "GetSessionStorage",
+    "Location",
+    "NamedGetter",
+    "Open",
+    "PostMessage",
+    "PostMessage_",
+    "ReportError",
+    "Scroll",
+    "Scroll_",
+    "ScrollBy",
+    "ScrollBy_",
+    "ScrollTo",
+    "ScrollTo_",
+    "SetInterval",
+    "SetTimeout",
+    "Stop",
+    "StructuredClone",
+    "TrustedTypes",
+    "WebdriverException",
+]
 
 [DOMInterfaces.WindowProxy]
 path = "crate::dom::windowproxy::WindowProxy"
@@ -773,7 +1349,14 @@ cx = ["Constructor"]
 cx = ["Constructor", "PostMessage", "PostMessage_"]
 
 [DOMInterfaces.WorkerGlobalScope]
-cx = ["ImportScripts", "ReportError", "SetInterval", "SetTimeout", "TrustedTypes", "StructuredClone"]
+cx = [
+    "ImportScripts",
+    "ReportError",
+    "SetInterval",
+    "SetTimeout",
+    "TrustedTypes",
+    "StructuredClone",
+]
 realm = ["CreateImageBitmap", "CreateImageBitmap_", "Fetch"]
 
 [DOMInterfaces.Worklet]
@@ -801,8 +1384,8 @@ canGc = ["GetViewerPose", "GetPose", "GetJointPose"]
 canGc = ["GetPose"]
 
 [DOMInterfaces.XRRay]
-cx = ["Origin", "Direction"]
 canGc = ["Matrix"]
+cx = ["Origin", "Direction"]
 
 [DOMInterfaces.XRReferenceSpace]
 canGc = ["GetOffsetReferenceSpace"]
@@ -815,14 +1398,25 @@ cx = ["Position", "Orientation"]
 canGc = ["Inverse", "Matrix"]
 
 [DOMInterfaces.XRSession]
-inRealms = ["RequestReferenceSpace", "UpdateRenderState", "UpdateTargetFrameRate"]
-canGc = ["End", "RequestReferenceSpace", "UpdateTargetFrameRate", "RequestHitTestSource", "GetSupportedFrameRates", "EnabledFeatures"]
+canGc = [
+    "End",
+    "RequestReferenceSpace",
+    "UpdateTargetFrameRate",
+    "RequestHitTestSource",
+    "GetSupportedFrameRates",
+    "EnabledFeatures",
+]
 cx = ["End"]
+inRealms = [
+    "RequestReferenceSpace",
+    "UpdateRenderState",
+    "UpdateTargetFrameRate",
+]
 weakReferenceable = true
 
 [DOMInterfaces.XRSystem]
-inRealms = ["RequestSession"]
 canGc = ["RequestSession", "IsSessionSupported"]
+inRealms = ["RequestSession"]
 
 [DOMInterfaces.XRTest]
 canGc = ["SimulateDeviceConnection", "DisconnectAllDevices"]
