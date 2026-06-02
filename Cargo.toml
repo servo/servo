@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/webdriver_bidi",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -209,6 +210,7 @@ rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
 rusqlite = "0.37"
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"
+rustenium-bidi-definitions = "0.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
