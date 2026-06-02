@@ -1944,10 +1944,6 @@ impl Handler {
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
-        // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
-        // only supports setting `script` as null. When set to null, report these values as being the
-        // default ones for now.
-        // Waiting for version bump together with geckodriver.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
             page_load: timeouts.page_load,
