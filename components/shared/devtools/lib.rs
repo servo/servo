@@ -208,14 +208,14 @@ pub struct EvaluateJSReply {
     pub has_exception: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct AttrInfo {
     pub namespace: String,
     pub name: String,
     pub value: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeInfo {
     pub unique_id: String,
@@ -588,7 +588,7 @@ pub struct CssDatabaseProperty {
     pub subproperties: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ShadowRootMode {
     Open,
     Closed,

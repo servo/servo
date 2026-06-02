@@ -136,15 +136,15 @@ impl ActorRegistry {
         script_actors.insert(script_id, actor);
     }
 
-    pub fn script_to_actor(&self, script_id: String) -> String {
+    pub fn script_to_actor(&self, script_id: &str) -> String {
         if script_id.is_empty() {
             return "".to_owned();
         }
-        self.script_actors.borrow().get(&script_id).unwrap().clone()
+        self.script_actors.borrow().get(script_id).unwrap().clone()
     }
 
-    pub fn script_actor_registered(&self, script_id: String) -> bool {
-        self.script_actors.borrow().contains_key(&script_id)
+    pub fn script_actor_registered(&self, script_id: &str) -> bool {
+        self.script_actors.borrow().contains_key(script_id)
     }
 
     pub fn actor_to_script(&self, actor: String) -> String {
