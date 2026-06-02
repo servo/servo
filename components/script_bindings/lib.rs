@@ -21,6 +21,7 @@ pub mod cell;
 mod constant;
 mod constructor;
 pub mod conversions;
+pub mod dom;
 pub mod domstring;
 pub mod error;
 mod finalize;

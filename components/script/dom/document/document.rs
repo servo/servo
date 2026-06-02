@@ -4267,9 +4267,8 @@ impl Document {
         #[expect(unsafe_code)]
         unsafe {
             for shadow_root in self.shadow_roots.borrow_for_layout().iter() {
-                shadow_root
-                    .to_layout()
-                    .flush_stylesheets_for_layout(stylist, guard);
+                let layout: LayoutDom<'_, _> = shadow_root.to_layout();
+                layout.flush_stylesheets_for_layout(stylist, guard);
             }
         }
         self.shadow_roots_styles_changed.set(false);

@@ -1630,7 +1630,7 @@ impl<'dom> LayoutDom<'dom, Element> {
             return;
         };
 
-        let element_internals = unsafe { element_internals.to_layout() };
+        let element_internals: LayoutDom<'_, _> = unsafe { element_internals.to_layout() };
         if let Some(states) = element_internals.unsafe_get().custom_states_for_layout() {
             for state in unsafe { states.unsafe_get().set_for_layout().iter() } {
                 // FIXME: This creates new atoms whenever it is called, which is not optimal.
@@ -3790,7 +3790,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let quirks_mode = document.quirks_mode();
         Ok(with_layout_state(|| {
             #[expect(unsafe_code)]
-            let layout_element = unsafe { traced_self.to_layout() };
+            let layout_element: LayoutDom<'_, _> = unsafe { traced_self.to_layout() };
             dom_apis::element_matches(
                 &ServoDangerousStyleElement::from(layout_element.upcast()),
                 &selectors,
@@ -3822,7 +3822,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let quirks_mode = document.quirks_mode();
         let closest_element = with_layout_state(|| {
             #[expect(unsafe_code)]
-            let layout_element = unsafe { traced_self.to_layout() };
+            let layout_element: LayoutDom<'_, _> = unsafe { traced_self.to_layout() };
             dom_apis::element_closest(
                 ServoDangerousStyleElement::from(layout_element.upcast()),
                 &selectors,
