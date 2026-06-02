@@ -50,6 +50,26 @@ where
 {
     /// send message T
     fn send(&self, _: T) -> SendResult;
+
+    /// Send a message T and log any error (instead of returning it).
+    ///
+    /// In cases where channel closure is possible (because the receiver does not exist anymore),
+    /// this convenience method can be used to ignore the result and log the error as a warning.
+    fn send_warn(&self, message: T, error_context: &str) {
+        if let Err(error) = self.send(message) {
+            log::warn!("{error_context}: {error}");
+        }
+    }
+
+    /// Send a message T and ignore the result
+    ///
+    /// In cases where channel closure is expected to happen intermittently, and the sender
+    /// doesn't care about the result, this is a short form for `let _ = GenericSend::send();`,
+    /// which makes the intent clearer.
+    fn send_ignore(&self, message: T) {
+        let _ = self.send(message);
+    }
+
     /// get underlying sender
     fn sender(&self) -> GenericSender<T>;
 }
@@ -206,6 +226,27 @@ impl<T: Serialize> GenericSender<T> {
                 sender.send(Ok(msg)).map_err(|_| SendError::Disconnected)
             },
         }
+    }
+
+    /// Send a message T and log any error (instead of returning it).
+    ///
+    /// In cases where channel closure is possible (because the receiver does not exist anymore),
+    /// this convenience method can be used to ignore the result and log the error as a warning.
+    #[inline]
+    pub fn send_warn(&self, msg: T, error_context: &str) {
+        if let Err(error) = self.send(msg) {
+            log::warn!("{error_context}: {error}");
+        }
+    }
+
+    /// Send a message T and ignore the result
+    ///
+    /// In cases where channel closure is expected to happen intermittently, and the sender
+    /// doesn't care about the result, this is a short form for `let _ = GenericSender::send();`,
+    /// which makes the intent clearer.
+    #[inline]
+    pub fn send_ignore(&self, msg: T) {
+        let _ = self.send(msg);
     }
 }
 
