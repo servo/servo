@@ -596,6 +596,7 @@ def path_dependency_names(cargo_toml: dict[str, Any]) -> list[str]:
 
 
 def dependency_tables(cargo_toml: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    # For enabling integration test we need to enable certain features and the dependency cannot be a path dependency.
     dependency_keys = ("dependencies", "build-dependencies")
     for dependency_key in dependency_keys:
         dependency_table = cargo_toml.get(dependency_key)

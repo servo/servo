@@ -680,7 +680,7 @@ fn test_svg_rasterization_do_not_double_rasterize() {
     };
 
     let size = webrender_api::units::DeviceIntSize::new(100, 100);
-    // Because we do not set image keys yet, the rasterization
+    // Because we do not set image keys yet, the rasterization task will never finish, so we know the added tasks will stay in the queue.
     assert!(
         cache
             .rasterize_vector_image(vec_img.id, size, None)
