@@ -15,13 +15,11 @@ path = "lib.rs"
 
 [dependencies]
 base64 = { workspace = true }
-bytes = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-http02 = { workspace = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
@@ -34,8 +32,6 @@ servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
-warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
