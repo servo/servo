@@ -285,45 +285,7 @@ impl FontList {
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(get_system_font_families)
             .unwrap_or_else(|_| FontList::fallback_font_families());
-        families.extend(Self::hardcoded_font_families());
         families
-    }
-
-    /// A List of hardcoded fonts, added in addition to both detected and fallback font families.
-    ///
-    /// There are only two emoji fonts, and their filenames are stable, so we just hardcode
-    /// their paths, instead of attempting to parse the family name from the filepaths.
-    fn hardcoded_font_families() -> Vec<FontFamily> {
-        let hardcoded_fonts = vec![
-            FontFamily {
-                name: "HMOS Color Emoji".to_string(),
-                fonts: vec![Font {
-                    filepath: FontList::font_absolute_path("HMOSColorEmojiCompat.ttf"),
-                    ..Default::default()
-                }],
-            },
-            FontFamily {
-                name: "HMOS Color Emoji Flags".to_string(),
-                fonts: vec![Font {
-                    filepath: FontList::font_absolute_path("HMOSColorEmojiFlags.ttf"),
-                    ..Default::default()
-                }],
-            },
-        ];
-        if log::log_enabled!(log::Level::Warn) {
-            for family in hardcoded_fonts.iter() {
-                for font in &family.fonts {
-                    let path = Path::new(&font.filepath);
-                    if !path.exists() {
-                        warn!(
-                            "Hardcoded Emoji Font {} was not found at `{}`",
-                            family.name, font.filepath
-                        )
-                    }
-                }
-            }
-        }
-        hardcoded_fonts
     }
 
     fn fallback_font_families() -> Vec<FontFamily> {
