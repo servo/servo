@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::VecDeque;
+use std::io;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
@@ -361,7 +362,7 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
-    ) -> JoinHandle<()> {
+    ) -> io::Result<JoinHandle<()>> {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a worker");
         let current_global = GlobalScope::current().expect("No current global object");
@@ -552,7 +553,6 @@ impl SharedWorkerGlobalScope {
 
                 scope.clear_js_runtime();
             })
-            .expect("Thread spawning failed")
     }
 
     pub(crate) fn event_loop_sender(&self) -> ScriptEventLoopSender {

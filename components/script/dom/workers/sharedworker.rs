@@ -44,6 +44,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
+use crate::task_source::SendableTaskSource;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// <https://html.spec.whatwg.org/multipage/#shared-workers-and-the-sharedworker-interface>
@@ -56,14 +57,67 @@ pub(crate) struct SharedWorker {
 
 pub(crate) type TrustedSharedWorkerAddress = Trusted<SharedWorker>;
 
-// A `SharedWorkerGlobalScope` object has associated constructor origin (an origin), constructor URL (a URL record), and credentials (a credentials mode), and extended lifetime (a boolean).
+/// Key used by the script-side SharedWorker registry.
 #[derive(Clone)]
-struct SharedWorkerRegistration {
-    id: Uuid,
+struct SharedWorkerKey {
     storage_key: ImmutableOrigin,
     constructor_origin: ImmutableOrigin,
     constructor_url: ServoUrl,
     name: String,
+}
+
+impl SharedWorkerKey {
+    fn matches(
+        &self,
+        storage_key: &ImmutableOrigin,
+        constructor_origin: &ImmutableOrigin,
+        constructor_url: &ServoUrl,
+        name: &str,
+    ) -> bool {
+        self.storage_key == *storage_key &&
+            self.constructor_origin == *constructor_origin &&
+            self.constructor_url == *constructor_url &&
+            self.name == name
+    }
+}
+
+struct PendingSharedWorkerConnection {
+    inside_port: MessagePortImpl,
+    caller_is_secure_context: bool,
+    worker: TrustedSharedWorkerAddress,
+    error_task_source: SendableTaskSource,
+}
+
+struct SharedWorkerCreation {
+    worker_type: WorkerType,
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+    worker_is_secure_context: Option<bool>,
+    pending_connects: Vec<PendingSharedWorkerConnection>,
+}
+
+#[derive(Clone)]
+struct SharedWorkerCreationSnapshot {
+    worker_type: WorkerType,
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+    worker_is_secure_context: Option<bool>,
+}
+
+enum SharedWorkerRegistryState {
+    Creating(SharedWorkerCreation),
+    Created(SharedWorkerRegistration),
+}
+
+struct SharedWorkerRegistryEntry {
+    key: SharedWorkerKey,
+    state: SharedWorkerRegistryState,
+}
+
+// A `SharedWorkerGlobalScope` object has associated constructor origin (an origin), constructor URL (a URL record), and credentials (a credentials mode), and extended lifetime (a boolean).
+#[derive(Clone)]
+struct SharedWorkerRegistration {
+    id: Uuid,
     worker_type: WorkerType,
     credentials: CredentialsMode,
     extended_lifetime: bool,
@@ -75,47 +129,319 @@ struct SharedWorkerRegistration {
 
 // A user agent has an associated shared worker manager which is the result of starting a new parallel queue.
 // Each user agent has a single shared worker manager for simplicity.
-static SHARED_WORKERS: LazyLock<Mutex<Vec<SharedWorkerRegistration>>> =
+//
+// TODO: Move this to a proper shared worker manager.
+static SHARED_WORKERS: LazyLock<Mutex<Vec<SharedWorkerRegistryEntry>>> =
     LazyLock::new(|| Mutex::new(Vec::new()));
 
-/// Implements the existing shared worker lookup from:
+// Servo-internal registry states used to serialize the SharedWorker constructor's
+// manager lookup/create work and avoid duplicate SharedWorker creation. These
+// are not spec states.
+enum SharedWorkerClaimResult {
+    Creating(SharedWorkerCreationSnapshot),
+    Created(SharedWorkerRegistration),
+    Claimed,
+}
+
+fn prune_closed_shared_workers(workers: &mut Vec<SharedWorkerRegistryEntry>) {
+    workers.retain(|entry| match &entry.state {
+        SharedWorkerRegistryState::Creating(_) => true,
+        SharedWorkerRegistryState::Created(worker) => !worker.closing.load(Ordering::SeqCst),
+    });
+}
+
 /// <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
 /// <https://html.spec.whatwg.org/multipage/#shared-worker-manager>
-fn find_shared_worker(
-    storage_key: &ImmutableOrigin,
-    constructor_origin: &ImmutableOrigin,
-    constructor_url: &ServoUrl,
-    name: &str,
-) -> Option<SharedWorkerRegistration> {
+fn find_or_claim_shared_worker(
+    key: SharedWorkerKey,
+    worker_type: WorkerType,
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+) -> SharedWorkerClaimResult {
     let mut workers = SHARED_WORKERS
         .lock()
         .expect("SharedWorker registry poisoned");
-    workers.retain(|worker| !worker.closing.load(Ordering::SeqCst));
+    prune_closed_shared_workers(&mut workers);
 
-    // Step 11.2. For each scope in the list of all `SharedWorkerGlobalScope` objects:
-    // Step 11.2.1. Let workerStorageKey be the result of running obtain a storage key for non-storage purposes given scope's relevant settings object.
-    // Step 11.2.2. If all of the following are true:
-    // workerStorageKey equals outsideStorageKey;
-    // scope's closing flag is false;
-    // scope's constructor URL equals urlRecord; and
-    // scope's name equals options["name"],
-    // `data:` URLs create a worker with an opaque origin. Both the constructor origin and constructor URL are compared so the same `data:` URL can be used within an origin to get to the same `SharedWorkerGlobalScope` object, but cannot be used to bypass the same origin restriction.
-    workers
-        .iter()
-        .find(|worker| {
-            worker.storage_key == *storage_key &&
-                worker.constructor_origin == *constructor_origin &&
-                worker.constructor_url == *constructor_url &&
-                worker.name == name
-        })
-        .cloned()
+    if let Some(entry) = workers.iter().find(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    }) {
+        return match &entry.state {
+            SharedWorkerRegistryState::Creating(creation) => {
+                SharedWorkerClaimResult::Creating(SharedWorkerCreationSnapshot {
+                    worker_type: creation.worker_type,
+                    credentials: creation.credentials,
+                    extended_lifetime: creation.extended_lifetime,
+                    worker_is_secure_context: creation.worker_is_secure_context,
+                })
+            },
+            SharedWorkerRegistryState::Created(registration) => {
+                SharedWorkerClaimResult::Created(registration.clone())
+            },
+        };
+    }
+
+    workers.push(SharedWorkerRegistryEntry {
+        key,
+        state: SharedWorkerRegistryState::Creating(SharedWorkerCreation {
+            worker_type,
+            credentials,
+            extended_lifetime,
+            worker_is_secure_context: None,
+            pending_connects: Vec::new(),
+        }),
+    });
+    SharedWorkerClaimResult::Claimed
 }
 
-fn register_shared_worker(worker: SharedWorkerRegistration) {
-    SHARED_WORKERS
+fn add_pending_connect_to_creating_entry(
+    key: &SharedWorkerKey,
+    pending: PendingSharedWorkerConnection,
+) -> Result<(), PendingSharedWorkerConnection> {
+    let mut workers = SHARED_WORKERS
         .lock()
-        .expect("SharedWorker registry poisoned")
-        .push(worker);
+        .expect("SharedWorker registry poisoned");
+    let Some(entry) = workers.iter_mut().find(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    }) else {
+        return Err(pending);
+    };
+    let SharedWorkerRegistryState::Creating(creation) = &mut entry.state else {
+        return Err(pending);
+    };
+    creation.pending_connects.push(pending);
+    Ok(())
+}
+
+fn queue_pending_connect_or_error(
+    key: &SharedWorkerKey,
+    worker_type: WorkerType,
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+    pending: PendingSharedWorkerConnection,
+) {
+    let registration = {
+        let mut workers = SHARED_WORKERS
+            .lock()
+            .expect("SharedWorker registry poisoned");
+        prune_closed_shared_workers(&mut workers);
+        let Some(entry) = workers.iter_mut().find(|entry| {
+            entry.key.matches(
+                &key.storage_key,
+                &key.constructor_origin,
+                &key.constructor_url,
+                &key.name,
+            )
+        }) else {
+            return queue_pending_simple_error(pending);
+        };
+
+        match &mut entry.state {
+            SharedWorkerRegistryState::Creating(creation) => {
+                if creation.worker_type != worker_type ||
+                    creation.credentials != credentials ||
+                    creation.extended_lifetime != extended_lifetime ||
+                    creation
+                        .worker_is_secure_context
+                        .is_some_and(|worker_is_secure_context| {
+                            worker_is_secure_context != pending.caller_is_secure_context
+                        })
+                {
+                    return queue_pending_simple_error(pending);
+                }
+                creation.pending_connects.push(pending);
+                return;
+            },
+            SharedWorkerRegistryState::Created(registration) => registration.clone(),
+        }
+    };
+
+    send_pending_connect_to_created_worker(
+        &registration,
+        worker_type,
+        credentials,
+        extended_lifetime,
+        pending,
+    );
+}
+
+fn transition_creating_to_created(
+    key: &SharedWorkerKey,
+    registration: SharedWorkerRegistration,
+    registered_sender: Sender<()>,
+) -> Result<Vec<PendingSharedWorkerConnection>, Vec<PendingSharedWorkerConnection>> {
+    let mut workers = SHARED_WORKERS
+        .lock()
+        .expect("SharedWorker registry poisoned");
+    let Some(index) = workers.iter().position(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    }) else {
+        return Err(Vec::new());
+    };
+
+    if !matches!(
+        &workers[index].state,
+        SharedWorkerRegistryState::Creating(_)
+    ) {
+        return Err(Vec::new());
+    }
+
+    if registered_sender.send(()).is_err() {
+        let SharedWorkerRegistryState::Creating(creation) = workers.remove(index).state else {
+            unreachable!();
+        };
+        return Err(creation.pending_connects);
+    }
+
+    let old_state = std::mem::replace(
+        &mut workers[index].state,
+        SharedWorkerRegistryState::Created(registration),
+    );
+    let SharedWorkerRegistryState::Creating(creation) = old_state else {
+        unreachable!();
+    };
+    Ok(creation.pending_connects)
+}
+
+fn queue_transition_failure_errors(
+    global: &GlobalScope,
+    worker_addr: TrustedSharedWorkerAddress,
+    pending_connects: Vec<PendingSharedWorkerConnection>,
+) {
+    if pending_connects.is_empty() {
+        SharedWorker::queue_simple_error(global, worker_addr);
+    } else {
+        queue_pending_simple_errors(pending_connects);
+    }
+}
+
+fn note_creating_worker_secure_context(
+    key: &SharedWorkerKey,
+    worker_is_secure_context: bool,
+) -> bool {
+    let mut workers = SHARED_WORKERS
+        .lock()
+        .expect("SharedWorker registry poisoned");
+    let Some(entry) = workers.iter_mut().find(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    }) else {
+        return false;
+    };
+    let SharedWorkerRegistryState::Creating(creation) = &mut entry.state else {
+        return false;
+    };
+    creation.worker_is_secure_context = Some(worker_is_secure_context);
+    true
+}
+
+fn remove_creating_shared_worker(key: &SharedWorkerKey) -> Vec<PendingSharedWorkerConnection> {
+    let mut workers = SHARED_WORKERS
+        .lock()
+        .expect("SharedWorker registry poisoned");
+    let Some(index) = workers.iter().position(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    }) else {
+        return Vec::new();
+    };
+
+    if !matches!(
+        &workers[index].state,
+        SharedWorkerRegistryState::Creating(_)
+    ) {
+        return Vec::new();
+    }
+
+    match workers.remove(index).state {
+        SharedWorkerRegistryState::Creating(creation) => creation.pending_connects,
+        SharedWorkerRegistryState::Created(_) => unreachable!(),
+    }
+}
+
+fn queue_pending_simple_error(pending: PendingSharedWorkerConnection) {
+    pending
+        .error_task_source
+        .queue(SimpleWorkerErrorHandler::new(pending.worker));
+}
+
+fn queue_pending_simple_errors(pending_connects: Vec<PendingSharedWorkerConnection>) {
+    for pending in pending_connects {
+        queue_pending_simple_error(pending);
+    }
+}
+
+fn send_pending_connect_to_created_worker(
+    registration: &SharedWorkerRegistration,
+    worker_type: WorkerType,
+    credentials: CredentialsMode,
+    extended_lifetime: bool,
+    pending: PendingSharedWorkerConnection,
+) -> bool {
+    if registration.worker_type != worker_type ||
+        registration.credentials != credentials ||
+        registration.extended_lifetime != extended_lifetime ||
+        registration.worker_is_secure_context != pending.caller_is_secure_context
+    {
+        queue_pending_simple_error(pending);
+        return false;
+    }
+
+    let PendingSharedWorkerConnection {
+        inside_port,
+        worker,
+        error_task_source,
+        ..
+    } = pending;
+    if registration
+        .sender
+        .send(SharedWorkerScriptMsg::Connect(inside_port))
+        .is_err()
+    {
+        error_task_source.queue(SimpleWorkerErrorHandler::new(worker));
+        return true;
+    }
+    false
+}
+
+fn send_pending_connects_to_created_worker(
+    registration: &SharedWorkerRegistration,
+    pending_connects: Vec<PendingSharedWorkerConnection>,
+) -> bool {
+    let mut send_failed = false;
+    for pending in pending_connects {
+        send_failed |= send_pending_connect_to_created_worker(
+            registration,
+            registration.worker_type,
+            registration.credentials,
+            registration.extended_lifetime,
+            pending,
+        );
+    }
+    send_failed
 }
 
 impl SharedWorker {
@@ -123,7 +449,10 @@ impl SharedWorker {
         SHARED_WORKERS
             .lock()
             .expect("SharedWorker registry poisoned")
-            .retain(|worker| worker.id != id);
+            .retain(|entry| match &entry.state {
+                SharedWorkerRegistryState::Creating(_) => true,
+                SharedWorkerRegistryState::Created(worker) => worker.id != id,
+            });
     }
 
     fn new_inherited(
@@ -178,6 +507,24 @@ impl SharedWorker {
         );
         let (_, inside_port_impl) = inside_port.transfer(cx)?;
         Ok(inside_port_impl)
+    }
+
+    fn create_pending_connection(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        outside_port: &MessagePort,
+        worker: TrustedSharedWorkerAddress,
+        caller_is_secure_context: bool,
+    ) -> Fallible<PendingSharedWorkerConnection> {
+        Ok(PendingSharedWorkerConnection {
+            inside_port: SharedWorker::create_entangled_inside_port(cx, global, outside_port)?,
+            caller_is_secure_context,
+            worker,
+            error_task_source: global
+                .task_manager()
+                .dom_manipulation_task_source()
+                .to_sendable(),
+        })
     }
 
     /// Step 11 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -263,58 +610,147 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let worker_addr = Trusted::new(&*worker);
 
         // Step 11.1. Let workerGlobalScope be null.
-        let shared_worker = find_shared_worker(
-            &outside_storage_key,
-            &constructor_origin,
-            &constructor_url,
-            &worker_name_string,
+        let shared_worker_key = SharedWorkerKey {
+            storage_key: outside_storage_key.clone(),
+            // Include constructor origin in the key so `data:` SharedWorkers are not reused across origins.
+            constructor_origin: constructor_origin.clone(),
+            constructor_url: constructor_url.clone(),
+            name: worker_name_string.clone(),
+        };
+
+        // Step 11.2. For each scope in the list of all `SharedWorkerGlobalScope` objects:
+        // Step 11.2.1. Let workerStorageKey be the result of running obtain a storage key for non-storage purposes given scope's relevant settings object.
+        // Step 11.2.2. If all of the following are true:
+        // workerStorageKey equals outsideStorageKey;
+        // scope's closing flag is false;
+        // scope's constructor URL equals urlRecord; and
+        // scope's name equals options["name"],
+        // Servo also atomically records a Creating entry here when no matching
+        // scope exists, so another same-key constructor cannot race into the
+        // Step 11.6 fresh-worker path.
+        let shared_worker = find_or_claim_shared_worker(
+            shared_worker_key.clone(),
+            worker_type,
+            credentials,
+            extended_lifetime,
         );
 
-        if let Some(registration) = shared_worker {
-            // Step 11.2.2.1. Set workerGlobalScope to scope.
-            // Step 11.2.2.2. Break.
-            // Step 11.3. If workerGlobalScope is not null, but the user agent has been configured to disallow communication between the worker represented by the workerGlobalScope and the scripts whose settings object is outsideSettings, then set workerGlobalScope to null.
-            // TODO Step 11.3.
-            // Step 11.4. If workerGlobalScope is not null, and any of the following are true:
-            // workerGlobalScope's type is not equal to options["type"];
-            // workerGlobalScope's credentials is not equal to options["credentials"]; or
-            // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
-            if registration.worker_type != worker_type ||
-                registration.credentials != credentials ||
-                registration.extended_lifetime != extended_lifetime
-            {
-                // Step 11.4.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
-                SharedWorker::queue_simple_error(global, worker_addr);
-                // Step 11.4.2. Abort these steps.
-                return Ok(worker);
-            }
+        match shared_worker {
+            SharedWorkerClaimResult::Created(registration) => {
+                // Step 11.2.2.1. Set workerGlobalScope to scope.
+                // Step 11.2.2.2. Break.
+                // TODO Step 11.3. If workerGlobalScope is not null, but the user agent has been configured to disallow communication between the worker represented by the workerGlobalScope and the scripts whose settings object is outsideSettings, then set workerGlobalScope to null.
+                // Step 11.4. If workerGlobalScope is not null, and any of the following are true:
+                // workerGlobalScope's type is not equal to options["type"];
+                // workerGlobalScope's credentials is not equal to options["credentials"]; or
+                // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
+                if registration.worker_type != worker_type ||
+                    registration.credentials != credentials ||
+                    registration.extended_lifetime != extended_lifetime
+                {
+                    // Step 11.4.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
+                    SharedWorker::queue_simple_error(global, worker_addr);
+                    // Step 11.4.2. Abort these steps.
+                    return Ok(worker);
+                }
 
-            // Step 11.5. If workerGlobalScope is not null:
-            // Step 11.5.1. Let insideSettings be workerGlobalScope's relevant settings object.
-            // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
-            // Step 11.5.3. If workerIsSecureContext is not callerIsSecureContext:
-            if registration.worker_is_secure_context != caller_is_secure_context {
-                // Step 11.5.3.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
-                SharedWorker::queue_simple_error(global, worker_addr);
-                // Step 11.5.3.2. Abort these steps.
-                return Ok(worker);
-            }
+                // Step 11.5. If workerGlobalScope is not null:
+                // Step 11.5.1. Let insideSettings be workerGlobalScope's relevant settings object.
+                // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
+                // Step 11.5.3. If workerIsSecureContext is not callerIsSecureContext:
+                if registration.worker_is_secure_context != caller_is_secure_context {
+                    // Step 11.5.3.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
+                    SharedWorker::queue_simple_error(global, worker_addr);
+                    // Step 11.5.3.2. Abort these steps.
+                    return Ok(worker);
+                }
 
-            // Step 11.5.4. Associate worker with workerGlobalScope.
-            // Step 11.5.5. Let insidePort be a new MessagePort in insideSettings's realm.
-            // Step 11.5.6. Entangle outsidePort and insidePort.
-            let inside_port_impl =
-                SharedWorker::create_entangled_inside_port(cx, global, &outside_port)?;
-            // Step 11.5.7. Queue a global task on the DOM manipulation task source given workerGlobalScope to fire an event named connect at workerGlobalScope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing only insidePort, and the source attribute initialized to insidePort.
-            if registration
-                .sender
-                .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
-                .is_err()
-            {
-                SharedWorker::queue_simple_error(global, worker_addr);
-            }
-            // Step 11.5.8. Append the relevant owner to add given outsideSettings to workerGlobalScope's owner set.
-            // TODO Step 11.5.8.
+                // Step 11.5.4. Associate worker with workerGlobalScope.
+                // Step 11.5.5. Let insidePort be a new MessagePort in insideSettings's realm.
+                // Step 11.5.6. Entangle outsidePort and insidePort.
+                let inside_port_impl =
+                    SharedWorker::create_entangled_inside_port(cx, global, &outside_port)?;
+                // Step 11.5.7. Queue a global task on the DOM manipulation task source given workerGlobalScope to fire an event named connect at workerGlobalScope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing only insidePort, and the source attribute initialized to insidePort.
+                if registration
+                    .sender
+                    .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
+                    .is_err()
+                {
+                    SharedWorker::queue_simple_error(global, worker_addr);
+                }
+                // TODO Step 11.5.8. Append the relevant owner to add given outsideSettings to workerGlobalScope's owner set.
+                return Ok(worker);
+            },
+            SharedWorkerClaimResult::Creating(creation) => {
+                // This is an in-progress Servo registry entry, not a spec state.
+                // Apply the same compatibility checks used by Step 11.4 /
+                // Step 11.5 before queuing this caller as a pending connection.
+                // Step 11.4. If workerGlobalScope is not null, and any of the following are true:
+                // workerGlobalScope's type is not equal to options["type"];
+                // workerGlobalScope's credentials is not equal to options["credentials"]; or
+                // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
+                if creation.worker_type != worker_type ||
+                    creation.credentials != credentials ||
+                    creation.extended_lifetime != extended_lifetime
+                {
+                    // Step 11.4.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
+                    SharedWorker::queue_simple_error(global, worker_addr);
+                    // Step 11.4.2. Abort these steps.
+                    return Ok(worker);
+                }
+
+                // Step 11.5.3. If workerIsSecureContext is not callerIsSecureContext:
+                if creation
+                    .worker_is_secure_context
+                    .is_some_and(|worker_is_secure_context| {
+                        worker_is_secure_context != caller_is_secure_context
+                    })
+                {
+                    // Step 11.5.3.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
+                    SharedWorker::queue_simple_error(global, worker_addr);
+                    // Step 11.5.3.2. Abort these steps.
+                    return Ok(worker);
+                }
+
+                let pending = SharedWorker::create_pending_connection(
+                    cx,
+                    global,
+                    &outside_port,
+                    worker_addr,
+                    caller_is_secure_context,
+                )?;
+                queue_pending_connect_or_error(
+                    &shared_worker_key,
+                    worker_type,
+                    credentials,
+                    extended_lifetime,
+                    pending,
+                );
+                // TODO Step 11.5.8. Append the relevant owner to add given outsideSettings to workerGlobalScope's owner set.
+                return Ok(worker);
+            },
+            SharedWorkerClaimResult::Claimed => {},
+        }
+
+        let initial_pending = match SharedWorker::create_pending_connection(
+            cx,
+            global,
+            &outside_port,
+            worker_addr.clone(),
+            caller_is_secure_context,
+        ) {
+            Ok(pending) => pending,
+            Err(error) => {
+                queue_pending_simple_errors(remove_creating_shared_worker(&shared_worker_key));
+                return Err(error);
+            },
+        };
+
+        if let Err(pending) =
+            add_pending_connect_to_creating_entry(&shared_worker_key, initial_pending)
+        {
+            queue_pending_simple_error(pending);
+            queue_pending_simple_errors(remove_creating_shared_worker(&shared_worker_key));
             return Ok(worker);
         }
 
@@ -325,9 +761,6 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
         let registration_id = Uuid::new_v4();
-
-        let inside_port_impl =
-            SharedWorker::create_entangled_inside_port(cx, global, &outside_port)?;
 
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: match global.get_referrer() {
@@ -374,7 +807,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let (registered_sender, registered_receiver) = unbounded();
 
         // Step 11.6. Otherwise, in parallel, run a worker given worker, urlRecord, outsideSettings, outsidePort, and options.
-        let _join_handle = SharedWorkerGlobalScope::run_shared_worker_scope(
+        let Ok(_join_handle) = SharedWorkerGlobalScope::run_shared_worker_scope(
             init,
             worker_name,
             worker_type,
@@ -400,20 +833,23 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context().cloned(),
-        );
-
-        // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
-        let Ok(worker_is_secure_context) = setup_receiver.recv() else {
-            SharedWorker::queue_simple_error(global, worker_addr);
+        ) else {
+            queue_pending_simple_errors(remove_creating_shared_worker(&shared_worker_key));
             return Ok(worker);
         };
 
-        register_shared_worker(SharedWorkerRegistration {
+        // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
+        let Ok(worker_is_secure_context) = setup_receiver.recv() else {
+            queue_pending_simple_errors(remove_creating_shared_worker(&shared_worker_key));
+            return Ok(worker);
+        };
+        if !note_creating_worker_secure_context(&shared_worker_key, worker_is_secure_context) {
+            SharedWorker::queue_simple_error(global, worker_addr);
+            return Ok(worker);
+        }
+
+        let registration = SharedWorkerRegistration {
             id: registration_id,
-            storage_key: outside_storage_key,
-            constructor_origin,
-            constructor_url,
-            name: worker_name_string,
             worker_type,
             credentials,
             extended_lifetime,
@@ -421,21 +857,28 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             closing,
             sender: sender.clone(),
             _control_sender: control_sender,
-        });
+        };
 
-        if registered_sender.send(()).is_err() {
-            SharedWorker::unregister_shared_worker(registration_id);
-            SharedWorker::queue_simple_error(global, worker_addr);
-            return Ok(worker);
-        }
+        let pending_connects = match transition_creating_to_created(
+            &shared_worker_key,
+            registration.clone(),
+            registered_sender,
+        ) {
+            Ok(pending_connects) => pending_connects,
+            Err(pending_connects) => {
+                queue_transition_failure_errors(global, worker_addr, pending_connects);
+                return Ok(worker);
+            },
+        };
 
-        // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
-        if sender
-            .send(SharedWorkerScriptMsg::Connect(inside_port_impl))
-            .is_err()
-        {
+        // Step 13. If is shared is true, then queue a global task on the DOM
+        // manipulation task source given worker global scope to fire an event
+        // named connect at worker global scope, using MessageEvent, with the data
+        // attribute initialized to the empty string, the ports attribute
+        // initialized to a new frozen array containing inside port, and the
+        // source attribute initialized to inside port.
+        if send_pending_connects_to_created_worker(&registration, pending_connects) {
             SharedWorker::unregister_shared_worker(registration_id);
-            SharedWorker::queue_simple_error(global, worker_addr);
         }
 
         Ok(worker)
