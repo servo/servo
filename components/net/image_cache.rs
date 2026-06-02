@@ -28,7 +28,7 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -442,6 +442,30 @@ impl KeyCache {
     }
 }
 
+#[derive(Debug, Default, MallocSizeOf)]
+/// A structure that stores if a current SVG element with a PendingImageId and a DeviceIntSize is already being rasterized.
+struct SvgRasterizationTaskStore(FxHashSet<(PendingImageId, DeviceIntSize)>);
+
+impl SvgRasterizationTaskStore {
+    /// Returns true if it is already being rasterized, otherwise false and sets it.
+    fn is_or_set_being_rasterized(
+        &mut self,
+        pending_image_id: PendingImageId,
+        size: DeviceIntSize,
+    ) -> bool {
+        !self.0.insert((pending_image_id, size))
+    }
+
+    /// Removes the task
+    fn remove_being_rasterized(&mut self, pending_image_id: PendingImageId, size: DeviceIntSize) {
+        self.0.remove(&(pending_image_id, size));
+    }
+
+    fn remove_all_for_id(&mut self, pending_image_id: PendingImageId) {
+        self.0.retain(|(id, _size)| *id != pending_image_id);
+    }
+}
+
 /// ## Image cache implementation.
 #[derive(MallocSizeOf)]
 struct ImageCacheStore {
@@ -460,6 +484,9 @@ struct ImageCacheStore {
     /// or completed. If completed, the `result` member of `RasterizationTask`
     /// contains the rasterized image.
     rasterized_vector_images: FxHashMap<(PendingImageId, DeviceIntSize), RasterizationTask>,
+
+    /// Maps a pending image id to a set of sizes for which that image was requested
+    svg_rasterization_task_store: SvgRasterizationTaskStore,
 
     /// The [`RasterImage`] used for the broken image icon, initialized lazily, only when necessary.
     #[conditional_malloc_size_of]
@@ -480,6 +507,11 @@ struct ImageCacheStore {
 }
 
 impl ImageCacheStore {
+    #[cfg(feature = "test-util")]
+    fn number_of_rasterize_tasks(&self) -> usize {
+        self.svg_rasterization_task_store.0.len()
+    }
+
     /// Finishes loading the image by setting the WebRenderImageKey and calling `compete_load` or `complete_load_svg`.
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
@@ -502,6 +534,8 @@ impl ImageCacheStore {
                     return;
                 }
                 set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
+                self.svg_rasterization_task_store
+                    .remove_being_rasterized(pending_id, requested_size);
                 self.complete_load_svg(raster_image, pending_id, requested_size);
             },
         }
@@ -515,8 +549,10 @@ impl ImageCacheStore {
                 .evicted_images
                 .remove(&(pending_id, requested_size))
         {
+            self.svg_rasterization_task_store
+                .remove_being_rasterized(pending_id, requested_size);
             return;
-        };
+        }
         match self.key_cache.cache {
             KeyCacheState::PendingBatch => {
                 self.key_cache.images_pending_keys.push_back(pending_image);
@@ -693,6 +729,12 @@ impl ImageCacheStore {
                 // KeyCache that it was evicted.
                 self.evict_image_from_keycache(image_id, device_size);
             }
+        } else {
+            // If there is no corresponding rasterized_vector_image result,
+            // then the vector image is either being rasterized or is in
+            // self.store.key_cache.pending_image_keys. Either way, we need to notify the
+            // KeyCache that it was evicted.
+            self.evict_image_from_keycache(image_id, device_size);
         }
     }
 
@@ -771,9 +813,9 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 pipeline_id,
                 webview_id,
                 key_cache: KeyCache::new(),
+                svg_rasterization_task_store: SvgRasterizationTaskStore::default(),
             })),
             svg_id_image_id_map: Arc::new(Mutex::new(FxHashMap::default())),
-            image_id_size_map: Arc::new(Mutex::new(FxHashMap::default())),
             broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
             fontdb: self.fontdb.clone(),
@@ -784,10 +826,8 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
 pub struct ImageCacheImpl {
     /// Per-[`ImageCache`] data.
     store: Arc<Mutex<ImageCacheStore>>,
-    /// Maps an SVGSVGElement uuid to a pending image id in the store
+    /// Maps an SVGElement uuid to a pending image id in the store
     svg_id_image_id_map: Arc<Mutex<FxHashMap<String, PendingImageId>>>,
-    /// Maps a pending image id to a set of sizes for which that image was requested
-    image_id_size_map: Arc<Mutex<FxHashMap<PendingImageId, Vec<DeviceIntSize>>>>,
     /// The data to use for the broken image icon used when images cannot load.
     broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
@@ -814,6 +854,11 @@ impl ImageCache for ImageCacheImpl {
                 size: fontdb_size,
             },
         ]
+    }
+
+    #[cfg(feature = "test-util")]
+    fn number_of_rasterize_tasks(&self) -> usize {
+        self.store.lock().number_of_rasterize_tasks()
     }
 
     fn get_image_key(&self) -> Option<WebRenderImageKey> {
@@ -996,13 +1041,16 @@ impl ImageCache for ImageCacheImpl {
             store
                 .rasterized_vector_images
                 .remove(&(old_mapped_image_id, requested_size));
+            store
+                .svg_rasterization_task_store
+                .remove_all_for_id(old_mapped_image_id);
         }
-        if let Some(requested_sizes_for_id) = self.image_id_size_map.lock().get_mut(&image_id) {
-            requested_sizes_for_id.push(requested_size);
-        } else {
-            self.image_id_size_map
-                .lock()
-                .insert(image_id, vec![requested_size]);
+
+        if store
+            .svg_rasterization_task_store
+            .is_or_set_being_rasterized(image_id, requested_size)
+        {
+            return None;
         }
 
         let store = self.store.clone();
@@ -1060,7 +1108,6 @@ impl ImageCache for ImageCacheImpl {
                 requested_size,
             )));
         });
-
         None
     }
 
@@ -1086,10 +1133,14 @@ impl ImageCache for ImageCacheImpl {
         if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().remove(svg_id) {
             store.pending_loads.remove(&mapped_image_id);
             store.vector_images.remove(&mapped_image_id);
-            if let Some(requested_sizes) = self.image_id_size_map.lock().remove(&mapped_image_id) {
-                for requested_size in requested_sizes.iter() {
-                    store.remove_rasterized_vector_image(&mapped_image_id, requested_size);
-                }
+            let images_to_remove = store
+                .rasterized_vector_images
+                .keys()
+                .filter(|(id, _size)| *id == mapped_image_id)
+                .cloned()
+                .collect::<Vec<_>>();
+            for (id, requested_size) in images_to_remove {
+                store.remove_rasterized_vector_image(&id, &requested_size);
             }
         }
     }
