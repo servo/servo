@@ -95,7 +95,10 @@ pub(crate) mod module {
     pub(crate) use crate::codegen::Globals::Globals;
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
     pub(crate) use crate::constant::{ConstantSpec, ConstantVal};
-    pub(crate) use crate::constructor::call_default_constructor;
+    pub(crate) use crate::constructor::{
+        CallbackInit, NamespaceInit, call_default_constructor, create_callback_interface_objects,
+        create_namespace_interface_objects,
+    };
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::conversions::native_from_handlevalue;
     pub(crate) use crate::conversions::{
@@ -109,17 +112,17 @@ pub(crate) mod module {
     pub(crate) use crate::inheritance::Castable;
     pub(crate) use crate::interface::{
         ConstructorClassHook, InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass,
-        ProtoOrIfaceIndex, create_callback_interface_object, create_global_object,
-        create_interface_prototype_object, create_named_constructors,
-        create_noncallback_interface_object, define_dom_interface, define_guarded_methods,
-        define_guarded_properties, get_per_interface_object_handle, is_exposed_in,
+        ProtoOrIfaceIndex, create_global_object, create_interface_prototype_object,
+        create_named_constructors, create_noncallback_interface_object, define_dom_interface,
+        define_guarded_methods, define_guarded_properties, get_per_interface_object_handle,
+        is_exposed_in,
     };
     pub(crate) use crate::iterable::{Iterable, IterableIterator, IteratorType};
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::like::Maplike;
     pub(crate) use crate::like::Setlike;
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
-    pub(crate) use crate::namespace::{NamespaceObjectClass, create_namespace_object};
+    pub(crate) use crate::namespace::NamespaceObjectClass;
     pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     #[cfg(feature = "testbinding")]
