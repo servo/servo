@@ -520,13 +520,19 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
-        self.get_box().display.is_inline_flow() &&
-            !fragment_flags.intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET)
+        (self.get_box().display.is_inline_flow() &&
+            !fragment_flags.intersects(
+                FragmentFlags::IS_REPLACED |
+                    FragmentFlags::IS_WIDGET |
+                    FragmentFlags::IS_FLEX_OR_GRID_ITEM,
+            )) ||
+            matches!(self.pseudo(), Some(PseudoElement::FirstLetter))
     }
 
     fn is_atomic_inline_level(&self, fragment_flags: FragmentFlags) -> bool {
         self.get_box().display.outside() == stylo::DisplayOutside::Inline &&
-            !self.is_inline_box(fragment_flags)
+            !self.is_inline_box(fragment_flags) &&
+            !fragment_flags.intersects(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
     }
 
     /// Returns true if this is a transformable element.

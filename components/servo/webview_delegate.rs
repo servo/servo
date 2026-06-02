@@ -90,6 +90,10 @@ impl PermissionRequest {
     }
 }
 
+/// A type used for communicating an allow-or-deny decision from the embedder
+/// to Servo. This is used as a part of requests from Servo to the embedder
+/// to perform certain actions and the request can either be allowed or denied
+/// by the embedder.
 pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, ServoErrorSender);
 
 impl AllowOrDenyRequest {
@@ -115,12 +119,14 @@ impl AllowOrDenyRequest {
         )
     }
 
+    /// Allow the action requested by Servo.
     pub fn allow(mut self) {
         if let Err(error) = self.0.send(AllowOrDeny::Allow) {
             self.1.raise_response_send_error(error);
         }
     }
 
+    /// Deny the action requested by Servo.
     pub fn deny(mut self) {
         if let Err(error) = self.0.send(AllowOrDeny::Deny) {
             self.1.raise_response_send_error(error);
@@ -128,10 +134,18 @@ impl AllowOrDenyRequest {
     }
 }
 
+/// A request to register or unregister a custom handler for a scheme.
+/// See <https://html.spec.whatwg.org/multipage/#custom-handlers>
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolHandlerRegistration {
+    /// The scheme for which the hander is being registered or unregistered.
     pub scheme: String,
+    /// The URL to navigate to when loading resources for the given 'scheme'.
+    /// The string "%s" in this URL is used as a placeholder. It will be replaced
+    /// by the URL of the resource to be handled.
     pub url: Url,
+    /// Whether this request is for a new registration or unregistering
+    /// a previously registered handler.
     pub register_or_unregister: RegisterOrUnregister,
 }
 
@@ -449,16 +463,21 @@ impl SelectElement {
 
     /// Set the options that are selected.
     ///
+    /// `selected_options` is a vector of indices into the array returned by [`Self::options`].
+    ///
     /// If other options have previously been selected, this set of options
     /// will replace them.
     pub fn select(&mut self, selected_options: Vec<usize>) {
         self.select_element_request.selected_options = selected_options
     }
 
+    /// Get the currently selected options, represented by indices into the array
+    /// returned by [`Self::options`].
     pub fn selected_options(&self) -> Vec<usize> {
         self.select_element_request.selected_options.clone()
     }
 
+    /// Whether this `<select>` supports selecting multiple options.
     pub fn allow_select_multiple(&self) -> bool {
         self.select_element_request.allow_select_multiple
     }
@@ -856,12 +875,17 @@ impl PromptDialog {
     }
 }
 
+/// A request from Servo to embedder to open a new auxiliary [`WebView`], typically
+/// triggered by page content calling DOM APIs like `window.open()`.
+///
+/// Refer to the documentation of [`WebViewDelegate::request_create_new`] for more information.
 pub struct CreateNewWebViewRequest {
     pub(crate) servo: Servo,
     pub(crate) responder: IpcResponder<Option<NewWebViewDetails>>,
 }
 
 impl CreateNewWebViewRequest {
+    /// Returns a [`WebViewBuilder`] that can be used to create a new auxiliary [`WebView`].
     pub fn builder(self, rendering_context: Rc<dyn RenderingContext>) -> WebViewBuilder {
         WebViewBuilder::new_for_create_request(&self.servo, rendering_context, self.responder)
     }
@@ -986,6 +1010,7 @@ pub trait WebViewDelegate {
     /// reading a cached value or querying the user for permission via the user interface.
     fn request_permission(&self, _webview: WebView, _request: PermissionRequest) {}
 
+    /// Request that the embedder supply credentials to use for HTTP authentication.
     fn request_authentication(
         &self,
         _webview: WebView,

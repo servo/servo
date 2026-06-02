@@ -502,12 +502,7 @@ impl HeadedWindow {
         // cursor too, when all dialogs close. In general, we need a better cursor
         // management strategy.
         self.set_cursor(Cursor::Default);
-
-        let length = dialogs.len();
         dialogs.retain_mut(callback);
-        if length != dialogs.len() {
-            window.set_needs_repaint();
-        }
     }
 
     fn add_dialog(&self, webview_id: WebViewId, dialog: Dialog) {
@@ -862,17 +857,8 @@ impl PlatformWindow for HeadedWindow {
         self.gui.borrow_mut().update_webview_data(window)
     }
 
-    fn request_repaint(&self, window: &ServoShellWindow) {
+    fn request_repaint(&self, _: &ServoShellWindow) {
         self.winit_window.request_redraw();
-
-        // FIXME: This is a workaround for dialogs, which do not seem to animate, unless we
-        // constantly repaint the egui scene.
-        if window
-            .active_webview()
-            .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
-        {
-            window.set_needs_repaint();
-        }
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {

@@ -14,8 +14,8 @@ use wgpu_core::command as wgpu_com;
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
-    GPUComputePassDescriptor, GPUExtent3D, GPUImageCopyBuffer, GPUImageCopyTexture,
-    GPURenderPassDescriptor, GPUSize64,
+    GPUComputePassDescriptor, GPUExtent3D, GPURenderPassDescriptor, GPUSize64,
+    GPUTexelCopyBufferInfo, GPUTexelCopyTextureInfo,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -277,8 +277,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertotexture>
     fn CopyBufferToTexture(
         &self,
-        source: &GPUImageCopyBuffer,
-        destination: &GPUImageCopyTexture,
+        source: &GPUTexelCopyBufferInfo,
+        destination: &GPUTexelCopyTextureInfo,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
         self.droppable
@@ -299,8 +299,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertotexture>
     fn CopyTextureToBuffer(
         &self,
-        source: &GPUImageCopyTexture,
-        destination: &GPUImageCopyBuffer,
+        source: &GPUTexelCopyTextureInfo,
+        destination: &GPUTexelCopyBufferInfo,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
         self.droppable
@@ -321,8 +321,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     /// <https://gpuweb.github.io/gpuweb/#GPUCommandEncoder-copyTextureToTexture>
     fn CopyTextureToTexture(
         &self,
-        source: &GPUImageCopyTexture,
-        destination: &GPUImageCopyTexture,
+        source: &GPUTexelCopyTextureInfo,
+        destination: &GPUTexelCopyTextureInfo,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
         self.droppable

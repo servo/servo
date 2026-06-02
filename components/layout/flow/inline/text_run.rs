@@ -28,7 +28,7 @@ use style::values::computed::{
     FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
     OverflowWrap,
 };
-use unicode_bidi::{BidiInfo, Level};
+use unicode_bidi::Level;
 use unicode_script::Script;
 
 use super::line_breaker::LineBreaker;
@@ -37,7 +37,7 @@ use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::line::TextRunOffsets;
-use crate::flow::inline::{LineBlockSizes, LineItem, SegmentContentFlags};
+use crate::flow::inline::{BidiLevels, LineBlockSizes, LineItem, SegmentContentFlags};
 use crate::fragment_tree::BaseFragmentInfo;
 
 // There are two reasons why we might want to break at the start:
@@ -472,13 +472,13 @@ impl TextRun {
         formatting_context_text: &str,
         layout_context: &LayoutContext,
         linebreaker: &mut LineBreaker,
-        bidi_info: &BidiInfo,
+        bidi_levels: &BidiLevels,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
         let items = self.segment_text_by_font(
             layout_context,
             formatting_context_text,
-            bidi_info,
+            bidi_levels,
             &parent_style,
         );
 
@@ -505,7 +505,7 @@ impl TextRun {
         &mut self,
         layout_context: &LayoutContext,
         formatting_context_text: &str,
-        bidi_info: &BidiInfo,
+        bidi_levels: &BidiLevels,
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
@@ -562,13 +562,13 @@ impl TextRun {
             if character == '\t' {
                 finish_current_segment(&mut current, &mut results);
                 results.push(TextRunItem::Tab {
-                    bidi_level: bidi_info.levels[current_byte_index],
+                    bidi_level: bidi_levels.level(current_byte_index),
                 });
                 continue;
             }
 
             let (font, script, bidi_level) = if character_cannot_change_font(character) {
-                (None, Script::Common, bidi_info.levels[current_byte_index])
+                (None, Script::Common, bidi_levels.level(current_byte_index))
             } else {
                 (
                     font_group.find_by_codepoint(
@@ -578,7 +578,7 @@ impl TextRun {
                         language,
                     ),
                     Script::from(character),
-                    bidi_info.levels[current_byte_index],
+                    bidi_levels.level(current_byte_index),
                 )
             };
 

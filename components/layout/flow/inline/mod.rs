@@ -1216,6 +1216,7 @@ impl InlineFormattingContextLayout<'_> {
                 self.root_nesting_level.style.clone(),
                 physical_line_rect,
                 fragments,
+                true, /* is_line_box */
             )));
     }
 
@@ -1865,8 +1866,12 @@ impl InlineFormattingContext {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
 
-        let bidi_info = BidiInfo::new(&text_content, Some(starting_bidi_level));
-        let has_right_to_left_content = bidi_info.has_rtl();
+        let bidi_levels = BidiLevels {
+            info: builder
+                .has_right_to_left_content
+                .then(|| BidiInfo::new(&text_content, Some(starting_bidi_level))),
+        };
+
         let shared_inline_styles = builder
             .shared_inline_styles_stack
             .last()
@@ -1916,7 +1921,7 @@ impl InlineFormattingContext {
                         &text_content,
                         layout_context,
                         &mut new_linebreaker,
-                        &bidi_info,
+                        &bidi_levels,
                     );
                 },
                 InlineItem::StartInlineBox(inline_box) => {
@@ -1929,7 +1934,7 @@ impl InlineFormattingContext {
                     }
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {
-                    *bidi_level = bidi_info.levels[*index_in_text];
+                    *bidi_level = bidi_levels.level(*index_in_text);
                 },
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
                 InlineItem::OutOfFlowFloatBox(_) |
@@ -1943,6 +1948,7 @@ impl InlineFormattingContext {
             &layout_context.font_context,
         );
 
+        let has_right_to_left_content = bidi_levels.info.as_ref().is_some_and(BidiInfo::has_rtl);
         InlineFormattingContext {
             text_content,
             inline_items: builder.inline_items,
@@ -3052,6 +3058,18 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             depends_on_block_constraints: false,
         }
         .traverse(inline_formatting_context)
+    }
+}
+
+pub(crate) struct BidiLevels<'a> {
+    info: Option<BidiInfo<'a>>,
+}
+
+impl BidiLevels<'_> {
+    fn level(&self, byte_offset_in_ifc_text: usize) -> Level {
+        self.info
+            .as_ref()
+            .map_or_else(Level::ltr, |info| info.levels[byte_offset_in_ifc_text])
     }
 }
 

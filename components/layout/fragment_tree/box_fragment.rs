@@ -21,7 +21,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::SharedStyle;
-use crate::display_list::ToWebRender;
+use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
@@ -81,6 +81,14 @@ pub(crate) struct BoxFragmentRareData {
 
     /// Information that is specific to a layout system (e.g., grid, table, etc.).
     pub specific_layout_info: Option<SpecificLayoutInfo>,
+
+    /// If the associated [`BoxFragment`] establishes a clip via CSS this holds the
+    /// [`ClipId`] for the generated clip set during stacking context tree construction.
+    pub generated_clip_id: Option<ClipId>,
+
+    /// If the associated [`BoxFragment`] establishes a spatial node via CSS this holds the
+    /// [`ScrollTreeNodeId`] for the generated node set during stacking context tree construction.
+    pub generated_scroll_tree_node_id: Option<ScrollTreeNodeId>,
 }
 
 impl BoxFragmentRareData {
@@ -93,6 +101,8 @@ impl BoxFragmentRareData {
             Box::new(BoxFragmentRareData {
                 resolved_sticky_insets: None,
                 specific_layout_info: Some(info),
+                generated_clip_id: None,
+                generated_scroll_tree_node_id: None,
             })
         }))
     }
@@ -220,7 +230,7 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub(crate) fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
+    fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -249,6 +259,32 @@ impl BoxFragment {
         AtomicRef::filter_map(rare_data, |rare_data| {
             rare_data.as_ref()?.resolved_sticky_insets.as_ref()
         })
+    }
+
+    pub(crate) fn set_resolved_sticky_insets(&self, sticky_insets: PhysicalSides<AuOrAuto>) {
+        self.ensure_rare_data().resolved_sticky_insets = Some(sticky_insets.into());
+    }
+
+    pub(crate) fn generated_clip_id(&self) -> Option<ClipId> {
+        self.rare_data.borrow().as_ref()?.generated_clip_id
+    }
+
+    pub(crate) fn set_generated_clip_id(&self, generated_clip_id: ClipId) {
+        self.ensure_rare_data().generated_clip_id = Some(generated_clip_id);
+    }
+
+    pub(crate) fn generated_scroll_tree_node_id(&self) -> Option<ScrollTreeNodeId> {
+        self.rare_data
+            .borrow()
+            .as_ref()?
+            .generated_scroll_tree_node_id
+    }
+
+    pub(crate) fn set_generated_scroll_tree_node_id(
+        &self,
+        generated_scroll_tree_node_id: ScrollTreeNodeId,
+    ) {
+        self.ensure_rare_data().generated_scroll_tree_node_id = Some(generated_scroll_tree_node_id);
     }
 
     pub(crate) fn with_block_level_layout_info(
@@ -669,6 +705,18 @@ impl BoxFragment {
         self.style().is_atomic_inline_level(self.base.flags)
     }
 
+    /// Whether or this is a flex or grid item.
+    pub(crate) fn is_flex_or_grid_item(&self) -> bool {
+        self.base
+            .flags
+            .contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
+    }
+
+    /// Whether or this box is for replaced content.
+    pub(crate) fn is_replaced(&self) -> bool {
+        self.base.flags.contains(FragmentFlags::IS_REPLACED)
+    }
+
     /// Whether this is a table wrapper box.
     /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
     pub(crate) fn is_table_wrapper(&self) -> bool {
@@ -687,6 +735,21 @@ impl BoxFragment {
             },
             _ => false,
         }
+    }
+
+    /// Whether or not this is the [`BoxFragment`] for a table grid with collapsed borders.
+    pub(crate) fn is_table_grid_with_collapsed_borders(&self) -> bool {
+        matches!(
+            self.specific_layout_info().as_deref(),
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
+        )
+    }
+
+    /// Whether or not this [`BoxFragment`] has outlines.
+    pub(crate) fn has_outline(&self) -> bool {
+        let style = self.style();
+        let outline = style.get_outline();
+        !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
     }
 
     pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {

@@ -12,6 +12,7 @@ use servo_base::print_tree::PrintTree;
 use style::computed_values::position::T as Position;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
+use crate::fragment_tree::FragmentFlags;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -49,6 +50,26 @@ impl FragmentTree {
             initial_containing_block,
             viewport_scroll_sensitivity,
         }
+    }
+
+    /// The root fragment for this fragment tree, if the root element does not have
+    /// `display: none;`. Note that positioned elements that have the initial containing
+    /// block as their containing block are also direct children of the fragment tree
+    /// root, but they are not returned by this getter.
+    pub(crate) fn root_box_fragment(&self) -> Option<Arc<BoxFragment>> {
+        self.root_fragments
+            .iter()
+            .find_map(|root_fragment| match root_fragment {
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment)
+                    if box_fragment
+                        .base
+                        .flags
+                        .contains(FragmentFlags::IS_ROOT_ELEMENT) =>
+                {
+                    Some(box_fragment.clone())
+                },
+                _ => None,
+            })
     }
 
     pub fn print(&self) {

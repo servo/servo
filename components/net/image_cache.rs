@@ -484,10 +484,23 @@ impl ImageCacheStore {
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
+                // We can have concurrent sync and async loads for the same image, so if it's
+                // not pending anymore we early return since the async result will be ignored in that case.
+                if self.pending_loads.get_by_key_mut(&pending_id).is_none() {
+                    return;
+                }
                 set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
             },
             PendingKey::Svg((pending_id, mut raster_image, requested_size)) => {
+                // We can have concurrent sync and async loads for the same image, so if it's
+                // not pending anymore we early return since the async result will be ignored in that case.
+                if !self
+                    .rasterized_vector_images
+                    .contains_key(&(pending_id, requested_size))
+                {
+                    return;
+                }
                 set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load_svg(raster_image, pending_id, requested_size);
             },
@@ -1184,6 +1197,10 @@ impl ImageCache for ImageCacheImpl {
         store.insert_keys_and_load_images(image_keys);
     }
 
+    fn clear(&self) {
+        self.store.lock().clear();
+    }
+
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
         let store = self.store.lock();
         store
@@ -1202,9 +1219,10 @@ impl ImageCache for ImageCacheImpl {
     }
 }
 
-impl Drop for ImageCacheStore {
-    fn drop(&mut self) {
-        let image_updates = self
+impl ImageCacheStore {
+    /// Clear the image cache.
+    fn clear(&mut self) {
+        let deletions: smallvec::SmallVec<_> = self
             .completed_loads
             .values()
             .filter_map(|load| match &load.image_response {
@@ -1218,9 +1236,30 @@ impl Drop for ImageCacheStore {
                     .values()
                     .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
             )
+            .chain(
+                self.broken_image_icon_image
+                    .get()
+                    .and_then(|icon| icon.as_ref())
+                    .and_then(|icon| icon.id)
+                    .map(ImageUpdate::DeleteImage),
+            )
             .collect();
-        self.paint_api
-            .update_images(self.webview_id.into(), image_updates);
+        if !deletions.is_empty() {
+            self.paint_api
+                .update_images(self.webview_id.into(), deletions);
+        }
+        // Clear these fields, since `clear()` will be called multiple times,
+        // explicitly on pipeline close, and again on Drop (as a safeguard,
+        // since we could forget to explicitly clear).
+        self.completed_loads.clear();
+        self.rasterized_vector_images.clear();
+        let _ = self.broken_image_icon_image.take();
+    }
+}
+
+impl Drop for ImageCacheStore {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 
