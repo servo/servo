@@ -2216,7 +2216,7 @@ impl InlineFormattingContext {
 
     pub(crate) fn next_tab_stop_after_inline_advance(
         &self,
-        style: &AtomicRef<'_, ServoArc<ComputedValues>>,
+        style: &ServoArc<ComputedValues>,
         current_inline_advance: Au,
     ) -> Au {
         let Some(font) = self.default_font.as_ref() else {
