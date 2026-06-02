@@ -596,7 +596,7 @@ def path_dependency_names(cargo_toml: dict[str, Any]) -> list[str]:
 
 
 def dependency_tables(cargo_toml: dict[str, Any]) -> Iterator[dict[str, Any]]:
-    dependency_keys = ("dependencies", "dev-dependencies", "build-dependencies")
+    dependency_keys = ("dependencies", "build-dependencies")
     for dependency_key in dependency_keys:
         dependency_table = cargo_toml.get(dependency_key)
         if dependency_table is not None:
