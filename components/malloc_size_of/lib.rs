@@ -1348,6 +1348,9 @@ malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_kerning::T)
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::SingleValue);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::PairValues);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::font_feature_values_rule::VectorValues);
+malloc_size_of_is_stylo_malloc_size_of!(
+    style::stylesheets::font_feature_values_rule::FontFeatureValuesRule
+);
 
 impl<T> MallocSizeOf for GenericLengthPercentageOrAuto<T>
 where

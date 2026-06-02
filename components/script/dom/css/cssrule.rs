@@ -11,6 +11,7 @@ use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{CssRule as StyleCssRule, CssRuleType};
 
 use super::cssfontfacerule::CSSFontFaceRule;
+use super::cssfontfeaturevaluesrule::CSSFontFeatureValuesRule;
 use super::cssimportrule::CSSImportRule;
 use super::csskeyframerule::CSSKeyframeRule;
 use super::csskeyframesrule::CSSKeyframesRule;
@@ -74,6 +75,8 @@ impl CSSRule {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSPropertyRule>() {
             rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSFontFeatureValuesRule>() {
+            rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -98,7 +101,9 @@ impl CSSRule {
             StyleCssRule::FontFace(s) => {
                 DomRoot::upcast(CSSFontFaceRule::new(cx, window, parent_stylesheet, s))
             },
-            StyleCssRule::FontFeatureValues(_) => unimplemented!(),
+            StyleCssRule::FontFeatureValues(rule) => DomRoot::upcast(
+                CSSFontFeatureValuesRule::new(cx, window, parent_stylesheet, rule),
+            ),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
             StyleCssRule::Keyframes(s) => {
                 DomRoot::upcast(CSSKeyframesRule::new(cx, window, parent_stylesheet, s))
