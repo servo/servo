@@ -31,10 +31,6 @@ ignore = [
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
-    # The crate `ml-dsa 0.0.4` is the latest stable release.
-    # The attack complexity of this vulnerability is high,
-    # and no exploit is known yet.
-    "RUSTSEC-2025-0144",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -169,12 +165,6 @@ skip = [
     # Dependency by quick_cache and other
     "hashbrown",
 
-    # Duplicated by ml-kem 0.2.1 and ml-dsa 0.0.4. They use different
-    # version of hybrid-array. Once ml-kem releases the next version
-    # 0.3.0 and ml-dsa releases the next version 0.1.0, we can remove
-    # this.
-    "hybrid-array",
-
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
     # are added here to allow the fix for this issue to land as a priority.
@@ -206,6 +196,11 @@ skip = [
     "digest",
     "keccak",
     "sha3",
+    "hybrid-array",
+    "der",
+    "pkcs8",
+    "spki",
+    "signature",
 ]
 
 # github.com organizations to allow git sources for
