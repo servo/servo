@@ -17,7 +17,7 @@ test = false
 doctest = false
 
 [features]
-test-util = ["hyper-util/server-graceful", "dep:servo-default-resources"]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -96,7 +96,6 @@ hyper-util = { workspace = true, features = ["server-graceful"] }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
 net = { package = "servo-net", path = ".", features = ["test-util"] }
-net_traits = { package = "servo-net-traits", path = "../shared/net", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]
