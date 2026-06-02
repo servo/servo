@@ -95,6 +95,7 @@ pub(crate) struct ServoShellPreferences {
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Cell<Option<u16>>,
+    pub webdriver_bidi_port: Cell<Option<u16>>,
     /// Whether the CLI option to enable experimental prefs was present at startup.
     pub experimental_preferences_enabled: bool,
     /// Log filter given in the `log_filter` spec as a String, if any.
@@ -125,6 +126,7 @@ impl Default for ServoShellPreferences {
             userscripts_directory: None,
             user_stylesheets: Default::default(),
             webdriver_port: Cell::new(None),
+            webdriver_bidi_port: Cell::new(None),
             #[cfg(target_env = "ohos")]
             log_filter: None,
             #[cfg(target_env = "ohos")]

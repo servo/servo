@@ -22,15 +22,15 @@ pub trait WebDriverBidiHandler: Send {
 
 pub struct Handler {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_tx: crossbeam_channel::Sender<()>,
-    embedder_rx: crossbeam_channel::Receiver<()>,
+    embedder_tx: tokio::sync::mpsc::UnboundedSender<()>,
+    embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
 }
 
 impl Handler {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        embedder_tx: crossbeam_channel::Sender<()>,
-        embedder_rx: crossbeam_channel::Receiver<()>,
+        embedder_tx: tokio::sync::mpsc::UnboundedSender<()>,
+        embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
     ) -> Self {
         Self {
             event_loop_waker,

@@ -188,6 +188,9 @@ pub(crate) struct RunningAppState {
     /// was enabled.
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
+    pub(crate) webdriver_bidi_sender: Option<tokio::sync::mpsc::UnboundedSender<()>>,
+    pub(crate) webdriver_bidi_receiver: Option<tokio::sync::mpsc::UnboundedReceiver<()>>,
+
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
 
@@ -245,11 +248,22 @@ impl RunningAppState {
             webdriver_server::start_server(
                 port,
                 embedder_sender,
-                event_loop_waker,
+                event_loop_waker.clone_box(),
                 default_preferences,
             );
             embedder_receiver
         });
+
+        let (webdriver_bidi_sender, webdriver_bidi_receiver) =
+            match servoshell_preferences.webdriver_bidi_port.get() {
+                Some(port) => {
+                    let (tx1, rx1) = tokio::sync::mpsc::unbounded_channel::<()>();
+                    let (tx2, rx2) = tokio::sync::mpsc::unbounded_channel::<()>();
+                    webdriver_bidi::start_server(port, event_loop_waker, tx2, rx1);
+                    (Some(tx1), Some(rx2))
+                },
+                None => (None, None),
+            };
 
         let experimental_preferences_enabled =
             Cell::new(servoshell_preferences.experimental_preferences_enabled);
@@ -266,6 +280,8 @@ impl RunningAppState {
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
             webdriver_receiver,
+            webdriver_bidi_sender,
+            webdriver_bidi_receiver,
             servoshell_preferences,
             servo,
             achieved_stable_image: Default::default(),
@@ -391,8 +407,8 @@ impl RunningAppState {
                 return true;
             }
 
-            if let Some(focused_window) = self.focused_window() &&
-                Rc::ptr_eq(window, &focused_window)
+            if let Some(focused_window) = self.focused_window()
+                && Rc::ptr_eq(window, &focused_window)
             {
                 *self.focused_window.borrow_mut() = None;
             }
@@ -441,8 +457,8 @@ impl RunningAppState {
 
         // When no more windows are open, exit the application. Do not do this when
         // running WebDriver, which expects to keep running with no WebView open.
-        if self.servoshell_preferences.webdriver_port.get().is_none() &&
-            self.windows.borrow().is_empty()
+        if self.servoshell_preferences.webdriver_port.get().is_none()
+            && self.windows.borrow().is_empty()
         {
             self.schedule_exit()
         }

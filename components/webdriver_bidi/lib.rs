@@ -14,8 +14,8 @@ pub mod transport;
 pub fn start_server(
     port: u16,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_tx: crossbeam_channel::Sender<()>,
-    embedder_rx: crossbeam_channel::Receiver<()>,
+    embedder_tx: tokio::sync::mpsc::UnboundedSender<()>,
+    embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
 ) {
     let handler = Handler::new(event_loop_waker, embedder_tx, embedder_rx);
 

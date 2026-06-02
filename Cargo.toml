@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "components/media/examples",
-    "components/webdriver_bidi",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -354,6 +353,7 @@ servo-wakelock = { version = "=0.2.0", path = "components/wakelock" }
 storage = { package = "servo-storage", version = "=0.2.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "=0.2.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "=0.2.0", path = "components/timers" }
+webdriver_bidi = { package = "servo-webdriver-bidi", version = "=0.2.0", path = "components/webdriver_bidi" }
 webdriver_server = { package = "servo-webdriver-server", version = "=0.2.0", path = "components/webdriver_server" }
 webgl = { package = "servo-webgl", version = "=0.2.0", path = "components/webgl", default-features = false }
 webgpu = { package = "servo-webgpu", version = "=0.2.0", path = "components/webgpu" }
