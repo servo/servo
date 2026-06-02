@@ -115,10 +115,7 @@ impl StorageManagerEstimateResponseHandler {
                         promise.resolve_native(&estimate, CanGc::from_cx(cx));
                     },
                     Err(message) => {
-                        promise.reject_error(
-                            StorageManager::type_error_from_string(message),
-                            CanGc::from_cx(cx),
-                        );
+                        promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message));
                     },
                 }
             }));

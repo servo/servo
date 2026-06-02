@@ -149,10 +149,7 @@ pub(crate) trait ReadableStreamGenericReader {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, global);
-            promise.reject_error(
-                Error::Type(c"stream is undefined".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"stream is undefined".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamReaderGenericCancel(this, reason).

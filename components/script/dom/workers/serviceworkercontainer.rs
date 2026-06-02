@@ -90,7 +90,7 @@ impl ServiceWorkerContainer {
                     );
                 },
                 JobError::SecurityError => {
-                    promise.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, Error::Security(None));
                 },
             },
             // <https://w3c.github.io/ServiceWorker/#resolve-job-promise>

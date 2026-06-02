@@ -2196,10 +2196,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"stream is locked".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
@@ -2247,10 +2244,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Source stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Source stream is locked".to_owned()));
             return promise;
         }
 
@@ -2258,10 +2252,8 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Destination stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Destination stream is locked".to_owned()));
             return promise;
         }
 

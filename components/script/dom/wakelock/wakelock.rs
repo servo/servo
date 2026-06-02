@@ -72,9 +72,9 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
         // Step 4. Obtain permission for "screen-wake-lock".
         // <https://w3c.github.io/screen-wake-lock/#dfn-obtain-permission>
         let Some(webview_id) = global.webview_id() else {
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::NotAllowed(Some("Unable to obtain WakeLock permission.".to_string())),
-                CanGc::from_cx(cx),
             );
             return promise;
         };

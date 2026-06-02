@@ -134,7 +134,7 @@ where
             Ok(response) => self.receiver.root().handle_response(cx, response, &promise),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
-            Err(error) => promise.reject_error(error.convert(), CanGc::from_cx(cx)),
+            Err(error) => promise.reject_error_with_cx(cx, error.convert()),
         }
     }
 }
@@ -183,7 +183,7 @@ impl Bluetooth {
         if let Some(filters) = filters {
             // Step 2.1.
             if filters.is_empty() {
-                p.reject_error(Type(FILTER_EMPTY_ERROR.to_owned()), CanGc::from_cx(cx));
+                p.reject_error_with_cx(cx, Type(FILTER_EMPTY_ERROR.to_owned()));
                 return;
             }
 
@@ -196,7 +196,7 @@ impl Bluetooth {
                     // Step 2.4.2.
                     Ok(f) => uuid_filters.push(f),
                     Err(e) => {
-                        p.reject_error(e, CanGc::from_cx(cx));
+                        p.reject_error_with_cx(cx, e);
                         return;
                     },
                 }
@@ -210,7 +210,7 @@ impl Bluetooth {
             let uuid = match BluetoothUUID::service(opt_service.clone()) {
                 Ok(u) => String::from(u),
                 Err(e) => {
-                    p.reject_error(e, CanGc::from_cx(cx));
+                    p.reject_error_with_cx(cx, e);
                     return;
                 },
             };
@@ -233,7 +233,7 @@ impl Bluetooth {
         if let PermissionState::Denied =
             descriptor_permission_state(PermissionName::Bluetooth, None)
         {
-            return p.reject_error(Error::NotFound(None), CanGc::from_cx(cx));
+            return p.reject_error_with_cx(cx, Error::NotFound(None));
         }
 
         // Note: Step 3, 6 - 8 are implemented in
@@ -306,13 +306,13 @@ where
         let canonicalized = match uuid_canonicalizer(u) {
             Ok(canonicalized_uuid) => String::from(canonicalized_uuid),
             Err(e) => {
-                p.reject_error(e, CanGc::from_cx(cx));
+                p.reject_error_with_cx(cx, e);
                 return p;
             },
         };
         // Step 2.
         if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
-            p.reject_error(Security(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Security(None));
             return p;
         }
         Some(canonicalized)
@@ -322,7 +322,7 @@ where
 
     // Step 3 - 4.
     if !connected {
-        p.reject_error(Network(None), CanGc::from_cx(cx));
+        p.reject_error_with_cx(cx, Network(None));
         return p;
     }
 
@@ -544,7 +544,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
         {
-            p.reject_error(Error::Type(OPTIONS_ERROR.to_owned()), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Error::Type(OPTIONS_ERROR.to_owned()));
             return p;
         }
 
@@ -691,7 +691,7 @@ impl PermissionAlgorithm for Bluetooth {
                 for filter in filters {
                     match canonicalize_filter(filter) {
                         Ok(f) => scan_filters.push(f),
-                        Err(error) => return promise.reject_error(error, CanGc::from_cx(cx)),
+                        Err(error) => return promise.reject_error_with_cx(cx, error),
                     }
                 }
 
@@ -712,7 +712,7 @@ impl PermissionAlgorithm for Bluetooth {
                 match receiver.recv().unwrap() {
                     Ok(true) => (),
                     Ok(false) => continue,
-                    Err(error) => return promise.reject_error(error.convert(), CanGc::from_cx(cx)),
+                    Err(error) => return promise.reject_error_with_cx(cx, error.convert()),
                 };
             }
 
@@ -741,7 +741,7 @@ impl PermissionAlgorithm for Bluetooth {
     ) {
         // Step 1.
         if descriptor.filters.is_some() == descriptor.acceptAllDevices {
-            return promise.reject_error(Error::Type(OPTIONS_ERROR.to_owned()), CanGc::from_cx(cx));
+            return promise.reject_error_with_cx(cx, Error::Type(OPTIONS_ERROR.to_owned()));
         }
 
         // Step 2.

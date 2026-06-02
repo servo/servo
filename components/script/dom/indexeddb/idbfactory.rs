@@ -624,7 +624,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             Some(storage_key) => storage_key,
             None => {
                 let p = Promise::new(&global, CanGc::from_cx(cx));
-                p.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                p.reject_error_with_cx(cx, Error::Security(None));
                 return p;
             },
         };

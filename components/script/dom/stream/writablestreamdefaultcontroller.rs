@@ -614,7 +614,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new(global, CanGc::from_cx(cx));
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },
@@ -632,7 +632,7 @@ impl WritableStreamDefaultController {
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
                     promise.resolve_native(&(), CanGc::from_cx(cx));
@@ -687,7 +687,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },
@@ -761,7 +761,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },

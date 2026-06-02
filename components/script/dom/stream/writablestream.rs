@@ -745,10 +745,8 @@ impl WritableStream {
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, global);
-            promise.reject_error(
-                Error::Type(c"Stream is closed or errored.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
 
@@ -1080,10 +1078,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is locked.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1099,10 +1094,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is locked.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1110,9 +1102,9 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }

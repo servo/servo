@@ -327,7 +327,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     promise.resolve_native(&text, CanGc::from_cx(cx));
                 },
                 Err(e) => {
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                 },
             }),
         );
@@ -346,7 +346,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let reader = match stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx))) {
             Ok(reader) => reader,
             Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -389,7 +389,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let reader = match stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx))) {
             Ok(r) => r,
             Err(e) => {
-                p.reject_error(e, CanGc::from_cx(cx));
+                p.reject_error_with_cx(cx, e);
                 return p;
             },
         };
