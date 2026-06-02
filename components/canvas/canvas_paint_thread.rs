@@ -72,7 +72,9 @@ impl CanvasPaintThread {
                         recv(create_receiver) -> msg => {
                             match msg {
                                 Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
-                                    creator.send(canvas_paint_thread.create_canvas(size)).unwrap();
+                                    if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size)) {
+                                        warn!("Create canvas response failed ({error})");
+                                    }
                                 },
                                 Ok(ConstellationCanvasMsg::Exit(exit_sender)) => {
                                     let _ = exit_sender.send(());
@@ -272,7 +274,9 @@ impl CanvasPaintThread {
             },
             Canvas2dMsg::GetImageData(dest_rect, sender) => {
                 let snapshot = self.canvas(canvas_id).read_pixels(dest_rect);
-                sender.send(snapshot.to_shared()).unwrap();
+                if let Err(error) = sender.send(snapshot.to_shared()) {
+                    warn!("GetImageData response failed ({error})");
+                }
             },
             Canvas2dMsg::PutImageData(rect, snapshot) => {
                 self.canvas(canvas_id)
