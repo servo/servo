@@ -15,7 +15,7 @@ from geckordp.actors.resources import Resources
 from .utils import Devtools
 
 
-class TestNetwork:
+class TestNetworkTab:
     def test_navigation(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/tab/page1.html")
         with Devtools.connect() as devtools:

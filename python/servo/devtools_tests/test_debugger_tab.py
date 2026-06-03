@@ -35,7 +35,7 @@ from .utils import (
 )
 
 
-class TestDebugger:
+class TestDebuggerTab:
     def test_breakpoint_pause(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:

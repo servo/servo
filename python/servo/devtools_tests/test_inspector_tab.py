@@ -21,7 +21,7 @@ from geckordp.actors.web_console import WebConsoleActor
 from .utils import Devtools
 
 
-class TestInspector:
+class TestInspectorTab:
     def test_inspector_event_listeners(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/event_listeners.html")
         with Devtools.connect() as devtools:

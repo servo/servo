@@ -39,7 +39,7 @@ def evaluate_and_capture_console_log_output(js: str, timeout: float = 1) -> dict
         return evaluation_result.result(timeout)
 
 
-class TestConsole:
+class TestConsoleTab:
     def test_console_log_object_with_object_preview(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/console/log_object.html")
 
