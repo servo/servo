@@ -1416,12 +1416,12 @@ impl<'dom> LayoutDom<'dom, Element> {
         if let Some(table) = self.downcast::<HTMLTableElement>() {
             if let Some(cellspacing) = table.get_cellspacing() {
                 let width_value = specified::Length::from_px(cellspacing as f32);
-                push(PropertyDeclaration::BorderSpacing(Box::new(
+                push(PropertyDeclaration::BorderSpacing(
                     border_spacing::SpecifiedValue::new(
                         width_value.clone().into(),
                         width_value.into(),
                     ),
-                )));
+                ));
             }
             if let Some(border) = table.get_border() {
                 let width_value = specified::BorderSideWidth::from_px(border as f32);
