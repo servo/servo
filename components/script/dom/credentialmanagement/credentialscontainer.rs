@@ -53,20 +53,20 @@ impl CredentialsContainer {
         // Step 3. Let document be settings’s relevant global object's associated Document.
         let document = global.as_window().Document();
 
-        let p = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm(cx);
         let can_gc = CanGc::from_cx(cx);
         // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            p.reject_error(Error::InvalidState(None), can_gc);
-            return Ok(p);
+            promise.reject_error(Error::InvalidState(None), can_gc);
+            return Ok(promise);
         }
         // Step 5. If options.signal is aborted, then return a promise rejected with options.signal’s abort reason.
         if options.signal.as_ref().is_some_and(|s| s.aborted()) {
-            p.reject_error(Error::Abort(None), can_gc);
-            return Ok(p);
+            promise.reject_error(Error::Abort(None), can_gc);
+            return Ok(promise);
         }
-        p.reject_error(Error::NotSupported(None), can_gc);
-        Ok(p)
+        promise.reject_error(Error::NotSupported(None), can_gc);
+        Ok(promise)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-store-a-credential>
@@ -80,15 +80,15 @@ impl CredentialsContainer {
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
 
-        let p = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm(cx);
         let can_gc = CanGc::from_cx(cx);
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !global.as_window().Document().is_fully_active() {
-            p.reject_error(Error::InvalidState(None), can_gc);
-            return Ok(p);
+            promise.reject_error(Error::InvalidState(None), can_gc);
+            return Ok(promise);
         }
-        p.reject_error(Error::NotSupported(None), can_gc);
-        Ok(p)
+        promise.reject_error(Error::NotSupported(None), can_gc);
+        Ok(promise)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-credential>
@@ -105,15 +105,15 @@ impl CredentialsContainer {
         // Step 4. Let document be the relevant global object’s associated Document.
         let document = global.as_window().Document();
 
-        let p = Promise::new_in_realm(cx);
+        let promise = Promise::new_in_realm(cx);
         let can_gc = CanGc::from_cx(cx);
         // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            p.reject_error(Error::InvalidState(None), can_gc);
-            return Ok(p);
+            promise.reject_error(Error::InvalidState(None), can_gc);
+            return Ok(promise);
         }
-        p.reject_error(Error::NotSupported(None), can_gc);
-        Ok(p)
+        promise.reject_error(Error::NotSupported(None), can_gc);
+        Ok(promise)
     }
 }
 
@@ -143,8 +143,8 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<Rc<Promise>> {
-        let p = Promise::new_in_realm(cx);
-        p.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
-        Ok(p)
+        let promise = Promise::new_in_realm(cx);
+        promise.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
+        Ok(promise)
     }
 }
