@@ -111,18 +111,17 @@ impl From<&Descriptors> for CSSFontFaceDescriptors {
             .as_ref()
             .and_then(|weight_range| weight_range.0.compute().zip(weight_range.1.compute()));
 
-        let stretch_to_computed = |specified: SpecifiedFontStretch| match specified {
-            SpecifiedFontStretch::Stretch(percentage) => {
-                FontStretch::from_percentage(percentage.compute().0)
-            },
-            SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
-            SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
+        let stretch_to_computed = |specified: &SpecifiedFontStretch| {
+            Some(match specified {
+                SpecifiedFontStretch::Stretch(percentage) => {
+                    FontStretch::from_percentage(percentage.compute()?.0)
+                },
+                SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
+                SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
+            })
         };
-        let stretch = descriptors.font_stretch.as_ref().map(|stretch_range| {
-            (
-                stretch_to_computed(stretch_range.0),
-                stretch_to_computed(stretch_range.1),
-            )
+        let stretch = descriptors.font_stretch.as_ref().and_then(|stretch_range| {
+            stretch_to_computed(&stretch_range.0).zip(stretch_to_computed(&stretch_range.1))
         });
 
         fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {

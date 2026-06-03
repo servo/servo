@@ -1293,7 +1293,9 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
                 let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                    specified::LengthPercentage::Percentage(specified::NoCalcPercentage::new(
+                        percentage,
+                    )),
                 ));
                 push(PropertyDeclaration::Width(width_value));
             },
@@ -1329,7 +1331,9 @@ impl<'dom> LayoutDom<'dom, Element> {
             LengthOrPercentageOrAuto::Auto => {},
             LengthOrPercentageOrAuto::Percentage(percentage) => {
                 let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Percentage(computed::Percentage(percentage)),
+                    specified::LengthPercentage::Percentage(specified::NoCalcPercentage::new(
+                        percentage,
+                    )),
                 ));
                 push(PropertyDeclaration::Height(height_value));
             },
