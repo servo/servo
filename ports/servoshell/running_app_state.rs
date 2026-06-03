@@ -18,6 +18,7 @@ use image::{DynamicImage, ImageFormat, RgbaImage};
 ))]
 use libc::c_char;
 use log::{error, info, warn};
+use servo::webdriver_bidi::WebDriverBidiCommandMsg;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
@@ -188,8 +189,7 @@ pub(crate) struct RunningAppState {
     /// was enabled.
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
-    pub(crate) webdriver_bidi_sender: Option<tokio::sync::mpsc::UnboundedSender<()>>,
-    pub(crate) webdriver_bidi_receiver: Option<crossbeam_channel::Receiver<()>>,
+    pub(crate) webdriver_bidi_receiver: Option<Receiver<WebDriverBidiCommandMsg>>,
 
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
@@ -254,16 +254,15 @@ impl RunningAppState {
             embedder_receiver
         });
 
-        let (webdriver_bidi_sender, webdriver_bidi_receiver) =
-            match servoshell_preferences.webdriver_bidi_port.get() {
-                Some(port) => {
-                    let (tx1, rx1) = tokio::sync::mpsc::unbounded_channel::<()>();
-                    let (tx2, rx2) = crossbeam_channel::unbounded::<()>();
-                    webdriver_bidi::start_server(port, event_loop_waker, tx2, rx1);
-                    (Some(tx1), Some(rx2))
-                },
-                None => (None, None),
-            };
+        let webdriver_bidi_receiver =
+            servoshell_preferences
+                .webdriver_bidi_port
+                .get()
+                .map(|port| {
+                    let (embedder_sender, embedder_receiver) = unbounded();
+                    webdriver_bidi::start_server(port, embedder_sender, event_loop_waker);
+                    embedder_receiver
+                });
 
         let experimental_preferences_enabled =
             Cell::new(servoshell_preferences.experimental_preferences_enabled);
@@ -280,7 +279,6 @@ impl RunningAppState {
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
             webdriver_receiver,
-            webdriver_bidi_sender,
             webdriver_bidi_receiver,
             servoshell_preferences,
             servo,
@@ -340,7 +338,7 @@ impl RunningAppState {
         self.webdriver_receiver.as_ref()
     }
 
-    pub(crate) fn webdriver_bidi_receiver(&self) -> Option<&crossbeam_channel::Receiver<()>> {
+    pub(crate) fn webdriver_bidi_receiver(&self) -> Option<&Receiver<WebDriverBidiCommandMsg>> {
         self.webdriver_bidi_receiver.as_ref()
     }
 
@@ -438,6 +436,7 @@ impl RunningAppState {
         }
 
         self.handle_webdriver_messages(create_platform_window);
+        self.handle_webdriver_bidi_message();
 
         #[cfg(all(
             feature = "gamepad",

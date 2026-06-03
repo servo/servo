@@ -1,6 +1,6 @@
 use std::{net::SocketAddrV4, thread};
 
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
 
 use crate::handler::Handler;
 
@@ -13,11 +13,10 @@ pub mod transport;
 
 pub fn start_server(
     port: u16,
+    embedder_tx: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_tx: crossbeam_channel::Sender<()>,
-    embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
 ) {
-    let handler = Handler::new(event_loop_waker, embedder_tx, embedder_rx);
+    let handler = Handler::new(event_loop_waker, embedder_tx);
 
     thread::Builder::new()
         .name("WebDriverBiDiServer".to_owned())

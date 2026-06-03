@@ -2,7 +2,7 @@
 //!
 //! Also provide a default implementation.
 
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
 use rustenium_bidi_definitions::base::CommandMessage;
 
 use crate::{model::Message, transport::Session};
@@ -22,20 +22,17 @@ pub trait WebDriverBidiHandler: Send {
 
 pub struct Handler {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_tx: crossbeam_channel::Sender<()>,
-    embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
+    embedder_tx: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
 }
 
 impl Handler {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        embedder_tx: crossbeam_channel::Sender<()>,
-        embedder_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
+        embedder_tx: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
     ) -> Self {
         Self {
             event_loop_waker,
             embedder_tx,
-            embedder_rx,
         }
     }
 }
