@@ -1,5 +1,4 @@
 use rustenium_bidi_definitions::base::CommandMessage;
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
@@ -41,6 +40,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
+    // TODO: refactor to use Result
     fn handle_dispatch(&mut self, dispatch: DispatchMessage) {
         match dispatch {
             DispatchMessage::Command(_, command_message) => {

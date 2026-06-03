@@ -2,21 +2,22 @@
 //!
 //! Also provide a default implementation.
 
-use std::convert::Infallible;
-
 use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
 use rustenium_bidi_definitions::{Command, base::CommandMessage, browsing_context};
 use servo_base::id::WebViewId;
 
-use crate::{model::Message, transport::Session};
+use crate::{
+    error::{WebDriverBidiError, WebDriverBidiResult},
+    model::Message,
+    transport::Session,
+};
 
 // TODO: should handler be per session?
 pub trait WebDriverBidiHandler: Send {
     /// Start processing of a command.
     fn process(&self, session: &Option<Session>, command: &CommandMessage);
 
-    // TODO: refactor to return actual Result
-    fn try_recv(&self) -> Result<(Option<Session>, Message), ()>;
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)>;
 
     // TODO: do we need
     // post update after receiving message
@@ -45,22 +46,26 @@ impl Handler {
     }
 
     // TODO: bidi use BrowsingContextId not WebId
-    // TODO: error refactor
-    pub fn webview_id(&self) -> &WebViewId {
-        self.webview_id.as_ref().unwrap()
+    pub fn webview_id(&self) -> WebDriverBidiResult<&WebViewId> {
+        self.webview_id
+            .as_ref()
+            .ok_or_else(|| WebDriverBidiError::unknown("No webview available"))
     }
 
-    // TODO: wait for error type refactor
-    fn send_message_to_embedder(&self, msg: WebDriverBidiCommandMsg) {
-        self.embedder_sender.send(msg).unwrap();
+    fn send_message_to_embedder(&self, msg: WebDriverBidiCommandMsg) -> WebDriverBidiResult<()> {
+        self.embedder_sender.send(msg)?;
         self.event_loop_waker.wake();
+        Ok(())
     }
 
-    // TODO: wait for error type refactor
-    fn handle_traverse_history(&self, delta: i64) {
-        let webview_id = self.webview_id();
+    fn handle_traverse_history(&self, delta: i64) -> WebDriverBidiResult<()> {
+        let webview_id = self.webview_id()?;
         // TODO: verify context open? is this in bidi spec
-        self.send_message_to_embedder(WebDriverBidiCommandMsg::TraverseHistory(*webview_id, delta));
+        self.send_message_to_embedder(WebDriverBidiCommandMsg::TraverseHistory(
+            *webview_id,
+            delta,
+        ))?;
+        Ok(())
     }
 }
 
@@ -104,7 +109,7 @@ impl WebDriverBidiHandler for Handler {
         }
     }
 
-    fn try_recv(&self) -> Result<(Option<Session>, Message), ()> {
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)> {
         todo!()
     }
 }

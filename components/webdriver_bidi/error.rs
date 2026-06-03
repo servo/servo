@@ -1,37 +1,66 @@
 // TODO: follow WebDriverError
 
+use std::io;
+
+use async_tungstenite::tungstenite;
+use embedder_traits::webdriver_bidi::WebDriverBidiCommandMsg;
+use rustenium_bidi_definitions::base::{ErrorCode, ErrorEnum, ErrorResponse};
+
+/// This is basically a mirror of ruustenium `ErrorResponse` except `id`.
 #[derive(Debug)]
-pub enum Error {
-    Serialize(serde_json::Error),
-    Transport(async_tungstenite::tungstenite::Error),
+pub struct WebDriverBidiError {
+    pub error: ErrorCode,
+    pub message: String,
+    pub stacktrace: Option<String>,
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Serialize(error) => write!(f, "fail to serialize: {}", error),
-            Error::Transport(error) => write!(f, "fail to transport: {}", error),
+impl WebDriverBidiError {
+    pub fn into_response(self, id: Option<u64>) -> ErrorResponse {
+        let Self {
+            error,
+            message,
+            stacktrace,
+        } = self;
+        ErrorResponse {
+            r#type: ErrorEnum::Error,
+            id,
+            error,
+            message,
+            stacktrace,
+            extensible: Default::default(),
         }
     }
-}
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Error::Serialize(error) => Some(error),
-            Error::Transport(error) => Some(error),
+    pub fn new(error: ErrorCode, message: impl ToString) -> Self {
+        Self {
+            error,
+            message: message.to_string(),
+            stacktrace: None,
         }
     }
-}
 
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Serialize(value)
+    pub fn unknown(message: impl ToString) -> Self {
+        Self::new(ErrorCode::UnknownError, message.to_string())
     }
 }
 
-impl From<async_tungstenite::tungstenite::Error> for Error {
-    fn from(value: async_tungstenite::tungstenite::Error) -> Self {
-        Self::Transport(value)
-    }
+macro_rules! impl_from {
+    ($err:path, $code:tt) => {
+        impl From<$err> for WebDriverBidiError {
+            fn from(value: $err) -> Self {
+                Self::new(ErrorCode::$code, value)
+            }
+        }
+    };
 }
+
+impl_from!(serde_json::Error, InvalidArgument);
+impl_from!(io::Error, UnknownError);
+impl_from!(tungstenite::Error, UnknownError);
+impl_from!(Box<dyn ::core::error::Error>, UnknownError);
+impl_from!(
+    crossbeam_channel::SendError<WebDriverBidiCommandMsg>,
+    UnknownError
+);
+
+pub type WebDriverBidiResult<T> = ::core::result::Result<T, WebDriverBidiError>;
