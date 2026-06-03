@@ -150,7 +150,7 @@ memmap2 = "0.9.10"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 ml-dsa = { version = "0.1", features = ["zeroize"] }
-ml-kem = { version = "0.2", features = ["deterministic"] }
+ml-kem = { version = "0.3", features = ["getrandom", "pkcs8", "zeroize"] }
 module-lattice = { version = "0.2", features = ["alloc"] }
 mozangle = "0.5.5"
 napi-derive-ohos = "1.2.0"

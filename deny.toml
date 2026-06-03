@@ -194,13 +194,12 @@ skip = [
     "cpufeatures",
     "crypto-common",
     "digest",
-    "keccak",
     "sha3",
-    "hybrid-array",
     "der",
     "pkcs8",
     "spki",
     "signature",
+    "block-buffer",
 ]
 
 # github.com organizations to allow git sources for
