@@ -541,7 +541,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         if let Some(callback) = resolver.success_callback {
                             let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
                         }
-                        resolver.promise.resolve_native(&buffer, CanGc::from_cx(cx));
+                        resolver.promise.resolve_native_with_cx(cx, &buffer);
                     }));
                 })
                 .error(move |error| {

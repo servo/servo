@@ -198,7 +198,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 *self.value.borrow_mut() = Some(value.clone());
 
                 // Step 5.4.3.
-                promise.resolve_native(&value, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &value);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
             BluetoothResponse::WriteValue(result) => {
@@ -210,7 +210,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
 
                 // Step 7.4.3.
                 // TODO: Resolve promise with undefined instead of a value.
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
             },
             _ => promise.reject_error(
                 Error::Type(c"Something went wrong...".to_owned()),

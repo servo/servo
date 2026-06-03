@@ -202,7 +202,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                     (*this.pending_rendering_promise.borrow_mut())
                         .take()
                         .unwrap()
-                        .resolve_native(&buffer, CanGc::from_cx(cx));
+                        .resolve_native_with_cx(cx, &buffer);
                     let global = &this.global();
                     let window = global.as_window();
                     let event = OfflineAudioCompletionEvent::new(window,

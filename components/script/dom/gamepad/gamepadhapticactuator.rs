@@ -203,7 +203,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &message);
                 }),
             );
         }
@@ -267,7 +267,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move |cx| {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &message);
                 }),
             );
         }
@@ -338,7 +338,7 @@ impl GamepadHapticActuator {
                     }
                     let promise = trusted_promise.root();
                     let message = DOMString::from("complete");
-                    promise.resolve_native(&message, CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &message);
                 })
             );
         }
@@ -358,7 +358,7 @@ impl GamepadHapticActuator {
                     return;
                 };
                 let message = DOMString::from("preempted");
-                promise.resolve_native(&message, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &message);
             }),
         );
 

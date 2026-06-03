@@ -32,7 +32,6 @@ use std::sync::{Arc, Weak};
 use js::jsapi::JSTracer;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{DomObject, Reflector};
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::Error;
@@ -151,7 +150,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move |cx| {
             debug!("Resolving promise.");
-            this.root().resolve_native(&value, CanGc::from_cx(cx));
+            this.root().resolve_native_with_cx(cx, &value);
         })
     }
 }

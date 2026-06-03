@@ -331,7 +331,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
 
         // Step 14.
         // > Resolve promise with undefined.
-        promise.resolve_native(&(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &());
     }
 }
 
@@ -372,6 +372,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // Step 16
         // > Resolve promise with undefined.
-        self.promise.root().resolve_native(&(), CanGc::from_cx(cx));
+        self.promise.root().resolve_native_with_cx(cx, &());
     }
 }

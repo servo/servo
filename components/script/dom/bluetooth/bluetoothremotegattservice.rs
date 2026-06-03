@@ -186,10 +186,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec, single) => {
                 if single {
-                    promise.resolve_native(
-                        &device.get_or_create_characteristic(cx, &characteristics_vec[0], self),
-                        CanGc::from_cx(cx),
-                    );
+                    let characteristic =
+                        device.get_or_create_characteristic(cx, &characteristics_vec[0], self);
+                    promise.resolve_native_with_cx(cx, &characteristic);
                     return;
                 }
                 let mut characteristics = vec![];
@@ -198,24 +197,23 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                         device.get_or_create_characteristic(cx, &characteristic, self);
                     characteristics.push(bt_characteristic);
                 }
-                promise.resolve_native(&characteristics, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &characteristics);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec, single) => {
                 let gatt_server = device.get_gatt(cx);
                 if single {
-                    return promise.resolve_native(
-                        &device.get_or_create_service(cx, &services_vec[0], &gatt_server),
-                        CanGc::from_cx(cx),
-                    );
+                    let characteristic =
+                        device.get_or_create_service(cx, &services_vec[0], &gatt_server);
+                    return promise.resolve_native_with_cx(cx, &characteristic);
                 }
                 let mut services = vec![];
                 for service in services_vec {
                     let bt_service = device.get_or_create_service(cx, &service, &gatt_server);
                     services.push(bt_service);
                 }
-                promise.resolve_native(&services, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &services);
             },
             _ => promise.reject_error(
                 Error::Type(c"Something went wrong...".to_owned()),

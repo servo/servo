@@ -97,7 +97,7 @@ impl ServiceWorkerContainer {
             JobResult::ResolvePromise(value) => {
                 match value {
                     JobResultValue::Unregister(success) => {
-                        promise.resolve_native(&success, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &success);
                     },
                     JobResultValue::Register(value) => {
                         let ServiceWorkerRegistrationInfo {
@@ -125,7 +125,7 @@ impl ServiceWorkerContainer {
                         // TODO Step 2.3: Else, set convertedValue to value, in equivalentJob’s client’s Realm.
 
                         // Step 2.4: Resolve equivalentJob’s job promise with convertedValue.
-                        promise.resolve_native(&*registration, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &*registration);
                     },
                 }
             },
@@ -145,7 +145,7 @@ impl ServiceWorkerContainer {
 
         // Step 8.2: If registration is null, resolve promise with undefined and abort these steps.
         let Some(info) = registration_info else {
-            promise.resolve_native(&(), CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &());
             return;
         };
 
@@ -160,7 +160,7 @@ impl ServiceWorkerContainer {
             info.active_worker,
             CanGc::from_cx(cx),
         );
-        promise.resolve_native(&*registration, CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &*registration);
     }
 
     fn handle_algorithm_result(&self, cx: &mut JSContext, result: ServiceWorkerAlgorithmResult) {

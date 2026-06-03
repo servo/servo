@@ -125,15 +125,15 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                     adapter.adapter_id,
                     CanGc::from_cx(cx),
                 );
-                promise.resolve_native(&adapter, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &adapter);
             },
             Some(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native(&None::<GPUAdapter>, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
             },
             None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native(&None::<GPUAdapter>, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
             },
         }
     }

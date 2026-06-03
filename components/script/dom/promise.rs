@@ -220,6 +220,17 @@ impl Promise {
         self.resolve(cx, v.handle(), can_gc);
     }
 
+    pub(crate) fn resolve_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    where
+        T: SafeToJSValConvertible,
+    {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut v = UndefinedValue());
+        val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
+        self.resolve(cx.into(), v.handle(), CanGc::from_cx(cx));
+    }
+
     #[expect(unsafe_code)]
     pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
@@ -238,6 +249,17 @@ impl Promise {
         rooted!(in(*cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx, v.handle_mut(), can_gc);
         self.reject(cx, v.handle(), can_gc);
+    }
+
+    pub(crate) fn reject_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    where
+        T: SafeToJSValConvertible,
+    {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut v = UndefinedValue());
+        val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
+        self.reject(cx.into(), v.handle(), CanGc::from_cx(cx));
     }
 
     pub(crate) fn reject_error(&self, error: Error, can_gc: CanGc) {
@@ -654,13 +676,13 @@ pub(crate) fn wait_for_all_promise(
     // Let successSteps be the following steps, given results:
     let success_steps = Rc::new(move |cx: &mut JSContext, results: Vec<HandleValue>| {
         // Resolve promise with results.
-        success_promise.resolve_native(&results, CanGc::from_cx(cx));
+        success_promise.resolve_native_with_cx(cx, &results);
     });
 
     // Let failureSteps be the following steps, given reason:
     let failure_steps = Rc::new(move |cx: &mut JSContext, reason: HandleValue| {
         // Reject promise with reason.
-        failure_promise.reject_native(&reason, CanGc::from_cx(cx));
+        failure_promise.reject_native_with_cx(cx, &reason);
     });
 
     // Wait for all with promises, given successSteps and failureSteps.

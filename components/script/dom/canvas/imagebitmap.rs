@@ -330,7 +330,7 @@ impl ImageBitmap {
                         let promise = trusted_promise.root();
                         let image_bitmap = trusted_image_bitmap.root();
 
-                        promise.resolve_native(&image_bitmap, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &image_bitmap);
                     }),
                 );
             };

@@ -187,7 +187,7 @@ impl Callback for CancelPromiseFulfillment {
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .reject_native(&error.handle(), CanGc::from_cx(cx));
+                .reject_native_with_cx(cx, &error.handle());
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).
@@ -201,7 +201,7 @@ impl Callback for CancelPromiseFulfillment {
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .resolve_native(&(), CanGc::from_cx(cx));
+                .resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -273,7 +273,7 @@ impl Callback for SourceCancelPromiseFulfillment {
             self.stream.unblock_write(global, CanGc::from_cx(cx));
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native(&(), CanGc::from_cx(cx));
+            finish_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -342,7 +342,7 @@ impl Callback for FlushPromiseFulfillment {
             self.readable.get_default_controller().close(cx);
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native(&(), CanGc::from_cx(cx));
+            finish_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -1041,10 +1041,10 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             } else {
                 Promise::new_resolved(global, cx.into(), result.get(), CanGc::from_cx(cx))
             };
-            start_promise.resolve_native(&promise, CanGc::from_cx(cx));
+            start_promise.resolve_native_with_cx(cx, &promise);
         } else {
             // Otherwise, resolve startPromise with undefined.
-            start_promise.resolve_native(&(), CanGc::from_cx(cx));
+            start_promise.resolve_native_with_cx(cx, &());
         };
 
         Ok(stream)

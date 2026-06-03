@@ -197,7 +197,7 @@ impl UnderlyingSourceContainer {
                     promise.reject_error_with_cx(cx, error);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
-                    promise.resolve_native(&(), CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &());
                 }
                 Some(Ok(promise))
             },

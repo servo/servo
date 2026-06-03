@@ -642,7 +642,7 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
             Err(PopError::Empty) => promise.reject_error_with_cx(cx, Error::Operation(None)),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(&self.global(), error, CanGc::from_cx(cx));
-                promise.resolve_native(&error, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &error);
             },
         }
     }

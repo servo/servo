@@ -66,7 +66,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             );
 
             // 1.3 Resolve p with blobData.
-            self.promise.resolve_native(&blob_data, CanGc::from_cx(cx));
+            self.promise.resolve_native_with_cx(cx, &blob_data);
         }
         // 2. If v is a Blob, then follow the below steps:
         else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), CanGc::from_cx(cx))

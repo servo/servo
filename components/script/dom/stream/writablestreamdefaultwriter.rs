@@ -161,7 +161,7 @@ impl WritableStreamDefaultWriter {
     ) {
         self.closed_promise
             .borrow()
-            .reject_native(error, CanGc::from_cx(cx));
+            .reject_native_with_cx(cx, error);
     }
 
     pub(crate) fn set_close_promise_is_handled(&self) {
@@ -307,7 +307,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
@@ -330,7 +330,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
@@ -398,7 +398,7 @@ impl WritableStreamDefaultWriter {
         if stream.close_queued_or_in_flight() || stream.is_closed() {
             // return a promise resolved with undefined.
             let promise = Promise::new2(cx, global);
-            promise.resolve_native(&(), CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &());
             return promise;
         }
 
@@ -408,7 +408,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
