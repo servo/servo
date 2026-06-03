@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
@@ -21,7 +22,6 @@ use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
@@ -41,7 +41,7 @@ impl BluetoothRemoteGATTServer {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         device: &BluetoothDevice,
     ) -> DomRoot<BluetoothRemoteGATTServer> {
@@ -97,7 +97,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect>
-    fn Disconnect(&self, cx: &mut js::context::JSContext) -> ErrorResult {
+    fn Disconnect(&self, cx: &mut JSContext) -> ErrorResult {
         // TODO: Step 1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
         // Step 2.
@@ -155,7 +155,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: BluetoothResponse,
         promise: &Rc<Promise>,
     ) {
@@ -192,10 +192,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 }
                 promise.resolve_native_with_cx(cx, &services);
             },
-            _ => promise.reject_error(
-                Error::Type(c"Something went wrong...".to_owned()),
-                CanGc::from_cx(cx),
-            ),
+            _ => {
+                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
+            },
         }
     }
 }

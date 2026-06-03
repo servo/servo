@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_bluetooth_traits::{BluetoothResponse, GATTType};
@@ -20,7 +21,6 @@ use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUI
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
@@ -50,7 +50,7 @@ impl BluetoothRemoteGATTService {
 
     #[expect(non_snake_case)]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         device: &BluetoothDevice,
         uuid: DOMString,
@@ -176,7 +176,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: BluetoothResponse,
         promise: &Rc<Promise>,
     ) {
@@ -215,10 +215,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 }
                 promise.resolve_native_with_cx(cx, &services);
             },
-            _ => promise.reject_error(
-                Error::Type(c"Something went wrong...".to_owned()),
-                CanGc::from_cx(cx),
-            ),
+            _ => {
+                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
+            },
         }
     }
 }

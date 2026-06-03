@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_cx;
@@ -31,7 +32,6 @@ use crate::dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 // Maximum length of an attribute value.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 2169)
@@ -66,7 +66,7 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         service: &BluetoothRemoteGATTService,
         uuid: DOMString,
@@ -310,7 +310,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: BluetoothResponse,
         promise: &Rc<Promise>,
     ) {
@@ -368,10 +368,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 // (StopNotification)  Step 5.
                 promise.resolve_native_with_cx(cx, self);
             },
-            _ => promise.reject_error(
-                Error::Type(c"Something went wrong...".to_owned()),
-                CanGc::from_cx(cx),
-            ),
+            _ => {
+                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
+            },
         }
     }
 }

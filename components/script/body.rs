@@ -802,12 +802,12 @@ fn resolve_result_promise(
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native(&USVString(s), CanGc::from_cx(cx)),
-                FetchedData::Json(j) => promise.resolve_native(&j, CanGc::from_cx(cx)),
-                FetchedData::BlobData(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::FormData(f) => promise.resolve_native(&f, CanGc::from_cx(cx)),
-                FetchedData::Bytes(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a, CanGc::from_cx(cx)),
+                FetchedData::Text(s) => promise.resolve_native_with_cx(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native_with_cx(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
+                FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
                 FetchedData::JSException(e) => {
                     promise.reject_native(&e.handle(), CanGc::from_cx(cx))
                 },
