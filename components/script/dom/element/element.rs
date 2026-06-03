@@ -1369,7 +1369,7 @@ impl<'dom> LayoutDom<'dom, Element> {
                 auto: true,
                 ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
             };
-            push(PropertyDeclaration::AspectRatio(aspect_ratio));
+            push(PropertyDeclaration::AspectRatio(Box::new(aspect_ratio)));
         }
 
         let cols = self

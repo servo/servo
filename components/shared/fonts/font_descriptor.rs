@@ -109,7 +109,7 @@ impl From<&Descriptors> for CSSFontFaceDescriptors {
         let weight = descriptors
             .font_weight
             .as_ref()
-            .map(|weight_range| (weight_range.0.compute(), weight_range.1.compute()));
+            .and_then(|weight_range| weight_range.0.compute().zip(weight_range.1.compute()));
 
         let stretch_to_computed = |specified: SpecifiedFontStretch| match specified {
             SpecifiedFontStretch::Stretch(percentage) => {
