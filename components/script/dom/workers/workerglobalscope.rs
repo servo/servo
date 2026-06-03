@@ -88,7 +88,7 @@ use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext, Runtime, get_reports};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
@@ -1044,9 +1044,8 @@ impl WorkerGlobalScope {
         match msg {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(cx),
             CommonScriptMsg::CollectReports(reports_chan) => {
-                let cx: JSContext = cx.into();
                 perform_memory_report(|ops| {
-                    let reports = cx.get_reports(format!("url({})", self.get_url()), ops);
+                    let reports = get_reports(cx, format!("url({})", self.get_url()), ops);
                     reports_chan.send(ProcessReports::new(reports));
                 });
             },
