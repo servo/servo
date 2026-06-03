@@ -30,7 +30,7 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from selenium.webdriver.remote.webelement import WebElement
-from urllib3.exceptions import ProtocolError
+from urllib3.exceptions import MaxRetryError, NewConnectionError, ProtocolError
 
 WEBDRIVER_PORT = random.randrange(9001, 9900)
 MITMPROXY_PORT = random.randrange(7150, 9000)
@@ -221,7 +221,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     while driver is None and time.time() - start_time < timeout:
         try:
             driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
-        except (ConnectionError, ProtocolError):
+        except (ConnectionError, MaxRetryError, NewConnectionError, ProtocolError):
             time.sleep(0.2)
         except Exception as e:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")

@@ -378,7 +378,7 @@ def run_tests(port: int, cli_args: argparse.Namespace, hdc: Optional[HarmonyDevi
                                 assert hdc is not None
                                 close_usb_popup(hdc)
                             try:
-                                webdriver = create_driver(timeout=1)
+                                webdriver = create_driver()
                             except RuntimeError as exc:
                                 print(f"Failed to create webdriver for {filePath}: {exc}")
                                 if csv_writer:

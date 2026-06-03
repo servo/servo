@@ -47,3 +47,17 @@ or when the script is run in a standalone mode you can do `-h` to see whats ther
 ```bash
 UV_PROJECT=etc/ci/scenario uv run --active etc/ci/scenario/memory_usage_plotter.py -h
 ```
+
+# Running blink-perf-test
+There is actually another runner of blink-perf-test present in the codebase, but I guess the current one is more general and might be better because it hadles more issues. Thus, this `blink-perf-test` is primarely made for running on OHOS.
+But as this `blink-perf-test` is now also has access to the memory loggin, the scope of it also now includes `linux` and `macos`
+So, as usual, to run:
+```bash
+UV_PROJECT=etc/ci/scenario uv run --active etc/ci/scenario/blink_perf_test.py -h
+```
+
+To check if works, there is a `single-test` mode, and extra `-mve` would also add more info to the output.
+```bash
+UV_PROJECT=etc/ci/scenario uv run --active etc/ci/scenario/blink_perf_test.py -mves
+```
+Will produce both `results.json` and `blink_perf_test_logs.csv` that would include bench of the run and memory info.
