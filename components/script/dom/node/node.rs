@@ -35,6 +35,7 @@ use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
+use script_bindings::canvas::CanvasNodeTrait;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
@@ -4936,5 +4937,11 @@ where
         };
 
         self.insert(insertion_index, Dom::from_ref(node));
+    }
+}
+
+impl CanvasNodeTrait for Node {
+    fn is_connected(&self) -> bool {
+        self.is_connected()
     }
 }

@@ -19,6 +19,7 @@ use crate::dom::types::{
     OffscreenCanvasRenderingContext2D, WebGL2RenderingContext, WebGLRenderingContext,
 };
 
+/*
 /// Non rooted variant of [`crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas`]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -66,53 +67,7 @@ impl From<&HTMLCanvasElementOrOffscreenCanvas> for RootedHTMLCanvasElementOrOffs
         }
     }
 }
-
-pub(crate) trait CanvasContext {
-    type ID;
-
-    fn context_id(&self) -> Self::ID;
-
-    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas>;
-
-    fn resize(&self);
-
-    // Resets the backing bitmap (to transparent or opaque black) without the
-    // context state reset.
-    // Used by OffscreenCanvas.transferToImageBitmap.
-    fn reset_bitmap(&self);
-
-    /// Returns none if area of canvas is zero.
-    ///
-    /// In case of other errors it returns cleared snapshot
-    fn get_image_data(&self) -> Option<Snapshot>;
-
-    fn origin_is_clean(&self) -> bool {
-        true
-    }
-
-    fn size(&self) -> Size2D<u32> {
-        self.canvas()
-            .map(|canvas| canvas.size())
-            .unwrap_or_default()
-    }
-
-    fn mark_as_dirty(&self);
-
-    fn onscreen(&self) -> bool {
-        let Some(canvas) = self.canvas() else {
-            return false;
-        };
-
-        match canvas {
-            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                canvas.upcast::<Node>().is_connected()
-            },
-            // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
-            // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
-        }
-    }
-}
+*/
 
 pub(crate) trait CanvasHelpers {
     fn size(&self) -> Size2D<u32>;

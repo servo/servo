@@ -38,6 +38,8 @@ num-traits = { workspace = true }
 parking_lot = { workspace = true }
 phf = { workspace = true }
 profile_traits = { workspace = true }
+pixels = { workspace = true }
+euclid = { workspace = true }
 regex = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
