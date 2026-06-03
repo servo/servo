@@ -308,7 +308,9 @@ def start_servo(
 ) -> subprocess.Popen[bytes] | None:
     if options.target_os == HostOptions.OHOS:
         hdc = HarmonyDeviceConnector()
-        cmd_str = f"aa start -a EntryAbility -b {SERVO_PACKAGE_NAME} -U {options.url} --psn=--webdriver={WEBDRIVER_PORT}"
+        cmd_str = (
+            f"aa start -a EntryAbility -b {SERVO_PACKAGE_NAME} -U {options.url} --psn=--webdriver={WEBDRIVER_PORT}"
+        )
         if options.use_mitmproxy.should_servo_proxy():
             cmd_str += (
                 f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT}"

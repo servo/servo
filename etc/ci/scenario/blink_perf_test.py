@@ -166,9 +166,7 @@ def run_single_test(
             else:
                 page_loading_timeout = 2
         if after_get - before_get > page_loading_timeout:
-            raise TimeoutError(
-                f"Page loading took {(after_get - before_get):.2f}s (> {page_loading_timeout}s limit)"
-            )
+            raise TimeoutError(f"Page loading took {(after_get - before_get):.2f}s (> {page_loading_timeout}s limit)")
         print(f">>> Page loading took {(after_get - before_get):.2f}s")
 
         avg_line: Optional[float] = None
