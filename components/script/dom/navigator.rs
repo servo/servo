@@ -183,6 +183,7 @@ impl Navigator {
         self.gamepads.borrow().get(index).and_then(|g| g.get())
     }
 
+    /// From: <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
     #[cfg(feature = "gamepad")]
     pub(crate) fn set_gamepad(
         &self,
@@ -190,19 +191,28 @@ impl Navigator {
         index: usize,
         gamepad: &Gamepad,
     ) {
+        // Step 3.3. Set navigator.[[gamepads]][gamepad.index] to gamepad.
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
         }
+        // Step 3.4. If navigator.[[hasGamepadGesture]] is true:
         if self.has_gamepad_gesture.get() {
+            // Step 3.4.1. Set gamepad.[[exposed]] to true.
             gamepad.set_exposed(true);
+            // Step 3.4.2. If document is not null and is fully active, then fire an
+            //            event named gamepadconnected at gamepad's relevant global
+            //            object using GamepadEvent with its gamepad attribute
+            //            initialized to gamepad.
             if self.global().as_window().Document().is_fully_active() {
                 gamepad.notify_event(cx, GamepadEventType::Connected);
             }
         }
     }
 
+    /// From: <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     #[cfg(feature = "gamepad")]
     pub(crate) fn remove_gamepad(&self, index: usize) {
+        // Step 2.5. Set navigator.[[gamepads]][gamepad.index] to null.
         if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
             gamepad_to_remove.set(None);
         }
@@ -423,15 +433,27 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
     #[cfg(feature = "gamepad")]
     fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
+        // Step 1. Let doc be the current global object's associated Document.
         let global = self.global();
         let window = global.as_window();
         let doc = window.Document();
 
-        // TODO: Handle permissions policy once implemented
+        // Step 2. If doc is null or doc is not fully active, then return an empty list.
+        // TODO Step 3. If doc is not allowed to use the "gamepad" permission,
+        //         then throw a "SecurityError" DOMException.
         if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
             return Vec::new();
         }
 
+        // TODO Step 5. Let now be the current high resolution time given the current global object.
+        // TODO Step 4. If this.[[hasGamepadGesture]] is false, then return an empty list.
+        // (Step 4 is handled by the has_gamepad_gesture check above.)
+
+        // Step 6. Let gamepads be an empty list.
+        // Step 7. For each gamepad of this.[[gamepads]]:
+        // TODO Step 7.1. If gamepad is not null and gamepad.[[exposed]] is false,
+        //         set gamepad.[[exposed]] to true and gamepad.[[timestamp]] to now.
+        // Step 8. Return gamepads.
         self.gamepads.borrow().iter().map(|g| g.get()).collect()
     }
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
