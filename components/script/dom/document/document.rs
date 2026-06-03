@@ -3767,7 +3767,7 @@ impl Document {
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
         {
-            let size = compute_size(node.jsobject(), ops, &computed_objects);
+            let size = compute_size(node.jsobject(), ops, &computed_objects, None);
 
             match node.type_id() {
                 NodeTypeId::Element(_) => {
@@ -3780,6 +3780,7 @@ impl Document {
                                 attr.upcast::<Node>().jsobject(),
                                 ops,
                                 &computed_objects,
+                                None,
                             );
                             sizes.attribute_nodes_size += size;
                         }

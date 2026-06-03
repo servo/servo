@@ -2715,7 +2715,7 @@ impl GlobalScope {
             // TODO: is this the right URL to return?
             return worklet.base_url();
         }
-        if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
+        if self.is::<DebuggerGlobalScope>() || self.is::<DissimilarOriginWindow>() {
             return self.creation_url();
         }
         unreachable!();

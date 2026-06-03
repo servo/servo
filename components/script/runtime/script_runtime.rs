@@ -9,7 +9,7 @@
 
 use core::ffi::c_char;
 use std::cell::{Cell, LazyCell, RefCell};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
@@ -66,6 +66,7 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive, temp_
 use script_bindings::settings_stack::run_a_script;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::pref;
+use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
@@ -1093,12 +1094,46 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
 
 thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
+#[derive(Default)]
+struct InterfaceSizeData {
+    /// How many live instances of this interface exist.
+    count: usize,
+    /// The total number of bytes allocated for instances of this interface.
+    bytes: usize,
+}
+
+struct GlobalSizeData {
+    /// The URL associated with this global.
+    url: ServoUrl,
+    /// A map of WebIDL interface names to size information.
+    interface_sizes: HashMap<&'static str, InterfaceSizeData>,
+}
+
+#[derive(Default)]
+/// A map of globals to size information for those globals.
+/// The key is the global's JS reflector pointer as an integer.
+pub(crate) struct PerGlobalInterfaceSizes(HashMap<usize, GlobalSizeData>);
+
+thread_local!(
+    static DOM_OBJECT_SIZES: LazyCell<RefCell<PerGlobalInterfaceSizes>> = const {
+        LazyCell::new(|| Default::default())
+    }
+);
+
 #[expect(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     let ops = MALLOC_SIZE_OF_OPS.get();
     ALREADY_COMPUTED_OBJECTS.with(|objects| {
         let ignored = objects.borrow();
-        compute_size(obj, unsafe { &mut *ops }, &ignored)
+        DOM_OBJECT_SIZES.with(|dom_sizes| {
+            let mut per_global_interface_sizes = dom_sizes.borrow_mut();
+            compute_size(
+                obj,
+                unsafe { &mut *ops },
+                &ignored,
+                Some(&mut per_global_interface_sizes),
+            )
+        })
     })
 }
 
@@ -1219,6 +1254,7 @@ pub(crate) fn compute_size(
     obj: *mut JSObject,
     ops: &mut MallocSizeOfOps,
     ignored: &HashSet<*const JSObject>,
+    per_global_interface_sizes: Option<&mut PerGlobalInterfaceSizes>,
 ) -> usize {
     if ignored.contains(&(obj as *const JSObject)) {
         return 0;
@@ -1231,7 +1267,32 @@ pub(crate) fn compute_size(
             if dom_object.is_null() {
                 return 0;
             }
-            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
+            let size = unsafe { (v.malloc_size_of)(&mut *ops, dom_object) };
+
+            let Some(per_global_interface_sizes) = per_global_interface_sizes else {
+                return size;
+            };
+
+            let global = unsafe { js::jsapi::GetNonCCWObjectGlobal(obj) };
+            let interface = v.interface_chain[v.depth as usize];
+            let interface_size = per_global_interface_sizes
+                .0
+                .entry(global as usize)
+                .or_insert_with(|| {
+                    let global = unsafe { GlobalScope::from_object(obj) };
+                    GlobalSizeData {
+                        url: global.get_url(),
+                        interface_sizes: HashMap::new(),
+                    }
+                })
+                .interface_sizes
+                .entry(interface.into())
+                .or_default();
+            interface_size.count += 1;
+            interface_size.bytes += size;
+            // Always report a size of zero, since we report this value
+            // in a separate tree from the main JS heap.
+            0
         },
         Err(_e) => 0,
     }
@@ -1269,6 +1330,21 @@ pub(crate) fn get_reports(
         path.append(&mut path_suffix);
         reports.push(Report { path, kind, size })
     };
+
+    DOM_OBJECT_SIZES.with(|sizes| {
+        let mut sizes = sizes.borrow_mut();
+        for global_size_data in sizes.0.values() {
+            let url = global_size_data.url.as_str();
+            for (interface, interface_data) in &global_size_data.interface_sizes {
+                report(
+                    path!["dom", "out-of-tree", format!("url({url})"), format!("{interface} [{}]", interface_data.count)],
+                    ReportKind::ExplicitJemallocHeapSize,
+                    interface_data.bytes,
+                );
+            }
+        }
+        sizes.0.clear();
+    });
 
     // A note about possibly confusing terminology: the JS GC "heap" is allocated via
     // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
