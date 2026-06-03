@@ -7732,6 +7732,7 @@ name = "servo-capi"
 version = "0.2.0"
 dependencies = [
  "dpi",
+ "libc",
  "log",
  "servo",
  "url",

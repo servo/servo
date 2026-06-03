@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, c_char, c_void};
+use std::ptr;
 
 use servo::{PrefValue, Preferences};
 
@@ -209,7 +210,9 @@ pub unsafe extern "C" fn servo_preferences_set_string(
 ///
 /// Returns a newly allocated NUL terminated UTF-8 string.
 /// The ownership of the returned string is transferred to the caller, who
-/// must free it using [`servo_string_free`].
+/// must free it using the system allocator i.e., C standard library's `free()`.
+/// This can be NULL if allocation fails or the string is large enough
+/// to cause an overflow.
 ///
 /// # Safety
 ///
@@ -243,37 +246,40 @@ pub unsafe extern "C" fn servo_preferences_get_string(
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `prefs` documented above.
     match unsafe { &*prefs }.get_value(name) {
-        PrefValue::Str(value) => CString::new(value)
-            .expect("string value in rust is valid")
-            .into_raw(),
+        PrefValue::Str(value) => create_libc_string(&value),
         _ => unreachable!(),
     }
 }
 
-/// Frees a string previously returned by [`servo_preferences_get_string`].
-///
-/// `string` is a NUL terminated UTF-8 string previously returned by an API
-/// in this library.
-/// The ownership of `string` is transferred to the function.
-/// The caller must not use or free `string` again.
-///
-/// Always use this function instead of `free()` for strings returned by
-/// the servo_capi API since there is no guarantee that Servo uses the
-/// same allocator as the C standard library's `free()`.
-///
-/// # Safety
-///
-/// The caller must ensure that `string` was previously returned by an
-/// API in this library and it has not yet been freed.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_string_free(string: *mut c_char) {
-    assert!(!string.is_null(), "string pointer must not be null");
+/// Allocates a new NUL-terminated copy of `string` using the system allocator
+/// (`libc::malloc`).  Returns a NULL pointer if the allocation fails or
+/// if `string` is too large.
+fn create_libc_string(string: &str) -> *mut c_char {
+    let Some(buffer_size) = string.len().checked_add(1) else {
+        return ptr::null_mut();
+    };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `string` documented above.
-    unsafe {
-        let _ = CString::from_raw(string);
+    // SAFETY: calling `malloc` is safe.
+    let dest_buffer = unsafe { libc::malloc(buffer_size) as *mut u8 };
+
+    if dest_buffer.is_null() {
+        return ptr::null_mut();
     }
+
+    let source_buffer = string.as_ptr();
+
+    // SAFETY: `source_buffer` is derived from a valid Rust `&str` of length
+    // `buffer_size - 1` and does not include a NUL terminator.
+    // `dest_buffer` is a freshly allocated, non-null memory block of
+    // size `buffer_size` and includes space for the NUL terminator.
+    // `buffer_size - 1` is valid because we used `checked_add` above,
+    //  so `buffer_size >= 1`.
+    unsafe {
+        ptr::copy_nonoverlapping(source_buffer, dest_buffer, buffer_size - 1);
+        dest_buffer.add(buffer_size - 1).write(0);
+    }
+
+    dest_buffer as *mut c_char
 }
 
 /// Sets an i64 preference by name.
@@ -578,7 +584,7 @@ pub unsafe extern "C" fn servo_preferences_get_f64_array_4(
             // SAFETY: The caller is assumed to uphold the safety
             // requirements for `output` documented above.
             // The source `values` buffer is a newly allocated `Vec` of four elements.
-            unsafe { std::ptr::copy_nonoverlapping(values.as_ptr(), output, 4) };
+            unsafe { ptr::copy_nonoverlapping(values.as_ptr(), output, 4) };
         },
         _ => unreachable!(),
     }

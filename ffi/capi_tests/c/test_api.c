@@ -176,11 +176,11 @@ int test_preferences_string_roundtrip(void) {
     return 1;
   }
   if (strcmp(user_agent, "ServoTest/1.0") != 0) {
-    servo_string_free(user_agent);
+    free(user_agent);
     servo_preferences_free(prefs);
     return 1;
   }
-  servo_string_free(user_agent);
+  free(user_agent);
   servo_preferences_free(prefs);
   return 0;
 }

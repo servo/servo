@@ -21,6 +21,7 @@ capi = [] # Needed by `cargo-c`.
 
 [dependencies]
 dpi = { workspace = true }
+libc = { workspace = true }
 log = { workspace = true }
 # TODO: We need 'baked-in-resources' as the `inventory` based `ResourceReader`
 # doesn't work when libservo is a cdylib.
