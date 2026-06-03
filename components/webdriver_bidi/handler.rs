@@ -256,16 +256,22 @@ impl Handler {
         todo!()
     }
     fn handle_browser_create_user_context(&self) -> WebDriverBidiResult<()> {
-        todo!()
+        Err(WebDriverBidiError::unknown(
+            "user context is not implemented yet",
+        ))
     }
     fn handle_browser_get_client_windows(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
     fn handle_browser_get_user_contexts(&self) -> WebDriverBidiResult<()> {
-        todo!()
+        Err(WebDriverBidiError::unknown(
+            "user context is not implemented yet",
+        ))
     }
     fn handle_browser_remove_user_context(&self) -> WebDriverBidiResult<()> {
-        todo!()
+        Err(WebDriverBidiError::unknown(
+            "user context is not implemented yet",
+        ))
     }
     fn handle_browser_set_client_window_state(&self) -> WebDriverBidiResult<()> {
         todo!()
