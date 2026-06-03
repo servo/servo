@@ -189,7 +189,7 @@ pub(crate) struct RunningAppState {
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
     pub(crate) webdriver_bidi_sender: Option<tokio::sync::mpsc::UnboundedSender<()>>,
-    pub(crate) webdriver_bidi_receiver: Option<tokio::sync::mpsc::UnboundedReceiver<()>>,
+    pub(crate) webdriver_bidi_receiver: Option<crossbeam_channel::Receiver<()>>,
 
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
@@ -258,7 +258,7 @@ impl RunningAppState {
             match servoshell_preferences.webdriver_bidi_port.get() {
                 Some(port) => {
                     let (tx1, rx1) = tokio::sync::mpsc::unbounded_channel::<()>();
-                    let (tx2, rx2) = tokio::sync::mpsc::unbounded_channel::<()>();
+                    let (tx2, rx2) = crossbeam_channel::unbounded::<()>();
                     webdriver_bidi::start_server(port, event_loop_waker, tx2, rx1);
                     (Some(tx1), Some(rx2))
                 },
@@ -338,6 +338,10 @@ impl RunningAppState {
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
         self.webdriver_receiver.as_ref()
+    }
+
+    pub(crate) fn webdriver_bidi_receiver(&self) -> Option<&crossbeam_channel::Receiver<()>> {
+        self.webdriver_bidi_receiver.as_ref()
     }
 
     pub(crate) fn servo(&self) -> &Servo {

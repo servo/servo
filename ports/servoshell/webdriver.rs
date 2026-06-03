@@ -247,8 +247,8 @@ impl RunningAppState {
                 },
                 WebDriverCommandMsg::GetViewportSize(webview_id, response_sender) => {
                     let platform_window = self.platform_window_for_webview_id(webview_id);
-                    let size = platform_window.rendering_context().size2d().to_f32() /
-                        platform_window.hidpi_scale_factor();
+                    let size = platform_window.rendering_context().size2d().to_f32()
+                        / platform_window.hidpi_scale_factor();
                     if let Err(error) = response_sender.send(size) {
                         warn!("Failed to send response of GetViewportSize: {error}");
                     }
@@ -327,6 +327,16 @@ impl RunningAppState {
                     self.handle_webdriver_screenshot(webview_id, rect, result_sender);
                 },
             };
+        }
+    }
+
+    pub(crate) fn handle_webdriver_bidi_message(self: &Rc<Self>) {
+        let Some(webdriver_bidi_receiver) = self.webdriver_bidi_receiver() else {
+            return;
+        };
+
+        while let Ok(msg) = webdriver_bidi_receiver.try_recv() {
+            // TODO: match and handle
         }
     }
 }
