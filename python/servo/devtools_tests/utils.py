@@ -12,7 +12,6 @@ from collections import Counter
 from concurrent.futures import Future
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional, TypeVar
-import unittest
 
 from geckordp.actors.events import Events
 from geckordp.actors.node import NodeActor
@@ -24,6 +23,87 @@ from geckordp.rdp_client import RDPClient
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
+# The devtools server will be served at 6000.
+DEVTOOLS_PORT = 6000
+# Other web servers.
+WEB_SERVERS = [10000, 10001]
+SERVER_ADDRESS = "127.0.0.1"
+
+
+@dataclass
+class Devtools:
+    client: RDPClient
+    tab: TabActor
+    watcher: WatcherActor
+    targets: list
+    exited: bool = False
+
+    def connect(*, expected_targets: int = 1) -> Devtools:
+        """
+        Connect to the Servo devtools server.
+        You should use a `with` statement to ensure we disconnect unconditionally.
+        """
+        client = RDPClient()
+        client.connect(SERVER_ADDRESS, DEVTOOLS_PORT)
+        root = RootActor(client)
+        tabs = root.list_tabs()
+        tab_dict = tabs[0]
+        tab = TabActor(client, tab_dict["actor"])
+        watcher = tab.get_watcher()
+        watcher = WatcherActor(client, watcher["actor"])
+
+        done = Future()
+        targets = []
+
+        def on_target(data):
+            try:
+                targets.append(data["target"])
+                if len(targets) == expected_targets:
+                    done.set_result(None)
+            except Exception as e:
+                # Raising here does nothing, for some reason.
+                # Send the exception back so it can be raised.
+                done.set_result(e)
+
+        client.add_event_listener(
+            watcher.actor_id,
+            Events.Watcher.TARGET_AVAILABLE_FORM,
+            on_target,
+        )
+        watcher.watch_targets(WatcherActor.Targets.FRAME)
+        watcher.watch_targets(WatcherActor.Targets.WORKER)
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+
+        return Devtools(client, tab, watcher, targets)
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Access a property, raising a ValueError if the instance was previously marked as exited.
+        """
+        if name != "exited" and object.__getattribute__(self, "exited"):
+            raise ValueError("Devtools instance must not be used after __exit__()")
+        return object.__getattribute__(self, name)
+
+    def __enter__(self) -> Devtools:
+        """
+        Enter the `with` context for this instance, raising a ValueError if it was previously marked as exited.
+        """
+        if self.exited:
+            raise ValueError("Devtools instance must not be used after __exit__()")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Exit the `with` context for this instance, disconnecting the client and marking it as exited.
+        Does not raise a ValueError if it was previously marked as exited, so you can nest `with` statements.
+        """
+        if not self.exited:
+            # Ignore any return value; we never want to return True to suppress exceptions
+            self.client.__exit__(exc_type, exc_value, traceback)
+        self.exited = True
 
 
 @dataclass(frozen=True, order=True)
@@ -123,82 +203,6 @@ def wait_and_assert_no_pause(client, thread_actor, trigger, duration):
         pass
 
 
-@dataclass
-class Devtools:
-    client: RDPClient
-    tab: TabActor
-    watcher: WatcherActor
-    targets: list
-    exited: bool = False
-
-    def connect(*, expected_targets: int = 1) -> Devtools:
-        """
-        Connect to the Servo devtools server.
-        You should use a `with` statement to ensure we disconnect unconditionally.
-        """
-        client = RDPClient()
-        client.connect("127.0.0.1", 6080)
-        root = RootActor(client)
-        tabs = root.list_tabs()
-        tab_dict = tabs[0]
-        tab = TabActor(client, tab_dict["actor"])
-        watcher = tab.get_watcher()
-        watcher = WatcherActor(client, watcher["actor"])
-
-        done = Future()
-        targets = []
-
-        def on_target(data):
-            try:
-                targets.append(data["target"])
-                if len(targets) == expected_targets:
-                    done.set_result(None)
-            except Exception as e:
-                # Raising here does nothing, for some reason.
-                # Send the exception back so it can be raised.
-                done.set_result(e)
-
-        client.add_event_listener(
-            watcher.actor_id,
-            Events.Watcher.TARGET_AVAILABLE_FORM,
-            on_target,
-        )
-        watcher.watch_targets(WatcherActor.Targets.FRAME)
-        watcher.watch_targets(WatcherActor.Targets.WORKER)
-
-        result: Optional[Exception] = done.result(1)
-        if result:
-            raise result
-
-        return Devtools(client, tab, watcher, targets)
-
-    def __getattribute__(self, name: str) -> Any:
-        """
-        Access a property, raising a ValueError if the instance was previously marked as exited.
-        """
-        if name != "exited" and object.__getattribute__(self, "exited"):
-            raise ValueError("Devtools instance must not be used after __exit__()")
-        return object.__getattribute__(self, name)
-
-    def __enter__(self) -> Devtools:
-        """
-        Enter the `with` context for this instance, raising a ValueError if it was previously marked as exited.
-        """
-        if self.exited:
-            raise ValueError("Devtools instance must not be used after __exit__()")
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
-        """
-        Exit the `with` context for this instance, disconnecting the client and marking it as exited.
-        Does not raise a ValueError if it was previously marked as exited, so you can nest `with` statements.
-        """
-        if not self.exited:
-            # Ignore any return value; we never want to return True to suppress exceptions
-            self.client.__exit__(exc_type, exc_value, traceback)
-        self.exited = True
-
-
 # TODO: Use new syntax in python 3.12
 # <https://docs.python.org/3/reference/compound_stmts.html#generic-functions>
 # <https://docs.python.org/3/library/typing.html#user-defined-generic-types>
@@ -218,154 +222,139 @@ def frozen_multiset(items: Iterable[T] = []) -> FrozenMultiset[T]:
     # then convert it to a tuple with a stable order
     return tuple(sorted(result.items()))
 
+def assert_event_listeners(self, node: dict, expected_listeners: Optional[Any], devtools: Devtools):
+    if expected_listeners is None:
+        self.assertFalse(node["hasEventListeners"])
+        return
+    self.assertTrue(node["hasEventListeners"])
+    nodeActor = NodeActor(devtools.client, node["actor"])
+    event_listener_info = nodeActor.get_event_listener_info()
+    self.assertEqual(len(event_listener_info), len(expected_listeners))
+    for expected_listener, actual_listener in zip(expected_listeners, event_listener_info):
+        for key, value in expected_listener.items():
+            self.assertEqual(actual_listener[key], value)
 
-class DevtoolsTestCase(unittest.IsolatedAsyncioTestCase):
-    harness = None
+def assert_sources_list(
+    expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None
+):
+    expected_targets = len(expected_sources_by_target)
+    if devtools is None:
+        devtools = Devtools.connect(expected_targets=expected_targets)
+    with devtools:
+        done = Future()
+        actual_sources_by_target: Counter[FrozenMultiset[Source]] = Counter()
 
-    def __getattr__(self, name):
-        if self.harness is not None:
-            return getattr(self.harness, name)
-        raise AttributeError(name)
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    assert resource_type == "source"
+                    source_urls = frozen_multiset(
+                        [Source(source["introductionType"], source["url"]) for source in sources]
+                    )
+                    assert source_urls not in actual_sources_by_target  # See NOTE above
+                    actual_sources_by_target.update([source_urls])
+                    if len(actual_sources_by_target) == expected_targets:
+                        done.set_result(None)
+                except Exception as e:
+                    # Raising here does nothing, for some reason.
+                    # Send the exception back so it can be raised.
+                    done.set_result(e)
 
-    def tearDown(self):
-        self.harness.tearDown()
+        for target in devtools.targets:
+            devtools.client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        devtools.watcher.watch_resources([Resources.SOURCE])
 
-    def assert_event_listeners(self, node: dict, expected_listeners: Optional[Any], devtools: Devtools):
-        if expected_listeners is None:
-            self.assertFalse(node["hasEventListeners"])
-            return
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+        assert actual_sources_by_target == expected_sources_by_target
 
-        self.assertTrue(node["hasEventListeners"])
-        nodeActor = NodeActor(devtools.client, node["actor"])
-        event_listener_info = nodeActor.get_event_listener_info()
-        self.assertEqual(len(event_listener_info), len(expected_listeners))
 
-        for expected_listener, actual_listener in zip(expected_listeners, event_listener_info):
-            for key, value in expected_listener.items():
-                self.assertEqual(actual_listener[key], value)
+def assert_source_content(expected_source: Source, expected_content: str, *, devtools: Optional[Devtools] = None):
+    if devtools is None:
+        devtools = Devtools.connect()
+    with devtools:
+        done = Future()
+        source_actors = {}
 
-    def assert_sources_list(
-        self, expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None
-    ):
-        expected_targets = len(expected_sources_by_target)
-        if devtools is None:
-            devtools = Devtools.connect(expected_targets=expected_targets)
-        with devtools:
-            done = Future()
-            actual_sources_by_target: Counter[FrozenMultiset[Source]] = Counter()
-
-            def on_source_resource(data):
-                for [resource_type, sources] in data["array"]:
-                    try:
-                        self.assertEqual(resource_type, "source")
-                        source_urls = frozen_multiset(
-                            [Source(source["introductionType"], source["url"]) for source in sources]
-                        )
-                        self.assertFalse(source_urls in actual_sources_by_target)  # See NOTE above
-                        actual_sources_by_target.update([source_urls])
-                        if len(actual_sources_by_target) == expected_targets:
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    assert resource_type == "source"
+                    for source in sources:
+                        if Source(source["introductionType"], source["url"]) == expected_source:
+                            source_actors[expected_source] = source["actor"]
                             done.set_result(None)
-                    except Exception as e:
-                        # Raising here does nothing, for some reason.
-                        # Send the exception back so it can be raised.
-                        done.set_result(e)
+                except Exception as e:
+                    done.set_result(e)
 
-            for target in devtools.targets:
-                devtools.client.add_event_listener(
-                    target["actor"],
-                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                    on_source_resource,
-                )
-            devtools.watcher.watch_resources([Resources.SOURCE])
+        for target in devtools.targets:
+            devtools.client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        devtools.watcher.watch_resources([Resources.SOURCE])
 
-            result: Optional[Exception] = done.result(1)
-            if result:
-                raise result
-            self.assertEqual(actual_sources_by_target, expected_sources_by_target)
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
 
-    def assert_source_content(
-        self, expected_source: Source, expected_content: str, *, devtools: Optional[Devtools] = None
-    ):
-        if devtools is None:
-            devtools = Devtools.connect()
-        with devtools:
-            done = Future()
-            source_actors = {}
+        # We found at least one source with the given url.
+        assert expected_source in source_actors
+        source_actor = source_actors[expected_source]
 
-            def on_source_resource(data):
-                for [resource_type, sources] in data["array"]:
-                    try:
-                        self.assertEqual(resource_type, "source")
-                        for source in sources:
-                            if Source(source["introductionType"], source["url"]) == expected_source:
-                                source_actors[expected_source] = source["actor"]
-                                done.set_result(None)
-                    except Exception as e:
-                        done.set_result(e)
+        response = devtools.client.send_receive({"to": source_actor, "type": "source"})
 
-            for target in devtools.targets:
-                devtools.client.add_event_listener(
-                    target["actor"],
-                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                    on_source_resource,
-                )
-            devtools.watcher.watch_resources([Resources.SOURCE])
+        assert response["source"] == expected_content
 
-            result: Optional[Exception] = done.result(1)
-            if result:
-                raise result
 
-            # We found at least one source with the given url.
-            self.assertIn(expected_source, source_actors)
-            source_actor = source_actors[expected_source]
+def assert_source_breakable_lines_and_positions(
+    expected_source: Source,
+    expected_breakable_lines: list[int],
+    expected_positions: dict[int, list[int]],
+    *,
+    devtools: Optional[Devtools] = None,
+):
+    if devtools is None:
+        devtools = Devtools.connect()
+    with devtools:
+        done = Future()
+        source_actors = {}
 
-            response = devtools.client.send_receive({"to": source_actor, "type": "source"})
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    assert resource_type == "source"
+                    for source in sources:
+                        if Source(source["introductionType"], source["url"]) == expected_source:
+                            source_actors[expected_source] = source["actor"]
+                            done.set_result(None)
+                except Exception as e:
+                    done.set_result(e)
 
-            self.assertEqual(response["source"], expected_content)
+        for target in devtools.targets:
+            devtools.client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
+        devtools.watcher.watch_resources([Resources.SOURCE])
 
-    def assert_source_breakable_lines_and_positions(
-        self,
-        expected_source: Source,
-        expected_breakable_lines: list[int],
-        expected_positions: dict[int, list[int]],
-        *,
-        devtools: Optional[Devtools] = None,
-    ):
-        if devtools is None:
-            devtools = Devtools.connect()
-        with devtools:
-            done = Future()
-            source_actors = {}
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
 
-            def on_source_resource(data):
-                for [resource_type, sources] in data["array"]:
-                    try:
-                        self.assertEqual(resource_type, "source")
-                        for source in sources:
-                            if Source(source["introductionType"], source["url"]) == expected_source:
-                                source_actors[expected_source] = source["actor"]
-                                done.set_result(None)
-                    except Exception as e:
-                        done.set_result(e)
+        # We found at least one source with the given url.
+        assert expected_source in source_actors
+        source_actor = source_actors[expected_source]
 
-            for target in devtools.targets:
-                devtools.client.add_event_listener(
-                    target["actor"],
-                    Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                    on_source_resource,
-                )
-            devtools.watcher.watch_resources([Resources.SOURCE])
+        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakableLines"})
+        assert response["lines"] == expected_breakable_lines
 
-            result: Optional[Exception] = done.result(1)
-            if result:
-                raise result
-
-            # We found at least one source with the given url.
-            self.assertIn(expected_source, source_actors)
-            source_actor = source_actors[expected_source]
-
-            response = devtools.client.send_receive({"to": source_actor, "type": "getBreakableLines"})
-            self.assertEqual(response["lines"], expected_breakable_lines)
-
-            response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
-            self.assertEqual(response["positions"], expected_positions)
+        response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
+        assert response["positions"] == expected_positions
