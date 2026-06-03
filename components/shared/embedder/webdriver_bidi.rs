@@ -38,9 +38,10 @@ pub struct RequestSender<T: Serialize> {
 // TODO: incomplete
 #[derive(Debug)]
 pub enum WebDriverBidiCommandMsg {
-    TraverseHistory(WebViewId, RequestSender<()>),
+    TraverseHistory(WebViewId, i64, GenericSender<()>),
     Navigate(WebViewId, Url, RequestSender<()>),
-    Reload(WebViewId, Url),
+    Reload(WebViewId),
+    Shutdown,
     /// Pass a webdriver bidi command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverBidiScriptCommand),
