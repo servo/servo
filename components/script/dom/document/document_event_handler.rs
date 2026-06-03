@@ -1580,9 +1580,13 @@ impl DocumentEventHandler {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
-        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
-        //          then abort these steps.
+        // TODO Step 1. Let document be the current global object's associated Document; otherwise null.
+        // TODO Step 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //         then abort these steps.
         let trusted_window = Trusted::new(&*self.window);
+
+        // Step 3. Queue a global task on the gamepad task source with the current global object
+        //         to perform the following steps:
         self.window
             .upcast::<GlobalScope>()
             .task_manager()
@@ -1590,6 +1594,8 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_connected: move |cx| {
                 let window = trusted_window.root();
 
+                // Step 3.1. Let gamepad be a new Gamepad representing the gamepad.
+                // Step 3.2. Let navigator be gamepad's relevant global object's Navigator object.
                 let navigator = window.Navigator();
                 let selected_index = navigator.select_gamepad_index();
                 let gamepad = Gamepad::new(
@@ -1603,6 +1609,11 @@ impl DocumentEventHandler {
                     false,
                     CanGc::from_cx(cx),
                 );
+
+                // Step 3.3. Set navigator.[[gamepads]][gamepad.index] to gamepad.
+                // TODO Step 3.4. If navigator.[[hasGamepadGesture]] is true, then
+                //         set gamepad.[[exposed]] to true and fire an event named
+                //         gamepadconnected at gamepad's relevant global object.
                 navigator.set_gamepad(cx, selected_index as usize, &gamepad);
             }));
     }
@@ -1610,6 +1621,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     #[cfg(feature = "gamepad")]
     fn handle_gamepad_disconnect(&self, index: usize) {
+        // Step 1. Let gamepad be the Gamepad representing the unavailable device.
+        // Step 2. Queue a global task on the gamepad task source with
+        //         gamepad's relevant global object to perform the following steps:
         let trusted_window = Trusted::new(&*self.window);
         self.window
             .upcast::<GlobalScope>()
@@ -1618,6 +1632,18 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_disconnected: move |cx| {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
+
+                // Step 2.1. Set gamepad.[[connected]] to false.
+                // Step 2.2. Let document be gamepad's relevant global object's
+                //           associated Document; otherwise null.
+                // Step 2.3. If gamepad.[[exposed]] is true and document is not null
+                //           and is fully active, then fire an event named
+                //           gamepaddisconnected at gamepad's relevant global object
+                //           using GamepadEvent with its gamepad attribute
+                //           initialized to gamepad.
+                // Step 2.4. Let navigator be gamepad's relevant global object's
+                //           Navigator object.
+                // Step 2.5. Set navigator.[[gamepads]][gamepad.index] to null.
                 if let Some(gamepad) = navigator.get_gamepad(index)
                     && window.Document().is_fully_active() {
                         gamepad.update_connected(cx, false, gamepad.exposed());
@@ -1632,16 +1658,24 @@ impl DocumentEventHandler {
         use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
         use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 
+        // Step 1. Let gamepad be the Gamepad object representing the device that received
+        //         new button or axis input values.
         let trusted_window = Trusted::new(&*self.window);
 
-        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        // Step 2. Queue a global task on the gamepad task source with gamepad's
+        //         relevant global object to perform the following steps:
         self.window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
                 task!(update_gamepad_state: move || {
                     let window = trusted_window.root();
                     let navigator = window.Navigator();
                     if let Some(gamepad) = navigator.get_gamepad(index) {
+                        // Step 2.1. Let now be the current high resolution time given
+                        //           gamepad's relevant global object.
                         let current_time = window.Performance().Now();
+                        // Step 2.2. Set gamepad.[[timestamp]] to now.
                         gamepad.update_timestamp(*current_time);
+                        // Step 2.3. Run the steps to map and normalize axes for gamepad.
+                        // Step 2.4. Run the steps to map and normalize buttons for gamepad.
                         match update_type {
                             GamepadUpdateType::Axis(index, value) => {
                                 gamepad.map_and_normalize_axes(index, value);
@@ -1650,14 +1684,29 @@ impl DocumentEventHandler {
                                 gamepad.map_and_normalize_buttons(index, value);
                             }
                         };
+                        // TODO Step 2.5. Run the steps to record touches for gamepad.
+                        // Step 2.6. Let navigator be gamepad's relevant global object's
+                        //           Navigator object.
+                        // Step 2.7. If navigator.[[hasGamepadGesture]] is false and
+                        //           gamepad contains a gamepad user gesture:
                         if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                            // Step 2.7.1. Set navigator.[[hasGamepadGesture]] to true.
                             navigator.set_has_gamepad_gesture(true);
+                            // Step 2.7.2. For each connectedGamepad of navigator.[[gamepads]]:
                             navigator.GetGamepads()
                                 .iter()
                                 .filter_map(|g| g.as_ref())
                                 .for_each(|gamepad| {
+                                    // Step 2.7.2.1. Set connectedGamepad.[[exposed]] to true.
                                     gamepad.set_exposed(true);
+                                    // Step 2.7.2.2. Set connectedGamepad.[[timestamp]] to now.
                                     gamepad.update_timestamp(*current_time);
+                                    // Step 2.7.2.3. Let document be gamepad's relevant global
+                                    //               object's associated Document; otherwise null.
+                                    // Step 2.7.2.4. If document is not null and is fully active,
+                                    //               then queue a global task on the gamepad task
+                                    //               source to fire an event named gamepadconnected
+                                    //               at gamepad's relevant global object.
                                     let new_gamepad = Trusted::new(&**gamepad);
                                     if window.Document().is_fully_active() {
                                         window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(

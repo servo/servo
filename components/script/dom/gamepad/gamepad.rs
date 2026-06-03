@@ -239,7 +239,9 @@ impl Gamepad {
         ]
     }
 
+    /// <https://www.w3.org/TR/gamepad/#on-removing-gamepads>
     pub(crate) fn update_connected(&self, cx: &mut JSContext, connected: bool, has_gesture: bool) {
+        // Step 2.1. Set gamepad.[[connected]] to false.
         if self.connected.get() == connected {
             return;
         }
@@ -251,6 +253,9 @@ impl Gamepad {
             GamepadEventType::Disconnected
         };
 
+        // Step 2.3. If gamepad.[[exposed]] is true and document is not null
+        //           and is fully active, then fire an event named
+        //           gamepaddisconnected at gamepad's relevant global object.
         if has_gesture {
             self.notify_event(cx, event_type);
         }
