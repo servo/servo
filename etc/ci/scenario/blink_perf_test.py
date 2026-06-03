@@ -72,7 +72,7 @@ tests_that_hang_memory_report = [
 ]
 
 ### `tests_that_take_extra_time_to_load` tests take several seconds to load instead of default 0.05s - 2s
-# can be overriden using `--page_loading_timeout` (in seconds)
+# can be overriden using `--page-loading-timeout` (in seconds)
 tests_that_take_extra_time_to_load = [
     ("subtree-detaching.html", 20),
     ("abspos.html", 5),
@@ -385,6 +385,9 @@ def run_tests(port: int, cli_args: argparse.Namespace, hdc: Optional[HarmonyDevi
                                 print(f"Failed to create webdriver for {filePath}: {exc}")
                                 if csv_writer:
                                     csv_writer.writerow([filePath, "driver_start_failed"])
+                                if cli_args.single_test:
+                                    write_file(final_result)
+                                    return
                                 continue
 
                             try:
@@ -445,6 +448,9 @@ def run_tests(port: int, cli_args: argparse.Namespace, hdc: Optional[HarmonyDevi
                                 csv_file.flush()
                     finally:
                         stop_servo(target_os, servo_process)
+                    if cli_args.single_test:
+                        write_file(final_result)
+                        return
         print(f"final_result {final_result}")
     finally:
         if csv_file:
@@ -505,7 +511,7 @@ if __name__ == "__main__":
         help="Executes only first test. Can be used with --skip-until to run only one specific test",
     )
     parser.add_argument(
-        "--skip_until",
+        "--skip-until",
         type=str,
         default=None,
         help="Skips all tests until the specified one, and if --single-test is not set, continues until the end.",
