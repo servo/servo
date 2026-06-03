@@ -422,9 +422,13 @@ impl Handler {
     }
 
     fn handle_web_extension_install(&self) -> WebDriverBidiResult<()> {
-        todo!()
+        Err(WebDriverBidiError::unknown(
+            "Web Extension is not implemented yet",
+        ))
     }
     fn handle_web_extension_uninstall(&self) -> WebDriverBidiResult<()> {
-        todo!()
+        Err(WebDriverBidiError::unknown(
+            "Web Extension is not implemented yet",
+        ))
     }
 }
