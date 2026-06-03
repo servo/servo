@@ -73,7 +73,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
+            self.promise.resolve_with_cx(cx, v);
         }
     }
 }
@@ -297,10 +297,10 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     Box::new(RepresentationDataPromiseRejectionHandler { promise: p.clone() });
 
                 let handler = PromiseNativeHandler::new(
+                    realm,
                     &global,
                     Some(fulfillment_handler),
                     Some(rejection_handler),
-                    CanGc::from_cx(realm),
                 );
                 representation_data_promise.append_native_handler(realm, &handler);
 

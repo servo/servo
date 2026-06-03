@@ -370,7 +370,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 success_promise.resolve_native_with_cx(cx, &array_buffer);
             }),
             Rc::new(move |cx, value| {
-                failure_promise.reject(cx.into(), value, CanGc::from_cx(cx));
+                failure_promise.reject_with_cx(cx, value);
             }),
         );
 
@@ -411,7 +411,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 p_success.resolve_native_with_cx(cx, &arr);
             }),
             Rc::new(move |cx, v| {
-                p_failure.reject(cx.into(), v, CanGc::from_cx(cx));
+                p_failure.reject_with_cx(cx, v);
             }),
         );
         p

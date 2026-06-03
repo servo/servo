@@ -48,7 +48,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // If v is a DOMString, then follow the below steps:
         // Resolve p with v.
         // Return p.
-        self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
+        self.promise.resolve_with_cx(cx, v);
 
         // NOTE: Since we ask text from arboard, v can't be a Blob
         // If v is a Blob, then follow the below steps:
@@ -226,10 +226,10 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
             promise: promise.clone(),
         });
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();

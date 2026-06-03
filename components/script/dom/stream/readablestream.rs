@@ -380,10 +380,10 @@ impl PipeTo {
             self.read_chunk(cx, global);
         } else {
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(self.clone())),
                 Some(Box::new(self.clone())),
-                CanGc::from_cx(cx),
             );
             ready_promise.append_native_handler(cx, &handler);
 
@@ -400,10 +400,10 @@ impl PipeTo {
         *self.state.borrow_mut() = PipeToState::PendingRead;
         let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         chunk_promise.append_native_handler(cx, &handler);
 
@@ -447,10 +447,10 @@ impl PipeTo {
         promise: Rc<Promise>,
     ) {
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
     }
@@ -710,10 +710,10 @@ impl PipeTo {
         // Upon fulfillment of p, finalize, passing along originalError if it was given.
         // Upon rejection of p with reason newError, finalize with newError.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
         *self.shutdown_action_promise.borrow_mut() = Some(promise);
@@ -1674,10 +1674,10 @@ impl ReadableStream {
             result: result_promise.clone(),
         });
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();

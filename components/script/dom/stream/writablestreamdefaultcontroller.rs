@@ -501,10 +501,10 @@ impl WritableStreamDefaultController {
         }));
 
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -714,10 +714,10 @@ impl WritableStreamDefaultController {
                     result_promise: result_promise.clone(),
                 }));
                 let handler = PromiseNativeHandler::new(
+                    cx,
                     global,
                     fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                     None,
-                    CanGc::from_cx(cx),
                 );
                 let mut realm = enter_auto_realm(cx, global);
                 let realm = &mut realm.current_realm();
@@ -824,10 +824,10 @@ impl WritableStreamDefaultController {
 
         // Attach handlers to the promise.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
@@ -916,10 +916,10 @@ impl WritableStreamDefaultController {
 
         // Attach handlers to the promise.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
