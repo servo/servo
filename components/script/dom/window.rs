@@ -2181,9 +2181,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     #[cfg(feature = "bluetooth")]
-    fn TestRunner(&self) -> DomRoot<TestRunner> {
+    fn TestRunner(&self, cx: &mut js::context::JSContext) -> DomRoot<TestRunner> {
         self.test_runner
-            .or_init(|| TestRunner::new(self.upcast(), CanGc::deprecated_note()))
+            .or_init(|| TestRunner::new(cx, self.upcast()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {

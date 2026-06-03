@@ -217,7 +217,7 @@ impl SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::from_cx(cx),
                 ) {
-                    Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::from_cx(cx)),
+                    Ok(_) => promise.resolve_native_with_cx(cx, &*array_buffer_ptr),
                     Err(_) => promise.reject_error_with_cx(cx, Error::JSFailed),
                 }
             }));

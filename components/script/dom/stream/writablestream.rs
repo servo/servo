@@ -878,10 +878,7 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new(
-            &global,
-            CanGc::from_cx(cx),
-        ))));
+        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new2(cx, &global))));
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(

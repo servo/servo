@@ -152,7 +152,7 @@ impl ReadRequest {
                         // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
                         // Spec note: Avoid direct recursion; queue into a microtask.
                         // Resolving the promise will queue a microtask to call into the native handler.
-                        let tick = Promise::new(&global, CanGc::from_cx(cx));
+                        let tick = Promise::new2(cx, &global);
                         tick.resolve_native_with_cx(cx, &());
 
                         let handler = PromiseNativeHandler::new(

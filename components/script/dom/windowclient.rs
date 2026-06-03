@@ -7,7 +7,6 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::WindowClientBinding::WindowClientMethods;
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::USVString;
 
 use crate::dom::bindings::reflector::DomGlobal;
@@ -23,12 +22,12 @@ impl WindowClientMethods<crate::DomTypeHolder> for WindowClient {
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-focus>
     fn Focus(&self, cx: &mut JSContext) -> Rc<Promise> {
         // TODO: Implement
-        Promise::new(&self.global(), CanGc::from_cx(cx))
+        Promise::new2(cx, &self.global())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-navigate>
     fn Navigate(&self, cx: &mut JSContext, _url: USVString) -> Rc<Promise> {
         // TODO: Implement
-        Promise::new(&self.global(), CanGc::from_cx(cx))
+        Promise::new2(cx, &self.global())
     }
 }

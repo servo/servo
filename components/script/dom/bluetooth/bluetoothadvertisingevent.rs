@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
@@ -52,7 +53,7 @@ impl BluetoothAdvertisingEvent {
 
     #[expect(clippy::too_many_arguments)]
     fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -84,7 +85,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
     #[expect(non_snake_case)]
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,

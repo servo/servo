@@ -366,9 +366,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     #[cfg(feature = "bluetooth")]
-    fn Bluetooth(&self) -> DomRoot<Bluetooth> {
+    fn Bluetooth(&self, cx: &mut js::context::JSContext) -> DomRoot<Bluetooth> {
         self.bluetooth
-            .or_init(|| Bluetooth::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| Bluetooth::new(cx, &self.global()))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>

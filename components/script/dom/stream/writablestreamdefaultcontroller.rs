@@ -613,7 +613,7 @@ impl WritableStreamDefaultController {
                     ))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new(global, CanGc::from_cx(cx));
+                    let promise = Promise::new2(cx, global);
                     promise.reject_error_with_cx(cx, e);
                     promise
                 })
@@ -628,7 +628,7 @@ impl WritableStreamDefaultController {
                 // Disentangle port.
                 global.disentangle_port(cx, port);
 
-                let promise = Promise::new(global, CanGc::from_cx(cx));
+                let promise = Promise::new2(cx, global);
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
