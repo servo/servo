@@ -33,7 +33,6 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             while let Ok(dispatch_msg) = rx.try_recv() {
                 self.handle_dispatch(dispatch_msg);
             }
-            // TODO: refactor handler to be non-blocking try-recv
             while let Ok((session, bidi_msg)) = self.handler.try_recv() {
                 self.handle_bidi(session, bidi_msg);
             }
@@ -45,7 +44,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         match dispatch {
             DispatchMessage::Command(_, command_message) => {
                 // TODO: find using uuid
-                self.handler.process(&None, &command_message);
+                self.handler.handle(&None, &command_message);
             },
             DispatchMessage::NewConnection(uuid, connection) => {
                 // TODO: add to conn_map
