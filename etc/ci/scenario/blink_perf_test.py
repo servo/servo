@@ -456,7 +456,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-m",
-        "--memory_report",
+        "--memory-report",
         action="store_true",
         help="Include memory report in results.json",
     )
@@ -467,11 +467,11 @@ if __name__ == "__main__":
         help="Add more prints",
     )
     parser.add_argument(
-        "-e", "--extra_csv", action="store_true", help="Creates output.csv that contains skipper and failed tests"
+        "-e", "--extra-csv", action="store_true", help="Creates output.csv that contains skipper and failed tests"
     )
     parser.add_argument(
         "-s",
-        "--single_test",
+        "--single-test",
         action="store_true",
         help="Executes only first test. Can be used with --skip-until to run only one specific test",
     )
@@ -479,10 +479,10 @@ if __name__ == "__main__":
         "--skip_until",
         type=str,
         default=None,
-        help="Skips all test until specified one, and if --single_test is not set, continues until the end.",
+        help="Skips all tests until the specified one, and if --single-test is not set, continues until the end.",
     )
     parser.add_argument(
-        "--page_loading_timeout",
+        "--page-loading-timeout",
         type=int,
         default=None,
         help="Pages should load very fast, but if takes longer (than default 2s or specified), the result parsing is skipped",
