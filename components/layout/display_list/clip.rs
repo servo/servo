@@ -14,6 +14,8 @@ use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutRect, LayoutSideOffsets, LayoutSize};
 
 use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
+use crate::fragment_tree::BoxFragment;
+use crate::geom::PhysicalPoint;
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
 /// a [`ClipStore`]s vector of clips.
@@ -77,7 +79,8 @@ impl StackingContextTreeClipStore {
         clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
-        fragment_builder: BuilderForBoxFragment,
+        box_fragment: &BoxFragment,
+        containing_block_origin: PhysicalPoint<Au>,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
             ClipPath::Shape(_, ShapeGeometryBox::ShapeBox(shape_box)) => *shape_box,
@@ -86,6 +89,7 @@ impl StackingContextTreeClipStore {
             ClipPath::Box(ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
             _ => return None,
         };
+        let fragment_builder = BuilderForBoxFragment::new(box_fragment, containing_block_origin);
         let layout_rect = match geometry_box {
             ShapeBox::BorderBox => fragment_builder.border_rect,
             ShapeBox::ContentBox => *fragment_builder.content_rect(),
@@ -107,11 +111,11 @@ impl StackingContextTreeClipStore {
             Some(self.add(
                 match geometry_box {
                     ShapeBox::MarginBox => compute_margin_box_radius(
-                        fragment_builder.border_radius,
+                        fragment_builder.border_radius(),
                         layout_rect.size(),
                         fragment_builder.fragment,
                     ),
-                    _ => fragment_builder.border_radius,
+                    _ => fragment_builder.border_radius(),
                 },
                 layout_rect,
                 parent_scroll_node_id,

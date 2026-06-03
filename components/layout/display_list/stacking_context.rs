@@ -693,7 +693,8 @@ impl BoxFragment {
                 &style.get_svg().clip_path,
                 spatial_id.unwrap_or(containing_block.scroll_node_id),
                 clip_id.unwrap_or(containing_block.clip_id),
-                BuilderForBoxFragment::new(self, containing_block.rect.origin),
+                self,
+                containing_block.rect.origin,
             )
             .or(clip_id);
 
@@ -949,7 +950,7 @@ impl BoxFragment {
                     },
                     OverflowClipMarginBox::BorderBox => {},
                 };
-                radii = offset_radii(builder.border_radius, offsets_from_border);
+                radii = offset_radii(builder.border_radius(), offsets_from_border);
             } else if overflow.x != ComputedOverflow::Clip {
                 let max = LayoutRect::max_rect();
                 overflow_clip_rect.min.x = max.min.x;
@@ -981,7 +982,7 @@ impl BoxFragment {
             .to_webrender();
 
         let clip_id = stacking_context_tree.clip_store.add(
-            BuilderForBoxFragment::new(self, containing_block_rect.origin).border_radius,
+            BuilderForBoxFragment::new(self, containing_block_rect.origin).border_radius(),
             scroll_frame_rect,
             parent_scroll_node_id,
             parent_clip_id,
