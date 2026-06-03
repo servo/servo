@@ -42,12 +42,6 @@ android {
         }
     }
 
-    sourceSets {
-        named("main") {
-            java.srcDirs("src/main/java")
-        }
-    }
-
     val signingKeyInfo = getSigningKeyInfo()
 
     if (signingKeyInfo != null) {
