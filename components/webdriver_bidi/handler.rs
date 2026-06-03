@@ -79,18 +79,12 @@ impl WebDriverBidiHandler for Handler {
         match &command.command_data {
             Command::Browser(browser) => match browser {
                 BrowserCommand::Close(close) => self.handle_browser_close(),
-                BrowserCommand::CreateUserContext(create_user_context) => {
-                    self.handle_browser_create_user_context()
-                },
+                BrowserCommand::CreateUserContext(_) => self.handle_browser_create_user_context(),
                 BrowserCommand::GetClientWindows(get_client_windows) => {
                     self.handle_browser_get_client_windows()
                 },
-                BrowserCommand::GetUserContexts(get_user_contexts) => {
-                    self.handle_browser_get_user_contexts()
-                },
-                BrowserCommand::RemoveUserContext(remove_user_context) => {
-                    self.handle_browser_remove_user_context()
-                },
+                BrowserCommand::GetUserContexts(_) => self.handle_browser_get_user_contexts(),
+                BrowserCommand::RemoveUserContext(_) => self.handle_browser_remove_user_context(),
                 BrowserCommand::SetClientWindowState(set_client_window_state) => {
                     self.handle_browser_set_client_window_state()
                 },
@@ -223,8 +217,8 @@ impl WebDriverBidiHandler for Handler {
                 },
             },
             Command::WebExtension(web_extension) => match web_extension {
-                WebExtensionCommand::Install(install) => self.handle_web_extension_install(),
-                WebExtensionCommand::Uninstall(uninstall) => self.handle_web_extension_uninstall(),
+                WebExtensionCommand::Install(_) => self.handle_web_extension_install(),
+                WebExtensionCommand::Uninstall(_) => self.handle_web_extension_uninstall(),
             },
         }
     }

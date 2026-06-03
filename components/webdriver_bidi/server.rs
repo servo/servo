@@ -8,11 +8,11 @@ use async_tungstenite::{
     tokio::{TokioAdapter, accept_hdr_async},
     tungstenite::{
         self, Message,
-        handshake::server::{ErrorResponse, Request, Response},
+        handshake::server::{Request, Response},
     },
 };
 use futures_util::StreamExt;
-use rustenium_bidi_definitions::base::CommandMessage;
+use rustenium_bidi_definitions::base::{CommandMessage, ErrorCode, ErrorEnum, ErrorResponse};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::mpsc,
@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 use crate::{
     dispatcher::{DispatchMessage, Dispatcher},
+    error::WebDriverBidiError,
     handler::WebDriverBidiHandler,
     model::Message as BidiMessage,
     transport::{Connection, ConnectionMap, Session},
@@ -158,7 +159,7 @@ async fn handle_ws_stream(
 
     async fn handle_ws(
         uuid: Uuid,
-        _stream: &mut WebSocketStream<TokioAdapter<TcpStream>>,
+        stream: &mut WebSocketStream<TokioAdapter<TcpStream>>,
         ws: Result<Message, tungstenite::Error>,
         dispatch_tx: crossbeam_channel::Sender<DispatchMessage>,
     ) {
@@ -166,14 +167,13 @@ async fn handle_ws_stream(
             return;
         };
         let Message::Text(text) = ws else {
-            // TODO: handle error
+            send_invalid_argument_error(stream, None).await;
             return;
         };
         let Ok(command) = serde_json::from_str::<CommandMessage>(&text) else {
-            // TODO: handle error
+            send_invalid_argument_error(stream, None).await;
             return;
         };
-        // TODO: session
         dispatch_tx.send(DispatchMessage::Command(uuid, Box::new(command)));
     }
 
@@ -184,5 +184,31 @@ async fn handle_ws_stream(
             .await
             // TODO: no panic
             .expect("fail to send message");
+    }
+
+    async fn send_invalid_argument_error(
+        stream: &mut WebSocketStream<TokioAdapter<TcpStream>>,
+        id: Option<u64>,
+    ) {
+        let error = ErrorResponse {
+            r#type: ErrorEnum::Error,
+            id,
+            error: ErrorCode::InvalidArgument,
+            message: "invalid argumennt".to_string(),
+            stacktrace: None,
+            extensible: Default::default(),
+        };
+        let response = match serde_json::to_string(&error) {
+            Ok(response) => response,
+            Err(err) => {
+                format!(
+                    r#"{{"type":"error","id":{},"error":"unknown error","message":"fail to serializie error response: {}"}}"#,
+                    id.map(|i| i.to_string()).unwrap_or("null".to_string()),
+                    err
+                )
+            },
+        };
+        // TODO: log ws error
+        stream.send(Message::Text(response.into())).await;
     }
 }
