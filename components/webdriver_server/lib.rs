@@ -2064,22 +2064,17 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            r#"(async function() {{
-                try {{
-                    let result = (async function() {{
-                        {func_body}
-                    }})({});
-                    let value = await result;
-                    window.webdriverCallback(value);
-                }} catch (err) {{
-                    window.webdriverException(err);
-                }}
-            }})();"#,
+            r#"(function(__wd_eid) {{
+                (async function() {{
+                    {func_body}
+                }})({})
+                .then((v) => {{ if (window.__wd_eid === __wd_eid) window.webdriverCallback(v); }})
+                .catch((r) => {{ if (window.__wd_eid === __wd_eid) window.webdriverException(r); }});
+            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
             args_string.join(", ")
         );
 
         debug!("{}", script);
-
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
