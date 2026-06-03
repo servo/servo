@@ -111,11 +111,11 @@ impl StackingContextTreeClipStore {
             Some(self.add(
                 match geometry_box {
                     ShapeBox::MarginBox => compute_margin_box_radius(
-                        fragment_builder.border_radius,
+                        fragment_builder.border_radius(),
                         layout_rect.size(),
                         fragment_builder.fragment,
                     ),
-                    _ => fragment_builder.border_radius,
+                    _ => fragment_builder.border_radius(),
                 },
                 layout_rect,
                 parent_scroll_node_id,

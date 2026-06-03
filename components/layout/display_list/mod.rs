@@ -1327,7 +1327,7 @@ struct BuilderForBoxFragment<'a> {
     margin_rect: OnceCell<units::LayoutRect>,
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
-    border_radius: wr::BorderRadius,
+    border_radius: OnceCell<wr::BorderRadius>,
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
@@ -1342,7 +1342,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             fragment,
             containing_block_origin,
             border_rect: border_rect.to_webrender(),
-            border_radius: fragment.border_radius(),
+            border_radius: OnceCell::new(),
             margin_rect: OnceCell::new(),
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
@@ -1350,6 +1350,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
         }
+    }
+
+    fn border_radius(&self) -> BorderRadius {
+        *self
+            .border_radius
+            .get_or_init(|| self.fragment.border_radius())
     }
 
     fn content_rect(&self) -> &units::LayoutRect {
@@ -1391,7 +1397,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let maybe_clip = builder.maybe_create_clip(
             state,
-            self.border_radius,
+            self.border_radius(),
             self.border_rect,
             force_clip_creation,
         );
@@ -1409,7 +1415,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = offset_radii(self.border_radius, -self.fragment.border.to_webrender());
+        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -1427,7 +1433,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let radii = offset_radii(
-            self.border_radius,
+            self.border_radius(),
             -(self.fragment.border + self.fragment.padding).to_webrender(),
         );
         let maybe_clip =
@@ -1913,7 +1919,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: self.build_border_side(style_color.right),
             bottom: self.build_border_side(style_color.bottom),
             left: self.build_border_side(style_color.left),
-            radius: self.border_radius,
+            radius: self.border_radius(),
             do_aa: true,
         });
         let common = builder.common_properties(state, self.border_rect, &style);
@@ -2076,7 +2082,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: offset_radii(self.border_radius, SideOffsets2D::new_all_same(offset)),
+            radius: offset_radii(self.border_radius(), SideOffsets2D::new_all_same(offset)),
             do_aa: true,
         });
         builder
@@ -2126,7 +2132,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 rgba(style.resolve_color(&box_shadow.base.color)),
                 blur,
                 spread,
-                self.border_radius,
+                self.border_radius(),
                 clip_mode,
             );
         }
