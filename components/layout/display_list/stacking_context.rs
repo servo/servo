@@ -693,7 +693,8 @@ impl BoxFragment {
                 &style.get_svg().clip_path,
                 spatial_id.unwrap_or(containing_block.scroll_node_id),
                 clip_id.unwrap_or(containing_block.clip_id),
-                BuilderForBoxFragment::new(self, containing_block.rect.origin),
+                self,
+                containing_block.rect.origin,
             )
             .or(clip_id);
 
