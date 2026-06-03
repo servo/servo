@@ -10,22 +10,23 @@ import functools
 import os
 from typing import Any, TypeVar
 
+import toml
 from WebIDL import (
-    IDLExternalInterface,
-    IDLSequenceType,
-    IDLWrapperType,
-    WebIDLError,
+    IDLAttribute,
+    IDLCallback,
+    IDLDictionary,
     IDLEnum,
+    IDLExternalInterface,
+    IDLInterfaceMember,
+    IDLInterfaceOrNamespace,
+    IDLMethod,
     IDLObject,
     IDLObjectWithIdentifier,
+    IDLSequenceType,
     IDLType,
     IDLTypedef,
-    IDLInterfaceOrNamespace,
-    IDLDictionary,
-    IDLCallback,
-    IDLAttribute,
-    IDLMethod,
-    IDLInterfaceMember,
+    IDLWrapperType,
+    WebIDLError,
 )
 
 TargetType = TypeVar('TargetType')
@@ -53,7 +54,9 @@ class Configuration:
     def __init__(self, filename: str, parseData: list[IDLObjectWithIdentifier]) -> None:
         # Read the configuration file.
         glbl = {}
-        exec(compile(open(filename).read(), filename, 'exec'), glbl)
+        with open(filename, 'r') as file:
+            glbl = toml.load(file)
+
         config = glbl['DOMInterfaces']
         self.enumConfig = glbl['Enums']
         self.dictConfig = glbl['Dictionaries']
