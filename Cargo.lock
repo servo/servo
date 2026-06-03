@@ -9040,6 +9040,7 @@ dependencies = [
  "async-tungstenite",
  "crossbeam-channel",
  "futures-util",
+ "log",
  "rustenium-bidi-definitions",
  "serde",
  "serde_json",

@@ -8,10 +8,11 @@ use async_tungstenite::{
     tokio::{TokioAdapter, accept_hdr_async},
     tungstenite::{
         self, Message,
-        handshake::server::{Request, Response},
+        handshake::server::{ErrorResponse as WsErrorResponse, Request, Response},
     },
 };
 use futures_util::StreamExt;
+use log::error;
 use rustenium_bidi_definitions::base::{CommandMessage, ErrorCode, ErrorEnum, ErrorResponse};
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -21,10 +22,9 @@ use uuid::Uuid;
 
 use crate::{
     dispatcher::{DispatchMessage, Dispatcher},
-    error::WebDriverBidiError,
     handler::WebDriverBidiHandler,
     model::Message as BidiMessage,
-    transport::{Connection, ConnectionMap, Session},
+    transport::Connection,
 };
 
 /// A WebSocket Listener.
@@ -34,10 +34,6 @@ pub struct Listener {
     guard: Option<thread::JoinHandle<()>>,
     /// Host and port
     pub socket: SocketAddr,
-    /// List of WebSocket resources
-    resources: Vec<String>,
-    /// Secure flag
-    secure: bool,
 }
 
 impl Drop for Listener {
@@ -101,9 +97,6 @@ where
     Ok(Listener {
         guard: Some(handle),
         socket: addr,
-        resources: vec![],
-        // TODO: TLS support
-        secure: false,
     })
 }
 
@@ -131,7 +124,7 @@ async fn serve(listener: TcpListener, dispatch_tx: crossbeam_channel::Sender<Dis
     }
 }
 
-fn should_accept_connection() -> impl FnOnce(&Request, Response) -> Result<Response, ErrorResponse>
+fn should_accept_connection() -> impl FnOnce(&Request, Response) -> Result<Response, WsErrorResponse>
 {
     // CLIPPY: we cannot change external type in tungstenite
     #[allow(clippy::result_large_err)]
@@ -153,7 +146,7 @@ async fn handle_ws_stream(
             handle_ws(uuid, &mut stream, ws, dispatch_tx).await
         }
         Some(msg) = conn_rx.recv() => {
-            handle_msg(&mut stream, msg).await
+            handle_bidi(&mut stream, msg).await
         }
     }
 
@@ -174,16 +167,23 @@ async fn handle_ws_stream(
             send_invalid_argument_error(stream, None).await;
             return;
         };
-        dispatch_tx.send(DispatchMessage::Command(uuid, Box::new(command)));
+        if let Err(err) = dispatch_tx.send(DispatchMessage::Command(uuid, Box::new(command))) {
+            error!("Error sending message to dispatcher: {err}");
+        }
     }
 
-    async fn handle_msg(stream: &mut WebSocketStream<TokioAdapter<TcpStream>>, msg: BidiMessage) {
-        let text = serde_json::to_string(&msg).expect("fail to serialize result");
-        stream
-            .send(tungstenite::Message::Text(text.into()))
-            .await
-            // TODO: no panic
-            .expect("fail to send message");
+    async fn handle_bidi(stream: &mut WebSocketStream<TokioAdapter<TcpStream>>, msg: BidiMessage) {
+        let text = match serde_json::to_string(&msg) {
+            Ok(text) => text,
+            Err(err) => {
+                // TODO: should we send error message to client?
+                error!("Error serializing bidi response message: {err}");
+                return;
+            },
+        };
+        if let Err(err) = stream.send(tungstenite::Message::Text(text.into())).await {
+            error!("Error sending message to webdriver bidi client: {err}");
+        }
     }
 
     async fn send_invalid_argument_error(
@@ -208,7 +208,8 @@ async fn handle_ws_stream(
                 )
             },
         };
-        // TODO: log ws error
-        stream.send(Message::Text(response.into())).await;
+        if let Err(err) = stream.send(Message::Text(response.into())).await {
+            error!("Error sending error to client: {err}");
+        }
     }
 }
