@@ -618,7 +618,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native(&self.response_object.root(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 

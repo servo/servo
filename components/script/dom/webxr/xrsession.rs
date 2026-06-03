@@ -284,7 +284,7 @@ impl XRSession {
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
                 for promise in self.end_promises.borrow_mut().drain(..) {
-                    promise.resolve_native(&(), CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &());
                 }
                 // Step 7
                 let event = XRSessionEvent::new(
@@ -913,7 +913,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             //
             // However, if end_promises is empty, then all end() promises have already resolved,
             // so the session has completely shut down and we should not queue up more promises
-            p.resolve_native(&(), CanGc::from_cx(cx));
+            p.resolve_native_with_cx(cx, &());
             return p;
         }
         self.end_promises.borrow_mut().push(p.clone());
@@ -1083,7 +1083,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     let session = this.root();
                     session.apply_nominal_framerate(cx, message.unwrap());
                     if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                        promise.resolve_native(&(), CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &());
                     };
                 }));
             })

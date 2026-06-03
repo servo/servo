@@ -324,7 +324,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 Ok(b) => {
                     let (text, _) = UTF_8.decode_with_bom_removal(&b);
                     let text = DOMString::from(text);
-                    promise.resolve_native(&text, CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &text);
                 },
                 Err(e) => {
                     promise.reject_error_with_cx(cx, e);
@@ -367,7 +367,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     CanGc::from_cx(cx),
                 )
                 .expect("Converting input to ArrayBufferU8 should never fail");
-                success_promise.resolve_native(&array_buffer, CanGc::from_cx(cx));
+                success_promise.resolve_native_with_cx(cx, &array_buffer);
             }),
             Rc::new(move |cx, value| {
                 failure_promise.reject(cx.into(), value, CanGc::from_cx(cx));
@@ -408,7 +408,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     CanGc::from_cx(cx),
                 )
                 .expect("Converting input to uint8 array should never fail");
-                p_success.resolve_native(&arr, CanGc::from_cx(cx));
+                p_success.resolve_native_with_cx(cx, &arr);
             }),
             Rc::new(move |cx, v| {
                 p_failure.reject(cx.into(), v, CanGc::from_cx(cx));

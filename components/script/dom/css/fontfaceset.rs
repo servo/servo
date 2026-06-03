@@ -23,7 +23,6 @@ use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://drafts.csswg.org/css-font-loading/#FontFaceSet-interface>
 #[dom_struct]
@@ -80,7 +79,7 @@ impl FontFaceSet {
         if self.promise.is_fulfilled() {
             return false;
         }
-        self.promise.resolve_native(self, CanGc::from_cx(cx));
+        self.promise.resolve_native_with_cx(cx, self);
         true
     }
 
@@ -188,7 +187,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 // TODO: Step 4.2. Resolve promise with the result of waiting for all of the
                 // [[FontStatusPromise]]s of each font face in the font face list, in order.
                 let matched_fonts = Vec::<&FontFace>::new();
-                promise.resolve_native(&matched_fonts, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &matched_fonts);
             }));
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.

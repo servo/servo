@@ -169,7 +169,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 write_blobs_and_option_to_the_clipboard(global.as_window(), item_list, option);
 
                 // Step 3.3.6 Resolve p.
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
             }),
         );
 

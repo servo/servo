@@ -164,14 +164,14 @@ impl Permissions {
                         // (Request) Step 7. The default algorithm always resolve
 
                         // (Request) Step 8.
-                        p.resolve_native(&status, CanGc::from_cx(cx));
+                        p.resolve_native_with_cx(cx, &status);
                     },
                     Operation::Query => {
                         // (Query) Step 6.
                         Permissions::permission_query(cx, &p, &root_desc, &status);
 
                         // (Query) Step 7.
-                        p.resolve_native(&status, CanGc::from_cx(cx));
+                        p.resolve_native_with_cx(cx, &status);
                     },
 
                     Operation::Revoke => {

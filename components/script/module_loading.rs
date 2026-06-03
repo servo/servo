@@ -222,7 +222,7 @@ fn inner_module_loading(
         // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native(&(), CanGc::from_cx(cx));
+        state.promise.resolve_native_with_cx(cx, &());
     }
 
     // Step 6. Return unused.

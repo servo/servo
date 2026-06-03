@@ -745,10 +745,10 @@ impl PipeTo {
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
             self.result_promise
-                .reject_native(&error.handle(), CanGc::from_cx(cx));
+                .reject_native_with_cx(cx, &error.handle());
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.result_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -766,7 +766,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        self.result.resolve_native(&(), CanGc::from_cx(cx));
+        self.result.resolve_native_with_cx(cx, &());
     }
 }
 
@@ -783,7 +783,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        self.result.reject_native(&v, CanGc::from_cx(cx));
+        self.result.reject_native_with_cx(cx, &v);
     }
 }
 
@@ -1627,7 +1627,7 @@ impl ReadableStream {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
             self.stored_error.safe_to_jsval(cx, rval.handle_mut());
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &rval.handle());
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).

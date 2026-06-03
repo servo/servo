@@ -657,7 +657,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
                             .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
-                        promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+                        promise.reject_native_with_cx(cx, &rval.handle());
                     },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
@@ -667,7 +667,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                        promise.resolve_native(&info_list, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &info_list);
                 },
             }
             }));

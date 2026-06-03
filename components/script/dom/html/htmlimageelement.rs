@@ -1390,7 +1390,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(&(), CanGc::from_cx(cx));
+                    trusted_promise.root().resolve_native_with_cx(cx, &());
                 }
             }));
     }

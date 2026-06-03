@@ -516,7 +516,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 sheet.disallow_modification.set(false);
 
                 // Step 4.5. Resolve promise with sheet.
-                trusted_promise.root().resolve_native(&sheet, CanGc::from_cx(cx));
+                trusted_promise.root().resolve_native_with_cx(cx, &sheet);
             }));
 
         Ok(promise)

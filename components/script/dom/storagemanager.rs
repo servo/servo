@@ -112,7 +112,7 @@ impl StorageManagerEstimateResponseHandler {
                         let mut estimate = StorageEstimate::empty();
                         estimate.usage = Some(usage);
                         estimate.quota = Some(quota);
-                        promise.resolve_native(&estimate, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &estimate);
                     },
                     Err(message) => {
                         promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message));
