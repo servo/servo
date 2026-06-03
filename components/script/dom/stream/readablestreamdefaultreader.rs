@@ -156,13 +156,13 @@ impl ReadRequest {
                         tick.resolve_native_with_cx(cx, &());
 
                         let handler = PromiseNativeHandler::new(
+                            cx,
                             &global,
                             Some(Box::new(ContinueReadMicrotask {
                                 reader: Dom::from_ref(reader),
                                 request: self.clone(),
                             })),
                             None,
-                            CanGc::from_cx(cx),
                         );
 
                         let mut realm = enter_auto_realm(cx, &*global);
@@ -522,6 +522,7 @@ impl ReadableStreamDefaultReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(ByteTeeClosedPromiseRejectionHandler {
@@ -533,7 +534,6 @@ impl ReadableStreamDefaultReader {
                 reader_version,
                 expected_version,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);
@@ -560,6 +560,7 @@ impl ReadableStreamDefaultReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(DefaultTeeClosedPromiseRejectionHandler {
@@ -569,7 +570,6 @@ impl ReadableStreamDefaultReader {
                 canceled_2,
                 cancel_promise,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);

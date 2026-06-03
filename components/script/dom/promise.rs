@@ -20,19 +20,21 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
-    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
-    JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject,
-    PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
-    SetFunctionNativeReserved,
+    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject,
+    JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject, PromiseState,
+    PromiseUserInputEventHandlingState, RemoveRawValueRoot, SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     CallOriginalPromiseReject, CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState,
-    IsPromiseObject, NewPromiseObject, RejectPromise, ResolvePromise, SetAnyPromiseIsHandled,
+    IsPromiseObject, NewPromiseObject, SetAnyPromiseIsHandled,
     SetPromiseUserInputEventHandlingState,
 };
-use js::rust::wrappers2::{AddPromiseReactions, NewFunctionWithReserved};
+use js::rust::wrappers2::{
+    AddPromiseReactions, JS_ClearPendingException, NewFunctionWithReserved, RejectPromise,
+    ResolvePromise,
+};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
@@ -228,14 +230,23 @@ impl Promise {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
-        self.resolve(cx.into(), v.handle(), CanGc::from_cx(cx));
+        self.resolve_with_cx(cx, v.handle());
     }
 
     #[expect(unsafe_code)]
     pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
-            if !ResolvePromise(*cx, self.promise_obj(), value) {
-                JS_ClearPendingException(*cx);
+            if !js::rust::wrappers::ResolvePromise(*cx, self.promise_obj(), value) {
+                js::jsapi::JS_ClearPendingException(*cx);
+            }
+        }
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn resolve_with_cx(&self, cx: &mut JSContext, value: HandleValue) {
+        unsafe {
+            if !ResolvePromise(cx, self.promise_obj(), value) {
+                JS_ClearPendingException(cx);
             }
         }
     }
@@ -259,7 +270,7 @@ impl Promise {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
-        self.reject(cx.into(), v.handle(), CanGc::from_cx(cx));
+        self.reject_with_cx(cx, v.handle());
     }
 
     pub(crate) fn reject_error(&self, error: Error, can_gc: CanGc) {
@@ -280,14 +291,23 @@ impl Promise {
             v.handle_mut(),
             CanGc::from_cx(cx),
         );
-        self.reject(cx.into(), v.handle(), CanGc::from_cx(cx));
+        self.reject_with_cx(cx, v.handle());
     }
 
     #[expect(unsafe_code)]
     pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
-            if !RejectPromise(*cx, self.promise_obj(), value) {
-                JS_ClearPendingException(*cx);
+            if !js::rust::wrappers::RejectPromise(*cx, self.promise_obj(), value) {
+                js::jsapi::JS_ClearPendingException(*cx);
+            }
+        }
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn reject_with_cx(&self, cx: &mut JSContext, value: HandleValue) {
+        unsafe {
+            if !RejectPromise(cx, self.promise_obj(), value) {
+                JS_ClearPendingException(cx);
             }
         }
     }
@@ -645,6 +665,7 @@ fn wait_for_all(
 
         // Perform PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler).
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(WaitForAllFulfillmentHandler {
                 success_steps: success_steps.clone(),
@@ -653,7 +674,6 @@ fn wait_for_all(
                 fulfilled_count: fulfilled_count.clone(),
             })),
             Some(Box::new(rejection_handler.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
 

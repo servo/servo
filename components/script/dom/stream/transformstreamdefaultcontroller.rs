@@ -190,10 +190,10 @@ impl TransformStreamDefaultController {
         }));
 
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             None,
             reject_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();

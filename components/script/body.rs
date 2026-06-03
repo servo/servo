@@ -292,7 +292,7 @@ impl TransmitBodyConnectHandler {
                 }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(cx));
+                    PromiseNativeHandler::new(cx, &global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>));
 
                 let mut realm = enter_auto_realm(cx, &*global);
                 let realm = &mut realm.current_realm();
@@ -740,7 +740,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     if stream.is_errored() {
         rooted!(&in(cx) let mut stored_error = UndefinedValue());
         stream.get_stored_error(stored_error.handle_mut());
-        promise.reject(cx.into(), stored_error.handle(), CanGc::from_cx(cx));
+        promise.reject_with_cx(cx, stored_error.handle());
         return promise;
     }
 
@@ -781,7 +781,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject(cx.into(), v, CanGc::from_cx(cx));
+            error_promise.reject_with_cx(cx, v);
         }),
     );
 

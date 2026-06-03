@@ -434,6 +434,7 @@ impl ReadableStreamDefaultController {
 
             // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(StartAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
@@ -441,7 +442,6 @@ impl ReadableStreamDefaultController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
                 })),
-                CanGc::from_cx(cx),
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
@@ -530,6 +530,7 @@ impl ReadableStreamDefaultController {
             return;
         };
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(Box::new(PullAlgorithmFulfillmentHandler {
                 controller: Dom::from_ref(&rooted_default_controller),
@@ -537,7 +538,6 @@ impl ReadableStreamDefaultController {
             Some(Box::new(PullAlgorithmRejectionHandler {
                 controller: Dom::from_ref(&rooted_default_controller),
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);

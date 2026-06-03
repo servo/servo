@@ -1066,10 +1066,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            realm,
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            CanGc::from_cx(realm),
         );
 
         let p = Promise::new_in_realm(realm);

@@ -277,7 +277,7 @@ impl WritableStream {
         let write_requests = mem::take(&mut *self.write_requests.borrow_mut());
         for request in write_requests {
             // Reject writeRequest with storedError.
-            request.reject(cx.into(), stored_error.handle(), CanGc::from_cx(cx));
+            request.reject_with_cx(cx, stored_error.handle());
         }
 
         // Set stream.[[writeRequests]] to an empty list.
@@ -299,11 +299,9 @@ impl WritableStream {
             // If abortRequest’s was already erroring is true,
             if pending_abort_request.was_already_erroring {
                 // Reject abortRequest’s promise with storedError.
-                pending_abort_request.promise.reject(
-                    cx.into(),
-                    stored_error.handle(),
-                    CanGc::from_cx(cx),
-                );
+                pending_abort_request
+                    .promise
+                    .reject_with_cx(cx, stored_error.handle());
 
                 // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
                 self.reject_close_and_closed_promise_if_needed(cx);
@@ -330,10 +328,10 @@ impl WritableStream {
             }));
 
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                 rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-                CanGc::from_cx(cx),
             );
 
             let mut realm = enter_auto_realm(cx, global);

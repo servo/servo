@@ -375,6 +375,7 @@ impl ReadableStreamBYOBReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(ByteTeeClosedPromiseRejectionHandler {
@@ -386,7 +387,6 @@ impl ReadableStreamBYOBReader {
                 reader_version,
                 expected_version,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);

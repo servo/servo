@@ -1446,10 +1446,10 @@ fn fetch_the_descendants_and_link_module_script(
         })));
 
     let handler = PromiseNativeHandler::new(
+        cx,
         global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
-        CanGc::from_cx(cx),
     );
 
     run_a_callback::<DomTypeHolder, _>(global, || {
@@ -1507,7 +1507,7 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(global, Some(handler), None, CanGc::from_cx(cx));
+    let handler = PromiseNativeHandler::new(cx, global, Some(handler), None);
 
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
@@ -1525,10 +1525,10 @@ pub(crate) fn fetch_a_single_module_script(
             // Append an handler to the existing pending fetch, once resolved it will queue a task
             // to run onComplete.
             let continue_loading_handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(QueueTaskHandler { promise })),
                 None,
-                CanGc::from_cx(cx),
             );
 
             // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)

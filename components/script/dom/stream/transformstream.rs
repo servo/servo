@@ -75,8 +75,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
         if self.writable.is_erroring() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.writable.get_stored_error(error.handle_mut());
-            self.result_promise
-                .reject(cx.into(), error.handle(), CanGc::from_cx(cx));
+            self.result_promise.reject_with_cx(cx, error.handle());
             return;
         }
 
@@ -98,6 +97,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
         // PerformTransformFulfillment and PerformTransformRejection do not need
         // to be rooted because they only contain an Rc.
         let handler = PromiseNativeHandler::new(
+            cx,
             &self.writable.global(),
             Some(Box::new(PerformTransformFulfillment {
                 result_promise: self.result_promise.clone(),
@@ -105,7 +105,6 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
             Some(Box::new(PerformTransformRejection {
                 result_promise: self.result_promise.clone(),
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*self.writable.global());
@@ -227,7 +226,7 @@ impl Callback for CancelPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject(cx.into(), v, CanGc::from_cx(cx));
+            .reject_with_cx(cx, v);
     }
 }
 
@@ -259,7 +258,7 @@ impl Callback for SourceCancelPromiseFulfillment {
         if self.writeable.is_errored() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.writeable.get_stored_error(error.handle_mut());
-            finish_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
+            finish_promise.reject_with_cx(cx, error.handle());
         } else {
             // Otherwise:
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], reason).
@@ -307,7 +306,7 @@ impl Callback for SourceCancelPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject(cx.into(), v, CanGc::from_cx(cx));
+            .reject_with_cx(cx, v);
     }
 }
 
@@ -335,7 +334,7 @@ impl Callback for FlushPromiseFulfillment {
         if self.readable.is_errored() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
-            finish_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
+            finish_promise.reject_with_cx(cx, error.handle());
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerClose(readable.[[controller]]).
@@ -369,7 +368,7 @@ impl Callback for FlushPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject(cx.into(), v, CanGc::from_cx(cx));
+            .reject_with_cx(cx, v);
     }
 }
 
@@ -686,12 +685,12 @@ impl TransformStream {
             }));
 
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                 Some(Box::new(BackpressureChangeRejection {
                     result_promise: result_promise.clone(),
                 })),
-                CanGc::from_cx(cx),
             );
             let mut realm = enter_auto_realm(cx, global);
             let realm = &mut realm.current_realm();
@@ -736,6 +735,7 @@ impl TransformStream {
 
         // React to cancelPromise:
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(CancelPromiseFulfillment {
                 readable: Dom::from_ref(&readable),
@@ -746,7 +746,6 @@ impl TransformStream {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
             })),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -793,6 +792,7 @@ impl TransformStream {
 
         // React to flushPromise:
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(FlushPromiseFulfillment {
                 readable: Dom::from_ref(&readable),
@@ -802,7 +802,6 @@ impl TransformStream {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, global);
@@ -850,6 +849,7 @@ impl TransformStream {
 
         // React to cancelPromise:
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(SourceCancelPromiseFulfillment {
                 writeable: Dom::from_ref(&writable),
@@ -862,7 +862,6 @@ impl TransformStream {
                 controller: Dom::from_ref(&controller),
                 stream: Dom::from_ref(self),
             })),
-            CanGc::from_cx(cx),
         );
 
         // Return controller.[[finishPromise]].
