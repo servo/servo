@@ -124,16 +124,16 @@ impl From<&Descriptors> for CSSFontFaceDescriptors {
             stretch_to_computed(&stretch_range.0).zip(stretch_to_computed(&stretch_range.1))
         });
 
-        fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
-            match specified {
+        fn style_to_computed(specified: &FontFaceStyle) -> Option<ComputedFontStyleDescriptor> {
+            Some(match specified {
                 FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
                 FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
-                    FixedPoint::from_float(angle_a.degrees()),
-                    FixedPoint::from_float(angle_b.degrees()),
+                    FixedPoint::from_float(angle_a.degrees()?),
+                    FixedPoint::from_float(angle_b.degrees()?),
                 ),
-            }
+            })
         }
-        let style = descriptors.font_style.as_ref().map(style_to_computed);
+        let style = descriptors.font_style.as_ref().and_then(style_to_computed);
         let unicode_range = descriptors
             .unicode_range
             .as_ref()
