@@ -37,6 +37,7 @@ pub(crate) fn make_marker<'dom>(
         // XXX: Non-None image types unimplemented.
         Image::ImageSet(..) |
         Image::Gradient(..) |
+        Image::Image(..) |
         Image::CrossFade(..) |
         Image::PaintWorklet(..) |
         Image::None => None,
