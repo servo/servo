@@ -36,9 +36,6 @@ impl Font {
                 },
             };
 
-            if family_name_string == "" {
-                continue; // This means that the generic font is not of a type parseable by Servo. In this case, skip.
-            }
             let Ok(family_name_cstring) = CString::new(&*family_name_string) else {
                 continue;
             };

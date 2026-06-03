@@ -859,7 +859,7 @@ impl FontGroup {
 /// font selection will select a single member that contains the necessary unicode
 /// character. Unicode ranges are specified by the [`FontGroupFamilyTemplate::template`]
 /// member.
-#[derive(MallocSizeOf, Clone)]
+#[derive(MallocSizeOf)]
 pub(crate) struct FontGroupFamilyTemplate {
     #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
@@ -906,7 +906,7 @@ impl FontGroupFamilyTemplate {
 /// families listed in the `font-family` CSS property. The corresponding font data is lazy-loaded,
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
-#[derive(MallocSizeOf, Clone)]
+#[derive(MallocSizeOf)]
 pub(crate) struct FontGroupFamily {
     pub(crate) family_descriptor: FontFamilyDescriptor,
     pub(crate) members: OnceLock<Vec<FontGroupFamilyTemplate>>,
