@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Optional, TypeVar
 
 from geckordp.actors.events import Events
-from geckordp.actors.node import NodeActor
 from geckordp.actors.resources import Resources
 from geckordp.actors.root import RootActor
 from geckordp.actors.descriptors.tab import TabActor
@@ -222,17 +221,6 @@ def frozen_multiset(items: Iterable[T] = []) -> FrozenMultiset[T]:
     # then convert it to a tuple with a stable order
     return tuple(sorted(result.items()))
 
-def assert_event_listeners(self, node: dict, expected_listeners: Optional[Any], devtools: Devtools):
-    if expected_listeners is None:
-        self.assertFalse(node["hasEventListeners"])
-        return
-    self.assertTrue(node["hasEventListeners"])
-    nodeActor = NodeActor(devtools.client, node["actor"])
-    event_listener_info = nodeActor.get_event_listener_info()
-    self.assertEqual(len(event_listener_info), len(expected_listeners))
-    for expected_listener, actual_listener in zip(expected_listeners, event_listener_info):
-        for key, value in expected_listener.items():
-            self.assertEqual(actual_listener[key], value)
 
 def assert_sources_list(
     expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None

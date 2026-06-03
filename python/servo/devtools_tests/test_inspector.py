@@ -8,6 +8,7 @@
 # except according to those terms.
 
 from __future__ import annotations
+from typing import Optional, Any
 from concurrent.futures import Future
 import time
 
@@ -17,12 +18,12 @@ from geckordp.actors.node import NodeActor
 from geckordp.actors.walker import WalkerActor
 from geckordp.actors.web_console import WebConsoleActor
 
-from .utils import Devtools, DevtoolsTestCase
+from .utils import Devtools
 
 
-class InspectorTests(DevtoolsTestCase):
-    def test_inspector_event_listeners(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/event_listeners.html")
+class TestInspector:
+    def test_inspector_event_listeners(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/event_listeners.html")
         with Devtools.connect() as devtools:
             inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
             walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
@@ -32,12 +33,23 @@ class InspectorTests(DevtoolsTestCase):
             span = walker.query_selector(document_element, "span")["node"]
             div = walker.query_selector(document_element, "div")["node"]
 
-            self.assert_event_listeners(button, [{"type": "click", "capturing": False}], devtools)
-            self.assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
-            self.assert_event_listeners(div, None, devtools)
+            def assert_event_listeners(node: dict, expected_listeners: Optional[Any], devtools: Devtools):
+                if expected_listeners is None:
+                    assert not node["hasEventListeners"]
+                    return
 
-    def test_inspector_attribute_modifications_affect_dom(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+                assert node["hasEventListeners"]
+                node_actor = NodeActor(devtools.client, node["actor"])
+                event_listener_info = node_actor.get_event_listener_info()
+                actual = [{"type": e["type"], "capturing": e["capturing"]} for e in event_listener_info]
+                assert actual == expected_listeners
+
+            assert_event_listeners(button, [{"type": "click", "capturing": False}], devtools)
+            assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
+            assert_event_listeners(div, None, devtools)
+
+    def test_inspector_attribute_modifications_affect_dom(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
             inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
             walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
@@ -55,7 +67,7 @@ class InspectorTests(DevtoolsTestCase):
 
             # Assert that the initial state is correct
             first_child = walker.children(body)[0]
-            self.assertEquals(first_child["attrs"], [{"name": "foo", "value": "bar"}])
+            assert first_child["attrs"] == [{"name": "foo", "value": "bar"}]
 
             # Modify the nodes attribute
             NodeActor(devtools.client, first_child["actor"]).modify_attributes(
@@ -66,16 +78,15 @@ class InspectorTests(DevtoolsTestCase):
             mutation_result.result(1)
 
             # Assert that the notification is correct
-            self.assertEquals(
-                walker.get_mutations(False),
-                [{"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": first_child["actor"]}],
-            )
+            assert walker.get_mutations(False) == [
+                {"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": first_child["actor"]}
+            ]
 
             # Assert that the new DOM state is correct
-            self.assertEquals(walker.children(body)[0]["attrs"], [{"name": "foo", "value": "baz"}])
+            assert walker.children(body)[0]["attrs"] == [{"name": "foo", "value": "baz"}]
 
-    def test_inspector_notices_attribute_mutation_from_javascript(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+    def test_inspector_notices_attribute_mutation_from_javascript(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
             inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
             walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
@@ -108,13 +119,14 @@ class InspectorTests(DevtoolsTestCase):
             mutation_result.result(1)
 
             # Assert that the notification is correct
-            self.assertEquals(
-                walker.get_mutations(False),
-                [{"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": target["actor"]}],
-            )
+            assert walker.get_mutations(False) == [
+                {"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": target["actor"]}
+            ]
 
-    def test_inspector_doesnt_crash_when_attribute_on_element_it_doesnt_know_about_is_mutated(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+    def test_inspector_doesnt_crash_when_attribute_on_element_it_doesnt_know_about_is_mutated(
+        self, run_servoshell, web_server_urls
+    ):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
             inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
             walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
@@ -124,7 +136,7 @@ class InspectorTests(DevtoolsTestCase):
             evaluation_result = Future()
 
             async def on_new_mutations(data):
-                global did_see_new_mutations
+                nonlocal did_see_new_mutations
                 did_see_new_mutations = True
 
             async def on_evaluation_result(data: dict):
@@ -143,15 +155,15 @@ class InspectorTests(DevtoolsTestCase):
 
             # Wait for a bit for unwanted notifications to arrive - we should not get any.
             time.sleep(1)
-            self.assertFalse(did_see_new_mutations)
-            self.assertEquals(walker.get_mutations(False), [])
+            assert not did_see_new_mutations
+            assert walker.get_mutations(False) == []
 
-    def test_walker_observes_new_dom_after_nav(self):
+    def test_walker_observes_new_dom_after_nav(self, run_servoshell, web_server_urls):
         # This tests that the walker actor can correctly recognize a new DOM across distinct
         # pipelines and script threads. It does not exercise the full exchange of messages required
         # for the Firefox toolbox to successfully refresh its inspector panel.
 
-        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+        run_servoshell(url=f"{web_server_urls[0]}/tab/page1.html")
         with Devtools.connect() as devtools:
             target_destroyed = Future()
             target_available = Future()
@@ -179,7 +191,7 @@ class InspectorTests(DevtoolsTestCase):
                     "to": devtools.tab.actor_id,
                     "type": "navigateTo",
                     # Use a different base URL to test walker across script threads.
-                    "url": f"{self.base_urls[1]}/tab/page2.html",
+                    "url": f"{web_server_urls[1]}/tab/page2.html",
                 },
             )
             target_destroyed.result(1)
@@ -191,20 +203,20 @@ class InspectorTests(DevtoolsTestCase):
             root_node = walker_info["root"]["actor"]
 
             title_node = walker.query_selector(root_node, "title")
-            self.assertIsNotNone(title_node.get("node"))
-            self.assertIsNotNone(title_node["node"].get("inlineTextChild"))
-            self.assertEquals(title_node["node"]["inlineTextChild"].get("nodeValue"), "Page 2")
+            assert title_node.get("node") is not None
+            assert title_node["node"].get("inlineTextChild") is not None
+            assert title_node["node"]["inlineTextChild"].get("nodeValue") == "Page 2"
 
-    def test_watcher_returns_same_breakpoint_list_actor_every_time(self):
-        self.run_servoshell(url="data:text/html,")
+    def test_watcher_returns_same_breakpoint_list_actor_every_time(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
         with Devtools.connect() as devtools:
             response1 = devtools.watcher.get_breakpoint_list_actor()
             response2 = devtools.watcher.get_breakpoint_list_actor()
-            self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
+            assert response1["breakpointList"]["actor"] == response2["breakpointList"]["actor"]
 
-    def test_watcher_returns_same_blackboxing_actor_every_time(self):
-        self.run_servoshell(url="data:text/html,")
+    def test_watcher_returns_same_blackboxing_actor_every_time(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
         with Devtools.connect() as devtools:
             response1 = devtools.watcher.get_blackboxing_actor()
             response2 = devtools.watcher.get_blackboxing_actor()
-            self.assertEqual(response1["blackboxing"]["actor"], response2["blackboxing"]["actor"])
+            assert response1["blackboxing"]["actor"] == response2["blackboxing"]["actor"]
