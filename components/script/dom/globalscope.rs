@@ -2135,6 +2135,28 @@ impl GlobalScope {
         }
     }
 
+    /// Send a PromoteMemory message to register a new blob URL entry
+    /// with the file manager for the given byte data.
+    /// Return the generated UUID.
+    fn promote_memory_entry(
+        &self,
+        blob_info: &BlobInfo,
+        blob_bytes: &[u8],
+        set_valid: bool,
+    ) -> Uuid {
+        let origin = self.origin().immutable();
+        let blob_buf = BlobBuf {
+            filename: None,
+            type_string: blob_info.blob_impl.type_string(),
+            size: blob_bytes.len() as u64,
+            bytes: blob_bytes.to_vec(),
+        };
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
+        self.send_to_file_manager(msg);
+        id
+    }
+
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
@@ -2149,6 +2171,12 @@ impl GlobalScope {
             },
             BlobData::File(f) => {
                 if set_valid {
+                    // File blobs with cached byte data (converted from Memory)
+                    // need a unique UUID per URL.createObjectURL call.
+                    if let Some(cached_bytes) = f.get_cache() {
+                        return self.promote_memory_entry(blob_info, &cached_bytes, true);
+                    }
+
                     let origin = self.origin().immutable();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
@@ -2168,18 +2196,7 @@ impl GlobalScope {
             BlobData::Memory(bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let origin = self.origin().immutable();
-
-        let blob_buf = BlobBuf {
-            filename: None,
-            type_string: blob_info.blob_impl.type_string(),
-            size: bytes.len() as u64,
-            bytes: bytes.to_vec(),
-        };
-
-        let id = Uuid::new_v4();
-        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
-        self.send_to_file_manager(msg);
+        let id = self.promote_memory_entry(blob_info, &bytes, set_valid);
 
         *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
             id,
