@@ -21,5 +21,6 @@ futures-util = { workspace = true }
 rustenium-bidi-definitions = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+servo-base = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { workspace = true }

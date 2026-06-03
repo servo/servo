@@ -15,7 +15,7 @@ impl RunningAppState {
             // TODO: match and handle
             match msg {
                 // NOTE: as a reference for others
-                WebDriverBidiCommandMsg::TraverseHistory(web_view_id, delta, sender) => {
+                WebDriverBidiCommandMsg::TraverseHistory(web_view_id, delta) => {
                     if let Some(webview) = self.webview_by_id(web_view_id) {
                         // BiDi does not support wait for traverseHistory, see Step 10.
                         // TODO: set sender may still be needed for events?
@@ -30,9 +30,6 @@ impl RunningAppState {
                                 webview.go_back(delta.unsigned_abs() as usize);
                             },
                             0 => {},
-                        }
-                        if let Err(error) = sender.send(()) {
-                            warn!("Failed to send response of TraverseHistory: {error}");
                         }
                     }
                 },

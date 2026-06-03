@@ -38,7 +38,7 @@ pub struct RequestSender<T: Serialize> {
 // TODO: incomplete
 #[derive(Debug)]
 pub enum WebDriverBidiCommandMsg {
-    TraverseHistory(WebViewId, i64, GenericSender<()>),
+    TraverseHistory(WebViewId, i64),
     Navigate(WebViewId, Url, RequestSender<()>),
     Reload(WebViewId),
     Shutdown,

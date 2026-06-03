@@ -1,3 +1,5 @@
+// TODO: follow WebDriverError
+
 #[derive(Debug)]
 pub enum Error {
     Serialize(serde_json::Error),

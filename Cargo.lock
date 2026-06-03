@@ -9043,6 +9043,7 @@ dependencies = [
  "rustenium-bidi-definitions",
  "serde",
  "serde_json",
+ "servo-base",
  "servo-embedder-traits",
  "tokio",
  "uuid",
