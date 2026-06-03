@@ -513,7 +513,7 @@ pub enum EmbedderMsg {
     /// Async permission request for screen wake lock. The callback is invoked
     /// with the user's decision, which resolves or rejects the pending promise
     /// without blocking the script thread.
-    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>),
+    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>, WakeLockType),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
@@ -628,7 +628,7 @@ pub enum PermissionFeature {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
-    ScreenWakeLock,
+    ScreenWakeLock(WakeLockType),
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
