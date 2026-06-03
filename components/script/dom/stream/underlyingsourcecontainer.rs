@@ -194,7 +194,7 @@ impl UnderlyingSourceContainer {
                 // If result is an abrupt completion,
                 if let Err(error) = result {
                     // Return a promise rejected with result.[[Value]].
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
                     promise.resolve_native(&(), CanGc::from_cx(cx));

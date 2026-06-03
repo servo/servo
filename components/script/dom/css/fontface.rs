@@ -601,7 +601,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             // [[FontStatusPromise]] with a DOMException whose name is "NetworkError"
                             // and set font face’s status attribute to "error".
                             font_face.status.set(FontFaceLoadStatus::Error);
-                            font_face.font_status_promise.reject_error(Error::Network(None), CanGc::from_cx(cx));
+                            font_face.font_status_promise.reject_error_with_cx(cx, Error::Network(None));
                         }
                         Some(template) => {
                             // Step 5.2. Otherwise, font face now represents the loaded font;

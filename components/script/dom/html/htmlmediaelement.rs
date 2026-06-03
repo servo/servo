@@ -3126,7 +3126,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, Error::NotSupported(None));
             return promise;
         }
 

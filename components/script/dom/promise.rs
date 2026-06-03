@@ -248,6 +248,19 @@ impl Promise {
         self.reject(cx, v.handle(), can_gc);
     }
 
+    pub(crate) fn reject_error_with_cx(&self, cx: &mut JSContext, error: Error) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut v = UndefinedValue());
+        error.to_jsval(
+            cx.into(),
+            &self.global(),
+            v.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        self.reject(cx.into(), v.handle(), CanGc::from_cx(cx));
+    }
+
     #[expect(unsafe_code)]
     pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {

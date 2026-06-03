@@ -309,7 +309,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
                 );
-                promise.reject_error(Error::Operation(None), CanGc::from_cx(cx))
+                promise.reject_error_with_cx(cx, Error::Operation(None))
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {

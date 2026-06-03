@@ -161,13 +161,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error(Security(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Security(None));
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt(cx).Connected() {
-            p.reject_error(Network(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Network(None));
             return p;
         }
 
@@ -175,7 +175,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 5.1.
         if !self.Properties().Read() {
-            p.reject_error(NotSupported(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, NotSupported(None));
             return p;
         }
 
@@ -198,7 +198,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {
-            p.reject_error(Security(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Security(None));
             return p;
         }
 
@@ -209,13 +209,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         };
 
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(InvalidModification(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, InvalidModification(None));
             return p;
         }
 
         // Step 4.
         if !self.Service().Device().get_gatt(cx).Connected() {
-            p.reject_error(Network(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Network(None));
             return p;
         }
 
@@ -226,7 +226,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
             self.Properties().WriteWithoutResponse() ||
             self.Properties().AuthenticatedSignedWrites())
         {
-            p.reject_error(NotSupported(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, NotSupported(None));
             return p;
         }
 
@@ -249,19 +249,19 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error(Security(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Security(None));
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt(cx).Connected() {
-            p.reject_error(Network(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, Network(None));
             return p;
         }
 
         // Step 5.
         if !(self.Properties().Notify() || self.Properties().Indicate()) {
-            p.reject_error(NotSupported(None), CanGc::from_cx(cx));
+            p.reject_error_with_cx(cx, NotSupported(None));
             return p;
         }
 

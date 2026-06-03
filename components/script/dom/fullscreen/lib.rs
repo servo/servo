@@ -312,10 +312,8 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             document
                 .upcast::<EventTarget>()
                 .fire_event(cx, atom!("fullscreenerror"));
-            promise.reject_error(
-                Error::Type(c"fullscreen is not connected".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"fullscreen is not connected".to_owned()));
             return;
         }
 

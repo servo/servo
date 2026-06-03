@@ -559,7 +559,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
                         }
                         let error = cformat!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error), CanGc::from_cx(cx));
+                        resolver.promise.reject_error_with_cx(cx, Error::Type(error));
                     }));
                 })
                 .build();

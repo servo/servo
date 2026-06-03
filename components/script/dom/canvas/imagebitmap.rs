@@ -344,7 +344,7 @@ impl ImageBitmap {
                 task!(reject_promise: move |cx| {
                     let promise = trusted_promise.root();
 
-                    promise.reject_error(Error::InvalidState(None), CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, Error::InvalidState(None));
                 }),
             );
         };
