@@ -21,6 +21,7 @@ use js::context::JSContext;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::canvas::CanvasContext;
 use script_bindings::cell::DomRefCell;
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
@@ -49,7 +50,7 @@ use unicode_script::Script;
 use url::Url;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
+use crate::canvas_context::{OffscreenRenderingContext, RenderingContext};
 use crate::conversions::Convert;
 use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{

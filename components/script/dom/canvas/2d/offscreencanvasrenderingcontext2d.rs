@@ -6,10 +6,12 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
+use script_bindings::canvas::CanvasContext;
 use script_bindings::reflector::reflect_dom_object;
 use servo_canvas_traits::canvas::CanvasCommand;
 
-use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
+use crate::DomTypeHolder;
+use crate::canvas_context::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
@@ -71,8 +73,8 @@ impl OffscreenCanvasRenderingContext2D {
     }
 }
 
-impl CanvasContext for OffscreenCanvasRenderingContext2D {
-    type ID = <CanvasRenderingContext2D as CanvasContext>::ID;
+impl CanvasContext<DomTypeHolder> for OffscreenCanvasRenderingContext2D {
+    type ID = <CanvasRenderingContext2D as CanvasContext<DomTypeHolder>>::ID;
 
     fn context_id(&self) -> Self::ID {
         self.context.context_id()

@@ -7,11 +7,11 @@ use std::convert::TryInto;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
+use script_bindings::canvas::CanvasContext;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
-use crate::canvas_context::CanvasContext;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;

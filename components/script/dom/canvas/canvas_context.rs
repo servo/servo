@@ -6,12 +6,13 @@
 
 use euclid::default::Size2D;
 use pixels::Snapshot;
+use script_bindings::canvas::CanvasContext;
 use script_bindings::root::{Dom, DomRoot};
 use webrender_api::ImageKey;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::node::{Node, NodeTraits};
+use crate::dom::node::NodeTraits;
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;
 use crate::dom::types::{
@@ -19,7 +20,6 @@ use crate::dom::types::{
     OffscreenCanvasRenderingContext2D, WebGL2RenderingContext, WebGLRenderingContext,
 };
 
-/*
 /// Non rooted variant of [`crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas`]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -67,7 +67,6 @@ impl From<&HTMLCanvasElementOrOffscreenCanvas> for RootedHTMLCanvasElementOrOffs
         }
     }
 }
-*/
 
 pub(crate) trait CanvasHelpers {
     fn size(&self) -> Size2D<u32>;
@@ -145,7 +144,7 @@ impl RenderingContext {
     }
 }
 
-impl CanvasContext for RenderingContext {
+impl CanvasContext<DomTypeHolder> for RenderingContext {
     type ID = ();
 
     fn context_id(&self) -> Self::ID {}
@@ -281,7 +280,7 @@ pub(crate) enum OffscreenRenderingContext {
     Detached,
 }
 
-impl CanvasContext for OffscreenRenderingContext {
+impl CanvasContext<DomTypeHolder> for OffscreenRenderingContext {
     type ID = ();
 
     fn context_id(&self) -> Self::ID {}

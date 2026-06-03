@@ -9,8 +9,21 @@ use crate::DomTypes;
 use crate::codegen::GenericUnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::inheritance::Castable;
 
-pub trait CanvasBindingTrait {
-    fn size(&self) -> Size2D<u32>;
+pub trait CanvasSizeTrait {
+    fn get_size(&self) -> Size2D<u32>;
+}
+
+impl<D: DomTypes> HTMLCanvasElementOrOffscreenCanvas<D>
+where
+    D::HTMLCanvasElement: CanvasSizeTrait,
+    D::OffscreenCanvas: CanvasSizeTrait,
+{
+    fn size(&self) -> Size2D<u32> {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(root) => root.get_size(),
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(root) => root.get_size(),
+        }
+    }
 }
 
 pub trait CanvasNodeTrait {
@@ -20,7 +33,8 @@ pub trait CanvasNodeTrait {
 pub trait CanvasContext<D>
 where
     D: DomTypes,
-    HTMLCanvasElementOrOffscreenCanvas<D>: CanvasBindingTrait,
+    D::HTMLCanvasElement: CanvasSizeTrait,
+    D::OffscreenCanvas: CanvasSizeTrait,
     D::Node: CanvasNodeTrait,
 {
     type ID;
