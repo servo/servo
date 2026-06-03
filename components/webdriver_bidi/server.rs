@@ -73,7 +73,7 @@ where
         address.set_port(addr.port());
     }
 
-    let (dispatch_tx, dispatch_rx) = mpsc::unbounded_channel::<DispatchMessage>();
+    let (dispatch_tx, dispatch_rx) = crossbeam_channel::unbounded::<DispatchMessage>();
 
     let builder = thread::Builder::new().name("webdriver bidi server".to_string());
     let handle = builder.spawn({
@@ -93,12 +93,8 @@ where
 
     let builder = thread::Builder::new().name("webdriver dispatcher".to_string());
     builder.spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
-            .build()
-            .expect("fail to create tokio runtime");
         let mut dispatcher = Dispatcher::new(handler);
-        rt.block_on(dispatcher.run(dispatch_rx));
+        dispatcher.run(dispatch_rx);
     })?;
 
     Ok(Listener {
@@ -110,7 +106,7 @@ where
     })
 }
 
-async fn serve(listener: TcpListener, dispatch_tx: mpsc::UnboundedSender<DispatchMessage>) {
+async fn serve(listener: TcpListener, dispatch_tx: crossbeam_channel::Sender<DispatchMessage>) {
     while let Ok((stream, _)) = listener.accept().await {
         let (conn_tx, conn_rx) = mpsc::unbounded_channel::<BidiMessage>();
         let uuid = Uuid::new_v4();
@@ -148,7 +144,7 @@ fn should_accept_connection() -> impl FnOnce(&Request, Response) -> Result<Respo
 async fn handle_ws_stream(
     uuid: Uuid,
     mut stream: WebSocketStream<TokioAdapter<TcpStream>>,
-    dispatch_tx: mpsc::UnboundedSender<DispatchMessage>,
+    dispatch_tx: crossbeam_channel::Sender<DispatchMessage>,
     mut conn_rx: mpsc::UnboundedReceiver<BidiMessage>,
 ) {
     tokio::select! {
@@ -164,7 +160,7 @@ async fn handle_ws_stream(
         uuid: Uuid,
         _stream: &mut WebSocketStream<TokioAdapter<TcpStream>>,
         ws: Result<Message, tungstenite::Error>,
-        dispatch_tx: mpsc::UnboundedSender<DispatchMessage>,
+        dispatch_tx: crossbeam_channel::Sender<DispatchMessage>,
     ) {
         let Ok(ws) = ws else {
             return;

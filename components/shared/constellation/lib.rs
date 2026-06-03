@@ -18,6 +18,7 @@ use std::time::Duration;
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
+use embedder_traits::webdriver_bidi::WebDriverBidiCommandMsg;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
     MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId, UrlRequest,
@@ -64,6 +65,8 @@ pub enum EmbedderToConstellationMessage {
     NoLongerWaitingOnAsynchronousImageUpdates(Vec<PipelineId>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
+    /// Dispatch a webdriver bidi command
+    WebDriverBidiCommand(WebDriverBidiCommandMsg),
     /// Reload a top-level browsing context.
     Reload(WebViewId),
     /// A log entry, with the top-level browsing context id and thread name

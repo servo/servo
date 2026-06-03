@@ -29,19 +29,15 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
-    pub async fn run(&mut self, mut rx: mpsc::UnboundedReceiver<DispatchMessage>) {
+    pub fn run(&mut self, rx: crossbeam_channel::Receiver<DispatchMessage>) {
         loop {
-            tokio::select! {
-                dispatch = rx.recv() => {
-                    if let Some(dispatch) = dispatch {
-                        self.handle_dispatch(dispatch);
-                    } else {
-                        // quit dispatcher when server close
-                        return;
-                    }
-                }
-                (session, bidi) = self.handler.recv() => self.handle_bidi(session, bidi)
-            };
+            while let Ok(dispatch_msg) = rx.try_recv() {
+                self.handle_dispatch(dispatch_msg);
+            }
+            // TODO: refactor handler to be non-blocking try-recv
+            while let Ok((session, bidi_msg)) = self.handler.try_recv() {
+                self.handle_bidi(session, bidi_msg);
+            }
         }
     }
 

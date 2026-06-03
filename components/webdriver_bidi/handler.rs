@@ -2,6 +2,8 @@
 //!
 //! Also provide a default implementation.
 
+use std::convert::Infallible;
+
 use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
 use rustenium_bidi_definitions::{Command, base::CommandMessage, browsing_context};
 use servo_base::id::WebViewId;
@@ -13,9 +15,8 @@ pub trait WebDriverBidiHandler: Send {
     /// Start processing of a command.
     fn process(&self, session: &Option<Session>, command: &CommandMessage);
 
-    // TODO: refactor to use
-    /// Receive BiDi message.
-    fn recv(&self) -> impl Future<Output = (Option<Session>, Message)>;
+    // TODO: refactor to return actual Result
+    fn try_recv(&self) -> Result<(Option<Session>, Message), ()>;
 
     // TODO: do we need
     // post update after receiving message
@@ -103,7 +104,7 @@ impl WebDriverBidiHandler for Handler {
         }
     }
 
-    fn recv(&self) -> impl Future<Output = (Option<Session>, Message)> {
-        async { todo!() }
+    fn try_recv(&self) -> Result<(Option<Session>, Message), ()> {
+        todo!()
     }
 }
