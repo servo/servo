@@ -314,3 +314,64 @@ where
     let global_scope = global.upcast();
     unsafe { T::WRAP(cx, global_scope, proto, obj) }
 }
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector. Needs the correct Wrap function for the type.
+/// Here `AbstractType` is of the form `D::` while `ConcreteType` is the concrete type given in [`DomTypeHolders`] in script.
+/// As these will be equal in script, the `From<..>` type bounds are automatically fulfilled.
+#[expect(clippy::type_complexity, reason = "The type is generated in codegen")]
+pub fn reflect_dom_object_with_wrap<D, AbstractType, GlobalType, ConcreteType>(
+    obj: Box<ConcreteType>,
+    global: &GlobalType,
+    _can_gc: CanGc,
+    wrap: unsafe fn(
+        &mut js::context::JSContext,
+        &D::GlobalScope,
+        Option<HandleObject>,
+        Box<AbstractType>,
+    ) -> DomRoot<AbstractType>,
+) -> DomRoot<ConcreteType>
+where
+    D: DomTypes,
+    AbstractType: DomObject,
+    ConcreteType: DomObject,
+    GlobalType: DerivedFrom<D::GlobalScope>,
+    Box<AbstractType>: From<Box<ConcreteType>>,
+    DomRoot<ConcreteType>: From<DomRoot<AbstractType>>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+    let abstract_obj: Box<AbstractType> = obj.into();
+    let abstract_obj: DomRoot<AbstractType> =
+        unsafe { wrap(&mut cx, global_scope, None, abstract_obj) };
+    abstract_obj.into()
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector. Needs the correct Wrap function. See `rerflect_dom_object_with_wrap`.
+#[expect(clippy::type_complexity, reason = "The type is generated in codegen")]
+pub fn reflect_dom_object_with_wrap_and_proto<D, T, U, K>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    _can_gc: CanGc,
+    wrap: unsafe fn(
+        &mut js::context::JSContext,
+        &D::GlobalScope,
+        Option<HandleObject>,
+        Box<K>,
+    ) -> DomRoot<K>,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject,
+    K: DomObject,
+    U: DerivedFrom<D::GlobalScope>,
+    DomRoot<T>: From<DomRoot<K>>,
+    Box<K>: From<Box<T>>,
+{
+    let global_scope = global.upcast();
+    let mut cx = unsafe { temp_cx() };
+
+    unsafe { wrap(&mut cx, global_scope, proto, obj.into()).into() }
+}
