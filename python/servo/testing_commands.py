@@ -416,8 +416,14 @@ class MachCommands(CommandBase):
 
     @Command("test-devtools", description="Run tests for devtools.", category="testing")
     @CommandArgument("test_names", nargs=argparse.REMAINDER, help="Only run tests that match these patterns")
+    @CommandArgument(
+        "-N",
+        "--num-threads",
+        default="auto",
+        help="Number of parallel workers: auto, logical, or a number; 0 to disable",
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_devtools(self, servo_binary: str, test_names: list[str], **kwargs: Any) -> int:
+    def test_devtools(self, servo_binary: str, test_names: list[str], num_threads: str, **kwargs: Any) -> int:
         import pytest
 
         args = [
@@ -426,6 +432,8 @@ class MachCommands(CommandBase):
             servo_binary,
             "--script-path",
             SCRIPT_PATH,
+            "-n",
+            num_threads,
             "-v",
         ]
         if test_names:

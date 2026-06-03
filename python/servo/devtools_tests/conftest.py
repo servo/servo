@@ -14,7 +14,6 @@ import socketserver
 import subprocess
 import sys
 import time
-from concurrent.futures import Future
 from subprocess import TimeoutExpired
 from threading import Thread
 
@@ -25,10 +24,26 @@ from . import utils
 WAIT_BETWEEN_ATTEMPTS = 1 / 8  # seconds
 CONNECTION_TIMEOUT = 5  # seconds
 
+web_servers = []
+web_server_threads = []
+
 
 def pytest_addoption(parser):
     parser.addoption("--servo-binary", help="Path to the servoshell binary")
     parser.addoption("--script-path", help="Path to the servo python library")
+
+
+def pytest_sessionstart(session: pytest.Session):
+    if hasattr(session.config, "workerinput"):
+        return
+    # The web servers for the test files need to be started before we spawn the workers running the tests
+    _start_web_servers(session.config)
+
+
+def pytest_sessionfinish(session: pytest.Session):
+    if hasattr(session.config, "workerinput"):
+        return
+    _stop_web_servers()
 
 
 @pytest.fixture(scope="session")
@@ -40,23 +55,60 @@ def servo_binary(request):
 
 
 @pytest.fixture(scope="session")
-def script_path(request):
-    path = request.config.getoption("--script-path")
+def test_dir(request):
+    return _test_dir(request.config)
+
+
+def _test_dir(config):
+    path = config.getoption("--script-path")
     if not path:
         pytest.fail("The --script-path option must be specified")
-    return path
+    return os.path.join(path, "devtools_tests")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def devtools_port(worker_id):
+    base_port = 6000
+    if worker_id == "master":
+        return base_port
+
+    worker_num = int(worker_id.replace("gw", ""))
+    port = base_port + worker_num
+
+    # Set the thread local port in utils, which is used by the Devtools class
+    # This avoid having to pass it as a parameter in every invocation of connect
+    utils.DEVTOOLS_PORT = port
+
+    return port
 
 
 @pytest.fixture(scope="session")
-def web_server_urls(script_path):
-    test_dir = os.path.join(script_path, "devtools_tests")
-    base_urls = [Future() for _ in range(len(utils.WEB_SERVERS))]
-    web_servers = [None for _ in range(len(utils.WEB_SERVERS))]
-    web_server_threads = [None for _ in range(len(utils.WEB_SERVERS))]
+def web_server_urls(worker_id):
+    base_urls = [f"http://{utils.SERVER_ADDRESS}:{port}" for port in utils.WEB_SERVERS]
+
+    # For workers other than the one starting the web servers, we want to poll until they are available
+    if worker_id != "master":
+        for port in utils.WEB_SERVERS:
+            for _ in range(int(CONNECTION_TIMEOUT / WAIT_BETWEEN_ATTEMPTS)):
+                try:
+                    with socket.create_connection((utils.SERVER_ADDRESS, port)):
+                        break
+                except Exception:
+                    time.sleep(WAIT_BETWEEN_ATTEMPTS)
+            else:
+                raise TimeoutError(f"Couldn't connect to web server at {utils.SERVER_ADDRESS}:{port}")
+
+    return base_urls
+
+
+def _start_web_servers(config):
+    if web_servers:
+        return
+    directory = _test_dir(config)
 
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=test_dir, **kwargs)
+            super().__init__(*args, directory=directory, **kwargs)
 
         def log_message(self, format, *args):
             if utils.LOG_REQUESTS:
@@ -72,20 +124,25 @@ def web_server_urls(script_path):
         port = utils.WEB_SERVERS[i]
         web_server = socketserver.TCPServer((utils.SERVER_ADDRESS, port), Handler)
 
-        base_urls[i].set_result(f"http://{utils.SERVER_ADDRESS}:{port}")
-        web_servers[i] = web_server
+        web_servers.append(web_server)
         web_server.serve_forever()
 
     # Start a web server for the test.
     for i in range(len(utils.WEB_SERVERS)):
         thread = Thread(target=server_thread, args=[i])
-        web_server_threads[i] = thread
+        web_server_threads.append(thread)
         thread.start()
 
-    # Return the urls for the servers.
-    yield [url.result(1) for url in base_urls]
+    for port in utils.WEB_SERVERS:
+        for _ in range(int(CONNECTION_TIMEOUT / WAIT_BETWEEN_ATTEMPTS)):
+            try:
+                with socket.create_connection((utils.SERVER_ADDRESS, port)):
+                    break
+            except Exception:
+                time.sleep(WAIT_BETWEEN_ATTEMPTS)
 
-    # Stop the servers and the threads.
+
+def _stop_web_servers():
     for server in web_servers:
         if server:
             server.shutdown()
@@ -96,7 +153,7 @@ def web_server_urls(script_path):
 
 
 @pytest.fixture
-def run_servoshell(servo_binary):
+def run_servoshell(servo_binary, devtools_port):
     process = None
 
     def run(*, url):
@@ -106,13 +163,13 @@ def run_servoshell(servo_binary):
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        process = subprocess.Popen([servo_binary, "--headless", f"--devtools={utils.DEVTOOLS_PORT}", url])
+        process = subprocess.Popen([servo_binary, "--headless", f"--devtools={devtools_port}", url])
 
         # Try to connect to the devtools server.
-        for attempt in range(int(CONNECTION_TIMEOUT / WAIT_BETWEEN_ATTEMPTS)):
+        for _ in range(int(CONNECTION_TIMEOUT / WAIT_BETWEEN_ATTEMPTS)):
             print(".", end="", file=sys.stderr)
             try:
-                with socket.create_connection((utils.SERVER_ADDRESS, utils.DEVTOOLS_PORT)) as stream:
+                with socket.create_connection((utils.SERVER_ADDRESS, devtools_port)) as stream:
                     stream.recv(4096)  # FIXME: geckordp workaround
                     stream.shutdown(socket.SHUT_RDWR)
                 print("+", end="", file=sys.stderr, flush=True)
@@ -120,7 +177,7 @@ def run_servoshell(servo_binary):
             except Exception:
                 time.sleep(WAIT_BETWEEN_ATTEMPTS)
         raise TimeoutError(
-            f"Couldn't connect to the devtools server at {utils.SERVER_ADDRESS}:{utils.DEVTOOLS_PORT} in {CONNECTION_TIMEOUT}s"
+            f"Couldn't connect to the devtools server at {utils.SERVER_ADDRESS}:{devtools_port} in {CONNECTION_TIMEOUT}s"
         )
 
     yield run
@@ -129,7 +186,7 @@ def run_servoshell(servo_binary):
     if process:
         process.terminate()
         try:
-            process.wait(timeout=CONNECTION_TIMEOUT)
+            process.wait(timeout=2)
         except TimeoutExpired:
             print("Warning: servoshell did not terminate", file=sys.stderr)
             process.kill()

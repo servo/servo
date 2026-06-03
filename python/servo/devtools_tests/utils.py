@@ -22,8 +22,8 @@ from geckordp.rdp_client import RDPClient
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
-# The devtools server will be served at 6000.
-DEVTOOLS_PORT = 6000
+# The devtools server will be served at 6000 (plus the worker index if running in parallel mode).
+DEVTOOLS_PORT: int = 6000
 # Other web servers.
 WEB_SERVERS = [10000, 10001]
 SERVER_ADDRESS = "127.0.0.1"

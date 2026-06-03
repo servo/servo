@@ -708,15 +708,15 @@ class TestDebuggerTab:
         expected_content = 'console.log("external classic");\n'
         assert_source_content(Source("srcScript", f"{web_server_urls[0]}/sources/classic.js"), expected_content)
 
-    def test_source_content_html_file(self, run_servoshell, web_server_urls, script_path):
+    def test_source_content_html_file(self, run_servoshell, web_server_urls, test_dir):
         run_servoshell(url=f"{web_server_urls[0]}/sources/test.html")
-        expected_content = open(os.path.join(script_path, "devtools_tests/sources/test.html")).read()
+        expected_content = open(os.path.join(test_dir, "sources/test.html")).read()
         assert_source_content(Source("inlineScript", f"{web_server_urls[0]}/sources/test.html"), expected_content)
 
-    def test_source_content_with_inline_module_import_external(self, run_servoshell, web_server_urls, script_path):
+    def test_source_content_with_inline_module_import_external(self, run_servoshell, web_server_urls, test_dir):
         run_servoshell(url=f"{web_server_urls[0]}/sources_content_with_inline_module_import_external/test.html")
         expected_content = open(
-            os.path.join(script_path, "devtools_tests", "sources_content_with_inline_module_import_external/test.html")
+            os.path.join(test_dir, "sources_content_with_inline_module_import_external/test.html")
         ).read()
         assert_source_content(
             Source(
@@ -748,11 +748,9 @@ class TestDebuggerTab:
 
     # Test case that uses XMLHttpRequest#responseXML and would actually need the HTML parser
     # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
-    def test_source_content_inline_script_with_responsexml(self, run_servoshell, web_server_urls, script_path):
+    def test_source_content_inline_script_with_responsexml(self, run_servoshell, web_server_urls, test_dir):
         run_servoshell(url=f"{web_server_urls[0]}/sources_content_with_responsexml/test.html")
-        expected_content = open(
-            os.path.join(script_path, "devtools_tests/sources_content_with_responsexml/test.html")
-        ).read()
+        expected_content = open(os.path.join(test_dir, "sources_content_with_responsexml/test.html")).read()
         assert_source_content(
             Source("inlineScript", f"{web_server_urls[0]}/sources_content_with_responsexml/test.html"),
             expected_content,
