@@ -6,8 +6,8 @@ use std::fs::File;
 use std::sync::LazyLock;
 
 use ndk::font::{Font as NDK_Font, SystemFontIterator};
-use read_fonts::tables::name::Name;
-use read_fonts::{FileRef, TableProvider};
+use read_fonts::tables::name::{Name, NameRecord};
+use read_fonts::{FileRef, FontData, TableProvider};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -68,25 +68,12 @@ impl FontList {
                 continue;
             };
 
-            let mut name = String::from("");
-            let mut font_entries = Vec::new();
             match font_file {
                 FileRef::Font(font) => {
                     let Ok(name_table) = font.name() else {
                         continue;
                     };
-                    let Some((family_name, font_entry)) =
-                        Self::create_font_entry(&system_font, name_table)
-                    else {
-                        continue;
-                    };
-
-                    font_entries.push(Font {
-                        filename: font_entry.filename.clone(),
-                        weight: font_entry.weight,
-                        style: font_entry.style.clone(),
-                    });
-                    name = family_name;
+                    Self::create_font_family_entry(&system_font, name_table, &mut families);
                 },
                 FileRef::Collection(font_collection) => {
                     for font in font_collection.iter() {
@@ -96,25 +83,10 @@ impl FontList {
                         let Ok(name_table) = font_binding.name() else {
                             continue;
                         };
-                        let Some((family_name, font_entry)) =
-                            Self::create_font_entry(&system_font, name_table)
-                        else {
-                            continue;
-                        };
-
-                        font_entries.push(Font {
-                            filename: font_entry.filename.clone(),
-                            weight: font_entry.weight,
-                            style: font_entry.style.clone(),
-                        });
-                        name = family_name;
+                        Self::create_font_family_entry(&system_font, name_table, &mut families);
                     }
                 },
             }
-            families.push(FontFamily {
-                name,
-                fonts: font_entries,
-            });
         }
 
         FontList {
@@ -124,18 +96,40 @@ impl FontList {
         }
     }
 
-    fn create_font_entry(system_font: &NDK_Font, name_table: Name) -> Option<(String, Font)> {
-        let family_name = name_table
-            .name_record()
-            .iter()
-            .filter(|record| record.name_id().to_u16() == 1)
-            .find_map(|record| {
-                record
-                    .string(name_table.string_data())
-                    .ok()
-                    .map(|s| s.to_string())
-            })?;
+    fn create_font_family_entry(
+        system_font: &NDK_Font,
+        name_table: Name,
+        families: &mut Vec<FontFamily>,
+    ) {
+        for name_record in name_table.name_record() {
+            let Some((family_name, font_entry)) =
+                Self::create_single_font_entry(system_font, *name_record, name_table.string_data())
+            else {
+                continue;
+            };
+            families.push(FontFamily {
+                name: family_name,
+                fonts: vec![Font {
+                    filename: font_entry.filename.clone(),
+                    weight: font_entry.weight,
+                    style: font_entry.style.clone(),
+                }],
+            });
+        }
+    }
 
+    fn create_single_font_entry(
+        system_font: &NDK_Font,
+        name_record: NameRecord,
+        name_table_data: FontData,
+    ) -> Option<(String, Font)> {
+        // According to TrueType's specifications, https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
+        // Name table's name id 1 corresponds to the family name. therefore, if the current record's name id is not 1, return None.
+        if name_record.name_id().to_u16() != 1 {
+            return None;
+        }
+
+        let family_name = name_record.string(name_table_data).ok()?.to_string();
         let filename = system_font.path().file_name()?.to_str()?;
 
         let style = if system_font.is_italic() {
