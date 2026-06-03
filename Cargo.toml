@@ -48,7 +48,7 @@ base64ct = { version = "1.8", features = ["alloc"] }
 bitflags = "2.11"
 blurmock = "0.1.2"
 bpaf = "0.9.26"
-brotli = "8.0.2"
+brotli = "8.0.3"
 btleplug = "0.12"
 buf-read-ext = "0.4"
 byte-slice-cast = "1.2.3"
