@@ -1,3 +1,4 @@
+use log::error;
 use rustenium_bidi_definitions::base::CommandMessage;
 use uuid::Uuid;
 
@@ -10,9 +11,12 @@ use crate::{
 #[derive(Debug)]
 pub enum DispatchMessage {
     Command(Uuid, Box<CommandMessage>),
-    // TODO: option session
+    // TODO: new connection may connect to existing session
     NewConnection(Uuid, Connection),
 }
+
+// TODO: add request ids, so that dispatcher can hide connection and session detail from handler and
+// behind. pending_requests: enum Session/Connection.
 
 #[derive(Debug)]
 pub struct Dispatcher<T: WebDriverBidiHandler> {
@@ -39,15 +43,29 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
-    // TODO: refactor to use Result
     fn handle_dispatch(&mut self, dispatch: DispatchMessage) {
         match dispatch {
-            DispatchMessage::Command(_, command_message) => {
-                // TODO: find using uuid
-                self.handler.handle(&None, &command_message);
+            DispatchMessage::Command(uuid, command_message) => {
+                let session = self.conn_map.session(&uuid).cloned();
+                // handle early error
+                if let Err(err) = self.handler.handle(&session, &command_message) {
+                    let msg: Message =
+                        Message::ErrorResponse(err.into_response(Some(command_message.id)));
+                    // if associated with session, send to all session. otherwise send to
+                    // connection.
+                    if let Some(session) = session {
+                        self.send_to_session(&session, msg);
+                    } else {
+                        if let Some(conn) = self.conn_map.unassociated.get(&uuid)
+                            && let Err(err) = conn.tx.send(msg)
+                        {
+                            error!("Error sending error message to bidi server: {err}");
+                        }
+                    }
+                };
             },
             DispatchMessage::NewConnection(uuid, connection) => {
-                // TODO: add to conn_map
+                self.conn_map.add_connection(None, uuid, connection);
             },
         }
     }
@@ -56,11 +74,20 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         self.update(&bidi);
         match session {
             Some(session) => {
-                for conn in self.conn_map.connections(&session) {
-                    conn.tx.send(bidi.clone());
-                }
+                self.send_to_session(&session, bidi);
             },
-            None => todo!(),
+            None => {
+                // TODO: find a way to get the correct unassociated connection. See pending_requests
+            },
+        }
+    }
+
+    // TODO: use Arc to avoid clone
+    fn send_to_session(&self, session: &Session, message: Message) {
+        for conn in self.conn_map.connections(session) {
+            if let Err(err) = conn.tx.send(message.clone()) {
+                error!("Error sending error message to bidi server: {err}");
+            }
         }
     }
 
@@ -68,10 +95,17 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         if let Message::CommandResponse(command_response) = msg
             && let ResultData::Session(session_result) = &command_response.result
         {
+            // TODO: where does session happen? in dispatcher or handler?
             match session_result {
                 SessionResult::New(new_result) => {
-                    // Step 7. if method is session.new, bind connection to session
-                    // TODO:
+                    let _session_id = Uuid::parse_str(&new_result.session_id)
+                        .expect("unexpected non uuid session id");
+                    // TODO: should associate to session, but now we cannot get uuid in update fn.
+                    // wait for paending_requests
+
+                    // self.conn_map.associate(uuid,Session {
+                    //     id: new_result.session_id,
+                    // });
                 },
                 SessionResult::End(end_result) => {
                     todo!()

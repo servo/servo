@@ -5,8 +5,11 @@ use uuid::Uuid;
 
 use crate::model::Message;
 
+// TODO: rename to SessionId
+// TODO: move to shared
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Session {
+    // TODO: should use uuid
     pub id: String,
 }
 
@@ -17,6 +20,7 @@ pub struct Connection {
     pub tx: mpsc::UnboundedSender<Message>,
 }
 
+// TODO: flatten this into Dispatcher
 /// A dimap containing all connections in a remote end, both associated
 /// and unassociated.
 #[derive(Debug, Default)]
@@ -56,8 +60,7 @@ impl ConnectionMap {
         self.associated
             .get(session)
             .into_iter()
-            .map(|v| v.iter().map(|i| &i.1))
-            .flatten()
+            .flat_map(|v| v.iter().map(|i| &i.1))
     }
 
     pub fn add_session(&mut self, session: Session) -> bool {
