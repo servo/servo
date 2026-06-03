@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
-    <application android:label="Servo" android:icon="@mipmap/servo">
+    <application android:label="@string/app_name" android:icon="@mipmap/servo">
         <activity android:name=".MainActivity"
             android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
             android:exported="true"
