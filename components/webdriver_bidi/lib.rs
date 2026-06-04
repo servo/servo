@@ -1,6 +1,10 @@
-use std::{net::SocketAddrV4, thread};
+use std::{
+    net::{SocketAddr, SocketAddrV4},
+    thread,
+};
 
 use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
+use log::info;
 
 use crate::handler::Handler;
 
@@ -23,15 +27,14 @@ pub fn start_server(
         .name("WebDriverBiDiServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            // TODO:
-            // match server::start(SocketAddr::V4(address), handler) {
-            //     Ok(_listening) => {
-            //         // TODO: info
-            //     },
-            //     Err(e) => {
-            //         panic!("Unable to start WebDriver BiDi server {e:?}");
-            //     },
-            // }
+            match server::start(SocketAddr::V4(address), handler) {
+                Ok(listening) => {
+                    info!("WebDriver BiDi server listening on {}", listening.socket)
+                },
+                Err(e) => {
+                    panic!("Unable to start WebDriver BiDi server {e:?}");
+                },
+            }
         })
         .expect("Thread spawning failed");
 }
