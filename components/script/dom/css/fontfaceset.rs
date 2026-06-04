@@ -8,6 +8,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use fonts::FontContextWebFontMethods;
 use js::context::JSContext;
+use js::gc::Handle;
+use js::jsapi::Value;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::FontFaceBinding::{
@@ -26,7 +29,10 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::Callback;
+use crate::dom::types::PromiseNativeHandler;
 use crate::dom::window::Window;
+use crate::realms::enter_auto_realm;
 
 /// <https://drafts.csswg.org/css-font-loading/#FontFaceSet-interface>
 #[dom_struct]
@@ -190,32 +196,64 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     fn Load(&self, cx: &mut JSContext, _font: DOMString, _text: DOMString) -> Rc<Promise> {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
-        let promise = Promise::new2(cx, &self.global());
+        let load_promise = Promise::new2(cx, &self.global());
 
-        // TODO: Step 3. Find the matching font faces from font face set using the font and text
+        // Step 3. Find the matching font faces from font face set using the font and text
         // arguments passed to the function, and let font face list be the return value (ignoring
         // the found faces flag). If a syntax error was returned, reject promise with a SyntaxError
         // exception and terminate these steps.
+        //
+        // TODO: Implement this.
 
-        let trusted = TrustedPromise::new(promise.clone());
+        #[derive(MallocSizeOf, JSTraceable)]
+        struct LoadPromiseFulfillmentHandler {
+            #[conditional_malloc_size_of]
+            load_promise: Rc<Promise>,
+        }
+        impl Callback for LoadPromiseFulfillmentHandler {
+            fn callback(&self, cx: &mut CurrentRealm, _: Handle<Value>) {
+                self.load_promise
+                    .resolve_native_with_cx(cx, &Vec::<&FontFace>::new());
+            }
+        }
+
         // Step 4. Queue a task to run the following steps synchronously:
+        let trusted_ready_promise = TrustedPromise::new(self.promise.borrow().clone());
+        let trusted_load_promise = TrustedPromise::new(load_promise.clone());
         self.global()
             .task_manager()
             .font_loading_task_source()
             .queue(task!(resolve_font_face_set_load_task: move |cx| {
-                let promise = trusted.root();
+                let ready_promise = trusted_ready_promise.root();
+                let load_promise = trusted_load_promise.root();
 
-                // TODO: Step 4.1. For all of the font faces in the font face list, call their load()
+                // Step 4.1. For all of the font faces in the font face list, call their load()
                 // method.
-
-                // TODO: Step 4.2. Resolve promise with the result of waiting for all of the
+                // Step 4.2. Resolve promise with the result of waiting for all of the
                 // [[FontStatusPromise]]s of each font face in the font face list, in order.
-                let matched_fonts = Vec::<&FontFace>::new();
-                promise.resolve_native_with_cx(cx, &matched_fonts);
+                //
+                // TODO: These steps are not implemented. Instead we wait until all fonts
+                // are loaded by resolving the returned promise when
+                // `document.fonts.ready` is resolved. The return list of fonts will not
+                // be correct, but any code that waits on the promise will have
+                // conservatively consistent behavior. This is important for preventing
+                // intermittent results in WPT tests.
+                let global = ready_promise.global();
+                let handler = PromiseNativeHandler::new(
+                    cx,
+                    &global,
+                    Some(Box::new(LoadPromiseFulfillmentHandler {
+                        load_promise,
+                    })),
+                    None,
+                );
+
+                let mut realm = enter_auto_realm(cx, &*global);
+                ready_promise.append_native_handler(&mut realm.current_realm(), &handler);
             }));
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.
-        promise
+        load_promise
     }
 
     /// <https://html.spec.whatwg.org/multipage/#customstateset>
