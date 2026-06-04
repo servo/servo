@@ -196,9 +196,3 @@ skip = [
     "tiny-skia",
     "tiny-skia-path",
 ]
-
-# github.com organizations to allow git sources for
-[sources.allow-org]
-github = [
-    "servo",
-]
