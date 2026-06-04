@@ -158,15 +158,15 @@ int test_webview_load_and_screenshot(void) {
   // Create the WebView
   state.expected_width = 100;
   state.expected_height = 100;
-  RenderingContext *ctx = servo_rendering_context_create_software(
+  RenderingContext *context = servo_rendering_context_create_software(
       state.expected_width, state.expected_height);
-  if (!ctx) {
+  if (!context) {
     log("  FAIL: servo_rendering_context_create_software returned NULL\n");
     goto cleanup;
   }
 
   ServoWebViewBuilder *webview_builder =
-      servo_webview_builder_create(servo, ctx);
+      servo_webview_builder_create(servo, context);
   if (!webview_builder) {
     log("  FAIL: servo_webview_builder_create returned NULL\n");
     goto cleanup;
@@ -182,10 +182,8 @@ int test_webview_load_and_screenshot(void) {
   // Load a simple red page
   const char *url =
       "data:text/html,<html><body style='background:red'></body></html>";
-  int ret = servo_webview_builder_set_url(webview_builder, url);
-  if (ret != 0) {
-    log("  FAIL: servo_webview_builder_set_url returned %d for url '%s'\n", ret,
-        url);
+  if (servo_webview_builder_set_url(webview_builder, url) != 0) {
+    log("  FAIL: servo_webview_builder_set_url failed for url '%s'\n", url);
     servo_webview_builder_free(webview_builder);
     goto cleanup;
   }

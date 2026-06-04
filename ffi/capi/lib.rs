@@ -30,9 +30,9 @@ use preferences::ServoPreferences;
 // cbindgen:opaque
 #[derive(Default)]
 pub struct ServoBuilder {
-    opts: Option<Box<ServoOptions>>,
+    options: Option<Box<ServoOptions>>,
     event_loop_waker: ServoEventLoopWaker,
-    prefs: Option<Box<ServoPreferences>>,
+    preferences: Option<Box<ServoPreferences>>,
 }
 
 /// A callback used by Servo to wake the embedder thread when
@@ -94,10 +94,10 @@ pub extern "C" fn servo_builder_create() -> *mut ServoBuilder {
 /// `builder` is a handle to a `ServoBuilder` object.
 /// The ownership of `builder` remains with the caller after the call.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` is transferred to the function. The caller
-/// must not use or free `prefs` again. This function will free the
-/// previously set preferences, if any.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` is transferred to the function.
+/// The caller must not use or free `preferences` again.
+/// This function will free the previously set preferences, if any.
 ///
 /// # Safety
 ///
@@ -106,21 +106,21 @@ pub extern "C" fn servo_builder_create() -> *mut ServoBuilder {
 /// - `builder` is a non-null pointer to a `ServoBuilder` previously
 ///   returned by `servo_builder_create` and has not yet been freed nor
 ///   passed to another API that takes ownership of it.
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_builder_set_preferences(
     builder: *mut ServoBuilder,
-    prefs: *mut ServoPreferences,
+    preferences: *mut ServoPreferences,
 ) {
     assert!(!builder.is_null(), "builder pointer must not be null");
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `builder` and `prefs` documented above.
+    // for `builder` and `preferences` documented above.
     unsafe {
-        (*builder).prefs = Some(Box::from_raw(prefs));
+        (*builder).preferences = Some(Box::from_raw(preferences));
     }
 }
 
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn servo_builder_set_options(
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `builder` and `options` documented above.
     unsafe {
-        (*builder).opts = Some(Box::from_raw(options));
+        (*builder).options = Some(Box::from_raw(options));
     }
 }
 
@@ -217,12 +217,12 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
     // for `builder` documented above.
     let builder = unsafe { &mut *builder };
 
-    if let Some(opts) = builder.opts.take() {
-        rust_builder = rust_builder.opts(*opts);
+    if let Some(options) = builder.options.take() {
+        rust_builder = rust_builder.opts(*options);
     }
 
-    if let Some(prefs) = builder.prefs.take() {
-        rust_builder = rust_builder.preferences(*prefs);
+    if let Some(preferences) = builder.preferences.take() {
+        rust_builder = rust_builder.preferences(*preferences);
     }
 
     rust_builder = rust_builder.event_loop_waker(Box::new(builder.event_loop_waker));

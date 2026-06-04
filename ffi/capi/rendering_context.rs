@@ -37,8 +37,8 @@ pub extern "C" fn servo_rendering_context_create_software(
 ) -> *mut RenderingContext {
     let size = dpi::PhysicalSize::new(width, height);
     match SoftwareRenderingContext::new(size) {
-        Ok(ctx) => Box::into_raw(Box::new(RenderingContext {
-            inner: Rc::new(ctx),
+        Ok(context) => Box::into_raw(Box::new(RenderingContext {
+            inner: Rc::new(context),
         })),
         Err(error) => {
             log::error!("Failed to create SoftwareRenderingContext: {error:?}");
@@ -47,26 +47,26 @@ pub extern "C" fn servo_rendering_context_create_software(
     }
 }
 
-/// Destroys `ctx` and frees its memory.
+/// Destroys `context` and frees its memory.
 ///
-/// `ctx` is a handle to a `RenderingContext` object.
-/// The ownership of `ctx` is transferred to the function. The caller
-/// must not use or free `ctx` again.
+/// `context` is a handle to a `RenderingContext` object.
+/// The ownership of `context` is transferred to the function. The caller
+/// must not use or free `context` again.
 ///
 /// # Safety
 ///
 /// The caller must ensure that:
 ///
-/// - `ctx` was previously returned by one of the
+/// - `context` was previously returned by one of the
 ///   `servo_rendering_context_create_*` functions and has not yet been
 ///   freed nor passed to another API that takes ownership of it.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_rendering_context_free(ctx: *mut RenderingContext) {
-    assert!(!ctx.is_null(), "ctx pointer must not be null");
+pub unsafe extern "C" fn servo_rendering_context_free(context: *mut RenderingContext) {
+    assert!(!context.is_null(), "context pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `ctx` documented above.
+    // for `context` documented above.
     unsafe {
-        let _ = Box::from_raw(ctx);
+        let _ = Box::from_raw(context);
     }
 }

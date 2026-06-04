@@ -27,36 +27,36 @@ const INVALID_PREFERENCE_NAME_MSG: &str = "Preference name must be a valid UTF8 
 /// the default values.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_preferences_create() -> *mut ServoPreferences {
-    let prefs = Box::new(servo::Preferences::default());
-    Box::into_raw(prefs)
+    let preferences = Box::new(servo::Preferences::default());
+    Box::into_raw(preferences)
 }
 
-/// Destroys `prefs` and frees its memory.
+/// Destroys `preferences` and frees its memory.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` is transferred to the function. The caller
-/// must not use or free `prefs` again.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` is transferred to the function.
+/// The caller must not use or free `preferences` again.
 ///
 /// # Safety
 ///
-/// The caller must ensure that `prefs` was previously returned by
+/// The caller must ensure that `preferences` was previously returned by
 /// `servo_preferences_create` and has not yet been freed nor passed to
 /// another API that takes ownership of it.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_preferences_free(prefs: *mut ServoPreferences) {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+pub unsafe extern "C" fn servo_preferences_free(preferences: *mut ServoPreferences) {
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
+    // for `preferences` documented above.
     unsafe {
-        let _ = Box::from_raw(prefs);
+        let _ = Box::from_raw(preferences);
     }
 }
 
 /// Sets a boolean preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -66,18 +66,18 @@ pub unsafe extern "C" fn servo_preferences_free(prefs: *mut ServoPreferences) {
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_set_bool(
-    prefs: *mut ServoPreferences,
+    preferences: *mut ServoPreferences,
     name: *const c_char,
     value: bool,
 ) {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -93,14 +93,14 @@ pub unsafe extern "C" fn servo_preferences_set_bool(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    unsafe { &mut *prefs }.set_value(name, PrefValue::Bool(value));
+    // for `preferences` documented above.
+    unsafe { &mut *preferences }.set_value(name, PrefValue::Bool(value));
 }
 
 /// Gets a boolean preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -110,17 +110,17 @@ pub unsafe extern "C" fn servo_preferences_set_bool(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_get_bool(
-    prefs: *const ServoPreferences,
+    preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> bool {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -136,8 +136,8 @@ pub unsafe extern "C" fn servo_preferences_get_bool(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    match unsafe { &*prefs }.get_value(name) {
+    // for `preferences` documented above.
+    match unsafe { &*preferences }.get_value(name) {
         PrefValue::Bool(value) => value,
         _ => unreachable!(),
     }
@@ -145,8 +145,8 @@ pub unsafe extern "C" fn servo_preferences_get_bool(
 
 /// Sets a string preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -160,18 +160,18 @@ pub unsafe extern "C" fn servo_preferences_get_bool(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` and `value` are non-null pointers to C strings that remain
 ///   unmodified for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_set_string(
-    prefs: *mut ServoPreferences,
+    preferences: *mut ServoPreferences,
     name: *const c_char,
     value: *const c_char,
 ) {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
     assert!(!value.is_null(), "value pointer must not be null");
 
@@ -195,14 +195,14 @@ pub unsafe extern "C" fn servo_preferences_set_string(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    unsafe { &mut *prefs }.set_value(name, PrefValue::Str(value));
+    // for `preferences` documented above.
+    unsafe { &mut *preferences }.set_value(name, PrefValue::Str(value));
 }
 
 /// Gets a string preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -218,17 +218,17 @@ pub unsafe extern "C" fn servo_preferences_set_string(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_get_string(
-    prefs: *const ServoPreferences,
+    preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> *mut c_char {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -244,8 +244,8 @@ pub unsafe extern "C" fn servo_preferences_get_string(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    match unsafe { &*prefs }.get_value(name) {
+    // for `preferences` documented above.
+    match unsafe { &*preferences }.get_value(name) {
         PrefValue::Str(value) => create_libc_string(&value),
         _ => unreachable!(),
     }
@@ -284,8 +284,8 @@ fn create_libc_string(string: &str) -> *mut c_char {
 
 /// Sets an i64 preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -295,18 +295,18 @@ fn create_libc_string(string: &str) -> *mut c_char {
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_set_i64(
-    prefs: *mut ServoPreferences,
+    preferences: *mut ServoPreferences,
     name: *const c_char,
     value: i64,
 ) {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -322,14 +322,14 @@ pub unsafe extern "C" fn servo_preferences_set_i64(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    unsafe { &mut *prefs }.set_value(name, PrefValue::Int(value));
+    // for `preferences` documented above.
+    unsafe { &mut *preferences }.set_value(name, PrefValue::Int(value));
 }
 
 /// Gets an i64 preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -339,17 +339,17 @@ pub unsafe extern "C" fn servo_preferences_set_i64(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_get_i64(
-    prefs: *const ServoPreferences,
+    preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> i64 {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -365,8 +365,8 @@ pub unsafe extern "C" fn servo_preferences_get_i64(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    match unsafe { &*prefs }.get_value(name) {
+    // for `preferences` documented above.
+    match unsafe { &*preferences }.get_value(name) {
         PrefValue::Int(value) => value,
         _ => unreachable!(),
     }
@@ -374,8 +374,8 @@ pub unsafe extern "C" fn servo_preferences_get_i64(
 
 /// Sets a u64 preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -385,18 +385,18 @@ pub unsafe extern "C" fn servo_preferences_get_i64(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_set_u64(
-    prefs: *mut ServoPreferences,
+    preferences: *mut ServoPreferences,
     name: *const c_char,
     value: u64,
 ) {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -412,14 +412,14 @@ pub unsafe extern "C" fn servo_preferences_set_u64(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    unsafe { &mut *prefs }.set_value(name, PrefValue::UInt(value));
+    // for `preferences` documented above.
+    unsafe { &mut *preferences }.set_value(name, PrefValue::UInt(value));
 }
 
 /// Gets a u64 preference by name.
 ///
-/// `prefs` is a handle to a `ServoPreferences` object.
-/// The ownership of `prefs` remains with the caller after the call.
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
 ///
 /// `name` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
@@ -429,17 +429,17 @@ pub unsafe extern "C" fn servo_preferences_set_u64(
 ///
 /// The caller must ensure that:
 ///
-/// - `prefs` is a non-null pointer to a `ServoPreferences` previously
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
 ///   returned by `servo_preferences_create` and has not yet been freed
 ///   nor passed to another API that takes ownership of it.
 /// - `name` is a non-null pointer to a C string that remains unmodified
 ///   for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_get_u64(
-    prefs: *const ServoPreferences,
+    preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> u64 {
-    assert!(!prefs.is_null(), "prefs pointer must not be null");
+    assert!(!preferences.is_null(), "preferences pointer must not be null");
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -455,8 +455,8 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
     );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `prefs` documented above.
-    match unsafe { &*prefs }.get_value(name) {
+    // for `preferences` documented above.
+    match unsafe { &*preferences }.get_value(name) {
         PrefValue::UInt(value) => value,
         _ => unreachable!(),
     }

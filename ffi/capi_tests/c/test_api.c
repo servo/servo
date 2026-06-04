@@ -47,11 +47,11 @@ int test_builder_set_options(void) {
 
 int test_builder_set_preferences(void) {
   ServoBuilder *builder = servo_builder_create();
-  ServoPreferences *prefs = servo_preferences_create();
-  if (builder == NULL || prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (builder == NULL || preferences == NULL)
     return 1;
-  servo_builder_set_preferences(builder, prefs);
-  // builder now owns prefs, so don't free it
+  servo_builder_set_preferences(builder, preferences);
+  // builder now owns preferences, so don't free it
   servo_builder_free(builder);
   return 0;
 }
@@ -99,122 +99,125 @@ int test_options_setters(void) {
 }
 
 int test_preferences_create_and_free(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
-  servo_preferences_free(prefs);
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_preferences_bool_roundtrip(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
 
-  servo_preferences_set_bool(prefs, "dom_gamepad_enabled", false);
-  if (servo_preferences_get_bool(prefs, "dom_gamepad_enabled") != false) {
-    servo_preferences_free(prefs);
-    return 1;
-  }
-
-  servo_preferences_set_bool(prefs, "dom_gamepad_enabled", true);
-  if (servo_preferences_get_bool(prefs, "dom_gamepad_enabled") != true) {
-    servo_preferences_free(prefs);
+  servo_preferences_set_bool(preferences, "dom_gamepad_enabled", false);
+  if (servo_preferences_get_bool(preferences, "dom_gamepad_enabled") != false) {
+    servo_preferences_free(preferences);
     return 1;
   }
 
-  servo_preferences_free(prefs);
+  servo_preferences_set_bool(preferences, "dom_gamepad_enabled", true);
+  if (servo_preferences_get_bool(preferences, "dom_gamepad_enabled") != true) {
+    servo_preferences_free(preferences);
+    return 1;
+  }
+
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_preferences_i64_roundtrip(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
 
-  servo_preferences_set_i64(prefs, "layout_threads", 4);
-  if (servo_preferences_get_i64(prefs, "layout_threads") != 4) {
-    servo_preferences_free(prefs);
-    return 1;
-  }
-
-  servo_preferences_set_i64(prefs, "layout_threads", -1);
-  if (servo_preferences_get_i64(prefs, "layout_threads") != -1) {
-    servo_preferences_free(prefs);
+  servo_preferences_set_i64(preferences, "layout_threads", 4);
+  if (servo_preferences_get_i64(preferences, "layout_threads") != 4) {
+    servo_preferences_free(preferences);
     return 1;
   }
 
-  servo_preferences_free(prefs);
+  servo_preferences_set_i64(preferences, "layout_threads", -1);
+  if (servo_preferences_get_i64(preferences, "layout_threads") != -1) {
+    servo_preferences_free(preferences);
+    return 1;
+  }
+
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_preferences_u64_roundtrip(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
 
-  servo_preferences_set_u64(prefs, "network_http_cache_size", 12345);
-  if (servo_preferences_get_u64(prefs, "network_http_cache_size") != 12345) {
-    servo_preferences_free(prefs);
+  servo_preferences_set_u64(preferences, "network_http_cache_size", 12345);
+  if (servo_preferences_get_u64(preferences, "network_http_cache_size") !=
+      12345) {
+    servo_preferences_free(preferences);
     return 1;
   }
 
-  servo_preferences_free(prefs);
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_preferences_string_roundtrip(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
 
-  servo_preferences_set_string(prefs, "user_agent", "ServoTest/1.0");
+  servo_preferences_set_string(preferences, "user_agent", "ServoTest/1.0");
 
-  char *user_agent = servo_preferences_get_string(prefs, "user_agent");
+  char *user_agent = servo_preferences_get_string(preferences, "user_agent");
   if (user_agent == NULL) {
-    servo_preferences_free(prefs);
+    servo_preferences_free(preferences);
     return 1;
   }
   if (strcmp(user_agent, "ServoTest/1.0") != 0) {
     free(user_agent);
-    servo_preferences_free(prefs);
+    servo_preferences_free(preferences);
     return 1;
   }
   free(user_agent);
-  servo_preferences_free(prefs);
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_preferences_f64_array4_roundtrip(void) {
-  ServoPreferences *prefs = servo_preferences_create();
-  if (prefs == NULL)
+  ServoPreferences *preferences = servo_preferences_create();
+  if (preferences == NULL)
     return 1;
 
   double rgba[4] = {0.2, 0.4, 0.6, 1.0};
-  servo_preferences_set_f64_array_4(prefs, "shell_background_color_rgba", rgba);
+  servo_preferences_set_f64_array_4(preferences, "shell_background_color_rgba",
+                                    rgba);
   double out[4];
-  servo_preferences_get_f64_array_4(prefs, "shell_background_color_rgba", out);
+  servo_preferences_get_f64_array_4(preferences, "shell_background_color_rgba",
+                                    out);
   if (out[0] != 0.2 || out[1] != 0.4 || out[2] != 0.6 || out[3] != 1.0) {
-    servo_preferences_free(prefs);
+    servo_preferences_free(preferences);
     return 1;
   }
 
-  servo_preferences_free(prefs);
+  servo_preferences_free(preferences);
   return 0;
 }
 
 int test_rendering_context_create_and_free(void) {
-  RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
-  if (ctx == NULL)
+  RenderingContext *context = servo_rendering_context_create_software(100, 100);
+  if (context == NULL)
     return 1;
-  servo_rendering_context_free(ctx);
+  servo_rendering_context_free(context);
   return 0;
 }
 
 int test_rendering_context_zero_size_returns_null(void) {
-  RenderingContext *ctx = servo_rendering_context_create_software(0, 0);
-  if (ctx != NULL) {
-    servo_rendering_context_free(ctx);
+  RenderingContext *context = servo_rendering_context_create_software(0, 0);
+  if (context != NULL) {
+    servo_rendering_context_free(context);
     return 1;
   }
   return 0;
@@ -261,17 +264,18 @@ int test_webview_builder_create_and_free(void) {
   if (servo == NULL)
     return 1;
 
-  RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
-  if (ctx == NULL)
+  RenderingContext *context = servo_rendering_context_create_software(100, 100);
+  if (context == NULL)
     return 1;
 
-  ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
-  if (wvb == NULL) {
-    servo_rendering_context_free(ctx);
+  ServoWebViewBuilder *webview_builder =
+      servo_webview_builder_create(servo, context);
+  if (webview_builder == NULL) {
+    servo_rendering_context_free(context);
     return 1;
   }
 
-  servo_webview_builder_free(wvb);
+  servo_webview_builder_free(webview_builder);
   return 0;
 }
 
@@ -280,14 +284,16 @@ int test_webview_builder_set_url_valid(void) {
   if (servo == NULL)
     return 1;
 
-  RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
-  if (ctx == NULL)
+  RenderingContext *context = servo_rendering_context_create_software(100, 100);
+  if (context == NULL)
     return 1;
 
-  ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
-  int ret = servo_webview_builder_set_url(wvb, "https://example.com");
-  servo_webview_builder_free(wvb);
-  return (ret == 0) ? 0 : 1;
+  ServoWebViewBuilder *webview_builder =
+      servo_webview_builder_create(servo, context);
+  int result =
+      servo_webview_builder_set_url(webview_builder, "https://example.com");
+  servo_webview_builder_free(webview_builder);
+  return (result == 0) ? 0 : 1;
 }
 
 int test_webview_builder_set_url_invalid(void) {
@@ -295,14 +301,16 @@ int test_webview_builder_set_url_invalid(void) {
   if (servo == NULL)
     return 1;
 
-  RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
-  if (ctx == NULL)
+  RenderingContext *context = servo_rendering_context_create_software(100, 100);
+  if (context == NULL)
     return 1;
 
-  ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
-  int ret = servo_webview_builder_set_url(wvb, "not a valid url !!!");
-  servo_webview_builder_free(wvb);
-  return (ret == -1) ? 0 : 1;
+  ServoWebViewBuilder *webview_builder =
+      servo_webview_builder_create(servo, context);
+  int result =
+      servo_webview_builder_set_url(webview_builder, "not a valid url !!!");
+  servo_webview_builder_free(webview_builder);
+  return (result == -1) ? 0 : 1;
 }
 
 int test_webview_builder_build(void) {
@@ -310,22 +318,23 @@ int test_webview_builder_build(void) {
   if (servo == NULL)
     return 1;
 
-  RenderingContext *ctx = servo_rendering_context_create_software(100, 100);
-  if (ctx == NULL)
+  RenderingContext *context = servo_rendering_context_create_software(100, 100);
+  if (context == NULL)
     return 1;
 
-  ServoWebViewBuilder *wvb = servo_webview_builder_create(servo, ctx);
-  int ret = servo_webview_builder_set_url(wvb, "about:blank");
-  if (ret != 0) {
-    servo_webview_builder_free(wvb);
+  ServoWebViewBuilder *webview_builder =
+      servo_webview_builder_create(servo, context);
+  int result = servo_webview_builder_set_url(webview_builder, "about:blank");
+  if (result != 0) {
+    servo_webview_builder_free(webview_builder);
     return 1;
   }
 
-  struct WebView *wv = servo_webview_builder_build(wvb);
-  if (wv == NULL)
+  struct WebView *webview = servo_webview_builder_build(webview_builder);
+  if (webview == NULL)
     return 1;
 
-  servo_webview_free(wv);
+  servo_webview_free(webview);
   return 0;
 }
 

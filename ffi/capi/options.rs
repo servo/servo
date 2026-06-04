@@ -30,8 +30,8 @@ pub use servo::DiagnosticsLoggingOption;
 /// must free it using [`servo_options_free`].
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_options_create() -> *mut ServoOptions {
-    let opts = Box::new(servo::Opts::default());
-    Box::into_raw(opts)
+    let options = Box::new(servo::Opts::default());
+    Box::into_raw(options)
 }
 
 /// Enables and configures Servo's time profiler to write profiling data in TSV

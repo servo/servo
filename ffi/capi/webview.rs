@@ -35,9 +35,9 @@ pub struct ServoWebViewBuilder {
 /// `servo` is a handle to a `Servo` object.
 /// The ownership of `servo` remains with the caller after the call.
 ///
-/// `ctx` is a handle to a `RenderingContext` object.
-/// The ownership of `ctx` is transferred to the function. The caller
-/// must not use or free `ctx` again.
+/// `context` is a handle to a `RenderingContext` object.
+/// The ownership of `context` is transferred to the function.
+/// The caller must not use or free `context` again.
 ///
 /// Returns a newly allocated `ServoWebViewBuilder` handle. The
 /// ownership of the returned handle is transferred to the caller, who
@@ -51,31 +51,31 @@ pub struct ServoWebViewBuilder {
 /// - `servo` is a non-null pointer to a `Servo` instance previously
 ///   returned by `servo_builder_build` and has not yet been freed nor
 ///   passed to another API that takes ownership of it.
-/// - `ctx` is a non-null pointer to a `RenderingContext` previously
+/// - `context` is a non-null pointer to a `RenderingContext` previously
 ///   returned by one of the `servo_rendering_context_create_*`
 ///   functions and has not yet been freed nor passed to another API
 ///   that takes ownership of it.
 /// - The call is made from the same thread that created `servo` and
-///   `ctx`.
+///   `context`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_builder_create(
     servo: *mut Servo,
-    ctx: *mut RenderingContext,
+    context: *mut RenderingContext,
 ) -> *mut ServoWebViewBuilder {
     assert!(!servo.is_null(), "servo pointer must not be null");
-    assert!(!ctx.is_null(), "ctx pointer must not be null");
+    assert!(!context.is_null(), "context pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `servo` documented above.
     let servo = unsafe { &*servo };
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `ctx` documented above. We take ownership here.
-    let c_ctx = unsafe { Box::from_raw(ctx) };
+    // for `context` documented above. We take ownership here.
+    let boxed_c_context = unsafe { Box::from_raw(context) };
 
     Box::into_raw(Box::new(ServoWebViewBuilder {
         servo: servo.clone(),
-        rendering_context: c_ctx.inner,
+        rendering_context: boxed_c_context.inner,
         url: None,
         delegate: None,
     }))
