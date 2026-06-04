@@ -1,26 +1,23 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <title>Set type attribute to what it already is</title>
 <link rel="match" href="type-change-to-same-type-ref.html">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
-<body>
 <input id="target1" type="number">
 <input id="target2" type="number">
 
 <script>
-
-(async() => {
-  target1.focus();
-  await test_driver.send_keys(target1, "xyz");
-  target1.type = "number";
-
-  target2.focus();
-  await test_driver.send_keys(target2, "1.");
-  target2.type = "number";
-})();
-
+target1.focus();
+test_driver.send_keys(target1, "xyz")
+  .then(() => {
+    target1.type = "number"
+    target2.focus();
+    return test_driver.send_keys(target2, "1.");
+  })
+  .then(() => {
+    target2.type = "number";
+    document.documentElement.classList.remove("reftest-wait");
+  });
 </script>
-</body>
