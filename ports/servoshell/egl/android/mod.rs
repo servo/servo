@@ -26,7 +26,7 @@ use raw_window_handle::{
 pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, PrefValue,
+    MouseButton, PrefValue, SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
@@ -853,6 +853,8 @@ impl HostTrait for HostCallbacks {
             })
             .unwrap();
     }
+
+    fn on_show_select_element(&self, _webview_id: WebViewId, _prompt: SelectElement) {}
 
     fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
 }
