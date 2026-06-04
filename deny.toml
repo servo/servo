@@ -221,9 +221,3 @@ skip = [
     "vello_common",
     "vello_cpu",
 ]
-
-# github.com organizations to allow git sources for
-[sources.allow-org]
-github = [
-    "servo",
-]
