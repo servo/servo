@@ -71,7 +71,7 @@ cssparser = { version = "0.37", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 der = { version = "0.7", features = ["alloc", "derive"] }
-digest = "0.10"
+digest = "0.11"
 dirs = "6.0"
 dpi = "0.1"
 dwrote = "0.11.5"
@@ -95,7 +95,6 @@ futures-core = { version = "0.3", default-features = false }
 futures-intrusive = "0.5"
 futures-util = { version = "0.3", default-features = false }
 gaol = "0.2.1"
-generic-array = "0.14"
 gilrs = "0.11.1"
 gleam = "0.15"
 glib = "0.22"
@@ -119,7 +118,7 @@ harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hilog = "0.2.2"
 hitrace = { version = "0.2.0", features = ["api-19", "tracing-rs"] }
-hkdf = "0.12"
+hkdf = "0.13"
 html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
@@ -223,8 +222,10 @@ serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-sha1 = "0.10"
-sha2 = "0.10"
+sha1 = "0.11"
+sha1_0_10 = { package = "sha1", version = "0.10" }
+sha2 = "0.11"
+sha2_0_10 = { package = "sha2", version = "0.10" }
 sha3 = "0.12"
 signal-hook-registry = "1.4.8"
 skrifa = "0.42.1"
