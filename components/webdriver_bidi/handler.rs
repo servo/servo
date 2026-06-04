@@ -2,7 +2,11 @@
 //!
 //! Also provide a default implementation.
 
-use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
+use crossbeam_channel::Sender;
+use embedder_traits::{
+    EventLoopWaker,
+    webdriver_bidi::{SessionId, WebDriverBidiCommandMsg},
+};
 use rustenium_bidi_definitions::{
     Command, base::CommandMessage, browser::commands::BrowserCommand,
     browsing_context::commands::BrowsingContextCommand, emulation::commands::EmulationCommand,
@@ -18,14 +22,12 @@ use crate::{
     transport::Session,
 };
 
-// TODO: should handler be per session?
-pub trait WebDriverBidiHandler: Send {
+// TODO: multiple handler
+pub trait WebDriverBidiHandler: Send + Sized {
+    fn with_session_id(&self, session_id: SessionId) -> Option<Self>;
+
     /// Start processing of a command.
-    fn handle(
-        &self,
-        session: &Option<Session>,
-        command: &CommandMessage,
-    ) -> WebDriverBidiResult<()>;
+    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<()>;
 
     fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)>;
 
@@ -39,12 +41,17 @@ pub trait WebDriverBidiHandler: Send {
 
 pub struct Handler {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_sender: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
+    embedder_sender: Sender<WebDriverBidiCommandMsg>,
+    session_id: Option<SessionId>,
     webview_id: Option<WebViewId>,
 }
 
 /// Util methods.
 impl Handler {
+    pub fn is_static(&self) -> bool {
+        self.session_id.is_none()
+    }
+
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
         embedder_sender: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
@@ -52,6 +59,7 @@ impl Handler {
         Self {
             event_loop_waker,
             embedder_sender,
+            session_id: None,
             webview_id: None,
         }
     }
@@ -71,11 +79,19 @@ impl Handler {
 }
 
 impl WebDriverBidiHandler for Handler {
-    fn handle(
-        &self,
-        session: &Option<Session>,
-        command: &CommandMessage,
-    ) -> WebDriverBidiResult<()> {
+    fn with_session_id(&self, session_id: SessionId) -> Option<Self> {
+        if self.session_id.is_some() {
+            return None;
+        }
+        Some(Self {
+            event_loop_waker: self.event_loop_waker.clone_box(),
+            embedder_sender: self.embedder_sender.clone(),
+            session_id: Some(session_id),
+            webview_id: None,
+        })
+    }
+
+    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<()> {
         match &command.command_data {
             Command::Browser(browser) => match browser {
                 BrowserCommand::Close(close) => self.handle_browser_close(),
@@ -236,6 +252,7 @@ impl Handler {
     fn handle_session_new(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
+
     fn handle_session_end(&self) -> WebDriverBidiResult<()> {
         todo!()
     }

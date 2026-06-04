@@ -20,14 +20,14 @@ pub enum DispatchMessage {
 
 #[derive(Debug)]
 pub struct Dispatcher<T: WebDriverBidiHandler> {
-    handler: T,
+    static_handler: T,
     conn_map: ConnectionMap,
 }
 
 impl<T: WebDriverBidiHandler> Dispatcher<T> {
-    pub fn new(handler: T) -> Self {
+    pub fn new(static_handler: T) -> Self {
         Self {
-            handler,
+            static_handler,
             conn_map: ConnectionMap::default(),
         }
     }
@@ -37,7 +37,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             while let Ok(dispatch_msg) = rx.try_recv() {
                 self.handle_dispatch(dispatch_msg);
             }
-            while let Ok((session, bidi_msg)) = self.handler.try_recv() {
+            while let Ok((session, bidi_msg)) = self.static_handler.try_recv() {
                 self.handle_bidi(session, bidi_msg);
             }
         }
@@ -48,7 +48,8 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             DispatchMessage::Command(uuid, command_message) => {
                 let session = self.conn_map.session(&uuid).cloned();
                 // handle early error
-                if let Err(err) = self.handler.handle(&session, &command_message) {
+                // TODO: map session_id to handler
+                if let Err(err) = self.static_handler.handle(&command_message) {
                     let msg: Message =
                         Message::ErrorResponse(err.into_response(Some(command_message.id)));
                     // if associated with session, send to all session. otherwise send to
@@ -70,6 +71,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
+    // TODO: since now different handler use different channel, there is no need to know session.
     fn handle_bidi(&mut self, session: Option<Session>, bidi: Message) {
         self.update(&bidi);
         match session {
@@ -82,6 +84,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
+    // TODO: remove session parameter
     // TODO: use Arc to avoid clone
     fn send_to_session(&self, session: &Session, message: Message) {
         for conn in self.conn_map.connections(session) {
