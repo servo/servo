@@ -12,15 +12,15 @@ from concurrent.futures import Future
 from geckordp.actors.events import Events
 from geckordp.actors.resources import Resources
 
-from .utils import Devtools, DevtoolsTestCase
+from .utils import Devtools
 
 
-class NetworkTests(DevtoolsTestCase):
-    def test_navigation(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+class TestNetworkTab:
+    def test_navigation(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/tab/page1.html")
         with Devtools.connect() as devtools:
             for message_data, target_path in [
-                ({"type": "navigateTo", "url": f"{self.base_urls[0]}/tab/page2.html"}, "/tab/page2.html"),
+                ({"type": "navigateTo", "url": f"{web_server_urls[0]}/tab/page2.html"}, "/tab/page2.html"),
                 ({"type": "goBack"}, "/tab/page1.html"),
                 ({"type": "goForward"}, "/tab/page2.html"),
             ]:
@@ -39,8 +39,8 @@ class NetworkTests(DevtoolsTestCase):
 
                 done.result(1)
 
-    def test_stylesheet_inline(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/inline_style.html")
+    def test_stylesheet_inline(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/inline_style.html")
         with Devtools.connect() as devtools:
             done = Future()
             stylesheets_data = []
@@ -61,13 +61,13 @@ class NetworkTests(DevtoolsTestCase):
 
             # Inline sheets won't have href.
             inline_sheet = stylesheets_data[0]
-            self.assertIsNone(inline_sheet.get("href"))
-            self.assertEqual(inline_sheet["ruleCount"], 2)
-            self.assertFalse(inline_sheet["system"])
-            self.assertFalse(inline_sheet["disabled"])
+            assert inline_sheet.get("href") is None
+            assert inline_sheet["ruleCount"] == 2
+            assert not inline_sheet["system"]
+            assert not inline_sheet["disabled"]
 
-    def test_stylesheet_linked(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/linked_style.html")
+    def test_stylesheet_linked(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/linked_style.html")
         with Devtools.connect() as devtools:
             done = Future()
             stylesheets_data = []
@@ -88,13 +88,13 @@ class NetworkTests(DevtoolsTestCase):
 
             # Linked sheets have linked css as href.
             linked_sheet = stylesheets_data[0]
-            self.assertEqual(f"{self.base_urls[0]}/stylesheets/styles.css", linked_sheet["href"])
-            self.assertFalse(linked_sheet["system"])
-            self.assertEqual(linked_sheet["ruleCount"], 1)
-            self.assertFalse(linked_sheet["disabled"])
+            assert f"{web_server_urls[0]}/stylesheets/styles.css" == linked_sheet["href"]
+            assert not linked_sheet["system"]
+            assert linked_sheet["ruleCount"] == 1
+            assert not linked_sheet["disabled"]
 
-    def test_stylesheet_content(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/linked_style.html")
+    def test_stylesheet_content(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/linked_style.html")
         with Devtools.connect() as devtools:
             founded_resources = []
             done = Future()
@@ -122,4 +122,4 @@ class NetworkTests(DevtoolsTestCase):
                 }
             )
             style_text = reply["text"]["initial"]
-            self.assertIn("body { background: green; font-size: small; }", style_text)
+            assert "body { background: green; font-size: small; }" in style_text

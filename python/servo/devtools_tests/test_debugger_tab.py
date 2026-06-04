@@ -8,17 +8,22 @@
 # except according to those terms.
 
 from __future__ import annotations
+
+import os.path
+import time
 from collections import Counter
 from concurrent.futures import Future
-import time
-import unittest
+
+import pytest
 from geckordp.actors.events import Events
 from geckordp.actors.web_console import WebConsoleActor
 
 from .utils import (
     Devtools,
-    DevtoolsTestCase,
     Source,
+    assert_source_breakable_lines_and_positions,
+    assert_source_content,
+    assert_sources_list,
     attach_thread,
     frozen_multiset,
     resume_and_wait,
@@ -30,9 +35,9 @@ from .utils import (
 )
 
 
-class DebuggerTests(DevtoolsTestCase):
-    def test_breakpoint_pause(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+class TestDebuggerTab:
+    def test_breakpoint_pause(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -45,14 +50,14 @@ class DebuggerTests(DevtoolsTestCase):
             line, column = int(line_str), positions[line_str][0]
 
             def trigger():
-                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
+                set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/loop.html", line, column)
 
             paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
-            self.assertEqual(paused_data.get("type"), "paused")
-            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+            assert paused_data.get("type") == "paused"
+            assert paused_data.get("why", {}).get("type") == "breakpoint"
 
-    def test_breakpoint_at_invalid_entry_point_does_not_crash(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+    def test_breakpoint_at_invalid_entry_point_does_not_crash(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
             breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
             response = devtools.client.send_receive(
@@ -60,23 +65,23 @@ class DebuggerTests(DevtoolsTestCase):
                     "to": breakpoint_list["breakpointList"]["actor"],
                     "type": "setBreakpoint",
                     "location": {
-                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
+                        "sourceUrl": f"{web_server_urls[0]}/debugger/loop.html",
                         "line": 1,
                         "column": 0,
                     },
                 }
             )
-            self.assertIn("from", response)
+            assert "from" in response
 
-    def test_console_eval_does_not_pause_again_while_already_paused(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
+    def test_console_eval_does_not_pause_again_while_already_paused(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/stepping.html")
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             console_actor = devtools.targets[0]["consoleActor"]
 
             # Stop at the breakpoint in end()
             def trigger():
-                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", 5, 16)
+                set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/stepping.html", 5, 16)
 
             paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
 
@@ -98,14 +103,14 @@ class DebuggerTests(DevtoolsTestCase):
 
             # The console evaluation should not pause again
             time.sleep(0.5)
-            self.assertFalse(nested_pause.done())
+            assert not nested_pause.done()
             eval_result.result(2)
 
             # Clean up by resuming from the original pause
             devtools.client.send_receive({"to": thread_actor, "type": "resume"})
 
-    def test_frame_scoped_eval(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/frame_scoped.html")
+    def test_frame_scoped_eval(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/frame_scoped.html")
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             console_actor = devtools.targets[0]["consoleActor"]
@@ -115,7 +120,7 @@ class DebuggerTests(DevtoolsTestCase):
 
             paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
             frame_actor = paused_data.get("frame", {}).get("actor")
-            self.assertIsNotNone(frame_actor)
+            assert frame_actor is not None
 
             eval_future = Future()
 
@@ -133,11 +138,11 @@ class DebuggerTests(DevtoolsTestCase):
             )
 
             eval_result = eval_future.result(2)
-            self.assertFalse(eval_result.get("hasException", True))
-            self.assertEqual(eval_result.get("result"), 42)
+            assert not eval_result.get("hasException", True)
+            assert eval_result.get("result") == 42
 
-    def test_manual_pause(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+    def test_manual_pause(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
 
@@ -145,13 +150,13 @@ class DebuggerTests(DevtoolsTestCase):
                 devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
             paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
-            self.assertEqual(paused_data.get("type"), "paused")
+            assert paused_data.get("type") == "paused"
             why = paused_data.get("why", {})
-            self.assertEqual(why.get("type"), "interrupted")
-            self.assertEqual(why.get("onNext"), True)
+            assert why.get("type") == "interrupted"
+            assert why.get("onNext") is True
 
-    def test_stepping_hooks(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
+    def test_stepping_hooks(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/stepping.html")
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/stepping.html")
@@ -162,59 +167,59 @@ class DebuggerTests(DevtoolsTestCase):
             ).get("positions", {})
 
             # Line 10 - should be the `end()` call
-            self.assertIn("10", positions)
+            assert "10" in positions
             line, column = 10, positions["10"][0]
 
             # Set breakpoint at the end() call
             def trigger():
-                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", line, column)
+                set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/stepping.html", line, column)
 
             # Pause and breakpoint hit, this is necessary for stepping hooks
             paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
-            self.assertEqual(paused_data.get("type"), "paused")
-            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+            assert paused_data.get("type") == "paused"
+            assert paused_data.get("why", {}).get("type") == "breakpoint"
 
             # Did we pause at line 10?
-            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
+            assert paused_data.get("frame", {}).get("where", {}).get("line") == 10
 
             # Step over! This should execute end() and pause at line 11
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("type"), "paused")
-            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
+            assert step_data.get("type") == "paused"
+            assert step_data.get("why", {}).get("type") == "resumeLimit"
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 11
 
             # Step over
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 12)
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 12
 
             # Step over to line 13
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 13)
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 13
 
             # We should let the loop continue and hit breakpoint again at line 10
             paused_data = resume_and_wait(devtools.client, thread_actor)
-            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
-            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
+            assert paused_data.get("why", {}).get("type") == "breakpoint"
+            assert paused_data.get("frame", {}).get("where", {}).get("line") == 10
 
             # STEP IN to end() function
             step_data = step(devtools.client, thread_actor, "step")
-            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 4)
-            self.assertEqual(step_data.get("frame", {}).get("displayName"), "end")
+            assert step_data.get("why", {}).get("type") == "resumeLimit"
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 4
+            assert step_data.get("frame", {}).get("displayName") == "end"
 
             # Step over inside end() to line 5
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 5)
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 5
 
             # Step over inside end() to line 6
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 6)
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 6
 
             # Step out of end() back to loop() at line 11
             step_data = step(devtools.client, thread_actor, "finish")
-            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
-            self.assertEqual(step_data.get("frame", {}).get("displayName"), "loop")
+            assert step_data.get("why", {}).get("type") == "resumeLimit"
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 11
+            assert step_data.get("frame", {}).get("displayName") == "loop"
 
     # Sources list
     # Classic script vs module script:
@@ -226,95 +231,93 @@ class DebuggerTests(DevtoolsTestCase):
     # Non-worker(?) script sources can be inline, external, or blob.
     # Worker script sources can be external or blob.
 
-    def test_sources_list(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test.html")
-        self.assert_sources_list(
+    def test_sources_list(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test.html")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
-                            Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"),
-                            Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
-                            Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"),
-                            Source("srcScript", f"{self.base_urls[1]}/sources/classic.js"),
-                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
+                            Source("srcScript", f"{web_server_urls[0]}/sources/classic.js"),
+                            Source("inlineScript", f"{web_server_urls[0]}/sources/test.html"),
+                            Source("inlineScript", f"{web_server_urls[0]}/sources/test.html"),
+                            Source("srcScript", f"{web_server_urls[1]}/sources/classic.js"),
+                            Source("importedModule", f"{web_server_urls[0]}/sources/module.js"),
                         ]
                     ),
-                    frozen_multiset([Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js")]),
+                    frozen_multiset([Source("Worker", f"{web_server_urls[0]}/sources/classic_worker.js")]),
                 ]
             ),
         )
 
-    def test_sources_list_with_data_no_scripts(self):
-        self.run_servoshell(url="data:text/html,")
-        self.assert_sources_list(Counter([frozen_multiset()]))
+    def test_sources_list_with_data_no_scripts(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+        assert_sources_list(Counter([frozen_multiset()]))
 
     # Sources list for `introductionType` = `inlineScript` and `srcScript`
 
-    def test_sources_list_with_data_empty_inline_classic_script(self):
-        self.run_servoshell(url="data:text/html,<script></script>")
-        self.assert_sources_list(Counter([frozen_multiset()]))
+    def test_sources_list_with_data_empty_inline_classic_script(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script></script>")
+        assert_sources_list(Counter([frozen_multiset()]))
 
-    def test_sources_list_with_data_inline_classic_script(self):
-        self.run_servoshell(url="data:text/html,<script>;</script>")
-        self.assert_sources_list(
-            Counter([frozen_multiset([Source("inlineScript", "data:text/html,<script>;</script>")])])
+    def test_sources_list_with_data_inline_classic_script(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script>;</script>")
+        assert_sources_list(Counter([frozen_multiset([Source("inlineScript", "data:text/html,<script>;</script>")])]))
+
+    def test_sources_list_with_data_external_classic_script(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f'data:text/html,<script src="{web_server_urls[0]}/sources/classic.js"></script>')
+        assert_sources_list(
+            Counter([frozen_multiset([Source("srcScript", f"{web_server_urls[0]}/sources/classic.js")])])
         )
 
-    def test_sources_list_with_data_external_classic_script(self):
-        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/sources/classic.js"></script>')
-        self.assert_sources_list(
-            Counter([frozen_multiset([Source("srcScript", f"{self.base_urls[0]}/sources/classic.js")])])
-        )
+    def test_sources_list_with_data_empty_inline_module_script(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script type=module></script>")
+        assert_sources_list(Counter([frozen_multiset()]))
 
-    def test_sources_list_with_data_empty_inline_module_script(self):
-        self.run_servoshell(url="data:text/html,<script type=module></script>")
-        self.assert_sources_list(Counter([frozen_multiset()]))
-
-    def test_sources_list_with_data_inline_module_script(self):
-        self.run_servoshell(url="data:text/html,<script type=module>;</script>")
-        self.assert_sources_list(
+    def test_sources_list_with_data_inline_module_script(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script type=module>;</script>")
+        assert_sources_list(
             Counter([frozen_multiset([Source("inlineScript", "data:text/html,<script type=module>;</script>")])])
         )
 
-    def test_sources_list_with_data_external_module_script(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_data_external_module_script.html")
-        self.assert_sources_list(
-            Counter([frozen_multiset([Source("srcScript", f"{self.base_urls[0]}/sources/module.js")])])
+    def test_sources_list_with_data_external_module_script(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_data_external_module_script.html")
+        assert_sources_list(
+            Counter([frozen_multiset([Source("srcScript", f"{web_server_urls[0]}/sources/module.js")])])
         )
 
     # Sources list for `introductionType` = `importedModule`
 
-    def test_sources_list_with_static_import_module(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_static_import_module.html")
-        self.assert_sources_list(
+    def test_sources_list_with_static_import_module(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_static_import_module.html")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
                             Source(
                                 "inlineScript",
-                                f"{self.base_urls[0]}/sources/test_sources_list_with_static_import_module.html",
+                                f"{web_server_urls[0]}/sources/test_sources_list_with_static_import_module.html",
                             ),
-                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
+                            Source("importedModule", f"{web_server_urls[0]}/sources/module.js"),
                         ]
                     )
                 ]
             ),
         )
 
-    def test_sources_list_with_dynamic_import_module(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html")
-        self.assert_sources_list(
+    def test_sources_list_with_dynamic_import_module(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
                             Source(
                                 "inlineScript",
-                                f"{self.base_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html",
+                                f"{web_server_urls[0]}/sources/test_sources_list_with_dynamic_import_module.html",
                             ),
-                            Source("importedModule", f"{self.base_urls[0]}/sources/module.js"),
+                            Source("importedModule", f"{web_server_urls[0]}/sources/module.js"),
                         ]
                     )
                 ]
@@ -323,43 +326,44 @@ class DebuggerTests(DevtoolsTestCase):
 
     # Sources list for `introductionType` = `Worker`
 
-    def test_sources_list_with_classic_worker(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_classic_worker.html")
-        self.assert_sources_list(
+    def test_sources_list_with_classic_worker(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_classic_worker.html")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
                             Source(
                                 "inlineScript",
-                                f"{self.base_urls[0]}/sources/test_sources_list_with_classic_worker.html",
+                                f"{web_server_urls[0]}/sources/test_sources_list_with_classic_worker.html",
                             ),
                         ]
                     ),
                     frozen_multiset(
                         [
-                            Source("Worker", f"{self.base_urls[0]}/sources/classic_worker.js"),
+                            Source("Worker", f"{web_server_urls[0]}/sources/classic_worker.js"),
                         ]
                     ),
                 ]
             ),
         )
 
-    def test_sources_list_with_module_worker(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test_sources_list_with_module_worker.html")
-        self.assert_sources_list(
+    def test_sources_list_with_module_worker(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_module_worker.html")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
                             Source(
-                                "inlineScript", f"{self.base_urls[0]}/sources/test_sources_list_with_module_worker.html"
+                                "inlineScript",
+                                f"{web_server_urls[0]}/sources/test_sources_list_with_module_worker.html",
                             ),
                         ]
                     ),
                     frozen_multiset(
                         [
-                            Source("Worker", f"{self.base_urls[0]}/sources/module_worker.js"),
+                            Source("Worker", f"{web_server_urls[0]}/sources/module_worker.js"),
                         ]
                     ),
                 ]
@@ -368,11 +372,11 @@ class DebuggerTests(DevtoolsTestCase):
 
     # Sources list for `introductionType` set to values that require `displayURL` (`//# sourceURL`)
 
-    def test_sources_list_with_injected_script_write_and_display_url(self):
-        self.run_servoshell(
+    def test_sources_list_with_injected_script_write_and_display_url(self, run_servoshell):
+        run_servoshell(
             url='data:text/html,<script>document.write("<script>//%23 sourceURL=http://test</scr"+"ipt>")</script>'
         )
-        self.assert_sources_list(
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -388,9 +392,9 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_injected_script_write_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>document.write("<script>1</scr"+"ipt>")</script>')
-        self.assert_sources_list(
+    def test_sources_list_with_injected_script_write_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>document.write("<script>1</scr"+"ipt>")</script>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -405,10 +409,10 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_injected_script_append_and_display_url(self):
+    def test_sources_list_with_injected_script_append_and_display_url(self, run_servoshell):
         script = 's=document.createElement("script");s.append("//%23 sourceURL=http://test");document.body.append(s)'
-        self.run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
-        self.assert_sources_list(
+        run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -424,10 +428,10 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_injected_script_append_but_no_display_url(self):
+    def test_sources_list_with_injected_script_append_but_no_display_url(self, run_servoshell):
         script = 's=document.createElement("script");s.append("1");document.body.append(s)'
-        self.run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
-        self.assert_sources_list(
+        run_servoshell(url=f"data:text/html,<body><script>{script}</script>")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -442,9 +446,9 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_eval_and_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>eval("//%23 sourceURL=http://test")</script>')
-        self.assert_sources_list(
+    def test_sources_list_with_eval_and_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>eval("//%23 sourceURL=http://test")</script>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -459,14 +463,14 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_eval_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>eval("1")</script>')
-        self.assert_sources_list(
+    def test_sources_list_with_eval_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>eval("1")</script>')
+        assert_sources_list(
             Counter([frozen_multiset([Source("inlineScript", 'data:text/html,<script>eval("1")</script>')])])
         )
 
-    def test_sources_list_with_debugger_eval_and_display_url(self):
-        self.run_servoshell(url="data:text/html,")
+    def test_sources_list_with_debugger_eval_and_display_url(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
         with Devtools.connect() as devtools:
             console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
             evaluation_result = Future()
@@ -479,12 +483,12 @@ class DebuggerTests(DevtoolsTestCase):
             )
             console.evaluate_js_async("//# sourceURL=http://test")
             evaluation_result.result(1)
-            self.assert_sources_list(
+            assert_sources_list(
                 Counter([frozen_multiset([Source("debugger eval", "http://test/")])]), devtools=devtools
             )
 
-    def test_sources_list_with_debugger_eval_but_no_display_url(self):
-        self.run_servoshell(url="data:text/html,")
+    def test_sources_list_with_debugger_eval_but_no_display_url(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
         with Devtools.connect() as devtools:
             console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
             evaluation_result = Future()
@@ -497,11 +501,11 @@ class DebuggerTests(DevtoolsTestCase):
             )
             console.evaluate_js_async("1")
             evaluation_result.result(1)
-            self.assert_sources_list(Counter([frozen_multiset([])]), devtools=devtools)
+            assert_sources_list(Counter([frozen_multiset([])]), devtools=devtools)
 
-    def test_sources_list_with_function_and_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>')
-        self.assert_sources_list(
+    def test_sources_list_with_function_and_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>new Function("//%23 sourceURL=http://test")</script>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -517,9 +521,9 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_function_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>new Function("1")</script>')
-        self.assert_sources_list(
+    def test_sources_list_with_function_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>new Function("1")</script>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -531,12 +535,12 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_javascript_url_and_display_url(self):
+    def test_sources_list_with_javascript_url_and_display_url(self, run_servoshell):
         # “1” prefix is a workaround for <https://github.com/servo/servo/issues/38547>
-        self.run_servoshell(
+        run_servoshell(
             url='data:text/html,<a href="javascript:1//%23 sourceURL=http://test"></a><script>document.querySelector("a").click()</script>'
         )
-        self.assert_sources_list(
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -552,14 +556,14 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_javascript_url_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<a href="javascript:1"></a>')
-        self.assert_sources_list(Counter([frozen_multiset([])]))
+    def test_sources_list_with_javascript_url_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<a href="javascript:1"></a>')
+        assert_sources_list(Counter([frozen_multiset([])]))
 
-    @unittest.expectedFailure
-    def test_sources_list_with_event_handler_and_display_url(self):
-        self.run_servoshell(url='data:text/html,<a onclick="//%23 sourceURL=http://test"></a>')
-        self.assert_sources_list(
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_event_handler_and_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<a onclick="//%23 sourceURL=http://test"></a>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -571,14 +575,14 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_event_handler_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<a onclick="1"></a>')
-        self.assert_sources_list(Counter([frozen_multiset([])]))
+    def test_sources_list_with_event_handler_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<a onclick="1"></a>')
+        assert_sources_list(Counter([frozen_multiset([])]))
 
-    @unittest.expectedFailure
-    def test_sources_list_with_dom_timer_and_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>setTimeout("//%23 sourceURL=http://test",0)</script>')
-        self.assert_sources_list(
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_dom_timer_and_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>setTimeout("//%23 sourceURL=http://test",0)</script>')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -590,16 +594,16 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    @unittest.expectedFailure
-    def test_sources_list_with_dom_timer_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<script>setTimeout("1",0)</script>')
-        self.assert_sources_list(Counter([frozen_multiset([])]))
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_dom_timer_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<script>setTimeout("1",0)</script>')
+        assert_sources_list(Counter([frozen_multiset([])]))
 
     # Sources list for scripts with `displayURL` (`//# sourceURL`), despite not being required by `introductionType`
 
-    def test_sources_list_with_inline_script_and_display_url(self):
-        self.run_servoshell(url="data:text/html,<script>//%23 sourceURL=http://test</script>")
-        self.assert_sources_list(
+    def test_sources_list_with_inline_script_and_display_url(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script>//%23 sourceURL=http://test</script>")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -612,9 +616,9 @@ class DebuggerTests(DevtoolsTestCase):
         )
 
     # Extra test case for situation where `//# sourceURL` can’t be parsed with page url as base.
-    def test_sources_list_with_inline_script_but_invalid_display_url(self):
-        self.run_servoshell(url="data:text/html,<script>//%23 sourceURL=test</script>")
-        self.assert_sources_list(
+    def test_sources_list_with_inline_script_but_invalid_display_url(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script>//%23 sourceURL=test</script>")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -626,9 +630,9 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    def test_sources_list_with_inline_script_but_no_display_url(self):
-        self.run_servoshell(url="data:text/html,<script>1</script>")
-        self.assert_sources_list(
+    def test_sources_list_with_inline_script_but_no_display_url(self, run_servoshell):
+        run_servoshell(url="data:text/html,<script>1</script>")
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -642,10 +646,10 @@ class DebuggerTests(DevtoolsTestCase):
 
     # Sources list for inline scripts in `<iframe srcdoc>`
 
-    @unittest.expectedFailure
-    def test_sources_list_with_iframe_srcdoc_and_display_url(self):
-        self.run_servoshell(url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script>">')
-        self.assert_sources_list(
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_iframe_srcdoc_and_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script>">')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
@@ -657,15 +661,15 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    @unittest.expectedFailure
-    def test_sources_list_with_iframe_srcdoc_but_no_display_url(self):
-        self.run_servoshell(url='data:text/html,<iframe srcdoc="<script>1</script>">')
-        self.assert_sources_list(
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_iframe_srcdoc_but_no_display_url(self, run_servoshell):
+        run_servoshell(url='data:text/html,<iframe srcdoc="<script>1</script>">')
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
-                            # FIXME: it’s not really gonna be 0
+                            # FIXME: it's not really gonna be 0
                             Source("inlineScript", "about:srcdoc#0"),
                         ]
                     )
@@ -673,18 +677,18 @@ class DebuggerTests(DevtoolsTestCase):
             )
         )
 
-    @unittest.expectedFailure
-    def test_sources_list_with_iframe_srcdoc_multiple_inline_scripts(self):
-        self.run_servoshell(
+    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_iframe_srcdoc_multiple_inline_scripts(self, run_servoshell):
+        run_servoshell(
             url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script><script>2</script>">'
         )
-        self.assert_sources_list(
+        assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
                             Source("inlineScript", "http://test/"),
-                            # FIXME: it’s not really gonna be 0
+                            # FIXME: it's not really gonna be 0
                             Source("inlineScript", "about:srcdoc#0"),
                         ]
                     )
@@ -694,61 +698,70 @@ class DebuggerTests(DevtoolsTestCase):
 
     # Source contents
 
-    def test_source_content_inline_script(self):
+    def test_source_content_inline_script(self, run_servoshell):
         script_tag = "<script>console.log('Hello, world!')</script>"
-        self.run_servoshell(url=f"data:text/html,{script_tag}")
-        self.assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
+        run_servoshell(url=f"data:text/html,{script_tag}")
+        assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
 
-    def test_source_content_external_script(self):
-        self.run_servoshell(url=f'data:text/html,<script src="{self.base_urls[0]}/sources/classic.js"></script>')
+    def test_source_content_external_script(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f'data:text/html,<script src="{web_server_urls[0]}/sources/classic.js"></script>')
         expected_content = 'console.log("external classic");\n'
-        self.assert_source_content(Source("srcScript", f"{self.base_urls[0]}/sources/classic.js"), expected_content)
+        assert_source_content(Source("srcScript", f"{web_server_urls[0]}/sources/classic.js"), expected_content)
 
-    def test_source_content_html_file(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources/test.html")
-        expected_content = open(self.get_test_path("sources/test.html")).read()
-        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/sources/test.html"), expected_content)
+    def test_source_content_html_file(self, run_servoshell, web_server_urls, script_path):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test.html")
+        expected_content = open(os.path.join(script_path, "devtools_tests/sources/test.html")).read()
+        assert_source_content(Source("inlineScript", f"{web_server_urls[0]}/sources/test.html"), expected_content)
 
-    def test_source_content_with_inline_module_import_external(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources_content_with_inline_module_import_external/test.html")
-        path = "sources_content_with_inline_module_import_external/test.html"
-        expected_content = open(self.get_test_path(path)).read()
-        self.assert_source_content(Source("inlineScript", f"{self.base_urls[0]}/{path}"), expected_content)
-
-    # Test case that uses innerHTML and would actually need the HTML parser
-    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
-    def test_source_content_inline_script_with_inner_html(self):
-        script_tag = '<div id="el"></div><script>el.innerHTML="<p>test"</script>'
-        self.run_servoshell(url=f"data:text/html,{script_tag}")
-        self.assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
-
-    # Test case that uses outerHTML and would actually need the HTML parser
-    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
-    def test_source_content_inline_script_with_outer_html(self):
-        script_tag = '<div id="el"></div><script>el.outerHTML="<p>test"</script>'
-        self.run_servoshell(url=f"data:text/html,{script_tag}")
-        self.assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
-
-    # Test case that uses DOMParser and would actually need the HTML parser
-    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
-    def test_source_content_inline_script_with_domparser(self):
-        script_tag = '<script>(new DOMParser).parseFromString("<p>test","text/html")</script>'
-        self.run_servoshell(url=f"data:text/html,{script_tag}")
-        self.assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
-
-    # Test case that uses XMLHttpRequest#responseXML and would actually need the HTML parser
-    # (innerHTML has a fast path for values that don’t contain b'&' | b'\0' | b'<' | b'\r')
-    def test_source_content_inline_script_with_responsexml(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources_content_with_responsexml/test.html")
-        expected_content = open(self.get_test_path("sources_content_with_responsexml/test.html")).read()
-        self.assert_source_content(
-            Source("inlineScript", f"{self.base_urls[0]}/sources_content_with_responsexml/test.html"), expected_content
+    def test_source_content_with_inline_module_import_external(self, run_servoshell, web_server_urls, script_path):
+        run_servoshell(url=f"{web_server_urls[0]}/sources_content_with_inline_module_import_external/test.html")
+        expected_content = open(
+            os.path.join(script_path, "devtools_tests", "sources_content_with_inline_module_import_external/test.html")
+        ).read()
+        assert_source_content(
+            Source(
+                "inlineScript", f"{web_server_urls[0]}/sources_content_with_inline_module_import_external/test.html"
+            ),
+            expected_content,
         )
 
-    def test_source_breakable_lines_and_positions(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test.html")
-        self.assert_source_breakable_lines_and_positions(
-            Source("inlineScript", f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test.html"),
+    # Test case that uses innerHTML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_inner_html(self, run_servoshell):
+        script_tag = '<div id="el"></div><script>el.innerHTML="<p>test"</script>'
+        run_servoshell(url=f"data:text/html,{script_tag}")
+        assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
+
+    # Test case that uses outerHTML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_outer_html(self, run_servoshell):
+        script_tag = '<div id="el"></div><script>el.outerHTML="<p>test"</script>'
+        run_servoshell(url=f"data:text/html,{script_tag}")
+        assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
+
+    # Test case that uses DOMParser and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_domparser(self, run_servoshell):
+        script_tag = '<script>(new DOMParser).parseFromString("<p>test","text/html")</script>'
+        run_servoshell(url=f"data:text/html,{script_tag}")
+        assert_source_content(Source("inlineScript", f"data:text/html,{script_tag}"), script_tag)
+
+    # Test case that uses XMLHttpRequest#responseXML and would actually need the HTML parser
+    # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_inline_script_with_responsexml(self, run_servoshell, web_server_urls, script_path):
+        run_servoshell(url=f"{web_server_urls[0]}/sources_content_with_responsexml/test.html")
+        expected_content = open(
+            os.path.join(script_path, "devtools_tests/sources_content_with_responsexml/test.html")
+        ).read()
+        assert_source_content(
+            Source("inlineScript", f"{web_server_urls[0]}/sources_content_with_responsexml/test.html"),
+            expected_content,
+        )
+
+    def test_source_breakable_lines_and_positions(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources_breakable_lines_and_positions/test.html")
+        assert_source_breakable_lines_and_positions(
+            Source("inlineScript", f"{web_server_urls[0]}/sources_breakable_lines_and_positions/test.html"),
             [4, 5, 6, 7],
             {
                 "4": [4, 12, 20, 28],
@@ -758,11 +771,12 @@ class DebuggerTests(DevtoolsTestCase):
             },
         )
 
-    def test_source_breakable_lines_and_positions_with_functions(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html")
-        self.assert_source_breakable_lines_and_positions(
+    def test_source_breakable_lines_and_positions_with_functions(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html")
+        assert_source_breakable_lines_and_positions(
             Source(
-                "inlineScript", f"{self.base_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html"
+                "inlineScript",
+                f"{web_server_urls[0]}/sources_breakable_lines_and_positions/test_with_functions.html",
             ),
             [5, 6, 7, 8, 9, 10],
             {
@@ -775,9 +789,9 @@ class DebuggerTests(DevtoolsTestCase):
             },
         )
 
-    def test_blackboxing_prevents_breakpoint_pause(self):
-        url = f"{self.base_urls[0]}/debugger/loop.html"
-        self.run_servoshell(url=url)
+    def test_blackboxing_prevents_breakpoint_pause(self, run_servoshell, web_server_urls):
+        url = f"{web_server_urls[0]}/debugger/loop.html"
+        run_servoshell(url=url)
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -799,9 +813,9 @@ class DebuggerTests(DevtoolsTestCase):
 
             wait_and_assert_no_pause(devtools.client, thread_actor, trigger, duration=1)
 
-    def test_blackboxing_prevents_breakpoint_pause_single_line(self):
-        url = f"{self.base_urls[0]}/debugger/loop.html"
-        self.run_servoshell(url=url)
+    def test_blackboxing_prevents_breakpoint_pause_single_line(self, run_servoshell, web_server_urls):
+        url = f"{web_server_urls[0]}/debugger/loop.html"
+        run_servoshell(url=url)
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -830,9 +844,9 @@ class DebuggerTests(DevtoolsTestCase):
 
             wait_and_assert_no_pause(devtools.client, thread_actor, trigger, duration=1)
 
-    def test_blackboxing_prevents_breakpoint_pause_multiline(self):
-        url = f"{self.base_urls[0]}/debugger/loop.html"
-        self.run_servoshell(url=url)
+    def test_blackboxing_prevents_breakpoint_pause_multiline(self, run_servoshell, web_server_urls):
+        url = f"{web_server_urls[0]}/debugger/loop.html"
+        run_servoshell(url=url)
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -861,9 +875,9 @@ class DebuggerTests(DevtoolsTestCase):
 
             wait_and_assert_no_pause(devtools.client, thread_actor, trigger, duration=1)
 
-    def test_unblackboxing_partial(self):
-        url = f"{self.base_urls[0]}/debugger/loop.html"
-        self.run_servoshell(url=url)
+    def test_unblackboxing_partial(self, run_servoshell, web_server_urls):
+        url = f"{web_server_urls[0]}/debugger/loop.html"
+        run_servoshell(url=url)
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -885,13 +899,13 @@ class DebuggerTests(DevtoolsTestCase):
 
             # Set a breakpoint and confirm that we still pause
             def trigger():
-                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
+                set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/loop.html", line, column)
 
             wait_for_pause(devtools.client, thread_actor, trigger)
 
-    def test_blackboxing_prevents_stepping(self):
-        url = f"{self.base_urls[0]}/debugger/loop.html"
-        self.run_servoshell(url=url)
+    def test_blackboxing_prevents_stepping(self, run_servoshell, web_server_urls):
+        url = f"{web_server_urls[0]}/debugger/loop.html"
+        run_servoshell(url=url)
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
             source_actor = wait_for_source(devtools, "debugger/loop.html")
@@ -908,12 +922,12 @@ class DebuggerTests(DevtoolsTestCase):
 
             # Set breakpoint on line 4 and wait for it to be reached
             def trigger():
-                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line1, line1_col)
+                set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/loop.html", line1, line1_col)
 
             wait_for_pause(devtools.client, thread_actor, trigger)
 
             # Set breakpoint on line 5
-            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line2, line2_col)
+            set_breakpoint(devtools, f"{web_server_urls[0]}/debugger/loop.html", line2, line2_col)
 
             # Blackbox line 5
             blackboxing_actor = devtools.watcher.get_blackboxing_actor()["blackboxing"]["actor"]
@@ -928,4 +942,4 @@ class DebuggerTests(DevtoolsTestCase):
 
             # Step forward! We should skip over line 5 and end up on line 4 again
             step_data = step(devtools.client, thread_actor, "next")
-            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 4)
+            assert step_data.get("frame", {}).get("where", {}).get("line") == 4
