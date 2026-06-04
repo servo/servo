@@ -228,17 +228,17 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     unsafe fn add_form_associated_callbacks(
         &self,
+        cx: &mut js::context::JSContext,
         prototype: HandleObject,
         callbacks: &mut LifecycleCallbacks,
     ) -> ErrorResult {
-        let cx = self.window.get_cx();
-
         callbacks.form_associated_callback =
-            get_callback(cx, prototype, c"formAssociatedCallback")?;
-        callbacks.form_reset_callback = get_callback(cx, prototype, c"formResetCallback")?;
-        callbacks.form_disabled_callback = get_callback(cx, prototype, c"formDisabledCallback")?;
+            get_callback(cx.into(), prototype, c"formAssociatedCallback")?;
+        callbacks.form_reset_callback = get_callback(cx.into(), prototype, c"formResetCallback")?;
+        callbacks.form_disabled_callback =
+            get_callback(cx.into(), prototype, c"formDisabledCallback")?;
         callbacks.form_state_restore_callback =
-            get_callback(cx, prototype, c"formStateRestoreCallback")?;
+            get_callback(cx.into(), prototype, c"formStateRestoreCallback")?;
 
         Ok(())
     }
@@ -246,14 +246,13 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn get_observed_attributes(
         &self,
+        cx: &mut js::context::JSContext,
         constructor: HandleObject,
-        can_gc: CanGc,
     ) -> Fallible<Vec<DOMString>> {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut observed_attributes = UndefinedValue());
+        rooted!(&in(cx) let mut observed_attributes = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
-                *cx,
+                cx.raw_cx(),
                 constructor,
                 c"observedAttributes".as_ptr(),
                 observed_attributes.handle_mut(),
@@ -267,10 +266,10 @@ impl CustomElementRegistry {
         }
 
         let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx,
+            cx.into(),
             observed_attributes.handle(),
             StringificationBehavior::Default,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
@@ -284,14 +283,13 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn get_form_associated_value(
         &self,
+        cx: &mut js::context::JSContext,
         constructor: HandleObject,
-        can_gc: CanGc,
     ) -> Fallible<bool> {
-        let cx = self.window.get_cx();
-        rooted!(in(*cx) let mut form_associated_value = UndefinedValue());
+        rooted!(&in(cx) let mut form_associated_value = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
-                *cx,
+                cx.raw_cx(),
                 constructor,
                 c"formAssociated".as_ptr(),
                 form_associated_value.handle_mut(),
@@ -305,10 +303,10 @@ impl CustomElementRegistry {
         }
 
         let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx,
+            cx.into(),
             form_associated_value.handle(),
             (),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
@@ -322,14 +320,13 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn get_disabled_features(
         &self,
+        cx: &mut js::context::JSContext,
         constructor: HandleObject,
-        can_gc: CanGc,
     ) -> Fallible<Vec<DOMString>> {
-        let cx = self.window.get_cx();
-        rooted!(in(*cx) let mut disabled_features = UndefinedValue());
+        rooted!(&in(cx) let mut disabled_features = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
-                *cx,
+                cx.raw_cx(),
                 constructor,
                 c"disabledFeatures".as_ptr(),
                 disabled_features.handle_mut(),
@@ -343,10 +340,10 @@ impl CustomElementRegistry {
         }
 
         let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx,
+            cx.into(),
             disabled_features.handle(),
             StringificationBehavior::Default,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
@@ -395,18 +392,17 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         constructor_: Rc<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let constructor = constructor_.callback());
+        rooted!(&in(cx) let constructor = constructor_.callback());
         let name = LocalName::from(name);
 
         // Step 1. If IsConstructor(constructor) is false, then throw a TypeError.
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
-        rooted!(in(*cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
+        rooted!(&in(cx) let unwrapped_constructor = unsafe { UnwrapObjectStatic(constructor.get()) });
 
         if unwrapped_constructor.is_null() {
             // We do not have permission to access the unwrapped constructor.
@@ -485,9 +481,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // `observedAttributes` with default values, but this is done later.
 
         // Steps 14.1 - 14.2: Get the value of the prototype.
-        rooted!(in(*cx) let mut prototype = UndefinedValue());
+        rooted!(&in(cx) let mut prototype = UndefinedValue());
         {
-            let _ac = JSAutoRealm::new(*cx, constructor.get());
+            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);
@@ -499,9 +495,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // we know whether this definition is going to be form-associated,
         // but the order of operations is specified and it's observable
         // if one of the callback getters throws an exception.
-        rooted!(in(*cx) let proto_object = prototype.to_object());
+        rooted!(&in(cx) let proto_object = prototype.to_object());
         let mut callbacks = {
-            let _ac = JSAutoRealm::new(*cx, proto_object.get());
+            // let _realm = AutoRealm::new_from_handle(cx, proto_object.handle());
             let callbacks = unsafe { self.get_callbacks(proto_object.handle()) };
             match callbacks {
                 Ok(callbacks) => callbacks,
@@ -515,8 +511,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
-            let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_observed_attributes(constructor.handle(), can_gc) {
+            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_observed_attributes(cx, constructor.handle()) {
                 Ok(attributes) => attributes,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -529,8 +525,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
-            let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_disabled_features(constructor.handle(), can_gc) {
+            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_disabled_features(cx, constructor.handle()) {
                 Ok(sequence) => (
                     sequence.iter().any(|s| *s == "internals"),
                     sequence.iter().any(|s| *s == "shadow"),
@@ -544,8 +540,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.11 - 14.12: Handle `formAssociated`.
         let form_associated = {
-            let _ac = JSAutoRealm::new(*cx, constructor.get());
-            match self.get_form_associated_value(constructor.handle(), can_gc) {
+            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_form_associated_value(cx, constructor.handle()) {
                 Ok(flag) => flag,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -556,10 +552,10 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 14.13: Add the `formAssociated` callbacks.
         if form_associated {
-            let _ac = JSAutoRealm::new(*cx, proto_object.get());
+            // let _realm = AutoRealm::new_from_handle(cx, proto_object.handle());
             unsafe {
                 if let Err(error) =
-                    self.add_form_associated_callbacks(proto_object.handle(), &mut callbacks)
+                    self.add_form_associated_callbacks(cx, proto_object.handle(), &mut callbacks)
                 {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -608,11 +604,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 16, 16.3
         let promise = self.when_defined.borrow_mut().remove(&name);
         if let Some(promise) = promise {
-            rooted!(in(*cx) let mut constructor = UndefinedValue());
-            definition
-                .constructor
-                .safe_to_jsval(cx, constructor.handle_mut(), can_gc);
-            promise.resolve_native(&constructor.get(), can_gc);
+            rooted!(&in(cx) let mut constructor = UndefinedValue());
+            definition.constructor.safe_to_jsval(
+                cx.into(),
+                constructor.handle_mut(),
+                CanGc::from_cx(cx),
+            );
+            promise.resolve_native(&constructor.get(), CanGc::from_cx(cx));
         }
         Ok(())
     }
