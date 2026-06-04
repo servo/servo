@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::bindings::codegen::Bindings::AudioTrackListBinding::AudioTrackListMethods;
@@ -16,7 +17,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AudioTrackList {
@@ -38,15 +38,15 @@ impl AudioTrackList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         tracks: &[&AudioTrack],
         media_element: Option<&HTMLMediaElement>,
-        can_gc: CanGc,
     ) -> DomRoot<AudioTrackList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(AudioTrackList::new_inherited(tracks, media_element)),
             window,
-            can_gc,
+            cx,
         )
     }
 
