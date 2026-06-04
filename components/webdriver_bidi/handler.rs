@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::{
     error::{WebDriverBidiError, WebDriverBidiResult},
-    model::{CommandResponse, Message, ResultData, SessionResult},
+    model::{Message as BidiMessage, ResultData, SessionResult},
     transport::Session,
 };
 
@@ -36,7 +36,7 @@ pub trait WebDriverBidiHandler: Send + Sized {
     /// Start processing of a command.
     fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>>;
 
-    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)>;
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, BidiMessage)>;
 
     // TODO: do we need
     // post update after receiving message
@@ -246,7 +246,7 @@ impl WebDriverBidiHandler for Handler {
         }
     }
 
-    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)> {
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, BidiMessage)> {
         todo!()
     }
 }
@@ -310,8 +310,18 @@ impl Handler {
     }
 
     fn handle_session_end(&self) -> WebDriverBidiResult<Option<ResultData>> {
-        todo!()
+        // Step 1. end the session, skip.
+        // TODO: do we need to notify embedder to stop subscription or other status,
+        // or is this automatically done with channel drop?
+
+        // Step 2. return success
+        Ok(Some(ResultData::Session(SessionResult::End(
+            session::results::EndResult {
+                extensible: Default::default(),
+            },
+        ))))
     }
+
     fn handle_session_subscribe(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }

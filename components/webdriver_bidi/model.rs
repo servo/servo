@@ -133,7 +133,7 @@ pub enum ScriptResult {
 pub enum SessionResult {
     Status(session::StatusResult),
     New(Box<session::NewResult>),
-    End(Box<session::EndResult>),
+    End(session::EndResult),
     Subscribe(session::SubscribeResult),
     Unsubscribe(session::UnsubscribeResult),
 }
