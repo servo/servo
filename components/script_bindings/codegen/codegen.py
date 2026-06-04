@@ -3076,7 +3076,10 @@ def DomTypeHolder(descriptors: list[Descriptor],
         if descriptor.interface.isCallback() or descriptor.interface.isIteratorInterface():
             continue
         iface_name = descriptor.interface.identifier.name
-        path = f"crate::dom::{iface_name.lower()}::{firstCap(iface_name)}"
+        if iface_name in config.idl_crates.keys():
+            path = f"{config.idl_crates["iface_name"]}::{iface_name.lower()}::{firstCap(iface_name)}"
+        else:
+            path = f"crate::dom::{iface_name.lower()}::{firstCap(iface_name)}"
         elements.append(CGGeneric(f"    type {firstCap(iface_name)} = {path};\n"))
     elements.append(CGGeneric("}\n"))
     return CGList(elements)
