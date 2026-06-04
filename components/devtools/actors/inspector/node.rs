@@ -272,7 +272,7 @@ impl NodeActor {
             registry.register_script_actor(unique_id.clone(), name.clone());
 
             let actor = Self {
-                name: name.clone(),
+                name,
                 walker_name: walker_name.into(),
                 style_rules: AtomicRefCell::new(HashMap::new()),
                 node_info: AtomicRefCell::new(node_info),

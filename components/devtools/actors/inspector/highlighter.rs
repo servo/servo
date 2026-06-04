@@ -52,15 +52,15 @@ impl Actor for HighlighterActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "show" => {
-                let Some(node_actor) = msg.get("node") else {
+                let Some(node_name) = msg.get("node") else {
                     return Err(ActorError::MissingParameter);
                 };
 
-                let Some(node_actor_name) = node_actor.as_str() else {
+                let Some(node_name) = node_name.as_str() else {
                     return Err(ActorError::BadParameterType);
                 };
 
-                if node_actor_name.starts_with(base_name::<InspectorActor>()) {
+                if node_name.starts_with(base_name::<InspectorActor>()) {
                     // TODO: For some reason, the client initially asks us to highlight
                     // the inspector? Investigate what this is supposed to mean.
                     let msg = ShowReply {
@@ -70,10 +70,7 @@ impl Actor for HighlighterActor {
                     return request.reply_final(&msg);
                 }
 
-                self.instruct_script_thread_to_highlight_node(
-                    Some(node_actor_name.to_owned()),
-                    registry,
-                );
+                self.instruct_script_thread_to_highlight_node(Some(node_name.into()), registry);
                 let msg = ShowReply {
                     from: self.name().into(),
                     value: true,
