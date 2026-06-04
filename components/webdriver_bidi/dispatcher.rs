@@ -1,3 +1,36 @@
+//! TODO: doc
+//!
+//! TODO: add server role, move to lib.rs
+//!
+//! The following explain the basic architecture of WebDriver BiDi server.
+//!
+//! Architecture
+//!
+//! Pro: Clear boundry, abstract session conn from handler. handler are not aware of connection
+//!
+//! Con: horrible, scary sync due to mutable and order
+//! avoid interior mutablity, insane channel between dispatcher and handler
+//!
+//! session.new example
+//!
+//! ```txt
+//!   Dispatcher        Handler
+//!       |     handle     |
+//!       |--------------->|
+//!       | create session |  // order required by bidi spec
+//!       |<---------------|
+//!       |    done bool   |
+//!       |--------------->|
+//!       | succ bidi msg  |
+//!       |<---------------|
+//!       |----+           |
+//!       |    | assoc s c |  // order required by bidi spec
+//!       |<---+           |
+//!       |----+           |
+//!       |    | resolve r |
+//!       |<---+           |
+//! ```
+
 use std::collections::HashMap;
 
 use crossbeam_channel::{Receiver, Sender};
