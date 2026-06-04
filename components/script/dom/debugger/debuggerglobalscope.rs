@@ -22,16 +22,12 @@ use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
-use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
-use crate::dom::bindings::codegen::GenericBindings::DebuggerEvalEventBinding::{
-    EvalResult, PropertyDescriptor,
-};
+use crate::dom::bindings::codegen::GenericBindings::DebuggerEvalEventBinding::EvalResult;
 use crate::dom::bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use crate::dom::bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
@@ -528,10 +524,22 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
-        let previews = result.previews.as_deref();
+        let has_exception = result.hasException.unwrap_or(false);
+        let value = match serde_json::from_str::<devtools_traits::DebuggerValue>(
+            &result.serializedValue.str(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                warn!("Failed to parse serialized debugger eval value: {error}");
+                devtools_traits::DebuggerValue::StringValue(
+                    "failed to parse eval result".to_string(),
+                )
+            },
+        };
+
         let reply = EvaluateJSReply {
-            value: parse_debugger_value(&result.value, previews),
-            has_exception: result.hasException.unwrap_or(false),
+            value,
+            has_exception,
         };
 
         let _ = sender.send(reply);
@@ -616,18 +624,20 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
-        let previews = environment.previews.as_deref();
+        let binding_variables = match serde_json::from_str::<Vec<devtools_traits::PropertyDescriptor>>(
+            &environment.serializedBindings.str(),
+        ) {
+            Ok(binding_variables) => binding_variables,
+            Err(error) => {
+                warn!("Failed to parse serialized debugger environment bindings: {error}");
+                return None;
+            },
+        };
         let environment = devtools_traits::EnvironmentInfo {
             type_: environment.type_.clone().map(String::from),
             scope_kind: environment.scopeKind.clone().map(String::from),
             function_display_name: environment.functionDisplayName.clone().map(String::from),
-            binding_variables: environment
-                .bindingVariables
-                .as_deref()
-                .into_iter()
-                .flatten()
-                .map(|property| parse_property_descriptor(property, previews))
-                .collect(),
+            binding_variables,
         };
 
         let msg = ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
@@ -648,99 +658,5 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_get_environment()");
 
         let _ = sender.send(environment_actor_id.into());
-    }
-}
-
-fn parse_property_descriptor(
-    property: &PropertyDescriptor,
-    previews: Option<&[ObjectPreview]>,
-) -> devtools_traits::PropertyDescriptor {
-    devtools_traits::PropertyDescriptor {
-        name: property.name.to_string(),
-        value: parse_debugger_value(&property.value, previews),
-        configurable: property.configurable,
-        enumerable: property.enumerable,
-        writable: property.writable,
-        is_accessor: property.isAccessor,
-    }
-}
-
-fn parse_object_preview(
-    preview_id: Option<usize>,
-    previews: Option<&[ObjectPreview]>,
-) -> Option<devtools_traits::ObjectPreview> {
-    let preview_id = preview_id?;
-    let preview = previews?.get(preview_id)?;
-    Some(devtools_traits::ObjectPreview {
-        kind: preview.kind.clone().into(),
-        own_properties: preview.ownProperties.as_ref().map(|properties| {
-            properties
-                .iter()
-                .map(|property| parse_property_descriptor(property, previews))
-                .collect()
-        }),
-        own_properties_length: preview.ownPropertiesLength,
-        function: preview
-            .function
-            .as_ref()
-            .map(|fields| devtools_traits::FunctionPreview {
-                name: fields.name.as_ref().map(|s| s.to_string()),
-                display_name: fields.displayName.as_ref().map(|s| s.to_string()),
-                parameter_names: fields
-                    .parameterNames
-                    .iter()
-                    .map(|p| p.to_string())
-                    .collect(),
-                is_async: fields.isAsync,
-                is_generator: fields.isGenerator,
-            }),
-        array_length: preview.arrayLength,
-        items: preview.items.as_ref().map(|items| {
-            items
-                .iter()
-                .map(|item| parse_debugger_value(item, previews))
-                .collect()
-        }),
-    })
-}
-
-fn parse_debugger_value(
-    value: &DebuggerValue,
-    previews: Option<&[ObjectPreview]>,
-) -> devtools_traits::DebuggerValue {
-    use devtools_traits::DebuggerValue::*;
-    match &*value.valueType.str() {
-        "undefined" => VoidValue,
-        "null" => NullValue,
-        "boolean" => BooleanValue(value.booleanValue.unwrap_or(false)),
-        "Infinity" => NumberValue(f64::INFINITY),
-        "-Infinity" => NumberValue(f64::NEG_INFINITY),
-        "NaN" => NumberValue(f64::NAN),
-        "-0" => NumberValue(-0.0),
-        "number" => {
-            let num = value.numberValue.map(|f| *f).unwrap_or(0.0);
-            NumberValue(num)
-        },
-        "string" => StringValue(
-            value
-                .stringValue
-                .as_ref()
-                .map(|s| s.to_string())
-                .unwrap_or_default(),
-        ),
-        "object" => {
-            let class = value
-                .objectClass
-                .as_ref()
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "Object".to_string());
-            ObjectValue {
-                uuid: uuid::Uuid::new_v4().to_string(),
-                class,
-                own_property_length: value.ownPropertyLength,
-                preview: parse_object_preview(value.previewId.map(|m| m as usize), previews),
-            }
-        },
-        _ => unreachable!(),
     }
 }
