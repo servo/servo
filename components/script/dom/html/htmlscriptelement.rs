@@ -352,7 +352,7 @@ pub(crate) type ScriptResult = Result<Script, ()>;
 pub(crate) enum Script {
     Classic(ClassicScript),
     Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
-    ImportMap(ScriptOrigin),
+    ImportMap(Fallible<ImportMap>),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -1014,14 +1014,7 @@ impl HTMLScriptElement {
                         Rc::clone(&text_rc),
                         base_url.clone(),
                     );
-                    let script = Script::ImportMap(ScriptOrigin::internal(
-                        text_rc,
-                        base_url,
-                        options,
-                        script_type,
-                        self.global().unminified_js_dir(),
-                        import_map_result,
-                    ));
+                    let script = Script::ImportMap(import_map_result);
 
                     // Step 34.3
                     self.execute(cx, Ok(script));
@@ -1110,9 +1103,9 @@ impl HTMLScriptElement {
                 self.owner_global()
                     .run_a_module_script(cx, module_tree, false);
             },
-            Script::ImportMap(script) => {
+            Script::ImportMap(import_map) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                register_import_map(cx, &self.owner_global(), script.import_map);
+                register_import_map(cx, &self.owner_global(), import_map);
             },
         }
 
