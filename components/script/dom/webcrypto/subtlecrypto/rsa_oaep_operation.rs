@@ -5,8 +5,8 @@
 use js::context::JSContext;
 use pkcs8::rand_core::OsRng;
 use rsa::Oaep;
-use sha1::Sha1;
-use sha2::{Sha256, Sha384, Sha512};
+use sha1_0_10::Sha1;
+use sha2_0_10::{Sha256, Sha384, Sha512};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,

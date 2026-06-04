@@ -200,6 +200,10 @@ skip = [
     "spki",
     "signature",
     "block-buffer",
+    "hkdf",
+    "hmac",
+    "sha1",
+    "sha2",
 ]
 
 # github.com organizations to allow git sources for
