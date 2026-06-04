@@ -34,9 +34,6 @@ android {
     }
 
     splits {
-        density {
-            isEnable = false
-        }
         abi {
             isEnable = false
         }
