@@ -2,9 +2,20 @@ use std::collections::HashMap;
 
 use async_tungstenite::tungstenite;
 use tokio::sync::mpsc;
-use uuid::Uuid;
 
 use crate::session::SessionId;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct ConnectionId(usize);
+
+// TODO: see how id.rs does self increment.
+impl ConnectionId {
+    pub fn inc(&mut self) -> Self {
+        let old = self.clone();
+        self.0 += 1;
+        old
+    }
+}
 
 /// A handle to the actual WebSocket connection.
 #[derive(Debug)]
@@ -18,9 +29,9 @@ pub struct Connection {
 /// and unassociated.
 #[derive(Debug, Default)]
 pub struct ConnectionMap {
-    pub associated: HashMap<SessionId, Vec<(Uuid, Connection)>>,
-    pub unassociated: HashMap<Uuid, Connection>,
-    pub reverse: HashMap<Uuid, Option<SessionId>>,
+    pub associated: HashMap<SessionId, Vec<(ConnectionId, Connection)>>,
+    pub unassociated: HashMap<ConnectionId, Connection>,
+    pub reverse: HashMap<ConnectionId, Option<SessionId>>,
 }
 
 impl ConnectionMap {
@@ -32,21 +43,21 @@ impl ConnectionMap {
         }
     }
 
-    pub fn associate(&mut self, uuid: &Uuid, session: &SessionId) -> bool {
-        if let Some(conn) = self.unassociated.remove(uuid) {
+    pub fn associate(&mut self, conn_id: ConnectionId, session: &SessionId) -> bool {
+        if let Some(conn) = self.unassociated.remove(&conn_id) {
             self.associated
                 .entry(session.clone())
                 .or_default()
-                .push((*uuid, conn));
-            self.reverse.insert(*uuid, Some(session.clone()));
+                .push((conn_id, conn));
+            self.reverse.insert(conn_id, Some(session.clone()));
             true
         } else {
             false
         }
     }
 
-    pub fn session(&self, uuid: &Uuid) -> Option<&SessionId> {
-        self.reverse.get(uuid).and_then(Option::as_ref)
+    pub fn session(&self, conn_id: ConnectionId) -> Option<&SessionId> {
+        self.reverse.get(&conn_id).and_then(Option::as_ref)
     }
 
     pub fn connections(&self, session: &SessionId) -> impl Iterator<Item = &Connection> {
@@ -67,10 +78,10 @@ impl ConnectionMap {
     pub fn add_connection(
         &mut self,
         session: Option<SessionId>,
-        uuid: Uuid,
+        conn_id: ConnectionId,
         conn: Connection,
     ) -> bool {
-        if self.reverse.contains_key(&uuid) {
+        if self.reverse.contains_key(&conn_id) {
             return false;
         }
         match &session {
@@ -78,13 +89,13 @@ impl ConnectionMap {
                 let Some(v) = self.associated.get_mut(session) else {
                     return false;
                 };
-                v.push((uuid, conn));
+                v.push((conn_id, conn));
             },
             None => {
-                self.unassociated.insert(uuid, conn);
+                self.unassociated.insert(conn_id, conn);
             },
         }
-        self.reverse.insert(uuid, session);
+        self.reverse.insert(conn_id, session);
         true
     }
 }

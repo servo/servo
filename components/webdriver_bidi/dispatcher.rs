@@ -5,7 +5,7 @@ use rustenium_bidi_definitions::base::CommandMessage;
 use uuid::Uuid;
 
 use crate::{
-    connection::{Connection, ConnectionMap},
+    connection::{Connection, ConnectionId, ConnectionMap},
     handler::WebDriverBidiHandler,
     model::{Message as BidiMessage, ResultData, SessionResult},
     session::SessionId,
@@ -15,10 +15,9 @@ use crate::{
 #[derive(Debug)]
 pub enum DispatchMessage {
     /// Deserialized BiDi command message, along with connection id.
-    // TODO: change connection id type to number newtype.
-    Command(Uuid, Box<CommandMessage>),
+    Command(ConnectionId, Box<CommandMessage>),
     // TODO: new connection may connect to existing session
-    NewConnection(Uuid, Connection),
+    NewConnection(ConnectionId, Connection),
 }
 
 // TODO: add request ids, so that dispatcher can hide connection and session detail from handler and
@@ -51,8 +50,8 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
 
     fn handle_dispatch(&mut self, dispatch: DispatchMessage) {
         match dispatch {
-            DispatchMessage::Command(uuid, command_message) => {
-                let session = self.conn_map.session(&uuid).cloned();
+            DispatchMessage::Command(conn_id, command_message) => {
+                let session = self.conn_map.session(conn_id).cloned();
                 // handle early error
                 // TODO: map session_id to handler
                 // TODO: handle option resultdata
@@ -66,7 +65,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                     } else {
                         if let Ok(serialized) = serde_json::to_string(&msg) {
                             let msg = tungstenite::Message::Text(serialized.into());
-                            if let Some(conn) = self.conn_map.unassociated.get(&uuid)
+                            if let Some(conn) = self.conn_map.unassociated.get(&conn_id)
                                 && let Err(err) = conn.tx.send(msg)
                             {
                                 error!("Error sending error message to bidi server: {err}");
