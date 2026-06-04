@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Set type attribute to what it already is</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<input id="target1" type="number">
+<input id="target2" type="number">
+
+<script>
+
+(async() => {
+  target1.focus();
+  await test_driver.send_keys(target1, "xyz");
+
+  target2.focus();
+  await test_driver.send_keys(target2, "1.");
+})();
+
+</script>
+</body>
