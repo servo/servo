@@ -187,7 +187,9 @@ pub fn process_node_scroll_area_request(
             .first()
             .map(|fragment| fragment.scrolling_area(layout_thread))
             .unwrap_or_default(),
-        None => tree.scrollable_overflow(),
+        None => tree
+            .scrollable_overflow()
+            .union(&tree.initial_containing_block),
     };
 
     Rect::new(

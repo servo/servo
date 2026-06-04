@@ -126,15 +126,16 @@ impl StackingContextTree {
         debug: &DiagnosticsLogging,
     ) -> Self {
         let scrollable_overflow = fragment_tree.scrollable_overflow();
-        let scrollable_overflow = LayoutSize::from_untyped(Size2D::new(
-            scrollable_overflow.size.width.to_f32_px(),
-            scrollable_overflow.size.height.to_f32_px(),
+        let scroll_area = scrollable_overflow.union(&fragment_tree.initial_containing_block);
+        let scroll_area = LayoutSize::from_untyped(Size2D::new(
+            scroll_area.size.width.to_f32_px(),
+            scroll_area.size.height.to_f32_px(),
         ));
 
         let viewport_size = viewport_details.layout_size();
         let paint_info = PaintDisplayListInfo::new(
             viewport_details,
-            scrollable_overflow,
+            scroll_area,
             pipeline_id,
             // This epoch is set when the WebRender display list is built. For now use a dummy value.
             Default::default(),
