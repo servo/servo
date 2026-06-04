@@ -244,7 +244,7 @@ cleanup:
 // runner.
 int run_c_integration_tests(void)
 {
-    int ret = test_webview_load_and_screenshot();
-    log("%s\n", ret == 0 ? "PASS" : "FAIL");
-    return ret;
+    int result = test_webview_load_and_screenshot();
+    log("%s\n", result == 0 ? "PASS" : "FAIL");
+    return result;
 }

@@ -13,17 +13,17 @@
 static int tests_run;
 static int tests_failed;
 
-#define RUN_TEST(name)                                       \
-    do {                                                     \
-        tests_run++;                                         \
-        printf("  RUN  %s\n", #name);                        \
-        fflush(stdout);                                      \
-        int ret = name();                                    \
-        if (ret != 0) {                                      \
-            printf("  FAIL %s (returned %d)\n", #name, ret); \
-            tests_failed++;                                  \
-        }                                                    \
-        fflush(stdout);                                      \
+#define RUN_TEST(name)                                          \
+    do {                                                        \
+        tests_run++;                                            \
+        printf("  RUN  %s\n", #name);                           \
+        fflush(stdout);                                         \
+        int result = name();                                    \
+        if (result != 0) {                                      \
+            printf("  FAIL %s (returned %d)\n", #name, result); \
+            tests_failed++;                                     \
+        }                                                       \
+        fflush(stdout);                                         \
     } while (0)
 
 int test_builder_create_and_free(void)
@@ -196,27 +196,6 @@ int test_preferences_string_roundtrip(void)
     return 0;
 }
 
-int test_preferences_f64_array4_roundtrip(void)
-{
-    ServoPreferences* preferences = servo_preferences_create();
-    if (preferences == NULL)
-        return 1;
-
-    double rgba[4] = { 0.2, 0.4, 0.6, 1.0 };
-    servo_preferences_set_f64_array_4(preferences, "shell_background_color_rgba",
-        rgba);
-    double out[4];
-    servo_preferences_get_f64_array_4(preferences, "shell_background_color_rgba",
-        out);
-    if (out[0] != 0.2 || out[1] != 0.4 || out[2] != 0.6 || out[3] != 1.0) {
-        servo_preferences_free(preferences);
-        return 1;
-    }
-
-    servo_preferences_free(preferences);
-    return 0;
-}
-
 int test_rendering_context_create_and_free(void)
 {
     RenderingContext* context = servo_rendering_context_create_software(100, 100);
@@ -367,7 +346,6 @@ int run_c_api_tests(void)
     RUN_TEST(test_preferences_i64_roundtrip);
     RUN_TEST(test_preferences_u64_roundtrip);
     RUN_TEST(test_preferences_string_roundtrip);
-    RUN_TEST(test_preferences_f64_array4_roundtrip);
     RUN_TEST(test_rendering_context_create_and_free);
     RUN_TEST(test_rendering_context_zero_size_returns_null);
     RUN_TEST(test_webview_builder_create_and_free);

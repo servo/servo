@@ -294,6 +294,7 @@ jobs:
           tool: cargo-c
       - name: Build and test servo-capi-tests
         env:
+          # `cargo-c` doesn't seem to work with sccache so disabled it for this job.
           RUSTC_WRAPPER: ""
           SCCACHE_GHA_ENABLED: "false"
         run: cargo test -p servo-capi-tests --locked
