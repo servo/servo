@@ -84,7 +84,7 @@ impl XRInputSourceArray {
         let global = self.global();
         let window = global.as_window();
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(cx, false, false);
+            i.gamepad().update_connected(false);
             [DomRoot::from_ref(&**i)]
         } else {
             return;
@@ -115,7 +115,7 @@ impl XRInputSourceArray {
         let window = global.as_window();
         let root;
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(cx, false, false);
+            i.gamepad().update_connected(false);
             root = [DomRoot::from_ref(&**i)];
             &root as &[_]
         } else {

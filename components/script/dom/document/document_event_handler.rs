@@ -1611,10 +1611,20 @@ impl DocumentEventHandler {
                 );
 
                 // Step 3.3. Set navigator.[[gamepads]][gamepad.index] to gamepad.
-                // TODO Step 3.4. If navigator.[[hasGamepadGesture]] is true, then
-                //         set gamepad.[[exposed]] to true and fire an event named
-                //         gamepadconnected at gamepad's relevant global object.
-                navigator.set_gamepad(cx, selected_index as usize, &gamepad);
+                navigator.set_gamepad(selected_index as usize, Some(&gamepad));
+
+                // Step 3.4. If navigator.[[hasGamepadGesture]] is true:
+                if navigator.has_gamepad_gesture() {
+                    // Step 3.4.1. Set gamepad.[[exposed]] to true.
+                    gamepad.set_exposed(true);
+                    // Step 3.4.2. If document is not null and is fully active, then fire an
+                    //            event named gamepadconnected at gamepad's relevant global
+                    //            object using GamepadEvent with its gamepad attribute
+                    //            initialized to gamepad.
+                    if window.Document().is_fully_active() {
+                        gamepad.notify_event(cx, GamepadEventType::Connected);
+                    }
+                }
             }));
     }
 
@@ -1633,94 +1643,112 @@ impl DocumentEventHandler {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
 
-                // Step 2.1. Set gamepad.[[connected]] to false.
-                // Step 2.2. Let document be gamepad's relevant global object's
-                //           associated Document; otherwise null.
-                // Step 2.3. If gamepad.[[exposed]] is true and document is not null
-                //           and is fully active, then fire an event named
-                //           gamepaddisconnected at gamepad's relevant global object
-                //           using GamepadEvent with its gamepad attribute
-                //           initialized to gamepad.
+                if let Some(gamepad) = navigator.get_gamepad(index) {
+                    // Step 2.1. Set gamepad.[[connected]] to false.
+                    gamepad.update_connected(false);
+                    // Step 2.2. Let document be gamepad's relevant global object's
+                    //           associated Document; otherwise null.
+                    // Step 2.3. If gamepad.[[exposed]] is true and document is not null
+                    //           and is fully active, then fire an event named
+                    //           gamepaddisconnected at gamepad's relevant global object
+                    //           using GamepadEvent with its gamepad attribute
+                    //           initialized to gamepad.
+                    if gamepad.exposed() && window.Document().is_fully_active() {
+                        gamepad.notify_event(cx, GamepadEventType::Disconnected);
+                    }
+                }
+
                 // Step 2.4. Let navigator be gamepad's relevant global object's
                 //           Navigator object.
                 // Step 2.5. Set navigator.[[gamepads]][gamepad.index] to null.
-                if let Some(gamepad) = navigator.get_gamepad(index)
-                    && window.Document().is_fully_active() {
-                        gamepad.update_connected(cx, false, gamepad.exposed());
-                        navigator.remove_gamepad(index);
-                    }
+                navigator.set_gamepad(index, None);
+                // Step 2.6. While navigator.[[gamepads]] is not empty and the last item of
+                //           navigator.[[gamepads]] is null, remove the last item of navigator.[[gamepads]].
+                navigator.shrink_gamepads_list();
             }));
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     #[cfg(feature = "gamepad")]
     fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
-        use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
-        use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
-
         // Step 1. Let gamepad be the Gamepad object representing the device that received
         //         new button or axis input values.
         let trusted_window = Trusted::new(&*self.window);
 
         // Step 2. Queue a global task on the gamepad task source with gamepad's
-        //         relevant global object to perform the following steps:
-        self.window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
-                task!(update_gamepad_state: move || {
-                    let window = trusted_window.root();
-                    let navigator = window.Navigator();
-                    if let Some(gamepad) = navigator.get_gamepad(index) {
-                        // Step 2.1. Let now be the current high resolution time given
-                        //           gamepad's relevant global object.
-                        let current_time = window.Performance().Now();
-                        // Step 2.2. Set gamepad.[[timestamp]] to now.
-                        gamepad.update_timestamp(*current_time);
-                        // Step 2.3. Run the steps to map and normalize axes for gamepad.
-                        // Step 2.4. Run the steps to map and normalize buttons for gamepad.
-                        match update_type {
-                            GamepadUpdateType::Axis(index, value) => {
-                                gamepad.map_and_normalize_axes(index, value);
-                            },
-                            GamepadUpdateType::Button(index, value) => {
-                                gamepad.map_and_normalize_buttons(index, value);
-                            }
-                        };
-                        // TODO Step 2.5. Run the steps to record touches for gamepad.
-                        // Step 2.6. Let navigator be gamepad's relevant global object's
-                        //           Navigator object.
-                        // Step 2.7. If navigator.[[hasGamepadGesture]] is false and
-                        //           gamepad contains a gamepad user gesture:
-                        if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
-                            // Step 2.7.1. Set navigator.[[hasGamepadGesture]] to true.
-                            navigator.set_has_gamepad_gesture(true);
-                            // Step 2.7.2. For each connectedGamepad of navigator.[[gamepads]]:
-                            navigator.GetGamepads()
-                                .iter()
-                                .filter_map(|g| g.as_ref())
-                                .for_each(|gamepad| {
-                                    // Step 2.7.2.1. Set connectedGamepad.[[exposed]] to true.
-                                    gamepad.set_exposed(true);
-                                    // Step 2.7.2.2. Set connectedGamepad.[[timestamp]] to now.
-                                    gamepad.update_timestamp(*current_time);
-                                    // Step 2.7.2.3. Let document be gamepad's relevant global
-                                    //               object's associated Document; otherwise null.
-                                    // Step 2.7.2.4. If document is not null and is fully active,
-                                    //               then queue a global task on the gamepad task
-                                    //               source to fire an event named gamepadconnected
-                                    //               at gamepad's relevant global object.
-                                    let new_gamepad = Trusted::new(&**gamepad);
-                                    if window.Document().is_fully_active() {
-                                        window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
-                                            task!(update_gamepad_connect: move |cx| {
-                                                let gamepad = new_gamepad.root();
-                                                gamepad.notify_event(cx, GamepadEventType::Connected);
-                                            })
-                                        );
-                                    }
-                                });
+        //         relevant global object to update gamepad state for gamepad.
+        self.window
+            .upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(update_gamepad_state: move || {
+                let window = trusted_window.root();
+                let document = window.Document();
+                document.event_handler().update_gamepad_state(index, update_type);
+            }));
+    }
+
+    /// <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+    #[cfg(feature = "gamepad")]
+    fn update_gamepad_state(&self, gamepad_index: usize, update_type: GamepadUpdateType) {
+        use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+        // Step 1. Let now be the current high resolution time given
+        //         gamepad's relevant global object.
+        let now = *self.window.Performance().Now();
+
+        // Step 6. Let navigator be gamepad's relevant global object's
+        //         Navigator object.
+        let navigator = self.window.Navigator();
+
+        if let Some(gamepad) = navigator.get_gamepad(gamepad_index) {
+            // Step 2. Set gamepad.[[timestamp]] to now.
+            gamepad.update_timestamp(now);
+            // Step 3. Run the steps to map and normalize axes for gamepad.
+            // Step 4. Run the steps to map and normalize buttons for gamepad.
+            match update_type {
+                GamepadUpdateType::Axis(axis_index, value) => {
+                    gamepad.map_and_normalize_axes(axis_index, value);
+                },
+                GamepadUpdateType::Button(button_index, value) => {
+                    gamepad.map_and_normalize_buttons(button_index, value);
+                },
+            };
+            // TODO Step 5. Run the steps to record touches for gamepad.
+
+            // Step 7. If navigator.[[hasGamepadGesture]] is false and
+            //         gamepad contains a gamepad user gesture:
+            if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                // Step 7.1. Set navigator.[[hasGamepadGesture]] to true.
+                navigator.set_has_gamepad_gesture(true);
+                // Step 7.2. For each connectedGamepad of navigator.[[gamepads]]:
+                navigator
+                    .get_connected_gamepad()
+                    .iter()
+                    .for_each(|connected_gamepad| {
+                        // Step 7.2.1. Set connectedGamepad.[[exposed]] to true.
+                        connected_gamepad.set_exposed(true);
+                        // Step 7.2.2. Set connectedGamepad.[[timestamp]] to now.
+                        connected_gamepad.update_timestamp(now);
+                        // Step 7.2.3. Let document be gamepad's relevant global
+                        //             object's associated Document; otherwise null.
+                        // Step 7.2.4. If document is not null and is fully active,
+                        //             then queue a global task on the gamepad task
+                        //             source to fire an event named gamepadconnected
+                        //             at gamepad's relevant global object.
+                        let trusted_gamepad = Trusted::new(&**connected_gamepad);
+                        if self.window.Document().is_fully_active() {
+                            self.window
+                                .upcast::<GlobalScope>()
+                                .task_manager()
+                                .gamepad_task_source()
+                                .queue(task!(fire_gamepad_connected: move |cx| {
+                                    let gamepad = trusted_gamepad.root();
+                                    gamepad.notify_event(cx, GamepadEventType::Connected);
+                                }));
                         }
-                    }
-                })
-            );
+                    });
+            }
+        }
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
