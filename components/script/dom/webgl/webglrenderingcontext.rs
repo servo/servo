@@ -21,10 +21,10 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
-use script_bindings::canvas::CanvasContext;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
+use script_foo::canvas::CanvasContext;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};

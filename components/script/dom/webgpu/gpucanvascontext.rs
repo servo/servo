@@ -8,10 +8,10 @@ use std::cell::{Cell, RefCell};
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use pixels::Snapshot;
-use script_bindings::canvas::CanvasContext;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_foo::canvas::CanvasContext;
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,

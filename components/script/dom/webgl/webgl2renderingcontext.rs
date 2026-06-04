@@ -16,10 +16,10 @@ use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, U
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use pixels::{Alpha, Snapshot};
-use script_bindings::canvas::CanvasContext;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_foo::canvas::CanvasContext;
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{

@@ -6,8 +6,8 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
-use script_bindings::canvas::CanvasContext;
 use script_bindings::reflector::reflect_dom_object;
+use script_foo::canvas::CanvasContext;
 use servo_canvas_traits::canvas::CanvasCommand;
 
 use crate::DomTypeHolder;

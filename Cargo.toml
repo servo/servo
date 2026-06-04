@@ -320,6 +320,7 @@ pixels = { package = "servo-pixels", version = "=0.3.0", path = "components/pixe
 profile = { package = "servo-profile", version = "=0.3.0", path = "components/profile" }
 profile_traits = { package = "servo-profile-traits", version = "=0.3.0", path = "components/shared/profile" }
 script = { package = "servo-script", version = "=0.3.0", path = "components/script" }
+script_foo = { package = "servo-script-foo", version = "=0.3.0", path = "components/script_foo" }
 script_bindings = { package = "servo-script-bindings", version = "=0.3.0", path = "components/script_bindings" }
 script_traits = { package = "servo-script-traits", version = "=0.3.0", path = "components/shared/script" }
 servo = { version = "=0.3.0", path = "components/servo", default-features = false }
