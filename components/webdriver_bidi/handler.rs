@@ -24,12 +24,11 @@ use servo_base::id::WebViewId;
 use uuid::Uuid;
 
 use crate::{
+    connection::Session,
     error::{WebDriverBidiError, WebDriverBidiResult},
     model::{Message as BidiMessage, ResultData, SessionResult},
-    transport::Session,
 };
 
-// TODO: multiple handler
 pub trait WebDriverBidiHandler: Send + Sized {
     fn with_session_id(&self, session_id: SessionId) -> Option<Self>;
 

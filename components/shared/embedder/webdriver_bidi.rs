@@ -7,24 +7,28 @@ use url::Url;
 
 // TODO: check traits impl of other id types in id.rs
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ConnectionId(u32);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SessionId(u32);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CommandId(u32);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum RequestId {
-    /// When command is static, need to know which connection to associate.
-    Static(ConnectionId),
-    /// Session may have multiple connections and duplicate command ids,
-    /// but that does not matter as we can send all message back to every
-    /// connection.
-    Session(SessionId, CommandId),
-}
+/// The internal request id for every BiDi command.
+///
+/// ## FAQ
+///
+/// ### Why do we need keep id internally?
+///
+/// BiDi clients can send duplicate command id. This happens
+/// mostly when multiple client connects to same endpoint and
+/// send `session.new`, but it can also happen when client does
+/// not correctly increase the id.
+///
+/// This can also abstract away connection and session detail from the
+/// embedder.
+///
+/// ### Why named `RequestId`?
+///
+/// To distinguish with [`CommandResponse`]'s internal id. Also
+/// this mechanism may be reused to handle classic WebDriver
+/// reqeusts later when these two impls are merged.
+// TODO: be opaque
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+pub struct RequestId(pub u64);
 
 // NOTE: the handler does not need to know which request send the command
 // so RequestId can better be bind to sender, not separately.

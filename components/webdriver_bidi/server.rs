@@ -23,7 +23,7 @@ use uuid::Uuid;
 use crate::{
     dispatcher::{DispatchMessage, Dispatcher},
     handler::WebDriverBidiHandler,
-    transport::Connection,
+    connection::Connection,
 };
 
 /// A WebSocket Listener.

@@ -39,6 +39,9 @@ impl WebDriverBidiError {
         }
     }
 
+    /// Convenience constructor to create `"unknown error"` error.
+    ///
+    /// Most internal errors are mapped to `"unknown error"`.
     pub fn unknown(message: impl ToString) -> Self {
         Self::new(ErrorCode::UnknownError, message.to_string())
     }
@@ -55,6 +58,7 @@ macro_rules! impl_from {
 }
 
 impl_from!(serde_json::Error, InvalidArgument);
+
 impl_from!(io::Error, UnknownError);
 impl_from!(tungstenite::Error, UnknownError);
 impl_from!(Box<dyn ::core::error::Error>, UnknownError);

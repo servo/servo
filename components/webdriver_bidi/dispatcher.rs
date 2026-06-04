@@ -4,13 +4,16 @@ use rustenium_bidi_definitions::base::CommandMessage;
 use uuid::Uuid;
 
 use crate::{
+    connection::{Connection, ConnectionMap},
     handler::WebDriverBidiHandler,
-    model::{Message, ResultData, SessionResult},
-    transport::{Connection, ConnectionMap, Session},
+    model::{Message as BidiMessage, ResultData, SessionResult},
 };
 
+/// Messages sent from WebSocket connections to [`Dispatcher`].
 #[derive(Debug)]
 pub enum DispatchMessage {
+    /// Deserialized BiDi command message, along with connection id.
+    // TODO: change connection id type to number newtype.
     Command(Uuid, Box<CommandMessage>),
     // TODO: new connection may connect to existing session
     NewConnection(Uuid, Connection),
@@ -52,8 +55,8 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                 // TODO: map session_id to handler
                 // TODO: handle option resultdata
                 if let Err(err) = self.static_handler.handle(&command_message) {
-                    let msg: Message =
-                        Message::ErrorResponse(err.into_response(Some(command_message.id)));
+                    let msg: BidiMessage =
+                        BidiMessage::ErrorResponse(err.into_response(Some(command_message.id)));
                     // if associated with session, send to all session. otherwise send to
                     // connection.
                     if let Some(session) = session {
@@ -77,7 +80,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     }
 
     // TODO: since now different handler use different channel, there is no need to know session.
-    fn handle_bidi(&mut self, session: Option<Session>, bidi: Message) {
+    fn handle_bidi(&mut self, session: Option<Session>, bidi: BidiMessage) {
         self.update(&bidi);
         match session {
             Some(session) => {
@@ -90,7 +93,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     }
 
     // TODO: move to session method
-    fn send_to_session(&self, session: &Session, message: Message) {
+    fn send_to_session(&self, session: &Session, message: BidiMessage) {
         let text = match serde_json::to_string(&message) {
             Ok(text) => text,
             Err(err) => {
@@ -107,8 +110,10 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
-    fn update(&mut self, msg: &Message) {
-        if let Message::CommandResponse(command_response) = msg
+    // TODO: update should only be run on command response.
+    // and thus the logic can be shared both in handle sync result and async (recv) result.
+    fn update(&mut self, msg: &BidiMessage) {
+        if let BidiMessage::CommandResponse(command_response) = msg
             && let ResultData::Session(session_result) = &command_response.result
         {
             // TODO: where does session happen? in dispatcher or handler?

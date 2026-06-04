@@ -4,13 +4,13 @@ use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
 
 use crate::handler::Handler;
 
+pub mod connection;
 pub mod dispatcher;
 pub mod error;
 pub mod handler;
 pub mod model;
 pub mod server;
 pub mod session;
-pub mod transport;
 
 pub fn start_server(
     port: u16,

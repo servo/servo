@@ -4,13 +4,7 @@ use async_tungstenite::tungstenite;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-// TODO: rename to SessionId
-// TODO: move to shared
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Session {
-    // TODO: should use uuid
-    pub id: String,
-}
+use crate::session::SessionId;
 
 /// A handle to the actual WebSocket connection.
 #[derive(Debug)]
@@ -24,13 +18,13 @@ pub struct Connection {
 /// and unassociated.
 #[derive(Debug, Default)]
 pub struct ConnectionMap {
-    pub associated: HashMap<Session, Vec<(Uuid, Connection)>>,
+    pub associated: HashMap<SessionId, Vec<(Uuid, Connection)>>,
     pub unassociated: HashMap<Uuid, Connection>,
-    pub reverse: HashMap<Uuid, Option<Session>>,
+    pub reverse: HashMap<Uuid, Option<SessionId>>,
 }
 
 impl ConnectionMap {
-    pub fn new(init_sessions: impl IntoIterator<Item = Session>) -> Self {
+    pub fn new(init_sessions: impl IntoIterator<Item = SessionId>) -> Self {
         let associated = init_sessions.into_iter().map(|s| (s, vec![])).collect();
         Self {
             associated,
@@ -38,7 +32,7 @@ impl ConnectionMap {
         }
     }
 
-    pub fn associate(&mut self, uuid: &Uuid, session: &Session) -> bool {
+    pub fn associate(&mut self, uuid: &Uuid, session: &SessionId) -> bool {
         if let Some(conn) = self.unassociated.remove(uuid) {
             self.associated
                 .entry(session.clone())
@@ -51,18 +45,18 @@ impl ConnectionMap {
         }
     }
 
-    pub fn session(&self, uuid: &Uuid) -> Option<&Session> {
+    pub fn session(&self, uuid: &Uuid) -> Option<&SessionId> {
         self.reverse.get(uuid).and_then(Option::as_ref)
     }
 
-    pub fn connections(&self, session: &Session) -> impl Iterator<Item = &Connection> {
+    pub fn connections(&self, session: &SessionId) -> impl Iterator<Item = &Connection> {
         self.associated
             .get(session)
             .into_iter()
             .flat_map(|v| v.iter().map(|i| &i.1))
     }
 
-    pub fn add_session(&mut self, session: Session) -> bool {
+    pub fn add_session(&mut self, session: SessionId) -> bool {
         if self.associated.contains_key(&session) {
             return false;
         }
@@ -72,7 +66,7 @@ impl ConnectionMap {
 
     pub fn add_connection(
         &mut self,
-        session: Option<Session>,
+        session: Option<SessionId>,
         uuid: Uuid,
         conn: Connection,
     ) -> bool {
