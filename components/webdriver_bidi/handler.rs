@@ -254,8 +254,19 @@ impl WebDriverBidiHandler for Handler {
 /// Concrete handle methods.
 impl Handler {
     fn handle_session_status(&self) -> WebDriverBidiResult<Option<ResultData>> {
-        todo!()
+        // TODO: currently we can directly return ready, but in future we may need to wait for
+        // capabilities communication between handler and embedder.
+
+        // Step 1. let body
+        let body = session::results::StatusResult {
+            ready: true,
+            message: "".to_string(),
+        };
+
+        // Step 2. return success
+        Ok(Some(ResultData::Session(SessionResult::Status(body))))
     }
+
     fn handle_session_new(
         &self,
         _session_new: &session::commands::New,
