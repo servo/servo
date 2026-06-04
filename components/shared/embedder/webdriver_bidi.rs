@@ -27,8 +27,17 @@ use url::Url;
 /// this mechanism may be reused to handle classic WebDriver
 /// reqeusts later when these two impls are merged.
 // TODO: be opaque
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
 pub struct RequestId(pub u64);
+
+// TODO: refactor according to other id
+impl RequestId {
+    pub fn inc(&mut self) -> Self {
+        let old = *self;
+        self.0 += 1;
+        old
+    }
+}
 
 // NOTE: the handler does not need to know which request send the command
 // so RequestId can better be bind to sender, not separately.

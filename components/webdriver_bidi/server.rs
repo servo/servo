@@ -18,7 +18,6 @@ use tokio::{
     net::{TcpListener, TcpStream},
     sync::mpsc,
 };
-use uuid::Uuid;
 
 use crate::{
     connection::{Connection, ConnectionId},
@@ -73,24 +72,26 @@ where
 
     let builder = thread::Builder::new().name("webdriver bidi server".to_string());
     let handle = builder.spawn({
-        move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_io()
-                .build()
-                .expect("fail to create tokio runtime");
-            rt.block_on(async {
-                // from_std must be called in IO-enabled runtime
-                let listener =
-                    TcpListener::from_std(listener).expect("fail to convert TcpListener to tokio");
-                serve(listener, dispatch_tx).await
-            });
+        let dispatch_tx = dispatch_tx.clone();
+        {
+            move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_io()
+                    .build()
+                    .expect("fail to create tokio runtime");
+                rt.block_on(async {
+                    // from_std must be called in IO-enabled runtime
+                    let listener = TcpListener::from_std(listener)
+                        .expect("fail to convert TcpListener to tokio");
+                    serve(listener, dispatch_tx).await
+                });
+            }
         }
     })?;
 
     let builder = thread::Builder::new().name("webdriver dispatcher".to_string());
     builder.spawn(move || {
-        let mut dispatcher = Dispatcher::new(handler);
-        dispatcher.run(dispatch_rx);
+        Dispatcher::new(handler, dispatch_tx, dispatch_rx).run();
     })?;
 
     Ok(Listener {
@@ -107,10 +108,9 @@ async fn serve(listener: TcpListener, dispatch_tx: crossbeam_channel::Sender<Dis
         let (conn_tx, conn_rx) = mpsc::unbounded_channel::<tungstenite::Message>();
 
         dispatch_tx
-            .send(DispatchMessage::NewConnection(
-                conn_id,
-                Connection { tx: conn_tx },
-            ))
+            .send(DispatchMessage::NewConnection(Connection::new(
+                conn_id, conn_tx,
+            )))
             .expect("fail to send tx");
 
         tokio::spawn({

@@ -2,7 +2,7 @@
 //!
 //! Also provide a default implementation.
 
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Sender, bounded};
 use embedder_traits::{
     EventLoopWaker,
     webdriver_bidi::{RequestId, WebDriverBidiCommandMsg},
@@ -24,6 +24,7 @@ use servo_base::id::WebViewId;
 use uuid::Uuid;
 
 use crate::{
+    dispatcher::DispatchMessage,
     error::{WebDriverBidiError, WebDriverBidiResult},
     model::{Message as BidiMessage, ResultData, SessionResult},
     session::SessionId,
@@ -33,7 +34,12 @@ pub trait WebDriverBidiHandler: Send + Sized {
     fn with_session_id(&self, session_id: SessionId) -> Option<Self>;
 
     /// Start processing of a command.
-    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>>;
+    fn handle(
+        &self,
+        request_id: RequestId,
+        command: &CommandMessage,
+        tx: Sender<DispatchMessage>,
+    ) -> WebDriverBidiResult<Option<ResultData>>;
 
     fn try_recv(&self) -> WebDriverBidiResult<(Option<RequestId>, BidiMessage)>;
 
@@ -89,6 +95,7 @@ impl WebDriverBidiHandler for Handler {
         if self.session_id.is_some() {
             return None;
         }
+
         Some(Self {
             event_loop_waker: self.event_loop_waker.clone_box(),
             embedder_sender: self.embedder_sender.clone(),
@@ -97,7 +104,12 @@ impl WebDriverBidiHandler for Handler {
         })
     }
 
-    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>> {
+    fn handle(
+        &self,
+        request_id: RequestId,
+        command: &CommandMessage,
+        dispatch_tx: Sender<DispatchMessage>,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         match &command.command_data {
             Command::Browser(browser) => match browser {
                 BrowserCommand::Close(close) => self.handle_browser_close(),
@@ -226,7 +238,9 @@ impl WebDriverBidiHandler for Handler {
             },
             Command::Session(session) => match session {
                 SessionCommand::Status(status) => self.handle_session_status(),
-                SessionCommand::New(session_new) => self.handle_session_new(session_new),
+                SessionCommand::New(session_new) => {
+                    self.handle_session_new(session_new, dispatch_tx)
+                },
                 SessionCommand::End(end) => self.handle_session_end(),
                 SessionCommand::Subscribe(subscribe) => self.handle_session_subscribe(),
                 SessionCommand::Unsubscribe(unsubscribe) => self.handle_session_unsubscribe(),
@@ -269,6 +283,7 @@ impl Handler {
     fn handle_session_new(
         &self,
         _session_new: &session::commands::New,
+        dispatch_tx: Sender<DispatchMessage>,
     ) -> WebDriverBidiResult<Option<ResultData>> {
         // Step 1. if session is not null, return "session not created" error.
         if self.session_id.is_some() {
@@ -282,6 +297,12 @@ impl Handler {
 
         // TODO: process capabilities and `create a session`
         let session_id = Uuid::new_v4();
+
+        // instruct dispatcher to create session.
+        let (tx, rx) = bounded(1);
+        dispatch_tx.send(DispatchMessage::SessionNew(SessionId(session_id), tx));
+
+        // TODO: move the following to recv
 
         // Step 8. let body be session.NewResult
 
@@ -303,9 +324,10 @@ impl Handler {
         };
 
         // Step 9. return success
-        Ok(Some(ResultData::Session(SessionResult::New(Box::new(
-            body,
-        )))))
+        // Ok(Some(ResultData::Session(SessionResult::New(Box::new(
+        //     body,
+        // )))))
+        Ok(None)
     }
 
     fn handle_session_end(&self) -> WebDriverBidiResult<Option<ResultData>> {
