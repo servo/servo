@@ -25,7 +25,6 @@ use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
-use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::realm::CurrentRealm;
@@ -4293,7 +4292,12 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
         // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
@@ -4313,12 +4317,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
             );
         }
 
@@ -4336,7 +4338,11 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+    pub(crate) fn append_constructed_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        cssom_stylesheet: &CSSStyleSheet,
+    ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut *self.stylesheets.borrow_mut();
@@ -4349,10 +4355,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &self.window.web_font_context(),
             );
         }
 
@@ -4365,15 +4371,38 @@ impl Document {
         );
     }
 
+    fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut js::context::JSContext) {
+        if self.window.font_context().web_fonts_still_loading() != 0 &&
+            let Some(font_face_set) = self.fonts.get()
+        {
+            font_face_set.switch_to_loading(cx);
+        }
+    }
+
     /// Given a stylesheet, load all web fonts from it in Layout.
     pub(crate) fn load_web_fonts_from_stylesheet(
         &self,
+        cx: &mut js::context::JSContext,
         stylesheet: &Arc<Stylesheet>,
-        document_context: &WebFontDocumentContext,
     ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, document_context);
+            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context());
+        self.switch_font_face_set_to_loading_if_needed(cx);
+    }
+
+    pub(crate) fn add_stylesheet_to_stylist(
+        &self,
+        cx: &mut js::context::JSContext,
+        stylesheet: Arc<Stylesheet>,
+        before_stylesheet: Option<Arc<Stylesheet>>,
+    ) {
+        self.window.layout_mut().add_stylesheet(
+            stylesheet,
+            before_stylesheet,
+            &self.window.web_font_context(),
+        );
+        self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -6483,16 +6512,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(
         &self,
-        context: JSContext,
+        cx: &mut js::context::JSContext,
         val: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            context,
+            cx,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
-            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.
