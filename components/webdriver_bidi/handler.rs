@@ -8,17 +8,24 @@ use embedder_traits::{
     webdriver_bidi::{SessionId, WebDriverBidiCommandMsg},
 };
 use rustenium_bidi_definitions::{
-    Command, base::CommandMessage, browser::commands::BrowserCommand,
-    browsing_context::commands::BrowsingContextCommand, emulation::commands::EmulationCommand,
-    input::commands::InputCommand, network::commands::NetworkCommand,
-    script::commands::ScriptCommand, session::commands::SessionCommand,
-    storage::commands::StorageCommand, web_extension::commands::WebExtensionCommand,
+    Command,
+    base::{CommandMessage, ErrorCode},
+    browser::commands::BrowserCommand,
+    browsing_context::commands::BrowsingContextCommand,
+    emulation::commands::EmulationCommand,
+    input::commands::InputCommand,
+    network::commands::NetworkCommand,
+    script::commands::ScriptCommand,
+    session::{self, commands::SessionCommand},
+    storage::commands::StorageCommand,
+    web_extension::commands::WebExtensionCommand,
 };
 use servo_base::id::WebViewId;
+use uuid::Uuid;
 
 use crate::{
     error::{WebDriverBidiError, WebDriverBidiResult},
-    model::Message,
+    model::{CommandResponse, Message, ResultData, SessionResult},
     transport::Session,
 };
 
@@ -27,7 +34,7 @@ pub trait WebDriverBidiHandler: Send + Sized {
     fn with_session_id(&self, session_id: SessionId) -> Option<Self>;
 
     /// Start processing of a command.
-    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<()>;
+    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>>;
 
     fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, Message)>;
 
@@ -91,7 +98,7 @@ impl WebDriverBidiHandler for Handler {
         })
     }
 
-    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<()> {
+    fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>> {
         match &command.command_data {
             Command::Browser(browser) => match browser {
                 BrowserCommand::Close(close) => self.handle_browser_close(),
@@ -220,7 +227,7 @@ impl WebDriverBidiHandler for Handler {
             },
             Command::Session(session) => match session {
                 SessionCommand::Status(status) => self.handle_session_status(),
-                SessionCommand::New(_) => self.handle_session_new(),
+                SessionCommand::New(session_new) => self.handle_session_new(session_new),
                 SessionCommand::End(end) => self.handle_session_end(),
                 SessionCommand::Subscribe(subscribe) => self.handle_session_subscribe(),
                 SessionCommand::Unsubscribe(unsubscribe) => self.handle_session_unsubscribe(),
@@ -246,204 +253,254 @@ impl WebDriverBidiHandler for Handler {
 
 /// Concrete handle methods.
 impl Handler {
-    fn handle_session_status(&self) -> WebDriverBidiResult<()> {
+    fn handle_session_status(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_session_new(&self) -> WebDriverBidiResult<()> {
+    fn handle_session_new(
+        &self,
+        _session_new: &session::commands::New,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
+        // Step 1. if session is not null, return "session not created" error.
+        if self.session_id.is_some() {
+            return Err(WebDriverBidiError::new(
+                ErrorCode::SessionNotCreated,
+                "session is not null",
+            ));
+        }
+
+        // Step 2. if impl is unable to start a new session, skip.
+
+        // TODO: process capabilities and `create a session`
+        let session_id = Uuid::new_v4();
+
+        // Step 8. let body be session.NewResult
+
+        let body = session::results::NewResult {
+            session_id: session_id.to_string(),
+            capabilities: session::types::NewResultCapabilities {
+                // TODO: fields below are hard coded or randomly filled
+                accept_insecure_certs: false,
+                browser_name: "servoshell".to_string(),
+                browser_version: "0.2.0".to_string(),
+                platform_name: "unknown".to_string(),
+                set_window_rect: false,
+                user_agent: None,
+                proxy: None,
+                unhandled_prompt_behavior: None,
+                web_socket_url: None,
+                extensible: Default::default(),
+            },
+        };
+
+        // Step 9. return success
+        Ok(Some(ResultData::Session(SessionResult::New(Box::new(
+            body,
+        )))))
+    }
+
+    fn handle_session_end(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_session_subscribe(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_session_unsubscribe(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_session_end(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_close(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_session_subscribe(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_session_unsubscribe(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-
-    fn handle_browser_close(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_browser_create_user_context(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_create_user_context(&self) -> WebDriverBidiResult<Option<ResultData>> {
         Err(WebDriverBidiError::unknown(
             "user context is not implemented yet",
         ))
     }
-    fn handle_browser_get_client_windows(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_get_client_windows(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browser_get_user_contexts(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_get_user_contexts(&self) -> WebDriverBidiResult<Option<ResultData>> {
         Err(WebDriverBidiError::unknown(
             "user context is not implemented yet",
         ))
     }
-    fn handle_browser_remove_user_context(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_remove_user_context(&self) -> WebDriverBidiResult<Option<ResultData>> {
         Err(WebDriverBidiError::unknown(
             "user context is not implemented yet",
         ))
     }
-    fn handle_browser_set_client_window_state(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_set_client_window_state(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browser_set_download_behavior(&self) -> WebDriverBidiResult<()> {
+    fn handle_browser_set_download_behavior(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_browsing_context_activate(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_activate(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_capture_screenshot(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_capture_screenshot(
+        &self,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_close(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_close(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_create(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_create(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_get_tree(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_get_tree(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_handle_user_prompt(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_handle_user_prompt(
+        &self,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_locate_nodes(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_locate_nodes(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_navigate(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_navigate(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_print(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_print(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_reload(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_reload(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_set_viewport(&self) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_set_viewport(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_browsing_context_traverse_history(&self, delta: i64) -> WebDriverBidiResult<()> {
+    fn handle_browsing_context_traverse_history(
+        &self,
+        delta: i64,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         let webview_id = self.webview_id()?;
         // TODO: verify context open? is this in bidi spec
         self.send_message_to_embedder(WebDriverBidiCommandMsg::TraverseHistory(
             *webview_id,
             delta,
         ))?;
-        Ok(())
+        // TODO: fix return type
+        Ok(None)
     }
 
-    fn handle_emulation_set_forced_colors_mode_theme_override(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_forced_colors_mode_theme_override(
+        &self,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_geolocation_override(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_geolocation_override(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_locale_override(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_locale_override(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_network_conditions(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_network_conditions(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_screen_orientation_override(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_screen_orientation_override(
+        &self,
+    ) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_user_agent_override(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_user_agent_override(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_scripting_enabled(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_scripting_enabled(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_emulation_set_timezone_override(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-
-    fn handle_network_add_data_collector(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_add_intercept(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_continue_request(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_continue_response(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_continue_with_auth(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_disown_data(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_fail_request(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_get_data(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_provide_response(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_remove_data_collector(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_remove_intercept(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_set_cache_behavior(&self) -> WebDriverBidiResult<()> {
-        todo!()
-    }
-    fn handle_network_set_extra_headers(&self) -> WebDriverBidiResult<()> {
+    fn handle_emulation_set_timezone_override(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_script_add_preload_script(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_add_data_collector(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_script_disown(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_add_intercept(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_script_call_function(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_continue_request(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_script_evaluate(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_continue_response(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_script_get_realms(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_continue_with_auth(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_script_remove_preload_script(&self) -> WebDriverBidiResult<()> {
+    fn handle_network_disown_data(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_fail_request(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_get_data(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_provide_response(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_remove_data_collector(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_remove_intercept(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_set_cache_behavior(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_network_set_extra_headers(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_storage_get_cookies(&self) -> WebDriverBidiResult<()> {
+    fn handle_script_add_preload_script(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_storage_set_cookie(&self) -> WebDriverBidiResult<()> {
+    fn handle_script_disown(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_storage_delete_cookies(&self) -> WebDriverBidiResult<()> {
+    fn handle_script_call_function(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_script_evaluate(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_script_get_realms(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_script_remove_preload_script(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_input_perform_actions(&self) -> WebDriverBidiResult<()> {
+    fn handle_storage_get_cookies(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_input_release_actions(&self) -> WebDriverBidiResult<()> {
+    fn handle_storage_set_cookie(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
-    fn handle_input_set_files(&self) -> WebDriverBidiResult<()> {
+    fn handle_storage_delete_cookies(&self) -> WebDriverBidiResult<Option<ResultData>> {
         todo!()
     }
 
-    fn handle_web_extension_install(&self) -> WebDriverBidiResult<()> {
+    fn handle_input_perform_actions(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_input_release_actions(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+    fn handle_input_set_files(&self) -> WebDriverBidiResult<Option<ResultData>> {
+        todo!()
+    }
+
+    fn handle_web_extension_install(&self) -> WebDriverBidiResult<Option<ResultData>> {
         Err(WebDriverBidiError::unknown(
             "Web Extension is not implemented yet",
         ))
     }
-    fn handle_web_extension_uninstall(&self) -> WebDriverBidiResult<()> {
+    fn handle_web_extension_uninstall(&self) -> WebDriverBidiResult<Option<ResultData>> {
         Err(WebDriverBidiError::unknown(
             "Web Extension is not implemented yet",
         ))

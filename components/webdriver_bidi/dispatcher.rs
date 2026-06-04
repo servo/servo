@@ -50,6 +50,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                 let session = self.conn_map.session(&uuid).cloned();
                 // handle early error
                 // TODO: map session_id to handler
+                // TODO: handle option resultdata
                 if let Err(err) = self.static_handler.handle(&command_message) {
                     let msg: Message =
                         Message::ErrorResponse(err.into_response(Some(command_message.id)));

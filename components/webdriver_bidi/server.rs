@@ -23,7 +23,6 @@ use uuid::Uuid;
 use crate::{
     dispatcher::{DispatchMessage, Dispatcher},
     handler::WebDriverBidiHandler,
-    model::Message as BidiMessage,
     transport::Connection,
 };
 
