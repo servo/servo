@@ -36,7 +36,7 @@ use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 use crate::utils::delete_property_by_id;
 
@@ -558,12 +558,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
         if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
             // TODO: include `id` and `access` in the exception message
-            <D as DomHelpers<D>>::throw_dom_exception(
-                cx.into(),
-                &global,
-                Error::Security(None),
-                CanGc::deprecated_note(),
-            );
+            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security(None));
         }
     }
     false

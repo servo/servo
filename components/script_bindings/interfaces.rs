@@ -35,7 +35,7 @@ pub struct Interface {
 
 /// Operations that must be invoked from the generated bindings.
 pub trait DomHelpers<D: DomTypes> {
-    fn throw_dom_exception(cx: JSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
+    fn throw_dom_exception(cx: &mut js::context::JSContext, global: &D::GlobalScope, result: Error);
 
     fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
         cx: &mut js::context::JSContext,
