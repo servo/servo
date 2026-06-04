@@ -202,7 +202,12 @@ impl ShadowRoot {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
         // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
@@ -221,10 +226,7 @@ impl ShadowRoot {
             .cloned();
 
         if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-            self.window
-                .layout_mut()
-                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
         }
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -238,7 +240,11 @@ impl ShadowRoot {
 
     /// Append a constructed stylesheet to the back of shadow root stylesheet set.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+    pub(crate) fn append_constructed_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        cssom_stylesheet: &CSSStyleSheet,
+    ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
@@ -247,10 +253,7 @@ impl ShadowRoot {
         let insertion_point = stylesheets.iter().last().cloned();
 
         if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-            self.window
-                .layout_mut()
-                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
         }
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -593,16 +596,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(
         &self,
-        context: JSContext,
+        cx: &mut js::context::JSContext,
         val: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            context,
+            cx,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.

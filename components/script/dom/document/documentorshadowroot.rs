@@ -7,13 +7,14 @@ use std::ffi::c_void;
 use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
+use js::context::JSContext;
 use js::rust::HandleValue;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, ErrorResult};
-use script_bindings::script_runtime::{CanGc, JSContext};
+use script_bindings::script_runtime::CanGc;
 use servo_arc::Arc;
 use servo_config::pref;
 use style::media_queries::MediaList;
@@ -374,6 +375,7 @@ impl DocumentOrShadowRoot {
     // TODO: Handle duplicated adoptedstylesheet correctly, Stylo is preventing duplicates inside a
     //       Stylesheet Set. But this is not ideal. https://bugzilla.mozilla.org/show_bug.cgi?id=1978755
     fn set_adopted_stylesheet(
+        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
@@ -432,7 +434,7 @@ impl DocumentOrShadowRoot {
                 sheet.add_adopter(owner.clone());
             }
 
-            owner.append_constructed_stylesheet(sheet);
+            owner.append_constructed_stylesheet(cx, sheet);
         }
 
         *adopted_stylesheets = incoming_stylesheets.to_vec();
@@ -443,20 +445,24 @@ impl DocumentOrShadowRoot {
     /// Set adoptedStylesheet given a js value by converting and passing the converted
     /// values to the inner [DocumentOrShadowRoot::set_adopted_stylesheet].
     pub(crate) fn set_adopted_stylesheet_from_jsval(
-        context: JSContext,
+        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        let maybe_stylesheets =
-            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, incoming_value, (), can_gc);
+        let maybe_stylesheets = Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(
+            cx.into(),
+            incoming_value,
+            (),
+            CanGc::from_cx(cx),
+        );
 
         match maybe_stylesheets {
             Ok(ConversionResult::Success(stylesheets)) => {
                 rooted_vec!(let stylesheets <- stylesheets.iter().map(|s| s.as_traced()));
 
                 DocumentOrShadowRoot::set_adopted_stylesheet(
+                    cx,
                     adopted_stylesheets,
                     &stylesheets,
                     owner,
