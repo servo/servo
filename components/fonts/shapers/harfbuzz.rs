@@ -28,6 +28,7 @@ use harfbuzz_sys::{
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
+use style::font_face::FontFaceRule;
 
 use super::{
     GlyphShapingResult, ShapedGlyph, compute_used_font_features, unicode_script_to_iso15924_tag,
@@ -247,6 +248,7 @@ impl Shaper {
         &self,
         text: &str,
         options: &ShapingOptions,
+        font_face_rule: Option<&FontFaceRule>,
     ) -> HarfbuzzGlyphShapingResult {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
@@ -279,7 +281,7 @@ impl Shaper {
             );
             hb_buffer_set_language(hb_buffer, hb_language);
 
-            let mut features: Vec<_> = compute_used_font_features(options)
+            let mut features: Vec<_> = compute_used_font_features(options, font_face_rule)
                 .map(|(tag, value)| hb_feature_t {
                     tag: u32::from_be_bytes(tag.to_be_bytes()),
                     value,
@@ -298,8 +300,17 @@ impl Shaper {
         }
     }
 
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        ShapedText::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
+    pub(crate) fn shape_text(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+        font_face_rule: Option<&FontFaceRule>,
+    ) -> ShapedText {
+        ShapedText::with_shaped_glyph_data(
+            text,
+            options,
+            &self.shaped_glyph_data(text, options, font_face_rule),
+        )
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {
