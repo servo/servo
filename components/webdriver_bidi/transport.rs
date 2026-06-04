@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
+use async_tungstenite::tungstenite;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-
-use crate::model::Message;
 
 // TODO: rename to SessionId
 // TODO: move to shared
@@ -17,7 +16,7 @@ pub struct Session {
 #[derive(Debug)]
 pub struct Connection {
     /// Send message to connection.
-    pub tx: mpsc::UnboundedSender<Message>,
+    pub tx: mpsc::UnboundedSender<tungstenite::Message>,
 }
 
 // TODO: flatten this into Dispatcher

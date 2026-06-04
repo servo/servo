@@ -102,7 +102,7 @@ where
 
 async fn serve(listener: TcpListener, dispatch_tx: crossbeam_channel::Sender<DispatchMessage>) {
     while let Ok((stream, _)) = listener.accept().await {
-        let (conn_tx, conn_rx) = mpsc::unbounded_channel::<BidiMessage>();
+        let (conn_tx, conn_rx) = mpsc::unbounded_channel::<tungstenite::Message>();
         let uuid = Uuid::new_v4();
 
         dispatch_tx
@@ -139,7 +139,7 @@ async fn handle_ws_stream(
     uuid: Uuid,
     mut stream: WebSocketStream<TokioAdapter<TcpStream>>,
     dispatch_tx: crossbeam_channel::Sender<DispatchMessage>,
-    mut conn_rx: mpsc::UnboundedReceiver<BidiMessage>,
+    mut conn_rx: mpsc::UnboundedReceiver<tungstenite::Message>,
 ) {
     tokio::select! {
         Some(ws) = stream.next() => {
@@ -172,16 +172,11 @@ async fn handle_ws_stream(
         }
     }
 
-    async fn handle_bidi(stream: &mut WebSocketStream<TokioAdapter<TcpStream>>, msg: BidiMessage) {
-        let text = match serde_json::to_string(&msg) {
-            Ok(text) => text,
-            Err(err) => {
-                // TODO: should we send error message to client?
-                error!("Error serializing bidi response message: {err}");
-                return;
-            },
-        };
-        if let Err(err) = stream.send(tungstenite::Message::Text(text.into())).await {
+    async fn handle_bidi(
+        stream: &mut WebSocketStream<TokioAdapter<TcpStream>>,
+        msg: tungstenite::Message,
+    ) {
+        if let Err(err) = stream.send(msg).await {
             error!("Error sending message to webdriver bidi client: {err}");
         }
     }

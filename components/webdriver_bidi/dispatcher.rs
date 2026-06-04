@@ -1,3 +1,4 @@
+use async_tungstenite::tungstenite;
 use log::error;
 use rustenium_bidi_definitions::base::CommandMessage;
 use uuid::Uuid;
@@ -57,10 +58,13 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                     if let Some(session) = session {
                         self.send_to_session(&session, msg);
                     } else {
-                        if let Some(conn) = self.conn_map.unassociated.get(&uuid)
-                            && let Err(err) = conn.tx.send(msg)
-                        {
-                            error!("Error sending error message to bidi server: {err}");
+                        if let Ok(serialized) = serde_json::to_string(&msg) {
+                            let msg = tungstenite::Message::Text(serialized.into());
+                            if let Some(conn) = self.conn_map.unassociated.get(&uuid)
+                                && let Err(err) = conn.tx.send(msg)
+                            {
+                                error!("Error sending error message to bidi server: {err}");
+                            }
                         }
                     }
                 };
@@ -84,9 +88,17 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         }
     }
 
-    // TODO: remove session parameter
-    // TODO: use Arc to avoid clone
+    // TODO: move to session method
     fn send_to_session(&self, session: &Session, message: Message) {
+        let text = match serde_json::to_string(&message) {
+            Ok(text) => text,
+            Err(err) => {
+                // TODO: should we send error message to client?
+                error!("Error serializing bidi response message: {err}");
+                return;
+            },
+        };
+        let message = tungstenite::Message::Text(text.into());
         for conn in self.conn_map.connections(session) {
             if let Err(err) = conn.tx.send(message.clone()) {
                 error!("Error sending error message to bidi server: {err}");
