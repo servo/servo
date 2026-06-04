@@ -49,7 +49,7 @@ UV_PROJECT=etc/ci/scenario uv run --active etc/ci/scenario/memory_usage_plotter.
 ```
 
 # Running blink-perf-test
-There is actually another runner of blink-perf-test present in the codebase, but I guess the current one is more general and might be better because it hadles more issues. Thus, this `blink-perf-test` is primarely made for running on OHOS.
+There is actually another runner of blink-perf-test present in the codebase, the current one is more general and handles more issues. Thus, this `blink-perf-test` is primarely made for running on OHOS.
 But as this `blink-perf-test` is now also has access to the memory loggin, the scope of it also now includes `linux` and `macos`
 So, as usual, to run:
 ```bash
