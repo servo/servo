@@ -214,16 +214,14 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             },
         };
 
-        match handler
-            .handle(request_id, &cmd_msg, self.tx.clone())
-            .transpose()
-        {
-            // TODO: immediate is really rare in bidi, may be removed to unify architecture.
+        match handler.handle(request_id, &cmd_msg, self.tx.clone()) {
             // immediate success or immediate error
-            Some(_immediate) => {},
-            // async result not reached
-            None => {
+            Ok(_) => {
                 self.pending_requests.insert(request_id, target);
+            },
+            // async result not reached
+            Err(err) => {
+                // TODO: report error
             },
         }
     }
