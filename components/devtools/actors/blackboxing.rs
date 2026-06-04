@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use devtools_traits::{BlackboxCoverage, DevtoolScriptControlMsg};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::{ActorMsg, EmptyReplyMsg};
@@ -37,8 +39,8 @@ pub(crate) struct BlackboxingActor {
 }
 
 impl Actor for BlackboxingActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -89,25 +91,28 @@ impl Actor for BlackboxingActor {
             .send(control_msg)
             .map_err(|_| ActorError::Internal)?;
 
-        request.reply_final(&EmptyReplyMsg { from: self.name() })?;
+        request.reply_final(&EmptyReplyMsg {
+            from: self.name().into(),
+        })?;
         Ok(())
     }
 }
 
 impl BlackboxingActor {
-    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<ActorMsg> for BlackboxingActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

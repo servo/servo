@@ -5,12 +5,14 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, base_name, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
@@ -29,8 +31,8 @@ struct ShowReply {
 }
 
 impl Actor for HighlighterActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The highligher actor can handle the following messages:
@@ -50,30 +52,27 @@ impl Actor for HighlighterActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "show" => {
-                let Some(node_actor) = msg.get("node") else {
+                let Some(node_name) = msg.get("node") else {
                     return Err(ActorError::MissingParameter);
                 };
 
-                let Some(node_actor_name) = node_actor.as_str() else {
+                let Some(node_name) = node_name.as_str() else {
                     return Err(ActorError::BadParameterType);
                 };
 
-                if node_actor_name.starts_with(ActorRegistry::base_name::<InspectorActor>()) {
+                if node_name.starts_with(base_name::<InspectorActor>()) {
                     // TODO: For some reason, the client initially asks us to highlight
                     // the inspector? Investigate what this is supposed to mean.
                     let msg = ShowReply {
-                        from: self.name(),
+                        from: self.name().into(),
                         value: false,
                     };
                     return request.reply_final(&msg);
                 }
 
-                self.instruct_script_thread_to_highlight_node(
-                    Some(node_actor_name.to_owned()),
-                    registry,
-                );
+                self.instruct_script_thread_to_highlight_node(Some(node_name.into()), registry);
                 let msg = ShowReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: true,
                 };
                 request.reply_final(&msg)?
@@ -82,7 +81,9 @@ impl Actor for HighlighterActor {
             "hide" => {
                 self.instruct_script_thread_to_highlight_node(None, registry);
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
 
@@ -97,14 +98,13 @@ impl Actor for HighlighterActor {
 }
 
 impl HighlighterActor {
-    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     fn instruct_script_thread_to_highlight_node(
@@ -127,6 +127,8 @@ impl HighlighterActor {
 
 impl ActorEncode<ActorMsg> for HighlighterActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

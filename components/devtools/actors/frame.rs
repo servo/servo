@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
@@ -10,7 +12,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::channel;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::actors::object::{ObjectActor, ObjectActorMsg};
 use crate::actors::source::SourceActor;
@@ -66,8 +68,8 @@ pub(crate) struct FrameActor {
 }
 
 impl Actor for FrameActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/frame.js
@@ -87,12 +89,15 @@ impl Actor for FrameActor {
                 let source_actor = registry.find::<SourceActor>(&self.source_name);
                 source_actor
                     .script_sender
-                    .send(DevtoolScriptControlMsg::GetEnvironment(self.name(), tx))
+                    .send(DevtoolScriptControlMsg::GetEnvironment(
+                        self.name().into(),
+                        tx,
+                    ))
                     .map_err(|_| ActorError::Internal)?;
                 let environment_name = rx.recv().map_err(|_| ActorError::Internal)?;
 
                 let msg = FrameEnvironmentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     environment: registry.encode::<EnvironmentActor, _>(&environment_name),
                 };
                 // This reply has a `type` field but it doesn't need a followup,
@@ -111,20 +116,17 @@ impl FrameActor {
         registry: &ActorRegistry,
         source_name: String,
         frame_result: FrameInfo,
-    ) -> String {
-        // TODO: Get the real frame object from the debugger.
+    ) -> Arc<Self> {
         let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None, None);
-
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             object_actor: object_name,
             source_name,
             frame_result,
             current_offset: Default::default(),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn set_offset(&self, column: u32, line: u32) {
@@ -149,7 +151,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
         let (column, line) = *self.current_offset.borrow();
         // <https://searchfox.org/firefox-main/source/devtools/docs/user/debugger-api/debugger.frame/index.rst>
         FrameActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: self.frame_result.type_.clone(),
             arguments: vec![],
             async_cause,

@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::{ActorDescription, ClientRequest, Method};
 
 #[derive(Serialize)]
@@ -41,8 +43,8 @@ pub(crate) struct DeviceActor {
 }
 
 impl Actor for DeviceActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
     fn handle_message(
         &self,
@@ -55,7 +57,7 @@ impl Actor for DeviceActor {
         match msg_type {
             "getDescription" => {
                 let msg = GetDescriptionReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
                         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -74,11 +76,10 @@ impl Actor for DeviceActor {
 }
 
 impl DeviceActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = DeviceActor { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = DeviceActor { name };
+        registry.register::<Self>(actor)
     }
 
     pub fn description() -> ActorDescription {

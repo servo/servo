@@ -6,6 +6,7 @@
 //! alternative names
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::CssDatabaseProperty;
 use malloc_size_of_derive::MallocSizeOf;
@@ -13,7 +14,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 
 #[derive(MallocSizeOf)]
@@ -29,8 +30,8 @@ struct GetCssDatabaseReply<'a> {
 }
 
 impl Actor for CssPropertiesActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The css properties actor can handle the following messages:
@@ -47,7 +48,7 @@ impl Actor for CssPropertiesActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getCSSDatabase" => request.reply_final(&GetCssDatabaseReply {
-                from: self.name(),
+                from: self.name().into(),
                 properties: &self.properties,
             })?,
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -60,13 +61,9 @@ impl CssPropertiesActor {
     pub fn register(
         registry: &ActorRegistry,
         properties: HashMap<String, CssDatabaseProperty>,
-    ) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            properties,
-        };
-        registry.register::<Self>(actor);
-        name
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name, properties };
+        registry.register::<Self>(actor)
     }
 }

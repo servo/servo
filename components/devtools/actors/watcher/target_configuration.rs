@@ -6,6 +6,7 @@
 //! This actor manages the configuration flags that the devtools host can apply to the targets.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use embedder_traits::Theme;
 use log::warn;
@@ -13,7 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::protocol::ClientRequest;
@@ -47,8 +48,8 @@ struct JavascriptEnabledReply {
 }
 
 impl Actor for TargetConfigurationActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The target configuration actor can handle the following messages:
@@ -88,12 +89,14 @@ impl Actor for TargetConfigurationActor {
                         warn!("No active tab for updateConfiguration");
                     }
                 }
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "isJavascriptEnabled" => {
                 let msg = JavascriptEnabledReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     javascript_enabled: true,
                 };
                 request.reply_final(&msg)?
@@ -105,10 +108,10 @@ impl Actor for TargetConfigurationActor {
 }
 
 impl TargetConfigurationActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
@@ -130,15 +133,14 @@ impl TargetConfigurationActor {
                 ("useSimpleHighlightersForReducedMotion", false),
             ]),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<TargetConfigurationActorMsg> for TargetConfigurationActor {
     fn encode(&self, _: &ActorRegistry) -> TargetConfigurationActorMsg {
         TargetConfigurationActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             configuration: self.configuration.clone(),
             traits: TargetConfigurationTraits {
                 supported_options: self.supported_options.clone(),

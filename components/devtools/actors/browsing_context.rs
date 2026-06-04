@@ -6,6 +6,8 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::DevtoolsPageInfo;
@@ -17,7 +19,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::{self, GenericSender, SendError};
 use servo_base::id::PipelineId;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
@@ -149,8 +151,8 @@ impl ResourceAvailable for BrowsingContextActor {
 }
 
 impl Actor for BrowsingContextActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -164,12 +166,14 @@ impl Actor for BrowsingContextActor {
         match msg_type {
             "listFrames" => {
                 // TODO: Find out what needs to be listed here
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "listWorkers" => {
                 request.reply_final(&ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     // TODO: Find out what needs to be listed here
                     workers: vec![],
                 })?
@@ -191,10 +195,10 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
-        let name = registry.new_name::<BrowsingContextActor>();
+    ) -> Arc<Self> {
+        let name = new_actor_name::<BrowsingContextActor>();
 
-        let accessibility_name = AccessibilityActor::register(registry);
+        let accessibility_actor = AccessibilityActor::register(registry);
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -202,21 +206,22 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties_name = CssPropertiesActor::register(registry, properties);
 
-        let inspector_name = InspectorActor::register(registry, name.clone());
+        let css_properties_actor = CssPropertiesActor::register(registry, properties);
 
-        let reflow_name = ReflowActor::register(registry);
+        let inspector_actor = InspectorActor::register(registry, name.clone());
 
-        let style_sheets_name =
+        let reflow_actor = ReflowActor::register(registry);
+
+        let style_sheets_actor =
             StyleSheetsActor::register(registry, script_sender.clone(), name.clone());
 
         let _ = TabDescriptorActor::register(registry, name.clone());
 
-        let thread_name =
+        let thread_actor =
             ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
-        let watcher_name = WatcherActor::register(
+        let watcher_actor = WatcherActor::register(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -226,26 +231,24 @@ impl BrowsingContextActor {
         script_chans.insert(pipeline_id, script_sender);
 
         let actor = BrowsingContextActor {
-            name: name.clone(),
+            name,
             script_chans: script_chans.into(),
             active_pipeline_id: pipeline_id.into(),
             active_outer_window_id: outer_window_id.into(),
             browser_id,
             browsing_context_id,
-            accessibility_name,
+            accessibility_name: accessibility_actor.name().into(),
             console_name,
-            css_properties_name,
-            inspector_name,
+            css_properties_name: css_properties_actor.name().into(),
+            inspector_name: inspector_actor.name().into(),
             page_info: page_info.into(),
-            reflow_name,
-            style_sheets_name,
-            thread_name,
-            watcher_name,
+            reflow_name: reflow_actor.name().into(),
+            style_sheets_name: style_sheets_actor.name().into(),
+            thread_name: thread_actor.name().into(),
+            watcher_name: watcher_actor.name().into(),
         };
 
-        registry.register::<Self>(actor);
-
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn handle_new_global(
@@ -267,7 +270,7 @@ impl BrowsingContextActor {
 
     pub(crate) fn frame_update(&self, request: &mut ClientRequest) {
         let _ = request.write_json_packet(&FrameUpdateReply {
-            from: self.name(),
+            from: self.name().into(),
             type_: "frameUpdate".into(),
             frames: vec![FrameUpdateMsg {
                 id: self.browsing_context_id.value(),
@@ -337,7 +340,7 @@ impl BrowsingContextActor {
 impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
     fn encode(&self, _: &ActorRegistry) -> BrowsingContextActorMsg {
         BrowsingContextActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
                 frames: true,

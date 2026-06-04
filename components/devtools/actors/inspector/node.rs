@@ -17,7 +17,9 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 use servo_base::generic_channel;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{
+    Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc, new_actor_name,
+};
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
@@ -136,8 +138,8 @@ pub(crate) struct NodeActor {
 }
 
 impl Actor for NodeActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The node actor can handle the following messages:
@@ -177,12 +179,14 @@ impl Actor for NodeActor {
                 script_chan
                     .send(DevtoolScriptControlMsg::ModifyAttribute(
                         browsing_context_actor.pipeline_id(),
-                        registry.actor_to_script(self.name()),
+                        registry.actor_to_script(self.name().into()),
                         modifications,
                     ))
                     .map_err(|_| ActorError::Internal)?;
 
-                let reply = EmptyReplyMsg { from: self.name() };
+                let reply = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&reply)?
             },
             "getEventListenerInfo" => {
@@ -203,7 +207,7 @@ impl Actor for NodeActor {
                 let event_listeners = rx.recv().map_err(|_| ActorError::Internal)?;
 
                 let msg = GetEventListenerInfoReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     events: event_listeners.into_iter().map(From::from).collect(),
                 };
                 request.reply_final(&msg)?
@@ -220,7 +224,7 @@ impl Actor for NodeActor {
 
                 self.update(node_info);
                 let msg = GetUniqueSelectorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: self.node_info.borrow().node_name.to_lowercase(),
                 };
                 request.reply_final(&msg)?
@@ -243,7 +247,7 @@ impl Actor for NodeActor {
 
                 let xpath_selector = rx.recv().map_err(|_| ActorError::Internal)?;
                 let msg = GetXPathReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: xpath_selector,
                 };
                 request.reply_final(&msg)?
@@ -260,27 +264,26 @@ impl NodeActor {
         registry: &ActorRegistry,
         walker_name: &str,
         node_info: NodeInfo,
-    ) -> String {
+    ) -> DowncastableActorArc<Self> {
         let unique_id = &node_info.unique_id;
 
         if !registry.script_actor_registered(unique_id) {
-            let name = registry.new_name::<Self>();
+            let name = new_actor_name::<Self>();
             registry.register_script_actor(unique_id.clone(), name.clone());
 
             let actor = Self {
-                name: name.clone(),
+                name,
                 walker_name: walker_name.into(),
                 style_rules: AtomicRefCell::new(HashMap::new()),
                 node_info: AtomicRefCell::new(node_info),
             };
 
-            registry.register(actor);
-            name
+            registry.register(actor).into()
         } else {
             let name = registry.script_to_actor(unique_id);
             let actor = registry.find::<NodeActor>(&name);
             actor.update(node_info);
-            name
+            actor
         }
     }
 
@@ -307,7 +310,7 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
             .browsing_context_actor(registry);
         let script_chan = browsing_context.script_chan();
         let pipeline = browsing_context.pipeline_id();
-        let script_id = registry.actor_to_script(actor.clone());
+        let script_id = registry.actor_to_script(actor.into());
 
         // If a node only has a single text node as a child with a small enough text,
         // return it with this node as an `inlineTextChild`.
@@ -328,8 +331,8 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
             let mut children = rx.recv().ok()??;
 
             let child = children.pop()?;
-            let node_name = NodeActor::register_or_update(registry, &self.walker_name, child);
-            let msg = registry.encode::<NodeActor, _>(&node_name);
+            let node_actor = NodeActor::register_or_update(registry, &self.walker_name, child);
+            let msg = node_actor.encode(registry);
 
             // If the node child is not a text node, do not represent it inline.
             if msg.node_type != TEXT_NODE {
@@ -345,7 +348,7 @@ impl ActorEncode<NodeActorMsg> for NodeActor {
         })();
 
         NodeActorMsg {
-            actor,
+            actor: actor.into(),
             host,
             base_uri: node_info.base_uri.clone(),
             display_name: node_info.node_name.to_lowercase(),
