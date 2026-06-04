@@ -56,6 +56,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = &self.global();
+        // 1. Let promise be a new promise.
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let task_source = global.task_manager().dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
@@ -67,6 +68,27 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         };
         let ids = global.wgpu_id_hub().create_adapter_id();
 
+        // 3. Issue the initialization steps on the Device timeline of this
+
+        /*
+        We do some steps here to avoid IPC round-trips
+        1. options.featureLevel must be a feature level string.
+        If any are unmet
+            Let adapter be null, issue the resolution steps on contentTimeline, and return.
+        If adapter is null:
+            Resolve promise with null.
+        */
+        match &*options.featureLevel.str() {
+            "core" => {},
+            "compatibility" => {
+                // Set options.featureLevel to "compatibility" if the user agent chooses to support it, or "core" if not.
+                // and wgpu does not support "compatibility" yet so we return core for now
+            },
+            _ => {
+                promise.resolve_native(&None::<GPUAdapter>, can_gc);
+                return promise;
+            },
+        }
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
             .send(ScriptToConstellationMessage::RequestAdapter(
@@ -82,6 +104,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         {
             promise.reject_error(Error::Operation(None), can_gc);
         }
+        // 4. Return promise
         promise
     }
 
