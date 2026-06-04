@@ -5,7 +5,7 @@
 use crossbeam_channel::Sender;
 use embedder_traits::{
     EventLoopWaker,
-    webdriver_bidi::{SessionId, WebDriverBidiCommandMsg},
+    webdriver_bidi::{RequestId, WebDriverBidiCommandMsg},
 };
 use rustenium_bidi_definitions::{
     Command,
@@ -24,9 +24,9 @@ use servo_base::id::WebViewId;
 use uuid::Uuid;
 
 use crate::{
-    connection::Session,
     error::{WebDriverBidiError, WebDriverBidiResult},
     model::{Message as BidiMessage, ResultData, SessionResult},
+    session::SessionId,
 };
 
 pub trait WebDriverBidiHandler: Send + Sized {
@@ -35,7 +35,7 @@ pub trait WebDriverBidiHandler: Send + Sized {
     /// Start processing of a command.
     fn handle(&self, command: &CommandMessage) -> WebDriverBidiResult<Option<ResultData>>;
 
-    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, BidiMessage)>;
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<RequestId>, BidiMessage)>;
 
     // TODO: do we need
     // post update after receiving message
@@ -245,7 +245,7 @@ impl WebDriverBidiHandler for Handler {
         }
     }
 
-    fn try_recv(&self) -> WebDriverBidiResult<(Option<Session>, BidiMessage)> {
+    fn try_recv(&self) -> WebDriverBidiResult<(Option<RequestId>, BidiMessage)> {
         todo!()
     }
 }

@@ -1,4 +1,5 @@
 use async_tungstenite::tungstenite;
+use embedder_traits::webdriver_bidi::RequestId;
 use log::error;
 use rustenium_bidi_definitions::base::CommandMessage;
 use uuid::Uuid;
@@ -7,6 +8,7 @@ use crate::{
     connection::{Connection, ConnectionMap},
     handler::WebDriverBidiHandler,
     model::{Message as BidiMessage, ResultData, SessionResult},
+    session::SessionId,
 };
 
 /// Messages sent from WebSocket connections to [`Dispatcher`].
@@ -80,7 +82,9 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     }
 
     // TODO: since now different handler use different channel, there is no need to know session.
-    fn handle_bidi(&mut self, session: Option<Session>, bidi: BidiMessage) {
+    fn handle_bidi(&mut self, session: Option<RequestId>, bidi: BidiMessage) {
+        // TODO: get ?session info from request id registry.
+        let session = todo!();
         self.update(&bidi);
         match session {
             Some(session) => {
@@ -93,7 +97,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     }
 
     // TODO: move to session method
-    fn send_to_session(&self, session: &Session, message: BidiMessage) {
+    fn send_to_session(&self, session: &SessionId, message: BidiMessage) {
         let text = match serde_json::to_string(&message) {
             Ok(text) => text,
             Err(err) => {
