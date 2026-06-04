@@ -348,7 +348,6 @@ pub(crate) type ScriptResult = Result<Script, ()>;
 
 // TODO merge classic and module scripts
 #[derive(JSTraceable, MallocSizeOf)]
-#[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
     Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
@@ -1008,12 +1007,8 @@ impl HTMLScriptElement {
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
-                    let import_map_result = parse_an_import_map_string(
-                        cx,
-                        global,
-                        Rc::clone(&text_rc),
-                        base_url.clone(),
-                    );
+                    let import_map_result =
+                        parse_an_import_map_string(cx, global, Rc::clone(&text_rc), base_url);
                     let script = Script::ImportMap(import_map_result);
 
                     // Step 34.3
