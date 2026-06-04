@@ -80,58 +80,54 @@ addEventListener("addDebuggee", event => {
 
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
-function createValueGrip(value, depth, previewState) {
+function createValueGrip(value, depth) {
     switch (typeof value) {
         case "undefined":
-            return { valueType: "undefined" };
+            return "VoidValue";
         case "boolean":
-            return { valueType: "boolean", booleanValue: value };
+            return { BooleanValue: value };
         case "number":
             if (value === Infinity) {
-                return { valueType: "Infinity" };
+                return { NumberValue: "Infinity" };
             } else if (value === -Infinity) {
-                return { valueType: "-Infinity" };
+                return { NumberValue: "-Infinity" };
             } else if (Number.isNaN(value)) {
-                return { valueType: "NaN" };
+                return { NumberValue: "NaN" };
             } else if (Object.is(value, -0)) {
-                return { valueType: "-0" };
+                return { NumberValue: "-0" };
             }
-            return { valueType: "number", numberValue: value };
+            return { NumberValue: value };
         case "string":
-            return { valueType: "string", stringValue: value };
+            return { StringValue: value };
         case "object":
             // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#153>
             if (value === null) {
-                return { valueType: "null" };
+                return "NullValue";
             }
             if (value.optimizedOut || value.uninitialized || value.missingArguments) {
-                return { valueType: "null" };
+                return "NullValue";
             }
             // TODO: handle typed arrays and storage independently
             const ownPropertyLength = value.getOwnPropertyNamesLength();
+            const objectValue = {
+                class: value.class,
+                ownPropertyLength: Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined,
+            };
             // Debugger.Object - get preview using registered previewers
             // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
-            const preview = getPreview(value, depth + 1, previewState);
-            let previewId = undefined;
+            const preview = getPreview(value, depth + 1);
             if (preview) {
-                previewState.push(preview);
-                previewId = previewState.length - 1;
+                objectValue.preview = preview;
             }
-            return {
-                valueType: "object",
-                objectClass: value.class,
-                ownPropertyLength: Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined,
-                preview: getPreview(value, depth),
-                previewId,
-            };
+            return { ObjectValue: objectValue };
         default:
-            return { valueType: "string", stringValue: String(value) };
+            return { StringValue: String(value) };
     }
 }
 
 // Extract own properties from a debuggee object
 // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
-function extractOwnProperties(obj, depth, previewState) {
+function extractOwnProperties(obj, depth) {
     const ownProperties = [];
     let totalLength = 0;
 
@@ -153,16 +149,16 @@ function extractOwnProperties(obj, depth, previewState) {
                     enumerable: desc.enumerable ?? false,
                     writable: desc.writable ?? false,
                     isAccessor: desc.get !== undefined || desc.set !== undefined,
-                    value: createValueGrip(undefined, depth + 1, previewState),
+                    value: createValueGrip(undefined, depth + 1),
                 };
 
                 if (desc.value !== undefined) {
-                    prop.value = createValueGrip(desc.value, depth + 1, previewState);
+                    prop.value = createValueGrip(desc.value, depth + 1);
                 } else if (desc.get) {
                     try {
                         const result = desc.get.call(obj);
                         if (result && "return" in result) {
-                            prop.value = createValueGrip(result.return, depth + 1, previewState);
+                            prop.value = createValueGrip(result.return, depth + 1);
                         }
                     } catch (e) { }
                 }
@@ -181,8 +177,8 @@ function extractOwnProperties(obj, depth, previewState) {
 const previewers = {};
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
-previewers.Function = [ function FunctionPreviewer(obj, depth, previewState) {
-    let function_details = {
+previewers.Function = [ function FunctionPreviewer(obj, depth) {
+    let functionDetails = {
         name: obj.name,
         displayName: obj.displayName,
         parameterNames: obj.parameterNames ? obj.parameterNames: [],
@@ -190,12 +186,12 @@ previewers.Function = [ function FunctionPreviewer(obj, depth, previewState) {
         isGenerator: obj.isGeneratorFunction,
     }
 
-    let preview = { kind: "Object", function: function_details };
+    let preview = { kind: "Object", function: functionDetails };
     if (depth > 1) {
         return undefined;
     }
 
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth, previewState);
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     preview.ownProperties = ownProperties;
     preview.ownPropertiesLength = ownPropertiesLength;
 
@@ -203,7 +199,7 @@ previewers.Function = [ function FunctionPreviewer(obj, depth, previewState) {
 } ];
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
-previewers.Array = [ function ArrayPreviewer(obj, depth, previewState) {
+previewers.Array = [ function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const arrayLength = lengthDescriptor ? lengthDescriptor.value : 0;
 
@@ -216,7 +212,7 @@ previewers.Array = [ function ArrayPreviewer(obj, depth, previewState) {
         try {
             const desc = obj.getOwnPropertyDescriptor(i);
             if (desc && desc.value !== undefined) {
-                preview.items.push(createValueGrip(desc.value, depth + 1, previewState));
+                preview.items.push(createValueGrip(desc.value, depth + 1));
             }
         } catch (e) {
             // For now skip properties that throw on access
@@ -228,26 +224,26 @@ previewers.Array = [ function ArrayPreviewer(obj, depth, previewState) {
 
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
-previewers.Object = [ function ObjectPreviewer(obj, depth, previewState) {
+previewers.Object = [ function ObjectPreviewer(obj, depth) {
     let preview = { kind: "Object" };
     if (depth > 1) {
        return undefined;
     }
 
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth, previewState);
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     preview.ownProperties = ownProperties;
     preview.ownPropertiesLength = ownPropertiesLength;
 
     return preview;
 } ];
 
-function getPreview(obj, depth, previewState) {
+function getPreview(obj, depth) {
     const className = obj.class;
 
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
     const typePreviewers = previewers[className] || previewers.Object;
     for (const previewer of typePreviewers) {
-        const result = previewer(obj, depth, previewState);
+        const result = previewer(obj, depth);
         if (result) return result;
     }
 
@@ -258,7 +254,6 @@ function getPreview(obj, depth, previewState) {
 // See executeInGlobal() at <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
 addEventListener("eval", event => {
     const {code, pipelineId, workerId, frameActorId} = event;
-    const previewState = [];
 
     let completionValue;
     if (frameActorId) {
@@ -281,7 +276,7 @@ addEventListener("eval", event => {
     if (completionValue === null) {
         resultValue = {
             completionType: "terminated",
-            value: createValueGrip(undefined, 0, previewState),
+            value: createValueGrip(undefined, 0),
             hasException: false,
         };
     } else if ("throw" in completionValue) {
@@ -291,20 +286,22 @@ addEventListener("eval", event => {
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
         resultValue = {
             completionType: "throw",
-            value: createValueGrip(completionValue.throw, 0, previewState),
+            value: createValueGrip(completionValue.throw, 0),
             hasException: true,
         };
     } else if ("return" in completionValue) {
         resultValue = {
             completionType: "return",
-            value: createValueGrip(completionValue.return, 0, previewState),
+            value: createValueGrip(completionValue.return, 0),
             hasException: false,
         };
     }
 
-    resultValue.previews = previewState;
-
-    evalResult(event, resultValue);
+    evalResult(event, {
+        completionType: resultValue.completionType,
+        serializedValue: JSON.stringify(resultValue.value),
+        hasException: resultValue.hasException,
+    });
 });
 
 addEventListener("getPossibleBreakpoints", event => {
@@ -604,11 +601,11 @@ function createEnvironmentActor(environment) {
         parent = createEnvironmentActor(environment.parent);
     }
 
+    let bindingVariables = [];
     if (environment.type == "declarative") {
-        const { bindingVariables, previewState } = buildBindings(environment);
-        info.bindingVariables = bindingVariables;
-        info.previews = previewState;
+        bindingVariables = buildBindings(environment);
     }
+    info.serializedBindings = JSON.stringify(bindingVariables);
 
     let actor = environmentsToEnvironmentActors.get(environment);
     actor = registerEnvironmentActor(info, parent, actor);
@@ -617,7 +614,6 @@ function createEnvironmentActor(environment) {
 }
 
 function buildBindings(environment) {
-    const previewState = [];
     const bindingVariables = [];
     for (const name of environment.names()) {
         const value = environment.getVariable(name);
@@ -630,12 +626,12 @@ function buildBindings(environment) {
                 (value.optimizedOut || value.uninitialized || value.missingArguments)
             ),
             isAccessor: false,
-            value: createValueGrip(value, 0, previewState),
+            value: createValueGrip(value, 0),
         };
 
         bindingVariables.push(property);
     }
-    return { bindingVariables, previewState };
+    return bindingVariables;
 }
 
 // Get a `Debugger.Environment` instance within which evaluation is taking place.

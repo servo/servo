@@ -31,6 +31,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use net_traits::{DebugVec, TlsSecurityInfo};
 use profile_traits::mem::ReportsChan;
+use serde::de::{Error, Visitor};
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
@@ -158,6 +159,7 @@ pub enum DomMutation {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ObjectPreview {
     pub kind: String,
     pub own_properties: Option<Vec<PropertyDescriptor>>,
@@ -168,6 +170,7 @@ pub struct ObjectPreview {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FunctionPreview {
     pub name: Option<String>,
     pub display_name: Option<String>,
@@ -176,14 +179,61 @@ pub struct FunctionPreview {
     pub is_generator: Option<bool>,
 }
 
+fn debugger_value_uuid() -> String {
+    Uuid::new_v4().to_string()
+}
+
+struct DebuggerNumberVisitor;
+
+impl Visitor<'_> for DebuggerNumberVisitor {
+    type Value = f64;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a debugger value number")
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E> {
+        Ok(value)
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(value as f64)
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(value as f64)
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        value.parse().map_err(E::custom)
+    }
+}
+
+fn deserialize_debugger_number<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    // `DebuggerValue` is also sent over Servo IPC, not only through debugger.js.
+    if !deserializer.is_human_readable() {
+        return f64::deserialize(deserializer);
+    }
+
+    deserializer.deserialize_any(DebuggerNumberVisitor)
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all_fields = "camelCase")]
 pub enum DebuggerValue {
     VoidValue,
     NullValue,
     BooleanValue(bool),
-    NumberValue(f64),
+    NumberValue(#[serde(deserialize_with = "deserialize_debugger_number")] f64),
     StringValue(String),
     ObjectValue {
+        #[serde(default = "debugger_value_uuid")]
         uuid: String,
         class: String,
         own_property_length: Option<u32>,
@@ -193,6 +243,7 @@ pub enum DebuggerValue {
 
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PropertyDescriptor {
     pub name: String,
     pub value: DebuggerValue,
@@ -203,6 +254,7 @@ pub struct PropertyDescriptor {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvaluateJSReply {
     pub value: DebuggerValue,
     pub has_exception: bool,
