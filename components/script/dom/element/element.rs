@@ -1260,8 +1260,7 @@ impl<'dom> LayoutDom<'dom, Element> {
             });
 
         if let Some(size) = size {
-            let value =
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
+            let value = specified::NoCalcLength::from_servo_character_width(size);
             push(PropertyDeclaration::Width(
                 specified::Size::LengthPercentage(NonNegative(
                     specified::LengthPercentage::Length(value),
@@ -1301,8 +1300,8 @@ impl<'dom> LayoutDom<'dom, Element> {
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    specified::LengthPercentage::Length(specified::NoCalcLength::from_px(
+                        length.to_f32_px(),
                     )),
                 ));
                 push(PropertyDeclaration::Width(width_value));
@@ -1339,8 +1338,8 @@ impl<'dom> LayoutDom<'dom, Element> {
             },
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::Size::LengthPercentage(NonNegative(
-                    specified::LengthPercentage::Length(specified::NoCalcLength::Absolute(
-                        specified::AbsoluteLength::Px(length.to_f32_px()),
+                    specified::LengthPercentage::Length(specified::NoCalcLength::from_px(
+                        length.to_f32_px(),
                     )),
                 ));
                 push(PropertyDeclaration::Height(height_value));
@@ -1387,8 +1386,7 @@ impl<'dom> LayoutDom<'dom, Element> {
                 // scrollbar size into consideration (but we don't have a scrollbar yet!)
                 //
                 // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-                let value =
-                    specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
+                let value = specified::NoCalcLength::from_servo_character_width(cols);
                 push(PropertyDeclaration::Width(
                     specified::Size::LengthPercentage(NonNegative(
                         specified::LengthPercentage::Length(value),
@@ -1406,9 +1404,7 @@ impl<'dom> LayoutDom<'dom, Element> {
                 // TODO(mttr) This should take scrollbar size into consideration.
                 //
                 // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-                let value = specified::NoCalcLength::FontRelative(
-                    specified::FontRelativeLength::Em(rows as CSSFloat),
-                );
+                let value = specified::NoCalcLength::from_em(rows as CSSFloat);
                 push(PropertyDeclaration::Height(
                     specified::Size::LengthPercentage(NonNegative(
                         specified::LengthPercentage::Length(value),
