@@ -420,9 +420,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
-    fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
+    fn ServiceWorker(&self, cx: &mut js::context::JSContext) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| ServiceWorkerContainer::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled>

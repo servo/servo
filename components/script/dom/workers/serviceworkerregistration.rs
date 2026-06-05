@@ -215,7 +215,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
             promise.resolve_native_with_cx(cx, &false);
             return promise;
         };
-        let service_worker_container = window.Navigator().ServiceWorker();
+        let service_worker_container = window.Navigator().ServiceWorker(cx);
 
         // Step 3: Let job be the result of running Create Job with unregister,
         // registration’s storage key, registration’s scope url, null, promise,

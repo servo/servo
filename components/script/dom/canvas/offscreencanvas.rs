@@ -487,7 +487,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             return Err(Error::InvalidState(None));
         };
 
-        let image_bitmap = ImageBitmap::new(&self.global(), snapshot, CanGc::from_cx(cx));
+        let image_bitmap = ImageBitmap::new(cx, &self.global(), snapshot);
         image_bitmap.set_origin_clean(self.origin_is_clean());
 
         // Step 4. Set this OffscreenCanvas object's bitmap to reference a newly

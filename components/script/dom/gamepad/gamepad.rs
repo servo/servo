@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
@@ -104,6 +104,7 @@ impl Gamepad {
     /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         gamepad_id: u32,
         id: String,
@@ -112,14 +113,13 @@ impl Gamepad {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
         xr: bool,
-        can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let buttons = Gamepad::init_buttons(window, can_gc);
+        let buttons = Gamepad::init_buttons(window, CanGc::from_cx(cx));
         rooted_vec!(let buttons <- buttons.iter().map(DomRoot::as_traced));
         let vibration_actuator =
-            GamepadHapticActuator::new(window, gamepad_id, supported_haptic_effects, can_gc);
+            GamepadHapticActuator::new(cx, window, gamepad_id, supported_haptic_effects);
         let index = if xr { -1 } else { 0 };
-        let gamepad = reflect_dom_object(
+        let gamepad = reflect_dom_object_with_cx(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
                 id,
@@ -135,7 +135,7 @@ impl Gamepad {
                 &vibration_actuator,
             )),
             window,
-            can_gc,
+            cx,
         );
         gamepad.init_axes();
         gamepad

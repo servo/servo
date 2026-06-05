@@ -62,7 +62,7 @@ impl XRInputSourceArray {
                     .any(|i| i.id() == info.id),
                 "Should never add a duplicate input id!"
             );
-            let input = XRInputSource::new(window, session, info.clone(), CanGc::from_cx(cx));
+            let input = XRInputSource::new(cx, window, session, info.clone());
             self.input_sources.borrow_mut().push(Dom::from_ref(&input));
             added.push(input);
         }
@@ -123,7 +123,7 @@ impl XRInputSourceArray {
             &[]
         };
         self.input_sources.borrow_mut().retain(|i| i.id() != id);
-        let input = XRInputSource::new(window, session, info, CanGc::from_cx(cx));
+        let input = XRInputSource::new(cx, window, session, info);
         self.input_sources.borrow_mut().push(Dom::from_ref(&input));
 
         let added = [input];

@@ -1599,6 +1599,7 @@ impl DocumentEventHandler {
                 let navigator = window.Navigator();
                 let selected_index = navigator.select_gamepad_index();
                 let gamepad = Gamepad::new(
+                    cx,
                     &window,
                     selected_index,
                     name,
@@ -1607,7 +1608,6 @@ impl DocumentEventHandler {
                     button_bounds,
                     supported_haptic_effects,
                     false,
-                    CanGc::from_cx(cx),
                 );
 
                 // Step 3.3. Set navigator.[[gamepads]][gamepad.index] to gamepad.
