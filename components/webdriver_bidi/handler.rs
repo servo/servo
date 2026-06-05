@@ -11,6 +11,7 @@ mod network;
 mod script;
 mod session;
 mod storage;
+mod util;
 mod web_extension;
 
 use std::rc::Rc;
@@ -35,7 +36,7 @@ pub trait WebDriverBidiHandler: Sized {
     fn handle(
         &self,
         request_id: RequestId,
-        command: &CommandMessage,
+        command: CommandMessage,
         tx: Sender<DispatchMessage>,
     ) -> impl Future<Output = Result<ResultData, WebDriverBidiError>>;
 
@@ -80,10 +81,10 @@ impl WebDriverBidiHandler for Handler {
     async fn handle(
         &self,
         request_id: RequestId,
-        command: &CommandMessage,
+        command: CommandMessage,
         dispatch_tx: Sender<DispatchMessage>,
     ) -> Result<ResultData, WebDriverBidiError> {
-        match &command.command_data {
+        match command.command_data {
             Command::Browser(cmd) => self.handle_browser(cmd).await.map(ResultData::Browser),
             Command::BrowsingContext(cmd) => self
                 .handle_browsing_context(cmd)

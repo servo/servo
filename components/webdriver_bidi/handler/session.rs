@@ -18,7 +18,7 @@ use crate::{
 impl Handler {
     pub(super) async fn handle_session(
         &self,
-        cmd: &SessionCommand,
+        cmd: SessionCommand,
     ) -> Result<SessionResult, WebDriverBidiError> {
         match cmd {
             SessionCommand::Status(status) => self.handle_session_status().await,
@@ -58,7 +58,7 @@ impl Handler {
 
     async fn handle_session_new(
         &self,
-        _session_new: &New,
+        _session_new: New,
         dispatch_tx: Sender<DispatchMessage>,
     ) -> Result<SessionResult, WebDriverBidiError> {
         // Step 1. if session is not null, return "session not created" error.

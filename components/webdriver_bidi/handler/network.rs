@@ -5,7 +5,7 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::NetworkResult};
 impl Handler {
     pub(super) async fn handle_network(
         &self,
-        cmd: &NetworkCommand,
+        cmd: NetworkCommand,
     ) -> Result<NetworkResult, WebDriverBidiError> {
         match cmd {
             NetworkCommand::AddDataCollector(add_data_collector) => {

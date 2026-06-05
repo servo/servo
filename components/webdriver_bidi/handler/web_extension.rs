@@ -27,15 +27,15 @@ const IS_WEB_EXTENSION_SUPPORTED: bool = false;
 impl Handler {
     pub(super) async fn handle_web_extension(
         &self,
-        cmd: &WebExtensionCommand,
+        cmd: WebExtensionCommand,
     ) -> Result<WebExtensionResult, WebDriverBidiError> {
         match cmd {
             WebExtensionCommand::Install(cmd) => self
-                .handle_web_extension_install(&cmd.params)
+                .handle_web_extension_install(cmd.params)
                 .await
                 .map(WebExtensionResult::Install),
             WebExtensionCommand::Uninstall(cmd) => self
-                .handle_web_extension_uninstall(&cmd.params)
+                .handle_web_extension_uninstall(cmd.params)
                 .await
                 .map(WebExtensionResult::Uninstall),
         }
@@ -44,7 +44,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-install>
     async fn handle_web_extension_install(
         &self,
-        command_parameters: &InstallParams,
+        command_parameters: InstallParams,
     ) -> Result<InstallResult, WebDriverBidiError> {
         // 1. If installing web extensions isn’t supported return [error] with error code [unsupported operation].
         if !IS_WEB_EXTENSION_SUPPORTED {
@@ -97,7 +97,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-uninstall>
     async fn handle_web_extension_uninstall(
         &self,
-        command_parameters: &UninstallParams,
+        command_parameters: UninstallParams,
     ) -> Result<UninstallResult, WebDriverBidiError> {
         // 1. Let `extension` be `command parameters["extension"]`.
         let extension = &command_parameters.extension;

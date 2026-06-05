@@ -5,7 +5,7 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::ScriptResult};
 impl Handler {
     pub(super) async fn handle_script(
         &self,
-        cmd: &ScriptCommand,
+        cmd: ScriptCommand,
     ) -> Result<ScriptResult, WebDriverBidiError> {
         match cmd {
             ScriptCommand::AddPreloadScript(add_preload_script) => {

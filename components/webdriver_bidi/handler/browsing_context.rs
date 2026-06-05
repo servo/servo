@@ -10,18 +10,18 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::BrowsingContextR
 impl Handler {
     pub(super) async fn handle_browsing_context(
         &self,
-        cmd: &BrowsingContextCommand,
+        cmd: BrowsingContextCommand,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         match cmd {
             BrowsingContextCommand::Activate(cmd) => {
-                self.handle_browsing_context_activate(&cmd.params).await
+                self.handle_browsing_context_activate(cmd.params).await
             },
             BrowsingContextCommand::CaptureScreenshot(cmd) => {
-                self.handle_browsing_context_capture_screenshot(&cmd.params)
+                self.handle_browsing_context_capture_screenshot(cmd.params)
                     .await
             },
             BrowsingContextCommand::Close(cmd) => {
-                self.handle_browsing_context_close(&cmd.params).await
+                self.handle_browsing_context_close(cmd.params).await
             },
             BrowsingContextCommand::Create(create) => self.handle_browsing_context_create().await,
             BrowsingContextCommand::GetTree(get_tree) => {
@@ -52,7 +52,7 @@ impl Handler {
 
     async fn handle_browsing_context_activate(
         &self,
-        command_parameters: &browsing_context::commands::ActivateParams,
+        command_parameters: browsing_context::commands::ActivateParams,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // 1. Let `navigable id` be the value of the `command parameters["context"]` field.
         let navigable_id = &command_parameters.context;
@@ -74,7 +74,7 @@ impl Handler {
 
     async fn handle_browsing_context_capture_screenshot(
         &self,
-        command_parameters: &browsing_context::commands::CaptureScreenshotParams,
+        command_parameters: browsing_context::commands::CaptureScreenshotParams,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // Let navigable id be the value of the context field of command parameters if present, or null otherwise.
         //
@@ -145,7 +145,7 @@ impl Handler {
     /// The remote end steps with command parameters are:
     async fn handle_browsing_context_close(
         &self,
-        command_paramters: &browsing_context::commands::CloseParams,
+        command_paramters: browsing_context::commands::CloseParams,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // The remote end steps with command parameters are:
         // Let navigable id be the value of the context field of command parameters.
@@ -210,7 +210,7 @@ impl Handler {
 
     async fn handle_browsing_context_reload(
         &self,
-        cmd: &browsing_context::commands::Reload,
+        cmd: browsing_context::commands::Reload,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // Step 1: let navigable id be "context"
         let navigable_id = &cmd.params.context;

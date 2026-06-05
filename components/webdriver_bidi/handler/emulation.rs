@@ -5,7 +5,7 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::EmulationResult}
 impl Handler {
     pub(super) async fn handle_emulation(
         &self,
-        cmd: &EmulationCommand,
+        cmd: EmulationCommand,
     ) -> Result<EmulationResult, WebDriverBidiError> {
         match cmd {
             EmulationCommand::SetForcedColorsModeThemeOverride(

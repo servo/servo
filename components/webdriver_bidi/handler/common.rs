@@ -1,8 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use embedder_traits::webdriver_bidi::WebDriverBidiToEmbedderMsg;
-
-use crate::{error::WebDriverBidiError, handler::Handler};
+use crate::handler::Handler;
 
 impl Handler {
     /// <https://fs.spec.whatwg.org/#locating-an-entry>
@@ -11,17 +9,6 @@ impl Handler {
         _locator: &T,
     ) -> Option<T::Output> {
         unimplemented!()
-    }
-}
-
-impl Handler {
-    pub(super) fn send_message_to_embedder(
-        &self,
-        msg: WebDriverBidiToEmbedderMsg,
-    ) -> Result<(), WebDriverBidiError> {
-        self.0.embedder_sender.send(msg)?;
-        self.0.event_loop_waker.wake();
-        Ok(())
     }
 }
 

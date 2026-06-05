@@ -5,7 +5,7 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::InputResult};
 impl Handler {
     pub(super) async fn handle_input(
         &self,
-        cmd: &InputCommand,
+        cmd: InputCommand,
     ) -> Result<InputResult, WebDriverBidiError> {
         match cmd {
             InputCommand::PerformActions(perform_actions) => {

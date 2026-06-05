@@ -9,33 +9,33 @@ use crate::{error::WebDriverBidiError, handler::Handler, model::BrowserResult};
 impl Handler {
     pub(super) async fn handle_browser(
         &self,
-        cmd: &BrowserCommand,
+        cmd: BrowserCommand,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         match cmd {
-            BrowserCommand::Close(cmd) => self.handle_browser_close(&cmd.params).await,
+            BrowserCommand::Close(cmd) => self.handle_browser_close(cmd.params).await,
             BrowserCommand::CreateUserContext(cmd) => {
-                self.handle_browser_create_user_context(&cmd.params).await
+                self.handle_browser_create_user_context(cmd.params).await
             },
             BrowserCommand::GetClientWindows(_cmd) => {
                 self.handle_browser_get_client_windows().await
             },
             BrowserCommand::GetUserContexts(_) => self.handle_browser_get_user_contexts().await,
             BrowserCommand::RemoveUserContext(cmd) => {
-                self.handle_browser_remove_user_context(&cmd.params).await
+                self.handle_browser_remove_user_context(cmd.params).await
             },
             BrowserCommand::SetClientWindowState(cmd) => {
-                self.handle_browser_set_client_window_state(&cmd.params)
+                self.handle_browser_set_client_window_state(cmd.params)
                     .await
             },
             BrowserCommand::SetDownloadBehavior(cmd) => {
-                self.handle_browser_set_download_behavior(&cmd.params).await
+                self.handle_browser_set_download_behavior(cmd.params).await
             },
         }
     }
 
     async fn handle_browser_close(
         &self,
-        _command_parameters: &browser::commands::CloseParams,
+        _command_parameters: browser::commands::CloseParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. `End the session` with `session`.
 
@@ -51,7 +51,7 @@ impl Handler {
 
     async fn handle_browser_create_user_context(
         &self,
-        _command_parameters: &browser::commands::CreateUserContextParams,
+        _command_parameters: browser::commands::CreateUserContextParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. Let user context be a new user context.
 
@@ -109,7 +109,7 @@ impl Handler {
 
     async fn handle_browser_remove_user_context(
         &self,
-        command_parameters: &browser::commands::RemoveUserContextParams,
+        command_parameters: browser::commands::RemoveUserContextParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. Let user context id be command parameters["userContext"].
         // 2. If user context id is "default", return error with error code invalid argument.
@@ -127,7 +127,7 @@ impl Handler {
 
     async fn handle_browser_set_client_window_state(
         &self,
-        command_parameters: &browser::commands::SetClientWindowStateParams,
+        command_parameters: browser::commands::SetClientWindowStateParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // The remote end steps with session and command parameters are:
         //
@@ -155,7 +155,7 @@ impl Handler {
 
     async fn handle_browser_set_download_behavior(
         &self,
-        command_parameters: &browser::commands::SetDownloadBehaviorParams,
+        command_parameters: browser::commands::SetDownloadBehaviorParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // If command parameters["downloadBehavior"] is null, let download behavior be null.
         //
