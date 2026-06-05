@@ -34,13 +34,6 @@ android {
         }
     }
 
-    splits {
-        abi {
-            isEnable = false
-        }
-    }
-
-
     buildTypes {
         // Default debug and release build types are used as templates
         debug {

@@ -33,12 +33,6 @@ android {
         }
     }
 
-    splits {
-        abi {
-            isEnable = false
-        }
-    }
-
     val signingKeyInfo = getSigningKeyInfo()
 
     if (signingKeyInfo != null) {
