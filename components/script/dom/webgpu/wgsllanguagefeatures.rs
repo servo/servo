@@ -6,17 +6,17 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::WGSLLanguageFeaturesMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WGSLLanguageFeatures {
@@ -28,22 +28,22 @@ pub struct WGSLLanguageFeatures {
 
 impl WGSLLanguageFeatures {
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let set = ImplementedLanguageExtension::all()
             .iter()
             .map(|le| le.to_ident().into())
             .collect();
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Self {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
             }),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
