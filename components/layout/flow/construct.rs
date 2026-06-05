@@ -25,6 +25,7 @@ use crate::dom_traversal::{
     Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
 };
 use crate::flow::float::FloatBox;
+use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
@@ -742,11 +743,13 @@ impl BlockLevelJob<'_> {
             BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
                 let contents = intermediate_block_container.finish(context, info);
                 let contains_floats = contents.contains_floats();
-                ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    contents,
-                    contains_floats,
-                })
+                ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock(
+                    SameFormattingContextBlock::new(
+                        LayoutBoxBase::new(info.into(), info.style.clone()),
+                        contents,
+                        contains_floats,
+                    ),
+                ))
             },
             BlockLevelCreator::Independent {
                 display_inside,
