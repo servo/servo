@@ -180,7 +180,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         )
     }
 
-    fn show_embedder_control(&self, _: WebViewId, embedder_control: EmbedderControl) {
+    fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::InputMethod(input_method_control)
@@ -188,6 +188,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             {
                 self.visible_input_methods.borrow_mut().push(control_id);
                 self.host.on_ime_show(input_method_control);
+            },
+            EmbedderControl::SelectElement(prompt) => {
+                self.host.on_show_select_element(webview_id, prompt);
             },
             EmbedderControl::SimpleDialog(SimpleDialog::Alert(alert_dialog)) => {
                 self.host.show_alert(alert_dialog.message().into());
