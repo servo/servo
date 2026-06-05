@@ -384,7 +384,7 @@ impl Element {
                 doc.note_node_with_dirty_descendants(self.upcast());
                 restyle
                     .damage
-                    .insert(LayoutDamage::descendant_has_box_damage());
+                    .insert(RestyleDamage::from(LayoutDamage::DescendantHasBoxDamage));
             },
             NodeDamage::Other => {
                 doc.note_node_with_dirty_descendants(self.upcast());
