@@ -193,13 +193,13 @@ impl AccessibilityTree {
         dom_node: &ServoLayoutNode<'_>,
     ) -> ArcRefCell<AccessibilityNode> {
         let id = self.id_for_opaque(dom_node.opaque());
-        let node = self.assert_node_for_id(id);
+        let node = self.assert_node_for_id(&id);
         assert!(node.borrow().opaque_node == Some(dom_node.opaque()));
         node
     }
 
-    fn assert_node_for_id(&self, id: NodeId) -> ArcRefCell<AccessibilityNode> {
-        let Some(node) = self.nodes.get(&id) else {
+    fn assert_node_for_id(&self, id: &NodeId) -> ArcRefCell<AccessibilityNode> {
+        let Some(node) = self.nodes.get(id) else {
             panic!("{id:?} does not exist in tree");
         };
         node.clone()
@@ -245,7 +245,7 @@ impl AccessibilityTree {
                 "Tree contains {node_id:?} in multiple places"
             );
             // If this fails, then the tree has dangling references.
-            let node = self.assert_node_for_id(node_id);
+            let node = self.assert_node_for_id(&node_id);
             let node = node.borrow();
             node_ids.extend(node.children().iter().rev());
         }
@@ -260,7 +260,7 @@ impl AccessibilityTree {
         };
 
         let mut print_tree = PrintTree::new("Accessibility Tree");
-        let node = self.assert_node_for_id(root_node_id);
+        let node = self.assert_node_for_id(&root_node_id);
         node.borrow().print(self, &mut print_tree);
         print_tree.end_level();
     }
@@ -326,7 +326,7 @@ impl AccessibilityNode {
             let old_children = self.children();
             for old_child_id in old_children {
                 if !new_children.contains(old_child_id) {
-                    let removed_child = tree.assert_node_for_id(*old_child_id);
+                    let removed_child = tree.assert_node_for_id(old_child_id);
                     removed_child.borrow().set_subtree_state_change(
                         TreeChange::Removed,
                         tree,
@@ -336,7 +336,7 @@ impl AccessibilityNode {
             }
             for new_child_id in new_children.iter() {
                 if !newly_created.contains(new_child_id) && !old_children.contains(new_child_id) {
-                    let moved_child = tree.assert_node_for_id(*new_child_id);
+                    let moved_child = tree.assert_node_for_id(new_child_id);
                     moved_child.borrow().set_subtree_state_change(
                         TreeChange::PendingMove,
                         tree,
@@ -375,7 +375,7 @@ impl AccessibilityNode {
         update.set_tree_state_change(self.id, change);
 
         for child_id in self.children().iter() {
-            let child = tree.assert_node_for_id(*child_id);
+            let child = tree.assert_node_for_id(child_id);
             // `new_change` might be different per node, if only some nodes were moved elsewhere.
             child
                 .borrow()
@@ -409,7 +409,7 @@ impl AccessibilityNode {
         let mut children = VecDeque::from_iter(self.children().iter().copied());
         let mut text = String::new();
         while let Some(child_id) = children.pop_front() {
-            let child = tree.assert_node_for_id(child_id);
+            let child = tree.assert_node_for_id(&child_id);
             let child = child.borrow();
             match child.role() {
                 Role::TextRun => {
@@ -436,7 +436,7 @@ impl AccessibilityNode {
         print_tree.new_level(format!("{self:?}"));
 
         for child_id in self.children() {
-            let child = tree.assert_node_for_id(*child_id);
+            let child = tree.assert_node_for_id(child_id);
             child.borrow().print(tree, print_tree);
         }
         print_tree.end_level();
@@ -591,7 +591,7 @@ impl AccessibilityUpdate {
                 .map(|id| {
                     (
                         id,
-                        tree.assert_node_for_id(id).borrow().accesskit_node.clone(),
+                        tree.assert_node_for_id(&id).borrow().accesskit_node.clone(),
                     )
                 })
                 .collect(),
@@ -636,11 +636,11 @@ fn test_accessibility_update_add_some_nodes_twice() {
     let mut update = AccessibilityUpdate::new();
 
     {
-        let node_3 = tree.assert_node_for_id(NodeId(3));
+        let node_3 = tree.assert_node_for_id(&NodeId(3));
         let mut node_3 = node_3.borrow_mut();
-        let node_4 = tree.assert_node_for_id(NodeId(4));
+        let node_4 = tree.assert_node_for_id(&NodeId(4));
         let mut node_4 = node_4.borrow_mut();
-        let node_5 = tree.assert_node_for_id(NodeId(5));
+        let node_5 = tree.assert_node_for_id(&NodeId(5));
         let mut node_5 = node_5.borrow_mut();
 
         update.add(&mut node_5);
