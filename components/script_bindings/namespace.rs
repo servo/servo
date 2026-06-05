@@ -44,7 +44,7 @@ pub(crate) fn create_namespace_object<D: DomTypes>(
     proto: HandleObject,
     class: &'static NamespaceObjectClass,
     methods: &[Guard<&'static [JSFunctionSpec]>],
-    properties: &[Guard<&'static [JSPropertySpec]>],
+    attributes: &[Guard<&'static [JSPropertySpec]>],
     constants: &[Guard<&'static [ConstantSpec]>],
     name: &CStr,
     mut rval: MutableHandleObject,
@@ -55,7 +55,7 @@ pub(crate) fn create_namespace_object<D: DomTypes>(
         proto,
         &class.0,
         methods,
-        properties,
+        attributes,
         constants,
         rval.reborrow(),
     );

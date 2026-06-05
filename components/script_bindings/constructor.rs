@@ -72,7 +72,7 @@ pub(crate) struct NamespaceInit {
     pub(crate) namespace_object_class: &'static NamespaceObjectClass,
     pub(crate) constructor_name: PrototypeList::Constructor,
     pub(crate) constants: &'static [Guard<&'static [ConstantSpec]>],
-    pub(crate) properties: &'static [Guard<&'static [JSPropertySpec]>],
+    pub(crate) attributes: &'static [Guard<&'static [JSPropertySpec]>],
     pub(crate) name: &'static CStr,
 }
 
@@ -106,7 +106,7 @@ pub(crate) unsafe fn create_namespace_interface_objects<D: DomTypes>(
         proto.handle(),
         init.namespace_object_class,
         init.static_methods,
-        init.properties,
+        init.attributes,
         init.constants,
         init.name,
         namespace.handle_mut(),
