@@ -51,14 +51,8 @@ impl CanvasPaintThread {
                     select! {
                         recv(msg_receiver) -> msg => {
                             match msg {
-                                Ok(Ok(CanvasMsg::Canvas2d(message, canvas_id))) => {
-                                    canvas_paint_thread.process_canvas_2d_message(message, canvas_id);
-                                },
-                                Ok(Ok(CanvasMsg::Close(canvas_id))) => {
-                                    canvas_paint_thread.canvases.remove(&canvas_id);
-                                },
-                                Ok(Ok(CanvasMsg::Recreate(size, canvas_id))) => {
-                                    canvas_paint_thread.canvas(canvas_id).recreate(size);
+                                Ok(Ok((canvas_id, command))) => {
+                                    canvas_paint_thread.process_command(command, canvas_id);
                                 },
                                 Ok(Err(e)) => {
                                     warn!("CanvasPaintThread message deserialization error: {e:?}");
@@ -109,12 +103,16 @@ impl CanvasPaintThread {
         skip_all,
         fields(message = message.to_string())
     )]
-    fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
+    fn process_command(&mut self, message: CanvasCommand, canvas_id: CanvasId) {
         match message {
-            Canvas2dMsg::SetImageKey(image_key) => {
+            CanvasCommand::Recreate(size) => self.canvas(canvas_id).recreate(size),
+            CanvasCommand::Destroy => {
+                self.canvases.remove(&canvas_id);
+            },
+            CanvasCommand::SetImageKey(image_key) => {
                 self.canvas(canvas_id).set_image_key(image_key);
             },
-            Canvas2dMsg::FillText(
+            CanvasCommand::FillText(
                 text_bounds,
                 text_runs,
                 fill_or_stroke_style,
@@ -131,7 +129,7 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::StrokeText(
+            CanvasCommand::StrokeText(
                 text_bounds,
                 text_runs,
                 fill_or_stroke_style,
@@ -150,7 +148,13 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::FillRect(rect, style, shadow_options, composition_options, transform) => {
+            CanvasCommand::FillRect(
+                rect,
+                style,
+                shadow_options,
+                composition_options,
+                transform,
+            ) => {
                 self.canvas(canvas_id).fill_rect(
                     &rect,
                     style,
@@ -159,7 +163,7 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::StrokeRect(
+            CanvasCommand::StrokeRect(
                 rect,
                 style,
                 line_options,
@@ -176,10 +180,10 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::ClearRect(ref rect, transform) => {
+            CanvasCommand::ClearRect(ref rect, transform) => {
                 self.canvas(canvas_id).clear_rect(rect, transform)
             },
-            Canvas2dMsg::FillPath(
+            CanvasCommand::FillPath(
                 style,
                 path,
                 fill_rule,
@@ -196,7 +200,7 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::StrokePath(
+            CanvasCommand::StrokePath(
                 path,
                 style,
                 line_options,
@@ -213,11 +217,11 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::ClipPath(path, fill_rule, transform) => {
+            CanvasCommand::ClipPath(path, fill_rule, transform) => {
                 self.canvas(canvas_id)
                     .clip_path(&path, fill_rule, transform);
             },
-            Canvas2dMsg::DrawImage(
+            CanvasCommand::DrawImage(
                 snapshot,
                 dest_rect,
                 source_rect,
@@ -234,7 +238,7 @@ impl CanvasPaintThread {
                 composition_options,
                 transform,
             ),
-            Canvas2dMsg::DrawEmptyImage(
+            CanvasCommand::DrawEmptyImage(
                 image_size,
                 dest_rect,
                 source_rect,
@@ -250,7 +254,7 @@ impl CanvasPaintThread {
                 composition_options,
                 transform,
             ),
-            Canvas2dMsg::DrawImageInOther(
+            CanvasCommand::DrawImageInOther(
                 other_canvas_id,
                 dest_rect,
                 source_rect,
@@ -272,20 +276,20 @@ impl CanvasPaintThread {
                     transform,
                 );
             },
-            Canvas2dMsg::GetImageData(dest_rect, sender) => {
+            CanvasCommand::GetImageData(dest_rect, sender) => {
                 let snapshot = self.canvas(canvas_id).read_pixels(dest_rect);
                 if let Err(error) = sender.send(snapshot.to_shared()) {
                     warn!("GetImageData response failed ({error})");
                 }
             },
-            Canvas2dMsg::PutImageData(rect, snapshot) => {
+            CanvasCommand::PutImageData(rect, snapshot) => {
                 self.canvas(canvas_id)
                     .put_image_data(snapshot.to_owned(), rect);
             },
-            Canvas2dMsg::UpdateImage(canvas_epoch) => {
+            CanvasCommand::UpdateImage(canvas_epoch) => {
                 self.canvas(canvas_id).update_image_rendering(canvas_epoch);
             },
-            Canvas2dMsg::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
+            CanvasCommand::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
         }
     }
 
