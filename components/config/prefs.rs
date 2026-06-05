@@ -40,6 +40,12 @@ pub fn add_observer(observer: Box<dyn PreferencesObserver>) {
 /// Update the values of the global preferences for the current process. This also notifies the
 /// observers previously added using [`add_observer`].
 pub fn set(preferences: Preferences) {
+    // Get list of changes, returning early if the preferences haven't changed.
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
+    if changed.is_empty() {
+        return;
+    }
+
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
@@ -63,8 +69,6 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
-
-    let changed = preferences.diff(&PREFERENCES.read().unwrap());
 
     *PREFERENCES.write().unwrap() = preferences;
 
