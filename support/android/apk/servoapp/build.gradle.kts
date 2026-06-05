@@ -25,14 +25,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    // Share all of that with servoview
-    flavorDimensions.add("default")
-
-    productFlavors {
-        register("basic") {
-        }
-    }
-
     val signingKeyInfo = getSigningKeyInfo()
 
     if (signingKeyInfo != null) {
@@ -124,7 +116,7 @@ android {
 
     project.afterEvaluate {
         android.applicationVariants.forEach { variant ->
-            val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
+            val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
             val matcher = pattern.matcher(variant.name)
             if (!matcher.find()) {
                 throw GradleException("Invalid variant name for output: " + variant.name)
