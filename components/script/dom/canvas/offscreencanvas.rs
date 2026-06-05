@@ -247,10 +247,8 @@ impl OffscreenCanvas {
         cx: &mut js::context::JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !WebGL2RenderingContext::is_webgl2_enabled(
-            cx.into(),
-            self.global().reflector().get_jsobject(),
-        ) {
+        if !WebGL2RenderingContext::is_webgl2_enabled(cx, self.global().reflector().get_jsobject())
+        {
             return None;
         }
         if let Some(ctx) = self.context() {

@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -25,7 +26,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -211,14 +212,11 @@ impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
 impl ServoInternalsHelpers for ServoInternals {
     /// The navigator.servo api is exposed to about: pages except about:blank, as
     /// well as any URLs provided by embedders that register new protocol handlers.
-    #[expect(unsafe_code)]
-    fn is_servo_internal(cx: JSContext, _global: HandleObject) -> bool {
-        unsafe {
-            let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-            let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
-            let url = global_scope.get_url();
-            (url.scheme() == "about" && url.as_str() != "about:blank") ||
-                ScriptThread::is_servo_privileged(url)
-        }
+    fn is_servo_internal(cx: &mut js::context::JSContext, _global: HandleObject) -> bool {
+        let realm = CurrentRealm::assert(cx);
+        let global_scope = GlobalScope::from_current_realm(&realm);
+        let url = global_scope.get_url();
+        (url.scheme() == "about" && url.as_str() != "about:blank") ||
+            ScriptThread::is_servo_privileged(url)
     }
 }
