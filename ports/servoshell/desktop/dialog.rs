@@ -506,15 +506,11 @@ impl Dialog {
 
                     if clickable_area.clicked() && !option.is_disabled {
                         if allow_multiple {
-                            if let Some(pos) =
-                                selected_options.iter().position(|id| *id == option.id)
-                            {
-                                selected_options.remove(pos);
-                            }
                             if let Some(position) =
                                 selected_options.iter().position(|id| *id == option.id)
                             {
                                 selected_options.remove(position);
+                            } else {
                                 selected_options.push(option.id);
                             }
                         } else {
