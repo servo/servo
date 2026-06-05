@@ -237,9 +237,21 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
+        // When snapshot mode is on, pre-compute byte offsets for each shaped
+        // run within this segment so that `TextFragment::snapshot_text` can be
+        // populated without an extra string walk later.
+        let snapshot_enabled = ifc.layout_context.text_snapshot_enabled;
+        let segment_text = if snapshot_enabled {
+            Some(&ifc.ifc.text_content[self.byte_range.clone()])
+        } else {
+            None
+        };
+        let mut byte_offset_in_segment = 0usize;
+
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            let new_character_range_end = character_range_start + run.character_count();
+            let char_count = run.character_count();
+            let new_character_range_end = character_range_start + char_count;
             let offsets = ifc
                 .ifc
                 .shared_selection
@@ -249,13 +261,34 @@ impl TextRunSegment {
                     character_range: character_range_start..new_character_range_end,
                 });
 
+            // Compute the per-run byte range within the IFC text_content.
+            let snapshot_byte_range = segment_text.map(|seg| {
+                let run_byte_len: usize = seg[byte_offset_in_segment..]
+                    .chars()
+                    .take(char_count)
+                    .map(|c| c.len_utf8())
+                    .sum();
+                let start = self.byte_range.start + byte_offset_in_segment;
+                let end = start + run_byte_len;
+                byte_offset_in_segment += run_byte_len;
+                start..end
+            });
+            // Advance byte_offset_in_segment even when snapshot is disabled
+            // (we skip the map above and byte_offset_in_segment is unused then).
+
             // Break before each unbreakable run in this TextRun, except the first unless the
             // linebreaker was set to break before the first run.
             if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(run.clone(), text_run, &self.info, offsets);
+            ifc.push_glyph_store_to_unbreakable_segment(
+                run.clone(),
+                text_run,
+                &self.info,
+                offsets,
+                snapshot_byte_range,
+            );
             character_range_start = new_character_range_end;
         }
     }

@@ -351,6 +351,17 @@ impl Painter {
         self.webview_renderers.get_mut(&webview_id)
     }
 
+    /// The layout epoch of the most recently composited root display list.
+    pub(crate) fn composited_epoch(&self, webview_id: WebViewId) -> Option<Epoch> {
+        let webview_renderer = self.webview_renderer(webview_id)?;
+        let root_pipeline_id = webview_renderer.root_pipeline_id?;
+        self.webrender_renderer.as_ref().and_then(|renderer| {
+            renderer
+                .current_epoch(self.webrender_document, root_pipeline_id.into())
+                .map(|epoch| Epoch(epoch.0))
+        })
+    }
+
     /// Whether or not the renderer is waiting on a frame, either because it has been sent
     /// to WebRender and is not ready yet or because the [`FrameDelayer`] is delaying a frame
     /// waiting for asynchronous (canvas) image updates to complete.

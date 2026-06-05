@@ -13,7 +13,8 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
-    EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
+    EmbedderMsg, RenderedTextSnapshot, ScriptToEmbedderChan, Theme, UntrustedNodeAddress,
+    ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
@@ -227,6 +228,13 @@ pub struct LayoutThread {
 
     /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
+
+    /// Whether to capture a [`RenderedTextSnapshot`] after each display-list build.
+    text_snapshot_enabled: bool,
+
+    /// Whether to suppress the WebRender `push_text` call so the embedding
+    /// layer can render native text on top.
+    suppress_text_paint: bool,
 }
 
 pub struct LayoutFactoryImpl();
@@ -800,6 +808,8 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
+            text_snapshot_enabled: pref!(layout_text_snapshot_enabled),
+            suppress_text_paint: pref!(layout_suppress_text_paint),
         }
     }
 
@@ -1163,6 +1173,7 @@ impl LayoutThread {
             use_rayon: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
             painter_id: self.webview_id.into(),
+            text_snapshot_enabled: self.text_snapshot_enabled,
         };
 
         let restyle = reflow_request
@@ -1400,7 +1411,7 @@ impl LayoutThread {
             },
         };
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, text_runs) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
@@ -1409,12 +1420,32 @@ impl LayoutThread {
             &self.debug,
             paint_timing_handler,
             reflow_statistics,
+            self.suppress_text_paint,
+            self.text_snapshot_enabled,
         );
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
             built_display_list,
         );
+
+        if self.text_snapshot_enabled {
+            let paint_info = &stacking_context_tree.paint_info;
+            let scroll_offset = paint_info
+                .scroll_tree
+                .get_node(paint_info.root_scroll_node_id)
+                .offset()
+                .unwrap_or(LayoutVector2D::zero());
+            let epoch = paint_info.epoch;
+            let _ = self.embedder_chan.send(EmbedderMsg::RenderedTextSnapshot(
+                self.webview_id,
+                RenderedTextSnapshot {
+                    runs: text_runs,
+                    epoch,
+                    scroll_offset,
+                },
+            ));
+        }
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()

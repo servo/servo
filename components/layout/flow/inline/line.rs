@@ -582,6 +582,16 @@ impl LineItemLayout<'_, '_> {
             &self.layout.layout_context.font_context,
         );
 
+        let snapshot_text = text_item.snapshot_byte_range.as_ref().and_then(|range| {
+            let slice = self.layout.ifc.text_content.get(range.clone())?;
+            let trimmed = slice.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.into())
+            }
+        });
+
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
             Fragment::Text(Arc::new(TextFragment {
@@ -597,6 +607,7 @@ impl LineItemLayout<'_, '_> {
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
                 is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
+                snapshot_text,
             })),
             content_rect,
         ));
@@ -854,6 +865,9 @@ pub(super) struct TextRunLineItem {
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
+    /// Byte range into the parent IFC's `text_content`, populated only when
+    /// `LayoutContext::text_snapshot_enabled` is true.
+    pub snapshot_byte_range: Option<Range<usize>>,
 }
 
 impl TextRunLineItem {
@@ -921,6 +935,7 @@ impl TextRunLineItem {
         new_glyph_store: &Arc<ShapedTextSlice>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
+        new_snapshot_byte_range: Option<Range<usize>>,
     ) -> bool {
         if !Arc::ptr_eq(&self.info.font, &new_info.font) ||
             self.info.bidi_level != new_info.bidi_level ||
@@ -933,6 +948,13 @@ impl TextRunLineItem {
         assert_eq!(self.offsets.is_some(), new_offsets.is_some());
         if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
             existing_offsets.character_range.end = new_offsets.character_range.end;
+        }
+
+        // Extend snapshot byte range to cover the merged glyph store.
+        if let (Some(existing_range), Some(new_range)) =
+            (self.snapshot_byte_range.as_mut(), new_snapshot_byte_range)
+        {
+            existing_range.end = new_range.end;
         }
 
         true

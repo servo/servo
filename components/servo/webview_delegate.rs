@@ -10,9 +10,10 @@ use embedder_traits::{
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
     ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
     FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
-    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RenderedTextSnapshot,
+    RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SelectElementRequest,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
@@ -1037,6 +1038,22 @@ pub trait WebViewDelegate {
         &self,
         _webview: WebView,
         _tree_update: accesskit::TreeUpdate,
+    ) {
+    }
+
+    /// A new rendered-text snapshot is available for this [`WebView`].
+    ///
+    /// Called after each layout pass when the `layout_text_snapshot_enabled`
+    /// preference is set.  The snapshot contains one [`RenderedTextRun`] per
+    /// shaped text fragment in document order, with page-relative CSS-pixel
+    /// bounding rectangles and CSS foreground colors.
+    ///
+    /// Embedders that render native text (e.g. terminal browsers) should use
+    /// this to replace their JS-based text-extraction pipeline.
+    fn notify_rendered_text_snapshot(
+        &self,
+        _webview: WebView,
+        _snapshot: RenderedTextSnapshot,
     ) {
     }
 }

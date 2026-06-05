@@ -46,6 +46,10 @@ pub(crate) struct LayoutContext<'a> {
 
     /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
     pub painter_id: PainterId,
+
+    /// When true, each [`TextFragment`] stores its source text so that a
+    /// [`RenderedTextSnapshot`] can be built during display-list construction.
+    pub text_snapshot_enabled: bool,
 }
 
 pub enum ResolvedImage<'a> {

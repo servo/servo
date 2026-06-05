@@ -76,6 +76,7 @@ pub mod text_run;
 
 use std::cell::{OnceCell, RefCell};
 use std::mem;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
@@ -1565,6 +1566,7 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,
+        snapshot_byte_range: Option<Range<usize>>,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1614,7 +1616,13 @@ impl InlineFormattingContextLayout<'_> {
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
             self.current_line_segment.line_items.last_mut() &&
             *inline_box_identifier == current_inline_box_identifier &&
-            line_item.merge_if_possible(info, &glyph_store, &offsets, &text_run.inline_styles)
+            line_item.merge_if_possible(
+                info,
+                &glyph_store,
+                &offsets,
+                &text_run.inline_styles,
+                snapshot_byte_range.clone(),
+            )
         {
             return;
         }
@@ -1628,6 +1636,7 @@ impl InlineFormattingContextLayout<'_> {
                 info: info.clone(),
                 offsets: offsets.map(Box::new),
                 is_empty_for_text_cursor: false,
+                snapshot_byte_range,
             },
         ));
     }
@@ -1670,6 +1679,7 @@ impl InlineFormattingContextLayout<'_> {
                 info: Arc::new(FontAndScriptInfo::simple_for_font(font)),
                 offsets: Some(Box::new(offsets)),
                 is_empty_for_text_cursor: true,
+                snapshot_byte_range: None,
             },
         ));
         self.current_line_segment.has_content = true;

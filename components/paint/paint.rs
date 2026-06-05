@@ -32,6 +32,7 @@ use profile_traits::path;
 use profile_traits::time::{self as profile_time};
 use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::Epoch;
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use servo_config::pref;
 use servo_constellation_traits::EmbedderToConstellationMessage;
@@ -695,6 +696,12 @@ impl Paint {
     pub fn render(&self, webview_id: WebViewId) {
         self.painter_mut(webview_id.into())
             .render(&self.time_profiler_chan);
+    }
+
+    /// The layout epoch of the most recently composited root display list for
+    /// this [`WebView`], if a frame has been rendered.
+    pub fn composited_epoch(&self, webview_id: WebViewId) -> Option<Epoch> {
+        self.painter(webview_id.into()).composited_epoch(webview_id)
     }
 
     /// Get the message receiver for this [`Paint`].

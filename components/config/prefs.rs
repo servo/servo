@@ -288,6 +288,13 @@ pub struct Preferences {
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
+    /// Capture a snapshot of every shaped text fragment after each layout pass
+    /// and deliver it to the embedder via `WebViewDelegate::notify_rendered_text_snapshot`.
+    pub layout_text_snapshot_enabled: bool,
+    /// When `layout_text_snapshot_enabled` is true, suppress the WebRender `push_text`
+    /// call so that Servo's GPU/software renderer produces transparent text.  The
+    /// embedding layer is then responsible for drawing native text on top.
+    pub layout_suppress_text_paint: bool,
     // feature: Variable fonts | #38800 | Web/CSS/Guides/Fonts/Variable_fonts
     pub layout_variable_fonts_enabled: bool,
     // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
@@ -491,6 +498,8 @@ impl Preferences {
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_unimplemented: false,
+            layout_text_snapshot_enabled: false,
+            layout_suppress_text_paint: false,
             layout_variable_fonts_enabled: false,
             layout_writing_mode_enabled: false,
             media_glvideo_enabled: false,

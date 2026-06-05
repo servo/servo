@@ -433,6 +433,41 @@ pub struct BluetoothDeviceDescription {
     pub name: String,
 }
 
+/// A single rendered text run captured from Servo's layout engine.
+///
+/// We maintain positions as CSS pixels, relative to the top-left of the document
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RenderedTextRun {
+    /// Shaped text content of zhe run
+    pub text: Box<str>,
+
+    /// Bounding rectangle in CSS pixels (ralative to the page).
+    pub rect: LayoutRect,
+
+    /// CSS foreground color.
+    pub color: RgbColor,
+}
+
+/// A snapshot of all visible rendered text after a layout pass.
+///
+/// Delivered via [`WebViewDelegate::notify_rendered_text_snapshot`] when the
+/// `layout_text_snapshot_enabled` preference is set.  Text runs occluded by
+/// later opaque display items in the same paint order are omitted.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct RenderedTextSnapshot {
+    /// All text runs in document order.
+    pub runs: Vec<RenderedTextRun>,
+
+    /// The layout epoch at which this snapshot was taken.
+    pub epoch: Epoch,
+
+    /// Root viewport scroll offset in CSS pixels at snapshot time.
+    ///
+    /// Convert page-relative [`RenderedTextRun::rect`] positions to viewport
+    /// coordinates by subtracting this offset.
+    pub scroll_offset: LayoutVector2D,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -515,6 +550,9 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
+    /// Deliver a snapshot of all rendered text runs after layout, when text
+    /// snapshot capture is enabled on this [`WebView`].
+    RenderedTextSnapshot(WebViewId, RenderedTextSnapshot),
 }
 
 impl Debug for EmbedderMsg {

@@ -80,6 +80,9 @@ pub(crate) struct TextFragment {
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
+    /// Source text for this fragment, populated only when
+    /// `LayoutContext::text_snapshot_enabled` is true.
+    pub snapshot_text: Option<Box<str>>,
 }
 
 #[derive(MallocSizeOf)]

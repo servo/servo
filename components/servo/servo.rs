@@ -738,6 +738,11 @@ impl ServoInner {
                     webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
+            EmbedderMsg::RenderedTextSnapshot(webview_id, snapshot) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.process_rendered_text_snapshot(snapshot);
+                }
+            },
         }
     }
 

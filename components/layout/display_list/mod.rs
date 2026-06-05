@@ -49,6 +49,8 @@ use webrender_api::{
 };
 use wr::units::LayoutVector2D;
 
+use embedder_traits::{RenderedTextRun, RgbColor};
+
 use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
@@ -127,7 +129,26 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
+
+    /// When true, skip the WebRender `push_text` call so the embedding layer
+    /// can overlay native text without interference from Servo's renderer.
+    suppress_text_paint: bool,
+
+    /// Accumulates rendered text runs for delivery to the embedder.
+    /// `None` when `layout_text_snapshot_enabled` is false.
+    text_snapshot: Option<Vec<(RenderedTextRun, u32)>>,
+
+    /// Monotonic paint-order sequence assigned during display-list construction.
+    paint_sequence: u32,
+
+    /// Axis-aligned opaque layers encountered during display-list construction,
+    /// paired with their paint sequence.  Used to drop text runs fully covered by
+    /// content painted later in the same frame (modals, overlays, etc.).
+    occluders: Vec<(LayoutRect, u32)>,
 }
+
+/// Minimum opacity for a display item to be treated as an opaque occluder.
+const OPAQUE_ALPHA_THRESHOLD: f32 = 0.99;
 
 struct InspectorHighlight {
     /// The node that should be highlighted
@@ -178,7 +199,9 @@ impl DisplayListBuilder<'_> {
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
-    ) -> BuiltDisplayList {
+        suppress_text_paint: bool,
+        text_snapshot_enabled: bool,
+    ) -> (BuiltDisplayList, Vec<RenderedTextRun>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
         let pipeline_id = paint_info.pipeline_id;
@@ -208,6 +231,10 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
+            suppress_text_paint,
+            text_snapshot: text_snapshot_enabled.then(Vec::new),
+            paint_sequence: 0,
+            occluders: Vec::new(),
         };
 
         // Clear any caret color from previous display list constructions.
@@ -241,7 +268,37 @@ impl DisplayListBuilder<'_> {
             .build_display_list(&mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        let raw_runs = builder.text_snapshot.take().unwrap_or_default();
+        let text_runs = filter_occluded_text_runs(raw_runs, &builder.occluders);
+        (webrender_display_list_builder.end().1, text_runs)
+    }
+
+    fn next_paint_sequence(&mut self) -> u32 {
+        let sequence = self.paint_sequence;
+        self.paint_sequence += 1;
+        sequence
+    }
+
+    /// Record an axis-aligned opaque layer in paint order.
+    fn register_occluder(&mut self, rect: LayoutRect, opacity: f32) {
+        let sequence = self.next_paint_sequence();
+        if opacity >= OPAQUE_ALPHA_THRESHOLD &&
+            rect.width() > 0.0 &&
+            rect.height() > 0.0
+        {
+            self.occluders.push((rect, sequence));
+        }
+    }
+
+    /// Append a text run to the embedder snapshot in paint order.
+    fn collect_text_run(&mut self, run: RenderedTextRun) {
+        if self.text_snapshot.is_none() {
+            return;
+        }
+        let sequence = self.next_paint_sequence();
+        if let Some(snapshot) = self.text_snapshot.as_mut() {
+            snapshot.push((run, sequence));
+        }
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
@@ -693,6 +750,7 @@ impl Fragment {
                         let common = builder.common_properties(clip, &style);
 
                         if let Some(image_key) = image.image_key {
+                            builder.register_occluder(rect, 1.0);
                             builder.wr().push_image(
                                 &common,
                                 rect,
@@ -889,14 +947,31 @@ impl Fragment {
             fragment.justification_adjustment,
         );
 
-        builder.wr().push_text(
-            &common,
-            glyph_bounds,
-            &glyphs,
-            fragment.font_key,
-            rgba(color),
-            None,
-        );
+        // Collect this run for embedder-native text rendering if requested.
+        if let Some(text) = fragment.snapshot_text.as_deref() {
+            let color_srgb = color.to_color_space(ColorSpace::Srgb);
+            let rgb = RgbColor {
+                red: (color_srgb.components.0.clamp(0.0, 1.0) * 255.0) as u8,
+                green: (color_srgb.components.1.clamp(0.0, 1.0) * 255.0) as u8,
+                blue: (color_srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8,
+            };
+            builder.collect_text_run(RenderedTextRun {
+                text: text.into(),
+                rect: rect.to_webrender(),
+                color: rgb,
+            });
+        }
+
+        if !builder.suppress_text_paint {
+            builder.wr().push_text(
+                &common,
+                glyph_bounds,
+                &glyphs,
+                fragment.font_key,
+                rgba(color),
+                None,
+            );
+        }
 
         builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
@@ -1326,6 +1401,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, layer_index, bounds);
+            builder.register_occluder(bounds, background_color.alpha);
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));
@@ -2191,4 +2267,31 @@ impl BoxFragment {
         normalize_radii(&border_rect.to_webrender(), &mut radius);
         radius
     }
+}
+
+fn layout_rect_contains(outer: LayoutRect, inner: LayoutRect) -> bool {
+    inner.min.x >= outer.min.x
+        && inner.min.y >= outer.min.y
+        && inner.max.x <= outer.max.x
+        && inner.max.y <= outer.max.y
+}
+
+fn is_text_run_occluded(
+    run_rect: LayoutRect,
+    run_sequence: u32,
+    occluders: &[(LayoutRect, u32)],
+) -> bool {
+    occluders.iter().any(|(rect, sequence)| {
+        *sequence > run_sequence && layout_rect_contains(*rect, run_rect)
+    })
+}
+
+fn filter_occluded_text_runs(
+    runs: Vec<(RenderedTextRun, u32)>,
+    occluders: &[(LayoutRect, u32)],
+) -> Vec<RenderedTextRun> {
+    runs.into_iter()
+        .filter(|(run, sequence)| !is_text_run_occluded(run.rect, *sequence, occluders))
+        .map(|(run, _)| run)
+        .collect()
 }

@@ -14,8 +14,9 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    MediaSessionActionType, NewWebViewDetails, RenderedTextSnapshot, ScreenGeometry,
+    ScreenshotCaptureError, Scroll, Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint,
+    WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -652,6 +653,12 @@ impl WebView {
         self.inner().servo.paint().render(self.id());
     }
 
+    /// The layout epoch of the most recently composited root display list for
+    /// this [`WebView`], if a frame has been rendered.
+    pub fn composited_epoch(&self) -> Option<Epoch> {
+        self.inner().servo.paint().composited_epoch(self.id())
+    }
+
     /// Get the [`UserContentManager`] associated with this [`WebView`].
     pub fn user_content_manager(&self) -> Option<Rc<UserContentManager>> {
         self.inner().user_content_manager.clone()
@@ -869,6 +876,11 @@ impl WebView {
                 focus: root_node_id,
             },
         );
+    }
+
+    pub(crate) fn process_rendered_text_snapshot(&self, snapshot: RenderedTextSnapshot) {
+        self.delegate()
+            .notify_rendered_text_snapshot(self.clone(), snapshot);
     }
 
     pub(crate) fn process_accessibility_tree_update(&self, tree_update: TreeUpdate, epoch: Epoch) {
