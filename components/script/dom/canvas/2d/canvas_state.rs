@@ -22,7 +22,7 @@ use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use script_bindings::cell::DomRefCell;
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
 use servo_base::{Epoch, generic_channel};

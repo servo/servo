@@ -17,7 +17,7 @@ use script_bindings::canvas::CanvasSizeTrait;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_base::Epoch;
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::BlobImpl;

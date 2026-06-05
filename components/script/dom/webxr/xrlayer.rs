@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_canvas_traits::webgl::WebGLContextId;
 use webxr_api::LayerId;
 

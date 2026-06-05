@@ -10,7 +10,7 @@ use paint_api::SerializableImageData;
 use pixels::Snapshot;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_base::Epoch;
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};

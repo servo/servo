@@ -7,7 +7,7 @@
 use euclid::default::Size2D;
 use pixels::Snapshot;
 use script_bindings::root::{Dom, DomRoot};
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use webrender_api::ImageKey;
 
 use crate::DomTypeHolder;

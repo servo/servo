@@ -1,5 +1,5 @@
 [package]
-name = "servo-script-foo"
+name = "servo-script-shared"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -13,7 +13,7 @@ license = "MPL-2.0 AND BSD-3-Clause"
 
 
 [lib]
-name = "script_foo"
+name = "script_shared"
 path = "lib.rs"
 
 [dependencies]

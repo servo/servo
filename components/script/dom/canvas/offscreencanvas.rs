@@ -17,7 +17,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto_and_cx};
 use script_bindings::weakref::WeakRef;
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};

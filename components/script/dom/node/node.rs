@@ -39,7 +39,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
-use script_foo::canvas::CanvasNodeTrait;
+use script_shared::canvas::CanvasNodeTrait;
 use script_traits::DocumentActivity;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};

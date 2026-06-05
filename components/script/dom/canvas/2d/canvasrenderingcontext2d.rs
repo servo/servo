@@ -7,7 +7,7 @@ use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
-use script_foo::canvas::CanvasContext;
+use script_shared::canvas::CanvasContext;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
 use servo_url::ServoUrl;

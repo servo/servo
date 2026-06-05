@@ -8758,7 +8758,7 @@ dependencies = [
  "servo-pixels",
  "servo-profile-traits",
  "servo-script-bindings",
- "servo-script-foo",
+ "servo-script-shared",
  "servo-script-traits",
  "servo-storage-traits",
  "servo-timers",
@@ -8844,7 +8844,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "servo-script-foo"
+name = "servo-script-shared"
 version = "0.3.0"
 dependencies = [
  "bitflags 2.11.1",
