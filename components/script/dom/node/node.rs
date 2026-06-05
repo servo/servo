@@ -2066,8 +2066,7 @@ impl Node {
             return false;
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
-        html_element.is_some() ||
-            (!self.is::<Element>() && parent.downcast::<HTMLElement>().is_some())
+        html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
     }
 }
 

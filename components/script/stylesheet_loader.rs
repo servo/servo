@@ -378,7 +378,7 @@ impl FetchResponseListener for StylesheetContext {
         let element = self.element.root();
 
         // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:process-the-linked-resource
-        if element.downcast::<HTMLLinkElement>().is_some() {
+        if element.is::<HTMLLinkElement>() {
             // Step 1. If the resource's Content-Type metadata is not text/css, then set success to false.
             let is_css = MimeClassifier::is_css(
                 &metadata.resource_content_type_metadata(LoadContext::Style, &self.data),
