@@ -290,6 +290,11 @@ impl CanvasPaintThread {
                 self.canvas(canvas_id).update_image_rendering(canvas_epoch);
             },
             CanvasCommand::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
+            CanvasCommand::ProcessBatchMessages(messages) => {
+                for message in messages {
+                    self.process_command(message, canvas_id);
+                }
+            },
         }
     }
 

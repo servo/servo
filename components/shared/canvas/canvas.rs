@@ -526,6 +526,7 @@ pub enum CanvasCommand {
         Transform2D<f64>,
     ),
     UpdateImage(Option<Epoch>),
+    ProcessBatchMessages(Vec<CanvasCommand>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

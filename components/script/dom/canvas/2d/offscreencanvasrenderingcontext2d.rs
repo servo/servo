@@ -70,8 +70,8 @@ impl OffscreenCanvasRenderingContext2D {
         })
     }
 
-    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
-        self.context.send_canvas_command(msg)
+    pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        self.context.send_canvas_command_immediate(msg)
     }
 }
 
