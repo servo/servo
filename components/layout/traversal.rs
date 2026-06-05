@@ -308,14 +308,12 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
             // to run fragment tree layout in this subtree due to an ancestor, this node, or a
             // descendant changing style. In that case, we ask the `LayoutBoxBase` to clear
             // any cached information that cannot be used.
-            let extra_layout_damage_for_parent = Cell::new(LayoutDamage::empty());
+            let mut extra_layout_damage_for_parent = LayoutDamage::empty();
             node.with_layout_box_base_including_pseudos(|base| {
-                extra_layout_damage_for_parent.set(
-                    extra_layout_damage_for_parent.get() |
-                        base.add_damage(element_damage, damage_from_children, damage_from_parent),
-                );
+                extra_layout_damage_for_parent |=
+                    base.add_damage(element_damage, damage_from_children, damage_from_parent);
             });
-            layout_damage_for_parent.insert(extra_layout_damage_for_parent.get());
+            layout_damage_for_parent.insert(extra_layout_damage_for_parent);
         } else if (damage_from_children | element_damage)
             .contains(LayoutDamage::RecalculateOverflow)
         {
