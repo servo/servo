@@ -3729,6 +3729,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         else:
             constants = "&[]"
 
+
         if self.descriptor.interface.isNamespace():
             if self.properties.static_attrs.length():
                 attrs = f"{self.properties.static_attrs.variableName()}.get()"
