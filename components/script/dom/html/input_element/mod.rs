@@ -2047,12 +2047,12 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("type") => {
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(previous_value, _) => {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
 
                         // Ensure there was actually a change in type
-                        if attr.to_dom_string().to_string().as_str() ==
-                            self.input_type.borrow().as_str()
+                        if previous_value
+                            .is_some_and(|previous_value| **previous_value == **attr.value())
                         {
                             return;
                         }
