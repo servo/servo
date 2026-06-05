@@ -2497,6 +2497,10 @@ impl Window {
         self.as_global_scope()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Callbacks may contain `Trusted` references, which are rooted and would
+        // prevent the window from being GCed.
+        self.pending_image_callbacks.borrow_mut().clear();
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
