@@ -5,7 +5,7 @@
 use crossbeam_channel::{Sender, bounded};
 use embedder_traits::{
     EventLoopWaker,
-    webdriver_bidi::{RequestId, WebDriverBidiCommandMsg},
+    webdriver_bidi::{RequestId, WaitCondition, WebDriverBidiCommandMsg},
 };
 use rustenium_bidi_definitions::{
     Command,
@@ -436,13 +436,17 @@ impl Handler {
 
         // Step 5: let `wait condition` be `"committed"`
         // TODO: should move webdriver type to shared, like webdriver classic
-        let mut wait_condition = "committed";
+        let mut wait_condition = WaitCondition::Committed;
 
         // Step 6: if wait and wait not "none", set `wait condition`
-        if let Some(wait) = cmd.params.wait
-            && !matches!(wait, ReadinessState::None)
-        {
-            wait_condition = todo!();
+        if let Some(wait) = &cmd.params.wait {
+            match wait {
+                ReadinessState::None => {},
+                ReadinessState::Interactive => {
+                    wait_condition = WaitCondition::Interactive;
+                },
+                ReadinessState::Complete => wait_condition = WaitCondition::Complete,
+            }
         }
 
         // Step 7: let document be active document
@@ -452,10 +456,13 @@ impl Handler {
         // Step 9: let request be a new request
 
         // Step 10: await a navigation
-        // TODO: since the spec intentionally mentions await, should we change this to future?
-        // should interior mut be used?
-        let cmd_msg = WebDriverBidiCommandMsg::BrowsingContextReload((), (), ());
-        todo!()
+        let cmd_msg =
+            WebDriverBidiCommandMsg::BrowsingContextReload(todo!(), ignore_cache, wait_condition);
+        self.send_message_to_embedder(cmd_msg);
+
+        // wait for response in `try_recv`
+
+        Ok(())
     }
 
     fn handle_browsing_context_set_viewport(&self) -> WebDriverBidiResult<()> {

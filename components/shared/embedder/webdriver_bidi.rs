@@ -56,7 +56,7 @@ pub enum WebDriverBidiCommandMsg {
     Shutdown,
     // TODO: wait state should be enum
     // TODO: use named fields
-    BrowsingContextReload(BrowsingContextId, bool, bool),
+    BrowsingContextReload(BrowsingContextId, bool, WaitCondition),
     /// Pass a webdriver bidi command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverBidiScriptCommand),
@@ -67,4 +67,12 @@ pub enum WebDriverBidiCommandMsg {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverBidiScriptCommand {
     DeleteCookies(RequestSender<()>),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum WaitCondition {
+    Committed,
+    Interactive,
+    Complete,
 }
