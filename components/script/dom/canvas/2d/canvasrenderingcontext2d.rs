@@ -8,7 +8,7 @@ use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
 use servo_base::{Epoch, generic_channel};
-use servo_canvas_traits::canvas::{Canvas2dMsg, CanvasId};
+use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
@@ -84,8 +84,8 @@ impl CanvasRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
-        self.canvas_state.send_canvas_2d_msg(msg)
+    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
+        self.canvas_state.send_canvas_command(msg)
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
@@ -128,7 +128,7 @@ impl CanvasContext for CanvasRenderingContext2D {
 
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.canvas_state
-            .send_canvas_2d_msg(Canvas2dMsg::GetImageData(None, sender));
+            .send_canvas_command(CanvasCommand::GetImageData(None, sender));
         Some(receiver.recv().unwrap().to_owned())
     }
 
