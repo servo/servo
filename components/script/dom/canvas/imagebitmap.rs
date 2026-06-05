@@ -13,7 +13,7 @@ use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
 use servo_constellation_traits::SerializableImageBitmap;
 
@@ -28,7 +28,6 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::Promise;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ImageBitmap {
@@ -52,14 +51,14 @@ impl ImageBitmap {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         bitmap_data: Snapshot,
-        can_gc: CanGc,
     ) -> DomRoot<ImageBitmap> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ImageBitmap::new_inherited(bitmap_data)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -287,22 +286,21 @@ impl ImageBitmap {
         options: &ImageBitmapOptions,
         realm: &mut CurrentRealm,
     ) -> Rc<Promise> {
-        let can_gc = CanGc::from_cx(realm);
         let p = Promise::new_in_realm(realm);
 
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {
-            p.reject_error(
+            p.reject_error_with_cx(
+                realm,
                 Error::Range(c"'sw' must be a non-zero value".to_owned()),
-                can_gc,
             );
             return p;
         }
 
         if sh.is_some_and(|h| h == 0) {
-            p.reject_error(
+            p.reject_error_with_cx(
+                realm,
                 Error::Range(c"'sh' must be a non-zero value".to_owned()),
-                can_gc,
             );
             return p;
         }
@@ -310,12 +308,12 @@ impl ImageBitmap {
         // Step 2. If either options's resizeWidth or options's resizeHeight is present and is 0,
         // then return a promise rejected with an "InvalidStateError" DOMException.
         if options.resizeWidth.is_some_and(|w| w == 0) {
-            p.reject_error(Error::InvalidState(None), can_gc);
+            p.reject_error_with_cx(realm, Error::InvalidState(None));
             return p;
         }
 
         if options.resizeHeight.is_some_and(|h| h == 0) {
-            p.reject_error(Error::InvalidState(None), can_gc);
+            p.reject_error_with_cx(realm, Error::InvalidState(None));
             return p;
         }
 
@@ -356,14 +354,14 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLImageElement(ref image) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if !image.is_usable().is_ok_and(|u| u) {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise
                 // is rejected instead.
                 let Some(snapshot) = image.get_raster_image_data() else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -372,11 +370,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.4. If image is not origin-clean, then set the origin-clean flag
                 // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
@@ -388,20 +386,20 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if !video.is_usable() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // Step 6.1. If image's networkState attribute is NETWORK_EMPTY, then return
                 // a promise rejected with an "InvalidStateError" DOMException.
                 if video.is_network_state_empty() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = video.get_current_frame_data() else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -412,11 +410,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.3. If image is not origin-clean, then set the origin-clean flag
                 // of imageBitmap's bitmap to false.
                 image_bitmap.set_origin_clean(video.origin_is_clean());
@@ -428,13 +426,13 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = canvas.get_image_data() else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -443,11 +441,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
@@ -459,13 +457,13 @@ impl ImageBitmap {
             ImageBitmapSource::ImageBitmap(ref bitmap) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if bitmap.is_detached() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = bitmap.bitmap_data().clone() else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -474,11 +472,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.2. Set the origin-clean flag of imageBitmap's bitmap to the same value
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(bitmap.origin_is_clean());
@@ -490,13 +488,13 @@ impl ImageBitmap {
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = canvas.get_image_data() else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -505,11 +503,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.2. Set the origin-clean flag of the imageBitmap's bitmap to the same value
                 // as the origin-clean flag of image's bitmap.
                 image_bitmap.set_origin_clean(canvas.origin_is_clean());
@@ -552,7 +550,7 @@ impl ImageBitmap {
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
 
                 // Step 6.5. Queue a global task, using the bitmap task source,
                 // to resolve promise with imageBitmap.
@@ -563,7 +561,7 @@ impl ImageBitmap {
                 // Step 6.2. If IsDetachedBuffer(buffer) is true, then return a promise rejected
                 // with an "InvalidStateError" DOMException.
                 if image_data.is_detached() {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 }
 
@@ -583,11 +581,11 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error(Error::InvalidState(None), can_gc);
+                    p.reject_error_with_cx(realm, Error::InvalidState(None));
                     return p;
                 };
 
-                let image_bitmap = Self::new(global_scope, bitmap_data, can_gc);
+                let image_bitmap = Self::new(realm, global_scope, bitmap_data);
 
                 // Step 6.4. Queue a global task, using the bitmap task source,
                 // to resolve promise with imageBitmap.
@@ -596,7 +594,7 @@ impl ImageBitmap {
             ImageBitmapSource::CSSStyleValue(_) => {
                 // TODO: CSSStyleValue is not part of ImageBitmapSource
                 // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
-                p.reject_error(Error::NotSupported(None), can_gc);
+                p.reject_error_with_cx(realm, Error::NotSupported(None));
             },
         }
 
@@ -644,9 +642,9 @@ impl Serializable for ImageBitmap {
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
+            cx,
             owner,
             serialized.bitmap_data.to_owned(),
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -702,9 +700,9 @@ impl Transferable for ImageBitmap {
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Set value's bitmap data to serialized.[[BitmapData]].
         Ok(ImageBitmap::new(
+            cx,
             owner,
             transferred.bitmap_data.to_owned(),
-            CanGc::from_cx(cx),
         ))
     }
 
