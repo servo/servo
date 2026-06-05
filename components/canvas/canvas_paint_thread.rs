@@ -51,8 +51,8 @@ impl CanvasPaintThread {
                     select! {
                         recv(msg_receiver) -> msg => {
                             match msg {
-                                Ok(Ok((canvas_id, message))) => {
-                                    canvas_paint_thread.process_message(message, canvas_id);
+                                Ok(Ok((canvas_id, command))) => {
+                                    canvas_paint_thread.process_command(command, canvas_id);
                                 },
                                 Ok(Err(e)) => {
                                     warn!("CanvasPaintThread message deserialization error: {e:?}");
@@ -103,7 +103,7 @@ impl CanvasPaintThread {
         skip_all,
         fields(message = message.to_string())
     )]
-    fn process_message(&mut self, message: CanvasCommand, canvas_id: CanvasId) {
+    fn process_command(&mut self, message: CanvasCommand, canvas_id: CanvasId) {
         match message {
             CanvasCommand::Recreate(size) => self.canvas(canvas_id).recreate(size),
             CanvasCommand::Destroy => {
