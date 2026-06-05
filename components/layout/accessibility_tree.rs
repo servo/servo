@@ -165,7 +165,7 @@ impl AccessibilityTree {
         let id = self.id_for_opaque(dom_node.opaque());
 
         let node = self.nodes.entry(id).or_insert_with(|| {
-            update.tree_changes.insert(id, TreeChange::New);
+            update.set_tree_state_change(id, TreeChange::New);
             ArcRefCell::new(AccessibilityNode::new(id))
         });
 
@@ -367,31 +367,15 @@ impl AccessibilityNode {
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) {
-        let old_change = update.tree_changes.get(&self.id);
-
         assert!(
             change != TreeChange::New,
             "New shouldn't be set recursively"
         );
-        assert!(
-            change != TreeChange::Moved,
-            "Incoming change must never be Moved"
-        );
 
-        let new_change = old_change
-            .map(|old_change| match (old_change, change) {
-                (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
-                (TreeChange::Removed, TreeChange::PendingMove) => TreeChange::Moved,
-                _ => {
-                    unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
-                },
-            })
-            .unwrap_or(change);
+        update.set_tree_state_change(self.id, change);
 
-        update.tree_changes.insert(self.id, new_change);
-
-        for child_id in self.children().to_vec() {
-            let child = tree.assert_node_for_id(child_id);
+        for child_id in self.children().iter() {
+            let child = tree.assert_node_for_id(*child_id);
             // `new_change` might be different per node, if only some nodes were moved elsewhere.
             child
                 .borrow()
@@ -548,6 +532,31 @@ impl AccessibilityUpdate {
         node.updated = false;
     }
 
+    fn set_tree_state_change(&mut self, node_id: NodeId, change: TreeChange) {
+        let old_change = self.tree_changes.get(&node_id);
+
+        assert!(
+            change != TreeChange::Moved,
+            "Incoming change must never be Moved"
+        );
+
+        let new_change = old_change
+            .map(|old_change| match (old_change, change) {
+                (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
+                (TreeChange::Removed, TreeChange::PendingMove) => TreeChange::Moved,
+                _ => {
+                    unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
+                },
+            })
+            .unwrap_or(change);
+
+        self.tree_changes.insert(node_id, new_change);
+    }
+
+    /// Consume this `AccessibilityUpdate`, producing an [`accesskit::TreeUpdate`] if there have
+    /// been any changes to `tree`.
+    /// This will pass `self` into [`AccessibilityTree::remove_stale_nodes()`] to consume
+    /// [`Self::tree_changes`].
     fn finalize(mut self, tree: &mut AccessibilityTree) -> Option<accesskit::TreeUpdate> {
         let root_node_id = tree
             .root_node_id
