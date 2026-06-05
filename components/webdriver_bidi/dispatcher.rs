@@ -207,7 +207,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                 self.unassociated.insert(conn.id(), conn);
             },
             DispatchMessage::SessionNew(session_id, sender) => {
-                match self.static_handler.with_session_id(session_id) {
+                match self.static_handler.to_sessioned() {
                     Some(handler) => {
                         let session = Session::new(session_id, handler);
                         self.active_sessions.insert(session_id, session);

@@ -31,7 +31,7 @@ use crate::{
 };
 
 pub trait WebDriverBidiHandler: Send + Sized {
-    fn with_session_id(&self, session_id: SessionId) -> Option<Self>;
+    fn to_sessioned(&self) -> Option<Self>;
 
     /// Start processing of a command.
     fn handle(
@@ -54,16 +54,12 @@ pub trait WebDriverBidiHandler: Send + Sized {
 pub struct Handler {
     event_loop_waker: Box<dyn EventLoopWaker>,
     embedder_sender: Sender<WebDriverBidiCommandMsg>,
-    session_id: Option<SessionId>,
+    is_static: bool,
     webview_id: Option<WebViewId>,
 }
 
 /// Util methods.
 impl Handler {
-    pub fn is_static(&self) -> bool {
-        self.session_id.is_none()
-    }
-
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
         embedder_sender: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
@@ -71,7 +67,7 @@ impl Handler {
         Self {
             event_loop_waker,
             embedder_sender,
-            session_id: None,
+            is_static: true,
             webview_id: None,
         }
     }
@@ -91,15 +87,15 @@ impl Handler {
 }
 
 impl WebDriverBidiHandler for Handler {
-    fn with_session_id(&self, session_id: SessionId) -> Option<Self> {
-        if self.session_id.is_some() {
+    fn to_sessioned(&self) -> Option<Self> {
+        if !self.is_static {
             return None;
         }
 
         Some(Self {
             event_loop_waker: self.event_loop_waker.clone_box(),
             embedder_sender: self.embedder_sender.clone(),
-            session_id: Some(session_id),
+            is_static: false,
             webview_id: None,
         })
     }
@@ -291,7 +287,7 @@ impl Handler {
         dispatch_tx: Sender<DispatchMessage>,
     ) -> WebDriverBidiResult<()> {
         // Step 1. if session is not null, return "session not created" error.
-        if self.session_id.is_some() {
+        if !self.is_static {
             return Err(WebDriverBidiError::new(
                 ErrorCode::SessionNotCreated,
                 "session is not null",
