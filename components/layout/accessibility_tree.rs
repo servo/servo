@@ -181,19 +181,21 @@ impl AccessibilityTree {
     }
 
     fn node_for_dom_node(
-        &mut self,
+        &self,
         dom_node: &ServoLayoutNode<'_>,
     ) -> Option<ArcRefCell<AccessibilityNode>> {
-        let id = self.id_for_opaque(dom_node.opaque());
-        self.nodes.get(&id).cloned()
+        let id = self.existing_id_for_opaque(dom_node.opaque())?;
+        self.nodes.get(id).cloned()
     }
 
     fn assert_node_for_dom_node(
-        &mut self,
+        &self,
         dom_node: &ServoLayoutNode<'_>,
     ) -> ArcRefCell<AccessibilityNode> {
-        let id = self.id_for_opaque(dom_node.opaque());
-        let node = self.assert_node_for_id(&id);
+        let Some(id) = self.existing_id_for_opaque(dom_node.opaque()) else {
+            panic!("Node {dom_node:?} not found in accessibility tree.");
+        };
+        let node = self.assert_node_for_id(id);
         assert!(node.borrow().opaque_node == Some(dom_node.opaque()));
         node
     }
@@ -212,6 +214,10 @@ impl AccessibilityTree {
             self.opaque_node_to_id.remove(&opaque_node);
         }
         Some(node)
+    }
+
+    fn existing_id_for_opaque(&self, opaque: OpaqueNode) -> Option<&NodeId> {
+        self.opaque_node_to_id.get(&opaque)
     }
 
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
