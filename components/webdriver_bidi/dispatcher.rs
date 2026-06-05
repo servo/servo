@@ -97,8 +97,6 @@ pub struct Dispatcher<T: WebDriverBidiHandler> {
     /// A reverse map from connection to its associated session (can be `None`).
     /// Used for fast lookup when a command arrives from a connection
     session_by_connection: HashMap<ConnectionId, SessionId>,
-    /// Current request id.
-    request_id: RequestId,
     /// Recording pending requests and their target.
     pending_requests: HashMap<RequestId, ResponseTarget>,
     tx: Sender<DispatchMessage>,
@@ -116,7 +114,6 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             unassociated: Default::default(),
             active_sessions: Default::default(),
             session_by_connection: Default::default(),
-            request_id: Default::default(),
             pending_requests: Default::default(),
             tx,
             rx,
@@ -233,7 +230,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
 
     /// Handle dispatch message, command branch
     fn handle_dispatch_command(&mut self, conn_id: ConnectionId, cmd_msg: Box<CommandMessage>) {
-        let request_id = self.request_id.inc();
+        let request_id = RequestId::next();
 
         let Some(target) = self.get_response_target(conn_id, cmd_msg.id) else {
             error!("Connection not registered");

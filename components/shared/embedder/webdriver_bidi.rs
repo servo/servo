@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering::SeqCst};
+
 use serde::{Deserialize, Serialize};
 use servo_base::{
     generic_channel::GenericSender,
@@ -6,6 +8,8 @@ use servo_base::{
 use url::Url;
 
 // TODO: check traits impl of other id types in id.rs
+
+static REQUEST_ID: AtomicU64 = AtomicU64::new(0);
 
 /// The internal request id for every BiDi command.
 ///
@@ -26,16 +30,18 @@ use url::Url;
 /// To distinguish with [`CommandResponse`]'s internal id. Also
 /// this mechanism may be reused to handle classic WebDriver
 /// reqeusts later when these two impls are merged.
-// TODO: be opaque
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, Default)]
-pub struct RequestId(pub u64);
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize)]
+pub struct RequestId(u64);
 
-// TODO: refactor according to other id
+impl From<u64> for RequestId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 impl RequestId {
-    pub fn inc(&mut self) -> Self {
-        let old = *self;
-        self.0 += 1;
-        old
+    pub fn next() -> Self {
+        Self(REQUEST_ID.fetch_add(1, SeqCst))
     }
 }
 
