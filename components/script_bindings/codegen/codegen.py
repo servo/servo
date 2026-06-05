@@ -4265,7 +4265,8 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                f"        <D as DomHelpers<D>>::throw_dom_exception(SafeJSContext::from_ptr(cx.raw_cx()), {glob}, e, CanGc::deprecated_note());\n"
+                f"        let global = {glob};"
+                f"        <D as DomHelpers<D>>::throw_dom_exception(cx, global, e);\n"
                 f"        return{errorResult};\n"
                 "    },\n"
                 "};"))

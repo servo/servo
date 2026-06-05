@@ -7,12 +7,13 @@ use std::num::{NonZero, NonZeroU16};
 use std::ptr::{self, NonNull};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::conversions::latin1_to_string;
 use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
-    JSObject, JSType, ToPrimitive,
+    JS_DeprecatedStringHasLatin1Chars, JS_GetTwoByteStringCharsAndLength, JSObject, JSType,
 };
 use js::jsval::UndefinedValue;
+use js::rust::wrappers2::{JS_IsExceptionPending, ToPrimitive};
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue, ToString,
@@ -30,7 +31,7 @@ use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// String converted from an input JS Value
 enum ConvertedInput<'a> {
@@ -50,11 +51,10 @@ enum ConvertedInput<'a> {
 /// <https://tc39.es/ecma262/multipage/abstract-operations.html#sec-tostring>
 #[expect(unsafe_code)]
 fn jsval_to_primitive(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     chunk: SafeHandleValue,
     mut rval: SafeMutableHandleValue,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If argument is a String, return argument.
     // Step 2. If argument is a Symbol, throw a TypeError exception.
@@ -74,18 +74,17 @@ fn jsval_to_primitive(
     assert!(chunk.is_object());
 
     // Step 10. Let primValue be ? ToPrimitive(argument, string).
-    rooted!(in(*cx) let obj = chunk.to_object());
-    let is_success =
-        unsafe { ToPrimitive(*cx, obj.handle().into(), JSType::JSTYPE_STRING, rval.into()) };
+    rooted!(&in(cx) let obj = chunk.to_object());
+    let is_success = unsafe { ToPrimitive(cx, obj.handle(), JSType::JSTYPE_STRING, rval) };
     log::debug!("ToPrimitive is_success={:?}", is_success);
     if !is_success {
         unsafe {
-            if !JS_IsExceptionPending(*cx) {
+            if !JS_IsExceptionPending(cx) {
                 throw_dom_exception(
-                    cx,
+                    cx.into(),
                     global,
                     Error::Type(c"Cannot convert JSObject to primitive".to_owned()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
         }
@@ -213,7 +212,7 @@ fn code_point_type(value: u16) -> CodePointType {
 /// <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
 #[expect(unsafe_code)]
 pub(crate) fn encode_and_enqueue_a_chunk(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     chunk: SafeHandleValue,
     encoder: &Encoder,
@@ -222,19 +221,13 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 1. Let input be the result of converting chunk to a DOMString.
     // Step 2. Convert input to an I/O queue of code units.
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    jsval_to_primitive(
-        cx.into(),
-        global,
-        chunk,
-        rval.handle_mut(),
-        CanGc::from_cx(cx),
-    )?;
+    jsval_to_primitive(cx, global, chunk, rval.handle_mut())?;
 
     assert!(!rval.is_object());
     rooted!(&in(cx) let jsstr = unsafe { ToString(cx.raw_cx(), rval.handle()) });
     if jsstr.is_null() {
         unsafe {
-            if !JS_IsExceptionPending(cx.raw_cx()) {
+            if !JS_IsExceptionPending(cx) {
                 throw_dom_exception(
                     cx.into(),
                     global,
@@ -297,7 +290,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 
 /// <https://encoding.spec.whatwg.org/#encode-and-flush>
 pub(crate) fn encode_and_flush(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     encoder: &Encoder,
     controller: &TransformStreamDefaultController,
@@ -342,7 +335,7 @@ impl TextEncoderStream {
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoderstream>
     fn new_with_proto(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
@@ -374,7 +367,7 @@ impl TextEncoderStream {
 impl TextEncoderStreamMethods<crate::DomTypeHolder> for TextEncoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textencoderstream>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
