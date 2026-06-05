@@ -66,5 +66,3 @@ impl_from!(
     crossbeam_channel::SendError<WebDriverBidiToEmbedderMsg>,
     UnknownError
 );
-
-pub type WebDriverBidiResult<T> = ::core::result::Result<T, WebDriverBidiError>;

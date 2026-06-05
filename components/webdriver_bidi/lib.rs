@@ -27,13 +27,11 @@ pub fn start_server(
     embedder_tx: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) {
-    let handler = Handler::new(event_loop_waker, embedder_tx);
-
     thread::Builder::new()
         .name("WebDriverBiDiServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match start(SocketAddr::V4(address), handler) {
+            match start(SocketAddr::V4(address), embedder_tx, event_loop_waker) {
                 Ok(listening) => {
                     info!("WebDriver BiDi server listening on {}", listening.socket)
                 },
@@ -73,14 +71,12 @@ impl Drop for Listener {
 ///
 /// WebDriver Bidi allows implementation to reuse existing listener, and there is no reason to
 /// have multiple active listeners for non-intermediary node like servo, thus step 4 is ignored.
-pub fn start<T>(
+pub fn start(
     mut address: SocketAddr,
-    handler: T,
+    embedder_tx: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
     // TODO: implementation defined check like allow_hosts
-) -> ::std::io::Result<Listener>
-where
-    T: 'static + WebDriverBidiHandler,
-{
+) -> ::std::io::Result<Listener> {
     let listener = StdTcpListener::bind(address)?;
     listener.set_nonblocking(true)?;
     let addr = listener.local_addr()?;
@@ -111,6 +107,7 @@ where
 
     let builder = thread::Builder::new().name("webdriver dispatcher".to_string());
     builder.spawn(move || {
+        let handler = Handler::new(event_loop_waker, embedder_tx);
         Dispatcher::new(handler, dispatch_tx, dispatch_rx).run();
     })?;
 

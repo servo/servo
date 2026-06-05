@@ -31,20 +31,20 @@
 //!       |<---+           |
 //! ```
 
-use std::collections::HashMap;
+// TODO: should have a overall rewrite.
+
+use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::webdriver_bidi::RequestId;
 use indexmap::IndexMap;
 use log::error;
-use rustenium_bidi_definitions::base::{CommandMessage, SuccessEnum};
-use uuid::Uuid;
+use rustenium_bidi_definitions::base::CommandMessage;
 
 use crate::{
     connection::{Connection, ConnectionId},
-    error::WebDriverBidiResult,
     handler::WebDriverBidiHandler,
-    model::{CommandResponse, Message as BidiMessage, ResultData, SessionResult},
+    model::Message as BidiMessage,
     session::{Session, SessionId},
 };
 
@@ -85,23 +85,24 @@ struct ResponseTarget {
     pub id: u64,
 }
 
-#[derive(Debug)]
-pub struct Dispatcher<T: WebDriverBidiHandler> {
+pub struct DispatcherInner<T: WebDriverBidiHandler> {
     /// The default handler which handles static commands.
     static_handler: T,
     /// A remote end has a (ordered) set of WebSocket connections not associated
     /// with a session, which is initially empty.
-    unassociated: IndexMap<ConnectionId, Connection>,
+    unassociated: RefCell<IndexMap<ConnectionId, Connection>>,
     /// Active sessions.
-    active_sessions: IndexMap<SessionId, Session<T>>,
+    active_sessions: RefCell<IndexMap<SessionId, Session<T>>>,
     /// A reverse map from connection to its associated session (can be `None`).
     /// Used for fast lookup when a command arrives from a connection
-    session_by_connection: HashMap<ConnectionId, SessionId>,
+    session_by_connection: RefCell<HashMap<ConnectionId, SessionId>>,
     /// Recording pending requests and their target.
-    pending_requests: HashMap<RequestId, ResponseTarget>,
+    pending_requests: RefCell<HashMap<RequestId, ResponseTarget>>,
     tx: Sender<DispatchMessage>,
     rx: Receiver<DispatchMessage>,
 }
+
+pub struct Dispatcher<T: WebDriverBidiHandler>(Rc<DispatcherInner<T>>);
 
 impl<T: WebDriverBidiHandler> Dispatcher<T> {
     pub fn new(
@@ -109,7 +110,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         tx: Sender<DispatchMessage>,
         rx: Receiver<DispatchMessage>,
     ) -> Self {
-        Self {
+        Self(Rc::new(DispatcherInner {
             static_handler,
             unassociated: Default::default(),
             active_sessions: Default::default(),
@@ -117,37 +118,46 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             pending_requests: Default::default(),
             tx,
             rx,
+        }))
+    }
+
+    pub async fn run(&self) {
+        loop {
+            // TODO: select on dispatch | pending | event
         }
     }
 
-    pub fn run(&mut self) {
-        loop {
-            // dispatch message
-            while let Ok(dispatch_msg) = self.rx.try_recv() {
-                self.handle_dispatch(dispatch_msg);
-            }
-            // static handler
-            while let Ok((request_id, bidi_msg)) = self.static_handler.try_recv() {
-                self.handle_bidi(request_id, None, bidi_msg);
-            }
-            // session handlers
-            for (session_id, session) in self.active_sessions.iter() {
-                let handler = session.handler();
-                while let Ok((request_id, bidi_msg)) = handler.try_recv() {
-                    self.handle_bidi(request_id, Some(*session_id), bidi_msg);
-                }
-            }
-        }
-    }
+    // pub fn run(&mut self) {
+    //     loop {
+    //         // dispatch message
+    //         while let Ok(dispatch_msg) = self.rx.try_recv() {
+    //             self.handle_dispatch(dispatch_msg);
+    //         }
+    //         // static handler
+    //         while let Ok((request_id, bidi_msg)) = self.static_handler.event_stream() {
+    //             self.handle_bidi(request_id, None, bidi_msg);
+    //         }
+    //         // session handlers
+    //         for (session_id, session) in self.active_sessions.iter() {
+    //             let handler = session.handler();
+    //             while let Ok((request_id, bidi_msg)) = handler.event_stream() {
+    //                 self.handle_bidi(request_id, Some(*session_id), bidi_msg);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 impl<T: WebDriverBidiHandler> Dispatcher<T> {
     /// Get all connections associated with the session
     fn session_connections(&self, session_id: SessionId) -> impl Iterator<Item = &Connection> {
-        self.active_sessions
-            .get(&session_id)
-            .into_iter()
-            .flat_map(Session::connections)
+        // self.0
+        //     .active_sessions
+        //     .borrow()
+        //     .get(&session_id)
+        //     .into_iter()
+        //     .flat_map(Session::connections)
+        std::iter::empty()
     }
 
     /// Get all connections related to the specific pending request.
@@ -155,22 +165,27 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         &self,
         destination: &Destination,
     ) -> Box<dyn Iterator<Item = &Connection> + '_> {
-        match destination {
-            Destination::Connection(conn_id) => {
-                Box::new(self.unassociated.get(conn_id).into_iter())
-            },
-            Destination::Session(session_id) => Box::new(self.session_connections(*session_id)),
-        }
+        // match destination {
+        //     Destination::Connection(conn_id) => {
+        //         Box::new(self.0.unassociated.borrow().get(conn_id).into_iter())
+        //     },
+        //     Destination::Session(session_id) => Box::new(self.session_connections(*session_id)),
+        // }
+        Box::new(std::iter::empty())
     }
 
     /// Get the target for the request (command) given its connection.
     fn get_response_target(&self, conn_id: ConnectionId, id: u64) -> Option<ResponseTarget> {
         let destination = self
+            .0
             .unassociated
+            .borrow()
             .contains_key(&conn_id)
             .then_some(Destination::Connection(conn_id))
             .or_else(|| {
-                self.session_by_connection
+                self.0
+                    .session_by_connection
+                    .borrow()
                     .get(&conn_id)
                     .copied()
                     .map(Destination::Session)
@@ -183,16 +198,20 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     // TODO: return Error instead of false
     // PRECONDITION: handle_session already checks conn is not associated
     fn associate(&mut self, conn_id: ConnectionId, session_id: SessionId) -> bool {
-        let Some(connection) = self.unassociated.shift_remove(&conn_id) else {
+        let Some(connection) = self.0.unassociated.borrow_mut().shift_remove(&conn_id) else {
             return false;
         };
-        let Some(session) = self.active_sessions.get_mut(&session_id) else {
+        let mut sessions_borrow = self.0.active_sessions.borrow_mut();
+        let Some(session) = sessions_borrow.get_mut(&session_id) else {
             error!("Failed to associate: Session {session_id} not found");
             return false;
         };
 
         session.append(connection);
-        self.session_by_connection.insert(conn_id, session_id);
+        self.0
+            .session_by_connection
+            .borrow_mut()
+            .insert(conn_id, session_id);
 
         true
     }
@@ -204,13 +223,16 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             },
             // TODO: session
             DispatchMessage::NewConnection(conn) => {
-                self.unassociated.insert(conn.id(), conn);
+                self.0.unassociated.borrow_mut().insert(conn.id(), conn);
             },
             DispatchMessage::SessionNew(session_id, sender) => {
-                match self.static_handler.to_sessioned() {
+                match self.0.static_handler.to_sessioned() {
                     Some(handler) => {
                         let session = Session::new(session_id, handler);
-                        self.active_sessions.insert(session_id, session);
+                        self.0
+                            .active_sessions
+                            .borrow_mut()
+                            .insert(session_id, session);
                         sender.send(true);
                     },
                     None => {
@@ -223,7 +245,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
                 // TODO: resolve session.new
             },
             DispatchMessage::PendingResolved(request_id) => {
-                self.pending_requests.remove(&request_id);
+                self.0.pending_requests.borrow_mut().remove(&request_id);
             },
         }
     }
@@ -237,23 +259,31 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             return;
         };
 
-        let handler = match target.destination {
-            Destination::Connection(_) => &self.static_handler,
-            Destination::Session(session_id) => {
-                &self.active_sessions.get(&session_id).unwrap().handler()
-            },
-        };
+        // let handler = match target.destination {
+        //     Destination::Connection(_) => &self.0.static_handler,
+        //     Destination::Session(session_id) => &self
+        //         .0
+        //         .active_sessions
+        //         .borrow()
+        //         .get(&session_id)
+        //         .unwrap()
+        //         .handler(),
+        // };
 
-        match handler.handle(request_id, &cmd_msg, self.tx.clone()) {
-            // immediate success or immediate error
-            Ok(_) => {
-                self.pending_requests.insert(request_id, target);
-            },
-            // async result not reached
-            Err(err) => {
-                // TODO: report error
-            },
-        }
+        // TODO: should not await here, use joinset instead
+        // match handler.handle(request_id, &cmd_msg, self.0.tx.clone()) {
+        //     // immediate success or immediate error
+        //     Ok(_) => {
+        //         self.0
+        //             .pending_requests
+        //             .borrow_mut()
+        //             .insert(request_id, target);
+        //     },
+        //     // async result not reached
+        //     Err(err) => {
+        //         // TODO: report error
+        //     },
+        // }
     }
 
     fn handle_bidi(
@@ -265,9 +295,9 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
         match request_id {
             Some(request_id) => {
                 // TODO: special handle for some like session.new
-                if let Some(target) = self.pending_requests.get(&request_id) {
+                if let Some(target) = self.0.pending_requests.borrow().get(&request_id) {
                     self.send_to_target(target, bidi);
-                    self.tx.send(DispatchMessage::PendingResolved(request_id));
+                    self.0.tx.send(DispatchMessage::PendingResolved(request_id));
                     // TODO: log error
                 }
             },
@@ -294,4 +324,8 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
             conn.send(&bidi_msg);
         }
     }
+}
+
+pub trait DispatcherDelegate {
+    fn create_session(&self);
 }
