@@ -186,7 +186,7 @@ def run_servoshell(servo_binary, devtools_port):
     if process:
         process.terminate()
         try:
-            process.wait(timeout=2)
+            process.wait(timeout=CONNECTION_TIMEOUT)
         except TimeoutExpired:
             print("Warning: servoshell did not terminate", file=sys.stderr)
             process.kill()
