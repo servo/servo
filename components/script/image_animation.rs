@@ -52,7 +52,7 @@ impl ImageAnimationManager {
             .read()
             .node_to_state_map
             .values()
-            .map(|state| state.duration_to_next_frame(now))
+            .filter_map(|state| state.duration_to_next_frame(now))
             .min()
     }
 
