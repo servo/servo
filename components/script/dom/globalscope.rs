@@ -3210,14 +3210,11 @@ impl GlobalScope {
         match self.top_level_creation_url() {
             None => {
                 // Workers and worklets don't have a top-level creation URL
-                assert!(
-                    self.downcast::<WorkerGlobalScope>().is_some() ||
-                        self.downcast::<WorkletGlobalScope>().is_some()
-                );
+                assert!(self.is::<WorkerGlobalScope>() || self.is::<WorkletGlobalScope>());
                 true
             },
             Some(top_level_creation_url) => {
-                assert!(self.downcast::<Window>().is_some());
+                assert!(self.is::<Window>());
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
@@ -3233,7 +3230,7 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        if self.downcast::<Window>().is_some() || self.downcast::<WorkerGlobalScope>().is_some() {
+        if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
             return self.policy_container().csp_list;
         }
         // TODO: Worklet global scopes.

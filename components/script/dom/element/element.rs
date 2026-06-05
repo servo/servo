@@ -1359,8 +1359,7 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         // Aspect ratio when providing both width and height.
         // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
-        if (self.downcast::<HTMLImageElement>().is_some() ||
-            self.downcast::<HTMLVideoElement>().is_some()) &&
+        if (self.is::<HTMLImageElement>() || self.is::<HTMLVideoElement>()) &&
             let LengthOrPercentageOrAuto::Length(width) = width &&
             let LengthOrPercentageOrAuto::Length(height) = height
         {
@@ -2485,7 +2484,7 @@ impl Element {
             return false;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
-        if self.downcast::<HTMLScriptElement>().is_some() {
+        if self.is::<HTMLScriptElement>() {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
