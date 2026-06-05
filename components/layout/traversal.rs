@@ -69,11 +69,6 @@ where
             &mut element_data,
             note_child,
         );
-
-        #[expect(unsafe_code)]
-        unsafe {
-            dangerous_style_element.unset_dirty_descendants();
-        }
     }
 
     #[inline]
@@ -216,6 +211,14 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         )
     };
 
+    let has_dirty_descendants;
+    #[expect(unsafe_code)]
+    unsafe {
+        let dangerous_style_element = element.dangerous_style_element();
+        has_dirty_descendants = dangerous_style_element.has_dirty_descendants();
+        dangerous_style_element.unset_dirty_descendants();
+    };
+
     let mut element_and_parent_damage = element_damage | damage_from_parent;
     if is_display_none {
         node.unset_all_boxes();
@@ -245,13 +248,26 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     }
 
     let mut damage_from_children = RestyleDamage::empty();
-    for child in node.flat_tree_children() {
-        if child.is_element() {
-            damage_from_children |= compute_damage_and_rebuild_box_tree_inner(
-                layout_context,
-                child,
-                damage_for_children,
-            );
+
+    // Propagate damage into children, but only if:
+    //  1. There is a descendant that was dirty / possibly restyled.
+    //  2. We detected that we need to rebuild child boxes.
+    //  3. An ancestor will be laid out and children need to have their fragment caches cleared.
+    //
+    // In other situations, such as when layout will not run at all or when we are
+    // guaranteed that children are undamaged, we can skip traversing children entirely.
+    if has_dirty_descendants ||
+        rebuild_children ||
+        damage_for_children.contains(RestyleDamage::RELAYOUT)
+    {
+        for child in node.flat_tree_children() {
+            if child.is_element() {
+                damage_from_children |= compute_damage_and_rebuild_box_tree_inner(
+                    layout_context,
+                    child,
+                    damage_for_children,
+                );
+            }
         }
     }
 
