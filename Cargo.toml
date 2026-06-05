@@ -214,14 +214,14 @@ rustls-platform-verifier = "0.7.0"
 sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
+selectors = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
 seq-macro = "0.3.6"
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
 sha1 = "0.11"
 sha1_0_10 = { package = "sha1", version = "0.10" }
 sha2 = "0.11"
@@ -233,12 +233,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "d7e4d965d515b55b8d25a7344aa06f9bee4f0f2f" }
+stylo = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "e06a7e6a164fa41f1e6eb49a01100b2a88e0ac1f" }
 surfman = { version = "0.12.2", features = ["chains"] }
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
@@ -450,15 +450,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-[patch."https://github.com/servo/stylo"]
-selectors = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-servo_arc = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo = {git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo_atoms = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo_dom = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo_malloc_size_of = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo_static_prefs = { git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
-stylo_traits = {git="https://github.com/simonwuelker/stylo", branch="font-tag-debug" }
+# [patch."https://github.com/servo/stylo"]
+# selectors = { path = "../stylo/selectors" }
+# servo_arc = { path = "../stylo/servo_arc" }
+# stylo = { path = "../stylo/style" }
+# stylo_atoms = { path = "../stylo/stylo_atoms" }
+# stylo_dom = { path = "../stylo/stylo_dom" }
+# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
+# stylo_traits = { path = "../stylo/style_traits" }
 #
 # Or for another Git dependency:
 #
