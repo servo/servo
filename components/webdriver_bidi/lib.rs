@@ -18,6 +18,7 @@ pub mod dispatcher;
 pub mod error;
 pub mod handler;
 pub mod model;
+pub mod recv_async;
 pub mod server;
 pub mod session;
 
