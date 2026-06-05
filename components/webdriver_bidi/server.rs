@@ -101,10 +101,8 @@ where
 }
 
 async fn serve(listener: TcpListener, dispatch_tx: crossbeam_channel::Sender<DispatchMessage>) {
-    let mut conn_id = ConnectionId::default();
-
     while let Ok((stream, _)) = listener.accept().await {
-        let conn_id = conn_id.inc();
+        let conn_id = ConnectionId::next();
         let (conn_tx, conn_rx) = mpsc::unbounded_channel::<tungstenite::Message>();
 
         dispatch_tx

@@ -34,12 +34,12 @@ impl RunningAppState {
                     }
                 },
                 WebDriverBidiCommandMsg::Navigate(web_view_id, url, request_sender) => todo!(),
-                WebDriverBidiCommandMsg::Reload(web_view_id) => {
-                    if let Some(webview) = self.webview_by_id(web_view_id) {
-                        // self.set_load_status_sender(webview_id, sender);
-                        webview.reload();
-                    }
-                },
+                // WebDriverBidiCommandMsg::Reload(web_view_id) => {
+                //     if let Some(webview) = self.webview_by_id(web_view_id) {
+                //         // self.set_load_status_sender(webview_id, sender);
+                //         webview.reload();
+                //     }
+                // },
                 WebDriverBidiCommandMsg::ScriptCommand(
                     namespace_index,
                     web_driver_bidi_script_command,
@@ -47,6 +47,11 @@ impl RunningAppState {
                 WebDriverBidiCommandMsg::Shutdown => {
                     self.schedule_exit();
                 },
+                WebDriverBidiCommandMsg::BrowsingContextReload(
+                    namespace_index,
+                    _,
+                    wait_condition,
+                ) => todo!(),
             }
         }
     }

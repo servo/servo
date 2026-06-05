@@ -20,7 +20,7 @@ use rustenium_bidi_definitions::{
     storage::commands::StorageCommand,
     web_extension::commands::WebExtensionCommand,
 };
-use servo_base::id::WebViewId;
+use servo_base::id::{BrowsingContextId, WebViewId};
 use uuid::Uuid;
 
 use crate::{
@@ -422,7 +422,7 @@ impl Handler {
         cmd: &browsing_context::commands::Reload,
     ) -> WebDriverBidiResult<()> {
         // Step 1: let navigable id be "context"
-        let navigable_id = cmd.params.context;
+        let navigable_id = &cmd.params.context;
 
         // Step 2: let navigable, trying to get a navigable with id
         // TODO: impl
@@ -456,6 +456,8 @@ impl Handler {
         // Step 9: let request be a new request
 
         // Step 10: await a navigation
+        // TODO: check id
+        let browser_context_id = BrowsingContextId::new();
         let cmd_msg =
             WebDriverBidiCommandMsg::BrowsingContextReload(todo!(), ignore_cache, wait_condition);
         self.send_message_to_embedder(cmd_msg);

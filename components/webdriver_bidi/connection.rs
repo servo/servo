@@ -1,18 +1,25 @@
+use std::sync::atomic::{AtomicU64, Ordering::SeqCst};
+
 use async_tungstenite::tungstenite::Message as WsMessage;
 use log::error;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::model::Message as BidiMessage;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct ConnectionId(usize);
+static CONNECTION_ID: AtomicU64 = AtomicU64::new(0);
 
-// TODO: see how id.rs does self increment.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub struct ConnectionId(u64);
+
+impl From<u64> for ConnectionId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 impl ConnectionId {
-    pub fn inc(&mut self) -> Self {
-        let old = *self;
-        self.0 += 1;
-        old
+    pub fn next() -> Self {
+        Self(CONNECTION_ID.fetch_add(1, SeqCst))
     }
 }
 
