@@ -765,22 +765,28 @@ pub struct ImageAnimationState {
     #[conditional_malloc_size_of]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
-    pub current_loop_count: Option<u32>,
     frame_start_time: f64,
+
+    /// The number of loops that have fully completed in this [`ImageAnimationState`].
+    /// If this is greater than or equal to the maximum number of loops in the
+    /// [`RasterImage`], then the animation has ended. If it is `None`, then the image
+    /// will loop infinitely.
+    pub completed_loops: Option<u32>,
 }
 
 impl ImageAnimationState {
     pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
-        let current_loop_count = match &image.loop_count {
+        let completd_loops = match &image.loop_count {
             None => unreachable!("Loop count of an animated Image should never be None"),
             Some(repeat) if Repeat::Infinite == *repeat => None,
             _ => Some(0),
         };
+
         Self {
             image,
             active_frame: 0,
-            current_loop_count,
             frame_start_time: last_update_time,
+            completed_loops: completd_loops,
         }
     }
 
@@ -812,10 +818,9 @@ impl ImageAnimationState {
         if self.image.frames.len() <= 1 || self.is_finished() {
             return false;
         }
-        let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
-            image
+            self.image
                 .frames
                 .get(self.active_frame)
                 .unwrap()
@@ -823,32 +828,29 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
-        let mut will_loop_animation = false;
-        while remain_time_interval > 0.0 {
-            next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
-            if next_active_frame_id == 0 {
-                will_loop_animation = true;
-            }
 
-            // only check once on start of new loop.
-            if let Some(Repeat::Finite(repeat_times)) = image.loop_count &&
-                let Some(current_loop_count) = self.current_loop_count &&
-                will_loop_animation
-            {
-                will_loop_animation = false;
-                let new_loop_count = current_loop_count + 1;
-                self.current_loop_count = Some(new_loop_count);
-                if new_loop_count >= repeat_times.get() {
-                    if self.active_frame != image.frames.len() - 1 {
-                        self.active_frame = image.frames.len() - 1;
-                        self.frame_start_time = now;
-                        return true;
+        let frame_count = self.image.frames.len();
+        while remain_time_interval > 0.0 {
+            next_active_frame_id = (next_active_frame_id + 1) % frame_count;
+
+            // If the next active frame is 0, this means the animation is about to loop.
+            if next_active_frame_id == 0 {
+                self.advance_completed_loops();
+
+                // If we have just finished the animation, advance to the final frame if
+                // necessary and stop walking through frames.
+                if self.is_finished() {
+                    if self.active_frame == frame_count - 1 {
+                        return false;
                     }
-                    return false;
+                    self.active_frame = frame_count - 1;
+                    self.frame_start_time = now;
+                    return true;
                 }
             }
 
-            remain_time_interval -= image
+            remain_time_interval -= self
+                .image
                 .frames
                 .get(next_active_frame_id)
                 .unwrap()
@@ -864,15 +866,20 @@ impl ImageAnimationState {
         true
     }
 
+    /// Whether or not this animation has finished looping and has reached its final frame.
     fn is_finished(&self) -> bool {
-        let Some(Repeat::Finite(loop_times)) = self.image.loop_count.as_ref() else {
+        let Some(Repeat::Finite(maximum_loops)) = self.image.loop_count.as_ref() else {
             return false;
         };
-        let Some(current_loop_count) = self.current_loop_count else {
-            return false;
-        };
-        current_loop_count >= loop_times.get() &&
-            self.active_frame == self.image.frames.len().saturating_sub(1)
+        self.completed_loops
+            .is_some_and(|completed_loops| completed_loops >= maximum_loops.get())
+    }
+
+    /// If this animation has a finite number of loops, advance the count of completed loops.
+    fn advance_completed_loops(&mut self) {
+        if let Some(completed_loops) = self.completed_loops.as_mut() {
+            *completed_loops += 1;
+        }
     }
 }
 
