@@ -102,7 +102,7 @@ impl FragmentTree {
         let scrollable_overflow =
             self.root_fragments
                 .iter()
-                .fold(self.initial_containing_block, |overflow, fragment| {
+                .fold(euclid::Rect::default(), |overflow, fragment| {
                     // Scrollable overflow should be accumulated in the block that
                     // establishes the containing block for the element. Thus, fixed
                     // positioned fragments whose containing block is the initial
