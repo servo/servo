@@ -2410,11 +2410,11 @@ impl Window {
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     pub(crate) fn create_named_properties_object(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
-        window_named_properties::create(cx, proto, object)
+        window_named_properties::create(cx.into(), proto, object)
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
@@ -4023,7 +4023,7 @@ unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
 
 impl WindowHelpers for Window {
     fn create_named_properties_object(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {

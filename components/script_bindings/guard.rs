@@ -4,6 +4,8 @@
 
 //! Machinery to conditionally expose things.
 
+use js::context::JSContext;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use servo_config::prefs::get;
 
@@ -11,8 +13,6 @@ use crate::DomTypes;
 use crate::codegen::Globals::Globals;
 use crate::interface::is_exposed_in;
 use crate::interfaces::GlobalScopeHelpers;
-use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
 
 /// A container with a list of conditions.
 pub(crate) struct Guard<T: Clone + Copy> {
@@ -31,7 +31,7 @@ impl<T: Clone + Copy> Guard<T> {
     /// The passed handle is the object on which the value may be exposed.
     pub(crate) fn expose<D: DomTypes>(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         obj: HandleObject,
         global: HandleObject,
     ) -> Option<T> {
@@ -61,7 +61,7 @@ impl<T: Clone + Copy> Guard<T> {
 #[derive(Clone, Copy)]
 pub(crate) enum Condition {
     /// The condition is satisfied if the function returns true.
-    Func(fn(JSContext, HandleObject) -> bool),
+    Func(fn(&mut JSContext, HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
     // The condition is satisfied if the interface is exposed in the global.
@@ -71,17 +71,15 @@ pub(crate) enum Condition {
     Satisfied,
 }
 
-fn is_secure_context<D: DomTypes>(cx: JSContext) -> bool {
-    unsafe {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(JSContext::from_ptr(*cx));
-        D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)).is_secure_context()
-    }
+fn is_secure_context<D: DomTypes>(cx: &mut JSContext) -> bool {
+    let realm = CurrentRealm::assert(cx);
+    D::GlobalScope::from_current_realm(&realm).is_secure_context()
 }
 
 impl Condition {
     pub(crate) fn is_satisfied<D: DomTypes>(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         obj: HandleObject,
         global: HandleObject,
     ) -> bool {

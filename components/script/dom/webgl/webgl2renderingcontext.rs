@@ -199,7 +199,10 @@ impl WebGL2RenderingContext {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
+    pub(crate) fn is_webgl2_enabled(
+        _cx: &mut js::context::JSContext,
+        global: HandleObject,
+    ) -> bool {
         if pref!(dom_webgl2_enabled) {
             return true;
         }
@@ -4975,7 +4978,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 }
 
 impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
-    fn is_webgl2_enabled(cx: JSContext, global: HandleObject) -> bool {
+    fn is_webgl2_enabled(cx: &mut js::context::JSContext, global: HandleObject) -> bool {
         Self::is_webgl2_enabled(cx, global)
     }
 }

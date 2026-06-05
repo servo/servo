@@ -3262,7 +3262,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
-            conditions.append(f"D::{func[0]}(cx.into(), aObj)")
+            conditions.append(f"D::{func[0]}(cx, aObj)")
 
         secure = iface.getExtendedAttribute("SecureContext")
         if secure:
@@ -3285,8 +3285,8 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     """
     unforgeables = []
 
-    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx.into(), unforgeable_holder.handle(), %s, global);"
-    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx.into(), unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineLegacyUnforgeableAttrs, properties.unforgeable_attrs),
@@ -3415,7 +3415,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}::<D>(cx.into(), obj.handle(), {array.variableName()}.get(), obj.handle());"
+        members = [f"{function}::<D>(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
         name = self.descriptor.name
@@ -3676,7 +3676,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     let conditions = ${conditions};
                     let is_satisfied = conditions.iter().any(|c|
                          c.is_satisfied::<D>(
-                           cx.into(),
+                           cx,
                            HandleObject::from_raw(obj),
                            global));
                     if is_satisfied {
@@ -3778,7 +3778,7 @@ assert!(!prototype_proto.is_null());""")]
             assert not self.haveUnscopables
             code.append(CGGeneric(f"""
 rooted!(&in(cx) let mut prototype_proto_proto = prototype_proto.get());
-D::{name}::create_named_properties_object(cx.into(), prototype_proto_proto.handle(), prototype_proto.handle_mut());
+D::{name}::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
 assert!(!prototype_proto.is_null());"""))
 
         properties = {
@@ -3807,7 +3807,7 @@ assert!(!prototype_proto.is_null());"""))
 
         code.append(CGGeneric(f"""
 rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object::<D>(cx.into(),
+create_interface_prototype_object::<D>(cx,
                                   global,
                                   prototype_proto.handle(),
                                   &PrototypeClass,
@@ -3843,7 +3843,7 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 assert!(!interface_proto.is_null());
 
 rooted!(&in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object::<D>(cx.into(),
+create_noncallback_interface_object::<D>(cx,
                                     global,
                                     interface_proto.handle(),
                                     INTERFACE_OBJECT_CLASS.get(),
@@ -3930,7 +3930,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 specs.append(CGGeneric(f"({hook}::<D> as ConstructorClassHook, {name}, {length})"))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre=f"{decl} = [\n", post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx.into(), global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasLegacyUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll

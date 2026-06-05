@@ -100,7 +100,7 @@ pub(crate) unsafe fn create_namespace_interface_objects<D: DomTypes>(
     assert!(!proto.is_null());
     rooted!(&in(cx) let mut namespace = ptr::null_mut::<JSObject>());
     create_namespace_object::<D>(
-        cx.into(),
+        cx,
         global,
         proto.handle(),
         init.namespace_object_class,
@@ -125,7 +125,7 @@ pub(crate) unsafe fn create_callback_interface_objects<D: DomTypes>(
 ) {
     rooted!(&in(cx) let mut interface = ptr::null_mut::<JSObject>());
     create_callback_interface_object::<D>(
-        cx.into(),
+        cx,
         global,
         init.constants,
         init.name,
