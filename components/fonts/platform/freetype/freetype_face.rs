@@ -3,15 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::{CStr, c_long};
-use std::ptr;
+use std::mem::MaybeUninit;
+use std::{ptr, slice};
 
 use app_units::Au;
 use freetype_sys::{
     FT_Done_Face, FT_Done_MM_Var, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
-    FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_HAS_MULTIPLE_MASTERS,
-    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_Long, FT_MM_Var, FT_New_Face, FT_New_Memory_Face,
-    FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates, FT_UInt,
-    FTErrorMethods,
+    FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_Get_Sfnt_Name,
+    FT_Get_Sfnt_Name_Count, FT_HAS_MULTIPLE_MASTERS, FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT,
+    FT_Long, FT_MM_Var, FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
+    FT_Set_Var_Design_Coordinates, FT_SfntName, FT_UInt, FTErrorMethods, TT_NAME_ID_FONT_FAMILY,
 };
 use webrender_api::FontVariation;
 
@@ -234,6 +235,30 @@ impl FreeTypeFace {
         }
 
         Ok(normalized_axis_values)
+    }
+
+    pub(crate) fn family_name(&self) -> Option<String> {
+        let name_count = unsafe { FT_Get_Sfnt_Name_Count(self.face.as_ptr()) };
+        let mut name: MaybeUninit<FT_SfntName> = MaybeUninit::uninit();
+        for index in 0..name_count {
+            if unsafe { FT_Get_Sfnt_Name(self.face.as_ptr(), index, name.as_mut_ptr()) } != 0 {
+                continue;
+            }
+            let name = unsafe { name.assume_init() };
+            if name.name_id != TT_NAME_ID_FONT_FAMILY {
+                continue;
+            }
+
+            // We could check the combination of platform_id & encoding_id, but its easier to try
+            // and decode it to see if we succeed...
+            let name_bytes =
+                unsafe { slice::from_raw_parts(name.string, name.string_len as usize) };
+            if let Ok(utf8_string) = str::from_utf8(name_bytes) {
+                return Some(utf8_string.to_owned());
+            }
+        }
+
+        None
     }
 }
 

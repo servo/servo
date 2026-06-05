@@ -12,6 +12,7 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
@@ -27,9 +28,11 @@ use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use smallvec::SmallVec;
+use style::Atom;
 use style::computed_values::font_variant_caps;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::stylesheets::font_feature_values_rule::{PairValues, SingleValue};
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
@@ -54,11 +57,13 @@ pub(crate) const CALT: Tag = Tag::new(b"calt");
 pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
 pub(crate) const CLIG: Tag = Tag::new(b"clig");
 pub(crate) const COLR: Tag = Tag::new(b"COLR");
+pub(crate) const CWSH: Tag = Tag::new(b"cwsh");
 pub(crate) const FRAC: Tag = Tag::new(b"frac");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
 pub(crate) const FWID: Tag = Tag::new(b"fwid");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
+pub(crate) const HIST: Tag = Tag::new(b"hist");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
 pub(crate) const JP04: Tag = Tag::new(b"jp04");
 pub(crate) const JP78: Tag = Tag::new(b"jp78");
@@ -67,15 +72,19 @@ pub(crate) const JP90: Tag = Tag::new(b"jp90");
 pub(crate) const KERN: Tag = Tag::new(b"kern");
 pub(crate) const LIGA: Tag = Tag::new(b"liga");
 pub(crate) const LNUM: Tag = Tag::new(b"lnum");
+pub(crate) const NALT: Tag = Tag::new(b"nalt");
 pub(crate) const ONUM: Tag = Tag::new(b"onum");
+pub(crate) const ORNM: Tag = Tag::new(b"ornm");
 pub(crate) const ORDN: Tag = Tag::new(b"ordn");
 pub(crate) const PNUM: Tag = Tag::new(b"pnum");
 pub(crate) const PWID: Tag = Tag::new(b"pwid");
 pub(crate) const RUBY: Tag = Tag::new(b"ruby");
+pub(crate) const SALT: Tag = Tag::new(b"salt");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
 pub(crate) const SMPL: Tag = Tag::new(b"smpl");
 pub(crate) const SUBS: Tag = Tag::new(b"subs");
 pub(crate) const SUPS: Tag = Tag::new(b"sups");
+pub(crate) const SWSH: Tag = Tag::new(b"swsh");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
 pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
@@ -174,6 +183,10 @@ pub trait PlatformFontMethods: Sized {
         };
 
         FontTemplateDescriptor::new(weight, stretch, style)
+    }
+
+    fn family_name(&self) -> Option<Atom> {
+        None
     }
 }
 
@@ -400,6 +413,19 @@ bitflags! {
     }
 }
 
+/// Stores the value of the `font-variant-alternates` property, with identifiers
+/// resolved to font-specific values.
+#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct ResolvedFontVariantAlternates {
+    pub stylistic: Option<SingleValue>,
+    pub styleset: Vec<u32>,
+    pub character_variant: Vec<PairValues>,
+    pub swash: Option<SingleValue>,
+    pub ornaments: Option<SingleValue>,
+    pub annotation: Option<SingleValue>,
+    pub historical_forms: bool,
+}
+
 /// Various options that control text shaping.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
@@ -424,6 +450,8 @@ pub struct ShapingOptions {
     pub feature_settings: FontFeatureSettings,
     /// The value of the `font-variant-position` property.
     pub position: FontVariantPosition,
+    /// The value of the `font-variant-alternates` property.
+    pub alternates: ResolvedFontVariantAlternates,
     /// Various flags.
     pub flags: ShapingFlags,
 }
@@ -609,6 +637,21 @@ impl Font {
         _: &FallbackFontSelectionOptions,
     ) -> Option<FontRef> {
         None
+    }
+
+    /// Return the fonts declared family name (from the OpenType `name` table)
+    /// or `None` if either the platform does not support that query or the
+    /// font does not have a usable name.
+    ///
+    /// For web fonts the family name specified in the `@font-face` rule is used.
+    pub fn family_name(&self) -> Option<Atom> {
+        self.template
+            .font_face_rule()
+            .and_then(|font_face_rule| {
+                AtomicRef::filter_map(font_face_rule, |rule| rule.descriptors.font_family.as_ref())
+            })
+            .map(|font_family| font_family.name.clone())
+            .or_else(|| self.handle.family_name())
     }
 }
 

@@ -2562,6 +2562,7 @@ impl UnshapedTextRun<'_> {
             east_asian: FontVariantEastAsian::NORMAL,
             feature_settings: FontFeatureSettings::normal(),
             position: FontVariantPosition::Normal,
+            alternates: Default::default(),
         };
 
         let glyphs = font.shape_text(self.string, &options);

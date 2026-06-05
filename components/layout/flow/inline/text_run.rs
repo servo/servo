@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use fonts::{
-    FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags, ShapingOptions,
+    FontContext, FontRef, ResolvedFontVariantAlternates, ShapedTextSlice, ShapedTextSlicer,
+    ShapingFlags, ShapingOptions,
 };
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
@@ -86,6 +87,10 @@ pub(crate) struct FontAndScriptInfo {
     pub feature_settings: FontFeatureSettings,
     /// The value of the `font-variant-position` property from the original style.
     pub position: FontVariantPosition,
+    /// The value of the `font-variant-alternates` property from the original style.
+    ///
+    /// Any alternate names are already resolved at this point.
+    pub alternates: ResolvedFontVariantAlternates,
 }
 
 impl FontAndScriptInfo {
@@ -107,6 +112,7 @@ impl FontAndScriptInfo {
             east_asian: FontVariantEastAsian::NORMAL,
             feature_settings: FontFeatureSettings::normal(),
             position: FontVariantPosition::Normal,
+            alternates: Default::default(),
         }
     }
 }
@@ -149,6 +155,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             feature_settings: info.feature_settings.clone(),
             position: info.position,
             flags,
+            alternates: info.alternates.clone(),
         }
     }
 }
@@ -517,6 +524,8 @@ impl TextRun {
         let east_asian = font_style.font_variant_east_asian;
         let feature_settings = font_style.font_feature_settings.clone();
         let position = font_style.font_variant_position;
+        let alternates = font_style.font_variant_alternates.clone();
+
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -593,6 +602,9 @@ impl TextRun {
             let Some(font) = font.or_else(|| font_group.first(&layout_context.font_context)) else {
                 continue;
             };
+
+            let alternates =
+                layout_context.resolve_font_variant_alternate_identifiers_for(&font, &alternates);
             let info = FontAndScriptInfo {
                 font,
                 script,
@@ -606,6 +618,7 @@ impl TextRun {
                 numeric,
                 east_asian,
                 feature_settings: feature_settings.clone(),
+                alternates,
                 position,
             };
 
