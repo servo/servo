@@ -11,7 +11,7 @@ use rustenium_bidi_definitions::{
     Command,
     base::{CommandMessage, ErrorCode},
     browser::commands::BrowserCommand,
-    browsing_context::commands::BrowsingContextCommand,
+    browsing_context::{self, commands::BrowsingContextCommand, types::ReadinessState},
     emulation::commands::EmulationCommand,
     input::commands::InputCommand,
     network::commands::NetworkCommand,
@@ -148,7 +148,9 @@ impl WebDriverBidiHandler for Handler {
                     self.handle_browsing_context_navigate()
                 },
                 BrowsingContextCommand::Print(print) => self.handle_browsing_context_print(),
-                BrowsingContextCommand::Reload(reload) => self.handle_browsing_context_reload(),
+                BrowsingContextCommand::Reload(reload) => {
+                    self.handle_browsing_context_reload(reload)
+                },
                 BrowsingContextCommand::SetViewport(set_viewport) => {
                     self.handle_browsing_context_set_viewport()
                 },
@@ -266,6 +268,7 @@ impl WebDriverBidiHandler for Handler {
 
 /// Concrete handle methods.
 impl Handler {
+    // TODO: can non-static handlers be considered ready
     fn handle_session_status(&self) -> WebDriverBidiResult<()> {
         // TODO: currently we can directly return ready, but in future we may need to wait for
         // capabilities communication between handler and embedder.
@@ -350,6 +353,7 @@ impl Handler {
     fn handle_session_subscribe(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
+
     fn handle_session_unsubscribe(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
@@ -357,14 +361,17 @@ impl Handler {
     fn handle_browser_close(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
+
     fn handle_browser_create_user_context(&self) -> WebDriverBidiResult<()> {
         Err(WebDriverBidiError::unknown(
             "user context is not implemented yet",
         ))
     }
+
     fn handle_browser_get_client_windows(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
+
     fn handle_browser_get_user_contexts(&self) -> WebDriverBidiResult<()> {
         Err(WebDriverBidiError::unknown(
             "user context is not implemented yet",
@@ -409,9 +416,48 @@ impl Handler {
     fn handle_browsing_context_print(&self) -> WebDriverBidiResult<()> {
         todo!()
     }
-    fn handle_browsing_context_reload(&self) -> WebDriverBidiResult<()> {
+
+    fn handle_browsing_context_reload(
+        &self,
+        cmd: &browsing_context::commands::Reload,
+    ) -> WebDriverBidiResult<()> {
+        // Step 1: let navigable id be "context"
+        let navigable_id = cmd.params.context;
+
+        // Step 2: let navigable, trying to get a navigable with id
+        // TODO: impl
+        // TODO: should we keep the id here? id may be changed by other session
+
+        // Step 3: Assert navigable is not null
+        // TODO: let else
+
+        // Step 4: let ignore cache if present, or false otherwise
+        let ignore_cache = cmd.params.ignore_cache.unwrap_or(false);
+
+        // Step 5: let `wait condition` be `"committed"`
+        // TODO: should move webdriver type to shared, like webdriver classic
+        let mut wait_condition = "committed";
+
+        // Step 6: if wait and wait not "none", set `wait condition`
+        if let Some(wait) = cmd.params.wait
+            && !matches!(wait, ReadinessState::None)
+        {
+            wait_condition = todo!();
+        }
+
+        // Step 7: let document be active document
+
+        // Step 8: let url be document's url
+
+        // Step 9: let request be a new request
+
+        // Step 10: await a navigation
+        // TODO: since the spec intentionally mentions await, should we change this to future?
+        // should interior mut be used?
+        let cmd_msg = WebDriverBidiCommandMsg::BrowsingContextReload((), (), ());
         todo!()
     }
+
     fn handle_browsing_context_set_viewport(&self) -> WebDriverBidiResult<()> {
         todo!()
     }

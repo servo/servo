@@ -53,8 +53,10 @@ pub struct RequestSender<T: Serialize> {
 pub enum WebDriverBidiCommandMsg {
     TraverseHistory(WebViewId, i64),
     Navigate(WebViewId, Url, RequestSender<()>),
-    Reload(WebViewId),
     Shutdown,
+    // TODO: wait state should be enum
+    // TODO: use named fields
+    BrowsingContextReload(BrowsingContextId, bool, bool),
     /// Pass a webdriver bidi command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverBidiScriptCommand),
