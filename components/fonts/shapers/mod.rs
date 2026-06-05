@@ -59,7 +59,8 @@ pub(crate) trait GlyphShapingResult {
 
 /// Determine which OpenType features are applied for the font.
 ///
-/// The order of precedence is specified in <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>.
+/// The order of precedence for resolving font-specific font feature properties is specified in
+/// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>.
 fn compute_used_font_features(
     options: &ShapingOptions,
     font_face_rule: Option<&FontFaceRule>,
