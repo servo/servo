@@ -106,7 +106,7 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
-use embedder_traits::webdriver_bidi::WebDriverBidiCommandMsg;
+use embedder_traits::webdriver_bidi::WebDriverBidiToEmbedderMsg;
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderProxy, FocusSequenceNumber,
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
@@ -4830,7 +4830,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_webdriver_bidi_msg(&mut self, msg: WebDriverBidiCommandMsg) {
+    fn handle_webdriver_bidi_msg(&mut self, msg: WebDriverBidiToEmbedderMsg) {
         todo!()
     }
 

@@ -3,7 +3,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiCommandMsg};
+use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiToEmbedderMsg};
 use log::info;
 use tokio::net::TcpListener;
 
@@ -23,7 +23,7 @@ pub mod session;
 
 pub fn start_server(
     port: u16,
-    embedder_tx: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
+    embedder_tx: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) {
     let handler = Handler::new(event_loop_waker, embedder_tx);

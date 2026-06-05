@@ -5,7 +5,7 @@
 use crossbeam_channel::{Sender, bounded};
 use embedder_traits::{
     EventLoopWaker,
-    webdriver_bidi::{RequestId, WaitCondition, WebDriverBidiCommandMsg},
+    webdriver_bidi::{RequestId, WaitCondition, WebDriverBidiToEmbedderMsg},
 };
 use rustenium_bidi_definitions::{
     Command,
@@ -53,7 +53,7 @@ pub trait WebDriverBidiHandler: Send + Sized {
 
 pub struct Handler {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_sender: Sender<WebDriverBidiCommandMsg>,
+    embedder_sender: Sender<WebDriverBidiToEmbedderMsg>,
     is_static: bool,
     webview_id: Option<WebViewId>,
 }
@@ -62,7 +62,7 @@ pub struct Handler {
 impl Handler {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        embedder_sender: crossbeam_channel::Sender<WebDriverBidiCommandMsg>,
+        embedder_sender: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
     ) -> Self {
         Self {
             event_loop_waker,
@@ -79,7 +79,7 @@ impl Handler {
             .ok_or_else(|| WebDriverBidiError::unknown("No webview available"))
     }
 
-    fn send_message_to_embedder(&self, msg: WebDriverBidiCommandMsg) -> WebDriverBidiResult<()> {
+    fn send_message_to_embedder(&self, msg: WebDriverBidiToEmbedderMsg) -> WebDriverBidiResult<()> {
         self.embedder_sender.send(msg)?;
         self.event_loop_waker.wake();
         Ok(())
@@ -454,8 +454,11 @@ impl Handler {
         // Step 10: await a navigation
         // TODO: check id
         let browser_context_id = BrowsingContextId::new();
-        let cmd_msg =
-            WebDriverBidiCommandMsg::BrowsingContextReload(todo!(), ignore_cache, wait_condition);
+        let cmd_msg = WebDriverBidiToEmbedderMsg::BrowsingContextReload(
+            todo!(),
+            ignore_cache,
+            wait_condition,
+        );
         self.send_message_to_embedder(cmd_msg);
 
         // wait for response in `try_recv`
@@ -469,7 +472,7 @@ impl Handler {
     fn handle_browsing_context_traverse_history(&self, delta: i64) -> WebDriverBidiResult<()> {
         let webview_id = self.webview_id()?;
         // TODO: verify context open? is this in bidi spec
-        self.send_message_to_embedder(WebDriverBidiCommandMsg::TraverseHistory(
+        self.send_message_to_embedder(WebDriverBidiToEmbedderMsg::TraverseHistory(
             *webview_id,
             delta,
         ))?;

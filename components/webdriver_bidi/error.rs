@@ -3,7 +3,7 @@
 use std::io;
 
 use async_tungstenite::tungstenite;
-use embedder_traits::webdriver_bidi::WebDriverBidiCommandMsg;
+use embedder_traits::webdriver_bidi::WebDriverBidiToEmbedderMsg;
 use rustenium_bidi_definitions::base::{ErrorCode, ErrorEnum, ErrorResponse};
 
 /// This is basically a mirror of ruustenium `ErrorResponse` except `id`.
@@ -63,7 +63,7 @@ impl_from!(io::Error, UnknownError);
 impl_from!(tungstenite::Error, UnknownError);
 impl_from!(Box<dyn ::core::error::Error>, UnknownError);
 impl_from!(
-    crossbeam_channel::SendError<WebDriverBidiCommandMsg>,
+    crossbeam_channel::SendError<WebDriverBidiToEmbedderMsg>,
     UnknownError
 );
 

@@ -56,7 +56,7 @@ pub struct RequestSender<T: Serialize> {
 /// Messages to the constellation originating from the WebDriver BiDi server.
 // TODO: incomplete
 #[derive(Debug)]
-pub enum WebDriverBidiCommandMsg {
+pub enum WebDriverBidiToEmbedderMsg {
     TraverseHistory(WebViewId, i64),
     Navigate(WebViewId, Url, RequestSender<()>),
     Shutdown,
@@ -65,13 +65,13 @@ pub enum WebDriverBidiCommandMsg {
     BrowsingContextReload(BrowsingContextId, bool, WaitCondition),
     /// Pass a webdriver bidi command to the script thread of the current pipeline
     /// of a browsing context.
-    ScriptCommand(BrowsingContextId, WebDriverBidiScriptCommand),
+    ScriptCommand(BrowsingContextId, WebDriverBidiToScriptMsg),
 }
 
 /// Commands sent to the content process.
 // TODO: incomplete
 #[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverBidiScriptCommand {
+pub enum WebDriverBidiToScriptMsg {
     DeleteCookies(RequestSender<()>),
 }
 
