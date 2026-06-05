@@ -207,13 +207,39 @@ impl AccessibilityTree {
         node.clone()
     }
 
-    /// Remove the node with the given ID from the cache and return it, if it exists.
-    fn remove_node(&mut self, id: NodeId) -> Option<ArcRefCell<AccessibilityNode>> {
-        let node = self.nodes.remove(&id)?;
-        if let Some(opaque_node) = node.borrow().opaque_node {
-            self.opaque_node_to_id.remove(&opaque_node);
+    /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
+    /// the tree.
+    fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
+        for id in update
+            .tree_changes
+            .drain()
+            .filter_map(|(id, change)| match change {
+                TreeChange::PendingMove => {
+                    unreachable!(
+                        "Pending move found for node id {id:?} when draining tree state changes"
+                    );
+                },
+                TreeChange::Removed => Some(id),
+                _ => None,
+            })
+        {
+            if let Some(node) = self.nodes.remove(&id) &&
+                let Some(opaque_node) = node.borrow().opaque_node
+            {
+                self.opaque_node_to_id.remove(&opaque_node);
+            }
         }
-        Some(node)
+
+        if self
+            .debug
+            .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
+        {
+            self.print();
+        }
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            self.assert_integrity();
+        }
     }
 
     fn existing_id_for_opaque(&self, opaque: OpaqueNode) -> Option<&NodeId> {
@@ -573,26 +599,9 @@ impl AccessibilityUpdate {
             return None;
         }
 
-        for id in self
-            .tree_changes
-            .drain()
-            .filter_map(|(id, change)| match change {
-                TreeChange::PendingMove => {
-                    unreachable!(
-                        "Pending move found for node id {id:?} when draining tree state changes"
-                    );
-                },
-                TreeChange::Removed => Some(id),
-                _ => None,
-            })
-        {
-            tree.remove_node(id);
-        }
-
         let accesskit_tree = accesskit::Tree::new(root_node_id);
         let tree_update = accesskit::TreeUpdate {
-            nodes: self
-                .changed_nodes
+            nodes: std::mem::take(&mut self.changed_nodes)
                 .into_iter()
                 .map(|id| {
                     (
@@ -606,16 +615,7 @@ impl AccessibilityUpdate {
             tree_id: tree.tree_id,
         };
 
-        if tree
-            .debug
-            .is_enabled(DiagnosticsLoggingOption::AccessibilityTree)
-        {
-            tree.print();
-        }
-
-        if pref!(expensive_accessibility_test_assertions_enabled) {
-            tree.assert_integrity();
-        }
+        tree.remove_stale_nodes(self);
 
         Some(tree_update)
     }
