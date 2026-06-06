@@ -14,7 +14,7 @@ use js::context::JSContext;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::realm::AutoRealm;
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::Construct1;
 use js::rust::wrappers2::{JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
@@ -53,7 +53,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -588,43 +588,45 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+    fn WhenDefined(&self, realm: &mut CurrentRealm, name: DOMString) -> Rc<Promise> {
         let name = LocalName::from(name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_current_realm(comp, can_gc);
+            let promise = Promise::new_in_realm(realm);
             promise.reject_native(
                 &DOMException::new(
                     self.window.as_global_scope(),
                     DOMErrorName::SyntaxError,
-                    can_gc,
+                    CanGc::from_cx(realm),
                 ),
-                can_gc,
+                CanGc::from_cx(realm),
             );
             return promise;
         }
 
         // Step 2
         if let Some(definition) = self.definitions.borrow().get(&LocalName::from(&*name)) {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut constructor = UndefinedValue());
-            definition
-                .constructor
-                .safe_to_jsval(cx, constructor.handle_mut(), can_gc);
-            let promise = Promise::new_in_current_realm(comp, can_gc);
-            promise.resolve_native(&constructor.get(), can_gc);
+            rooted!(&in(*realm) let mut constructor = UndefinedValue());
+            definition.constructor.safe_to_jsval(
+                realm.into(),
+                constructor.handle_mut(),
+                CanGc::from_cx(realm),
+            );
+            let promise = Promise::new_in_realm(realm);
+            promise.resolve_native(&constructor.get(), CanGc::from_cx(realm));
             return promise;
         }
 
         // Steps 3, 4, 5, 6
         let existing_promise = self.when_defined.borrow().get(&name).cloned();
         existing_promise.unwrap_or_else(|| {
-            let promise = Promise::new_in_current_realm(comp, can_gc);
+            let promise = Promise::new_in_realm(realm);
             self.when_defined.borrow_mut().insert(name, promise.clone());
             promise
         })
     }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
     fn Upgrade(&self, node: &Node) {
         // Spec says to make a list first and then iterate the list, but
