@@ -244,30 +244,31 @@ impl CustomElementRegistry {
     }
 
     #[expect(unsafe_code)]
-    fn get_observed_attributes(
+    fn get_attributes(
         &self,
         cx: &mut js::context::JSContext,
         constructor: HandleObject,
+        name: &CStr,
     ) -> Fallible<Vec<DOMString>> {
-        rooted!(&in(cx) let mut observed_attributes = UndefinedValue());
+        rooted!(&in(cx) let mut attributes = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
                 cx.raw_cx(),
                 constructor,
-                c"observedAttributes".as_ptr(),
-                observed_attributes.handle_mut(),
+                name.as_ptr(),
+                attributes.handle_mut(),
             )
         } {
             return Err(Error::JSFailed);
         }
 
-        if observed_attributes.is_undefined() {
+        if attributes.is_undefined() {
             return Ok(Vec::new());
         }
 
         let conversion = SafeFromJSValConvertible::safe_from_jsval(
             cx.into(),
-            observed_attributes.handle(),
+            attributes.handle(),
             StringificationBehavior::Default,
             CanGc::from_cx(cx),
         );
@@ -310,43 +311,6 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::JSFailed),
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.7: Get `disabledFeatures` value
-    #[expect(unsafe_code)]
-    fn get_disabled_features(
-        &self,
-        cx: &mut js::context::JSContext,
-        constructor: HandleObject,
-    ) -> Fallible<Vec<DOMString>> {
-        rooted!(&in(cx) let mut disabled_features = UndefinedValue());
-        if unsafe {
-            !JS_GetProperty(
-                cx.raw_cx(),
-                constructor,
-                c"disabledFeatures".as_ptr(),
-                disabled_features.handle_mut(),
-            )
-        } {
-            return Err(Error::JSFailed);
-        }
-
-        if disabled_features.is_undefined() {
-            return Ok(Vec::new());
-        }
-
-        let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            disabled_features.handle(),
-            StringificationBehavior::Default,
-            CanGc::from_cx(cx),
-        );
-        match conversion {
-            Ok(ConversionResult::Success(attributes)) => Ok(attributes),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
@@ -512,7 +476,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // is not null.
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
             // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_observed_attributes(cx, constructor.handle()) {
+            match self.get_attributes(cx, constructor.handle(), c"observedAttributes") {
                 Ok(attributes) => attributes,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -526,7 +490,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
             // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_disabled_features(cx, constructor.handle()) {
+            match self.get_attributes(cx, constructor.handle(), c"disabledFeatures") {
                 Ok(sequence) => (
                     sequence.iter().any(|s| *s == "internals"),
                     sequence.iter().any(|s| *s == "shadow"),
