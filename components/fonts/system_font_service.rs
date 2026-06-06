@@ -5,6 +5,8 @@
 use std::borrow::ToOwned;
 use std::cell::OnceCell;
 use std::collections::HashMap;
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
+use std::ffi::CString;
 use std::thread;
 
 use app_units::Au;
@@ -23,12 +25,13 @@ use rustc_hash::FxHashMap;
 use servo_base::generic_channel::{self, GenericReceiver};
 use servo_base::id::PainterId;
 use servo_config::pref;
+use servo_config::prefs::FontFamilyPref;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font_store::FontStore;
 use crate::platform::font_list::{
-    default_system_generic_font_family, for_each_available_family, for_each_variation,
+    self, default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
 
 #[derive(Default, MallocSizeOf)]
@@ -331,21 +334,41 @@ impl SystemFontService {
 
         resolved_font
             .get_or_init(|| {
-                // First check whether the font is set in the preferences.
-                let family_name = match generic {
-                    GenericFontFamily::None => pref!(fonts_default),
+                // Get the configured font for this style.
+                let family = match generic {
                     GenericFontFamily::Serif => pref!(fonts_serif),
                     GenericFontFamily::SansSerif => pref!(fonts_sans_serif),
                     GenericFontFamily::Monospace => pref!(fonts_monospace),
-                    _ => String::new(),
+                    _ => pref!(fonts_default),
                 };
 
-                if !family_name.is_empty() {
-                    return family_name.into();
-                }
+                let style = match family {
+                    FontFamilyPref::None => *generic,
+                    FontFamilyPref::Serif => GenericFontFamily::Serif,
+                    FontFamilyPref::SansSerif => GenericFontFamily::SansSerif,
+                    FontFamilyPref::Monospace => GenericFontFamily::Monospace,
+                    FontFamilyPref::Other(family) if family.is_empty() => *generic,
+                    FontFamilyPref::Other(family) => {
+                        // Attempt to load font as pattern through fontconfig on Linux.
+                        #[cfg(any(
+                            target_os = "linux",
+                            target_os = "android",
+                            target_os = "freebsd"
+                        ))]
+                        {
+                            if let Some(family) = CString::new(&*family).ok().and_then(|c_family| {
+                                font_list::system_font_family(c_family.as_c_str())
+                            }) {
+                                return family;
+                            }
+                        }
 
-                // Otherwise ask the platform for the default family for the generic font.
-                default_system_generic_font_family(*generic)
+                        return family.into();
+                    },
+                };
+
+                // Load the default system font for the selected style.
+                default_system_generic_font_family(style)
             })
             .clone()
     }

@@ -94,10 +94,10 @@ macro_rules! pref {
 /// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 #[derive(Clone, Deserialize, Serialize, ServoPreferences)]
 pub struct Preferences {
-    pub fonts_default: String,
-    pub fonts_serif: String,
-    pub fonts_sans_serif: String,
-    pub fonts_monospace: String,
+    pub fonts_default: FontFamilyPref,
+    pub fonts_serif: FontFamilyPref,
+    pub fonts_sans_serif: FontFamilyPref,
+    pub fonts_monospace: FontFamilyPref,
     pub fonts_default_size: i64,
     pub fonts_default_monospace_size: i64,
     /// The amount of time that a half cycle of a text caret blink takes in milliseconds.
@@ -447,12 +447,12 @@ impl Preferences {
             dom_visual_viewport_enabled: false,
             accessibility_enabled: false,
             expensive_accessibility_test_assertions_enabled: false,
-            fonts_default: String::new(),
+            fonts_default: FontFamilyPref::None,
             fonts_default_monospace_size: 13,
             fonts_default_size: 16,
-            fonts_monospace: String::new(),
-            fonts_sans_serif: String::new(),
-            fonts_serif: String::new(),
+            fonts_monospace: FontFamilyPref::Monospace,
+            fonts_sans_serif: FontFamilyPref::SansSerif,
+            fonts_serif: FontFamilyPref::Serif,
             gfx_precache_shaders: false,
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
@@ -614,6 +614,54 @@ impl UserAgentPlatform {
             UserAgentPlatform::Ios => format!(
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
             ),
+        }
+    }
+}
+
+/// Embedder-defined font family.
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Debug)]
+pub enum FontFamilyPref {
+    /// No font preference, the font will be picked based on context.
+    None,
+    /// Pick the system's recommended Serif font.
+    Serif,
+    /// Pick the system's recommended Sans-Serif font.
+    SansSerif,
+    /// Pick the system's recommended Monospace font.
+    Monospace,
+    /// Select a specific font family.
+    ///
+    /// This does not perform font fallback on all platforms. If font fallback is not
+    /// supported and no family match can be found, the fallback font will be used
+    /// instead.
+    Other(String),
+}
+
+impl TryFrom<PrefValue> for FontFamilyPref {
+    type Error = String;
+
+    fn try_from(pref: PrefValue) -> Result<Self, Self::Error> {
+        match pref {
+            PrefValue::Str(s) => match s.as_str() {
+                "" => Ok(Self::None),
+                "style=serif" => Ok(Self::Serif),
+                "style=sans-serif" => Ok(Self::SansSerif),
+                "style=mono" => Ok(Self::Monospace),
+                _ => Ok(Self::Other(s)),
+            },
+            _ => Err(format!("Cannot convert {pref:?} to FontFamilyPref")),
+        }
+    }
+}
+
+impl From<FontFamilyPref> for PrefValue {
+    fn from(font: FontFamilyPref) -> Self {
+        match font {
+            FontFamilyPref::None => PrefValue::Str(String::new()),
+            FontFamilyPref::Serif => PrefValue::Str(String::from("style=serif")),
+            FontFamilyPref::SansSerif => PrefValue::Str(String::from("style=sans-serif")),
+            FontFamilyPref::Monospace => PrefValue::Str(String::from("style=mono")),
+            FontFamilyPref::Other(family) => PrefValue::Str(family),
         }
     }
 }

@@ -17,6 +17,8 @@ use bpaf::*;
 use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
+#[cfg(test)]
+use servo::FontFamilyPref;
 use servo::user_contents::UserStyleSheet;
 use servo::{
     DeviceIndependentPixel, DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions,
@@ -816,7 +818,10 @@ fn test_parse_pref_from_command_line() {
 
     // Test string.
     let preferences = test_parse_pref("fonts_default=Lucida");
-    assert_eq!(preferences.fonts_default, "Lucida");
+    assert_eq!(
+        preferences.fonts_default,
+        FontFamilyPref::Other("Lucida".into())
+    );
 
     // Test with no value (defaults to true).
     let preferences = test_parse_pref("dom_bluetooth_enabled");

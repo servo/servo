@@ -233,9 +233,26 @@ pub(crate) fn default_system_generic_font_family(
         GenericFontFamily::SystemUi => c"sans-serif",
     };
 
-    let generic_name_ptr = generic_string.as_ptr();
+    system_font_family(generic_string).unwrap_or_else(|| {
+        match generic {
+            GenericFontFamily::None | GenericFontFamily::Serif => "Noto Serif",
+            GenericFontFamily::SansSerif => "Noto Sans",
+            GenericFontFamily::Monospace => "Deja Vu Sans Mono",
+            GenericFontFamily::Cursive => "Comic Sans MS",
+            GenericFontFamily::Fantasy => "Impact",
+            GenericFontFamily::SystemUi => "Noto Sans",
+        }
+        .into()
+    })
+}
+
+/// Attempt to get the canonical name for a font or font pattern.
+pub(crate) fn system_font_family(pattern: &CStr) -> Option<LowercaseFontFamilyName> {
+    let mut name = None;
+
+    let pattern_ptr = pattern.as_ptr();
     unsafe {
-        let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
+        let pattern = FcNameParse(pattern_ptr as *mut FcChar8);
         FcConfigSubstitute(ptr::null_mut(), pattern, FcMatchPattern);
         FcDefaultSubstitute(pattern);
 
@@ -255,25 +272,14 @@ pub(crate) fn default_system_generic_font_family(
                 .expect("Font family name contains invalid UTF-8")
                 .to_owned();
 
-            FcPatternDestroy(family_match);
-            FcPatternDestroy(pattern);
-
-            return family_name.into();
+            name = Some(family_name.into());
         }
 
         FcPatternDestroy(family_match);
         FcPatternDestroy(pattern);
     }
 
-    match generic {
-        GenericFontFamily::None | GenericFontFamily::Serif => "Noto Serif",
-        GenericFontFamily::SansSerif => "Noto Sans",
-        GenericFontFamily::Monospace => "Deja Vu Sans Mono",
-        GenericFontFamily::Cursive => "Comic Sans MS",
-        GenericFontFamily::Fantasy => "Impact",
-        GenericFontFamily::SystemUi => "Noto Sans",
-    }
-    .into()
+    name
 }
 
 fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStyle> {
