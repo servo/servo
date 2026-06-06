@@ -252,7 +252,9 @@ fn html_constructor(
             return Err(());
         }
 
-        JS_SetPrototype(cx, element.handle(), prototype.handle());
+        if !JS_SetPrototype(cx, element.handle(), prototype.handle()) {
+            return Err(());
+        }
 
         result.safe_to_jsval(
             cx.into(),
