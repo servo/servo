@@ -10,12 +10,13 @@ use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, ns};
+use js::context::JSContext;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::AutoRealm;
-use js::rust::wrappers::{Construct1, JS_GetProperty};
-use js::rust::wrappers2::SameValue;
+use js::rust::wrappers::Construct1;
+use js::rust::wrappers2::{JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
@@ -53,7 +54,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::realms::{InRealm, enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
@@ -177,17 +178,13 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn check_prototype(
         &self,
+        cx: &mut JSContext,
         constructor: HandleObject,
         mut prototype: MutableHandleValue,
     ) -> ErrorResult {
         unsafe {
             // Step 10.1
-            if !JS_GetProperty(
-                *GlobalScope::get_cx(),
-                constructor,
-                c"prototype".as_ptr(),
-                prototype.reborrow(),
-            ) {
+            if !JS_GetProperty(cx, constructor, c"prototype".as_ptr(), prototype.reborrow()) {
                 return Err(Error::JSFailed);
             }
 
@@ -204,10 +201,11 @@ impl CustomElementRegistry {
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// This function includes both steps 14.3 and 14.4 which add the callbacks to a map and
     /// process them.
-    #[expect(unsafe_code)]
-    unsafe fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
-        let cx = GlobalScope::get_cx();
-
+    fn get_callbacks(
+        &self,
+        cx: &mut JSContext,
+        prototype: HandleObject,
+    ) -> Fallible<LifecycleCallbacks> {
         // Step 4
         Ok(LifecycleCallbacks {
             connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
@@ -228,17 +226,16 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     unsafe fn add_form_associated_callbacks(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         prototype: HandleObject,
         callbacks: &mut LifecycleCallbacks,
     ) -> ErrorResult {
         callbacks.form_associated_callback =
-            get_callback(cx.into(), prototype, c"formAssociatedCallback")?;
-        callbacks.form_reset_callback = get_callback(cx.into(), prototype, c"formResetCallback")?;
-        callbacks.form_disabled_callback =
-            get_callback(cx.into(), prototype, c"formDisabledCallback")?;
+            get_callback(cx, prototype, c"formAssociatedCallback")?;
+        callbacks.form_reset_callback = get_callback(cx, prototype, c"formResetCallback")?;
+        callbacks.form_disabled_callback = get_callback(cx, prototype, c"formDisabledCallback")?;
         callbacks.form_state_restore_callback =
-            get_callback(cx.into(), prototype, c"formStateRestoreCallback")?;
+            get_callback(cx, prototype, c"formStateRestoreCallback")?;
 
         Ok(())
     }
@@ -246,19 +243,12 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn get_attributes(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         constructor: HandleObject,
         name: &CStr,
     ) -> Fallible<Vec<DOMString>> {
         rooted!(&in(cx) let mut attributes = UndefinedValue());
-        if unsafe {
-            !JS_GetProperty(
-                cx.raw_cx(),
-                constructor,
-                name.as_ptr(),
-                attributes.handle_mut(),
-            )
-        } {
+        if unsafe { !JS_GetProperty(cx, constructor, name.as_ptr(), attributes.handle_mut()) } {
             return Err(Error::JSFailed);
         }
 
@@ -284,13 +274,13 @@ impl CustomElementRegistry {
     #[expect(unsafe_code)]
     fn get_form_associated_value(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         constructor: HandleObject,
     ) -> Fallible<bool> {
         rooted!(&in(cx) let mut form_associated_value = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
-                cx.raw_cx(),
+                cx,
                 constructor,
                 c"formAssociated".as_ptr(),
                 form_associated_value.handle_mut(),
@@ -321,19 +311,14 @@ impl CustomElementRegistry {
 /// Step 14.4: Get `callbackValue` for all `callbackName` in `lifecycleCallbacks`.
 #[expect(unsafe_code)]
 fn get_callback(
-    cx: JSContext,
+    cx: &mut JSContext,
     prototype: HandleObject,
     name: &CStr,
 ) -> Fallible<Option<Rc<Function>>> {
-    rooted!(in(*cx) let mut callback = UndefinedValue());
+    rooted!(&in(cx) let mut callback = UndefinedValue());
     unsafe {
         // Step 10.4.1
-        if !JS_GetProperty(
-            *cx,
-            prototype,
-            name.as_ptr() as *const _,
-            callback.handle_mut(),
-        ) {
+        if !JS_GetProperty(cx, prototype, name.as_ptr(), callback.handle_mut()) {
             return Err(Error::JSFailed);
         }
 
@@ -344,7 +329,7 @@ fn get_callback(
                     c"Lifecycle callback is not callable".to_owned(),
                 ));
             }
-            Ok(Some(Function::new(cx, callback.to_object())))
+            Ok(Some(Function::new(cx.into(), callback.to_object())))
         } else {
             Ok(None)
         }
@@ -356,7 +341,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         name: DOMString,
         constructor_: Rc<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
@@ -448,7 +433,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         rooted!(&in(cx) let mut prototype = UndefinedValue());
         {
             // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
+            if let Err(error) =
+                self.check_prototype(cx, constructor.handle(), prototype.handle_mut())
+            {
                 self.element_definition_is_running.set(false);
                 return Err(error);
             }
@@ -462,8 +449,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         rooted!(&in(cx) let proto_object = prototype.to_object());
         let mut callbacks = {
             // let _realm = AutoRealm::new_from_handle(cx, proto_object.handle());
-            let callbacks = unsafe { self.get_callbacks(proto_object.handle()) };
-            match callbacks {
+            match self.get_callbacks(cx, proto_object.handle()) {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -580,12 +566,12 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
-    fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
+    fn Get(&self, cx: &mut JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
             Some(definition) => {
                 definition
                     .constructor
-                    .safe_to_jsval(cx, retval, CanGc::deprecated_note())
+                    .safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx))
             },
             None => retval.set(UndefinedValue()),
         }
@@ -839,7 +825,7 @@ impl CustomElementDefinition {
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 pub(crate) fn upgrade_element(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     definition: Rc<CustomElementDefinition>,
     element: &Element,
 ) {
@@ -957,7 +943,7 @@ pub(crate) fn upgrade_element(
 /// Steps 9.1-9.4
 #[expect(unsafe_code)]
 fn run_upgrade_constructor(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     definition: &CustomElementDefinition,
     element: &Element,
 ) -> ErrorResult {
@@ -1053,7 +1039,7 @@ pub(crate) enum CustomElementReaction {
 
 impl CustomElementReaction {
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    pub(crate) fn invoke(&self, cx: &mut js::context::JSContext, element: &Element) {
+    pub(crate) fn invoke(&self, cx: &mut JSContext, element: &Element) {
         // Step 2.1
         match *self {
             CustomElementReaction::Upgrade(ref definition) => {
@@ -1124,7 +1110,7 @@ impl CustomElementReactionStack {
         self.stack.borrow_mut().push(ElementQueue::new());
     }
 
-    pub(crate) fn pop_current_element_queue(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn pop_current_element_queue(&self, cx: &mut JSContext) {
         rooted_vec!(let mut stack);
         mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
 
@@ -1139,7 +1125,7 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
     /// Step 4
-    pub(crate) fn invoke_backup_element_queue(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn invoke_backup_element_queue(&self, cx: &mut JSContext) {
         // Step 4.1
         self.backup_queue.invoke_reactions(cx);
 
@@ -1358,7 +1344,7 @@ impl ElementQueue {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    fn invoke_reactions(&self, cx: &mut js::context::JSContext) {
+    fn invoke_reactions(&self, cx: &mut JSContext) {
         // Steps 1-2
         while let Some(element) = self.next_element() {
             element.invoke_reactions(cx)
