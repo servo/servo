@@ -27,13 +27,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    flavorDimensions.add("default")
-
-    productFlavors {
-        register("basic") {
-        }
-    }
-
     buildTypes {
         // Default debug and release build types are used as templates
         debug {
@@ -137,8 +130,8 @@ android {
         // as to prevent concurrent modification exceptions due to creating a new task
         // while iterating
         tasks.mapNotNull { compileTask -> // mapNotNull acts as our filter, null results are dropped
-            // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
-            val pattern = Pattern.compile("^merge[A-Z]\\w+([A-Z]\\w+)(Debug|Release)JniLibFolders")
+            // This matches the task `mergeArmv7DebugJniLibFolders`.
+            val pattern = Pattern.compile("^merge([A-Z]\\w+)(Debug|Release)JniLibFolders")
             val matcher = pattern.matcher(compileTask.name)
             if (matcher.find())
                 compileTask to matcher.group(1)
@@ -162,7 +155,7 @@ android {
         }
 
         android.libraryVariants.forEach { variant ->
-            val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
+            val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
             val matcher = pattern.matcher(variant.name)
             if (!matcher.find()) {
                 throw GradleException("Invalid variant name for output: " + variant.name)
