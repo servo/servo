@@ -432,9 +432,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.1 - 14.2: Get the value of the prototype.
         rooted!(&in(cx) let mut prototype = UndefinedValue());
         {
-            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
             if let Err(error) =
-                self.check_prototype(cx, constructor.handle(), prototype.handle_mut())
+                self.check_prototype(&mut realm, constructor.handle(), prototype.handle_mut())
             {
                 self.element_definition_is_running.set(false);
                 return Err(error);
@@ -448,8 +448,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // if one of the callback getters throws an exception.
         rooted!(&in(cx) let proto_object = prototype.to_object());
         let mut callbacks = {
-            // let _realm = AutoRealm::new_from_handle(cx, proto_object.handle());
-            match self.get_callbacks(cx, proto_object.handle()) {
+            let mut realm = AutoRealm::new_from_handle(cx, proto_object.handle());
+            match self.get_callbacks(&mut realm, proto_object.handle()) {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -461,8 +461,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
-            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(cx, constructor.handle(), c"observedAttributes") {
+            let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_attributes(&mut realm, constructor.handle(), c"observedAttributes") {
                 Ok(attributes) => attributes,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -475,8 +475,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
-            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(cx, constructor.handle(), c"disabledFeatures") {
+            let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_attributes(&mut realm, constructor.handle(), c"disabledFeatures") {
                 Ok(sequence) => (
                     sequence.iter().any(|s| *s == "internals"),
                     sequence.iter().any(|s| *s == "shadow"),
@@ -490,8 +490,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.11 - 14.12: Handle `formAssociated`.
         let form_associated = {
-            // let _realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_form_associated_value(cx, constructor.handle()) {
+            let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
+            match self.get_form_associated_value(&mut realm, constructor.handle()) {
                 Ok(flag) => flag,
                 Err(error) => {
                     self.element_definition_is_running.set(false);
@@ -502,11 +502,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 14.13: Add the `formAssociated` callbacks.
         if form_associated {
-            // let _realm = AutoRealm::new_from_handle(cx, proto_object.handle());
+            let mut realm = AutoRealm::new_from_handle(cx, proto_object.handle());
             unsafe {
-                if let Err(error) =
-                    self.add_form_associated_callbacks(cx, proto_object.handle(), &mut callbacks)
-                {
+                if let Err(error) = self.add_form_associated_callbacks(
+                    &mut realm,
+                    proto_object.handle(),
+                    &mut callbacks,
+                ) {
                     self.element_definition_is_running.set(false);
                     return Err(error);
                 }
