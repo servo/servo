@@ -203,11 +203,12 @@ previewers.Array = [ function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const arrayLength = lengthDescriptor ? lengthDescriptor.value : 0;
 
-    let preview = { kind: "ArrayLike", arrayLength, items: [] };
+    let preview = { kind: "ArrayLike", arrayLength };
     if (depth > 1) {
-        return undefined;
+        return preview;
     }
 
+    preview.items = [];
     for (let i = 0; i < arrayLength; i++) {
         try {
             const desc = obj.getOwnPropertyDescriptor(i);
