@@ -37,7 +37,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, get_property, get_property_jsval};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::stream::writablestream::WritableStream;
@@ -46,7 +46,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
@@ -424,15 +423,13 @@ impl PipeTo {
         if chunk.is_object() {
             rooted!(&in(cx) let object = chunk.to_object());
             rooted!(&in(cx) let mut bytes = UndefinedValue());
-            let has_value =
-                get_dictionary_property(cx, object.handle(), c"value", bytes.handle_mut())
-                    .expect("Chunk should have a value.");
-            if has_value {
-                // Write the chunk.
-                let write_promise = self.writer.write(cx, global, bytes.handle());
-                self.pending_writes.borrow_mut().push_back(write_promise);
-                return true;
-            }
+            get_property_jsval(cx, object.handle(), c"value", bytes.handle_mut())
+                .expect("Chunk should have a value.");
+
+            // Write the chunk.
+            let write_promise = self.writer.write(cx, global, bytes.handle());
+            self.pending_writes.borrow_mut().push_back(write_promise);
+            return true;
         }
         false
     }
@@ -2331,22 +2328,21 @@ pub(crate) fn get_type_and_value_from_message(
     rooted!(&in(cx) let data_object = data.to_object());
 
     // Let type be ! Get(data, "type").
-    rooted!(&in(cx) let mut type_ = UndefinedValue());
-    get_dictionary_property(cx, data_object.handle(), c"type", type_.handle_mut())
-        .expect("Getting the type should not fail.");
+    let type_ = get_property::<DOMString>(
+        cx,
+        data_object.handle(),
+        c"type",
+        StringificationBehavior::Empty,
+    );
 
     // Let value be ! Get(data, "value").
-    get_dictionary_property(cx, data_object.handle(), c"value", value)
+    get_property_jsval(cx, data_object.handle(), c"value", value)
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result = DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty)
-        .expect("The type of the message should be a string");
-    let ConversionResult::Success(type_string) = result else {
-        unreachable!("The type of the message should be a string");
-    };
-
-    type_string
+    type_
+        .expect("The type of the message should be a string")
+        .expect("Property should be present")
 }
 
 impl js::gc::Rootable for CrossRealmTransformReadable {}
@@ -2435,16 +2431,8 @@ pub(crate) fn get_read_promise_done(
     }
 
     rooted!(&in(cx) let object = v.to_object());
-    rooted!(&in(cx) let mut done = UndefinedValue());
-    match get_dictionary_property(cx, object.handle(), c"done", done.handle_mut()) {
-        Ok(true) => match bool::safe_from_jsval(cx, done.handle(), ()) {
-            Ok(ConversionResult::Success(val)) => Ok(val),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
-        },
-        Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
-        Err(()) => Err(Error::JSFailed),
-    }
+    get_property::<bool>(cx, object.handle(), c"done", ())?
+        .ok_or(Error::Type(c"Promise has no done property.".to_owned()))
 }
 
 /// Get the `value` property of an object that a read promise resolved to.
@@ -2459,18 +2447,13 @@ pub(crate) fn get_read_promise_bytes(
     }
 
     rooted!(&in(cx) let object = v.to_object());
-    rooted!(&in(cx) let mut bytes = UndefinedValue());
-    match get_dictionary_property(cx, object.handle(), c"value", bytes.handle_mut()) {
-        Ok(true) => {
-            match Vec::<u8>::safe_from_jsval(cx, bytes.handle(), ConversionBehavior::EnforceRange) {
-                Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
-            }
-        },
-        Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
-        Err(()) => Err(Error::JSFailed),
-    }
+    get_property::<Vec<u8>>(
+        cx,
+        object.handle(),
+        c"value",
+        ConversionBehavior::EnforceRange,
+    )?
+    .ok_or(Error::Type(c"Promise has no value property.".to_owned()))
 }
 
 /// Convert a raw stream `chunk` JS value to `Vec<u8>`.
