@@ -562,7 +562,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 constructor.handle_mut(),
                 CanGc::from_cx(cx),
             );
-            promise.resolve_native(&constructor.get(), CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &constructor.get());
         }
         Ok(())
     }
@@ -596,14 +596,12 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_realm(realm);
-            promise.reject_native(
-                &DOMException::new(
-                    self.window.as_global_scope(),
-                    DOMErrorName::SyntaxError,
-                    CanGc::from_cx(realm),
-                ),
+            let error = DOMException::new(
+                self.window.as_global_scope(),
+                DOMErrorName::SyntaxError,
                 CanGc::from_cx(realm),
             );
+            promise.reject_native_with_cx(realm, &error);
             return promise;
         }
 
@@ -616,7 +614,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 CanGc::from_cx(realm),
             );
             let promise = Promise::new_in_realm(realm);
-            promise.resolve_native(&constructor.get(), CanGc::from_cx(realm));
+            promise.resolve_native_with_cx(realm, &constructor.get());
             return promise;
         }
 
