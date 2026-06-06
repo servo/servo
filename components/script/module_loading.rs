@@ -165,7 +165,7 @@ fn inner_module_loading(
                 continue_module_loading(cx, state, Err(error));
             } else {
                 let specifier =
-                    unsafe { jsstr_to_string(cx.raw_cx(), std::ptr::NonNull::new(jsstr).unwrap()) };
+                    unsafe { jsstr_to_string(cx, std::ptr::NonNull::new(jsstr).unwrap()) };
                 let module_type = unsafe { GetRequestedModuleType(cx, module_handle, index) };
 
                 let realm = CurrentRealm::assert(cx);

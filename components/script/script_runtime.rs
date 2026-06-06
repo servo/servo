@@ -505,10 +505,10 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: &mut js::context::JSContext, str_: HandleString) -> DOMString {
+fn safely_convert_null_to_string(cx: &js::context::JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
-        Some(str_) => unsafe { jsstr_to_string(cx.raw_cx(), str_) },
+        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
     })
 }
 

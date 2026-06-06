@@ -403,7 +403,7 @@ pub(crate) fn javascript_error_info_from_error_info(
             return None;
         }
         let stack_string = NonNull::new(stack_value.to_string())?;
-        Some(unsafe { jsstr_to_string(cx.raw_cx(), stack_string) })
+        Some(unsafe { jsstr_to_string(cx, stack_string) })
     };
 
     JavaScriptErrorInfo {

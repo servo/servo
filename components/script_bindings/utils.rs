@@ -223,9 +223,9 @@ pub(crate) fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match ptr::NonNull::new(unsafe { ToString(cx.raw_cx(), v) }) {
+    match ptr::NonNull::new(unsafe { ToString(cx, v) }) {
         Some(jsstr) => {
-            let search = unsafe { jsstr_to_string(cx.raw_cx(), jsstr).into() };
+            let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
             Ok((
                 pairs
                     .iter()
@@ -611,8 +611,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             // FIXME: `Handle<jsid>` could have a default constructor
             //        like `Handle<Value>::null`
             rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
-            let result =
-                report_cross_origin_denial::<D>(&mut realm, void_jsid.handle().into(), "call");
+            let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle(), "call");
             return if EXCEPTION_TO_REJECTION {
                 exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
             } else {

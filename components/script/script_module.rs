@@ -904,7 +904,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
     let payload = Payload::PromiseRecord(promise);
@@ -1005,7 +1005,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
 
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         module_data,
@@ -1127,8 +1127,8 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     let specifier = unsafe {
         let value = HandleValue::from_raw(args.get(0));
 
-        match NonNull::new(ToString(cx.raw_cx(), value)) {
-            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
+        match NonNull::new(ToString(cx, value)) {
+            Some(jsstr) => jsstr_to_string(cx, jsstr).into(),
             None => return false,
         }
     };
