@@ -205,7 +205,6 @@ impl URLMethods<crate::DomTypeHolder> for URL {
 
         if let Ok(url) = ServoUrl::parse(&url.str()) &&
             url.fragment().is_none() &&
-            *origin == url.origin() &&
             let Ok((id, _)) = parse_blob_url(&url)
         {
             let resource_threads = global.resource_threads();
