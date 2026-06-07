@@ -3456,12 +3456,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesGcmParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
-            tag_length: get_optional_parameter(
-                cx,
-                object,
-                c"tagLength",
-                ConversionBehavior::EnforceRange,
-            )?,
+            tag_length: get_property(cx, object, c"tagLength", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3492,12 +3487,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacImportParams {
         Ok(SubtleHmacImportParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
-            length: get_optional_parameter(
-                cx,
-                object,
-                c"length",
-                ConversionBehavior::EnforceRange,
-            )?,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3580,12 +3570,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacKeyGenParams {
         Ok(SubtleHmacKeyGenParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
-            length: get_optional_parameter(
-                cx,
-                object,
-                c"length",
-                ConversionBehavior::EnforceRange,
-            )?,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3718,12 +3703,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
-            tag_length: get_optional_parameter(
-                cx,
-                object,
-                c"tagLength",
-                ConversionBehavior::EnforceRange,
-            )?,
+            tag_length: get_property(cx, object, c"tagLength", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3819,7 +3799,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
                 c"outputLength",
                 ConversionBehavior::EnforceRange,
             )?,
-            domain_separation: get_optional_parameter(
+            domain_separation: get_property(
                 cx,
                 object,
                 c"domainSeparation",
@@ -3908,12 +3888,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
                 c"passes",
                 ConversionBehavior::EnforceRange,
             )?,
-            version: get_optional_parameter(
-                cx,
-                object,
-                c"version",
-                ConversionBehavior::EnforceRange,
-            )?,
+            version: get_property(cx, object, c"version", ConversionBehavior::EnforceRange)?,
             secret_value: get_optional_buffer_source(cx, object, c"secretValue")?,
             associated_data: get_optional_buffer_source(cx, object, c"associatedData")?,
         })
@@ -3974,16 +3949,6 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
     }
 }
 
-/// Helper to retrieve an optional paramter from WebIDL dictionary.
-fn get_optional_parameter<T: FromJSValConvertible>(
-    cx: &mut js::context::JSContext,
-    object: HandleObject,
-    parameter: &std::ffi::CStr,
-    option: T::Config,
-) -> Fallible<Option<T>> {
-    get_property::<T>(cx, object, parameter, option)
-}
-
 /// Helper to retrieve a required paramter from WebIDL dictionary.
 fn get_required_parameter<T: FromJSValConvertible>(
     cx: &mut js::context::JSContext,
@@ -3991,19 +3956,8 @@ fn get_required_parameter<T: FromJSValConvertible>(
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<T> {
-    get_optional_parameter(cx, object, parameter, option)?
+    get_property::<T>(cx, object, parameter, option)?
         .ok_or(Error::Type(c"Missing required parameter".into()))
-}
-
-/// Helper to retrieve an optional paramter, in RootedTraceableBox, from WebIDL dictionary.
-fn get_optional_parameter_in_box<T: FromJSValConvertible + Trace>(
-    cx: &mut js::context::JSContext,
-    object: HandleObject,
-    parameter: &std::ffi::CStr,
-    option: T::Config,
-) -> Fallible<Option<RootedTraceableBox<T>>> {
-    get_property::<T>(cx, object, parameter, option)
-        .map(|option| option.map(RootedTraceableBox::new))
 }
 
 /// Helper to retrieve a required paramter, in RootedTraceableBox, from WebIDL dictionary.
@@ -4013,7 +3967,8 @@ fn get_required_parameter_in_box<T: FromJSValConvertible + Trace>(
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<RootedTraceableBox<T>> {
-    get_optional_parameter_in_box(cx, object, parameter, option)?
+    get_property::<T>(cx, object, parameter, option)?
+        .map(RootedTraceableBox::new)
         .ok_or(Error::Type(c"Missing required parameter".into()))
 }
 
@@ -4025,8 +3980,7 @@ fn get_optional_buffer_source(
     object: HandleObject,
     parameter: &std::ffi::CStr,
 ) -> Fallible<Option<Vec<u8>>> {
-    let buffer_source =
-        get_optional_parameter::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
+    let buffer_source = get_property::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
     match buffer_source {
         Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(view)) => Ok(Some(view.to_vec())),
         Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer)) => Ok(Some(buffer.to_vec())),
