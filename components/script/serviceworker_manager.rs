@@ -14,7 +14,7 @@ use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use fonts::FontContext;
+use fonts::{DefaultFontSettings, FontContext};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
@@ -801,6 +801,13 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             Arc::new(system_font_service_sender.to_proxy()),
             paint_api,
             resource_threads,
+            // TODO: How should the font size be chosen here if ServiceWorkers are
+            // shared between `WebView`s. WebKit seems to use the font size from the webview
+            // that first spawned the ServiceWorker.
+            DefaultFontSettings {
+                default_font_size: pref!(fonts_default_size),
+                default_monospace_font_size: pref!(fonts_default_monospace_size),
+            },
         ));
 
         let swmanager_thread = move || {

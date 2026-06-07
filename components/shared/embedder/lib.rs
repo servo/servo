@@ -13,6 +13,7 @@ pub mod input_events;
 pub mod resources;
 pub mod user_contents;
 pub mod webdriver;
+pub mod webview_preferences;
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -53,6 +54,9 @@ pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
 use crate::user_contents::UserContentManagerId;
 pub use crate::webdriver::*;
+pub use crate::webview_preferences::{
+    WebViewPreference, WebViewPreferencesData, WebViewPreferencesId,
+};
 
 /// A point in a `WebView`, either expressed in device pixels or page pixels.
 /// Page pixels are CSS pixels, which take into account device pixel scale,
@@ -1153,6 +1157,7 @@ pub struct NewWebViewDetails {
     pub webview_id: WebViewId,
     pub viewport_details: ViewportDetails,
     pub user_content_manager_id: Option<UserContentManagerId>,
+    pub webview_preferences_id: WebViewPreferencesId,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

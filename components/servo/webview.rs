@@ -41,7 +41,7 @@ use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
-    UserContentManager, WebRenderDebugOption,
+    UserContentManager, WebRenderDebugOption, WebViewPreferences,
 };
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
@@ -113,6 +113,7 @@ pub(crate) struct WebViewInner {
     grafted_accesskit_tree_epoch: Option<Epoch>,
 
     rendering_context: Rc<dyn RenderingContext>,
+    preferences: Rc<WebViewPreferences>,
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
@@ -172,6 +173,9 @@ impl WebView {
             cursor: Cursor::Pointer,
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
+            preferences: builder
+                .preferences
+                .unwrap_or_else(|| servo.default_preferences()),
             user_content_manager: builder.user_content_manager.clone(),
         })));
 
@@ -197,6 +201,7 @@ impl WebView {
             webview_id: webview.id(),
             viewport_details,
             user_content_manager_id,
+            webview_preferences_id: webview.inner().preferences.id(),
         };
 
         // There are two possibilities here. Either the WebView is a new toplevel
@@ -761,6 +766,11 @@ impl WebView {
         self.inner().user_content_manager.clone()
     }
 
+    /// Get the [`WebViewPreferences`] associated with this [`WebView`].
+    pub fn preferences(&self) -> Rc<WebViewPreferences> {
+        self.inner().preferences.clone()
+    }
+
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
     /// occurs, Servo will call `callback`.
     pub fn evaluate_javascript<T: ToString>(
@@ -1032,6 +1042,7 @@ pub struct WebViewBuilder {
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     create_new_webview_responder: Option<IpcResponder<Option<NewWebViewDetails>>>,
+    preferences: Option<Rc<WebViewPreferences>>,
     user_content_manager: Option<Rc<UserContentManager>>,
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
     #[cfg(feature = "gamepad")]
@@ -1051,6 +1062,7 @@ impl WebViewBuilder {
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
             create_new_webview_responder: None,
+            preferences: None,
             user_content_manager: None,
             clipboard_delegate: None,
             #[cfg(feature = "gamepad")]
@@ -1095,6 +1107,13 @@ impl WebViewBuilder {
     /// to the `UserContentManager` will take effect only after the document is reloaded.
     pub fn user_content_manager(mut self, user_content_manager: Rc<UserContentManager>) -> Self {
         self.user_content_manager = Some(user_content_manager);
+        self
+    }
+
+    /// Set the [`WebViewPreferences`] for the `WebView` being created. The same
+    /// [`WebViewPreferences`] can be shared among multiple `WebView`s.
+    pub fn preferences(mut self, preferences: Rc<WebViewPreferences>) -> Self {
+        self.preferences = Some(preferences);
         self
     }
 

@@ -261,6 +261,8 @@ pub struct LayoutConfig {
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
     pub embedder_chan: ScriptToEmbedderChan,
+    pub default_font_size: i64,
+    pub default_monospace_font_size: i64,
 }
 
 pub trait LayoutFactory: Send + Sync {

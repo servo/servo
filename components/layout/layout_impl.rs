@@ -785,7 +785,7 @@ impl LayoutThread {
             .send_initial_transaction(config.webview_id, config.id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts_default_size);
+        let default_font_size = config.default_font_size;
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -1784,9 +1784,10 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
     }
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
+        let default_font_settings = self.0.default_font_settings();
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
-            _ => pref!(fonts_default_size),
+            GenericFontFamily::Monospace => default_font_settings.default_monospace_font_size,
+            _ => default_font_settings.default_font_size,
         } as f32)
         .max(Length::new(0.0))
     }

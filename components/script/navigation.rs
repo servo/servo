@@ -11,7 +11,7 @@ use std::cell::Cell;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
+use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus, WebViewPreferencesId};
 use http::header;
 use js::context::JSContext;
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -185,6 +185,9 @@ pub(crate) struct InProgressLoad {
     /// The [`TargetSnapshotParams`] to use when creating this document.
     #[no_trace]
     pub(crate) target_snapshot_params: TargetSnapshotParams,
+    /// The [`WebViewPreferencesId`] for this load's `WebView`.
+    #[no_trace]
+    pub(crate) webview_preferences_id: WebViewPreferencesId,
 }
 
 impl InProgressLoad {
@@ -207,6 +210,7 @@ impl InProgressLoad {
             user_content_manager_id: new_pipeline_info.user_content_manager_id,
             theme: new_pipeline_info.theme,
             target_snapshot_params: new_pipeline_info.target_snapshot_params,
+            webview_preferences_id: new_pipeline_info.webview_preferences_id,
         }
     }
 

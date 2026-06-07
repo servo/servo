@@ -58,7 +58,12 @@ mod font_context {
                 start_fetch_thread();
             });
             Self {
-                context: FontContext::new(proxy_clone, mock_paint_api, mock_resource_threads),
+                context: FontContext::new(
+                    proxy_clone,
+                    mock_paint_api,
+                    mock_resource_threads,
+                    DefaultFontSettings::default(),
+                ),
                 system_font_service,
                 system_font_service_proxy,
             }

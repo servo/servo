@@ -8053,6 +8053,7 @@ name = "servo-fonts"
 version = "0.3.0"
 dependencies = [
  "app_units",
+ "atomic_refcell",
  "bitflags 2.13.0",
  "byteorder",
  "content-security-policy",

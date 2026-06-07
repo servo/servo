@@ -18,6 +18,7 @@ use std::time::Duration;
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
+use embedder_traits::webview_preferences::{WebViewPreference, WebViewPreferencesId};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
     MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId, UrlRequest,
@@ -116,6 +117,13 @@ pub enum EmbedderToConstellationMessage {
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features for the given `WebView`.
     SetAccessibilityActive(WebViewId, bool),
+    /// Update preferences for the given `WebViewPreferencesId`. The second
+    /// value is a delta of the preferences that have been mutated from their
+    /// previous value.
+    SetWebViewPreferences(WebViewPreferencesId, Vec<WebViewPreference>),
+    /// Release all state for the given `WebViewPreferencesId` maintained
+    /// by constellation and notify `ScriptThread`s to do the same.
+    DestroyWebViewPreferences(WebViewPreferencesId),
 }
 
 pub enum UserContentManagerAction {

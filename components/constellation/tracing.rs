@@ -83,6 +83,8 @@ mod from_embedder {
                 Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
                 Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
                 Self::SetAccessibilityActive(..) => target!("SetAccessibilityActive"),
+                Self::SetWebViewPreferences(..) => target!("SetWebViewPreferences"),
+                Self::DestroyWebViewPreferences(..) => target!("DestroyWebViewPreferences"),
             }
         }
     }
