@@ -40,7 +40,7 @@ android {
             signingConfig =
                 signingConfigs.getByName("debug") // Change this to sign with a production key
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"))
         }
 
         val debug = getByName("debug")
