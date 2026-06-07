@@ -39,12 +39,23 @@
             }
 
             window.onload = function() {
+                let pointerdown_count = 0;
                 on_event(target0, 'pointerdown', function(e) {
+                    pointerdown_count++;
+                    assert_less_than_equal(pointerdown_count, 2);
                     detected_pointertypes[e.pointerType] = true;
-                    event_log.push('pointerdown@target0');
-                    test_pointerEvent.step(function () {
-                        assert_equals(e.pointerType, "touch", "Test should be run using a touch as input");
-                    });
+                    if (pointerdown_count === 1) {
+                        event_log.push('pointerdown@target0');
+                        test_pointerEvent.step(function () {
+                            assert_equals(e.pointerType, "touch",
+                                "First pointerdown should be touch");
+                        });
+                    } else if (pointerdown_count === 2) {
+                        test_pointerEvent.step(function () {
+                            assert_equals(e.pointerType, "mouse",
+                                "Second pointerdown (compatibility) should be mouse");
+                        });
+                    }
                 });
 
                 on_event(target0, 'gotpointercapture', function(e) {
