@@ -771,6 +771,16 @@ impl HeadedWindow {
                             }
                         },
                     },
+                    WindowEvent::DroppedFile(dropped_file) => {
+                        if let Ok(url) = Url::from_file_path(&dropped_file) {
+                            webview.load(url);
+                        } else {
+                            log::error!(
+                                "Failed to create URL for dropped file ({})",
+                                dropped_file.display()
+                            );
+                        }
+                    },
                     _ => {},
                 }
             }
