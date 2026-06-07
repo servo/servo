@@ -36,7 +36,7 @@ use std::str::FromStr;
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
-use js::conversions::{ConversionBehavior, ConversionResult};
+use js::conversions::{ConversionBehavior, ConversionResult, FromJSValConvertible};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
@@ -66,7 +66,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
 use crate::dom::bindings::conversions::{
-    SafeFromJSValConvertible, SafeToJSValConvertible, StringificationBehavior,
+    SafeToJSValConvertible, StringificationBehavior, get_property,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -74,7 +74,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -3976,31 +3975,17 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
 }
 
 /// Helper to retrieve an optional paramter from WebIDL dictionary.
-fn get_optional_parameter<T: SafeFromJSValConvertible>(
+fn get_optional_parameter<T: FromJSValConvertible>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<Option<T>> {
-    rooted!(&in(cx) let mut rval = UndefinedValue());
-    if get_dictionary_property(cx, object, parameter, rval.handle_mut())
-        .map_err(|_| Error::JSFailed)? &&
-        !rval.is_undefined()
-    {
-        let conversion_result =
-            T::safe_from_jsval(cx.into(), rval.handle(), option, CanGc::from_cx(cx))
-                .map_err(|_| Error::JSFailed)?;
-        match conversion_result {
-            ConversionResult::Success(value) => Ok(Some(value)),
-            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
-        }
-    } else {
-        Ok(None)
-    }
+    get_property::<T>(cx, object, parameter, option)
 }
 
 /// Helper to retrieve a required paramter from WebIDL dictionary.
-fn get_required_parameter<T: SafeFromJSValConvertible>(
+fn get_required_parameter<T: FromJSValConvertible>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
@@ -4011,35 +3996,18 @@ fn get_required_parameter<T: SafeFromJSValConvertible>(
 }
 
 /// Helper to retrieve an optional paramter, in RootedTraceableBox, from WebIDL dictionary.
-fn get_optional_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
+fn get_optional_parameter_in_box<T: FromJSValConvertible + Trace>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<Option<RootedTraceableBox<T>>> {
-    rooted!(&in(cx) let mut rval = UndefinedValue());
-    if get_dictionary_property(cx, object, parameter, rval.handle_mut())
-        .map_err(|_| Error::JSFailed)? &&
-        !rval.is_undefined()
-    {
-        let conversion_result: ConversionResult<T> = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            rval.handle(),
-            option,
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?;
-        match conversion_result {
-            ConversionResult::Success(value) => Ok(Some(RootedTraceableBox::new(value))),
-            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
-        }
-    } else {
-        Ok(None)
-    }
+    get_property::<T>(cx, object, parameter, option)
+        .map(|option| option.map(RootedTraceableBox::new))
 }
 
 /// Helper to retrieve a required paramter, in RootedTraceableBox, from WebIDL dictionary.
-fn get_required_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
+fn get_required_parameter_in_box<T: FromJSValConvertible + Trace>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
