@@ -284,10 +284,16 @@ impl TreeOrderedIndexMap {
                 Some(id) if id == *key => {
                     entry.elements.push(Dom::from_ref(element));
                     entry.element.or_init(|| DomRoot::from_ref(element));
+
+                    if entry.count == entry.elements.len() {
+                        return;
+                    }
                 },
                 _ => {},
             }
         }
+
+        entry.count = entry.elements.len();
     }
 
     /// Resolve all entries in the map, meaning the next access will not need any resolution.
@@ -298,22 +304,52 @@ impl TreeOrderedIndexMap {
         }
 
         let mut map = self.map.borrow_mut();
-        let mut entries_needing_rebuild: HashMap<_, _> = map
+        let mut entries_needing_rebuild: FxHashMap<_, _> = map
             .iter_mut()
-            .filter(|(_, entry)| entry.elements.is_empty())
+            .filter(|(_, entry)| entry.needs_resolution())
             .collect();
+
         for node in scope.traverse_preorder_non_rooting(no_gc, ShadowIncluding::No) {
             let Some(element) = node.downcast::<Element>() else {
                 continue;
             };
-            if let Some(entry) = self
-                .index_type
-                .get(element)
-                .and_then(|id| entries_needing_rebuild.get_mut(&id))
-            {
+
+            let Some(index) = self.index_type.get(element) else {
+                continue;
+            };
+
+            let mut complete = false;
+            if let Some(entry) = entries_needing_rebuild.get_mut(&index) {
                 entry.elements.push(Dom::from_ref(element));
                 entry.element.or_init(|| DomRoot::from_ref(element));
+                complete = entry.count == entry.elements.len();
             }
+
+            // Stop tracking entries that are complete.
+            if complete {
+                entries_needing_rebuild.remove(&index);
+
+                // When we have completed all entries, exit this method entirely.
+                if entries_needing_rebuild.is_empty() {
+                    return;
+                }
+            }
+        }
+
+        // If no elements were found for any of the entries needing resolution,
+        // remove them from the map mirroring what `resolve_one` does. For all
+        // other entries, update their final `count`.
+        let mut keys_needing_removal = Vec::new();
+        for (key, entry) in entries_needing_rebuild {
+            if entry.elements.is_empty() {
+                keys_needing_removal.push(key.clone());
+            } else {
+                entry.count = entry.elements.len();
+            }
+        }
+
+        for key in keys_needing_removal {
+            map.remove(&key);
         }
     }
 }
