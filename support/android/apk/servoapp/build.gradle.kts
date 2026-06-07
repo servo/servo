@@ -4,13 +4,13 @@ plugins {
     id("com.android.application")
 }
 
+layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoapp")
+
 android {
     compileSdk = 34
     buildToolsVersion = "34.0.0"
 
     namespace = "org.servo.servoshell"
-
-    layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoapp")
 
     defaultConfig {
         applicationId = "org.servo.servoshell"
@@ -104,37 +104,37 @@ android {
             }
         }
     }
+}
 
-    // Ignore default "debug" and "release" build types
-    androidComponents {
-        beforeVariants {
-            if (it.buildType == "release" || it.buildType == "debug") {
-                it.enable = false
-            }
+// Ignore default "debug" and "release" build types
+androidComponents {
+    beforeVariants {
+        if (it.buildType == "release" || it.buildType == "debug") {
+            it.enable = false
         }
     }
+}
 
-    project.afterEvaluate {
-        android.applicationVariants.forEach { variant ->
-            val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
-            val matcher = pattern.matcher(variant.name)
-            if (!matcher.find()) {
-                throw GradleException("Invalid variant name for output: " + variant.name)
-            }
-            val arch = matcher.group(1)
-            val debug = variant.name.contains("Debug")
-            val finalFolder = getTargetDir(debug, arch)
-            val finalFile = File(finalFolder, "servoapp.apk")
-            variant.outputs.forEach { output ->
-                val copyAndRenameAPKTask =
-                    project.task<Copy>("copyAndRename${variant.name.capitalize()}APK") {
-                        from(output.outputFile.parent)
-                        into(finalFolder)
-                        include(output.outputFile.name)
-                        rename(output.outputFile.name, finalFile.name)
-                    }
-                variant.assembleProvider.get().finalizedBy(copyAndRenameAPKTask)
-            }
+project.afterEvaluate {
+    android.applicationVariants.forEach { variant ->
+        val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
+        val matcher = pattern.matcher(variant.name)
+        if (!matcher.find()) {
+            throw GradleException("Invalid variant name for output: " + variant.name)
+        }
+        val arch = matcher.group(1)
+        val debug = variant.name.contains("Debug")
+        val finalFolder = getTargetDir(debug, arch)
+        val finalFile = File(finalFolder, "servoapp.apk")
+        variant.outputs.forEach { output ->
+            val copyAndRenameAPKTask =
+                project.task<Copy>("copyAndRename${variant.name.capitalize()}APK") {
+                    from(output.outputFile.parent)
+                    into(finalFolder)
+                    include(output.outputFile.name)
+                    rename(output.outputFile.name, finalFile.name)
+                }
+            variant.assembleProvider.get().finalizedBy(copyAndRenameAPKTask)
         }
     }
 }
