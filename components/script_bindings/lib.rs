@@ -40,6 +40,7 @@ pub mod proxyhandler;
 pub mod realms;
 pub mod record;
 pub mod reflector;
+pub mod reflector_root;
 pub mod root;
 pub mod script_runtime;
 pub mod settings_stack;

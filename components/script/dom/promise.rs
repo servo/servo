@@ -20,9 +20,9 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
-    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject,
-    JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject, PromiseState,
-    PromiseUserInputEventHandlingState, RemoveRawValueRoot, SetFunctionNativeReserved,
+    CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JS_NewFunction, JSAutoRealm,
+    JSContext as RawJSContext, JSObject, PromiseState, PromiseUserInputEventHandlingState,
+    SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
@@ -35,9 +35,10 @@ use js::rust::wrappers2::{
     AddPromiseReactions, JS_ClearPendingException, NewFunctionWithReserved, RejectPromise,
     ResolvePromise,
 };
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
+use script_bindings::reflector_root::ReflectorRoot;
 use script_bindings::settings_stack::run_a_script;
 
 use crate::DomTypeHolder;
@@ -56,48 +57,7 @@ use crate::script_thread::ScriptThread;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct Promise {
     reflector: Reflector,
-    /// Since Promise values are natively reference counted without the knowledge of
-    /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
-    /// native instance exists. This ensures that the reflector will never be GCed
-    /// while native code could still interact with its native representation.
-    #[ignore_malloc_size_of = "SM handles JS values"]
-    permanent_js_root: Heap<JSVal>,
-}
-
-/// Private helper to enable adding new methods to `Rc<Promise>`.
-trait PromiseHelper {
-    fn initialize(&self, cx: SafeJSContext);
-}
-
-impl PromiseHelper for Rc<Promise> {
-    #[expect(unsafe_code)]
-    fn initialize(&self, cx: SafeJSContext) {
-        let obj = self.reflector().get_jsobject();
-        self.permanent_js_root.set(ObjectValue(*obj));
-        unsafe {
-            assert!(AddRawValueRoot(
-                *cx,
-                self.permanent_js_root.get_unsafe(),
-                c"Promise::root".as_ptr(),
-            ));
-        }
-    }
-}
-
-// Promise objects are stored inside Rc values, so Drop is run when the last Rc is dropped,
-// rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike
-// Drop implementations for other DOM types.
-impl Drop for Promise {
-    #[expect(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            let object = self.permanent_js_root.get().to_object();
-            assert!(!object.is_null());
-            if let Some(cx) = Runtime::get() {
-                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
-            }
-        }
-    }
+    root: ReflectorRoot,
 }
 
 impl Promise {
@@ -137,18 +97,22 @@ impl Promise {
 
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
-        unsafe {
-            assert!(IsPromiseObject(obj));
-            let promise = Promise {
-                reflector: Reflector::new(),
-                permanent_js_root: Heap::default(),
-            };
-            let promise = Rc::new(promise);
-            promise.init_reflector_without_associated_memory(obj.get());
-            promise.initialize(cx);
-            promise
-        }
+    pub(crate) fn new_with_js_promise(obj: HandleObject, mut cx: SafeJSContext) -> Rc<Promise> {
+        // SAFETY: callers pass a valid promise object.
+        unsafe { assert!(IsPromiseObject(obj)) };
+        let promise = Rc::new(Promise {
+            reflector: Reflector::new(),
+            root: ReflectorRoot::new(&mut cx, ObjectValue(*obj), c"Promise::root"),
+        });
+        // SAFETY: `obj` is a valid promise object, asserted above.
+        unsafe { promise.init_reflector_without_associated_memory(obj.get()) };
+        // Register the root weakly with the owning global so it can be unrooted if the
+        // global is torn down before this promise drops, which can be necessary to
+        // clean up despite cycles.
+        promise
+            .global()
+            .register_reflector_root(promise.root.get_weak());
+        promise
     }
 
     #[expect(unsafe_code)]
