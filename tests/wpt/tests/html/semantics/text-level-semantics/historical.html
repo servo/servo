@@ -17,10 +17,6 @@ function t(property, tagNames) {
 
 // <area> and <link> are in other sections in the spec, but we'll test them here together with <a>
 
-// removed in https://github.com/whatwg/html/commit/790479ab1ba143efc27d1f92cd0465627df48fb0
-t('hreflang', 'area');
-t('type', 'area');
-
 // renamed to dateTime in https://github.com/whatwg/html/commit/8b6732237c7021cd61e3c3463146234ca8ce5bad
 t('datetime', 'time');
 

@@ -45,9 +45,12 @@ test_computed_value("background-position", "top left", "0% 0%");
 test_computed_value("background-position", "bottom right 19%", "81% 100%");
 test_computed_value("background-position", "calc(10px + 0.5em) calc(10px - 0.5em)", "30px -10px");
 test_computed_value("background-position", "calc(10px - 0.5em) calc(10px + 0.5em)", "-10px 30px");
+test_computed_value("background-position", "12px 13px, 50% 6px, 30px -10px", "12px 13px, 50% 6px, 30px -10px");
 
-// See background-computed.html for a test with multiple background images.
-test_computed_value("background-position", "12px 13px, 50% 6px, 30px -10px", "12px 13px");
+document.getElementById("target").style['background-image'] = "none, none";
+test_computed_value("background-position", "center", "50% 50%", "multiple base values");
+test_computed_value("background-position", "center, left", "50% 50%, 0% 50%", "multiple base values");
+test_computed_value("background-position", "center, left, bottom", "50% 50%, 0% 50%, 50% 100%", "multiple base values");
 </script>
 </body>
 </html>

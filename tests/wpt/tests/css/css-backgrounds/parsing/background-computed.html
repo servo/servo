@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Backgrounds and Borders: getComputedStyle().background with multiple layers</title>
 <link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background">
-<meta name="assert" content="The number of layers is determined by the number of comma-separated values in the background-image property. .">
+<meta name="assert" content="The number of computed value layers for a property is not influenced by the background-image property.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -18,53 +18,52 @@
 <body>
 <div id="target"></div>
 <script>
-test_computed_value("background-attachment", "local", "local, local, local");
-test_computed_value("background-attachment", "scroll, fixed", "scroll, fixed, scroll");
+test_computed_value("background-attachment", "local", "local");
+test_computed_value("background-attachment", "scroll, fixed");
 test_computed_value("background-attachment", "local, fixed, scroll");
-test_computed_value("background-attachment", "local, fixed, scroll, fixed", "local, fixed, scroll");
+test_computed_value("background-attachment", "local, fixed, scroll, fixed");
 
-test_computed_value("background-clip", "border-box", "border-box, border-box, border-box");
-test_computed_value("background-clip", "content-box, border-box", "content-box, border-box, content-box");
+test_computed_value("background-clip", "border-box");
+test_computed_value("background-clip", "content-box, border-box");
 test_computed_value("background-clip", "border-box, padding-box, content-box");
-test_computed_value("background-clip", "content-box, border-box, padding-box, content-box", "content-box, border-box, padding-box");
-test_computed_value("background-clip", "content-box, border-box, padding-box", "content-box, border-box, padding-box");
-test_computed_value("background-clip", "content-box, border-box, border-area", "content-box, border-box, border-area");
-test_computed_value("background-clip", "border-area text", "border-area text, border-area text, border-area text");
-test_computed_value("background-clip", "border-area text, content-box", "border-area text, content-box, border-area text");
+test_computed_value("background-clip", "content-box, border-box, padding-box, content-box");
+test_computed_value("background-clip", "content-box, border-box, padding-box");
+test_computed_value("background-clip", "content-box, border-box, border-area");
+test_computed_value("background-clip", "border-area text");
+test_computed_value("background-clip", "border-area text, content-box");
 
 // background-color always computes as a single color.
 test_computed_value("background-color", "rgb(255, 0, 0)");
 
-test_computed_value("background-origin", "border-box", "border-box, border-box, border-box");
-test_computed_value("background-origin", "content-box, border-box", "content-box, border-box, content-box");
+test_computed_value("background-origin", "border-box");
+test_computed_value("background-origin", "content-box, border-box");
 test_computed_value("background-origin", "border-box, padding-box, content-box");
-test_computed_value("background-origin", "content-box, border-box, padding-box, content-box", "content-box, border-box, padding-box");
+test_computed_value("background-origin", "content-box, border-box, padding-box, content-box");
 
-test_computed_value("background-position", "50% 6px", "50% 6px, 50% 6px, 50% 6px");
-test_computed_value("background-position", "12px 13px, 50% 6px", "12px 13px, 50% 6px, 12px 13px");
+test_computed_value("background-position", "50% 6px");
+test_computed_value("background-position", "12px 13px, 50% 6px");
 test_computed_value("background-position", "12px 13px, 50% 6px, 30px -10px");
-test_computed_value("background-position", "12px 13px, 50% 6px, 30px -10px, -7px 8px", "12px 13px, 50% 6px, 30px -10px");
+test_computed_value("background-position", "12px 13px, 50% 6px, 30px -10px, -7px 8px");
 
-test_computed_value("background-position-x", "0.5em", "20px, 20px, 20px");
-test_computed_value("background-position-x", "-20%, 10px", "-20%, 10px, -20%");
-
+test_computed_value("background-position-x", "0.5em", "20px");
+test_computed_value("background-position-x", "-20%, 10px");
 test_computed_value("background-position-x", "center, left, right", "50%, 0%, 100%");
-test_computed_value("background-position-x", "calc(10px - 0.5em), -20%, right, 15%", "-10px, -20%, 100%");
+test_computed_value("background-position-x", "calc(10px - 0.5em), -20%, right, 15%", "-10px, -20%, 100%, 15%");
 
-test_computed_value("background-position-y", "0.5em", "20px, 20px, 20px");
-test_computed_value("background-position-y", "-20%, 10px", "-20%, 10px, -20%");
+test_computed_value("background-position-y", "0.5em", "20px");
+test_computed_value("background-position-y", "-20%, 10px", "-20%, 10px");
 test_computed_value("background-position-y", "center, top, bottom", "50%, 0%, 100%");
-test_computed_value("background-position-y", "calc(10px - 0.5em), -20%, bottom, 15%", "-10px, -20%, 100%");
+test_computed_value("background-position-y", "calc(10px - 0.5em), -20%, bottom, 15%", "-10px, -20%, 100%, 15%");
 
-test_computed_value("background-repeat", "round", "round, round, round");
-test_computed_value("background-repeat", "repeat-x, repeat", "repeat-x, repeat, repeat-x");
+test_computed_value("background-repeat", "round");
+test_computed_value("background-repeat", "repeat-x, repeat");
 test_computed_value("background-repeat", "repeat space, round no-repeat, repeat-x");
-test_computed_value("background-repeat", "repeat-y, round no-repeat, repeat-x, repeat", "repeat-y, round no-repeat, repeat-x");
+test_computed_value("background-repeat", "repeat-y, round no-repeat, repeat-x, repeat");
 
-test_computed_value("background-size", "contain", "contain, contain, contain");
-test_computed_value("background-size", "auto 1px, 2% 3%", "auto 1px, 2% 3%, auto 1px");
+test_computed_value("background-size", "contain");
+test_computed_value("background-size", "auto 1px, 2% 3%");
 test_computed_value("background-size", "auto 1px, 2% 3%, contain");
-test_computed_value("background-size", "auto 1px, 2% 3%, contain, 7px 8px", "auto 1px, 2% 3%, contain");
+test_computed_value("background-size", "auto 1px, 2% 3%, contain, 7px 8px");
 
 // Verify background shorthand correctly computes background-clip.
 test(() => {

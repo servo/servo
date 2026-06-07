@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../interestfor/resources/invoker-utils.js"></script>
+
+<!--
+
+What this test is testing is accomplished by changing the
+'interest-delay-start' on different menuitems, in some cases to be infinite.
+Therefore we can't use "menuitem { interest-delay-start: 0s }" for testing
+because that covers up the behavior that we're testing here.  Therefore this
+test needs to wait for items to open on interest, or wait even longer to
+verify that they don't open.
+
+-->
+
+<div id="blank-area" style="height: 50px"></div>
+
+<menubar>
+  <menuitem command="toggle-menu" commandfor="file-menu">File</menuitem>
+  <menuitem command="toggle-menu" commandfor="edit-menu">Edit</menuitem>
+  <menuitem command="toggle-menu" commandfor="view-menu">View</menuitem>
+</menubar>
+
+<menulist id="file-menu">
+  <menuitem>New</menuitem>
+  <menuitem>Open</menuitem>
+  <hr>
+  <menuitem>Exit</menuitem>
+</menulist>
+
+<menulist id="edit-menu">
+  <menuitem>Cut</menuitem>
+  <menuitem>Copy</menuitem>
+  <menuitem>Paste</menuitem>
+</menulist>
+
+<menulist id="view-menu">
+  <fieldset checkable="multiple">
+    <menuitem>Full Screen</menuitem>
+  </fieldset>
+  <menuitem command="toggle-menu" commandfor="zoom-menu">Zoom</menuitem>
+  <hr>
+  <fieldset>
+    <legend>Developer tools</legend>
+    <menuitem command="toggle-menu" commandfor="view-source-menu">View Source</menuitem>
+    <menuitem>Inspect</menuitem>
+  </fieldset>
+</menulist>
+
+<menulist id="zoom-menu">
+  <menuitem>50%</menuitem>
+  <menuitem>75%</menuitem>
+  <menuitem>90%</menuitem>
+  <menuitem>100%</menuitem>
+  <menuitem>110%</menuitem>
+  <menuitem>125%</menuitem>
+  <menuitem>150%</menuitem>
+  <menuitem>200%</menuitem>
+</menulist>
+
+<menulist id="view-source-menu">
+  <menuitem>Toplevel frame</menuitem>
+  <menuitem>Focused frame</menuitem>
+</menulist>
+
+<script>
+
+  // Chrome's default interest-delay-start is 500ms, so use double that as a
+  // timeout.  This might need to increase if other implementations use larger
+  // values.  (Note that wait_long_enough_to_check_for_no_interest() will wait
+  // that whole time no matter what!)
+  async function wait_long_enough_to_check_for_no_interest(t) {
+    await new Promise((resolve, reject) => t.step_timeout(resolve, 1000));
+  }
+  async function wait_for_interest(t, element) {
+    await t.step_wait(() => element.matches(":interest-source"), 1000)
+  }
+
+  let blank_area = document.getElementById("blank-area");
+
+  promise_test(async function (t) {
+    let file_item = document.querySelector("[commandfor='file-menu']");
+    let file_event = null;
+    document.getElementById("file-menu").addEventListener("interest", (ev) => { file_event = ev; }, { once: true });
+    let edit_item = document.querySelector("[commandfor='edit-menu']");
+
+    assert_false(file_item.matches(":open"), "file menu not open at start");
+    assert_false(edit_item.matches(":open"), "edit menu not open at start");
+
+    await hoverOver(file_item);
+    await wait_long_enough_to_check_for_no_interest(t);
+    assert_equals(file_event, null, "interest does not fire when hovering menubar with no open items");
+    assert_false(file_item.matches(":open"), "file menu not open after initial hover");
+
+    await clickOn(edit_item);
+    assert_true(edit_item.matches(":open"), "edit menu open after clicking");
+    assert_false(file_item.matches(":open"), "file menu not open after clicking edit menu");
+
+    await hoverOver(file_item);
+    await wait_for_interest(t, file_item);
+    assert_not_equals(file_event, null, "interest fires when hovering menubar with open item");
+    assert_true(file_item.matches(":open"), "file menu open after second hover");
+    assert_false(edit_item.matches(":open"), "edit menu not open after file menu opens");
+
+    await clickOn(blank_area);
+    assert_false(file_item.matches(":open"), "file menu closed after click");
+    assert_false(edit_item.matches(":open"), "edit menu still closed after click");
+  }, "hover implicitly causes interest on a menuitem in a menubar only when an item in that menubar is already open");
+
+  promise_test(async function (t) {
+    let view_item = document.querySelector("[commandfor='view-menu']");
+    let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+    await clickOn(view_item);
+    assert_true(view_item.matches(":open"), "view menu open after clicking");
+    assert_false(zoom_item.matches(":open"), "zoom menu not open");
+
+    await hoverOver(zoom_item);
+    await wait_for_interest(t, zoom_item);
+    assert_true(view_item.matches(":open"), "view menu still open after hovering zoom");
+    assert_true(zoom_item.matches(":open"), "zoom menu open after hovering");
+
+    await clickOn(view_item);
+    assert_true(view_item.matches(":open"), "view menu still open after click");
+    assert_false(zoom_item.matches(":open"), "zoom menu closed after click");
+
+    await clickOn(blank_area);
+    assert_false(view_item.matches(":open"), "view menu closed after click");
+  }, "hover implicitly causes interest on a menuitem in a menulist");
+
+  promise_test(async function (t) {
+    let view_item = document.querySelector("[commandfor='view-menu']");
+    let view_source_item = document.querySelector("[commandfor='view-source-menu']");
+    await clickOn(view_item);
+    assert_true(view_item.matches(":open"), "view menu open after clicking");
+    assert_false(view_source_item.matches(":open"), "view-source menu not open");
+
+    await hoverOver(view_source_item);
+    await wait_for_interest(t, view_source_item);
+    assert_true(view_item.matches(":open"), "view menu still open after hovering view_source");
+    assert_true(view_source_item.matches(":open"), "view-source menu open after hovering");
+
+    await clickOn(view_item);
+    assert_true(view_item.matches(":open"), "view menu still open after click");
+    assert_false(view_source_item.matches(":open"), "view-source menu closed after click");
+
+    await clickOn(blank_area);
+    assert_false(view_item.matches(":open"), "view menu closed after click");
+  }, "hover implicitly causes interest on a menuitem in a fieldset in a menulist");
+
+</script>

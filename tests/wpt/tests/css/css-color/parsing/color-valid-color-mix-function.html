@@ -36,6 +36,7 @@
 
     // NOTE: For the epsilon to meaningful for fuzzy_test_valid_color when used with integer rounded results like rgb(), it must be at least 1.
 
+    // hsl()
     fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, 50% hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 10% 20%), 50% hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`, 1);
@@ -104,8 +105,6 @@
     fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 40% 40% / none), hsl(0deg 40% 40% / 0.5))`, `color-mix(in hsl, rgba(61, 143, 61, 0), rgba(143, 61, 61, 0.5))`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 40% 40% / none), hsl(0deg 40% 40% / none))`, `color-mix(in hsl, rgba(61, 143, 61, 0), rgba(143, 61, 61, 0))`, 1);
 
-    fuzzy_test_valid_color(`color-mix(hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(rgb(46, 56, 46), rgb(133, 102, 71))`); // Missing interpolation method.
-
     fuzzy_test_valid_color(`color-mix(in hsl, color(display-p3 0 1 0) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, color(display-p3 0 1 0) 100%, rgb(0, 0, 0) 0%)`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, lab(100 104.3 -50.9) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, lab(100 104.3 -50.9) 100%, rgb(0, 0, 0) 0%)`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, lab(0 104.3 -50.9) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, lab(0 104.3 -50.9) 100%, rgb(0, 0, 0) 0%)`, 1);
@@ -118,6 +117,12 @@
     fuzzy_test_valid_color(`color-mix(in hsl, oklch(1 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, oklch(1 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, 1);
     fuzzy_test_valid_color(`color-mix(in hsl, oklch(0 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, oklch(0 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, 1);
 
+    fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 10% 20%) 0%, hsl(30deg 30% 40%) 0%)`, `color-mix(in hsl, rgb(46, 56, 46) 0%, rgb(133, 102, 71) 0%)`, 1);
+    fuzzy_test_valid_color(`color-mix(in hsl, hsl(120deg 10% 20% / .4) 0%, hsl(30deg 30% 40% / .8) 0%)`, `color-mix(in hsl, rgba(46, 56, 46, 0.4) 0%, rgba(133, 102, 71, 0.8) 0%)`, 1);
+
+    fuzzy_test_valid_color(`color-mix(hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(rgb(46, 56, 46), rgb(133, 102, 71))`); // Missing interpolation method.
+
+    // hwb()
     fuzzy_test_valid_color(`color-mix(in hwb, hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`, 1);
     fuzzy_test_valid_color(`color-mix(in hwb, 50% hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`, 1);
     fuzzy_test_valid_color(`color-mix(in hwb, hwb(120deg 10% 20%), 50% hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`, 1);
@@ -197,6 +202,9 @@
     fuzzy_test_valid_color(`color-mix(in hwb, oklab(1 0.365 -0.16) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hwb, oklab(1 0.365 -0.16) 100%, rgb(0, 0, 0) 0%)`);
     fuzzy_test_valid_color(`color-mix(in hwb, oklch(1 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hwb, oklch(1 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`);
 
+    fuzzy_test_valid_color(`color-mix(in hwb, hwb(120deg 10% 20%) 0%, hwb(30deg 30% 40%) 0%)`, `color-mix(in hwb, rgb(26, 204, 26) 0%, rgb(153, 115, 77) 0%)`, 1);
+    fuzzy_test_valid_color(`color-mix(in hwb, hwb(120deg 10% 20% / 0.4) 0%, hwb(30deg 30% 40% / 0.8) 0%)`, `color-mix(in hwb, rgba(26, 204, 26, 0.4) 0%, rgba(153, 115, 77, 0.8) 0%)`, 1);
+
     fuzzy_test_valid_color(`color-mix(hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(rgb(26, 204, 26), rgb(153, 115, 77))`); // Missing interpolation method.
 
     // lch()
@@ -264,6 +272,10 @@
     fuzzy_test_valid_color(`color-mix(in lch, lch(10 20 30deg / none), lch(50 60 70deg))`, `color-mix(in lch, lch(10 20 30 / none), lch(50 60 70))`);
     fuzzy_test_valid_color(`color-mix(in lch, lch(10 20 30deg / none), lch(50 60 70deg / 0.5))`, `color-mix(in lch, lch(10 20 30 / none), lch(50 60 70 / 0.5))`);
     fuzzy_test_valid_color(`color-mix(in lch, lch(10 20 30deg / none), lch(50 60 70deg / none))`, `color-mix(in lch, lch(10 20 30 / none), lch(50 60 70 / none))`);
+
+    fuzzy_test_valid_color(`color-mix(in lch, lch(10% 20 30deg) 0%, lch(50% 60 70deg) 0%)`, `color-mix(in lch, lch(10 20 30) 0%, lch(50 60 70) 0%)`);
+    fuzzy_test_valid_color(`color-mix(in lch, lch(10% 20 30deg / .4) 0%, lch(50% 60 70deg / .8) 0%)`, `color-mix(in lch, lch(10 20 30 / 0.4) 0%, lch(50 60 70 / 0.8) 0%)`);
+
     fuzzy_test_valid_color(`color-mix(lch(10 20 30), lch(50 60 70))`); // Missing interpolation method.
 
     // oklch()
@@ -332,6 +344,9 @@
     fuzzy_test_valid_color(`color-mix(in oklch, oklch(0.1 0.2 30deg / none), oklch(0.5 0.6 70deg / 0.5))`, `color-mix(in oklch, oklch(0.1 0.2 30 / none), oklch(0.5 0.6 70 / 0.5))`);
     fuzzy_test_valid_color(`color-mix(in oklch, oklch(0.1 0.2 30deg / none), oklch(0.5 0.6 70deg / none))`, `color-mix(in oklch, oklch(0.1 0.2 30 / none), oklch(0.5 0.6 70 / none))`);
 
+    fuzzy_test_valid_color(`color-mix(in oklch, oklch(10% 20 30deg) 0%, oklch(50% 60 70deg) 0%)`, `color-mix(in oklch, oklch(0.1 20 30) 0%, oklch(0.5 60 70) 0%)`);
+    fuzzy_test_valid_color(`color-mix(in oklch, oklch(10% 20 30deg / .4) 0%, oklch(50% 60 70deg / .8) 0%)`, `color-mix(in oklch, oklch(0.1 20 30 / 0.4) 0%, oklch(0.5 60 70 / 0.8) 0%)`);
+
     fuzzy_test_valid_color(`color-mix(oklch(0.1 20 30), oklch(0.5 60 70))`); // Missing interpolation method.
 
     // lab()
@@ -365,6 +380,9 @@
     fuzzy_test_valid_color(`color-mix(in lab, lab(10 20 30 / none), lab(50 60 70 / 0.5))`, `color-mix(in lab, lab(10 20 30 / none), lab(50 60 70 / 0.5))`);
     fuzzy_test_valid_color(`color-mix(in lab, lab(10 20 30 / none), lab(50 60 70 / none))`, `color-mix(in lab, lab(10 20 30 / none), lab(50 60 70 / none))`);
 
+    fuzzy_test_valid_color(`color-mix(in lab, lab(10% 20 30) 0%, lab(50% 60 70) 0%)`, `color-mix(in lab, lab(10 20 30) 0%, lab(50 60 70) 0%)`);
+    fuzzy_test_valid_color(`color-mix(in lab, lab(10% 20 30 / .4) 0%, lab(50% 60 70 / .8) 0%)`, `color-mix(in lab, lab(10 20 30 / 0.4) 0%, lab(50 60 70 / 0.8) 0%)`);
+
     fuzzy_test_valid_color(`color-mix(lab(10 20 30), lab(50 60 70))`); // Missing interpolation method.
 
     // oklab()
@@ -397,6 +415,9 @@
     fuzzy_test_valid_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7))`, `color-mix(oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7))`);
     fuzzy_test_valid_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / 0.5))`, `color-mix(oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / 0.5))`);
     fuzzy_test_valid_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / none))`, `color-mix(oklab(0.1 0.2 0.3 / none), oklab(0.5 0.6 0.7 / none))`);
+
+    fuzzy_test_valid_color(`color-mix(in oklab, oklab(10% 20 30) 0%, oklab(50% 60 70) 0%)`, `color-mix(oklab(0.1 20 30) 0%, oklab(0.5 60 70) 0%)`);
+    fuzzy_test_valid_color(`color-mix(in oklab, oklab(10% 20 30 / .4) 0%, oklab(50% 60 70 / .8) 0%)`, `color-mix(oklab(0.1 20 30 / 0.4) 0%, oklab(0.5 60 70 / 0.8) 0%)`);
 
     fuzzy_test_valid_color(`color-mix(oklab(0.1 0.2 0.3), oklab(0.5 0.6 0.7))`); // Missing interpolation method.
 
@@ -435,24 +456,28 @@
       fuzzy_test_valid_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / none), color(${colorSpace} .5 .6 .7 / 0.5))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3 / none), color(${resultColorSpace} 0.5 0.6 0.7 / 0.5))`);
       fuzzy_test_valid_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / none), color(${colorSpace} .5 .6 .7 / none))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3 / none), color(${resultColorSpace} 0.5 0.6 0.7 / none))`);
 
+      fuzzy_test_valid_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 0%, color(${colorSpace} .5 .6 .7) 0%)`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3) 0%, color(${resultColorSpace} 0.5 0.6 0.7) 0%)`);
+      fuzzy_test_valid_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 0%, color(${colorSpace} .5 .6 .7 / .8) 0%)`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3 / 0.4) 0%, color(${resultColorSpace} 0.5 0.6 0.7 / 0.8) 0%)`);
+
       fuzzy_test_valid_color(`color-mix(color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color-mix(color(${resultColorSpace} .1 .2 .3), color(${resultColorSpace} .5 .6 .7))`); // Missing interpolation method.
     }
 
     // Test percent normalization
     fuzzy_test_valid_color(`color-mix(in srgb, red 50%,       blue 50%)`,          `color-mix(in srgb, red, blue)`)                     // both 50%
-    fuzzy_test_valid_color(`color-mix(in srgb, red 10%,       blue 90%)`,          `color-mix(in srgb, red 10%, blue 90%)`)                 // sum to 100%
+    fuzzy_test_valid_color(`color-mix(in srgb, red 10%,       blue 90%)`,          `color-mix(in srgb, red 10%, blue 90%)`)             // sum to 100%
     fuzzy_test_valid_color(`color-mix(in srgb, red 50%,       blue 40%)`,          `color-mix(in srgb, red 50%, blue 40%)`)             // only one is 50% (p1)
     fuzzy_test_valid_color(`color-mix(in srgb, red 40%,       blue 50%)`,          `color-mix(in srgb, red 40%, blue 50%)`)             // only one is 50% (p2)
-    fuzzy_test_valid_color(`color-mix(in srgb, red 30%,       blue 40%)`,          `color-mix(in srgb, red 30%, blue 40%)`)             // sum to less than 100
-    fuzzy_test_valid_color(`color-mix(in srgb, red 75%,       blue 75%)`,          `color-mix(in srgb, red 75%, blue 75%)`)             // sum to more than 100
+    fuzzy_test_valid_color(`color-mix(in srgb, red 30%,       blue 40%)`,          `color-mix(in srgb, red 30%, blue 40%)`)             // sum to less than 100%
+    fuzzy_test_valid_color(`color-mix(in srgb, red 75%,       blue 75%)`,          `color-mix(in srgb, red 75%, blue 75%)`)             // sum to more than 100%
+    fuzzy_test_valid_color(`color-mix(in srgb, red 0% ,       blue 0%)`,           `color-mix(in srgb, red 0%, blue 0%)`)               // sum to 0%
     fuzzy_test_valid_color(`color-mix(in srgb, red calc(10%), blue 50%)`,          `color-mix(in srgb, red calc(10%), blue 50%)`)       // one is `calc()` (p1)
     fuzzy_test_valid_color(`color-mix(in srgb, red 50%,       blue calc(10%))`,    `color-mix(in srgb, red 50%, blue calc(10%))`)       // one is `calc()` (p2)
     fuzzy_test_valid_color(`color-mix(in srgb, red calc(10%), blue calc(90%))`,    `color-mix(in srgb, red calc(10%), blue calc(90%))`) // both are `calc()`
     fuzzy_test_valid_color(`color-mix(in srgb, red 50%,       blue)`,              `color-mix(in srgb, red, blue)`)                     // only p1 specified, is 50%
-    fuzzy_test_valid_color(`color-mix(in srgb, red 10%,       blue)`,              `color-mix(in srgb, red 10%, blue 90%)`)                 // only p1 specified
+    fuzzy_test_valid_color(`color-mix(in srgb, red 10%,       blue)`,              `color-mix(in srgb, red 10%, blue 90%)`)             // only p1 specified
     fuzzy_test_valid_color(`color-mix(in srgb, red calc(50%), blue)`,              `color-mix(in srgb, red calc(50%), blue)`)           // only p1 specified, is `calc()`
     fuzzy_test_valid_color(`color-mix(in srgb, red,           blue 50%)`,          `color-mix(in srgb, red, blue)`)                     // only p2 specified, is 50%
-    fuzzy_test_valid_color(`color-mix(in srgb, red,           blue 90%)`,          `color-mix(in srgb, red 10%, blue 90%)`)                 // only p2 specified
+    fuzzy_test_valid_color(`color-mix(in srgb, red,           blue 90%)`,          `color-mix(in srgb, red 10%, blue 90%)`)             // only p2 specified
     fuzzy_test_valid_color(`color-mix(in srgb, red,           blue calc(50%))`,    `color-mix(in srgb, red, blue calc(50%))`)           // only p2 specified, is `calc()`
     fuzzy_test_valid_color(`color-mix(in srgb, red,           blue)`,              `color-mix(in srgb, red, blue)`)                     // neither is specified
 
@@ -468,6 +493,8 @@
     fuzzy_test_valid_color(`color-mix(in srgb, red, green 25%, blue 25%)`, `color-mix(in srgb, red 50%, green 25%, blue 25%)`);
     fuzzy_test_valid_color(`color-mix(in srgb, red, green, blue, white)`, `color-mix(in srgb, red, green, blue, white)`);
     fuzzy_test_valid_color(`color-mix(in srgb, currentcolor, red, blue)`, `color-mix(in srgb, currentcolor, red, blue)`);
+    fuzzy_test_valid_color(`color-mix(in srgb, red 0%)`, `color-mix(in srgb, red 0%)`);
+    fuzzy_test_valid_color(`color-mix(in srgb, red 0%, green 0%, blue 0%)`, `color-mix(in srgb, red 0%, green 0%, blue 0%)`);
 </script>
 </body>
 </html>

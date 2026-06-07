@@ -1,0 +1,48 @@
+<!doctype html>
+<title>&lt;animateMotion> from/to animation with rotate=auto and horizontal motion</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<svg>
+  <rect x="-200" width="200" height="100" fill="blue">
+    <animateMotion id="anim" from="-300,50" to="200,50" rotate="auto"
+                   fill="freeze" dur="4s"/>
+  </rect>
+</svg>
+<script>
+const rootSVGElement = document.querySelector('svg');
+
+function assert_bbox_position(element, x, y) {
+  const bbox = element.getBBox();
+  const epsilon = 0.5;
+  assert_approx_equals(bbox.x, x, epsilon, 'bbox x');
+  assert_approx_equals(bbox.y, y, epsilon, 'bbox y');
+}
+
+// delta = to - from = (500, 0). The slope angle is atan2(0, 500) = 0deg, so
+// the element translates horizontally with no rotation. This covers the
+// fromPoint.y == toPoint.y (delta.y == 0) case.
+function sample1() {
+  assert_bbox_position(rootSVGElement, -500, 50);
+}
+
+function sample2() {
+  assert_bbox_position(rootSVGElement, -250, 50);
+}
+
+function sample3() {
+  assert_bbox_position(rootSVGElement, 0, 50);
+}
+
+smil_async_test(t => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ['anim', 0.0, sample1],
+    ['anim', 2.0, sample2],
+    ['anim', 4.0, sample3],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+</script>

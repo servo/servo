@@ -1,0 +1,41 @@
+<!doctype html>
+<html class="reftest-wait" lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter Dutch 'ij' digraph reacts to dynamic lang changes</title>
+  <link rel="match" href="reference/first-letter-digraph-dynamic-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/selectors-3/#first-letter">
+  <meta name="assert" content="Dynamic changes to lang or xml:lang (on the element or an ancestor; via setAttribute or removeAttribute) update the locale used by ::first-letter, including the Dutch 'ij' digraph and the reverse direction.">
+  <style>
+  div { font-size: 32px; }
+  div p { margin: 0; color: lightgray; }
+  div p::first-letter { color: green; }
+  </style>
+  <script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById("element-set").setAttribute("lang", "nl");
+      document.getElementById("ancestor-remove").removeAttribute("lang");
+      document.getElementById("xml-lang-set").setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:lang", "nl");
+      document.getElementById("reverse").setAttribute("lang", "en");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+  </script>
+</head>
+<body>
+  <p>Test passes if both "I" and "J" are green in the first three examples, and only "I" is green in the last:</p>
+  <div>
+    <p id="element-set" lang="en">ijsselmeer</p>
+  </div>
+  <div id="ancestor-remove" lang="en">
+    <p>ijsselmeer</p>
+  </div>
+  <div>
+    <p id="xml-lang-set" xml:lang="en">ijsselmeer</p>
+  </div>
+  <div>
+    <p id="reverse" lang="nl">ijsselmeer</p>
+  </div>
+</body>
+</html>

@@ -30,4 +30,20 @@
       t3.done();
     }
   })
+
+  test(() => {
+    assert_equals(document.implementation.createHTMLDocument().readyState, "complete");
+  }, "readyState equals 'complete' for documents created via createHTMLDocument()");
+
+  test(() => {
+    assert_equals(document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", null).readyState, "complete");
+  }, "readyState equals 'complete' for XHTML documents created via createDocument()");
+
+  test(() => {
+    assert_equals(document.implementation.createDocument("http://www.w3.org/2000/svg", "svg", null).readyState, "complete");
+  }, "readyState equals 'complete' for SVG documents created via createDocument()");
+
+  test(() => {
+    assert_equals(new DOMParser().parseFromString("<html></html>", "text/xml").readyState, "complete");
+  }, "readyState equals 'complete' for documents created via DOMParser");
 </script>

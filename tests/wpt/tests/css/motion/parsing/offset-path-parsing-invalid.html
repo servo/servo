@@ -38,6 +38,15 @@ test_invalid_value("offset-path", "rect(0px)");
 test_invalid_value("offset-path", "rect(0px 1%)");
 test_invalid_value("offset-path", "rect(0px 1% auto)");
 
+test_invalid_value("offset-path", "polygon(round, 1px 2px)");
+test_invalid_value("offset-path", "polygon(round -1px, 1px 2px)");
+test_invalid_value("offset-path", "polygon(round 1%, 1px 2px)");
+test_invalid_value("offset-path", "polygon(round 45deg, 1px 2px)");
+test_invalid_value("offset-path", "polygon(round 1px 1px 2px)");
+test_invalid_value("offset-path", "polygon(1px 2px, round 1px)");
+test_invalid_value("offset-path", "polygon(round 1px round 2px, 1px 2px)");
+test_invalid_value("offset-path", "polygon(round 1px nonzero, 1px 2px)");
+
 </script>
 </body>
 </html>

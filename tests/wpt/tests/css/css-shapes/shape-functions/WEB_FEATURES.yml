@@ -6,13 +6,14 @@ features:
   - '!shape-function-*'
   - '!rect-function-*'
   - '!xywh-function-*'
+  - '!polygon-function-round-*'
 - name: path-shape
   files:
   - 'path-function-*'
 - name: shape-function
   files:
-  - shape-function-*
+  - 'shape-function-*'
 - name: rect-xywh
   files:
-  - rect-function-*
-  - xywh-function-*
+  - 'rect-function-*'
+  - 'xywh-function-*'

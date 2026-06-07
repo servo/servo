@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div dir="ltr">
+    <div id="source">
+      <span id="target"><span id="inner">Inner</span>Target</span>
+    </div>
+  </div>
+
+  <div dir="rtl">
+    <div id="dest"></div>
+  </div>
+</body>
+
+<script>
+  test(() => {
+      assert_true(target.matches(':dir(ltr)'));
+      assert_true(inner.matches(':dir(ltr)'));
+      assert_false(target.matches(':dir(rtl)'));
+      assert_false(inner.matches(':dir(rtl)'));
+
+      dest.moveBefore(target, null);
+
+      assert_false(target.matches(':dir(ltr)'));
+      assert_false(inner.matches(':dir(ltr)'));
+      assert_true(target.matches(':dir(rtl)'));
+      assert_true(inner.matches(':dir(rtl)'));
+  }, 'moveBefore() correctly updates the computed dir for moved nodes');
+</script>

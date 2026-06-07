@@ -41,6 +41,21 @@ test_valid_value("clip-path", "ellipse(farthest-side 4% at bottom left)", "ellip
 test_valid_value("clip-path", "polygon(1% 2%)");
 test_valid_value("clip-path", "polygon(nonzero, 1px 2px, 3em 4em)", "polygon(1px 2px, 3em 4em)");
 test_valid_value("clip-path", "polygon(evenodd, 1px 2px, 3em 4em, 5pt 6%)");
+test_valid_value("clip-path", "polygon(round 1px, 1% 2%)");
+test_valid_value(
+    "clip-path",
+    "polygon(round 0px, 1px 2px, 3px 4px)",
+    "polygon(1px 2px, 3px 4px)");
+test_valid_value(
+    "clip-path",
+    "polygon(nonzero round 1px, 1px 2px, 3em 4em)",
+    "polygon(round 1px, 1px 2px, 3em 4em)");
+test_valid_value(
+    "clip-path",
+    "polygon(evenodd round 1px, 1px 2px, 3em 4em, 5pt 6%)");
+test_valid_value(
+    "clip-path",
+    "polygon(round calc(1em + 2px), 1px 2px, 3px 4px)");
 
 // New supported shape in [css-shapes-2]
 // https://drafts.csswg.org/css-shapes-2/#supported-basic-shapes

@@ -1,0 +1,48 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+
+<style>
+  body {
+    font-family: monospace;
+    font-size: 16px;
+  }
+  .button {
+    box-sizing: border-box;
+    background-color: transparent;
+    padding-block: 0.25em;
+    padding-inline: 0.5em;
+    border: 1px solid currentColor;
+    border-radius: 0.5em;
+    display: inline-flex;
+    gap: 0.5em;
+    min-inline-size: 24px;
+    min-block-size: max(24px, 1lh);
+    counter-set: fake-counter-name 1;
+  }
+  .button::after {
+    content: counter(fake-counter-name, disclosure-open);
+    display: block;
+    margin-inline-start: auto;
+  }
+  .vertical-rl {
+    writing-mode: vertical-rl;
+  }
+  .vertical-lr {
+    writing-mode: vertical-lr;
+  }
+  .rtl {
+    direction: rtl;
+  }
+</style>
+
+<p class="vertical-rl">
+  <span class="button">One</span>
+</p>
+
+<p class="vertical-lr">
+  <span class="button">One</span>
+</p>
+
+<p class="rtl">
+  <span class="button">One</span>
+</p>

@@ -30,6 +30,15 @@ test(t => {
 }, 'CSSPositionTryRule attribute values');
 
 test(t => {
+  const style = createStyle(
+      t, '@position-try --\\{ {}');
+  const positionTryRule = style.sheet.cssRules[0];
+  assert_true(positionTryRule instanceof CSSPositionTryRule);
+  assert_equals(positionTryRule.name, '--\\{');
+  assert_equals(positionTryRule.cssText, '@position-try --\\{ { }');
+}, 'CSSPositionTryRule escaped ident name');
+
+test(t => {
   const style = createStyle(t, `
     @position-try --pf { top: anchor(top); left: 0; }
     #anchor, #other-anchor, #target {

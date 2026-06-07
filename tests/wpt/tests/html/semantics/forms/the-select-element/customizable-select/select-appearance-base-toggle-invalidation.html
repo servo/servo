@@ -1,0 +1,44 @@
+<!doctype html>
+<html class="reftest-wait">
+  <link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+  <link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon" />
+  <link
+    rel="match"
+    href="select-appearance-base-toggle-invalidation-ref.html"
+  />
+  <meta
+    name="assert"
+    content="adding appearance:base-select dynamically renders the ::picker-icon and UA button styles"
+  />
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+
+  <style>
+    body {
+      font-family: monospace;
+      font-size: 16px;
+    }
+    select.base,
+    select.base::picker(select) {
+      appearance: base-select;
+    }
+    select:focus-visible {
+      outline: none;
+    }
+  </style>
+
+  <select class="base">
+    <option>One</option>
+  </select>
+
+  <select class="mutate">
+    <option>One</option>
+  </select>
+
+  <script>
+    requestAnimationFrame(() => {
+      document.querySelector(".mutate").classList.add("base");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</html>

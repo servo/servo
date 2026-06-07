@@ -83,8 +83,13 @@
         ];
         let last_scroll_top = snapcontainer.scrollTop;
         async function scroll_listener() {
-          // If we are scrolling back to 0, we are snapping.
-          if (snapcontainer.scrollTop < last_scroll_top) {
+          // If scrollTop is decreasing we are snapping back (absolute-scroll
+          // case).
+          // If scrollTop is increasing past the initial scroll amount we are
+          // snapping forward (relative-scroll case).
+          if (snapcontainer.scrollTop < last_scroll_top ||
+              (snapcontainer.scrollTop > last_scroll_top &&
+               snapcontainer.scrollTop > snap_scroll_amt)) {
             snapcontainer.removeEventListener("scroll", scroll_listener);
             await new test_driver.Actions().scroll(0, 0, 0, inputs.scroll_amt,
                                             { origin: other_container }).send();
@@ -101,8 +106,12 @@
                                          .send();
 
         await Promise.all(scrollend_promises);
-        assert_equals(snapcontainer.scrollTop, 0,
-          "snapcontainer snaps back to 0");
+        const second_snap_offset =
+            snapcontainer.querySelectorAll(".snaparea")[1].offsetTop;
+        assert_true(snapcontainer.scrollTop === 0 ||
+                    snapcontainer.scrollTop === second_snap_offset,
+          "snapcontainer snaps to a snap point (0 or " +
+          second_snap_offset + "), got " + snapcontainer.scrollTop);
         assert_equals(other_container.scrollTop, expectations.expectedScrollTop,
           `${other_container.id} is at expected scroll offset.`);
       }

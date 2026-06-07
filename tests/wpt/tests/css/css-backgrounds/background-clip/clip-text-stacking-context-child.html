@@ -15,7 +15,8 @@
 </style>
 <!-- Test passes if there are 8 5-character green texts. -->
 
-<!-- opacity creates stacking context -->
+<!-- opacity creates a stacking context; its glyphs still contribute to the
+     mask, but the opacity must not dim the revealed background -->
 <div class="clip">XXXXX<div style="opacity: 0.99">XXXXX</div></div>
 
 <!-- transform creates stacking context -->
