@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
@@ -44,9 +46,27 @@ pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector<AssociatedMemory>,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     canvas_state: CanvasState,
+    associated_memory_buffer_count: Cell<usize>,
 }
 
 impl CanvasRenderingContext2D {
+    fn associated_memory_size(size: Size2D<u32>, buffer_count: usize) -> usize {
+        (size.width as usize)
+            .saturating_mul(size.height as usize)
+            .saturating_mul(4) // RGBA 4 byytes per pixel
+            .saturating_mul(buffer_count)
+    }
+
+    pub(crate) fn update_associated_memory_size(&self) {
+        self.reflector_.update_memory_size(
+            self,
+            Self::associated_memory_size(
+                <Self as CanvasContext>::size(self),
+                self.associated_memory_buffer_count.get(),
+            ),
+        );
+    }
+
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         global: &GlobalScope,
@@ -59,6 +79,7 @@ impl CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,
             canvas_state,
+            associated_memory_buffer_count: Cell::new(1),
         })
     }
 
@@ -73,7 +94,11 @@ impl CanvasRenderingContext2D {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
             size,
         )
-        .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
+        .map(|context| {
+            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            context.update_associated_memory_size();
+            context
+        })
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
@@ -90,6 +115,8 @@ impl CanvasRenderingContext2D {
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
         self.canvas_state.set_image_key(image_key);
+        self.associated_memory_buffer_count.set(2);
+        self.update_associated_memory_size();
     }
 
     pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
@@ -112,8 +139,7 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.reflector_
-            .update_memory_size(self, self.size().cast::<usize>().area());
+        self.update_associated_memory_size();
         self.canvas_state.set_bitmap_dimensions(self.size().cast());
     }
 
