@@ -50,7 +50,7 @@ pub(crate) struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
-    fn associated_memory_size(size: Size2D<u32>, buffer_count: usize) -> usize {
+    fn associated_memory_size(size: Size2D<u64>, buffer_count: usize) -> usize {
         (size.width as usize)
             .saturating_mul(size.height as usize)
             .saturating_mul(4) // RGBA 4 byytes per pixel
@@ -61,7 +61,7 @@ impl CanvasRenderingContext2D {
         self.reflector_.update_memory_size(
             self,
             Self::associated_memory_size(
-                <Self as CanvasContext>::size(self),
+                self.canvas_state.bitmap_dimensions(),
                 self.associated_memory_buffer_count.get(),
             ),
         );
@@ -139,8 +139,8 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.update_associated_memory_size();
         self.canvas_state.set_bitmap_dimensions(self.size().cast());
+        self.update_associated_memory_size();
     }
 
     fn reset_bitmap(&self) {
