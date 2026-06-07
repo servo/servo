@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<title>HTML-AAM: aside nested in a prefixed article ancestor</title>
+<link rel="help" href="https://w3c.github.io/html-aam/#el-aside">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<script>
+const xhtmlNS = "http://www.w3.org/1999/xhtml";
+
+promise_test(async () => {
+  // Construct an HTML <article> with a non-null prefix. The element's
+  // identity for HTML-AAM purposes is its expanded name (namespace +
+  // local name); the prefix is incidental.
+  const article = document.createElementNS(xhtmlNS, "foo:article");
+  const aside = document.createElement("aside");
+  aside.textContent = "x";
+  article.appendChild(aside);
+  document.body.appendChild(article);
+
+  const role = await test_driver.get_computed_role(aside);
+  // Per HTML-AAM, an <aside> inside an <article> ancestor is generic.
+  // ARIA WG has accepted "generic", "", and "none" as equivalent for
+  // testing purposes; see https://github.com/web-platform-tests/interop-accessibility/issues/48.
+  assert_in_array(role, ["generic", "", "none"]);
+}, "el-aside-in-prefixed-article");
+</script>
+</body>
+</html>

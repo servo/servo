@@ -168,6 +168,20 @@ test_composition({
 
 test_composition({
   property: 'clip-path',
+  underlying: 'polygon(round 10px, 10px 20px, 30px 40px)',
+  addFrom: 'polygon(round 10px, 10px 20px, 30px 40px)',
+  addTo: 'polygon(round 30px, 110px 120px, 130px 140px)',
+}, [
+  {at: -0.3, expect: 'polygon(round 14px, -10px 10px, 30px 50px)'},
+  {at: 0, expect: 'polygon(round 20px, 20px 40px, 60px 80px)'},
+  {at: 0.3, expect: 'polygon(round 26px, 50px 70px, 90px 110px)'},
+  {at: 0.6, expect: 'polygon(round 32px, 80px 100px, 120px 140px)'},
+  {at: 1, expect: 'polygon(round 40px, 120px 140px, 160px 180px)'},
+  {at: 1.5, expect: 'polygon(round 50px, 170px 190px, 210px 230px)'},
+]);
+
+test_composition({
+  property: 'clip-path',
   underlying: 'polygon(evenodd, 10px 20px)',
   addFrom: 'polygon(evenodd, 10px 20px)',
   addTo: 'polygon(nonzero, 30px 40px)',

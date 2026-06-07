@@ -27,12 +27,13 @@
       if (combinedSize === 0) {
         assert_equals(timecode, 0, "first chunk timecode must be 0");
       } else {
-        assert_greater_than(timecode, previous_timecode, "timecode must increase monotonically");
+        assert_greater_than_equal(timecode, previous_timecode, "timecode must increase monotonically");
       }
       previous_timecode = timecode;
       combinedSize += data.size;
     }
     recorder.stop();
+    assert_greater_than(previous_timecode, 0, "last_timecode must be greater than 0");
   }
 
   promise_test(async t => {

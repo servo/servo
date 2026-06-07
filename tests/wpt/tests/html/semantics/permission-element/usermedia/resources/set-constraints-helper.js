@@ -22,6 +22,9 @@ function runSetConstraintsTests(testCases) {
       const stream_promise = new Promise((resolve) => {
         usermedia.onstream = resolve;
       });
+      const error_promise = new Promise((resolve) => {
+        usermedia.onerror = resolve;
+      });
 
       const constraints = {};
       if (video !== undefined) {
@@ -38,9 +41,14 @@ function runSetConstraintsTests(testCases) {
       // Wait until the element is clickable.
       await new Promise((r) => t.step_timeout(r, 600));
 
+      const expect_success = expVideo || expAudio;
       if (should_trigger) {
         await test_driver.click(usermedia);
-        await stream_promise;
+        if (expect_success) {
+          await stream_promise;
+        } else {
+          await error_promise;
+        }
       } else {
         await test_driver.click(usermedia);
         // Wait a bit to ensure no stream event is fired

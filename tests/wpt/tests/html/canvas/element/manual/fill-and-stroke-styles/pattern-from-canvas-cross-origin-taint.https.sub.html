@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A pattern using a tainted canvas should taint the canvas.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id=img_source src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" />
+<canvas id=canvas_inner width=100 height=100></canvas>
+<canvas id=canvas_outer width=100 height=100></canvas>
+<script>
+  window.onload = function() {
+    promise_test(async function(t) {
+      const context_inner = canvas_inner.getContext("2d");
+      context_inner.drawImage(img_source, 0, 0, 100, 100);
+
+      const context_outer = canvas_outer.getContext("2d");
+      const pattern = context_outer.createPattern(canvas_inner, "repeat");
+      context_outer.fillStyle = pattern;
+      context_outer.fillRect(0, 0, 100, 100);
+
+      // The canvas should be tainted, so the following should throw.
+      assert_throws_dom("SecurityError",
+        function () { canvas_outer.toDataURL() },
+        'canvas.toDataURL should throw SecurityError for a pattern using cross origin content.'
+      );
+    }, "Tainting check for a tainted canvas in canvas pattern");
+  };
+</script>

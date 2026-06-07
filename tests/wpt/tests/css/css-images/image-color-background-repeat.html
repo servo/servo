@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) with background-repeat</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-background-repeat-ref.html">
+<style>
+  .container {
+    width: 200px;
+    height: 200px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    background-image: image(green);
+    background-size: 100px 100px;
+    background-position: 0 0;
+  }
+
+  /* 2×2 grid of tiles fills the 200×200 box entirely */
+  .repeat    { background-repeat: repeat; }
+
+  /* single tile at top-left */
+  .no-repeat { background-repeat: no-repeat; }
+
+  /* two tiles in a row along the top */
+  .repeat-x  { background-repeat: repeat-x; }
+
+  /* two tiles in a column along the left */
+  .repeat-y  { background-repeat: repeat-y; }
+</style>
+<p>Four 200×200 squares: fully green (repeat), top-left quadrant green (no-repeat),
+top half green (repeat-x), left half green (repeat-y).</p>
+<div class="container repeat"></div>
+<div class="container no-repeat"></div>
+<div class="container repeat-x"></div>
+<div class="container repeat-y"></div>

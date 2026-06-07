@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <title>HTML-AAM img Element Role Verification Test</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+
+<p>Tentative test for the expected role mappings of the <code>img</code> element to ensure
+   it is exposed with the correct role when the <code>src</code>, <code>srcset</code>, both or neither
+   attributes are specified.</p>
+  <p>The computedrole mappings are defined in <a href="https://w3c.github.io/html-aam/">HTML-AAM</a>.<p>
+
+<p>Merge the outcome of this test into roles.html in the appropriate alphabetical order, when it is no longer considered tentative:</p>
+
+<div hidden id=labelledby>x</div>
+
+<h2>Image role:</h2>
+<img data-testname="el-img-no-src-or-srcset-but-name-from-alt" data-expectedrole="image" class="ex"
+  alt=x>
+<img data-testname="el-img-no-src-or-srcset-but-name-from-title" data-expectedrole="image" class="ex"
+  title=x>
+<img data-testname="el-img-no-src-or-srcset-but-name-from-aria-label" data-expectedrole="image" class="ex"
+  aria-label=foo>
+<img data-testname="el-img-no-src-or-srcset-but-name-from-aria-labelledby" data-expectedrole="image" class="ex"
+  aria-labelledby=labelledby>
+
+<img data-testname="el-img-srcset-no-src-no-name" data-expectedrole="image" class="ex"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img data-testname="el-img-srcset-and-empty-src-no-name" data-expectedrole="image" class="ex"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" src>
+<img data-testname="el-img-srcset-broken-value-and-empty-src-no-name" data-expectedrole="image" class="ex"
+  src srcset="...">
+<img data-testname="el-img-src-broken-value-and-empty-srcset-no-name" data-expectedrole="image" class="ex"
+  srcset src="...">
+
+<img data-testname="el-img-empty-src-with-name-from-title" data-expectedrole="image" class="ex"
+  src title=x>
+<img data-testname="el-img-empty-srcset-with-name-from-title" data-expectedrole="image" class="ex"
+  srcset title=x>
+<img data-testname="el-img-empty-src-with-name-from-alt" data-expectedrole="image" class="ex"
+  src alt=x>
+<img data-testname="el-img-empty-srcset-with-name-from-alt" data-expectedrole="image" class="ex"
+  srcset alt=x>
+<img data-testname="el-img-empty-src-with-name-from-aria-label" data-expectedrole="image" class="ex"
+  src aria-label=x>
+<img data-testname="el-img-empty-srcset-with-name-from-aria-label" data-expectedrole="image" class="ex"
+  srcset aria-label=x>
+<img data-testname="el-img-empty-src-with-name-from-aria-labelledby" data-expectedrole="image" class="ex"
+  src aria-labelledby=labelledby>
+<img data-testname="el-img-empty-srcset-with-name-from-aria-labelledby" data-expectedrole="image" class="ex"
+  srcset aria-labelledby=labelledby>
+
+<img data-testname="el-img-srcset-empty-alt-and-name-from-aria-label" data-expectedrole="image" class="ex"
+  srcset=data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw== alt aria-label=foo>
+<img data-testname="el-img-srcset-empty-alt-and-name-from-aria-labelledby" data-expectedrole="image" class="ex"
+  srcset=data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw== alt aria-labelledby=labelledby>
+
+<!-- the following are revised tests from roles-contextual.html to use srcset insetead of the src attribute -->
+<!-- img empty alt -> ./roles.html -->
+<img data-testname="el-img-empty-alt-aria-label" data-expectedrole="image" class="ex"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-label="x">
+<img data-testname="el-img-empty-alt-aria-labelledby" data-expectedrole="image" class="ex"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-labelledby="labelledby">
+
+<h2>Presentation / None / Generic role</h2>
+<img data-testname="el-img-empty-alt-aria-label-empty" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-label="">
+<img data-testname="el-img-empty-alt-aria-label-whitespace" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-label=" ">
+<img data-testname="el-img-empty-alt-aria-labelledby-non-existing" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-labelledby="non-existing">
+<img data-testname="el-img-empty-alt-aria-labelledby-empty" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-labelledby="empty">
+<img data-testname="el-img-empty-alt-aria-labelledby-whitespace" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt aria-labelledby="space">
+<img data-testname="el-img-empty-alt-title" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt title="x">
+<img data-testname="el-img-empty-alt-title-empty" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt title="">
+<img data-testname="el-img-empty-alt-title-whitespace" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt title=" ">
+
+<!-- the following are new tests using both src and srcset -->
+<!-- per the HTML spec:
+   "If the image has a src attribute whose value is the empty string, then the element represents nothing."
+   "If the src attribute is not set and either the alt attribute is set to the empty string or the alt attribute is not set at all
+    The element represents nothing."
+-->
+<img data-testname="el-img-no-src-srcset-and-no-name" class="ex-generic">
+<img data-testname="el-img-empty-src-and-no-name" class="ex-generic"
+  src>
+<img data-testname="el-img-empty-srcset-and-no-name" class="ex-generic"
+  srcset>
+<img data-testname="el-img-empty-src-and-srcset-and-no-name" class="ex-generic"
+  src srcset>
+<img data-testname="el-img-empty-alt-no-src-or-srcset" class="ex-generic"
+  alt>
+<img data-testname="el-img-empty-title-no-src-or-srcset" class="ex-generic"
+  title>
+<img data-testname="el-img-empty-alt-no-src-srcset-title-empty" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+  alt title="">
+<img data-testname="el-img-empty-alt-no-src-srcset-title-whitespace" class="ex-generic"
+  srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+  alt title=" ">
+<img data-testname="el-img-empty-alt-srcset-invalid-value" class="ex-generic"
+  srcset="..." alt>
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+</script>
+
+</body>
+</html>

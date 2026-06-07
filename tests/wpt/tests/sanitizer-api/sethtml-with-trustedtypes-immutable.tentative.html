@@ -62,9 +62,15 @@
           "<div id=allowed><span id=forbidden></span></div>",
           options,
         );
+        const elements = options.sanitizer.get().elements;
+        const hasSpan = elements.some(el => el.name === "span");
+        assert_true(
+          hasSpan,
+          "trusted types policy should not modify original sanitizer elements list",
+        );
         assert_false(
           "removeElements" in options.sanitizer.get(),
-          "trusted types policy should not modify sanitizer",
+          "trusted types policy should not modify sanitizer structure",
         );
         assert_equals(d.querySelector("#forbidden"), null);
         assert_not_equals(d.querySelector("#allowed"), null);

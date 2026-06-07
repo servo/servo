@@ -1,16 +1,13 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
-<title>Canvas.drawElementImage: animated gif paints the first frame</title>
+<html>
+<title>Canvas.drawElementImage: animated gif advances and repaints the canvas</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
-<link rel="author" href="mailto:schenney@chromium.org">
-<link rel="match" href="animated-gif-ref.html">
-<script src="/common/reftest-wait.js"></script>
-<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <style>
 #child {
   width: 100px;
   height: 100px;
-  background: green;
 }
 #canvas {
   background: grey;
@@ -20,16 +17,44 @@ img {
     height: 100px;
 }
 </style>
-<canvas id=canvas width="200px" height="200px" style="background-color: grey" layoutsubtree>
+<canvas id=canvas width="100px" height="100px" layoutsubtree>
   <div id=child>
-     <img id=image src="/images/red-green-animated.gif"/>
+     <img id=image src="resources/rgb100.gif"/>
   </div>
 </canvas>
 <script>
-onload = async () => {
-  await waitForCanvasPaint(canvas);
-  canvas.getContext("2d").drawElementImage(child, 20, 30);
-  takeScreenshot();
-};
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d", {willReadFrequently:true});
+let child = document.getElementById("child");
+
+promise_test(() => new Promise((resolve, reject) => {
+  let sawRed = false, sawGreen = false, sawBlue = false;
+  let colorEquals = (a, b) => {
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
+  };
+  let paintCount = 0;
+  canvas.onpaint = (evt) => {
+    if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+      reject("Canvas paint event 'changedElements' should contain just " +
+             "the child element.");
+    }
+    if (++paintCount > 10) {
+      reject(`Did not see red, green, and blue after ${paintCount} paints.`);
+    }
+    ctx.clearRect(0, 0, 100, 100);
+    ctx.drawElementImage(child, 0, 0);
+    const imageData = ctx.getImageData(25, 25, 1, 1);
+    if (colorEquals(imageData.data, [255, 0, 0, 255])) {
+      sawRed = true;
+    } else if (colorEquals(imageData.data, [0, 153, 0, 255])) {
+      sawGreen = true;
+    } else if (colorEquals(imageData.data, [0, 0, 255, 255])) {
+      sawBlue = true;
+    }
+    if (sawRed && sawGreen && sawBlue) {
+      resolve("Saw red, green, and blue animated image frames.");
+    }
+  };
+}));
 </script>
 </html>

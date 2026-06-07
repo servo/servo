@@ -9,11 +9,12 @@ interface HTMLUserMediaElement : HTMLElement {
 
   [CEReactions] attribute DOMString type;
   attribute EventHandler onstream;
+  attribute EventHandler onerror;
 
   static boolean isTypeSupported(DOMString type);
 
   readonly attribute MediaStream? stream;
-  readonly attribute any error;
+  readonly attribute DOMException? error;
 
   undefined setConstraints(optional HTMLMediaStreamConstraints constraints = {});
 };

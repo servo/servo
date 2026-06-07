@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import traceback
 from collections import defaultdict
 from typing import (Any, Callable, Dict, IO, Iterable, List, Optional, Sequence, Set, Text, Tuple,
                     Type, TypeVar)
@@ -1146,8 +1147,17 @@ def all_paths_lints() -> Any:
     return paths
 
 
-if __name__ == "__main__":
-    args = create_parser().parse_args()
-    error_count = main(**vars(args))
+def _run_main(argv: List[Text]) -> None:
+    try:
+        error_count = main(**vars(create_parser().parse_args(argv)))
+    except SystemExit:
+        raise
+    except Exception:
+        traceback.print_exc()
+        sys.exit(3)
     if error_count > 0:
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    _run_main(sys.argv[1:])

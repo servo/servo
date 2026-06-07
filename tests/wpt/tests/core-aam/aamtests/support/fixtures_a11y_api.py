@@ -3,13 +3,12 @@ from sys import platform
 
 
 def pid_from(capabilities):
-    # TODO: add support for Edge, Safari.
+    # TODO: add support for getting the PID from other browsers.
     if capabilities["browserName"] == "chrome":
         return capabilities["goog:processID"], "chrome"
     if capabilities["browserName"] == "firefox":
         return capabilities["moz:processID"], "firefox"
-    if capabilities["browserName"] == "servo":
-        return 0, "servo"
+    return 0, capabilities["browserName"]
 
 
 @pytest.fixture

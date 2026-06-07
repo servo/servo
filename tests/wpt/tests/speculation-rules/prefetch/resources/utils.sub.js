@@ -193,13 +193,15 @@ function insertDocumentRule(predicate, extra_options={}) {
 }
 
 function assert_prefetched (requestHeaders, description) {
-  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_equals(requestHeaders.purpose, undefined,
+    "The vendor-specific header Purpose has been deprecated.");
   assert_in_array(requestHeaders['sec-purpose'],
                   ["prefetch", "prefetch;anonymous-client-ip"], description);
 }
 
 function assert_prefetched_anonymous_client_ip(requestHeaders, description) {
-  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_equals(requestHeaders.purpose, undefined,
+    "The vendor-specific header Purpose has been deprecated.");
   assert_equals(requestHeaders['sec-purpose'],
                 "prefetch;anonymous-client-ip",
                 description);
@@ -218,8 +220,8 @@ function assert_not_prefetched (requestHeaders, description){
 // Note that this check passes also for non-prefetch requests, so additional
 // checks are needed to distinguish from non-prefetch requests.
 function assert_prefetched_without_sec_purpose(requestHeaders, description) {
-  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"],
-      "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_equals(requestHeaders.purpose, undefined,
+    "The vendor-specific header Purpose has been deprecated.");
   assert_equals(requestHeaders['sec-purpose'], undefined, description);
 }
 

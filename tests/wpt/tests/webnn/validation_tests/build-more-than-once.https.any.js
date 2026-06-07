@@ -1,5 +1,5 @@
 // META: title=ensure MLMLGraphBuilder may build at most one MLGraph
-// META: global=window,worker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

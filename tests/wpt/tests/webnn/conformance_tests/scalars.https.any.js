@@ -1,5 +1,5 @@
 // META: title=test that scalar values work as expected
-// META: global=window,worker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

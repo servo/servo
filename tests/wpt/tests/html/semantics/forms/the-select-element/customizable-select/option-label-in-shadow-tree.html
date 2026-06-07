@@ -4,7 +4,6 @@
 <link rel=match href="option-label-in-shadow-tree-ref.html">
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/resources/testdriver-actions.js"></script>
 
 <div id="host"></div>
 
@@ -27,11 +26,8 @@ host.attachShadow({ mode: "open" }).innerHTML = `
 
 (async () => {
   const select = host.shadowRoot.querySelector('select');
-  await new test_driver.Actions()
-    .pointerMove(1, 1, { origin: select })
-    .pointerDown()
-    .pointerUp()
-    .send();
+  await test_driver.bless();
+  select.showPicker();
   await new Promise(requestAnimationFrame);
   document.documentElement.classList.remove('reftest-wait');
 })();

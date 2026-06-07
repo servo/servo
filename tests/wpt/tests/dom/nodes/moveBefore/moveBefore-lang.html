@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div lang="en">
+    <div id="source">
+      <span id="target"><span id="inner">Inner</span>Target</span>
+    </div>
+  </div>
+
+  <div lang="fr">
+    <div id="dest"></div>
+  </div>
+</body>
+
+<script>
+  test(() => {
+      assert_true(target.matches(':lang(en)'));
+      assert_true(inner.matches(':lang(en)'));
+      assert_false(target.matches(':lang(fr)'));
+      assert_false(inner.matches(':lang(fr)'));
+
+      dest.moveBefore(target, null);
+
+      assert_false(target.matches(':lang(en)'));
+      assert_false(inner.matches(':lang(en)'));
+      assert_true(target.matches(':lang(fr)'));
+      assert_true(inner.matches(':lang(fr)'));
+  }, 'moveBefore() correctly updates the computed lang for moved nodes');
+</script>

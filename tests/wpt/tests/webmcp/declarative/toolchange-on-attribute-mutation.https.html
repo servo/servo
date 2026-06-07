@@ -96,6 +96,28 @@ promise_test(async t => {
     assert_equals(tools[0].description, 'Restored Description');
   }
 
+  // Test adding toolautosubmit attribute
+  {
+    const changePromise = waitForToolChange();
+    form.setAttribute('toolautosubmit', '');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1, "Tool still registered after adding toolautosubmit");
+    assert_equals(tools[0].name, 'new_tool_name', "Tool name is still the same");
+  }
+
+  // Test removing toolautosubmit attribute
+  {
+    const changePromise = waitForToolChange();
+    form.removeAttribute('toolautosubmit');
+    await changePromise;
+
+    let tools = await navigator.modelContext.getTools();
+    assert_equals(tools.length, 1, "Tool still registered after removing toolautosubmit");
+    assert_equals(tools[0].name, 'new_tool_name', "Tool name is still the same");
+  }
+
   // Test removing toolname attribute (should unregister the tool since it's required)
   {
     const changePromise = waitForToolChange();
@@ -105,6 +127,6 @@ promise_test(async t => {
     let tools = await navigator.modelContext.getTools();
     assert_equals(tools.length, 0, "Tool should be unregistered when name is removed");
   }
-}, "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle) fires toolchange and updates getTools() correctly");
+}, "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle, toolautosubmit) fires toolchange and updates getTools() correctly");
 </script>
 </body>

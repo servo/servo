@@ -3,8 +3,8 @@
 // (https://github.com/w3c/webref)
 // Source: WebMCP (https://webmachinelearning.github.io/webmcp/)
 
-partial interface Navigator {
-  [SecureContext] readonly attribute ModelContext modelContext;
+partial interface Document {
+  [SecureContext, SameObject] readonly attribute ModelContext modelContext;
 };
 
 [Exposed=Window, SecureContext]

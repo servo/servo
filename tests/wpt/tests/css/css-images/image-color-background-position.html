@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) with background-position</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-background-position-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    background-image: image(green);
+    background-size: 50px 50px;
+    background-repeat: no-repeat;
+  }
+
+  .top-left     { background-position: 0% 0%; }
+  .center       { background-position: center; }
+  .bottom-right { background-position: right bottom; }
+  .offset       { background-position: 25px 25px; }
+</style>
+<p>Four 100×100 squares with a 50×50 green tile on red at: top-left, center, bottom-right, 25px offset.</p>
+<div class="container top-left"></div>
+<div class="container center"></div>
+<div class="container bottom-right"></div>
+<div class="container offset"></div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+.parent {
+    width: 100px;
+    height: 200px;
+    background: green;
+    position: relative;
+}
+.marker {
+    position: absolute;
+    top: 130px;
+    left: 0;
+    right: 0;
+    outline: 3px solid orange;
+}
+.footer {
+    width: 100px;
+    height: 50px;
+    background: green;
+}
+</style>
+<p>Test passes if there is a green rectangle with an orange line inside it at 130px from the top, and no gap before the second green rectangle.</p>
+<div class="parent">
+    <div class="marker"></div>
+</div>
+<div class="footer"></div>

@@ -16,8 +16,7 @@ promise_test(async t => {
   assert_equals(i.contentWindow.navigation.entries().length, 1);
   assert_equals(i.contentWindow.navigation.activation.entry,
                 i.contentWindow.navigation.currentEntry);
-  assert_equals(i.contentWindow.navigation.activation.from.url, "about:blank");
-  assert_equals(i.contentWindow.navigation.activation.from.index, -1);
+  assert_equals(i.contentWindow.navigation.activation.from, null);
   assert_equals(i.contentWindow.navigation.activation.navigationType, "replace");
 }, "navigation.activation interaction with initial about:blank");
 </script>

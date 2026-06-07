@@ -107,6 +107,39 @@ test_no_interpolation({
 
 test_interpolation({
   property: 'shape-outside',
+  from: 'polygon(round 10px, 0px 0px, 100px 0px, 100px 100px)',
+  to: 'polygon(round 30px, 50px 50px, 150px 50px, 150px 150px)',
+}, [
+  {at: -0.3, expect: 'polygon(round 4px, -15px -15px, 85px -15px, 85px 85px)'},
+  {at: 0, expect: 'polygon(round 10px, 0px 0px, 100px 0px, 100px 100px)'},
+  {at: 0.3, expect: 'polygon(round 16px, 15px 15px, 115px 15px, 115px 115px)'},
+  {at: 0.6, expect: 'polygon(round 22px, 30px 30px, 130px 30px, 130px 130px)'},
+  {at: 1, expect: 'polygon(round 30px, 50px 50px, 150px 50px, 150px 150px)'},
+  {at: 1.5, expect: 'polygon(round 40px, 75px 75px, 175px 75px, 175px 175px)'},
+]);
+
+test_interpolation({
+  property: 'shape-outside',
+  from: 'polygon(round 0px, 0px 0px, 100px 0px, 100px 100px)',
+  to: 'polygon(round 20px, 0px 0px, 100px 0px, 100px 100px)',
+}, [
+  {at: 0, expect: 'polygon(0px 0px, 100px 0px, 100px 100px)'},
+  {at: 0.5, expect: 'polygon(round 10px, 0px 0px, 100px 0px, 100px 100px)'},
+  {at: 1, expect: 'polygon(round 20px, 0px 0px, 100px 0px, 100px 100px)'},
+]);
+
+test_interpolation({
+  property: 'shape-outside',
+  from: 'polygon(0px 0px, 100px 0px, 100px 100px)',
+  to: 'polygon(round 20px, 0px 0px, 100px 0px, 100px 100px)',
+}, [
+  {at: 0, expect: 'polygon(0px 0px, 100px 0px, 100px 100px)'},
+  {at: 0.5, expect: 'polygon(round 10px, 0px 0px, 100px 0px, 100px 100px)'},
+  {at: 1, expect: 'polygon(round 20px, 0px 0px, 100px 0px, 100px 100px)'},
+]);
+
+test_interpolation({
+  property: 'shape-outside',
   from: 'inset(100%)',
   to: 'inset(120%)',
 }, [

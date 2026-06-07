@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <title>shadowrootadoptedstylesheets only apply if they're from the same document</title>
 <meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
-<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<link rel='help' href='https://github.com/whatwg/html/pull/12339'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<style type="module" specifier="foo">
-  span {color: blue;}
-</style>
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span {color: blue;}"
+  }
+}
+</script>
 <script>
     const new_document = Document.parseHTMLUnsafe(
       "<div id='host'>" +

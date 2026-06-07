@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<title>Intersection Observer: implicit root observer in iframe works when the iframe is transformed</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #iframe {
+    width: 300px;
+    height: 300px;
+    display: block;
+
+    transform: perspective(20px) rotateY(30deg);
+  }
+
+  .spacer {
+    height: 2000px;
+  }
+</style>
+
+<iframe id="iframe"></iframe>
+<div class="spacer"></div>
+
+<script>
+  isIntersecting = null;
+  window.addEventListener("message", event => {
+    isIntersecting = event.data.isIntersecting;
+  });
+
+  function loadFrame() {
+    return new Promise(resolve => {
+      iframe.addEventListener("load", resolve, { once: true });
+      iframe.src = "resources/transformed-iframe-subframe.html";
+    });
+  }
+
+  promise_test(async (t) => {
+    await loadFrame();
+    window.scrollTo(0, 0);
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    assert_true(isIntersecting);
+  }, "Target is initially visible");
+
+  promise_test(async (t) => {
+    window.scrollTo(0, 200);
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    assert_false(isIntersecting);
+  }, "Scroll such that target is just out of view, target is not visible");
+
+  promise_test(async (t) => {
+    window.scrollTo(0, document.body.scrollHeight);
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    assert_false(isIntersecting);
+  }, "Scroll to end of page, target is not visible");
+</script>

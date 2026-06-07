@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: column gap decorations are painted on a grid with a
+  single row inside a multi-column container.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-fragmentation-036-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    columns: 1;
+    column-fill: auto;
+    height: 60px;
+    width: 230px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 50px;
+    width: 230px;
+    column-gap: 10px;
+    column-rule: 2px solid black;
+  }
+  .grid-item {
+    background: skyblue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+  </div>
+</div>
