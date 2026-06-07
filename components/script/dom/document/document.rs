@@ -2941,6 +2941,9 @@ impl Document {
         {
             return true;
         }
+        if self.window().has_pending_media_query_evaluation() {
+            return true;
+        }
 
         false
     }

@@ -3288,6 +3288,10 @@ impl Window {
         self.pending_media_query_evaluation.replace(false)
     }
 
+    pub(crate) fn has_pending_media_query_evaluation(&self) -> bool {
+        self.pending_media_query_evaluation.get()
+    }
+
     pub(crate) fn get_url(&self) -> ServoUrl {
         self.Document().url()
     }

@@ -2731,11 +2731,6 @@ impl ScriptThread {
         for load in loads.iter_mut() {
             load.theme = theme;
         }
-        // A theme change may flip `prefers-color-scheme` media query results
-        // and force a recascade. Make sure the next iteration of the script
-        // event loop runs "update the rendering" so the new theme is applied
-        // even when the page has no ongoing animations driving the tick loop.
-        self.set_needs_rendering_update();
     }
 
     fn handle_get_document_origin(
