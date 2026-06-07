@@ -88,10 +88,10 @@ pub(crate) fn get_property_jsval(
             return Ok(());
         }
 
-        JS_GetProperty(cx, object, name.as_ptr(), rval);
-        if JS_IsExceptionPending(cx) {
+        if !JS_GetProperty(cx, object, name.as_ptr(), rval) {
             return Err(Error::JSFailed);
         }
+
         Ok(())
     }
 }
@@ -106,19 +106,17 @@ pub(crate) fn get_property<T>(
 where
     T: FromJSValConvertible,
 {
-    debug!("Getting property {:?}.", name);
     rooted!(&in(cx) let mut result = UndefinedValue());
-
     get_property_jsval(cx, object, name, result.handle_mut())?;
+
     if result.is_undefined() {
-        debug!("No property {:?}.", name);
         return Ok(None);
     }
-    debug!("Converting property {:?}.", name);
+
     let value = T::safe_from_jsval(cx, result.handle(), option);
     match value {
         Ok(ConversionResult::Success(value)) => Ok(Some(value)),
-        Ok(ConversionResult::Failure(_)) => Ok(None),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         Err(()) => Err(Error::JSFailed),
     }
 }
