@@ -46,7 +46,7 @@ android {
             signingConfig =
                 signingConfigs.getByName(if (signingKeyInfo != null) "release" else "debug")
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
 
         // Custom build types
