@@ -25,8 +25,6 @@ android {
         targetSdk = 33
     }
 
-    compileOptions.incremental = false
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
