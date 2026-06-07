@@ -188,42 +188,22 @@ impl SurfmanRenderingContext {
         SwapChain::create_attached(device, context, SurfaceAccess::GPUOnly)
     }
 
-    fn resize_surface(&self, size: PhysicalSize<u32>) -> Result<(), Error> {
+    fn resize_bound_surface(&self, size: PhysicalSize<u32>) -> Result<(), Error> {
         if size.width == 0 || size.height == 0 {
             log::error!("Unable to resize to size under 1x1 ({size:?} provided)");
             return Err(Error::Failed);
         }
 
         let size = Size2D::new(size.width as i32, size.height as i32);
-        let device = &mut self.device.borrow_mut();
-        let context = &mut self.context.borrow_mut();
-
-        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
-        device.resize_surface(context, &mut surface, size)?;
-        device
-            .bind_surface_to_context(context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(context, &mut surface);
-                err
-            })
+        self.device
+            .borrow()
+            .resize_bound_surface(&mut self.context.borrow_mut(), size)
     }
 
     fn present_bound_surface(&self) -> Result<(), Error> {
-        let device = &self.device.borrow();
-        let context = &mut self.context.borrow_mut();
-
-        let mut surface = device
-            .unbind_surface_from_context(context)?
-            // todo: proper error type. This probably should be done in surfman.
-            .ok_or(Error::Failed)
-            .inspect_err(|_| log::error!("Unable to present bound surface: no surface bound"))?;
-        device.present_surface(context, &mut surface)?;
-        device
-            .bind_surface_to_context(context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(context, &mut surface);
-                err
-            })
+        self.device
+            .borrow()
+            .present_bound_surface(&mut self.context.borrow_mut())
     }
 
     #[expect(dead_code)]
@@ -562,7 +542,7 @@ impl RenderingContext for WindowRenderingContext {
     }
 
     fn resize(&self, size: PhysicalSize<u32>) {
-        match self.surfman_context.resize_surface(size) {
+        match self.surfman_context.resize_bound_surface(size) {
             Ok(..) => self.size.set(size),
             Err(error) => warn!("Error resizing surface: {error:?}"),
         }

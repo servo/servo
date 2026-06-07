@@ -291,11 +291,6 @@ impl Painter {
     }
 
     pub(crate) fn perform_updates(&mut self) {
-        // The WebXR thread may make a different context current
-        if let Err(err) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {:?}", err);
-        }
-
         let mut need_zoom = false;
         let scroll_offset_updates: Vec<_> = self
             .webview_renderers
