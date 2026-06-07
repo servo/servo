@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
 use js::context::NoGC;
-use rustc_hash::FxBuildHasher;
+use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::assert::assert_in_script;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
@@ -62,6 +62,15 @@ impl TreeOrderedIndexMapEntry {
         self.element.clear();
         self.elements.clear();
         self.count > 0
+    }
+
+    /// Returns true if this entry needs to be resolved. An entry will need to be
+    /// resolved if it ever gains more than one element associated with it or has
+    /// more than one element associated and `Self::remove()` is called.
+    fn needs_resolution(&self) -> bool {
+        // An empty elements array implicitly means that an entry needs resolution, because
+        // `Self::add()` and `Self::remove()` will clear the array.
+        self.elements.is_empty()
     }
 }
 
@@ -123,7 +132,7 @@ impl TreeOrderedIndexMap {
     pub(crate) fn name() -> Self {
         Self {
             map: Default::default(),
-            might_need_rebuild_for_layout: false.into(),
+            might_need_rebuild_for_layout: Default::default(),
             index_type: IndexType::Name,
         }
     }
@@ -131,20 +140,20 @@ impl TreeOrderedIndexMap {
     pub(crate) fn id() -> Self {
         Self {
             map: Default::default(),
-            might_need_rebuild_for_layout: false.into(),
+            might_need_rebuild_for_layout: Default::default(),
             index_type: IndexType::Id,
         }
     }
 
     /// Add an entry to this map from the `key` (an `id` or `name` attribute value) to
     /// `Element`. If this is the first time this key is used, then the map will be able to map
-    /// to the entry without having to resolve ordernig.
+    /// to the entry without having to resolve ordering.
     pub(crate) fn add(&self, key: &Atom, element: &Element) {
-        assert!(
+        debug_assert!(
             element.upcast::<Node>().is_in_a_document_tree() ||
                 element.upcast::<Node>().is_in_a_shadow_tree()
         );
-        assert!(!key.is_empty());
+        debug_assert!(!key.is_empty());
 
         let mut map = self.map.borrow_mut();
         match map.entry(key.clone()) {
@@ -152,7 +161,6 @@ impl TreeOrderedIndexMap {
                 entry.insert(TreeOrderedIndexMapEntry::new(element));
             },
             Entry::Occupied(mut entry) => {
-                assert!(entry.get().count >= 1);
                 entry.get_mut().add();
                 self.might_need_rebuild_for_layout.set(true);
             },
@@ -165,8 +173,7 @@ impl TreeOrderedIndexMap {
     pub(crate) fn remove(&self, key: &Atom) {
         let mut map = self.map.borrow_mut();
         let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) else {
-            warn!("Tried to remove unknown id or name entry: {key}");
-            return;
+            unreachable!("Tried to remove unknown id or name entry: {key}");
         };
         if !occupied_entry.get_mut().remove() {
             occupied_entry.remove();
@@ -180,6 +187,8 @@ impl TreeOrderedIndexMap {
     ///
     /// Note: This should *never* be used during layout as it does rooting and unrooting.
     pub(crate) fn get(&self, no_gc: &NoGC, scope: &Node, key: &Atom) -> Option<DomRoot<Element>> {
+        assert_in_script();
+
         let mut map = self.map.borrow_mut();
         let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) else {
             return None;
@@ -207,10 +216,12 @@ impl TreeOrderedIndexMap {
         scope: &Node,
         key: &Atom,
     ) -> Ref<'_, [Dom<Element>]> {
+        assert_in_script();
+
         {
             let mut map = self.map.borrow_mut();
             if let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) {
-                if occupied_entry.get().elements.is_empty() {
+                if occupied_entry.get().needs_resolution() {
                     Self::resolve_one(no_gc, scope, key, occupied_entry.get_mut(), self.index_type);
                 }
                 if occupied_entry.get().elements.is_empty() {
@@ -255,6 +266,9 @@ impl TreeOrderedIndexMap {
         }
     }
 
+    /// Resolve a single entry in the map that has more than one element associated with it.
+    /// This will walk the DOM and gather all of the elements that have this id/name associated
+    /// with them in DOM order.
     fn resolve_one(
         no_gc: &NoGC,
         scope: &Node,

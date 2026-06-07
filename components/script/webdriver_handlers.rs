@@ -944,7 +944,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 element
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes

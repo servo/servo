@@ -27,6 +27,7 @@ use embedder_traits::{
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::context::NoGC;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
@@ -1165,7 +1166,7 @@ impl Document {
         // Step 1. If there is an element in the document tree whose root is
         // document and that has an ID equal to fragment, then return the first such element in tree order.
         // Step 3. Return null.
-        self.get_element_by_id(cx, &Atom::from(fragment))
+        self.get_element_by_id(cx.no_gc(), &Atom::from(fragment))
             // Step 2. If there is an a element in the document tree whose root is
             // document that has a name attribute whose value is equal to fragment,
             // then return the first such element in tree order.
@@ -4088,12 +4089,8 @@ impl Document {
             })
     }
 
-    pub(crate) fn get_element_by_id(
-        &self,
-        cx: &mut js::context::JSContext,
-        id: &Atom,
-    ) -> Option<DomRoot<Element>> {
-        self.id_map.get(cx.no_gc(), self.upcast(), id)
+    pub(crate) fn get_element_by_id(&self, no_gc: &NoGC, id: &Atom) -> Option<DomRoot<Element>> {
+        self.id_map.get(no_gc, self.upcast(), id)
     }
 
     pub(crate) fn ensure_pending_restyle(&self, el: &Element) -> RefMut<'_, PendingRestyle> {
@@ -5177,7 +5174,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
     fn GetElementById(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &js::context::JSContext,
         id: DOMString,
     ) -> Option<DomRoot<Element>> {
         self.get_element_by_id(cx, &Atom::from(id))

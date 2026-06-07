@@ -111,12 +111,8 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
-    fn GetElementById(
-        &self,
-        cx: &mut js::context::JSContext,
-        id: DOMString,
-    ) -> Option<DomRoot<Element>> {
-        self.id_map.get(cx.no_gc(), self.upcast(), &Atom::from(id))
+    fn GetElementById(&self, cx: &JSContext, id: DOMString) -> Option<DomRoot<Element>> {
+        self.id_map.get(cx, self.upcast(), &Atom::from(id))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>

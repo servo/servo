@@ -1541,6 +1541,8 @@ impl Node {
         // > a selectors string selectors against this, if the result is not an empty list; otherwise null.
         let document_url = self.owner_document().url().get_arc();
 
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
         self.owner_document()
             .id_map()
             .resolve_all(no_gc, self.owner_doc().upcast());
@@ -1569,6 +1571,8 @@ impl Node {
         // > a selectors string selectors against this.
         let document_url = self.owner_document().url().get_arc();
 
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
         self.owner_document()
             .id_map()
             .resolve_all(no_gc, self.owner_doc().upcast());

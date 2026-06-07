@@ -2683,8 +2683,8 @@ impl Window {
             None
         };
 
-        // If there are any duplicate ids, their targets need to be updated in the id map
-        // before layout runs, so that it accurately reflects them.
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
         let document_context = self.web_font_context();
