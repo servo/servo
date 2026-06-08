@@ -304,10 +304,11 @@ impl CanvasState {
     /// into a single `ProcessBatchMessages` to preserve ordering and avoid
     /// two separate sends.
     pub(super) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
-        self.buffered_sender.send_immediate(msg).unwrap();
         if !self.is_paintable() {
+            self.buffered_sender.flush().unwrap();
             return;
         }
+        self.buffered_sender.send_immediate(msg).unwrap();
     }
 
     /// Updates WR image and blocks on completion
