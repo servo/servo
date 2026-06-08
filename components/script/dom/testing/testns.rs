@@ -4,5 +4,17 @@
 
 // check-tidy: no specs after this line
 
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::TestNS_Binding;
+use crate::dom::globalscope::GlobalScope; 
+use crate::dom::testbinding::TestBinding;
+use crate::dom::bindings::root::DomRoot;
+use js::context::JSContext;
+
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TestNS(());
+
+impl TestNS_Binding::TestNSMethods<crate::DomTypeHolder> for TestNS {
+    fn TestAttribute(cx: &mut JSContext, global_scope: &GlobalScope) -> DomRoot<TestBinding> {
+        TestBinding::new(cx, global_scope, None)
+    }
+}
