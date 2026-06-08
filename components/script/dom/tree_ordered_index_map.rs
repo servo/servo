@@ -153,7 +153,12 @@ impl TreeOrderedIndexMap {
             element.upcast::<Node>().is_in_a_document_tree() ||
                 element.upcast::<Node>().is_in_a_shadow_tree()
         );
-        debug_assert!(!key.is_empty());
+
+        // Gracefully handle empty keys. The calling code should not try to
+        // add empty keys to the map, but this guards a bit against logic errors.
+        if key.is_empty() {
+            return;
+        }
 
         let mut map = self.map.borrow_mut();
         match map.entry(key.clone()) {
@@ -171,6 +176,12 @@ impl TreeOrderedIndexMap {
     /// are more elements that share the same key, the entry will need resoluton before use.
     /// Removal of the last element for an entry will remove it from the map.
     pub(crate) fn remove(&self, key: &Atom) {
+        // Gracefully handle empty keys. The calling code should not try to
+        // add empty keys to the map, but this guards a bit against logic errors.
+        if key.is_empty() {
+            return;
+        }
+
         let mut map = self.map.borrow_mut();
         let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) else {
             unreachable!("Tried to remove unknown id or name entry: {key}");
