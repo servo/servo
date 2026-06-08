@@ -274,8 +274,8 @@ warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
-webrender = { version = "0.68", features = ["capture"] }
-webrender_api = "0.68"
+webrender = { git = "https://github.com/servo/webrender", rev = "82dda62fd9ad85a032028cbe456cbc3e03084ae5", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "82dda62fd9ad85a032028cbe456cbc3e03084ae5", features = ["deserialize"] }
 wgpu-core = "29"
 wgpu-types = "29"
 winapi = "0.3"
@@ -283,7 +283,7 @@ windows-sys = "0.61"
 winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
-wr_malloc_size_of = "0.2.2"
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", rev = "82dda62fd9ad85a032028cbe456cbc3e03084ae5" }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xcomponent-sys = "0.3.6"
 xml = "1.1"
