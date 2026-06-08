@@ -3731,12 +3731,18 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
 
         if self.descriptor.interface.isNamespace():
+            if self.properties.static_attrs.length():
+                attrs = f"{self.properties.static_attrs.variableName()}.get()"
+            else:
+                attrs = "&[]"
+
             return CGGeneric(f"""
                 let init = NamespaceInit {{
                     is_proto_hack: {rust_bool(self.descriptor.interface.getExtendedAttribute("ProtoObjectHack") is not None)},
                     static_methods: {methods},
                     constructor_name: PrototypeList::Constructor::{MakeNativeName(self.descriptor.interface.identifier.name)},
                     namespace_object_class: &NAMESPACE_OBJECT_CLASS,
+                    attributes: {attrs},
                     constants: {constants},
                     name: c"{self.descriptor.interface.identifier.name}",
                 }};
