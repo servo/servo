@@ -5,15 +5,15 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use devtools_traits::PropertyDescriptor;
+use devtools_traits::{DebuggerValue, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::object::ObjectPropertyDescriptor;
 use crate::protocol::ClientRequest;
+use crate::{StreamId, debugger_value_to_json};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,21 +22,63 @@ struct SliceReply {
     own_properties: HashMap<String, ObjectPropertyDescriptor>,
 }
 
+#[derive(Serialize)]
+struct MapEntryPreview {
+    key: Value,
+    value: Value,
+}
+
+#[derive(Serialize)]
+struct MapEntryGrip {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    preview: MapEntryPreview,
+}
+
+impl ObjectPropertyDescriptor {
+    fn from_map_entry(
+        registry: &ActorRegistry,
+        key: &DebuggerValue,
+        value: &DebuggerValue,
+    ) -> Self {
+        Self {
+            value: serde_json::to_value(MapEntryGrip {
+                type_: "mapEntry",
+                preview: MapEntryPreview {
+                    key: debugger_value_to_json(registry, key.clone()),
+                    value: debugger_value_to_json(registry, value.clone()),
+                },
+            })
+            .unwrap_or_default(),
+            configurable: None,
+            enumerable: true,
+            writable: None,
+            is_accessor: None,
+        }
+    }
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) enum PropertyIteratorEntry {
+    Property(PropertyDescriptor),
+    MapEntry(DebuggerValue, DebuggerValue),
+}
+
 #[derive(MallocSizeOf)]
 pub(crate) struct PropertyIteratorActor {
     name: String,
-    properties: Vec<PropertyDescriptor>,
+    entries: Vec<PropertyIteratorEntry>,
 }
 
 impl PropertyIteratorActor {
-    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> Arc<Self> {
+    pub fn register(registry: &ActorRegistry, entries: Vec<PropertyIteratorEntry>) -> Arc<Self> {
         let name = new_actor_name::<Self>();
-        let actor = Self { name, properties };
+        let actor = Self { name, entries };
         registry.register::<Self>(actor)
     }
 
     pub fn count(&self) -> u32 {
-        self.properties.len() as u32
+        self.entries.len() as u32
     }
 }
 
@@ -59,14 +101,24 @@ impl Actor for PropertyIteratorActor {
                 let count = msg
                     .get("count")
                     .and_then(|v| v.as_u64())
-                    .unwrap_or(self.properties.len() as u64) as usize;
+                    .unwrap_or(self.entries.len() as u64) as usize;
 
                 let mut own_properties = HashMap::new();
-                for prop in self.properties.iter().skip(start).take(count) {
-                    own_properties.insert(
-                        prop.name.clone(),
-                        ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
-                    );
+                for (index, entry) in self.entries.iter().enumerate().skip(start).take(count) {
+                    match entry {
+                        PropertyIteratorEntry::Property(prop) => {
+                            own_properties.insert(
+                                prop.name.clone(),
+                                ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
+                            );
+                        },
+                        PropertyIteratorEntry::MapEntry(key, value) => {
+                            own_properties.insert(
+                                index.to_string(),
+                                ObjectPropertyDescriptor::from_map_entry(registry, key, value),
+                            );
+                        },
+                    }
                 }
 
                 let reply = SliceReply {

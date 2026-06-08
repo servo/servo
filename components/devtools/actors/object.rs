@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
-use crate::actors::property_iterator::PropertyIteratorActor;
+use crate::actors::property_iterator::{PropertyIteratorActor, PropertyIteratorEntry};
 use crate::actors::symbol_iterator::SymbolIteratorActor;
 use crate::protocol::ClientRequest;
 use crate::{StreamId, debugger_value_to_json};
@@ -46,6 +46,10 @@ struct PrototypeReply {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ObjectPreview {
     pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entries: Option<Vec<(Value, Value)>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub own_properties: Option<HashMap<String, ObjectPropertyDescriptor>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -96,10 +100,13 @@ pub(crate) struct ObjectActorMsg {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ObjectPropertyDescriptor {
     pub value: Value,
-    pub configurable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub configurable: Option<bool>,
     pub enumerable: bool,
-    pub writable: bool,
-    pub is_accessor: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub writable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_accessor: Option<bool>,
 }
 
 impl ObjectPropertyDescriptor {
@@ -109,10 +116,10 @@ impl ObjectPropertyDescriptor {
     ) -> Self {
         Self {
             value: debugger_value_to_json(registry, prop.value.clone()),
-            configurable: prop.configurable,
+            configurable: Some(prop.configurable),
             enumerable: prop.enumerable,
-            writable: prop.writable,
-            is_accessor: prop.is_accessor,
+            writable: Some(prop.writable),
+            is_accessor: Some(prop.is_accessor),
         }
     }
 }
@@ -181,18 +188,24 @@ impl Actor for ObjectActor {
                         preview.own_properties.clone().unwrap_or_default()
                     }
                 });
-                let property_iterator_actor = PropertyIteratorActor::register(registry, properties);
-                let count = property_iterator_actor.count();
-                let msg = EnumReply {
-                    from: self.name().into(),
-                    iterator: EnumIterator {
-                        actor: property_iterator_actor.name().into(),
-                        type_: EnumIteratorType::PropertyIterator,
-                        count,
-                    },
-                };
+                let entries = properties
+                    .into_iter()
+                    .map(PropertyIteratorEntry::Property)
+                    .collect();
+                self.reply_property_iterator(request, registry, entries)?
+            },
 
-                request.reply_final(&msg)?
+            "enumEntries" => {
+                let mut entries = Vec::new();
+                if let Some(preview) = &self.preview {
+                    if let Some(map_entries) = &preview.entries {
+                        for (key, value) in map_entries {
+                            entries
+                                .push(PropertyIteratorEntry::MapEntry(key.clone(), value.clone()));
+                        }
+                    }
+                }
+                self.reply_property_iterator(request, registry, entries)?
             },
 
             "enumSymbols" => {
@@ -223,6 +236,24 @@ impl Actor for ObjectActor {
 }
 
 impl ObjectActor {
+    fn reply_property_iterator(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        entries: Vec<PropertyIteratorEntry>,
+    ) -> Result<(), ActorError> {
+        let property_iterator_actor = PropertyIteratorActor::register(registry, entries);
+        let msg = EnumReply {
+            from: self.name().into(),
+            iterator: EnumIterator {
+                actor: property_iterator_actor.name().into(),
+                type_: EnumIteratorType::PropertyIterator,
+                count: property_iterator_actor.count(),
+            },
+        };
+        request.reply_final(&msg)
+    }
+
     pub fn register(
         registry: &ActorRegistry,
         uuid: Option<String>,
@@ -296,6 +327,18 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
 
         let preview = ObjectPreview {
             kind: preview.kind.clone(),
+            size: preview.size,
+            entries: preview.entries.map(|entries| {
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            debugger_value_to_json(registry, key.clone()),
+                            debugger_value_to_json(registry, value.clone()),
+                        )
+                    })
+                    .collect()
+            }),
             own_properties: preview.own_properties.map(|own_properties| {
                 own_properties
                     .iter()

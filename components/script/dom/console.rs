@@ -409,6 +409,8 @@ fn console_object_from_handle_value(
         class,
         ObjectPreview {
             kind,
+            size: None,
+            entries: None,
             own_properties_length: Some(own_properties.len() as u32),
             own_properties: Some(own_properties),
             function,
