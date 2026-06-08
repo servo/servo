@@ -95,7 +95,7 @@ where
     T: Castable,
 {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(&self) -> LayoutDom<'dom, U>
+    pub(crate) fn upcast<U>(&self) -> LayoutDom<'dom, U>
     where
         U: Castable,
         T: DerivedFrom<U>,
@@ -107,7 +107,7 @@ where
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(&self) -> Option<LayoutDom<'dom, U>>
+    pub(crate) fn downcast<U>(&self) -> Option<LayoutDom<'dom, U>>
     where
         U: DerivedFrom<T>,
     {
