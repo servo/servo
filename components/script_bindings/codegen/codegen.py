@@ -3766,13 +3766,13 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 protoGetter = "InitType::RealmObjectPrototype"
         else:
             protoGetter = (
-                          f"InitType::Parent(Box::new({toBindingNamespace(parentName)}::GetProtoObject::<D>))"
+                          f"InitType::Parent({toBindingNamespace(parentName)}::GetProtoObject::<D>)"
                       )
 
 
         if self.descriptor.hasNamedPropertiesObject():
             assert not self.haveUnscopables
-            proto_proto_fn = f"Some(Box::new(D::{name}::create_named_properties_object))"
+            proto_proto_fn = f"Some(D::{name}::create_named_properties_object)"
         else:
             proto_proto_fn = "None"
 
@@ -3802,7 +3802,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             proto_properties = properties
 
         code: list = [CGGeneric(f"""
-                    let init = OtherInit {{
+                    let init = InterfaceInit {{
                         init_type: {protoGetter},
                         has_named_properties_object: {proto_proto_fn},
                         prototype_class: &PrototypeClass,
@@ -3814,7 +3814,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     }};
                     // Safety rooting
                     rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-                    prototype.set(create_other::<D>(cx, init, global, cache));
+                    prototype.set(create_interface::<D>(cx, init, global, cache));
                     """)]
         if self.descriptor.hasNamedPropertiesObject():
                  assert not self.haveUnscopables

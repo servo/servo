@@ -94,8 +94,8 @@ pub(crate) mod module {
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
     pub(crate) use crate::constant::{ConstantSpec, ConstantVal};
     pub(crate) use crate::constructor::{
-        CallbackInit, InitType, NamespaceInit, OtherInit, call_default_constructor,
-        create_callback_interface_objects, create_namespace_interface_objects, create_other,
+        CallbackInit, InitType, InterfaceInit, NamespaceInit, call_default_constructor,
+        create_callback_interface_objects, create_interface, create_namespace_interface_objects,
     };
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::conversions::native_from_handlevalue;
