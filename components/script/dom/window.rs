@@ -87,6 +87,7 @@ use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
+use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -2689,6 +2690,19 @@ impl Window {
 
         let document_context = self.web_font_context();
 
+        let mut rooted_nodes_for_accessibility_integrity_check: Option<Vec<OpaqueNode>> = None;
+
+        if self.layout().accessibility_active() {
+            let mut accessibility_data = document.accessibility_data_mut();
+
+            if pref!(expensive_accessibility_test_assertions_enabled) {
+                rooted_nodes_for_accessibility_integrity_check =
+                    Some(accessibility_data.unroot_and_drain_all_removed_nodes());
+            } else {
+                accessibility_data.unroot_all_removed_nodes();
+            }
+        }
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
@@ -2702,6 +2716,7 @@ impl Window {
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             document_context,
+            rooted_nodes_for_accessibility_integrity_check,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
@@ -2727,16 +2742,6 @@ impl Window {
         }
 
         document.update_animations_post_reflow();
-
-        if let Some(removed_nodes_for_integrity_check) =
-            reflow_result.removed_nodes_for_accessibility_integrity_check
-        {
-            document
-                .accessibility_data_mut()
-                .unroot_all_removed_nodes_with_integrity_check(removed_nodes_for_integrity_check);
-        } else {
-            document.accessibility_data_mut().unroot_all_removed_nodes();
-        }
 
         (
             reflow_result.reflow_phases_run,

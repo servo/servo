@@ -7,7 +7,6 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
-use embedder_traits::UntrustedNodeAddress;
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -27,6 +26,10 @@ struct AccessibilityUpdate {
     changed_nodes: FxHashSet<NodeId>,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<NodeId, TreeChange>,
+    /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
+    /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
+    /// is set.
+    rooted_nodes: Option<Vec<OpaqueNode>>,
 }
 
 struct AccessibilityNode {
@@ -71,9 +74,6 @@ pub struct AccessibilityTree {
     /// Debug options, copied from configuration to this `AccessibilityTree` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DiagnosticsLogging,
-    /// Nodes which were removed from the tree in the most recent update. If set, should be taken
-    /// using [`Self::take_recently_removed_opaque_nodes()`] before the next update.
-    recently_removed_opaque_nodes: Option<Vec<OpaqueNode>>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -119,7 +119,6 @@ impl AccessibilityTree {
             root_node_id: None,
             embedder_epoch,
             debug: opts::get().debug.clone(),
-            recently_removed_opaque_nodes: None,
         }
     }
 
@@ -128,8 +127,9 @@ impl AccessibilityTree {
     pub(super) fn update_tree(
         &mut self,
         root_dom_node: &ServoLayoutNode<'_>,
+        rooted_nodes: Option<Vec<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
-        let mut update = AccessibilityUpdate::new();
+        let mut update = AccessibilityUpdate::new(rooted_nodes);
         let root_node = self.get_or_create_node(root_dom_node, &mut update);
         let root_node_id = root_node.borrow().id;
         self.root_node_id = Some(root_node_id);
@@ -137,18 +137,6 @@ impl AccessibilityTree {
         self.update_node_and_descendants(root_dom_node, &mut update);
 
         update.finalize(self)
-    }
-
-    pub(super) fn take_recently_removed_opaque_nodes(
-        &mut self,
-    ) -> Option<Vec<UntrustedNodeAddress>> {
-        let opaque_nodes = std::mem::take(&mut self.recently_removed_opaque_nodes)?;
-        Some(
-            opaque_nodes
-                .into_iter()
-                .map(|opaque_node| opaque_node.into())
-                .collect(),
-        )
     }
 
     /// Update this tree starting at the given DOM node, adding any changed nodes to the given
@@ -227,21 +215,19 @@ impl AccessibilityTree {
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
-        if pref!(expensive_accessibility_test_assertions_enabled) {
-            // This field should be taken after each update, if it's being used.
-            assert!(self.recently_removed_opaque_nodes.is_none());
-            let mut recently_removed_opaque_nodes = vec![];
-
+        // If we got rooted_nodes from the document's AccessibilityData, assert that every node
+        // we removed during this update was rooted.
+        if let Some(rooted_nodes) = update.rooted_nodes {
+            debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
+            let rooted_nodes = FxHashSet::from_iter(rooted_nodes);
             for (id, change) in update.tree_changes.iter() {
                 if change == &TreeChange::Removed {
                     let node = self.assert_node_for_id(id);
                     if let Some(opaque_node) = node.borrow().opaque_node {
-                        recently_removed_opaque_nodes.push(opaque_node);
+                        assert!(rooted_nodes.contains(&opaque_node));
                     }
                 };
             }
-
-            self.recently_removed_opaque_nodes = Some(recently_removed_opaque_nodes);
         }
 
         for id in update
@@ -296,11 +282,10 @@ impl AccessibilityTree {
     ///
     /// For accessibility tests only, because it’s expensive.
     fn assert_integrity(&self) {
+        debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
         let Some(root_node_id) = self.root_node_id else {
             return;
         };
-
-        assert!(pref!(expensive_accessibility_test_assertions_enabled));
         // Traverse the tree from the given root.
         let mut node_ids = vec![root_node_id];
         let mut seen_node_ids = FxHashSet::default();
@@ -585,10 +570,11 @@ impl Debug for AccessibilityNode {
 }
 
 impl AccessibilityUpdate {
-    fn new() -> Self {
+    fn new(rooted_nodes: Option<Vec<OpaqueNode>>) -> Self {
         Self {
             changed_nodes: FxHashSet::default(),
             tree_changes: FxHashMap::default(),
+            rooted_nodes,
         }
     }
 
@@ -673,7 +659,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
         );
     }
 
-    let mut update = AccessibilityUpdate::new();
+    let mut update = AccessibilityUpdate::new(None);
 
     {
         let node_3 = tree.assert_node_for_id(&NodeId(3));

@@ -935,7 +935,11 @@ impl LayoutThread {
         }
     }
 
-    fn handle_accessibility_tree_update(&self, root_element: &ServoLayoutNode) -> bool {
+    fn handle_accessibility_tree_update(
+        &self,
+        root_element: &ServoLayoutNode,
+        reflow_request: &mut ReflowRequest,
+    ) -> bool {
         if !self.needs_accessibility_update() {
             return false;
         }
@@ -945,7 +949,10 @@ impl LayoutThread {
         };
 
         let accessibility_tree = &mut *accessibility_tree;
-        if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
+        let rooted_nodes =
+            std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
+
+        if let Some(tree_update) = accessibility_tree.update_tree(root_element, rooted_nodes) {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.
@@ -1015,7 +1022,7 @@ impl LayoutThread {
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
         }
-        if self.handle_accessibility_tree_update(&root_element.as_node()) {
+        if self.handle_accessibility_tree_update(&root_element.as_node(), &mut reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 
@@ -1032,15 +1039,6 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
-        let mut removed_nodes_for_accessibility_integrity_check = None;
-        if self.accessibility_active() {
-            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
-            if let Some(accessibility_tree) = accessibility_tree.as_mut() {
-                removed_nodes_for_accessibility_integrity_check =
-                    accessibility_tree.take_recently_removed_opaque_nodes();
-            }
-        }
-
         Some(ReflowResult {
             reflow_phases_run,
             pending_images,
@@ -1048,7 +1046,6 @@ impl LayoutThread {
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
             reflow_statistics,
-            removed_nodes_for_accessibility_integrity_check,
         })
     }
 
