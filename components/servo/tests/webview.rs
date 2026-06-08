@@ -204,15 +204,19 @@ fn test_theme_change_media_query_event() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(Url::parse(
-            r#"data:text/html,<!DOCTYPE html><html><script>
+        .url(
+            Url::parse(
+                r#"data:text/html,<!DOCTYPE html><html><script>
             let mediaQueryChanges = 0;
             const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
             mediaQueryList.addEventListener('change', () => {
                 mediaQueryChanges += 1;
                 console.log(mediaQueryChanges);
             });
-            </script></html>"#).unwrap())
+            </script></html>"#,
+            )
+            .unwrap(),
+        )
         .build();
 
     // Check that we increment mediaQueryChanges each time the theme changes.
