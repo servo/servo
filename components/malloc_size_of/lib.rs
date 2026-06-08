@@ -1381,3 +1381,16 @@ impl MallocSizeOf for resvg::usvg::fontdb::Database {
         self.faces().map(|face| face.size_of(ops)).sum()
     }
 }
+
+impl<T> MallocSizeOf for once_cell::race::OnceBox<T>
+where
+    T: MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if let Some(value) = self.get() {
+            (unsafe { ops.malloc_size_of::<T>(value) }) + value.size_of(ops)
+        } else {
+            0
+        }
+    }
+}

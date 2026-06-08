@@ -5,8 +5,10 @@
 use std::convert::From;
 use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use std::sync::atomic::{AtomicI32, Ordering};
 
 use app_units::Au;
+use euclid::{Point2D, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
@@ -688,5 +690,88 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
             },
             size: LogicalVec2 { inline, block },
         }
+    }
+}
+
+/// A `PhysicalRect<Au>` with shared mutablitiy
+///
+/// It is based on `AtomicI32` but is not atomic itself: there is no protection against tearing:
+/// If multiple threads are calling `set()`, the rectangle may end up with some fields from one call
+/// and some fields from another call.
+///
+/// Compared to `AtomicRefCell<PhysicalRect<Au>>`:
+///
+/// * Both are meant for uses where despite shared ownership, no concurrency is expected in practice.
+/// * If concurrent access does unexpectedly happen `AtomicRefCell` will panic,
+///   whereas `SyncPhysicalRectAu` can tear and result in invalid/inconsistent data.
+/// * `SyncPhysicalRectAu` has no space overhead, `AtomicRefCell` stores an `AtomicUsize` borrow flag
+/// * `SyncPhysicalRectAu` uses relaxed atomic access for each field separately
+#[derive(MallocSizeOf, Default)]
+pub(crate) struct SyncPhysicalRectAu(PhysicalRect<AtomicI32>);
+
+impl SyncPhysicalRectAu {
+    #[inline]
+    pub(crate) fn new(rect: PhysicalRect<Au>) -> Self {
+        Self(PhysicalRect::new(
+            PhysicalPoint::new(rect.origin.x.0.into(), rect.origin.y.0.into()),
+            PhysicalSize::new(rect.size.width.0.into(), rect.size.height.0.into()),
+        ))
+    }
+
+    pub(crate) fn get(&self) -> PhysicalRect<Au> {
+        PhysicalRect::new(self.origin(), self.size())
+    }
+
+    pub(crate) fn set(&self, new_rect: PhysicalRect<Au>) {
+        self.set_origin(new_rect.origin);
+        self.set_size(new_rect.size);
+    }
+
+    #[inline]
+    pub(crate) fn origin(&self) -> PhysicalPoint<Au> {
+        Point2D::new(
+            // Bypass clamping in `Au::new`: the value originally came from another `Au`
+            // so it’s expected to already be in range
+            Au(self.0.origin.x.load(Ordering::Relaxed)),
+            Au(self.0.origin.y.load(Ordering::Relaxed)),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn size(&self) -> PhysicalSize<Au> {
+        Size2D::new(
+            // Bypass clamping in `Au::new`: the value originally came from another `Au`
+            // so it’s expected to already be in range
+            Au(self.0.size.width.load(Ordering::Relaxed)),
+            Au(self.0.size.height.load(Ordering::Relaxed)),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn set_origin(&self, new_origin: PhysicalPoint<Au>) {
+        let origin = &self.0.origin;
+        origin.x.store(new_origin.x.0, Ordering::Relaxed);
+        origin.y.store(new_origin.y.0, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn set_size(&self, new_size: PhysicalSize<Au>) {
+        let size = &self.0.size;
+        size.width.store(new_size.width.0, Ordering::Relaxed);
+        size.height.store(new_size.height.0, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn translate(&self, offset: PhysicalSize<Au>) {
+        // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
+        // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
+        let new_origin = self.origin() + offset;
+        self.set_origin(new_origin);
+    }
+}
+
+impl fmt::Debug for SyncPhysicalRectAu {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.get().fmt(f)
     }
 }
