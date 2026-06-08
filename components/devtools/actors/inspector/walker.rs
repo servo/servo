@@ -7,12 +7,16 @@
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
+use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::DevtoolScriptControlMsg::{
+    GetChildren, GetDocumentElement, GetInnerHTML, GetOuterHTML, GetRootNode,
+};
 use devtools_traits::DomMutation;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
-use servo_base::generic_channel;
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::actor::{
     Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc, new_actor_name,
@@ -20,6 +24,7 @@ use crate::actor::{
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActor, NodeActorMsg};
+use crate::actors::long_string::{LongStringActor, LongStringObj};
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
@@ -58,6 +63,12 @@ struct ChildrenReply {
     has_last: bool,
     nodes: Vec<NodeActorMsg>,
     from: String,
+}
+
+#[derive(Serialize)]
+struct GetHtmlReply {
+    from: String,
+    value: LongStringObj,
 }
 
 #[derive(Serialize)]
@@ -129,9 +140,13 @@ impl Actor for WalkerActor {
     ///
     /// - `getLayoutInspector`: Returns the Layout inspector actor, placeholder
     ///
+    /// - `innerHTML`: Returns the serialized HTML descendants of the specified node
+    ///
     /// - `getMutations`: Returns the list of attribute changes since it was last called
     ///
     /// - `getOffsetParent`: Placeholder
+    ///
+    /// - `outerHTML`: Returns the serialized HTML of the specified node
     ///
     /// - `querySelector`: Recursively looks for the specified selector in the tree, reutrning the
     ///   node and its ascendents
@@ -218,6 +233,7 @@ impl Actor for WalkerActor {
                 };
                 request.reply_final(&msg)?
             },
+            "innerHTML" => self.handle_get_html(request, registry, msg, GetInnerHTML)?,
             "getMutations" => self.handle_get_mutations(request, registry)?,
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
@@ -226,6 +242,7 @@ impl Actor for WalkerActor {
                 };
                 request.reply_final(&msg)?
             },
+            "outerHTML" => self.handle_get_html(request, registry, msg, GetOuterHTML)?,
             "querySelector" => {
                 let selector = msg
                     .get("selector")
@@ -303,6 +320,42 @@ impl WalkerActor {
 
         let node_actor = NodeActor::register_or_update(registry, &self.name, node_info);
         Ok(node_actor.encode(registry))
+    }
+
+    fn handle_get_html(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg: &Map<String, Value>,
+        get_html: fn(PipelineId, String, GenericSender<Option<String>>) -> DevtoolScriptControlMsg,
+    ) -> Result<(), ActorError> {
+        let target = msg
+            .get("node")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
+        let Some((tx, rx)) = generic_channel::channel() else {
+            return Err(ActorError::Internal);
+        };
+        let browsing_context_actor = self.browsing_context_actor(registry);
+        browsing_context_actor
+            .script_chan()
+            .send(get_html(
+                browsing_context_actor.pipeline_id(),
+                registry.actor_to_script(target.into()),
+                tx,
+            ))
+            .map_err(|_| ActorError::Internal)?;
+        let html = rx
+            .recv()
+            .map_err(|_| ActorError::Internal)?
+            .unwrap_or_default();
+        let long_string_actor = LongStringActor::register(registry, html);
+        let msg = GetHtmlReply {
+            from: self.name().into(),
+            value: long_string_actor.long_string_obj(),
+        };
+        request.reply_final(&msg)
     }
 
     pub(crate) fn handle_dom_mutation(

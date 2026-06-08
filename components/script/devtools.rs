@@ -36,6 +36,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrNullIsEmptyString;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -344,6 +345,47 @@ pub(crate) fn handle_get_children(
     children.extend(children_iter);
 
     reply.send(Some(children)).unwrap();
+}
+
+fn trusted_html_to_string(html: TrustedHTMLOrNullIsEmptyString) -> String {
+    match html {
+        TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(html) => String::from(html),
+        TrustedHTMLOrNullIsEmptyString::TrustedHTML(html) => html.to_string(),
+    }
+}
+
+pub(crate) fn handle_get_outer_html(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<String>>,
+) {
+    let html = state.find_node_by_unique_id(pipeline, node_id).map(|node| {
+        node.downcast::<Element>()
+            .and_then(|element| element.outer_html(cx).ok())
+            .map(String::from)
+            .or_else(|| node.GetTextContent().map(String::from))
+            .unwrap_or_default()
+    });
+    reply.send(html).unwrap();
+}
+
+pub(crate) fn handle_get_inner_html(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<String>>,
+) {
+    let html = state.find_node_by_unique_id(pipeline, node_id).map(|node| {
+        node.downcast::<Element>()
+            .and_then(|element| element.GetInnerHTML(cx).ok())
+            .map(trusted_html_to_string)
+            .or_else(|| node.GetTextContent().map(String::from))
+            .unwrap_or_default()
+    });
+    reply.send(html).unwrap();
 }
 
 pub(crate) fn handle_get_attribute_style(

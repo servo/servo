@@ -2171,6 +2171,12 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
             },
+            DevtoolScriptControlMsg::GetOuterHTML(id, node_id, reply) => {
+                devtools::handle_get_outer_html(cx, &self.devtools_state, id, &node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetInnerHTML(id, node_id, reply) => {
+                devtools::handle_get_inner_html(cx, &self.devtools_state, id, &node_id, reply)
+            },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(cx, &self.devtools_state, id, &node_id, reply)
             },

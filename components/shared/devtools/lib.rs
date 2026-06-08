@@ -394,6 +394,10 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, GenericSender<Option<Vec<NodeInfo>>>),
+    /// Retrieve the outer HTML of the given node in the given pipeline.
+    GetOuterHTML(PipelineId, String, GenericSender<Option<String>>),
+    /// Retrieve the inner HTML of the given node in the given pipeline.
+    GetInnerHTML(PipelineId, String, GenericSender<Option<String>>),
     /// Retrieve the CSS style properties defined in the attribute tag for the given node.
     GetAttributeStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the CSS style properties defined in an stylesheet for the given selector.
