@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  #content::before {
+    content: "";
+    display: block;
+    width: 256px;
+    height: 256px;
+    background-image: url(/images/lcp-256x256.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+</style>
+
+<button id="testButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const imageUrl = '/images/lcp-256x256.png';
+
+    testButton.addEventListener('click', async () => {
+      container.innerHTML = `<div><div id="content"></div></div>`;
+    }, {once: true});
+
+    const helper = new SoftNavigationTestHelper(t);
+    const icpPromise = helper.waitForIcp();
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    const icps = await icpPromise;
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry');
+
+    assert_equals(
+        icps[0].largestContentfulPaint.id, 'content',
+        'Expected the LCP element to be "content"');
+    assert_true(
+        icps[0].largestContentfulPaint.url.endsWith(imageUrl),
+        'Expected the LCP url to be the image url');
+  }, 'InteractionContentfulPaint considers pseudo elements with background images as candidates');
+</script>

@@ -7,6 +7,7 @@
 
 use std::collections::HashMap;
 use std::iter::once;
+use std::sync::Arc;
 
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{AutoMargins, ComputedNodeLayout, MatchedRule};
@@ -16,7 +17,7 @@ use serde_json::{self, Map, Value};
 use servo_base::generic_channel::{self};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::actors::inspector::walker::{WalkerActor, find_child};
@@ -95,8 +96,8 @@ pub(crate) struct PageStyleActor {
 }
 
 impl Actor for PageStyleActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The page style actor can handle the following messages:
@@ -129,11 +130,10 @@ impl Actor for PageStyleActor {
 }
 
 impl PageStyleActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 
     fn get_applied(
@@ -151,8 +151,6 @@ impl PageStyleActor {
         let walker = registry.find::<WalkerActor>(&node_actor.walker_name);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
-            &node_actor.script_chan,
-            node_actor.pipeline,
             &node_actor.walker_name,
             registry,
             &walker.root(registry)?.actor,
@@ -200,10 +198,12 @@ impl PageStyleActor {
                         .or_insert_with(|| {
                             StyleRuleActor::register(
                                 registry,
-                                node_actor.name(),
+                                node_actor.name().into(),
                                 (matched_rule.stylesheet_index != usize::MAX)
                                     .then_some(matched_rule.clone()),
                             )
+                            .name()
+                            .into()
                         })
                         .clone();
 
@@ -226,7 +226,7 @@ impl PageStyleActor {
         .collect();
         let msg = GetAppliedReply {
             entries,
-            from: self.name(),
+            from: self.name().into(),
         };
         request.reply_final(&msg)
     }
@@ -254,7 +254,11 @@ impl PageStyleActor {
             .style_rules
             .borrow_mut()
             .entry(style_attribute_rule)
-            .or_insert_with(|| StyleRuleActor::register(registry, node_name.into(), None))
+            .or_insert_with(|| {
+                StyleRuleActor::register(registry, node_name.into(), None)
+                    .name()
+                    .into()
+            })
             .clone();
         let computed = registry
             .find::<StyleRuleActor>(&style_rule_name)
@@ -263,7 +267,7 @@ impl PageStyleActor {
 
         let msg = GetComputedReply {
             computed,
-            from: self.name(),
+            from: self.name().into(),
         };
         request.reply_final(&msg)
     }
@@ -296,7 +300,7 @@ impl PageStyleActor {
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
         request.reply_final(&GetLayoutReply {
-            from: self.name(),
+            from: self.name().into(),
             layout,
             auto_margins: auto_margins.into(),
         })
@@ -304,7 +308,7 @@ impl PageStyleActor {
 
     fn is_position_editable(&self, request: ClientRequest) -> Result<(), ActorError> {
         let msg = IsPositionEditableReply {
-            from: self.name(),
+            from: self.name().into(),
             value: false,
         };
         request.reply_final(&msg)
@@ -314,7 +318,7 @@ impl PageStyleActor {
 impl ActorEncode<PageStyleMsg> for PageStyleActor {
     fn encode(&self, _: &ActorRegistry) -> PageStyleMsg {
         PageStyleMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: HashMap::from([
                 ("fontStretchLevel4".into(), true),
                 ("fontStyleLevel4".into(), true),

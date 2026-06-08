@@ -483,6 +483,6 @@ impl ByteTeeUnderlyingSource {
 
         // Resolve cancelPromise with cancelResult.
         self.cancel_promise
-            .resolve_native(&cancel_result, CanGc::from_cx(cx));
+            .resolve_native_with_cx(cx, &cancel_result);
     }
 }

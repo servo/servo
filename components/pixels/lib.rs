@@ -6,6 +6,7 @@ mod snapshot;
 
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,6 +16,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
+use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
@@ -280,6 +282,11 @@ pub enum CorsStatus {
     Unsafe,
 }
 
+#[derive(Clone, MallocSizeOf, PartialEq)]
+pub enum Repeat {
+    Infinite,
+    Finite(NonZeroU32),
+}
 /// A version of [`RasterImage`] that can be sent across IPC channels.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
@@ -305,6 +312,10 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
+    /// The loop count for this image's animation. For animated images, this
+    /// has a default value of `Repeat::Infinite` (if no loop count is specified in
+    /// the image).  For images that do not animate, this will be `None`.
+    pub loop_count: Option<Repeat>,
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
@@ -793,6 +804,7 @@ fn decode_static_image(
         id: None,
         cors_status,
         is_opaque,
+        loop_count: None,
     })
 }
 
@@ -812,6 +824,10 @@ where
     let mut frame_data = vec![];
     let mut total_number_of_bytes = 0;
     let mut is_opaque = true;
+    let loop_count = match animated_image_decoder.loop_count() {
+        LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
+        LoopCount::Infinite => Repeat::Infinite,
+    };
     let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
@@ -869,6 +885,7 @@ where
         format: PixelFormat::RGBA8,
         bytes: Arc::new(bytes),
         is_opaque,
+        loop_count: Some(loop_count),
     })
 }
 

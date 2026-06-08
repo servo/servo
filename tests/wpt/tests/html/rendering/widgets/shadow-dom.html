@@ -1,0 +1,53 @@
+<!doctype html>
+<title>Internal shadow trees</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/3748">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function test_has_shadow_root_with_no_slots(element) {
+  test(function(t) {
+    let child = element.appendChild(document.createElement("span"));
+    t.add_cleanup(() => child.remove());
+    assert_equals(child.getClientRects().length, 0, "child should not be rendered");
+    assert_equals(getComputedStyle(child).length, 0, "child should be outside the flat tree");
+  }, `${element.outerHTML} has a shadow tree with no slots`);
+}
+
+function test_has_shadow_root_with_slot(element, expectedProperties = { display: "contents" }) {
+  test(function(t) {
+    let child = element.appendChild(document.createElement("span"));
+    t.add_cleanup(() => child.remove());
+    let childStyle = getComputedStyle(child);
+    assert_not_equals(childStyle.length, 0, "child should be in the flat tree");
+    child.style.all = "inherit";
+    for (let [prop, value] of Object.entries(expectedProperties)) {
+      assert_equals(childStyle[prop], value, `Child should inherit ${prop}: ${value} from the slot`);
+    }
+  }, `${element.outerHTML} has a shadow tree with slot`);
+}
+</script>
+<video controls></video>
+<video></video>
+<audio></audio>
+<audio controls></audio>
+<select></select>
+<select multiple></select>
+<select size="4"></select>
+<details></details>
+<details open></details>
+<script>
+  for (let element of document.querySelectorAll("audio, video")) {
+    test_has_shadow_root_with_no_slots(element);
+  }
+  for (let element of document.querySelectorAll("select")) {
+    test_has_shadow_root_with_slot(element);
+  }
+  test_has_shadow_root_with_slot(document.querySelector("details"), {
+    display: "block",
+    contentVisibility: "hidden",
+  });
+  test_has_shadow_root_with_slot(document.querySelector("details[open]"), {
+    display: "block",
+    contentVisibility: "visible",
+  });
+</script>

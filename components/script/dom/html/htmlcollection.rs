@@ -485,7 +485,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     }
 
     /// <https://dom.spec.whatwg.org/#interface-htmlcollection>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut js::context::JSContext) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];
 

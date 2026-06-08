@@ -28,7 +28,7 @@ compression_dictionary_promise_test(async (t) => {
   const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   const data = await (await fetch(data_url)).text();
   assert_equals(data, kExpectedCompressedData);
-}, 'Decompresion using gzip-encoded dictionary works as expected');
+}, 'Decompression using gzip-encoded dictionary works as expected');
 
 compression_dictionary_promise_test(async (t) => {
   const dictionaryUrl =
@@ -42,7 +42,7 @@ compression_dictionary_promise_test(async (t) => {
   const data_url = `${kCompressedDataPath}?content_encoding=dcz`;
   const data = await (await fetch(data_url)).text();
   assert_equals(data, kExpectedCompressedData);
-}, 'Decompresion using Brotli-encoded dictionary works as expected');
+}, 'Decompression using Brotli-encoded dictionary works as expected');
 
 compression_dictionary_promise_test(async (t) => {
   const dictionaryUrl =
@@ -57,7 +57,7 @@ compression_dictionary_promise_test(async (t) => {
   const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   const data = await (await fetch(data_url)).text();
   assert_equals(data, kExpectedCompressedData);
-}, 'Decompresion using Zstandard-encoded dictionary works as expected');
+}, 'Decompression using Zstandard-encoded dictionary works as expected');
 
 compression_dictionary_promise_test(async (t) => {
   const dictionaryUrl = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=id1`;

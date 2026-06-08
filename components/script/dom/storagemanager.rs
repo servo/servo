@@ -75,11 +75,8 @@ impl StorageManagerBooleanResponseHandler {
             .queue(task!(storage_manager_boolean_response: move |cx| {
                 let promise = trusted_promise.root();
                 match result {
-                    Ok(value) => promise.resolve_native(&value, CanGc::from_cx(cx)),
-                    Err(message) => promise.reject_error(
-                        StorageManager::type_error_from_string(message),
-                        CanGc::from_cx(cx),
-                    ),
+                    Ok(value) => promise.resolve_native_with_cx(cx, &value),
+                    Err(message) => promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message)),
                 }
             }));
     }
@@ -112,13 +109,10 @@ impl StorageManagerEstimateResponseHandler {
                         let mut estimate = StorageEstimate::empty();
                         estimate.usage = Some(usage);
                         estimate.quota = Some(quota);
-                        promise.resolve_native(&estimate, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &estimate);
                     },
                     Err(message) => {
-                        promise.reject_error(
-                            StorageManager::type_error_from_string(message),
-                            CanGc::from_cx(cx),
-                        );
+                        promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message));
                     },
                 }
             }));

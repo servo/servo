@@ -99,8 +99,6 @@ enum XRLayerQuality {
   readonly attribute unsigned long colorTextureHeight;
   readonly attribute unsigned long? depthStencilTextureWidth;
   readonly attribute unsigned long? depthStencilTextureHeight;
-  readonly attribute unsigned long? motionVectorTextureWidth;
-  readonly attribute unsigned long? motionVectorTextureHeight;
 };
 
 enum XRTextureType {

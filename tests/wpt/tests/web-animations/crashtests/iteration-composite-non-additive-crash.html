@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://crbug.com/505876749" />
+  <title>IterationComposite with non-additive accumulation</title>
+</head>
+<style>
+  #target {
+    background-color: green;
+    height: 100px;
+    width: 100px;
+  }
+
+  :first-child {
+    border-image-slice: 0;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  window.onload = async () => {
+    const anim = target.animate(
+      [{ "border": "hsl(226,18%,57%)" }],
+      {
+        duration: 1000,
+        fill:"forwards",
+        iterations: 5.5,
+        iterationStart: 10.5,
+        iterationComposite:"accumulate",
+      });
+    await anim.ready;
+    await runAndWaitForFrameUpdate(() => {
+      anim.currentTime += 800;
+    });
+    await runAndWaitForFrameUpdate(() => {
+      anim.currentTime += 800;
+    });
+    await runAndWaitForFrameUpdate(() => {
+      anim.currentTime += 800;
+    });
+    document.documentElement.classList.remove('test-wait');
+  };
+</script>
+</html>

@@ -152,17 +152,17 @@ impl ReadRequest {
                         // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
                         // Spec note: Avoid direct recursion; queue into a microtask.
                         // Resolving the promise will queue a microtask to call into the native handler.
-                        let tick = Promise::new(&global, CanGc::from_cx(cx));
-                        tick.resolve_native(&(), CanGc::from_cx(cx));
+                        let tick = Promise::new2(cx, &global);
+                        tick.resolve_native_with_cx(cx, &());
 
                         let handler = PromiseNativeHandler::new(
+                            cx,
                             &global,
                             Some(Box::new(ContinueReadMicrotask {
                                 reader: Dom::from_ref(reader),
                                 request: self.clone(),
                             })),
                             None,
-                            CanGc::from_cx(cx),
                         );
 
                         let mut realm = enter_auto_realm(cx, &*global);
@@ -289,7 +289,7 @@ impl Callback for ByteTeeClosedPromiseRejectionHandler {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -320,7 +320,7 @@ impl Callback for DefaultTeeClosedPromiseRejectionHandler {
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -395,9 +395,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub(crate) fn close(&self, cx: &mut js::context::JSContext) {
         // Resolve reader.[[closedPromise]] with undefined.
-        self.closed_promise
-            .borrow()
-            .resolve_native(&(), CanGc::from_cx(cx));
+        self.closed_promise.borrow().resolve_native_with_cx(cx, &());
         // If reader implements ReadableStreamDefaultReader,
         // Let readRequests be reader.[[readRequests]].
         let mut read_requests = self.take_read_requests();
@@ -424,9 +422,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub(crate) fn error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise
-            .borrow()
-            .reject_native(&e, CanGc::from_cx(cx));
+        self.closed_promise.borrow().reject_native_with_cx(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();
@@ -526,6 +522,7 @@ impl ReadableStreamDefaultReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(ByteTeeClosedPromiseRejectionHandler {
@@ -537,7 +534,6 @@ impl ReadableStreamDefaultReader {
                 reader_version,
                 expected_version,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);
@@ -564,6 +560,7 @@ impl ReadableStreamDefaultReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(DefaultTeeClosedPromiseRejectionHandler {
@@ -573,7 +570,6 @@ impl ReadableStreamDefaultReader {
                 canceled_2,
                 cancel_promise,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);

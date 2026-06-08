@@ -13,9 +13,10 @@ use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
 use html5ever::{LocalName, Namespace};
+use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::{HandleValue, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSContext, JSString};
+use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSString};
 use js::jsval::StringValue;
 use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
@@ -131,11 +132,10 @@ impl DOMStringType {
     fn ensure_rust_string(&mut self) -> &mut String {
         let new_string = match self {
             DOMStringType::Rust(string) => return string,
-            DOMStringType::JSString(rooted_traceable_box) => unsafe {
-                jsstr_to_string(
-                    Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                    NonNull::new(rooted_traceable_box.get()).unwrap(),
-                )
+            DOMStringType::JSString(rooted_traceable_box) => {
+                let cx = unsafe { JSContext::get_from_thread() };
+                let cx = cx.as_ref().expect("JS runtime has shut down");
+                unsafe { jsstr_to_string(cx, NonNull::new(rooted_traceable_box.get()).unwrap()) }
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => {
@@ -315,10 +315,10 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     pub fn from_js_string(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         value: HandleValue,
     ) -> Result<DOMString, DOMStringErrorType> {
-        let string_ptr = unsafe { js::rust::ToString(cx.raw_cx(), value) };
+        let string_ptr = unsafe { js::rust::ToString(cx, value) };
         if string_ptr.is_null() {
             debug!("ToString failed");
             Err(DOMStringErrorType::JSConversionError)
@@ -330,7 +330,7 @@ impl DOMString {
             } else {
                 // We need to convert the string anyway as it is not just latin1
                 DOMStringType::Rust(unsafe {
-                    jsstr_to_string(cx.raw_cx(), ptr::NonNull::new(string_ptr).unwrap())
+                    jsstr_to_string(cx, NonNull::new(string_ptr).unwrap())
                 })
             };
             Ok(DOMString(RefCell::new(inner)))
@@ -346,15 +346,12 @@ impl DOMString {
 
     /// Debug the current  state of the string without modifying it.
     #[expect(unused)]
-    fn debug_js(&self) {
+    fn debug_js(&self, cx: &JSContext) {
         match *self.0.borrow() {
             DOMStringType::Rust(ref s) => info!("Rust String ({})", s),
             DOMStringType::JSString(ref rooted_traceable_box) => {
                 let s = unsafe {
-                    jsstr_to_string(
-                        Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                        ptr::NonNull::new(rooted_traceable_box.get()).unwrap(),
-                    )
+                    jsstr_to_string(cx, NonNull::new(rooted_traceable_box.get()).unwrap())
                 };
                 info!("JSString ({})", s);
             },
@@ -770,7 +767,7 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut RawJSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {
             DOMStringType::Rust(ref s) => unsafe {

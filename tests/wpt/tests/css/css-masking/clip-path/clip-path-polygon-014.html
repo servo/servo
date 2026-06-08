@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS Masking: clip-path polygon() with round</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-polygon">
+<link rel="match" href="reference/clip-path-polygon-014-ref.html">
+<meta name="assert" content="The clip-path property accepts polygon() with round for rounding polygon vertices. The test passes if there is a green rounded rectangle.">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-100">
+<p>The test passes if there is a green rounded rectangle.</p>
+<div style="width: 200px; height: 200px; background: green; clip-path: polygon(round 40px, 0 0, 100% 0, 100% 100%, 0 100%)"></div>

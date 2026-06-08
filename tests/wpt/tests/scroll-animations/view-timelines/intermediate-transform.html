@@ -48,7 +48,8 @@
     });
     const anim = target.animate({ backgroundColor: ['green', 'red' ] },
                                 { timeline: timeline });
-    await new Promise(requestAnimationFrame);
+    // Make sure the scroll overflow is ready.
+    await waitForAnimationFrames(2);
     assert_px_equals(timeline.startOffset, 604, 'startOffset');
     assert_px_equals(timeline.endOffset, 904, 'endOffset');
   });

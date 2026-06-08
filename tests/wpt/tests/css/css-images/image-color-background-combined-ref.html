@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS reftest reference: image(&lt;color&gt;) with background-size, background-position, and background-repeat</title>
+<style>
+  .container {
+    width: 120px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .green {
+    position: absolute;
+    background-color: green;
+  }
+
+  /* center no-repeat: 40×40 tile at ((120-40)/2, (120-40)/2) = (40px, 40px) */
+  .center-no-repeat > .green     { top: 40px; left: 40px; width: 40px; height: 40px; }
+
+  /* repeat-x centered vertically: full-width row at y=(120-40)/2=40px, height 40px */
+  .repeat-x-center > .green      { top: 40px; left: 0;    width: 120px; height: 40px; }
+
+  /* repeat-y centered horizontally: full-height column at x=(120-40)/2=40px, width 40px */
+  .repeat-y-center > .green      { top: 0;    left: 40px; width: 40px;  height: 120px; }
+
+  /* bottom-right no-repeat: 60×60 tile at (120-60, 120-60) = (60px, 60px) */
+  .bottom-right-no-repeat > .green { top: 60px; left: 60px; width: 60px; height: 60px; }
+</style>
+<p>Four 120×120 squares on red: centered 40×40 green (no-repeat), full-width 40px green band at vertical center (repeat-x), full-height 40px green band at horizontal center (repeat-y), 60×60 green at bottom-right (no-repeat).</p>
+<div class="container center-no-repeat"><div class="green"></div></div>
+<div class="container repeat-x-center"><div class="green"></div></div>
+<div class="container repeat-y-center"><div class="green"></div></div>
+<div class="container bottom-right-no-repeat"><div class="green"></div></div>

@@ -1057,10 +1057,20 @@ fn test_preferences_change() {
         .url(test_page.clone())
         .build();
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "target.style.gridColumn = \"3\";",
+
+    assert_eq!(
+        Ok(JSValue::Array(vec![
+            JSValue::String("".to_string()),
+            JSValue::String("".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "let old_value = target.style.getPropertyValue('grid-column');
+            target.style.gridColumn = '3';
+            let new_value = target.style.getPropertyValue('grid-column');
+            [old_value, new_value]"
+        )
     );
 
     servo_test
@@ -1070,7 +1080,17 @@ fn test_preferences_change() {
     webview.reload();
 
     assert_eq!(
-        Ok(JSValue::String("3".into())),
-        evaluate_javascript(&servo_test, webview, "target.style.gridColumn = \"3\";")
+        Ok(JSValue::Array(vec![
+            JSValue::String("1".to_string()),
+            JSValue::String("3".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview,
+            "let old_value = target.style.getPropertyValue('grid-column');
+            target.style.gridColumn = '3';
+            let new_value = target.style.getPropertyValue('grid-column');
+            [old_value, new_value]"
+        )
     );
 }

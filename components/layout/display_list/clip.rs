@@ -5,15 +5,17 @@
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::id::ScrollTreeNodeId;
-use style::values::computed::LengthPercentage;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
 use style::values::computed::position::Position;
+use style::values::computed::{Length, LengthPercentage};
 use style::values::generics::basic_shape::{GenericShapeRadius, ShapeBox, ShapeGeometryBox};
 use style::values::generics::position::GenericPositionOrAuto;
 use webrender_api::BorderRadius;
-use webrender_api::units::{LayoutRect, LayoutSideOffsets, LayoutSize};
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize};
 
 use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
+use crate::fragment_tree::BoxFragment;
+use crate::geom::PhysicalPoint;
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
 /// a [`ClipStore`]s vector of clips.
@@ -77,7 +79,8 @@ impl StackingContextTreeClipStore {
         clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
-        fragment_builder: BuilderForBoxFragment,
+        box_fragment: &BoxFragment,
+        containing_block_origin: PhysicalPoint<Au>,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
             ClipPath::Shape(_, ShapeGeometryBox::ShapeBox(shape_box)) => *shape_box,
@@ -86,6 +89,7 @@ impl StackingContextTreeClipStore {
             ClipPath::Box(ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
             _ => return None,
         };
+        let fragment_builder = BuilderForBoxFragment::new(box_fragment, containing_block_origin);
         let layout_rect = match geometry_box {
             ShapeBox::BorderBox => fragment_builder.border_rect,
             ShapeBox::ContentBox => *fragment_builder.content_rect(),
@@ -107,11 +111,11 @@ impl StackingContextTreeClipStore {
             Some(self.add(
                 match geometry_box {
                     ShapeBox::MarginBox => compute_margin_box_radius(
-                        fragment_builder.border_radius,
+                        fragment_builder.border_radius(),
                         layout_rect.size(),
                         fragment_builder.fragment,
                     ),
-                    _ => fragment_builder.border_radius,
+                    _ => fragment_builder.border_radius(),
                 },
                 layout_rect,
                 parent_scroll_node_id,
@@ -130,13 +134,13 @@ impl StackingContextTreeClipStore {
     ) -> Option<ClipId> {
         match shape {
             BasicShape::Rect(rect) => {
-                let box_height = Au::from_f32_px(layout_box.height());
-                let box_width = Au::from_f32_px(layout_box.width());
+                let box_height = Length::new(layout_box.height());
+                let box_width = Length::new(layout_box.width());
                 let insets = LayoutSideOffsets::new(
-                    rect.rect.0.to_used_value(box_height).to_f32_px(),
-                    rect.rect.1.to_used_value(box_width).to_f32_px(),
-                    rect.rect.2.to_used_value(box_height).to_f32_px(),
-                    rect.rect.3.to_used_value(box_width).to_f32_px(),
+                    rect.rect.0.resolve(box_height).px(),
+                    rect.rect.1.resolve(box_width).px(),
+                    rect.rect.2.resolve(box_height).px(),
+                    rect.rect.3.resolve(box_width).px(),
                 );
 
                 // `inner_rect()` will cause an assertion failure if the insets are larger than the
@@ -151,8 +155,8 @@ impl StackingContextTreeClipStore {
 
                 let corner = |corner: &style::values::computed::BorderCornerRadius| {
                     LayoutSize::new(
-                        corner.0.width.0.to_used_value(box_width).to_f32_px(),
-                        corner.0.height.0.to_used_value(box_height).to_f32_px(),
+                        corner.0.width.0.resolve(box_width).px(),
+                        corner.0.height.0.resolve(box_height).px(),
                     )
                 };
                 let mut radii = webrender_api::BorderRadius {
@@ -174,35 +178,18 @@ impl StackingContextTreeClipStore {
                     GenericPositionOrAuto::Position(position) => position.clone(),
                     GenericPositionOrAuto::Auto => Position::center(),
                 };
-                let anchor_x = center
-                    .horizontal
-                    .to_used_value(Au::from_f32_px(layout_box.width()));
-                let anchor_y = center
-                    .vertical
-                    .to_used_value(Au::from_f32_px(layout_box.height()));
+                let anchor_x = center.horizontal.resolve(Length::new(layout_box.width()));
+                let anchor_y = center.vertical.resolve(Length::new(layout_box.height()));
                 let center = layout_box
                     .min
-                    .add_size(&LayoutSize::new(anchor_x.to_f32_px(), anchor_y.to_f32_px()));
+                    .add_size(&LayoutSize::new(anchor_x.px(), anchor_y.px()));
 
-                let horizontal = compute_shape_radius(
-                    center.x,
+                let radius = compute_shape_radius_for_circle(
+                    center,
                     &circle.radius,
-                    layout_box.min.x,
-                    layout_box.max.x,
+                    layout_box.min,
+                    layout_box.max,
                 );
-                let vertical = compute_shape_radius(
-                    center.y,
-                    &circle.radius,
-                    layout_box.min.y,
-                    layout_box.max.y,
-                );
-
-                // If the value is `Length` then both values should be the same at this point.
-                let radius = match circle.radius {
-                    GenericShapeRadius::FarthestSide => horizontal.max(vertical),
-                    GenericShapeRadius::ClosestSide => horizontal.min(vertical),
-                    GenericShapeRadius::Length(_) => horizontal,
-                };
                 let radius = LayoutSize::new(radius, radius);
                 let mut radii = webrender_api::BorderRadius {
                     top_left: radius,
@@ -220,38 +207,34 @@ impl StackingContextTreeClipStore {
                     GenericPositionOrAuto::Position(position) => position.clone(),
                     GenericPositionOrAuto::Auto => Position::center(),
                 };
-                let anchor_x = center
-                    .horizontal
-                    .to_used_value(Au::from_f32_px(layout_box.width()));
-                let anchor_y = center
-                    .vertical
-                    .to_used_value(Au::from_f32_px(layout_box.height()));
+                let anchor_x = center.horizontal.resolve(Length::new(layout_box.width()));
+                let anchor_y = center.vertical.resolve(Length::new(layout_box.height()));
                 let center = layout_box
                     .min
-                    .add_size(&LayoutSize::new(anchor_x.to_f32_px(), anchor_y.to_f32_px()));
+                    .add_size(&LayoutSize::new(anchor_x.px(), anchor_y.px()));
 
-                let width = compute_shape_radius(
+                let radius_x = compute_shape_radius_for_ellipse_axis(
                     center.x,
                     &ellipse.semiaxis_x,
                     layout_box.min.x,
                     layout_box.max.x,
                 );
-                let height = compute_shape_radius(
+                let radius_y = compute_shape_radius_for_ellipse_axis(
                     center.y,
                     &ellipse.semiaxis_y,
                     layout_box.min.y,
                     layout_box.max.y,
                 );
+                let radius = LayoutSize::new(radius_x, radius_y);
 
                 let mut radii = webrender_api::BorderRadius {
-                    top_left: LayoutSize::new(width, height),
-                    top_right: LayoutSize::new(width, height),
-                    bottom_left: LayoutSize::new(width, height),
-                    bottom_right: LayoutSize::new(width, height),
+                    top_left: radius,
+                    top_right: radius,
+                    bottom_left: radius,
+                    bottom_right: radius,
                 };
-                let size = LayoutSize::new(width, height);
-                let start = center.add_size(&-size);
-                let rect = LayoutRect::from_origin_and_size(start, size * 2.);
+                let start = center.add_size(&-radius);
+                let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
                 normalize_radii(&rect, &mut radii);
                 Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
@@ -260,7 +243,35 @@ impl StackingContextTreeClipStore {
     }
 }
 
-fn compute_shape_radius(
+fn compute_shape_radius_for_circle(
+    center: LayoutPoint,
+    radius: &GenericShapeRadius<LengthPercentage>,
+    min_edge: LayoutPoint,
+    max_edge: LayoutPoint,
+) -> f32 {
+    let distance_from_min_edge = (min_edge - center).abs();
+    let distance_from_max_edge = (max_edge - center).abs();
+    match radius {
+        GenericShapeRadius::FarthestSide => {
+            let x = distance_from_min_edge.x.max(distance_from_max_edge.x);
+            let y = distance_from_min_edge.y.max(distance_from_max_edge.y);
+            x.max(y)
+        },
+        GenericShapeRadius::ClosestSide => {
+            let x = distance_from_min_edge.x.min(distance_from_max_edge.x);
+            let y = distance_from_min_edge.y.min(distance_from_max_edge.y);
+            x.min(y)
+        },
+        GenericShapeRadius::Length(length) => {
+            // https://www.w3.org/TR/css-shapes/#direction-agnostic-size
+            let size = max_edge - min_edge;
+            let basis = size.x.hypot(size.y) / std::f32::consts::SQRT_2;
+            length.0.resolve(Length::new(basis)).px()
+        },
+    }
+}
+
+fn compute_shape_radius_for_ellipse_axis(
     center: f32,
     radius: &GenericShapeRadius<LengthPercentage>,
     min_edge: f32,
@@ -271,8 +282,8 @@ fn compute_shape_radius(
     match radius {
         GenericShapeRadius::FarthestSide => distance_from_min_edge.max(distance_from_max_edge),
         GenericShapeRadius::ClosestSide => distance_from_min_edge.min(distance_from_max_edge),
-        GenericShapeRadius::Length(length) => length
-            .to_used_value(Au::from_f32_px(max_edge - min_edge))
-            .to_f32_px(),
+        GenericShapeRadius::Length(length) => {
+            length.0.resolve(Length::new(max_edge - min_edge)).px()
+        },
     }
 }

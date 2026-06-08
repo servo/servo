@@ -188,8 +188,8 @@ impl TimelineActor {
 }
 
 impl Actor for TimelineActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -233,7 +233,7 @@ impl Actor for TimelineActor {
                 }
 
                 let emitter = Emitter::new(
-                    self.name(),
+                    self.name().into(),
                     self.registry.clone(),
                     self.start_stamp,
                     request.stream(),
@@ -244,7 +244,7 @@ impl Actor for TimelineActor {
                 self.pull_timeline_data(rx, emitter);
 
                 let msg = StartReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: HighResolutionStamp::new(self.start_stamp, CrossProcessInstant::now()),
                 };
                 request.reply_final(&msg)?
@@ -252,7 +252,7 @@ impl Actor for TimelineActor {
 
             "stop" => {
                 let msg = StopReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: HighResolutionStamp::new(self.start_stamp, CrossProcessInstant::now()),
                 };
 
@@ -278,7 +278,7 @@ impl Actor for TimelineActor {
 
             "isRecording" => {
                 let msg = IsRecordingReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: *self.is_recording.lock().unwrap(),
                 };
 
@@ -337,7 +337,7 @@ impl Emitter {
             let framerate_actor = registry.find::<FramerateActor>(actor_name);
             let framerate_reply = FramerateEmitterReply {
                 type_: "framerate".to_owned(),
-                from: framerate_actor.name(),
+                from: framerate_actor.name().into(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 timestamps: framerate_actor.take_pending_ticks(),
             };
@@ -349,7 +349,7 @@ impl Emitter {
             let memory_actor = registry.find::<MemoryActor>(actor_name);
             let memory_reply = MemoryEmitterReply {
                 type_: "memory".to_owned(),
-                from: memory_actor.name(),
+                from: memory_actor.name().into(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 measurement: memory_actor.measure(),
             };

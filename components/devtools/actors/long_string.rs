@@ -1,12 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 
 const INITIAL_LENGTH: usize = 500;
@@ -35,8 +37,8 @@ struct SubstringReply {
 }
 
 impl Actor for LongStringActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -61,7 +63,7 @@ impl Actor for LongStringActor {
                     .take(end - start)
                     .collect();
                 let reply = SubstringReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     substring,
                 };
                 request.reply_final(&reply)?
@@ -73,14 +75,10 @@ impl Actor for LongStringActor {
 }
 
 impl LongStringActor {
-    pub fn register(registry: &ActorRegistry, full_string: String) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            full_string,
-        };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry, full_string: String) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name, full_string };
+        registry.register::<Self>(actor)
     }
 
     pub fn long_string_obj(&self) -> LongStringObj {

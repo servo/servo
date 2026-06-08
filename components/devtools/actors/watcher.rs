@@ -11,6 +11,7 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/watcher.js
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::get_time_stamp;
 use log::warn;
@@ -24,7 +25,7 @@ use self::network_parent::NetworkParentActor;
 use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
 use super::worker::WorkerTargetActorMsg;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::blackboxing::BlackboxingActor;
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::console::ConsoleActor;
@@ -214,8 +215,8 @@ pub(crate) struct WillNavigateMessage {
 }
 
 impl Actor for WatcherActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The watcher actor can handle the following messages:
@@ -261,7 +262,7 @@ impl Actor for WatcherActor {
 
                 if target_type == "frame" {
                     let msg = WatchTargetsReply {
-                        from: self.name(),
+                        from: self.name().into(),
                         type_: "target-available-form".into(),
                         target: TargetActorMsg::BrowsingContext(
                             browsing_context_actor.encode(registry),
@@ -273,7 +274,7 @@ impl Actor for WatcherActor {
                 } else if target_type == "worker" {
                     for worker_name in &*root_actor.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
-                            from: self.name(),
+                            from: self.name().into(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
                                 registry.encode::<WorkerTargetActor, _>(worker_name),
@@ -284,7 +285,7 @@ impl Actor for WatcherActor {
                 } else if target_type == "service_worker" {
                     for worker_name in &*root_actor.service_workers.borrow() {
                         let worker_msg = WatchTargetsReply {
-                            from: self.name(),
+                            from: self.name().into(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
                                 registry.encode::<WorkerTargetActor, _>(worker_name),
@@ -300,7 +301,9 @@ impl Actor for WatcherActor {
                 // don't count as a reply. Since every message needs to be responded, we send an
                 // extra empty packet to the devtools host to inform that we successfully received
                 // and processed the message so that it can continue
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "unwatchTargets" => {
@@ -402,7 +405,9 @@ impl Actor for WatcherActor {
                         _ => warn!("resource {} not handled yet", resource),
                     }
                 }
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "unwatchResources" => {
@@ -411,21 +416,21 @@ impl Actor for WatcherActor {
             },
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     browsing_context_id: browsing_context_actor.browsing_context_id.value(),
                 };
                 request.reply_final(&msg)?
             },
             "getNetworkParentActor" => {
                 let msg = GetNetworkParentActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     network: registry.encode::<NetworkParentActor, _>(&self.network_parent_name),
                 };
                 request.reply_final(&msg)?
             },
             "getTargetConfigurationActor" => {
                 let msg = GetTargetConfigurationActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     configuration: registry
                         .encode::<TargetConfigurationActor, _>(&self.target_configuration_name),
                 };
@@ -433,7 +438,7 @@ impl Actor for WatcherActor {
             },
             "getThreadConfigurationActor" => {
                 let msg = GetThreadConfigurationActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     configuration: registry
                         .encode::<ThreadConfigurationActor, _>(&self.thread_configuration_name),
                 };
@@ -441,7 +446,7 @@ impl Actor for WatcherActor {
             },
             "getBreakpointListActor" => {
                 let msg = GetBreakpointListActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     breakpoint_list: registry
                         .encode::<BreakpointListActor, _>(&self.breakpoint_list_name),
                 };
@@ -449,7 +454,7 @@ impl Actor for WatcherActor {
             },
             "getBlackboxingActor" => {
                 let msg = GetBlackboxingActorReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     blackboxing: registry.encode::<BlackboxingActor, _>(&self.blackboxing_name),
                 };
                 request.reply_final(&msg)?
@@ -471,29 +476,27 @@ impl WatcherActor {
         registry: &ActorRegistry,
         browsing_context_name: String,
         session_context: SessionContext,
-    ) -> String {
-        let network_parent_name = NetworkParentActor::register(registry);
-        let target_configuration_name = TargetConfigurationActor::register(registry);
-        let thread_configuration_name = ThreadConfigurationActor::register(registry);
-        let breakpoint_list_name =
+    ) -> Arc<Self> {
+        let network_parent_actor = NetworkParentActor::register(registry);
+        let target_configuration_actor = TargetConfigurationActor::register(registry);
+        let thread_configuration_actor = ThreadConfigurationActor::register(registry);
+        let breakpoint_list_actor =
             BreakpointListActor::register(registry, browsing_context_name.clone());
-        let blackboxing_name = BlackboxingActor::register(registry, browsing_context_name.clone());
+        let blackboxing_actor = BlackboxingActor::register(registry, browsing_context_name.clone());
 
-        let name = registry.new_name::<Self>();
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
-            network_parent_name,
-            target_configuration_name,
-            thread_configuration_name,
-            breakpoint_list_name,
-            blackboxing_name,
+            network_parent_name: network_parent_actor.name().into(),
+            target_configuration_name: target_configuration_actor.name().into(),
+            thread_configuration_name: thread_configuration_actor.name().into(),
+            breakpoint_list_name: breakpoint_list_actor.name().into(),
+            blackboxing_name: blackboxing_actor.name().into(),
             session_context,
         };
 
-        registry.register::<Self>(actor);
-
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn emit_will_navigate<'a>(
@@ -530,7 +533,7 @@ impl WatcherActor {
         available: bool,
     ) {
         let msg = WatchTargetsReply {
-            from: self.name(),
+            from: self.name().into(),
             type_: (if available {
                 "target-available-form"
             } else {
@@ -549,7 +552,7 @@ impl WatcherActor {
 impl ActorEncode<WatcherActorMsg> for WatcherActor {
     fn encode(&self, _: &ActorRegistry) -> WatcherActorMsg {
         WatcherActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: WatcherTraits {
                 resources: self.session_context.supported_resources.clone(),
                 targets: self.session_context.supported_targets.clone(),

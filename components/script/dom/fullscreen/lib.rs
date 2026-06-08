@@ -312,10 +312,8 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             document
                 .upcast::<EventTarget>()
                 .fire_event(cx, atom!("fullscreenerror"));
-            promise.reject_error(
-                Error::Type(c"fullscreen is not connected".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"fullscreen is not connected".to_owned()));
             return;
         }
 
@@ -333,7 +331,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
 
         // Step 14.
         // > Resolve promise with undefined.
-        promise.resolve_native(&(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &());
     }
 }
 
@@ -374,6 +372,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // Step 16
         // > Resolve promise with undefined.
-        self.promise.root().resolve_native(&(), CanGc::from_cx(cx));
+        self.promise.root().resolve_native_with_cx(cx, &());
     }
 }

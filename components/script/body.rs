@@ -292,7 +292,7 @@ impl TransmitBodyConnectHandler {
                 }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(cx));
+                    PromiseNativeHandler::new(cx, &global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>));
 
                 let mut realm = enter_auto_realm(cx, &*global);
                 let realm = &mut realm.current_realm();
@@ -704,9 +704,9 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
-        promise.reject_error(
+        promise.reject_error_with_cx(
+            cx,
             Error::Type(c"The body's stream is disturbed or locked".to_owned()),
-            CanGc::from_cx(cx),
         );
         return promise;
     }
@@ -740,7 +740,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     if stream.is_errored() {
         rooted!(&in(cx) let mut stored_error = UndefinedValue());
         stream.get_stored_error(stored_error.handle_mut());
-        promise.reject(cx.into(), stored_error.handle(), CanGc::from_cx(cx));
+        promise.reject_with_cx(cx, stored_error.handle());
         return promise;
     }
 
@@ -751,7 +751,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let reader = match stream.acquire_default_reader(CanGc::from_cx(cx)) {
         Ok(r) => r,
         Err(e) => {
-            promise.reject_error(e, CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, e);
             return promise;
         },
     };
@@ -781,7 +781,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject(cx.into(), v, CanGc::from_cx(cx));
+            error_promise.reject_with_cx(cx, v);
         }),
     );
 
@@ -802,18 +802,18 @@ fn resolve_result_promise(
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native(&USVString(s), CanGc::from_cx(cx)),
-                FetchedData::Json(j) => promise.resolve_native(&j, CanGc::from_cx(cx)),
-                FetchedData::BlobData(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::FormData(f) => promise.resolve_native(&f, CanGc::from_cx(cx)),
-                FetchedData::Bytes(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a, CanGc::from_cx(cx)),
+                FetchedData::Text(s) => promise.resolve_native_with_cx(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native_with_cx(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
+                FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
                 FetchedData::JSException(e) => {
                     promise.reject_native(&e.handle(), CanGc::from_cx(cx))
                 },
             };
         },
-        Err(err) => promise.reject_error(err, CanGc::from_cx(cx)),
+        Err(err) => promise.reject_error_with_cx(cx, err),
     }
 }
 

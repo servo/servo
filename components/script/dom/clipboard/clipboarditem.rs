@@ -66,14 +66,14 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             );
 
             // 1.3 Resolve p with blobData.
-            self.promise.resolve_native(&blob_data, CanGc::from_cx(cx));
+            self.promise.resolve_native_with_cx(cx, &blob_data);
         }
         // 2. If v is a Blob, then follow the below steps:
         else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), CanGc::from_cx(cx))
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
+            self.promise.resolve_with_cx(cx, v);
         }
     }
 }
@@ -90,8 +90,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // 1. Reject p with "NotFoundError" DOMException in realm.
-        self.promise
-            .reject_error(Error::NotFound(None), CanGc::from_cx(cx));
+        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
     }
 }
 
@@ -298,10 +297,10 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     Box::new(RepresentationDataPromiseRejectionHandler { promise: p.clone() });
 
                 let handler = PromiseNativeHandler::new(
+                    realm,
                     &global,
                     Some(fulfillment_handler),
                     Some(rejection_handler),
-                    CanGc::from_cx(realm),
                 );
                 representation_data_promise.append_native_handler(realm, &handler);
 

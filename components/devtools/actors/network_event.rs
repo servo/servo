@@ -5,6 +5,7 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
+use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 
 use atomic_refcell::AtomicRefCell;
@@ -23,7 +24,7 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::long_string::LongStringActor;
 use crate::network_handler::Cause;
@@ -351,8 +352,8 @@ struct HeaderWrapper {
 }
 
 impl Actor for NetworkEventActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -372,7 +373,7 @@ impl Actor for NetworkEventActor {
                 let raw_headers = get_raw_headers(&headers);
 
                 let msg = GetRequestHeadersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     headers,
                     header_size: raw_headers.len(),
                     raw_headers,
@@ -385,7 +386,7 @@ impl Actor for NetworkEventActor {
                 let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     cookies: get_cookies_from_headers(
                         &request.request.headers,
                         &request.request.url,
@@ -400,7 +401,7 @@ impl Actor for NetworkEventActor {
                 let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetRequestPostDataReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     post_data: request.request.body.as_ref().map(|b| b.0.clone()),
                     post_data_discarded: request.request.body.is_none(),
                 };
@@ -420,7 +421,7 @@ impl Actor for NetworkEventActor {
                 let raw_headers = get_raw_headers(&list);
 
                 let msg = GetResponseHeadersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     headers: list,
                     header_size: raw_headers.len(),
                     raw_headers,
@@ -435,7 +436,7 @@ impl Actor for NetworkEventActor {
                 let response = response.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     cookies: get_cookies_from_headers(
                         response
                             .response
@@ -467,10 +468,8 @@ impl Actor for NetworkEventActor {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
                         let body_string = String::from_utf8_lossy(body).to_string();
-                        let long_string_name = LongStringActor::register(registry, body_string);
-                        let value = registry
-                            .find::<LongStringActor>(&long_string_name)
-                            .long_string_obj();
+                        let long_string_actor = LongStringActor::register(registry, body_string);
+                        let value = long_string_actor.long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
                         let b64 = STANDARD.encode(&body.0);
@@ -493,7 +492,7 @@ impl Actor for NetworkEventActor {
                 });
 
                 let msg = GetResponseContentReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     content,
                     content_discarded: response.response.body.is_none(),
                 };
@@ -509,7 +508,7 @@ impl Actor for NetworkEventActor {
                 let total_time = timings.total();
 
                 let msg = GetEventTimingsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     offsets,
                     server_timings: vec![],
                     timings,
@@ -522,7 +521,7 @@ impl Actor for NetworkEventActor {
                 let security_info = &*self.security_info.borrow();
 
                 let msg = GetSecurityInfoReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     security_info: security_info.into(),
                 };
                 client_request.reply_final(&msg)?
@@ -539,16 +538,15 @@ impl NetworkEventActor {
         registry: &ActorRegistry,
         resource_id: u64,
         browsing_context_name: String,
-    ) -> String {
-        let name = registry.new_name::<Self>();
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = NetworkEventActor {
-            name: name.clone(),
+            name,
             resource_id,
             browsing_context_name,
             ..Default::default()
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn add_request(&self, request: HttpRequest) {
@@ -712,7 +710,7 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
 
         NetworkEventMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             cause: Cause {
                 type_: request.destination.as_str().to_string(),

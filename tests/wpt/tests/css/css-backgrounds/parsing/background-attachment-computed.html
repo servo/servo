@@ -13,9 +13,12 @@
 <div id="target"></div>
 <script>
 test_computed_value("background-attachment", "fixed");
+test_computed_value("background-attachment", "scroll, fixed, local");
 
-// See background-computed.html for a test with multiple background images.
-test_computed_value("background-attachment", "scroll, fixed, local", "scroll");
+document.getElementById("target").style['background-image'] = "none, none";
+test_computed_value("background-attachment", "scroll", "scroll", "multiple base values");
+test_computed_value("background-attachment", "scroll, fixed", "scroll, fixed", "multiple base values");
+test_computed_value("background-attachment", "scroll, fixed, local", "scroll, fixed, local", "multiple base values");
 </script>
 </body>
 </html>

@@ -190,10 +190,10 @@ impl TransformStreamDefaultController {
         }));
 
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             None,
             reject_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
@@ -233,7 +233,7 @@ impl TransformStreamDefaultController {
                         )
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
-                            p.reject_error(e, CanGc::from_cx(cx));
+                            p.reject_error_with_cx(cx, e);
                             p
                         })
                 } else {
@@ -280,7 +280,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -303,7 +303,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -327,7 +327,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -351,7 +351,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -385,7 +385,7 @@ impl TransformStreamDefaultController {
                         .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
-                            p.reject_error(e, CanGc::from_cx(cx));
+                            p.reject_error_with_cx(cx, e);
                             p
                         })
                 } else {
@@ -465,7 +465,7 @@ impl TransformStreamDefaultController {
                         .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
-                            p.reject_error(e, CanGc::from_cx(cx));
+                            p.reject_error_with_cx(cx, e);
                             p
                         })
                 } else {
@@ -493,7 +493,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -516,7 +516,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -541,7 +541,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },
@@ -566,7 +566,7 @@ impl TransformStreamDefaultController {
                         let realm = &mut realm.current_realm();
                         let p = Promise::new_in_realm(realm);
                         // return a promise rejected with e.
-                        p.reject_error(e, CanGc::from_cx(realm));
+                        p.reject_error_with_cx(realm, e);
                         p
                     })
             },

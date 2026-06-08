@@ -151,4 +151,9 @@
   test_attr_cycle('width', 'attr(data-foo type(<length>))', 'var(--x)');
   attrElem.style.setProperty('--x', null);
   attrElem.removeAttribute('data-bar');
+
+  /* No cycle, --data-foo and data-foo are distinct identifiers */
+  attrElem.setAttribute('data-bar', '3');
+  test_attr_no_cycle('--data-foo', 'attr(data-foo type(*))', 'attr(data-bar number)', '3');
+  attrElem.setAttribute('data-bar', null);
 </script>

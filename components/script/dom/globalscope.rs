@@ -2135,6 +2135,28 @@ impl GlobalScope {
         }
     }
 
+    /// Send a PromoteMemory message to register a new blob URL entry
+    /// with the file manager for the given byte data.
+    /// Return the generated UUID.
+    fn promote_memory_entry(
+        &self,
+        blob_info: &BlobInfo,
+        blob_bytes: &[u8],
+        set_valid: bool,
+    ) -> Uuid {
+        let origin = self.origin().immutable();
+        let blob_buf = BlobBuf {
+            filename: None,
+            type_string: blob_info.blob_impl.type_string(),
+            size: blob_bytes.len() as u64,
+            bytes: blob_bytes.to_vec(),
+        };
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
+        self.send_to_file_manager(msg);
+        id
+    }
+
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
@@ -2149,6 +2171,12 @@ impl GlobalScope {
             },
             BlobData::File(f) => {
                 if set_valid {
+                    // File blobs with cached byte data (converted from Memory)
+                    // need a unique UUID per URL.createObjectURL call.
+                    if let Some(cached_bytes) = f.get_cache() {
+                        return self.promote_memory_entry(blob_info, &cached_bytes, true);
+                    }
+
                     let origin = self.origin().immutable();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
@@ -2168,18 +2196,7 @@ impl GlobalScope {
             BlobData::Memory(bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let origin = self.origin().immutable();
-
-        let blob_buf = BlobBuf {
-            filename: None,
-            type_string: blob_info.blob_impl.type_string(),
-            size: bytes.len() as u64,
-            bytes: bytes.to_vec(),
-        };
-
-        let id = Uuid::new_v4();
-        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
-        self.send_to_file_manager(msg);
+        let id = self.promote_memory_entry(blob_info, &bytes, set_valid);
 
         *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
             id,
@@ -2769,16 +2786,15 @@ impl GlobalScope {
         // Handled in `report_an_error`
 
         // Step 2. Let errorInfo be the result of extracting error information from exception.
+        let error_info = ErrorInfo::from_value(error, cx.into(), CanGc::from_cx(cx));
+
         // Step 3. Let script be a script found in an implementation-defined way, or null.
         // This should usually be the running script (most notably during run a classic script).
-        // Step 4. If script is a classic script and script's muted errors is true, then set errorInfo[error] to null,
-        // errorInfo[message] to "Script error.", errorInfo[filename] to the empty string,
-        // errorInfo[lineno] to 0, and errorInfo[colno] to 0.
-        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(
-            error,
-            cx.into(),
-            CanGc::from_cx(cx),
-        );
+        // Step 4. If script is a classic script and script's muted errors is true, then set
+        // errorInfo[error] to null, errorInfo[message] to "Script error.", errorInfo[filename]
+        // to the empty string, errorInfo[lineno] to 0, and errorInfo[colno] to 0.
+        // Note: This is handled in 'run_a_classic_script'.
+
         // Step 5. If omitError is true, then set errorInfo[error] to null.
         //
         // `omitError` defaults to `false`
@@ -2825,7 +2841,6 @@ impl GlobalScope {
         // using ErrorEvent, with the cancelable attribute initialized to true,
         // and additional attributes initialized according to errorInfo.
 
-        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
             atom!("error"),
@@ -3195,14 +3210,11 @@ impl GlobalScope {
         match self.top_level_creation_url() {
             None => {
                 // Workers and worklets don't have a top-level creation URL
-                assert!(
-                    self.downcast::<WorkerGlobalScope>().is_some() ||
-                        self.downcast::<WorkletGlobalScope>().is_some()
-                );
+                assert!(self.is::<WorkerGlobalScope>() || self.is::<WorkletGlobalScope>());
                 true
             },
             Some(top_level_creation_url) => {
-                assert!(self.downcast::<Window>().is_some());
+                assert!(self.is::<Window>());
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
@@ -3218,7 +3230,7 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        if self.downcast::<Window>().is_some() || self.downcast::<WorkerGlobalScope>().is_some() {
+        if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
             return self.policy_container().csp_list;
         }
         // TODO: Worklet global scopes.

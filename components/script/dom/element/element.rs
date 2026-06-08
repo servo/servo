@@ -384,7 +384,7 @@ impl Element {
                 doc.note_node_with_dirty_descendants(self.upcast());
                 restyle
                     .damage
-                    .insert(LayoutDamage::descendant_has_box_damage());
+                    .insert(RestyleDamage::from(LayoutDamage::DescendantHasBoxDamage));
             },
             NodeDamage::Other => {
                 doc.note_node_with_dirty_descendants(self.upcast());
@@ -1359,8 +1359,7 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         // Aspect ratio when providing both width and height.
         // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
-        if (self.downcast::<HTMLImageElement>().is_some() ||
-            self.downcast::<HTMLVideoElement>().is_some()) &&
+        if (self.is::<HTMLImageElement>() || self.is::<HTMLVideoElement>()) &&
             let LengthOrPercentageOrAuto::Length(width) = width &&
             let LengthOrPercentageOrAuto::Length(height) = height
         {
@@ -2485,7 +2484,7 @@ impl Element {
             return false;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
-        if self.downcast::<HTMLScriptElement>().is_some() {
+        if self.is::<HTMLScriptElement>() {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
@@ -3741,15 +3740,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    fn QuerySelector(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        root.query_selector(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
+    fn QuerySelectorAll(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        root.query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -3942,6 +3949,80 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let doc = self.owner_document();
         doc.enter_fullscreen(self, can_gc)
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
+    fn SetPointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers, then throw a DOMException with the name "NotFoundError".
+        //
+        // Note: "active pointers" is global across documents. We can only cheaply check
+        // active pointers in this element's document. If the pointer is active in another
+        // document (e.g., parent/child frame), step 5 below will silently terminate.
+        // We intentionally do not throw here in that case to avoid being stricter than
+        // the spec.
+
+        // Step 2. If the element is not connected, throw a "InvalidStateError" DOMException.
+        if !self.upcast::<Node>().is_connected() {
+            return Err(Error::InvalidState(Some(
+                "Can't capture pointer on an unconnected element".into(),
+            )));
+        }
+
+        // Step 3. If this method is invoked while the document has a locked element
+        // (pointerLockElement), throw an "InvalidStateError" DOMException.
+        // TODO: Implement when pointer lock is supported.
+
+        // Step 4/5. If the pointer is not in the active buttons state or the element's
+        // node document is not the active document of the pointer, then terminate these
+        // steps. `is_active_pointer` on this document covers both conditions: it returns
+        // true only when the pointer is in the active buttons state in *this* document,
+        // which implies this document is the pointer's active document.
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Ok(());
+        }
+
+        // Step 6. For the specified pointerId, set the pending pointer capture target
+        // override to the Element on which this method was invoked.
+        event_handler.set_pending_pointer_capture(pointer_id, self);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-releasepointercapture>
+    fn ReleasePointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers and these steps are not being invoked as a result of the
+        // implicit release of pointer capture, then throw a DOMException with the name "NotFoundError".
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Err(Error::NotFound(Some(
+                "Can't release a pointer that is not active".into(),
+            )));
+        }
+
+        // Step 2. If hasPointerCapture is false for the Element with the specified pointerId,
+        // then terminate these steps.
+        if !event_handler.has_pointer_capture(pointer_id, self) {
+            return Ok(());
+        }
+
+        // Step 3. For the specified pointerId, clear the pending pointer capture target override.
+        event_handler.clear_pending_pointer_capture(pointer_id);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-haspointercapture>
+    fn HasPointerCapture(&self, pointer_id: i32) -> bool {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+        event_handler.has_pointer_capture(pointer_id, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
@@ -4432,39 +4513,31 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
+                                let old_value = old_value.as_atom();
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        old_value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(old_value);
                                 } else {
-                                    doc.unregister_element_id(cx, self, old_value);
+                                    doc.unregister_element_id(cx, old_value);
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.register_element_id(
                                         self,
-                                        value,
+                                        &value,
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.register_element_id(cx, self, value);
+                                    doc.register_element_id(cx, self, &value);
                                 }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(&value);
                                 } else {
-                                    doc.unregister_element_id(cx, self, value);
+                                    doc.unregister_element_id(cx, &value);
                                 }
                             }
                         },
@@ -4489,16 +4562,15 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
-                                doc.unregister_element_name(self, old_value);
+                                doc.unregister_element_name(old_value.as_atom());
                             }
                             if value != atom!("") {
-                                doc.register_element_name(self, value);
+                                doc.register_element_name(self, &value);
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                doc.unregister_element_name(self, value);
+                                doc.unregister_element_name(&value);
                             }
                         },
                     }
@@ -4595,15 +4667,15 @@ impl VirtualMethods for Element {
 
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root.register_element_id(self, id.clone(), CanGc::from_cx(cx));
+                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
             } else {
-                doc.register_element_id(cx, self, id.clone());
+                doc.register_element_id(cx, self, id);
             }
         }
         if let Some(ref name) = self.name_attribute() &&
             self.containing_shadow_root().is_none()
         {
-            doc.register_element_name(self, name.clone());
+            doc.register_element_name(self, name);
         }
     }
 
@@ -4632,16 +4704,16 @@ impl VirtualMethods for Element {
                 // Only unregister the element id if the node was disconnected from it's shadow root
                 // (as opposed to the whole shadow tree being disconnected as a whole)
                 if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
+                    shadow_root.unregister_element_id(value);
                 }
             } else {
-                doc.unregister_element_id(cx, self, value.clone());
+                doc.unregister_element_id(cx, value);
             }
         }
         if let Some(ref value) = self.name_attribute() &&
             self.containing_shadow_root().is_none()
         {
-            doc.unregister_element_name(self, value.clone());
+            doc.unregister_element_name(value);
         }
     }
 

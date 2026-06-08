@@ -417,9 +417,21 @@ class MachCommands(CommandBase):
     @CommandArgument("test_names", nargs=argparse.REMAINDER, help="Only run tests that match these patterns")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_devtools(self, servo_binary: str, test_names: list[str], **kwargs: Any) -> int:
+        import pytest
+
+        args = [
+            os.path.join(SCRIPT_PATH, "devtools_tests"),
+            "--servo-binary",
+            servo_binary,
+            "--script-path",
+            SCRIPT_PATH,
+            "-v",
+        ]
+        if test_names:
+            args.extend(["-k", " or ".join(test_names)])
+
         print("Running devtools tests...")
-        passed = servo.devtools_tests.run_tests(SCRIPT_PATH, servo_binary, test_names)
-        return 0 if passed else 1
+        return pytest.main(args)
 
     @Command(
         "test-wpt-failure",

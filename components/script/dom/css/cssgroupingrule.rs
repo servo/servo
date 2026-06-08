@@ -102,6 +102,6 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule>
     fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
-        self.rulelist(cx).remove_rule(index)
+        self.rulelist(cx).remove_rule(cx, index)
     }
 }

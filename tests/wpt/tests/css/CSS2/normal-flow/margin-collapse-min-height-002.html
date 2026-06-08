@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: child margin is trapped inside parent when min-height prevents collapse</title>
+<link rel="author" title="Alan Baradlay" href="mailto:ABaradlay@apple.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="match" href="margin-collapse-min-height-002-ref.html">
+<meta name="assert" content="A zero-height sibling after the child with a large margin should be pushed down inside the parent by that margin, proving the margin is trapped inside.">
+<style>
+.parent {
+    min-height: 200px;
+    width: 100px;
+    background: green;
+    position: relative;
+}
+.child {
+    height: 30px;
+    margin-bottom: 100px;
+}
+.marker {
+    outline: 3px solid orange;
+}
+.footer {
+    width: 100px;
+    height: 50px;
+    background: green;
+}
+</style>
+<p>Test passes if there is a green rectangle with an orange line inside it at 130px from the top, and no gap before the second green rectangle.</p>
+<div class="parent">
+    <div class="child"></div>
+    <div class="marker"></div>
+</div>
+<div class="footer"></div>

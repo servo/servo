@@ -7,8 +7,9 @@ from tests.classic.perform_actions.support.mouse import (
     get_viewport_rect,
 )
 
-
-def get_click_coordinates(session):
+def get_last_move_coordinates(session):
+    """Helper to get recorded move coordinates on a page generated with the
+    get_actions_origin_page fixture."""
     return session.execute_script("return window.coords;")
 
 
@@ -20,9 +21,9 @@ def test_viewport_inside(session, mouse_chain, get_actions_origin_page):
     )
     mouse_chain.pointer_move(point["x"], point["y"], origin="viewport").perform()
 
-    click_coords = session.execute_script("return window.coords;")
-    assert click_coords["x"] == pytest.approx(point["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(point["y"], abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(point["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(point["y"], abs=1.0)
 
 
 def test_viewport_outside(session, mouse_chain):
@@ -43,9 +44,9 @@ def test_pointer_inside(session, mouse_chain, get_actions_origin_page):
         .perform()
     )
 
-    click_coords = session.execute_script("return window.coords;")
-    assert click_coords["x"] == pytest.approx(start_point["x"] + offset["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(start_point["y"] + offset["y"], abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(start_point["x"] + offset["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(start_point["y"] + offset["y"], abs=1.0)
 
 
 def test_pointer_outside(session, mouse_chain):
@@ -62,9 +63,9 @@ def test_element_center_point(session, mouse_chain, get_actions_origin_page):
 
     mouse_chain.pointer_move(0, 0, origin=elem).perform()
 
-    click_coords = get_click_coordinates(session)
-    assert click_coords["x"] == pytest.approx(center["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"], abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(center["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"], abs=1.0)
 
 
 def test_element_center_point_with_offset(
@@ -78,9 +79,9 @@ def test_element_center_point_with_offset(
 
     mouse_chain.pointer_move(10, 15, origin=elem).perform()
 
-    click_coords = get_click_coordinates(session)
-    assert click_coords["x"] == pytest.approx(center["x"] + 10, abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"] + 15, abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(center["x"] + 10, abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"] + 15, abs=1.0)
 
 
 def test_element_in_view_center_point_partly_visible(
@@ -95,9 +96,9 @@ def test_element_in_view_center_point_partly_visible(
 
     mouse_chain.pointer_move(0, 0, origin=elem).perform()
 
-    click_coords = get_click_coordinates(session)
-    assert click_coords["x"] == pytest.approx(center["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"], abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(center["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"], abs=1.0)
 
 
 def test_element_larger_than_viewport(session, mouse_chain, get_actions_origin_page):
@@ -109,9 +110,34 @@ def test_element_larger_than_viewport(session, mouse_chain, get_actions_origin_p
 
     mouse_chain.pointer_move(0, 0, origin=elem).perform()
 
-    click_coords = get_click_coordinates(session)
-    assert click_coords["x"] == pytest.approx(center["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"], abs=1.0)
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(center["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"], abs=1.0)
+
+
+def test_element_center_point_inline_block_child(
+    session, mouse_chain, inline
+):
+    # margin-top: 0.5px is on purpose: it places the element at a fractional
+    # y-coordinate, which could trigger a rounding issue preventing the click from
+    # working.
+    session.url = inline("""
+        <div style="margin-top: 0.5px">
+          <a id="link" href="#"><div style="width: 32px; height: 32px;"></div></a>
+        </div>
+        <script>
+          document.addEventListener('mousemove',
+            e => { window.coords = { x: e.clientX, y: e.clientY }; });
+        </script>
+    """)
+    elem = session.find.css("#link", all=False)
+    center = get_inview_center(elem.rect, get_viewport_rect(session))
+
+    mouse_chain.pointer_move(0, 0, origin=elem).perform()
+
+    pointer_coords = get_last_move_coordinates(session)
+    assert pointer_coords["x"] == pytest.approx(center["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"], abs=1.0)
 
 
 def test_element_outside_of_view_port(session, mouse_chain, get_actions_origin_page):

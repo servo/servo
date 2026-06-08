@@ -625,7 +625,7 @@ impl Callback for QueueTaskHandler {
 
         global.task_manager().networking_task_source().queue(
             task!(continue_module_loading: move |cx| {
-                promise.root().resolve_native(&(), CanGc::from_cx(cx));
+                promise.root().resolve_native_with_cx(cx, &());
             }),
         );
     }
@@ -751,7 +751,7 @@ impl FetchResponseListener for ModuleContext {
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native(&(), CanGc::from_cx(cx));
+            return promise.resolve_native_with_cx(cx, &());
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -830,7 +830,7 @@ impl FetchResponseListener for ModuleContext {
         }
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native(&(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -904,7 +904,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
     let payload = Payload::PromiseRecord(promise);
@@ -1005,7 +1005,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
 
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         module_data,
@@ -1127,8 +1127,8 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     let specifier = unsafe {
         let value = HandleValue::from_raw(args.get(0));
 
-        match NonNull::new(ToString(cx.raw_cx(), value)) {
-            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
+        match NonNull::new(ToString(cx, value)) {
+            Some(jsstr) => jsstr_to_string(cx, jsstr).into(),
             None => return false,
         }
     };
@@ -1446,10 +1446,10 @@ fn fetch_the_descendants_and_link_module_script(
         })));
 
     let handler = PromiseNativeHandler::new(
+        cx,
         global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
-        CanGc::from_cx(cx),
     );
 
     run_a_callback::<DomTypeHolder, _>(global, || {
@@ -1507,7 +1507,7 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(global, Some(handler), None, CanGc::from_cx(cx));
+    let handler = PromiseNativeHandler::new(cx, global, Some(handler), None);
 
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
@@ -1525,10 +1525,10 @@ pub(crate) fn fetch_a_single_module_script(
             // Append an handler to the existing pending fetch, once resolved it will queue a task
             // to run onComplete.
             let continue_loading_handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(QueueTaskHandler { promise })),
                 None,
-                CanGc::from_cx(cx),
             );
 
             // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)

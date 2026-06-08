@@ -4,10 +4,12 @@
 
 //! This actor is used for protocol purposes, it forwards the reflow events to clients.
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -17,8 +19,8 @@ pub(crate) struct ReflowActor {
 }
 
 impl Actor for ReflowActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The reflow actor can handle the following messages:
@@ -35,22 +37,21 @@ impl Actor for ReflowActor {
         match msg_type {
             "start" => {
                 // TODO: Create an observer on "reflows" events
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
     }
-
-    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl ReflowActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }

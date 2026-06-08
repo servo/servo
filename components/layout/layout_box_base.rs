@@ -15,7 +15,6 @@ use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::selector_parser::RestyleDamage;
 use style::values::specified::align::AlignFlags;
 use style_traits::CSSPixel;
 
@@ -156,12 +155,11 @@ impl LayoutBoxBase {
         &self,
         element_damage: LayoutDamage,
         damage_from_children: LayoutDamage,
-        damage_from_parent: RestyleDamage,
+        damage_from_parent: LayoutDamage,
     ) -> LayoutDamage {
-        let only_descendants_changed = !RestyleDamage::from(element_damage)
-            .contains(RestyleDamage::RELAYOUT) &&
-            !damage_from_parent.contains(RestyleDamage::RELAYOUT) &&
-            !damage_from_children.contains(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT) &&
+        let only_descendants_changed = !element_damage.contains(LayoutDamage::Relayout) &&
+            !damage_from_parent.contains(LayoutDamage::Relayout) &&
+            !damage_from_children.contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
             self.fragments.borrow().iter().all(|fragment| {
                 fragment
                     .base()
@@ -172,7 +170,7 @@ impl LayoutBoxBase {
         self.clear_fragments_and_dirty_fragment_cache();
 
         if !element_damage.is_empty() ||
-            damage_from_children.contains(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES)
+            damage_from_children.contains(LayoutDamage::RecomputeInlineContentSizes)
         {
             *self.cached_inline_content_size.borrow_mut() = None;
         }
@@ -190,7 +188,7 @@ impl LayoutBoxBase {
         // purely extrinsic, then the intrinsic sizes of the ancestors won't be affected,
         // and we can keep the cache.
         damage_for_parent.set(
-            LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES,
+            LayoutDamage::RecomputeInlineContentSizes,
             !element_damage.is_empty() ||
                 (!self.base_fragment_info.is_anonymous() &&
                     self.outer_inline_content_sizes_depend_on_content

@@ -355,4 +355,81 @@ promise_test(async t => {
   });
   assert_equals(local_negotiated.direction, 'stopped', 'in t1 Negotiated');
 }, 'A subsequent offer from the other side will not reoffer extensions not negotiated by the initial offerer');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const t1 = pc.addTransceiver('audio');
+  const capabilities = t1.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  assert_true(!!selected_capability, 'Found an extension to modify');
+  selected_capability.direction = 'stopped';
+  t1.setHeaderExtensionsToNegotiate(capabilities);
+
+  t1.stop();
+
+  const t2 = pc.addTransceiver('audio');
+  const t2_capabilities = t2.getHeaderExtensionsToNegotiate();
+  const t2_capability = t2_capabilities.find(ext => ext.uri === selected_capability.uri);
+
+  assert_equals(t2_capability.direction, 'sendrecv', 't2 should have default direction, not copied from stopped t1');
+}, 'addTransceiver copies header extensions from the first non-stopping transceiver of the same kind');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const t1 = pc.addTransceiver('audio');
+  const capabilities = t1.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  assert_true(!!selected_capability, 'Found an extension to modify');
+  selected_capability.direction = 'stopped';
+  t1.setHeaderExtensionsToNegotiate(capabilities);
+
+  const t2 = pc.addTransceiver('audio');
+  const t2_capabilities = t2.getHeaderExtensionsToNegotiate();
+  const t2_capability = t2_capabilities.find(ext => ext.uri === selected_capability.uri);
+
+  assert_equals(t2_capability.direction, 'stopped', 't2 should have copied direction from t1');
+}, 'addTransceiver copies header extensions from the first transceiver of the same kind');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const t1 = pc1.addTransceiver('video');
+  const capabilities = t1.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  assert_true(!!selected_capability, 'Found an extension to modify');
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  const t2 = pc2.getTransceivers()[0];
+  const t2_capabilities = t2.getHeaderExtensionsToNegotiate();
+  const t2_capability = t2_capabilities.find(ext => ext.uri === selected_capability.uri);
+  t2_capability.direction = 'stopped';
+  t2.setHeaderExtensionsToNegotiate(t2_capabilities);
+
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const t3 = pc1.addTransceiver('video');
+  const t3_capabilities = t3.getHeaderExtensionsToNegotiate();
+  const t3_capability = t3_capabilities.find(ext => ext.uri === selected_capability.uri);
+
+  assert_equals(t3_capability.direction, 'stopped', 't3 should have copied direction from t1 even if rejected by answerer');
+}, 'copies the direction of header extensions from the first transceiver of the same kind when the extension is rejected');
+
 </script>

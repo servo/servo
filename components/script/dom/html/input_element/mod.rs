@@ -2047,8 +2047,16 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("type") => {
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(previous_value, _) => {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
+
+                        // Ensure there was actually a change in type
+                        if previous_value
+                            .is_some_and(|previous_value| **previous_value == **attr.value())
+                        {
+                            return;
+                        }
+
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         let previously_selectable = self.selection_api_applies();
 

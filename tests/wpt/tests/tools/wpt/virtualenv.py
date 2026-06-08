@@ -166,7 +166,7 @@ class Virtualenv:
 
         # `--prefer-binary` guards against race conditions when installation
         # occurs while packages are in the process of being published.
-        call(self.pip_path, "install", "--prefer-binary", *requirements)
+        call(self.pip_path, "--disable-pip-version-check", "install", "--prefer-binary", *requirements)
 
     def install_requirements(self, *requirements_paths):
         install = []
@@ -183,7 +183,7 @@ class Virtualenv:
         if install:
             # `--prefer-binary` guards against race conditions when installation
             # occurs while packages are in the process of being published.
-            cmd = [self.pip_path, "install", "--prefer-binary"]
+            cmd = [self.pip_path, "--disable-pip-version-check", "install", "--prefer-binary"]
             for path in install:
                 cmd.extend(["-r", path])
             call(*cmd)

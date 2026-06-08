@@ -1,0 +1,51 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/#the-select-element-2:base-appearance-15"
+/>
+<link rel="match" href="select-base-appearance-writing-modes-ref.html" />
+
+<style>
+  body {
+    font-family: monospace;
+    font-size: 16px;
+  }
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+  select:focus-visible {
+    outline: none;
+  }
+  .vertical-rl {
+    writing-mode: vertical-rl;
+  }
+  .vertical-lr {
+    writing-mode: vertical-lr;
+  }
+  .rtl {
+    direction: rtl;
+  }
+</style>
+
+<p class="vertical-rl">
+  <select>
+    <option>One</option>
+    <option>Two</option>
+  </select>
+</p>
+
+<p class="vertical-lr">
+  <select>
+    <option>One</option>
+    <option>Two</option>
+  </select>
+</p>
+
+<p class="rtl">
+  <select>
+    <option>One</option>
+    <option>Two</option>
+  </select>
+</p>

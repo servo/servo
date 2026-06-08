@@ -380,10 +380,10 @@ impl PipeTo {
             self.read_chunk(cx, global);
         } else {
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(self.clone())),
                 Some(Box::new(self.clone())),
-                CanGc::from_cx(cx),
             );
             ready_promise.append_native_handler(cx, &handler);
 
@@ -400,10 +400,10 @@ impl PipeTo {
         *self.state.borrow_mut() = PipeToState::PendingRead;
         let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         chunk_promise.append_native_handler(cx, &handler);
 
@@ -447,10 +447,10 @@ impl PipeTo {
         promise: Rc<Promise>,
     ) {
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
     }
@@ -710,10 +710,10 @@ impl PipeTo {
         // Upon fulfillment of p, finalize, passing along originalError if it was given.
         // Upon rejection of p with reason newError, finalize with newError.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
         *self.shutdown_action_promise.borrow_mut() = Some(promise);
@@ -745,10 +745,10 @@ impl PipeTo {
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
             self.result_promise
-                .reject_native(&error.handle(), CanGc::from_cx(cx));
+                .reject_native_with_cx(cx, &error.handle());
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.result_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -766,7 +766,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        self.result.resolve_native(&(), CanGc::from_cx(cx));
+        self.result.resolve_native_with_cx(cx, &());
     }
 }
 
@@ -783,7 +783,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        self.result.reject_native(&v, CanGc::from_cx(cx));
+        self.result.reject_native_with_cx(cx, &v);
     }
 }
 
@@ -1627,7 +1627,7 @@ impl ReadableStream {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
             self.stored_error.safe_to_jsval(cx, rval.handle_mut());
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &rval.handle());
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
@@ -1674,10 +1674,10 @@ impl ReadableStream {
             result: result_promise.clone(),
         });
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
@@ -2196,10 +2196,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"stream is locked".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
@@ -2247,10 +2244,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Source stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Source stream is locked".to_owned()));
             return promise;
         }
 
@@ -2258,10 +2252,8 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Destination stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Destination stream is locked".to_owned()));
             return promise;
         }
 

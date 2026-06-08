@@ -27,9 +27,14 @@ test_computed_value("background-size", "contain");
 test_computed_value("background-size", "cover");
 test_computed_value("background-size", "calc(10px + 0.5em) calc(10px - 0.5em)", "30px 0px");
 test_computed_value("background-size", "calc(10px - 0.5em) calc(10px + 0.5em)", "0px 30px");
+test_computed_value("background-size", "auto 1px, 2% 3%, contain");
 
-// See background-computed.html for a test with multiple background images.
-test_computed_value("background-size", "auto 1px, 2% 3%, contain", "auto 1px");
+document.getElementById("target").style['background-image'] = "none, none";
+test_computed_value("background-size", "auto", "auto", "multiple base values");
+test_computed_value("background-size", "auto, auto", "auto, auto", "multiple base values");
+test_computed_value("background-size", "auto, auto, auto", "auto, auto, auto", "multiple base values");
+test_computed_value("background-size", "auto, 100%", "auto, 100% auto", "multiple base values");
+test_computed_value("background-size", "100%", "100% auto", "multiple base values");
 </script>
 </body>
 </html>

@@ -143,7 +143,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
-    fn SetSelectorText(&self, value: DOMString) {
+    fn SetSelectorText(&self, cx: &mut JSContext, value: DOMString) {
         let value = value.str();
         let Ok(mut selector) = ({
             let guard = self.css_grouping_rule.shared_lock().read();
@@ -168,7 +168,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         }) else {
             return;
         };
-        self.css_grouping_rule.parent_stylesheet().will_modify();
+        self.css_grouping_rule.parent_stylesheet().will_modify(cx);
         // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
         let mut guard = self.css_grouping_rule.shared_lock().write();
         mem::swap(

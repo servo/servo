@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Declarative tools are not registered when document.domain is enabled</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<form toolname="declarative_tool" tooldescription="Declarative tool description">
+  <input type="text" name="query" required>
+</form>
+
+<script>
+  promise_test(async t => {
+    // ontoolchange should not be triggered. We wait briefly to verify this.
+    let toolChangeTriggered = false;
+    document.modelContext.ontoolchange = () => {
+      toolChangeTriggered = true;
+    };
+
+    await new Promise(resolve => t.step_timeout(resolve, 200));
+    assert_false(toolChangeTriggered, "Declarative tool registration should not trigger ontoolchange");
+
+    // getTools() must reject with SecurityError because document.domain is enabled.
+    await promise_rejects_dom(t, 'SecurityError', document.modelContext.getTools());
+  }, "Declarative tool registration is blocked when document.domain is enabled");
+</script>
+</body>

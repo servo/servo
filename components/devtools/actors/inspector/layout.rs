@@ -5,11 +5,13 @@
 //! The layout actor informs the DevTools client of the layout properties of the document, such as
 //! grids or flexboxes. It acts as a placeholder for now.
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, StreamId};
 
@@ -31,8 +33,8 @@ pub(crate) struct GetCurrentFlexboxReply {
 }
 
 impl Actor for LayoutInspectorActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The layout inspector actor can handle the following messages:
@@ -51,7 +53,7 @@ impl Actor for LayoutInspectorActor {
         match msg_type {
             "getGrids" => {
                 let msg = GetGridsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     // TODO: Actually create a list of grids
                     grids: vec![],
                 };
@@ -59,7 +61,7 @@ impl Actor for LayoutInspectorActor {
             },
             "getCurrentFlexbox" => {
                 let msg = GetCurrentFlexboxReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     // TODO: Create and return the current flexbox object
                     flexbox: None,
                 };
@@ -69,21 +71,20 @@ impl Actor for LayoutInspectorActor {
         };
         Ok(())
     }
-
-    fn cleanup(&self, _id: StreamId) {}
 }
 
 impl LayoutInspectorActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<ActorMsg> for LayoutInspectorActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

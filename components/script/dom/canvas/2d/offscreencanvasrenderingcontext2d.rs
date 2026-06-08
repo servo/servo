@@ -7,7 +7,7 @@ use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::reflect_dom_object;
-use servo_canvas_traits::canvas::Canvas2dMsg;
+use servo_canvas_traits::canvas::CanvasCommand;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -66,8 +66,8 @@ impl OffscreenCanvasRenderingContext2D {
         .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
     }
 
-    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
-        self.context.send_canvas_2d_msg(msg)
+    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
+        self.context.send_canvas_command(msg)
     }
 }
 

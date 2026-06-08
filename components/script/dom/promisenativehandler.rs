@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use malloc_size_of::MallocSizeOf;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// Types that implement the `Callback` trait follow the same rooting requirements
 /// as types that use the `#[dom_struct]` attribute.
@@ -30,19 +30,19 @@ pub(crate) struct PromiseNativeHandler {
 
 impl PromiseNativeHandler {
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
-        can_gc: CanGc,
     ) -> DomRoot<PromiseNativeHandler> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(PromiseNativeHandler {
                 reflector: Reflector::new(),
                 resolve,
                 reject,
             }),
             global,
-            can_gc,
+            cx,
         )
     }
 

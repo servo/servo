@@ -152,6 +152,8 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         "MediaStreamTrackWebSpeech",
         "WebSpeechRecognitionContext",
     ]))
+    # For Web Install API and <install> element tests.
+    chrome_options["args"].append("--enable-features=WebAppInstallation,InstallElement")
     # For testing WebExtensions using WebDriver.
     chrome_options["args"].append("--enable-unsafe-extension-debugging")
     # Connection between ChromeDriver and Chrome will be over pipes.

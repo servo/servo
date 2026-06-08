@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS reftest reference: image(&lt;color&gt;) with background-position</title>
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .green {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+  }
+
+  /* 0% 0% → (0, 0) */
+  .top-left > .green     { top: 0;    left: 0; }
+
+  /* center → ((100-50)/2, (100-50)/2) = (25px, 25px) */
+  .center > .green       { top: 25px; left: 25px; }
+
+  /* right bottom → (100-50, 100-50) = (50px, 50px) */
+  .bottom-right > .green { top: 50px; left: 50px; }
+
+  /* 25px 25px */
+  .offset > .green       { top: 25px; left: 25px; }
+</style>
+<p>Four 100×100 squares with a 50×50 green tile on red at: top-left, center, bottom-right, 25px offset.</p>
+<div class="container top-left"><div class="green"></div></div>
+<div class="container center"><div class="green"></div></div>
+<div class="container bottom-right"><div class="green"></div></div>
+<div class="container offset"><div class="green"></div></div>

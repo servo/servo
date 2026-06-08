@@ -161,7 +161,7 @@ impl WritableStreamDefaultWriter {
     ) {
         self.closed_promise
             .borrow()
-            .reject_native(error, CanGc::from_cx(cx));
+            .reject_native_with_cx(cx, error);
     }
 
     pub(crate) fn set_close_promise_is_handled(&self) {
@@ -293,9 +293,9 @@ impl WritableStreamDefaultWriter {
             .is_some_and(|current_stream| current_stream == stream)
         {
             let promise = Promise::new2(cx, global);
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Stream is not equal to writer stream".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -307,7 +307,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
@@ -317,9 +317,9 @@ impl WritableStreamDefaultWriter {
             // return a promise rejected with a TypeError exception
             // indicating that the stream is closing or closed
             let promise = Promise::new2(cx, global);
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Stream has been closed, or has close queued or in-flight".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -330,7 +330,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
@@ -398,7 +398,7 @@ impl WritableStreamDefaultWriter {
         if stream.close_queued_or_in_flight() || stream.is_closed() {
             // return a promise resolved with undefined.
             let promise = Promise::new2(cx, global);
-            promise.resolve_native(&(), CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &());
             return promise;
         }
 
@@ -408,7 +408,7 @@ impl WritableStreamDefaultWriter {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&error.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &error.handle());
             return promise;
         }
 
@@ -456,10 +456,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is undefined".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is undefined".to_owned()));
             return promise;
         }
 
@@ -476,19 +473,16 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         let Some(stream) = self.stream.get() else {
             // If stream is undefined,
             // return a promise rejected with a TypeError exception.
-            promise.reject_error(
-                Error::Type(c"Stream is undefined".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is undefined".to_owned()));
             return promise;
         };
 
         // If ! WritableStreamCloseQueuedOrInFlight(stream) is true
         if stream.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -522,10 +516,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is undefined".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is undefined".to_owned()));
             return promise;
         }
 

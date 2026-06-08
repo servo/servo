@@ -6,11 +6,12 @@
 //! This actor manages the configuration flags that the devtools host can apply to threads.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
@@ -21,8 +22,8 @@ pub(crate) struct ThreadConfigurationActor {
 }
 
 impl Actor for ThreadConfigurationActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The thread configuration actor can handle the following messages:
@@ -39,7 +40,9 @@ impl Actor for ThreadConfigurationActor {
         match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -49,19 +52,20 @@ impl Actor for ThreadConfigurationActor {
 }
 
 impl ThreadConfigurationActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             _configuration: HashMap::new(),
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<ActorMsg> for ThreadConfigurationActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

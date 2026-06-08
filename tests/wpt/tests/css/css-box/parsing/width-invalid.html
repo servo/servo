@@ -23,6 +23,8 @@ test_invalid_value("width", "-10px");
 test_invalid_value("width", "-20%");
 test_invalid_value("width", "60");
 test_invalid_value("width", "10px 20%");
+test_invalid_value("width", "calc(1 / 2px)");
+test_invalid_value("width", "calc(1 / max(2px, 2em))");
 
 test_invalid_value("width", "10px border-box");
 test_invalid_value("width", "content-box 20%");

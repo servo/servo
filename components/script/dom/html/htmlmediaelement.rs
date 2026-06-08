@@ -1321,10 +1321,10 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child(&self, can_gc: CanGc) {
+    fn select_next_source_child(&self, cx: &mut js::context::JSContext) {
         // Step 9.children.12. Forget the media element's media-resource-specific tracks.
-        self.AudioTracks(can_gc).clear();
-        self.VideoTracks(can_gc).clear();
+        self.AudioTracks(cx).clear();
+        self.VideoTracks(CanGc::from_cx(cx)).clear();
 
         // Step 9.children.13. Find next candidate: Let candidate be null.
         let mut source_candidate = None;
@@ -1642,7 +1642,7 @@ impl HTMLMediaElement {
                         MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::from_cx(cx))));
 
                     // Step 2. Forget the media element's media-resource-specific tracks.
-                    this.AudioTracks(CanGc::from_cx(cx)).clear();
+                    this.AudioTracks(cx).clear();
                     this.VideoTracks(CanGc::from_cx(cx)).clear();
 
                     // Step 3. Set the element's networkState attribute to the NETWORK_NO_SOURCE
@@ -1762,7 +1762,7 @@ impl HTMLMediaElement {
             // object, then detach it.
 
             // Step 7.4. Forget the media element's media-resource-specific tracks.
-            self.AudioTracks(CanGc::from_cx(cx)).clear();
+            self.AudioTracks(cx).clear();
             self.VideoTracks(CanGc::from_cx(cx)).clear();
 
             // Step 7.5. If readyState is not set to HAVE_NOTHING, then set it to that state.
@@ -1932,7 +1932,7 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::Loading);
 
         // Step 9.children.26. Jump back to the find next candidate step above.
-        self.select_next_source_child(CanGc::from_cx(cx));
+        self.select_next_source_child(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
@@ -2404,7 +2404,7 @@ impl HTMLMediaElement {
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "If the media resource is found to have an audio track"
         for (i, _track) in metadata.audio_tracks.iter().enumerate() {
-            let audio_track_list = self.AudioTracks(CanGc::from_cx(cx));
+            let audio_track_list = self.AudioTracks(cx);
 
             // Step 1. Create an AudioTrack object to represent the audio track.
             let kind = match i {
@@ -2413,13 +2413,13 @@ impl HTMLMediaElement {
             };
 
             let audio_track = AudioTrack::new(
+                cx,
                 self.global().as_window(),
                 DOMString::new(),
                 kind,
                 DOMString::new(),
                 DOMString::new(),
                 Some(&*audio_track_list),
-                CanGc::from_cx(cx),
             );
 
             // Steps 2. Update the media element's audioTracks attribute's AudioTrackList object
@@ -3126,7 +3126,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, Error::NotSupported(None));
             return promise;
         }
 
@@ -3298,10 +3298,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-audiotracks>
-    fn AudioTracks(&self, can_gc: CanGc) -> DomRoot<AudioTrackList> {
+    fn AudioTracks(&self, cx: &mut js::context::JSContext) -> DomRoot<AudioTrackList> {
         let window = self.owner_window();
         self.audio_tracks_list
-            .or_init(|| AudioTrackList::new(&window, &[], Some(self), can_gc))
+            .or_init(|| AudioTrackList::new(cx, &window, &[], Some(self)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-videotracks>
@@ -3529,7 +3529,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.select_next_source_child(CanGc::from_cx(cx));
+                    elem.select_next_source_child(cx);
                 }
             },
             &MediaElementMicrotask::SelectNextSourceChildAfterWait {

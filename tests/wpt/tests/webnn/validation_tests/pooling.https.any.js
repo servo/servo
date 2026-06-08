@@ -68,35 +68,35 @@ const tests = [
     output: {dataType: 'float32', shape: [1, 3, 4, 4]}
   },
   {
-    name: 'Test pool2d with strides, padding and roundingType="floor".',
+    name: 'Test pool2d with strides, padding and outputShapeRounding="floor".',
     input: {dataType: 'float32', shape: [1, 3, 7, 7]},
     options: {
       windowDimensions: [4, 4],
       padding: [1, 1, 1, 1],
       strides: [2, 2],
-      roundingType: 'floor',
+      outputShapeRounding: 'floor',
     },
     output: {dataType: 'float32', shape: [1, 3, 3, 3]}
   },
   {
-    name: 'Test pool2d with strides, padding and roundingType="ceil".',
+    name: 'Test pool2d with strides, padding and outputShapeRounding="ceil".',
     input: {dataType: 'float16', shape: [1, 3, 7, 7]},
     options: {
       windowDimensions: [4, 4],
       padding: [1, 1, 1, 1],
       strides: [2, 2],
-      roundingType: 'ceil',
+      outputShapeRounding: 'ceil',
     },
     output: {dataType: 'float16', shape: [1, 3, 4, 4]}
   },
   {
-    name: 'Test pool2d with explicit outputSizes ignored roundingType',
+    name: 'Test pool2d with explicit outputSizes ignored outputShapeRounding',
     input: {dataType: 'float32', shape: [1, 3, 7, 7]},
     options: {
       windowDimensions: [4, 4],
       padding: [1, 1, 1, 1],
       strides: [2, 2],
-      roundingType: 'ceil',
+      outputShapeRounding: 'ceil',
       outputSizes: [3, 3],
     },
     output: {dataType: 'float32', shape: [1, 3, 3, 3]}

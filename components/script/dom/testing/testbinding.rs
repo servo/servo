@@ -1066,10 +1066,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            realm,
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            CanGc::from_cx(realm),
         );
 
         let p = Promise::new_in_realm(realm);
@@ -1187,10 +1187,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 }
 
 impl TestBinding {
-    pub(crate) fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_satisfied(_: &mut JSContext, _: HandleObject) -> bool {
         true
     }
-    pub(crate) fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_unsatisfied(_: &mut JSContext, _: HandleObject) -> bool {
         false
     }
 }
@@ -1211,10 +1211,10 @@ impl TestBindingCallback {
 }
 
 impl TestBindingHelpers for TestBinding {
-    fn condition_satisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+    fn condition_satisfied(cx: &mut JSContext, global: HandleObject) -> bool {
         Self::condition_satisfied(cx, global)
     }
-    fn condition_unsatisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+    fn condition_unsatisfied(cx: &mut JSContext, global: HandleObject) -> bool {
         Self::condition_unsatisfied(cx, global)
     }
 }

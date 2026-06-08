@@ -6,12 +6,14 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::root::DescriptorTraits;
 use crate::protocol::ClientRequest;
 
@@ -37,8 +39,8 @@ pub(crate) struct ProcessActor {
 }
 
 impl Actor for ProcessActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The process actor can handle the following messages:
@@ -55,7 +57,7 @@ impl Actor for ProcessActor {
         match msg_type {
             "listWorkers" => {
                 let reply = ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     workers: vec![],
                 };
                 request.reply_final(&reply)?
@@ -68,18 +70,17 @@ impl Actor for ProcessActor {
 }
 
 impl ProcessActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<ProcessActorMsg> for ProcessActor {
     fn encode(&self, _: &ActorRegistry) -> ProcessActorMsg {
         ProcessActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             id: 0,
             is_parent: true,
             is_windowless_parent: false,

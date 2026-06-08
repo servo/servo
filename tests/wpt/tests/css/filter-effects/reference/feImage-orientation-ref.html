@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Filter Effects: feImage respects EXIF orientation data</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/filter-effects-2/">
+</head>
+<body>
+  <svg style="width: 500px; height: 650px">
+    <defs>
+      <filter id="f1" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-1-ul-pre-rotated.jpg"/></filter>
+      <filter id="f2" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-2-ur-pre-rotated.jpg"/></filter>
+      <filter id="f3" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-3-lr-pre-rotated.jpg"/></filter>
+      <filter id="f4" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-4-lol-pre-rotated.jpg"/></filter>
+      <filter id="f5" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-5-lu-pre-rotated.jpg"/></filter>
+      <filter id="f6" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-6-ru-pre-rotated.jpg"/></filter>
+      <filter id="f7" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-7-rl-pre-rotated.jpg"/></filter>
+      <filter id="f8" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-8-llo-pre-rotated.jpg"/></filter>
+      <filter id="f9" primitiveUnits="objectBoundingBox"><feImage href="../../css-images/image-orientation/support/exif-orientation-9-u-pre-rotated.jpg"/></filter>
+    </defs>
+    <rect x="10" y="10" width="100" height="100" filter="url(#f1)"/>
+    <rect x="10" y="10" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="00" y="00" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="135" y="10" width="100" height="100" filter="url(#f2)" stroke="blue"/>
+    <rect x="135" y="10" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="125" y="00" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="260" y="10" width="100" height="100" filter="url(#f3)" stroke="blue"/>
+    <rect x="260" y="10" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="250" y="00" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="10" y="135" width="100" height="100" filter="url(#f4)" stroke="blue"/>
+    <rect x="10" y="135" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="00" y="125" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="135" y="135" width="100" height="100" filter="url(#f5)" stroke="blue"/>
+    <rect x="135" y="135" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="125" y="125" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="260" y="135" width="100" height="100" filter="url(#f6)" stroke="blue"/>
+    <rect x="260" y="135" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="250" y="125" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="10" y="260" width="100" height="100" filter="url(#f7)" stroke="blue"/>
+    <rect x="10" y="260" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="00" y="250" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="135" y="260" width="100" height="100" filter="url(#f6)" stroke="blue"/>
+    <rect x="135" y="260" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="125" y="250" width="120" height="120" fill="none" stroke="green"/>
+
+    <rect x="260" y="260" width="100" height="100" filter="url(#f8)" stroke="blue"/>
+    <rect x="260" y="260" width="100" height="100" fill="none" stroke="blue"/>
+    <rect x="250" y="250" width="120" height="120" fill="none" stroke="green"/>
+  </svg>
+</body>

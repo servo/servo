@@ -92,4 +92,29 @@
       m.disconnect();
   }, "Should not throw if characterDataOldValue is true and characterData is true");
 
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { attributeOldValue: false });
+      m.disconnect();
+  }, "Should not throw if attributeOldValue is false and attributes is omitted");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { characterDataOldValue: false });
+      m.disconnect();
+  }, "Should not throw if characterDataOldValue is false and characterData is omitted");
+
+  async_test(t => {
+      var target = document.createElement("div");
+      var m = new MutationObserver(t.step_func_done(records => {
+          assert_equals(records.length, 1);
+          assert_equals(records[0].type, "attributes");
+          assert_equals(records[0].attributeName, "data-x");
+          assert_equals(records[0].oldValue, null);
+          m.disconnect();
+      }));
+      m.observe(target, { attributeOldValue: false });
+      target.setAttribute("data-x", "1");
+  }, "attributeOldValue:false (present) auto-enables attribute observation");
+
 </script>

@@ -12,9 +12,9 @@ from . import (
 pytestmark = pytest.mark.asyncio
 
 
-async def get_click_coordinates(bidi_session, context):
-    """Helper to get recorded click coordinates on a page generated with the
-    actions_origins_doc fixture."""
+async def get_last_move_coordinates(bidi_session, context):
+    """Helper to get recorded move coordinates on a page generated with the
+    get_actions_origin_page fixture."""
     result = await bidi_session.script.evaluate(
         expression="window.coords",
         target=ContextTarget(context["context"]),
@@ -40,10 +40,10 @@ async def test_viewport_inside(bidi_session, top_context,
     await bidi_session.input.perform_actions(actions=actions,
                                              context=top_context["context"])
 
-    click_coords = await get_click_coordinates(bidi_session,
+    pointer_coords = await get_last_move_coordinates(bidi_session,
                                                context=top_context)
-    assert click_coords["x"] == pytest.approx(point["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(point["y"], abs=1.0)
+    assert pointer_coords["x"] == pytest.approx(point["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(point["y"], abs=1.0)
 
 
 async def test_pointer_inside(bidi_session, top_context,
@@ -68,11 +68,11 @@ async def test_pointer_inside(bidi_session, top_context,
     await bidi_session.input.perform_actions(actions=actions,
                                              context=top_context["context"])
 
-    click_coords = await get_click_coordinates(bidi_session,
+    pointer_coords = await get_last_move_coordinates(bidi_session,
                                                context=top_context)
-    assert click_coords["x"] == pytest.approx(start_point["x"] + offset["x"],
+    assert pointer_coords["x"] == pytest.approx(start_point["x"] + offset["x"],
                                               abs=1.0)
-    assert click_coords["y"] == pytest.approx(start_point["y"] + offset["y"],
+    assert pointer_coords["y"] == pytest.approx(start_point["y"] + offset["y"],
                                               abs=1.0)
 
 
@@ -114,10 +114,10 @@ async def test_element_center_point_with_offset(
     await bidi_session.input.perform_actions(actions=actions,
                                              context=top_context["context"])
 
-    click_coords = await get_click_coordinates(bidi_session,
+    pointer_coords = await get_last_move_coordinates(bidi_session,
                                                context=top_context)
-    assert click_coords["x"] == pytest.approx(center["x"] + offset_x, abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"] + offset_y, abs=1.0)
+    assert pointer_coords["x"] == pytest.approx(center["x"] + offset_x, abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"] + offset_y, abs=1.0)
 
 
 async def test_element_larger_than_viewport(bidi_session, top_context,
@@ -143,10 +143,10 @@ async def test_element_larger_than_viewport(bidi_session, top_context,
     await bidi_session.input.perform_actions(actions=actions,
                                              context=top_context["context"])
 
-    click_coords = await get_click_coordinates(bidi_session,
+    pointer_coords = await get_last_move_coordinates(bidi_session,
                                                context=top_context)
-    assert click_coords["x"] == pytest.approx(center["x"], abs=1.0)
-    assert click_coords["y"] == pytest.approx(center["y"], abs=1.0)
+    assert pointer_coords["x"] == pytest.approx(center["x"], abs=1.0)
+    assert pointer_coords["y"] == pytest.approx(center["y"], abs=1.0)
 
 
 @pytest.mark.parametrize(

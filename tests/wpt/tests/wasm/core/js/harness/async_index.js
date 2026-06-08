@@ -119,8 +119,8 @@ function reinitializeRegistry() {
         element: "anyfunc"
       }),
       table64: new WebAssembly.Table({
-        initial: 10,
-        maximum: 20,
+        initial: 10n,
+        maximum: 20n,
         element: "anyfunc",
         address: "i64"
       }),

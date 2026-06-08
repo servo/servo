@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry, new_actor_name};
 
 #[derive(MallocSizeOf)]
 pub(crate) struct AccessibleWalkerActor {
@@ -12,16 +14,15 @@ pub(crate) struct AccessibleWalkerActor {
 }
 
 impl AccessibleWalkerActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name };
+        registry.register::<Self>(actor)
     }
 }
 
 impl Actor for AccessibleWalkerActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }

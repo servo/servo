@@ -198,6 +198,13 @@ pub(crate) struct DocumentEventHandler {
     next_touch_pointer_id: Cell<i32>,
     /// A map holding information about currently registered access key handlers.
     access_key_handlers: DomRefCell<FxHashMap<NoTrace<Code>, Dom<HTMLElement>>>,
+    /// Map from pointer ID to pending pointer capture target override element.
+    /// This is set by setPointerCapture and cleared by releasePointerCapture.
+    /// <https://w3c.github.io/pointerevents/#pointer-capture>
+    pending_pointer_capture: DomRefCell<FxHashMap<i32, Dom<Element>>>,
+    /// Map from pointer ID to the actual/current pointer capture target.
+    /// Updated during process_pending_pointer_capture when events are dispatched.
+    pointer_capture_target: DomRefCell<FxHashMap<i32, Dom<Element>>>,
 }
 
 impl DocumentEventHandler {
@@ -222,6 +229,8 @@ impl DocumentEventHandler {
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
             access_key_handlers: Default::default(),
+            pending_pointer_capture: Default::default(),
+            pointer_capture_target: Default::default(),
         }
     }
 
@@ -564,7 +573,16 @@ impl DocumentEventHandler {
         cx: &mut JSContext,
         input_event: &ConstellationInputEvent,
     ) {
-        // Ignore all incoming events without a hit test.
+        // First check if the capture target is disconnected and release it if so.
+        // This must happen before any pointer event fires.
+        let pointer_id = PointerId::Mouse as i32;
+        let released_disconnected =
+            self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
+
+        // Always do full hit test so we can keep `current_hover_target` in sync
+        // with the actual element under the pointer. Boundary events for hover
+        // transitions are suppressed while pointer capture is active: per spec,
+        // pointer events are retargeted to the capture element.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
         };
@@ -587,6 +605,7 @@ impl DocumentEventHandler {
             return;
         };
 
+        let capture_is_active = self.get_pointer_capture_target(pointer_id).is_some();
         let old_hover_target = self.current_hover_target.get();
         let target_has_changed = old_hover_target
             .as_ref()
@@ -613,38 +632,40 @@ impl DocumentEventHandler {
                     }
                 }
 
-                let mouse_out_event = MouseEvent::new_for_platform_motion_event(
-                    cx,
-                    &self.window,
-                    FireMouseEventType::Out,
-                    &hit_test_result,
-                    input_event,
-                );
-                mouse_out_event
-                    .upcast::<Event>()
-                    .set_related_target(Some(new_target.upcast()));
-
-                // Fire pointerout before mouseout
-                mouse_out_event
-                    .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
-                    .upcast::<Event>()
-                    .fire(cx, old_target.upcast());
-
-                mouse_out_event
-                    .upcast::<Event>()
-                    .fire(cx, old_target.upcast());
-
-                if !old_target_is_ancestor_of_new_target {
-                    let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
-                    let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
-                    self.handle_mouse_enter_leave_event(
+                if !capture_is_active {
+                    let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                         cx,
-                        event_target,
-                        moving_into,
-                        FireMouseEventType::Leave,
+                        &self.window,
+                        FireMouseEventType::Out,
                         &hit_test_result,
                         input_event,
                     );
+                    mouse_out_event
+                        .upcast::<Event>()
+                        .set_related_target(Some(new_target.upcast()));
+
+                    // Fire pointerout before mouseout
+                    mouse_out_event
+                        .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
+                        .upcast::<Event>()
+                        .fire(cx, old_target.upcast());
+
+                    mouse_out_event
+                        .upcast::<Event>()
+                        .fire(cx, old_target.upcast());
+
+                    if !old_target_is_ancestor_of_new_target {
+                        let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
+                        let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
+                        self.handle_mouse_enter_leave_event(
+                            cx,
+                            event_target,
+                            moving_into,
+                            FireMouseEventType::Leave,
+                            &hit_test_result,
+                            input_event,
+                        );
+                    }
                 }
             }
 
@@ -657,38 +678,40 @@ impl DocumentEventHandler {
                 element.set_hover_state(true);
             }
 
-            let mouse_over_event = MouseEvent::new_for_platform_motion_event(
-                cx,
-                &self.window,
-                FireMouseEventType::Over,
-                &hit_test_result,
-                input_event,
-            );
-            mouse_over_event
-                .upcast::<Event>()
-                .set_related_target(old_hover_target.as_ref().map(|target| target.upcast()));
+            if !capture_is_active {
+                let mouse_over_event = MouseEvent::new_for_platform_motion_event(
+                    cx,
+                    &self.window,
+                    FireMouseEventType::Over,
+                    &hit_test_result,
+                    input_event,
+                );
+                mouse_over_event
+                    .upcast::<Event>()
+                    .set_related_target(old_hover_target.as_ref().map(|target| target.upcast()));
 
-            // Fire pointerover before mouseover
-            mouse_over_event
-                .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
-                .upcast::<Event>()
-                .dispatch(cx, new_target.upcast(), false);
+                // Fire pointerover before mouseover
+                mouse_over_event
+                    .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
+                    .upcast::<Event>()
+                    .dispatch(cx, new_target.upcast(), false);
 
-            mouse_over_event
-                .upcast::<Event>()
-                .dispatch(cx, new_target.upcast(), false);
+                mouse_over_event
+                    .upcast::<Event>()
+                    .dispatch(cx, new_target.upcast(), false);
 
-            let moving_from =
-                old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
-            let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
-            self.handle_mouse_enter_leave_event(
-                cx,
-                event_target,
-                moving_from,
-                FireMouseEventType::Enter,
-                &hit_test_result,
-                input_event,
-            );
+                let moving_from = old_hover_target
+                    .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
+                let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
+                self.handle_mouse_enter_leave_event(
+                    cx,
+                    event_target,
+                    moving_from,
+                    FireMouseEventType::Enter,
+                    &hit_test_result,
+                    input_event,
+                );
+            }
         }
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
@@ -702,16 +725,28 @@ impl DocumentEventHandler {
         );
 
         // Send pointermove event before mousemove.
+        // If pointer capture is active, retarget the pointer/mouse events to
+        // the capture element. Boundary events (pointerover/out/enter/leave)
+        // already fired above use the actual hit-test target.
+        let pointer_target = self
+            .get_pointer_capture_target(pointer_id)
+            .map(DomRoot::upcast::<EventTarget>)
+            .unwrap_or_else(|| DomRoot::from_ref(new_target.upcast::<EventTarget>()));
+
         let pointer_event =
             mouse_event.to_pointer_event(Atom::from("pointermove"), CanGc::from_cx(cx));
         pointer_event.upcast::<Event>().set_composed(true);
-        pointer_event
-            .upcast::<Event>()
-            .fire(cx, new_target.upcast());
+        pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        // Send mousemove event to topmost target, unless it's an iframe, in which case
-        // `Paint` should have also sent an event to the inner document.
-        mouse_event.upcast::<Event>().fire(cx, new_target.upcast());
+        // Process pending pointer capture after firing event, but skip if we just
+        // released a disconnected capture to avoid immediately re-capturing.
+        // https://w3c.github.io/pointerevents/#process-pending-pointer-capture
+        if !released_disconnected {
+            self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
+        }
+
+        // Send mousemove event. Routed to the capture target when capture is active.
+        mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
         self.update_current_hover_target_and_status(Some(new_target));
     }
@@ -923,12 +958,33 @@ impl DocumentEventHandler {
                     // > contact geometry (width and height) or chorded buttons.
                     "pointermove".into()
                 };
-                mouse_event
-                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
-                    .upcast::<Event>()
-                    .fire(cx, node.upcast());
+                let pointer_event =
+                    mouse_event.to_pointer_event(pointer_event_name, CanGc::from_cx(cx));
 
+                // Check for pointer capture target for mouse events
+                let pointer_id = PointerId::Mouse as i32;
+
+                // Release any disconnected capture target before firing pointer events
+                let released_disconnected =
+                    self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
+
+                // Get the current capture target (before processing pending changes)
+                let pointer_target = self
+                    .get_pointer_capture_target(pointer_id)
+                    .map(DomRoot::upcast::<EventTarget>)
+                    .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
+
+                // Increment button count before firing so setPointerCapture works in handler.
                 self.mouse_buttons_down.set(mouse_buttons_down + 1);
+
+                pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+
+                // Process pending pointer capture after firing event, but skip if we just
+                // released a disconnected capture to avoid immediately re-capturing.
+                // https://w3c.github.io/pointerevents/#process-pending-pointer-capture
+                if !released_disconnected {
+                    self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
+                }
 
                 // Step 7. Let result = dispatch event at target
                 let result = mouse_event
@@ -970,12 +1026,40 @@ impl DocumentEventHandler {
                     // > contact geometry (width and height) or chorded buttons.
                     "pointermove".into()
                 };
-                mouse_event
-                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
-                    .upcast::<Event>()
-                    .fire(cx, node.upcast());
+                let pointer_event =
+                    mouse_event.to_pointer_event(pointer_event_name, CanGc::from_cx(cx));
+
+                // Check for pointer capture target for mouse events
+                let pointer_id = PointerId::Mouse as i32;
+
+                // Release any disconnected capture target before firing pointer events
+                let released_disconnected =
+                    self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
+
+                // Get the current capture target (before any state changes)
+                let pointer_target = self
+                    .get_pointer_capture_target(pointer_id)
+                    .map(DomRoot::upcast::<EventTarget>)
+                    .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
+
+                pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+
+                // Decrement button count after firing event, so setPointerCapture/releasePointerCapture
+                // work during the pointerup handler (pointer is still "active").
                 self.mouse_buttons_down
                     .set(mouse_buttons_down.saturating_sub(1));
+
+                // Process pending pointer capture after decrementing button count, but skip
+                // if we just released a disconnected capture to avoid immediately re-capturing.
+                // https://w3c.github.io/pointerevents/#process-pending-pointer-capture
+                if !released_disconnected {
+                    self.process_pending_pointer_capture(cx, pointer_id, "mouse", true);
+                }
+
+                // Implicitly release pointer capture when last button was released
+                if mouse_buttons_down == 1 {
+                    self.implicit_release_pointer_capture(cx, pointer_id, "mouse", true);
+                }
 
                 // Step 7. dispatch event at target.
                 mouse_event
@@ -1221,6 +1305,21 @@ impl DocumentEventHandler {
             );
         }
 
+        // Release any disconnected capture target before firing pointer events,
+        // but not for pointercancel: let implicit_release handle that so
+        // lostpointercapture fires after pointercancel per spec.
+        let released_disconnected = if matches!(event.event_type, TouchEventType::Cancel) {
+            false
+        } else {
+            self.release_disconnected_pointer_capture(cx, pointer_id, "touch", is_primary)
+        };
+
+        // Get the current capture target (before processing pending changes)
+        let pointer_target = self
+            .get_pointer_capture_target(pointer_id)
+            .map(DomRoot::upcast::<EventTarget>)
+            .unwrap_or_else(|| current_target.clone());
+
         let pointer_event = pointer_touch.to_pointer_event(
             window,
             pointer_event_name,
@@ -1231,7 +1330,25 @@ impl DocumentEventHandler {
             Some(hit_test_result.point_in_node),
             CanGc::from_cx(cx),
         );
-        pointer_event.upcast::<Event>().fire(cx, &current_target);
+        pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+
+        // Process pending pointer capture after firing event, but skip if we just
+        // released a disconnected capture (to avoid immediately re-capturing).
+        // Also skip for pointercancel: per spec, process pending only runs for
+        // pointerdown, pointermove, and pointerup, not pointercancel.
+        // https://w3c.github.io/pointerevents/#process-pending-pointer-capture
+        if !released_disconnected && !matches!(event.event_type, TouchEventType::Cancel) {
+            self.process_pending_pointer_capture(cx, pointer_id, "touch", is_primary);
+        }
+
+        // Implicitly release pointer capture on pointerup or pointercancel
+        // For pointercancel, this fires lostpointercapture after the pointercancel event.
+        if matches!(
+            event.event_type,
+            TouchEventType::Up | TouchEventType::Cancel
+        ) {
+            self.implicit_release_pointer_capture(cx, pointer_id, "touch", is_primary);
+        }
 
         // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
         // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
@@ -1580,9 +1697,13 @@ impl DocumentEventHandler {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
-        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
-        //          then abort these steps.
+        // TODO Step 1. Let document be the current global object's associated Document; otherwise null.
+        // TODO Step 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //         then abort these steps.
         let trusted_window = Trusted::new(&*self.window);
+
+        // Step 3. Queue a global task on the gamepad task source with the current global object
+        //         to perform the following steps:
         self.window
             .upcast::<GlobalScope>()
             .task_manager()
@@ -1590,9 +1711,12 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_connected: move |cx| {
                 let window = trusted_window.root();
 
+                // Step 3.1. Let gamepad be a new Gamepad representing the gamepad.
+                // Step 3.2. Let navigator be gamepad's relevant global object's Navigator object.
                 let navigator = window.Navigator();
                 let selected_index = navigator.select_gamepad_index();
                 let gamepad = Gamepad::new(
+                    cx,
                     &window,
                     selected_index,
                     name,
@@ -1601,8 +1725,12 @@ impl DocumentEventHandler {
                     button_bounds,
                     supported_haptic_effects,
                     false,
-                    CanGc::from_cx(cx),
                 );
+
+                // Step 3.3. Set navigator.[[gamepads]][gamepad.index] to gamepad.
+                // TODO Step 3.4. If navigator.[[hasGamepadGesture]] is true, then
+                //         set gamepad.[[exposed]] to true and fire an event named
+                //         gamepadconnected at gamepad's relevant global object.
                 navigator.set_gamepad(cx, selected_index as usize, &gamepad);
             }));
     }
@@ -1610,6 +1738,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     #[cfg(feature = "gamepad")]
     fn handle_gamepad_disconnect(&self, index: usize) {
+        // Step 1. Let gamepad be the Gamepad representing the unavailable device.
+        // Step 2. Queue a global task on the gamepad task source with
+        //         gamepad's relevant global object to perform the following steps:
         let trusted_window = Trusted::new(&*self.window);
         self.window
             .upcast::<GlobalScope>()
@@ -1618,6 +1749,18 @@ impl DocumentEventHandler {
             .queue(task!(gamepad_disconnected: move |cx| {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
+
+                // Step 2.1. Set gamepad.[[connected]] to false.
+                // Step 2.2. Let document be gamepad's relevant global object's
+                //           associated Document; otherwise null.
+                // Step 2.3. If gamepad.[[exposed]] is true and document is not null
+                //           and is fully active, then fire an event named
+                //           gamepaddisconnected at gamepad's relevant global object
+                //           using GamepadEvent with its gamepad attribute
+                //           initialized to gamepad.
+                // Step 2.4. Let navigator be gamepad's relevant global object's
+                //           Navigator object.
+                // Step 2.5. Set navigator.[[gamepads]][gamepad.index] to null.
                 if let Some(gamepad) = navigator.get_gamepad(index)
                     && window.Document().is_fully_active() {
                         gamepad.update_connected(cx, false, gamepad.exposed());
@@ -1632,16 +1775,24 @@ impl DocumentEventHandler {
         use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
         use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 
+        // Step 1. Let gamepad be the Gamepad object representing the device that received
+        //         new button or axis input values.
         let trusted_window = Trusted::new(&*self.window);
 
-        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        // Step 2. Queue a global task on the gamepad task source with gamepad's
+        //         relevant global object to perform the following steps:
         self.window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
                 task!(update_gamepad_state: move || {
                     let window = trusted_window.root();
                     let navigator = window.Navigator();
                     if let Some(gamepad) = navigator.get_gamepad(index) {
+                        // Step 2.1. Let now be the current high resolution time given
+                        //           gamepad's relevant global object.
                         let current_time = window.Performance().Now();
+                        // Step 2.2. Set gamepad.[[timestamp]] to now.
                         gamepad.update_timestamp(*current_time);
+                        // Step 2.3. Run the steps to map and normalize axes for gamepad.
+                        // Step 2.4. Run the steps to map and normalize buttons for gamepad.
                         match update_type {
                             GamepadUpdateType::Axis(index, value) => {
                                 gamepad.map_and_normalize_axes(index, value);
@@ -1650,14 +1801,29 @@ impl DocumentEventHandler {
                                 gamepad.map_and_normalize_buttons(index, value);
                             }
                         };
+                        // TODO Step 2.5. Run the steps to record touches for gamepad.
+                        // Step 2.6. Let navigator be gamepad's relevant global object's
+                        //           Navigator object.
+                        // Step 2.7. If navigator.[[hasGamepadGesture]] is false and
+                        //           gamepad contains a gamepad user gesture:
                         if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                            // Step 2.7.1. Set navigator.[[hasGamepadGesture]] to true.
                             navigator.set_has_gamepad_gesture(true);
+                            // Step 2.7.2. For each connectedGamepad of navigator.[[gamepads]]:
                             navigator.GetGamepads()
                                 .iter()
                                 .filter_map(|g| g.as_ref())
                                 .for_each(|gamepad| {
+                                    // Step 2.7.2.1. Set connectedGamepad.[[exposed]] to true.
                                     gamepad.set_exposed(true);
+                                    // Step 2.7.2.2. Set connectedGamepad.[[timestamp]] to now.
                                     gamepad.update_timestamp(*current_time);
+                                    // Step 2.7.2.3. Let document be gamepad's relevant global
+                                    //               object's associated Document; otherwise null.
+                                    // Step 2.7.2.4. If document is not null and is fully active,
+                                    //               then queue a global task on the gamepad task
+                                    //               source to fire an event named gamepadconnected
+                                    //               at gamepad's relevant global object.
                                     let new_gamepad = Trusted::new(&**gamepad);
                                     if window.Document().is_fully_active() {
                                         window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
@@ -2272,6 +2438,470 @@ impl DocumentEventHandler {
             None,
             None,
         );
+    }
+
+    /// Check if a pointer ID corresponds to an active pointer.
+    /// <https://w3c.github.io/pointerevents/#dfn-active-pointer>
+    pub(crate) fn is_active_pointer(&self, pointer_id: i32) -> bool {
+        if pointer_id == PointerId::Mouse as i32 {
+            // Mouse is active when buttons are down
+            self.mouse_buttons_down.get() > 0
+        } else {
+            // Touch pointers are tracked in active_pointer_ids
+            self.active_pointer_ids
+                .borrow()
+                .values()
+                .any(|&id| id == pointer_id)
+        }
+    }
+
+    /// Set the pending pointer capture target override for a pointer.
+    /// <https://w3c.github.io/pointerevents/#setting-pointer-capture>
+    pub(crate) fn set_pending_pointer_capture(&self, pointer_id: i32, element: &Element) {
+        self.pending_pointer_capture
+            .borrow_mut()
+            .insert(pointer_id, Dom::from_ref(element));
+    }
+
+    /// Clear the pending pointer capture target override for a pointer.
+    /// <https://w3c.github.io/pointerevents/#releasing-pointer-capture>
+    pub(crate) fn clear_pending_pointer_capture(&self, pointer_id: i32) {
+        self.pending_pointer_capture
+            .borrow_mut()
+            .remove(&pointer_id);
+    }
+
+    /// Get the pending pointer capture target override for a pointer.
+    pub(crate) fn get_pending_pointer_capture(&self, pointer_id: i32) -> Option<DomRoot<Element>> {
+        self.pending_pointer_capture
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el))
+    }
+
+    /// Check if an element has pointer capture for a given pointer ID.
+    /// <https://w3c.github.io/pointerevents/#dom-element-haspointercapture>
+    pub(crate) fn has_pointer_capture(&self, pointer_id: i32, element: &Element) -> bool {
+        self.pending_pointer_capture
+            .borrow()
+            .get(&pointer_id)
+            .is_some_and(|el| &**el == element)
+    }
+
+    /// Get the current pointer capture target for event dispatch.
+    /// Returns the capture target if set and connected, otherwise None.
+    /// This returns the actual/current target (pointer_capture_target),
+    /// not the pending target that will be applied after process_pending.
+    fn get_pointer_capture_target(&self, pointer_id: i32) -> Option<DomRoot<Element>> {
+        self.pointer_capture_target
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el))
+            .filter(|el| el.upcast::<Node>().is_connected())
+    }
+
+    /// Check if the capture target is disconnected and release it if so.
+    /// This fires lostpointercapture at the document per spec.
+    /// Must be called before firing any pointer event.
+    /// Returns true if a disconnected capture was released.
+    /// <https://w3c.github.io/pointerevents/#process-pending-pointer-capture>
+    fn release_disconnected_pointer_capture(
+        &self,
+        cx: &mut JSContext,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+    ) -> bool {
+        let capture_target = self
+            .pointer_capture_target
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el));
+        if let Some(capture_element) = capture_target &&
+            !capture_element.upcast::<Node>().is_connected()
+        {
+            // Fire lostpointercapture at the document, not the disconnected element.
+            let document = self.window.Document();
+            self.fire_pointer_capture_event_at_target(
+                cx,
+                "lostpointercapture",
+                pointer_id,
+                pointer_type,
+                is_primary,
+                document.upcast::<EventTarget>(),
+            );
+            // Clear both pending and current capture
+            self.pending_pointer_capture
+                .borrow_mut()
+                .remove(&pointer_id);
+            self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+            return true;
+        }
+        false
+    }
+
+    /// Fire a gotpointercapture or lostpointercapture event at an Element.
+    /// <https://w3c.github.io/pointerevents/#the-gotpointercapture-and-lostpointercapture-events>
+    fn fire_pointer_capture_event(
+        &self,
+        cx: &mut JSContext,
+        event_type: &str,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+        target: &Element,
+    ) {
+        self.fire_pointer_capture_event_at_target(
+            cx,
+            event_type,
+            pointer_id,
+            pointer_type,
+            is_primary,
+            target.upcast::<EventTarget>(),
+        );
+    }
+
+    /// Fire a pointer capture event at a specific EventTarget (e.g., the document).
+    fn fire_pointer_capture_event_at_target(
+        &self,
+        cx: &mut JSContext,
+        event_type: &str,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+        target: &EventTarget,
+    ) {
+        let pointer_event = PointerEvent::new(
+            &self.window,
+            event_type.into(),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            Some(&self.window),
+            0,
+            Point2D::new(0, 0),
+            Point2D::new(0, 0),
+            Point2D::new(0, 0),
+            Modifiers::empty(),
+            0,
+            0,
+            None,
+            None,
+            pointer_id,
+            1,
+            1,
+            0.0,
+            0.0,
+            0,
+            0,
+            0,
+            PI / 2.0,
+            0.0,
+            DOMString::from(pointer_type),
+            is_primary,
+            vec![],
+            vec![],
+            CanGc::from_cx(cx),
+        );
+        pointer_event.upcast::<Event>().set_composed(true);
+        pointer_event.upcast::<Event>().fire(cx, target);
+    }
+
+    /// Fire a single boundary `PointerEvent` (`pointerout`/`pointerleave`/
+    /// `pointerover`/`pointerenter`) at `target`, with `related_target` set to
+    /// the element being entered from or left to.
+    #[expect(clippy::too_many_arguments)]
+    fn fire_pointer_boundary_event(
+        &self,
+        cx: &mut JSContext,
+        event_type: &str,
+        bubbles: EventBubbles,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+        target: &Element,
+        related_target: Option<&Element>,
+    ) {
+        let pointer_event = PointerEvent::new(
+            &self.window,
+            event_type.into(),
+            bubbles,
+            EventCancelable::NotCancelable,
+            Some(&self.window),
+            0,
+            Point2D::new(0, 0),
+            Point2D::new(0, 0),
+            Point2D::new(0, 0),
+            Modifiers::empty(),
+            -1, // button: -1 for boundary events
+            self.mouse_buttons_down.get() as u16,
+            related_target.map(|el| el.upcast::<EventTarget>()),
+            None,
+            pointer_id,
+            1,
+            1,
+            0.0,
+            0.0,
+            0,
+            0,
+            0,
+            PI / 2.0,
+            0.0,
+            DOMString::from(pointer_type),
+            is_primary,
+            vec![],
+            vec![],
+            CanGc::from_cx(cx),
+        );
+        pointer_event.upcast::<Event>().set_composed(true);
+        pointer_event.upcast::<Event>().fire(cx, target.upcast());
+    }
+
+    /// Fire the pointer boundary events that accompany a pointer-capture
+    /// transition from `old_target` to `new_target` for hoverable pointers.
+    /// Per spec, only fired for pointer types that support hover (mouse, pen
+    /// with hover); touch is skipped.
+    fn fire_pointer_capture_boundary_transition(
+        &self,
+        cx: &mut JSContext,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+        old_target: &Element,
+        new_target: &Element,
+    ) {
+        if pointer_type != "mouse" {
+            return;
+        }
+        if old_target == new_target {
+            return;
+        }
+        self.fire_pointer_boundary_event(
+            cx,
+            "pointerout",
+            EventBubbles::Bubbles,
+            pointer_id,
+            pointer_type,
+            is_primary,
+            old_target,
+            Some(new_target),
+        );
+        self.fire_pointer_boundary_event(
+            cx,
+            "pointerleave",
+            EventBubbles::DoesNotBubble,
+            pointer_id,
+            pointer_type,
+            is_primary,
+            old_target,
+            Some(new_target),
+        );
+        self.fire_pointer_boundary_event(
+            cx,
+            "pointerover",
+            EventBubbles::Bubbles,
+            pointer_id,
+            pointer_type,
+            is_primary,
+            new_target,
+            Some(old_target),
+        );
+        self.fire_pointer_boundary_event(
+            cx,
+            "pointerenter",
+            EventBubbles::DoesNotBubble,
+            pointer_id,
+            pointer_type,
+            is_primary,
+            new_target,
+            Some(old_target),
+        );
+    }
+
+    /// Implicitly release pointer capture when pointer is lifted or canceled.
+    /// <https://w3c.github.io/pointerevents/#implicit-release-of-pointer-capture>
+    fn implicit_release_pointer_capture(
+        &self,
+        cx: &mut JSContext,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+    ) {
+        let capture_element = self
+            .pointer_capture_target
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el));
+        if let Some(capture_element) = capture_element {
+            if capture_element.upcast::<Node>().is_connected() {
+                self.fire_pointer_capture_event(
+                    cx,
+                    "lostpointercapture",
+                    pointer_id,
+                    pointer_type,
+                    is_primary,
+                    &capture_element,
+                );
+                // Boundary events: transition hover from released capture
+                // target back to the actual hover target.
+                if let Some(hover_target) = self.current_hover_target.get() {
+                    self.fire_pointer_capture_boundary_transition(
+                        cx,
+                        pointer_id,
+                        pointer_type,
+                        is_primary,
+                        &capture_element,
+                        &hover_target,
+                    );
+                }
+            } else {
+                let document = self.window.Document();
+                self.fire_pointer_capture_event_at_target(
+                    cx,
+                    "lostpointercapture",
+                    pointer_id,
+                    pointer_type,
+                    is_primary,
+                    document.upcast::<EventTarget>(),
+                );
+            }
+        }
+        self.pending_pointer_capture
+            .borrow_mut()
+            .remove(&pointer_id);
+        self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+    }
+
+    /// Process pending pointer capture before dispatching a pointer event.
+    /// Fires gotpointercapture/lostpointercapture as needed.
+    /// <https://w3c.github.io/pointerevents/#process-pending-pointer-capture>
+    fn process_pending_pointer_capture(
+        &self,
+        cx: &mut JSContext,
+        pointer_id: i32,
+        pointer_type: &str,
+        is_primary: bool,
+    ) {
+        let pending = self
+            .pending_pointer_capture
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el));
+        let current = self
+            .pointer_capture_target
+            .borrow()
+            .get(&pointer_id)
+            .map(|el| DomRoot::from_ref(&**el));
+
+        // Disconnected capture targets are handled by release_disconnected_pointer_capture
+        // before any pointer event fires; by the time we get here they have been released.
+        let pending_connected = pending
+            .as_ref()
+            .is_some_and(|el| el.upcast::<Node>().is_connected());
+
+        // If the pointer is no longer active (e.g., last button just released), we should
+        // not fire gotpointercapture for new captures.
+        let pointer_is_active = self.is_active_pointer(pointer_id);
+
+        match (&pending, &current) {
+            (Some(pending_el), None) if pending_connected => {
+                if pointer_is_active {
+                    // Boundary events: transition hover from current hover target
+                    // to the new capture target, before firing gotpointercapture.
+                    if let Some(hover_target) = self.current_hover_target.get() {
+                        self.fire_pointer_capture_boundary_transition(
+                            cx,
+                            pointer_id,
+                            pointer_type,
+                            is_primary,
+                            &hover_target,
+                            pending_el,
+                        );
+                    }
+                    self.fire_pointer_capture_event(
+                        cx,
+                        "gotpointercapture",
+                        pointer_id,
+                        pointer_type,
+                        is_primary,
+                        pending_el,
+                    );
+                    self.pointer_capture_target
+                        .borrow_mut()
+                        .insert(pointer_id, Dom::from_ref(pending_el));
+                } else {
+                    self.pending_pointer_capture
+                        .borrow_mut()
+                        .remove(&pointer_id);
+                }
+            },
+            (Some(pending_el), Some(current_el))
+                if pending_connected && pending_el != current_el =>
+            {
+                self.fire_pointer_capture_event(
+                    cx,
+                    "lostpointercapture",
+                    pointer_id,
+                    pointer_type,
+                    is_primary,
+                    current_el,
+                );
+                if pointer_is_active {
+                    self.fire_pointer_capture_boundary_transition(
+                        cx,
+                        pointer_id,
+                        pointer_type,
+                        is_primary,
+                        current_el,
+                        pending_el,
+                    );
+                    self.fire_pointer_capture_event(
+                        cx,
+                        "gotpointercapture",
+                        pointer_id,
+                        pointer_type,
+                        is_primary,
+                        pending_el,
+                    );
+                    self.pointer_capture_target
+                        .borrow_mut()
+                        .insert(pointer_id, Dom::from_ref(pending_el));
+                } else {
+                    self.pending_pointer_capture
+                        .borrow_mut()
+                        .remove(&pointer_id);
+                    self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+                }
+            },
+            (None, Some(current_el)) | (Some(_), Some(current_el)) if !pending_connected => {
+                self.fire_pointer_capture_event(
+                    cx,
+                    "lostpointercapture",
+                    pointer_id,
+                    pointer_type,
+                    is_primary,
+                    current_el,
+                );
+                // Boundary events: transition hover from released capture
+                // target back to the actual hover target.
+                if let Some(hover_target) = self.current_hover_target.get() {
+                    self.fire_pointer_capture_boundary_transition(
+                        cx,
+                        pointer_id,
+                        pointer_type,
+                        is_primary,
+                        current_el,
+                        &hover_target,
+                    );
+                }
+                self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+                if !pending_connected {
+                    self.pending_pointer_capture
+                        .borrow_mut()
+                        .remove(&pointer_id);
+                }
+            },
+            _ => {},
+        }
     }
 }
 

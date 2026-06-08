@@ -148,7 +148,7 @@ impl ByteTeeReadRequest {
                 .stream
                 .cancel(cx, &self.stream.global(), error_value.handle());
             self.cancel_promise
-                .resolve_native(&cancel_result, CanGc::from_cx(cx));
+                .resolve_native_with_cx(cx, &cancel_result);
         };
 
         // Prepare per branch chunks ahead of the spec enqueue steps.
@@ -254,7 +254,7 @@ impl ByteTeeReadRequest {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
 
         Ok(())

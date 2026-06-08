@@ -4,45 +4,31 @@ plugins {
     id("com.android.library")
 }
 
+layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoview")
+
 android {
     compileSdk = 33
     buildToolsVersion = "34.0.0"
 
     namespace = "org.servo.servoview"
 
-    layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoview")
-
     ndkPath = getNdkDir()
+
+    defaultConfig.versionCode = generatedVersionCode
+    defaultConfig.versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
 
     defaultConfig {
         minSdk = 30
-        lint.targetSdk = 33
-        defaultConfig.versionCode = generatedVersionCode
-        defaultConfig.versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
+    }
+
+    lint {
+        targetSdk = 33
     }
 
     compileOptions {
-        compileOptions.incremental = false
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-
-    flavorDimensions.add("default")
-
-    productFlavors {
-        register("basic") {
-        }
-    }
-
-    splits {
-        density {
-            isEnable = false
-        }
-        abi {
-            isEnable = false
-        }
-    }
-
 
     buildTypes {
         // Default debug and release build types are used as templates
@@ -54,7 +40,7 @@ android {
             signingConfig =
                 signingConfigs.getByName("debug") // Change this to sign with a production key
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
 
         val debug = getByName("debug")
@@ -115,83 +101,82 @@ android {
             jniLibs.srcDirs(getJniLibsPath(false, "x64"))
         }
     }
+}
 
-    // Ignore default "debug" and "release" build types
-    androidComponents {
-        beforeVariants {
-            if (it.buildType == "release" || it.buildType == "debug") {
-                it.enable = false
-            }
-        }
-    }
-
-    // Call our custom NDK Build task using flavor parameters.
-    // This step is needed because the Android Gradle Plugin system"s
-    // integration with native C/C++ shared objects (based on the
-    // `android.externalNativeBuild` dsl object) assumes that we
-    // actually execute compiler commands to produced the shared
-    // objects. We already have the libservoshell.so produced by rustc.
-    // We could simply copy the .so to the `sourceSet.jniLibs` folder
-    // to make AGP bundle it with the APK, but this doesn't copy the STL
-    // (libc++_shared.so) as well. So we use ndk-build as a glorified
-    // `cp` command to copy the libservoshell.so from target/<arch>
-    // to target/android and crucially also include libc++_shared.so
-    // as well.
-    //
-    // FIXME(mukilan): According to the AGP docs, we should not be
-    // relying on task names used by the plugin system to hook into
-    // the build process, but instead we should use officially supported
-    // extension points such as `androidComponents.beforeVariants`
-    project.afterEvaluate {
-        // we filter entries first in order to abstract to a new list
-        // as to prevent concurrent modification exceptions due to creating a new task
-        // while iterating
-        tasks.mapNotNull { compileTask -> // mapNotNull acts as our filter, null results are dropped
-            // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
-            val pattern = Pattern.compile("^merge[A-Z]\\w+([A-Z]\\w+)(Debug|Release)JniLibFolders")
-            val matcher = pattern.matcher(compileTask.name)
-            if (matcher.find())
-                compileTask to matcher.group(1)
-            else null
-        }.forEach { (compileTask, arch) ->
-            val ndkBuildTask = tasks.create<Exec>("ndkbuild" + compileTask.name) {
-                val debug = compileTask.name.contains("Debug")
-                commandLine(
-                    getNdkDir() + "/ndk-build",
-                    "APP_BUILD_SCRIPT=../jni/Android.mk",
-                    "NDK_APPLICATION_MK=../jni/Application.mk",
-                    "NDK_LIBS_OUT=" + getJniLibsPath(debug, arch),
-                    "NDK_DEBUG=" + if (debug) "1" else "0",
-                    "APP_ABI=" + getNDKAbi(arch),
-                    "NDK_LOG=1",
-                    "SERVO_TARGET_DIR=" + getNativeTargetDir(debug, arch)
-                )
-            }
-
-            compileTask.dependsOn(ndkBuildTask)
-        }
-
-        android.libraryVariants.forEach { variant ->
-            val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
-            val matcher = pattern.matcher(variant.name)
-            if (!matcher.find()) {
-                throw GradleException("Invalid variant name for output: " + variant.name)
-            }
-            val arch = matcher.group(1)
-            val debug = variant.name.contains("Debug")
-            val finalFolder = getTargetDir(debug, arch)
-            val finalFile = File(finalFolder, "servoview.aar")
-            variant.outputs.forEach { output ->
-                val copyAndRenameAARTask =
-                    project.task<Copy>("copyAndRename${variant.name.capitalize()}AAR") {
-                        from(output.outputFile.parent)
-                        into(finalFolder)
-                        include(output.outputFile.name)
-                        rename(output.outputFile.name, finalFile.name)
-                    }
-                variant.assembleProvider.get().finalizedBy(copyAndRenameAARTask)
-            }
+// Ignore default "debug" and "release" build types
+androidComponents {
+    beforeVariants {
+        if (it.buildType == "release" || it.buildType == "debug") {
+            it.enable = false
         }
     }
 }
 
+// Call our custom NDK Build task using flavor parameters.
+// This step is needed because the Android Gradle Plugin system"s
+// integration with native C/C++ shared objects (based on the
+// `android.externalNativeBuild` dsl object) assumes that we
+// actually execute compiler commands to produced the shared
+// objects. We already have the libservoshell.so produced by rustc.
+// We could simply copy the .so to the `sourceSet.jniLibs` folder
+// to make AGP bundle it with the APK, but this doesn't copy the STL
+// (libc++_shared.so) as well. So we use ndk-build as a glorified
+// `cp` command to copy the libservoshell.so from target/<arch>
+// to target/android and crucially also include libc++_shared.so
+// as well.
+//
+// FIXME(mukilan): According to the AGP docs, we should not be
+// relying on task names used by the plugin system to hook into
+// the build process, but instead we should use officially supported
+// extension points such as `androidComponents.beforeVariants`
+project.afterEvaluate {
+    // we filter entries first in order to abstract to a new list
+    // as to prevent concurrent modification exceptions due to creating a new task
+    // while iterating
+    tasks.mapNotNull { compileTask -> // mapNotNull acts as our filter, null results are dropped
+        // This matches the task `mergeArmv7DebugJniLibFolders`.
+        val pattern = Pattern.compile("^merge([A-Z]\\w+)(Debug|Release)JniLibFolders")
+        val matcher = pattern.matcher(compileTask.name)
+        if (matcher.find())
+            compileTask to matcher.group(1)
+        else null
+    }.forEach { (compileTask, arch) ->
+        val ndkBuildTask = tasks.create<Exec>("ndkbuild" + compileTask.name) {
+            val debug = compileTask.name.contains("Debug")
+            commandLine(
+                getNdkDir() + "/ndk-build",
+                "APP_BUILD_SCRIPT=../jni/Android.mk",
+                "NDK_APPLICATION_MK=../jni/Application.mk",
+                "NDK_LIBS_OUT=" + getJniLibsPath(debug, arch),
+                "NDK_DEBUG=" + if (debug) "1" else "0",
+                "APP_ABI=" + getNDKAbi(arch),
+                "NDK_LOG=1",
+                "SERVO_TARGET_DIR=" + getNativeTargetDir(debug, arch)
+            )
+        }
+
+        compileTask.dependsOn(ndkBuildTask)
+    }
+
+    android.libraryVariants.forEach { variant ->
+        val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
+        val matcher = pattern.matcher(variant.name)
+        if (!matcher.find()) {
+            throw GradleException("Invalid variant name for output: " + variant.name)
+        }
+        val arch = matcher.group(1)
+        val debug = variant.name.contains("Debug")
+        val finalFolder = getTargetDir(debug, arch)
+        val finalFile = File(finalFolder, "servoview.aar")
+        variant.outputs.forEach { output ->
+            val copyAndRenameAARTask =
+                project.task<Copy>("copyAndRename${variant.name.capitalize()}AAR") {
+                    from(output.outputFile.parent)
+                    into(finalFolder)
+                    include(output.outputFile.name)
+                    rename(output.outputFile.name, finalFile.name)
+                }
+            variant.assembleProvider.get().finalizedBy(copyAndRenameAARTask)
+        }
+    }
+}

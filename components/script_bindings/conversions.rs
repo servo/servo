@@ -151,14 +151,14 @@ impl FromJSValConvertible for USVString {
         value: HandleValue,
         _: (),
     ) -> Result<ConversionResult<USVString>, ()> {
-        let Some(jsstr) = ptr::NonNull::new(unsafe { ToString(cx.raw_cx(), value) }) else {
+        let Some(jsstr) = ptr::NonNull::new(unsafe { ToString(cx, value) }) else {
             debug!("ToString failed");
             return Err(());
         };
 
         // FIXME(ajeffrey): Convert directly from DOMString to USVString
         Ok(ConversionResult::Success(USVString(unsafe {
-            jsstr_to_string(cx.raw_cx(), jsstr)
+            jsstr_to_string(cx, jsstr)
         })))
     }
 }
@@ -197,7 +197,7 @@ impl FromJSValConvertible for ByteString {
         _option: (),
     ) -> Result<ConversionResult<ByteString>, ()> {
         unsafe {
-            let string = ToString(cx.raw_cx(), value);
+            let string = ToString(cx, value);
             if string.is_null() {
                 debug!("ToString failed");
                 return Err(());
@@ -444,14 +444,11 @@ where
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
-///
-/// # Safety
-/// - cx must point to a non-null, valid JSContext instance.
-pub fn jsid_to_string(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
+pub fn jsid_to_string(cx: &js::context::JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(unsafe { jsstr_to_string(cx.raw_cx(), jsstr) }.into());
+        return Some(unsafe { jsstr_to_string(cx, jsstr) }.into());
     }
 
     if id_raw.is_int() {

@@ -161,3 +161,15 @@ partial interface mixin GlobalEventHandlers {
            attribute EventHandler onpointerout;
            attribute EventHandler onpointerleave;
 };
+
+// https://w3c.github.io/touch-events/#extensions-to-the-globaleventhandlers-mixin
+partial interface mixin GlobalEventHandlers {
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchstart;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchend;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchmove;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchcancel;
+};

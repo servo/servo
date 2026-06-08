@@ -1006,7 +1006,7 @@ impl EventTarget {
         }
 
         // The get the parent algorithm for an IDBDatabase returns null.
-        if self.downcast::<IDBDatabase>().is_some() {
+        if self.is::<IDBDatabase>() {
             return None;
         }
 

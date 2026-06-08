@@ -1,44 +1,54 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>AnalyserNode output</title>
-  <meta name="timeout" content="long">
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
-  <script src="/webaudio/js/helpers.js"></script>
-  <script>
-setup({ single_test: true });
+<title>Test AnalyserNode passes input to output unmodified</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    // Use 2048 frames for the test render length, matching the default FFT
+    // size of AnalyserNode.
+    const length = 2048;
+    const sampleRate = 48000;
+    const context = new OfflineAudioContext(
+      1,
+      length,
+      sampleRate
+    );
 
-var gTest = {
-  length: 2048,
-  numberOfChannels: 1,
-  createGraph: function(context) {
-    var source = context.createBufferSource();
-
-    var analyser = context.createAnalyser();
-
-    source.buffer = this.buffer;
-
-    source.connect(analyser);
-
-    source.start(0);
-    return analyser;
-  },
-  createExpectedBuffers: function(context) {
-    this.buffer = context.createBuffer(1, 2048, context.sampleRate);
-    for (var i = 0; i < 2048; ++i) {
-      this.buffer.getChannelData(0)[i] = Math.sin(
-        440 * 2 * Math.PI * i / context.sampleRate
-      );
+    // Generate a 440Hz sine wave to use as the input signal. Using a non-zero
+    // signal ensures we can verify the AnalyserNode passes it through
+    // unmodified.
+    const expectedBuffer = new AudioBuffer({
+      numberOfChannels: 1,
+      length: length,
+      sampleRate: sampleRate
+    });
+    const expectedData = expectedBuffer.getChannelData(0);
+    for (let i = 0; i < length; ++i) {
+      expectedData[i] = Math.sin(440 * 2 * Math.PI * i / sampleRate);
     }
 
-    return [this.buffer];
-  }
-};
+    const source = new AudioBufferSourceNode(context, {
+      buffer: expectedBuffer
+    });
+    const analyser = new AnalyserNode(context);
 
-runTest("AnalyserNode output");
-  </script>
-</head>
-</body>
-</html>
+    source.connect(analyser).connect(context.destination);
+    source.start();
+
+    const renderedBuffer = await context.startRendering();
+    const renderedData = renderedBuffer.getChannelData(0);
+
+    assert_equals(
+      renderedData.length,
+      expectedData.length,
+      'Output length matches expected length'
+    );
+
+    assert_array_approx_equals(
+      renderedData,
+      expectedData,
+      1e-7,
+      'AnalyserNode output matches expected input'
+    );
+  }, 'AnalyserNode output passes through input signal unmodified');
+</script>

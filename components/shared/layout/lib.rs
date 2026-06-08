@@ -43,7 +43,7 @@ use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
-use pixels::RasterImage;
+use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
 use profile_traits::time;
 pub use pseudo_element_chain::PseudoElementChain;
@@ -765,14 +765,27 @@ pub struct ImageAnimationState {
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
     frame_start_time: f64,
+
+    /// The number of loops that have fully completed in this [`ImageAnimationState`].
+    /// If this is greater than or equal to the maximum number of loops in the
+    /// [`RasterImage`], then the animation has ended. If it is `None`, then the image
+    /// will loop infinitely.
+    pub completed_loops: Option<u32>,
 }
 
 impl ImageAnimationState {
     pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
+        let completd_loops = match &image.loop_count {
+            None => unreachable!("Loop count of an animated Image should never be None"),
+            Some(repeat) if Repeat::Infinite == *repeat => None,
+            _ => Some(0),
+        };
+
         Self {
             image,
             active_frame: 0,
             frame_start_time: last_update_time,
+            completed_loops: completd_loops,
         }
     }
 
@@ -780,7 +793,10 @@ impl ImageAnimationState {
         self.image.id
     }
 
-    pub fn duration_to_next_frame(&self, now: f64) -> Duration {
+    pub fn duration_to_next_frame(&self, now: f64) -> Option<Duration> {
+        if self.is_finished() {
+            return None;
+        }
         let frame_delay = self
             .image
             .frames
@@ -791,20 +807,19 @@ impl ImageAnimationState {
 
         let time_since_frame_start = (now - self.frame_start_time).max(0.0) * 1000.0;
         let time_since_frame_start = Duration::from_secs_f64(time_since_frame_start);
-        frame_delay - time_since_frame_start.min(frame_delay)
+        Some(frame_delay - time_since_frame_start.min(frame_delay))
     }
 
     /// check whether image active frame need to be updated given current time,
     /// return true if there are image that need to be updated.
     /// false otherwise.
     pub fn update_frame_for_animation_timeline_value(&mut self, now: f64) -> bool {
-        if self.image.frames.len() <= 1 {
+        if self.image.frames.len() <= 1 || self.is_finished() {
             return false;
         }
-        let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
-            image
+            self.image
                 .frames
                 .get(self.active_frame)
                 .unwrap()
@@ -812,9 +827,29 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
+
+        let frame_count = self.image.frames.len();
         while remain_time_interval > 0.0 {
-            next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
-            remain_time_interval -= image
+            next_active_frame_id = (next_active_frame_id + 1) % frame_count;
+
+            // If the next active frame is 0, this means the animation is about to loop.
+            if next_active_frame_id == 0 {
+                self.advance_completed_loops();
+
+                // If we have just finished the animation, advance to the final frame if
+                // necessary and stop walking through frames.
+                if self.is_finished() {
+                    if self.active_frame == frame_count - 1 {
+                        return false;
+                    }
+                    self.active_frame = frame_count - 1;
+                    self.frame_start_time = now;
+                    return true;
+                }
+            }
+
+            remain_time_interval -= self
+                .image
                 .frames
                 .get(next_active_frame_id)
                 .unwrap()
@@ -828,6 +863,22 @@ impl ImageAnimationState {
         self.active_frame = next_active_frame_id;
         self.frame_start_time = now;
         true
+    }
+
+    /// Whether or not this animation has finished looping and has reached its final frame.
+    fn is_finished(&self) -> bool {
+        let Some(Repeat::Finite(maximum_loops)) = self.image.loop_count.as_ref() else {
+            return false;
+        };
+        self.completed_loops
+            .is_some_and(|completed_loops| completed_loops >= maximum_loops.get())
+    }
+
+    /// If this animation has a finite number of loops, advance the count of completed loops.
+    fn advance_completed_loops(&mut self) {
+        if let Some(completed_loops) = self.completed_loops.as_mut() {
+            *completed_loops += 1;
+        }
     }
 }
 
@@ -926,15 +977,16 @@ pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
 
 #[cfg(test)]
 mod test {
+    use std::num::NonZeroU32;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
+    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat};
 
     use crate::ImageAnimationState;
 
     #[test]
-    fn test() {
+    fn test_animated_image_update() {
         let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
             delay: Some(Duration::from_millis(100)),
             byte_range: 0..1,
@@ -953,6 +1005,7 @@ mod test {
             bytes: Arc::new(vec![1]),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
+            loop_count: Some(Repeat::Infinite),
             is_opaque: false,
         };
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
@@ -971,5 +1024,50 @@ mod test {
         );
         assert_eq!(image_animation_state.active_frame, 1);
         assert_eq!(image_animation_state.frame_start_time, 0.101);
+    }
+
+    #[test]
+    fn test_finite_image_repeat() {
+        let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
+            delay: Some(Duration::from_millis(100)),
+            byte_range: 0..1,
+            width: 100,
+            height: 100,
+        })
+        .take(2)
+        .collect();
+        let image = RasterImage {
+            metadata: ImageMetadata {
+                width: 100,
+                height: 100,
+            },
+            format: PixelFormat::BGRA8,
+            id: None,
+            bytes: Arc::new(vec![1]),
+            frames: image_frames,
+            cors_status: CorsStatus::Unsafe,
+            loop_count: Some(Repeat::Finite(NonZeroU32::new(1).unwrap())),
+            is_opaque: false,
+        };
+        let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
+
+        assert_eq!(image_animation_state.active_frame, 0);
+        assert_eq!(image_animation_state.frame_start_time, 0.0);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.101),
+            true
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.202),
+            false
+        );
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.303),
+            false
+        );
+
+        assert_eq!(image_animation_state.active_frame, 1);
     }
 }

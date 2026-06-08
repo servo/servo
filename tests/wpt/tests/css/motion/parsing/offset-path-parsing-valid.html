@@ -75,6 +75,21 @@ test_valid_value("offset-path", "ellipse(farthest-side 4% at 0% 100%)");
 
 test_valid_value("offset-path", "polygon(1% 2%)");
 test_valid_value("offset-path", "polygon(1px 2px, 3em 4em)");
+test_valid_value(
+    "offset-path",
+    "polygon(round 0px, 1px 2px, 3px 4px)",
+    "polygon(1px 2px, 3px 4px)");
+test_valid_value("offset-path", "polygon(round 1px, 1% 2%)");
+test_valid_value(
+    "offset-path",
+    "polygon(nonzero round 1px, 1px 2px, 3em 4em)",
+    "polygon(round 1px, 1px 2px, 3em 4em)");
+test_valid_value(
+    "offset-path",
+    "polygon(evenodd round 1px, 1px 2px, 3em 4em, 5pt 6%)");
+test_valid_value(
+    "offset-path",
+    "polygon(round calc(1em + 2px), 1px 2px, 3px 4px)");
 
 test_valid_value("offset-path", "xywh(0 1% 2px 3em)", "xywh(0px 1% 2px 3em)");
 test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0)", "xywh(0px 1% 2px 3em)");

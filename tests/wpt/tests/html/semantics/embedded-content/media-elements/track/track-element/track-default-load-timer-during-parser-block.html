@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Default text track delays readyState past HAVE_CURRENT_DATA when resource
+  selection runs while the parser is blocked inside the &lt;video&gt;</title>
+<meta name="timeout" content="long">
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+  <track default kind="captions"
+         src="resources/cues-chrono-order.vtt?pipe=trickle(d2)">
+  <script>
+    // Setting src here triggers resource selection while the parser is still
+    // inside <video>. The slow external script below then blocks the parser
+    // before the default track has been promoted out of the disabled state,
+    // so the default track must still be included in the list of pending text
+    // tracks once parsing finishes.
+    async_test(function(t) {
+        var video = document.querySelector("video");
+        var track = document.querySelector("track");
+
+        var trackLoaded = false;
+        track.onload = t.step_func(function() {
+            trackLoaded = true;
+            assert_equals(track.readyState, HTMLTrackElement.LOADED);
+        });
+
+        track.onerror = t.unreached_func("track failed to load");
+
+        video.oncanplay = t.step_func_done(function() {
+            assert_true(trackLoaded,
+                "canplay must not fire before the default text track has loaded");
+        });
+
+        video.src = getVideoURI("/media/test");
+    });
+  </script>
+  <script src="/common/slow.py?delay=200"></script>
+</video>

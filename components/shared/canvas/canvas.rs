@@ -437,16 +437,14 @@ pub struct LineOptions {
     pub dash_offset: f64,
 }
 
-#[expect(clippy::large_enum_variant)]
-#[derive(Debug, Deserialize, Serialize)]
-pub enum CanvasMsg {
-    Canvas2d(Canvas2dMsg, CanvasId),
-    Recreate(Option<Size2D<u64>>, CanvasId),
-    Close(CanvasId),
-}
+pub type CanvasMsg = (CanvasId, CanvasCommand);
 
 #[derive(Debug, Deserialize, Serialize, Display)]
-pub enum Canvas2dMsg {
+pub enum CanvasCommand {
+    /// This is used for resizing (when size is provided) or just clearing the canvas (when size is `None`).
+    Recreate(Option<Size2D<u64>>),
+    /// Destroy the canvas (its id will be invalidated).
+    Destroy,
     SetImageKey(ImageKey),
     DrawImage(
         SharedSnapshot,

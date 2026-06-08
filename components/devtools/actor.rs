@@ -3,15 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::any::{Any, type_name};
-use std::collections::HashMap;
+use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use atomic_refcell::AtomicRefCell;
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use servo_base::id::PipelineId;
@@ -47,6 +50,27 @@ impl ActorError {
     }
 }
 
+/// Create a name prefix for each actor type, without any counter suffix.
+pub(crate) fn base_name<T: ?Sized>() -> &'static str {
+    let prefix = type_name::<T>();
+    prefix.split("::").last().unwrap_or(prefix)
+}
+
+/// Create a unique actor name based on the type and a monotonically increasing suffix.
+pub(crate) fn new_actor_name<T: ?Sized>() -> String {
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    let suffix = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let base = base_name::<T>();
+
+    // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
+    // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
+    if base.contains("WorkerTarget") {
+        format!("/workerTarget{suffix}")
+    } else {
+        format!("{base}{suffix}")
+    }
+}
+
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
@@ -61,7 +85,7 @@ pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
         let _ = (request, registry, msg_type, msg, stream_id);
         Err(ActorError::UnrecognizedPacketType)
     }
-    fn name(&self) -> String;
+    fn name(&self) -> &str;
     fn cleanup(&self, _id: StreamId) {}
 }
 
@@ -86,6 +110,15 @@ pub(crate) struct DowncastableActorArc<T> {
     _phantom: PhantomData<T>,
 }
 
+impl<T: Actor> From<Arc<T>> for DowncastableActorArc<T> {
+    fn from(actor: Arc<T>) -> Self {
+        Self {
+            actor,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
@@ -102,100 +135,110 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     }
 }
 
-#[derive(Default)]
-struct ActorRegistryType(AtomicRefCell<HashMap<String, Arc<dyn Actor>>>);
+#[derive(Clone)]
+struct RegisteredActor(Arc<dyn Actor>);
 
-impl MallocSizeOf for ActorRegistryType {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        self.0.borrow().iter().map(|actor| actor.size_of(ops)).sum()
+impl PartialEq for RegisteredActor {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.name() == other.0.name()
     }
 }
 
-/// A list of known, owned actors.
+impl Eq for RegisteredActor {}
+
+impl Hash for RegisteredActor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.name().hash(state);
+    }
+}
+
+impl Borrow<str> for RegisteredActor {
+    fn borrow(&self) -> &str {
+        self.0.name()
+    }
+}
+
+impl MallocSizeOf for RegisteredActor {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
+// Debug-only guard to prevent deadlocks. Panics if `ActorRegistry::write` is called
+// reentrantly on the same thread before the previous write guard is dropped.
+#[cfg(debug_assertions)]
+thread_local! {
+    static REENTRANCY_GUARD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+struct WriteGuard<'a>(RwLockWriteGuard<'a, ActorRegistryInner>);
+
+impl<'a> Deref for WriteGuard<'a> {
+    type Target = ActorRegistryInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for WriteGuard<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<'a> Drop for WriteGuard<'a> {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        REENTRANCY_GUARD.with(|cell| cell.set(false));
+    }
+}
+
 #[derive(Default, MallocSizeOf)]
-pub(crate) struct ActorRegistry {
-    actors: ActorRegistryType,
-    script_actors: AtomicRefCell<HashMap<String, String>>,
-    /// Lookup table for SourceActor names associated with a given PipelineId.
-    source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
-    /// Lookup table for inline source content associated with a given PipelineId.
-    inline_source_content: AtomicRefCell<HashMap<PipelineId, String>>,
-    next: AtomicU32,
+struct ActorRegistryInner {
+    actors: HashSet<RegisteredActor>,
+    script_to_actor: HashMap<String, String>,
+    actor_to_script: HashMap<String, String>,
+    source_actor_names: HashMap<PipelineId, Vec<String>>,
+    inline_source_content: HashMap<PipelineId, String>,
+}
+
+#[derive(Default, MallocSizeOf)]
+pub(crate) struct ActorRegistry(RwLock<ActorRegistryInner>);
+
+impl ActorRegistry {
+    fn read(&self) -> RwLockReadGuard<'_, ActorRegistryInner> {
+        self.0.read()
+    }
+
+    fn write(&self) -> WriteGuard<'_> {
+        #[cfg(debug_assertions)]
+        REENTRANCY_GUARD.with(|cell| {
+            assert!(
+                !cell.get(),
+                "Reentrant write operation detected on the same thread for ActorRegistry"
+            );
+            cell.set(true);
+        });
+        WriteGuard(self.0.write())
+    }
 }
 
 impl ActorRegistry {
-    pub(crate) fn cleanup(&self, stream_id: StreamId) {
-        for actor in self.actors.0.borrow().values() {
-            actor.cleanup(stream_id);
-        }
-    }
-
-    pub fn register_script_actor(&self, script_id: String, actor: String) {
-        debug!("registering {} ({})", actor, script_id);
-        let mut script_actors = self.script_actors.borrow_mut();
-        script_actors.insert(script_id, actor);
-    }
-
-    pub fn script_to_actor(&self, script_id: String) -> String {
-        if script_id.is_empty() {
-            return "".to_owned();
-        }
-        self.script_actors.borrow().get(&script_id).unwrap().clone()
-    }
-
-    pub fn script_actor_registered(&self, script_id: String) -> bool {
-        self.script_actors.borrow().contains_key(&script_id)
-    }
-
-    pub fn actor_to_script(&self, actor: String) -> String {
-        for (key, value) in &*self.script_actors.borrow() {
-            if *value == actor {
-                return key.to_owned();
-            }
-        }
-        panic!("couldn't find actor named {}", actor)
-    }
-
-    /// Create a name prefix for each actor type.
-    /// While not needed for unique ids as each actor already has a different
-    /// suffix, it can be used to visually identify actors in the logs.
-    pub fn base_name<T: Actor>() -> &'static str {
-        let prefix = type_name::<T>();
-        prefix.split("::").last().unwrap_or(prefix)
-    }
-
-    /// Create a unique name based on a monotonically increasing suffix
-    /// TODO: Merge this with `register` and don't allow to
-    /// create new names without registering an actor.
-    pub fn new_name<T: Actor>(&self) -> String {
-        let suffix = self.next.fetch_add(1, Ordering::Relaxed);
-        let base = Self::base_name::<T>();
-
-        // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
-        // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
-        if base.contains("WorkerTarget") {
-            format!("/workerTarget{}", suffix)
-        } else {
-            format!("{}{}", base, suffix)
-        }
-    }
-
     /// Add an actor to the registry of known actors that can receive messages.
-    pub(crate) fn register<T: Actor>(&self, actor: T) {
-        self.actors
-            .0
-            .borrow_mut()
-            .insert(actor.name(), Arc::new(actor));
+    pub(crate) fn register<T: Actor>(&self, actor: T) -> Arc<T> {
+        let actor = Arc::new(actor);
+        self.write().actors.insert(RegisteredActor(actor.clone()));
+        actor
     }
 
     /// Find an actor by registered name
-    pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
+    pub(crate) fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
         let actor = self
+            .read()
             .actors
-            .0
-            .borrow()
             .get(name)
             .expect("Should never look for a nonexistent actor")
+            .0
             .clone();
         DowncastableActorArc {
             actor,
@@ -204,7 +247,7 @@ impl ActorRegistry {
     }
 
     /// Find an actor by registered name and return its serialization
-    pub fn encode<T: ActorEncode<S>, S: Serialize>(&self, name: &str) -> S {
+    pub(crate) fn encode<T: ActorEncode<S>, S: Serialize>(&self, name: &str) -> S {
         self.find::<T>(name).encode(self)
     }
 
@@ -216,27 +259,30 @@ impl ActorRegistry {
         stream: &mut DevtoolsConnection,
         stream_id: StreamId,
     ) -> Result<(), ()> {
-        let to = match msg.get("to") {
-            Some(to) => to.as_str().unwrap(),
-            None => {
-                log::warn!("Received unexpected message: {:?}", msg);
-                return Err(());
-            },
+        let Some(actor_name) = msg.get("to").and_then(|value| value.as_str()) else {
+            warn!("Received unexpected message: {msg:?}");
+            return Err(());
         };
 
-        let actor = {
-            let actors_map = self.actors.0.borrow();
-            actors_map.get(to).cloned()
-        };
+        let actor = self
+            .read()
+            .actors
+            .get(actor_name)
+            .map(|registered_actor| registered_actor.0.clone());
         match actor {
             None => {
                 // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#packets>
-                let msg = json!({ "from": to, "error": "noSuchActor" });
-                let _ = stream.write_json_packet(&msg);
+                let _ = stream
+                    .write_json_packet(&json!({ "from": actor_name, "error": "noSuchActor" }));
             },
             Some(actor) => {
-                let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if let Err(error) = ClientRequest::handle(stream.clone(), to, |req| {
+                let Some(msg_type) = msg.get("type").and_then(|value| value.as_str()) else {
+                    let _ = stream.write_json_packet(
+                        &json!({ "from": actor_name, "error": "missingParameter" }),
+                    );
+                    return Ok(());
+                };
+                if let Err(error) = ClientRequest::handle(stream.clone(), actor_name, |req| {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>
@@ -251,39 +297,73 @@ impl ActorRegistry {
         Ok(())
     }
 
-    pub fn remove(&self, name: String) {
-        self.actors.0.borrow_mut().remove(&name);
+    pub(crate) fn register_script_actor(&self, script_id: String, actor: String) {
+        debug!("Registering {actor} ({script_id})");
+        let mut lock = self.write();
+        lock.script_to_actor
+            .insert(script_id.clone(), actor.clone());
+        lock.actor_to_script.insert(actor, script_id);
     }
 
-    pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {
-        self.source_actor_names
-            .borrow_mut()
+    pub(crate) fn script_to_actor(&self, script_id: &str) -> String {
+        if script_id.is_empty() {
+            return String::new();
+        }
+        self.read()
+            .script_to_actor
+            .get(script_id)
+            .unwrap_or_else(|| panic!("No actor for script id {script_id}"))
+            .clone()
+    }
+
+    pub(crate) fn script_actor_registered(&self, script_id: &str) -> bool {
+        self.read().script_to_actor.contains_key(script_id)
+    }
+
+    pub(crate) fn actor_to_script(&self, actor: String) -> String {
+        self.read()
+            .actor_to_script
+            .get(&actor)
+            .unwrap_or_else(|| panic!("No script id for actor {actor}"))
+            .clone()
+    }
+
+    pub(crate) fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {
+        self.write()
+            .source_actor_names
             .entry(pipeline_id)
             .or_default()
             .push(actor_name.to_owned());
     }
 
-    pub fn source_actor_names_for_pipeline(&self, pipeline_id: PipelineId) -> Vec<String> {
-        self.source_actor_names
-            .borrow_mut()
+    pub(crate) fn source_actor_names_for_pipeline(&self, pipeline_id: PipelineId) -> Vec<String> {
+        self.read()
+            .source_actor_names
             .get(&pipeline_id)
             .cloned()
             .unwrap_or_default()
     }
 
-    pub fn set_inline_source_content(&self, pipeline_id: PipelineId, content: String) {
+    pub(crate) fn set_inline_source_content(&self, pipeline_id: PipelineId, content: String) {
         assert!(
-            self.inline_source_content
-                .borrow_mut()
+            self.write()
+                .inline_source_content
                 .insert(pipeline_id, content)
                 .is_none()
         );
     }
 
-    pub fn inline_source_content(&self, pipeline_id: PipelineId) -> Option<String> {
-        self.inline_source_content
-            .borrow()
-            .get(&pipeline_id)
-            .cloned()
+    pub(crate) fn inline_source_content(&self, pipeline_id: PipelineId) -> Option<String> {
+        self.read().inline_source_content.get(&pipeline_id).cloned()
+    }
+
+    /// This is a no-op, we don't currently handle removals from the actor registry
+    pub(crate) fn remove(&self, _name: String) {}
+
+    pub(crate) fn cleanup(&self, stream_id: StreamId) {
+        let actors = self.read().actors.clone();
+        for actor in actors {
+            actor.0.cleanup(stream_id);
+        }
     }
 }

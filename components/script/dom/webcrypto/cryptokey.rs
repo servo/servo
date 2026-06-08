@@ -56,20 +56,22 @@ pub(crate) enum Handle {
     HkdfSecret(Zeroizing<Vec<u8>>),
     Pbkdf2(Zeroizing<Vec<u8>>),
     Hmac(Zeroizing<Vec<u8>>),
-    MlKem512PrivateKey((ml_kem::B32, ml_kem::B32)),
-    MlKem768PrivateKey((ml_kem::B32, ml_kem::B32)),
-    MlKem1024PrivateKey((ml_kem::B32, ml_kem::B32)),
-    MlKem512PublicKey(Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem512Params>>>),
-    MlKem768PublicKey(Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem768Params>>>),
-    MlKem1024PublicKey(
-        Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem1024Params>>>,
-    ),
-    MlDsa44PrivateKey(ml_dsa::B32),
-    MlDsa65PrivateKey(ml_dsa::B32),
-    MlDsa87PrivateKey(ml_dsa::B32),
-    MlDsa44PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa44>>),
-    MlDsa65PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa65>>),
-    MlDsa87PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa87>>),
+    MlKem512PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem512>),
+    MlKem768PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem768>),
+    MlKem1024PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem1024>),
+    MlKem512PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem512>),
+    MlKem768PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem768>),
+    MlKem1024PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem1024>),
+    // Make sure the `alloc` feature of the `module-lattice` crate is enabled so that the `MaybeBox`
+    // used within the `ml_dsa::SigningKey` and `ml_dsa::VerifyingKey` is allocated on the heap
+    // rather the stack. Otherwise, these keys can easily overflow the stack.
+    // <https://docs.rs/module-lattice/0.2.3/module_lattice/struct.MaybeBox.html>
+    MlDsa44PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa44>),
+    MlDsa65PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa65>),
+    MlDsa87PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa87>),
+    MlDsa44PublicKey(ml_dsa::VerifyingKey<ml_dsa::MlDsa44>),
+    MlDsa65PublicKey(ml_dsa::VerifyingKey<ml_dsa::MlDsa65>),
+    MlDsa87PublicKey(ml_dsa::VerifyingKey<ml_dsa::MlDsa87>),
     ChaCha20Poly1305Key(chacha20poly1305::Key),
     Argon2Password(Zeroizing<Vec<u8>>),
 }
@@ -334,15 +336,15 @@ impl MallocSizeOf for Handle {
             Handle::HkdfSecret(secret) => secret.size_of(ops),
             Handle::Pbkdf2(bytes) => bytes.size_of(ops),
             Handle::Hmac(bytes) => bytes.size_of(ops),
-            Handle::MlKem512PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
-            Handle::MlKem768PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
-            Handle::MlKem1024PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
+            Handle::MlKem512PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::MlKem768PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::MlKem1024PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlKem512PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem768PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem1024PublicKey(public_key) => public_key.size_of(ops),
-            Handle::MlDsa44PrivateKey(seed) => seed.size_of(ops),
-            Handle::MlDsa65PrivateKey(seed) => seed.size_of(ops),
-            Handle::MlDsa87PrivateKey(seed) => seed.size_of(ops),
+            Handle::MlDsa44PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::MlDsa65PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::MlDsa87PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlDsa44PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlDsa65PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlDsa87PublicKey(public_key) => public_key.size_of(ops),
@@ -413,62 +415,65 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
                 Ok(Handle::HkdfSecret(bytes.clone().into()))
             },
             SerializableCryptoKeyHandle::Pbkdf2(bytes) => Ok(Handle::Pbkdf2(bytes.clone().into())),
-            SerializableCryptoKeyHandle::MlKem512PrivateKey(seed) => {
-                Ok(Handle::MlKem512PrivateKey((
-                    seed.0.as_slice().try_into().map_err(|_| ())?,
-                    seed.1.as_slice().try_into().map_err(|_| ())?,
-                )))
+            SerializableCryptoKeyHandle::MlKem512PrivateKey(private_key) => {
+                Ok(Handle::MlKem512PrivateKey(
+                    ml_kem::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
             },
-            SerializableCryptoKeyHandle::MlKem768PrivateKey(seed) => {
-                Ok(Handle::MlKem768PrivateKey((
-                    seed.0.as_slice().try_into().map_err(|_| ())?,
-                    seed.1.as_slice().try_into().map_err(|_| ())?,
-                )))
+            SerializableCryptoKeyHandle::MlKem768PrivateKey(private_key) => {
+                Ok(Handle::MlKem768PrivateKey(
+                    ml_kem::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
             },
-            SerializableCryptoKeyHandle::MlKem1024PrivateKey(seed) => {
-                Ok(Handle::MlKem1024PrivateKey((
-                    seed.0.as_slice().try_into().map_err(|_| ())?,
-                    seed.1.as_slice().try_into().map_err(|_| ())?,
-                )))
+            SerializableCryptoKeyHandle::MlKem1024PrivateKey(private_key) => {
+                Ok(Handle::MlKem1024PrivateKey(
+                    ml_kem::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::MlKem512PublicKey(public_key) => {
-                Ok(Handle::MlKem512PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlKem512PublicKey(
+                    ml_kem::TryKeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::MlKem768PublicKey(public_key) => {
-                Ok(Handle::MlKem768PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlKem768PublicKey(
+                    ml_kem::TryKeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::MlKem1024PublicKey(public_key) => {
-                Ok(Handle::MlKem1024PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlKem1024PublicKey(
+                    ml_kem::TryKeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
-            SerializableCryptoKeyHandle::MlDsa44PrivateKey(seed) => Ok(Handle::MlDsa44PrivateKey(
-                seed.as_slice().try_into().map_err(|_| ())?,
-            )),
-            SerializableCryptoKeyHandle::MlDsa65PrivateKey(seed) => Ok(Handle::MlDsa65PrivateKey(
-                seed.as_slice().try_into().map_err(|_| ())?,
-            )),
-            SerializableCryptoKeyHandle::MlDsa87PrivateKey(seed) => Ok(Handle::MlDsa87PrivateKey(
-                seed.as_slice().try_into().map_err(|_| ())?,
-            )),
+            SerializableCryptoKeyHandle::MlDsa44PrivateKey(private_key) => {
+                Ok(Handle::MlDsa44PrivateKey(
+                    ml_dsa::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
+            },
+            SerializableCryptoKeyHandle::MlDsa65PrivateKey(private_key) => {
+                Ok(Handle::MlDsa65PrivateKey(
+                    ml_dsa::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
+            },
+            SerializableCryptoKeyHandle::MlDsa87PrivateKey(private_key) => {
+                Ok(Handle::MlDsa87PrivateKey(
+                    ml_dsa::KeyInit::new_from_slice(private_key).map_err(|_| ())?,
+                ))
+            },
             SerializableCryptoKeyHandle::MlDsa44PublicKey(public_key) => {
-                Ok(Handle::MlDsa44PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlDsa44PublicKey(
+                    ml_dsa::KeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::MlDsa65PublicKey(public_key) => {
-                Ok(Handle::MlDsa65PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlDsa65PublicKey(
+                    ml_dsa::KeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::MlDsa87PublicKey(public_key) => {
-                Ok(Handle::MlDsa87PublicKey(Box::new(
-                    public_key.as_slice().try_into().map_err(|_| ())?,
-                )))
+                Ok(Handle::MlDsa87PublicKey(
+                    ml_dsa::KeyInit::new_from_slice(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::ChaCha20Poly1305Key(key) => Ok(
                 Handle::ChaCha20Poly1305Key(chacha20poly1305::Key::clone_from_slice(key)),
@@ -546,51 +551,78 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
                 Ok(SerializableCryptoKeyHandle::HkdfSecret(bytes.to_vec()))
             },
             Handle::Pbkdf2(bytes) => Ok(SerializableCryptoKeyHandle::Pbkdf2(bytes.to_vec())),
-            Handle::MlKem512PrivateKey(seed) => {
-                Ok(SerializableCryptoKeyHandle::MlKem512PrivateKey((
-                    seed.0.as_slice().to_vec(),
-                    seed.1.as_slice().to_vec(),
-                )))
+            Handle::MlKem512PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem512PrivateKey(
+                    private_key
+                        .to_seed()
+                        .expect("This decapsulation key should contain seed value")
+                        .as_slice()
+                        .to_vec(),
+                ))
             },
-            Handle::MlKem768PrivateKey(seed) => {
-                Ok(SerializableCryptoKeyHandle::MlKem768PrivateKey((
-                    seed.0.as_slice().to_vec(),
-                    seed.1.as_slice().to_vec(),
-                )))
+            Handle::MlKem768PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem768PrivateKey(
+                    private_key
+                        .to_seed()
+                        .expect("This decapsulation key should contain seed value")
+                        .as_slice()
+                        .to_vec(),
+                ))
             },
-            Handle::MlKem1024PrivateKey(seed) => {
-                Ok(SerializableCryptoKeyHandle::MlKem1024PrivateKey((
-                    seed.0.as_slice().to_vec(),
-                    seed.1.as_slice().to_vec(),
-                )))
+            Handle::MlKem1024PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem1024PrivateKey(
+                    private_key
+                        .to_seed()
+                        .expect("This decapsulation key should contain seed value")
+                        .as_slice()
+                        .to_vec(),
+                ))
             },
-            Handle::MlKem512PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlKem512PublicKey(public_key.as_slice().to_vec()),
-            ),
-            Handle::MlKem768PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlKem768PublicKey(public_key.as_slice().to_vec()),
-            ),
-            Handle::MlKem1024PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlKem1024PublicKey(public_key.as_slice().to_vec()),
-            ),
-            Handle::MlDsa44PrivateKey(seed) => Ok(SerializableCryptoKeyHandle::MlDsa44PrivateKey(
-                seed.as_slice().to_vec(),
-            )),
-            Handle::MlDsa65PrivateKey(seed) => Ok(SerializableCryptoKeyHandle::MlDsa65PrivateKey(
-                seed.as_slice().to_vec(),
-            )),
-            Handle::MlDsa87PrivateKey(seed) => Ok(SerializableCryptoKeyHandle::MlDsa87PrivateKey(
-                seed.as_slice().to_vec(),
-            )),
-            Handle::MlDsa44PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlDsa44PublicKey(public_key.as_slice().to_vec()),
-            ),
-            Handle::MlDsa65PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlDsa65PublicKey(public_key.as_slice().to_vec()),
-            ),
-            Handle::MlDsa87PublicKey(public_key) => Ok(
-                SerializableCryptoKeyHandle::MlDsa87PublicKey(public_key.as_slice().to_vec()),
-            ),
+            Handle::MlKem512PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem512PublicKey(
+                    ml_kem::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlKem768PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem768PublicKey(
+                    ml_kem::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlKem1024PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlKem1024PublicKey(
+                    ml_kem::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa44PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa44PrivateKey(
+                    private_key.as_seed().as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa65PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa65PrivateKey(
+                    private_key.as_seed().as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa87PrivateKey(private_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa87PrivateKey(
+                    private_key.as_seed().as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa44PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa44PublicKey(
+                    ml_dsa::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa65PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa65PublicKey(
+                    ml_dsa::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
+            Handle::MlDsa87PublicKey(public_key) => {
+                Ok(SerializableCryptoKeyHandle::MlDsa87PublicKey(
+                    ml_dsa::KeyExport::to_bytes(public_key).as_slice().to_vec(),
+                ))
+            },
             Handle::ChaCha20Poly1305Key(key) => Ok(
                 SerializableCryptoKeyHandle::ChaCha20Poly1305Key(key.as_slice().to_vec()),
             ),

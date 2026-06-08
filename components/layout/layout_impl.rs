@@ -21,7 +21,7 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
-    LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
@@ -64,7 +64,7 @@ use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
-use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
+use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
@@ -1208,9 +1208,9 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage_from_environment = if device_has_changed {
-            RestyleDamage::RELAYOUT
+            LayoutDamage::Relayout
         } else {
-            Default::default()
+            LayoutDamage::empty()
         };
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -1233,15 +1233,15 @@ impl LayoutThread {
             }
         };
 
-        if damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
+        if damage.contains(LayoutDamage::RebuildStackingContextTree) {
             self.need_new_stacking_context_tree.set(true);
         }
-        if damage.contains(RestyleDamage::REPAINT) {
+        if damage.contains(LayoutDamage::Repaint) {
             self.need_new_display_list.set(true);
         }
 
-        if !damage.contains(RestyleDamage::RELAYOUT) {
-            if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+        if !damage.contains(LayoutDamage::Relayout) {
+            if damage.contains(LayoutDamage::RecalculateOverflow) {
                 assert!(self.need_new_display_list.get());
                 assert!(self.need_new_stacking_context_tree.get());
                 self.fragment_tree

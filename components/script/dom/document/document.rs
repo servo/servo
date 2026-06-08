@@ -25,9 +25,9 @@ use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
-use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::context::NoGC;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
@@ -189,6 +189,7 @@ use crate::dom::storageevent::StorageEvent;
 use crate::dom::text::Text;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
+use crate::dom::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
@@ -359,10 +360,8 @@ pub(crate) struct Document {
     focus_handler: DocumentFocusHandler,
     /// A helper to handle showing and hiding user interface controls in the embedding layer.
     embedder_controls: DocumentEmbedderControls,
-    /// Caches for the getElement methods. It is safe to use FxHash for these maps
-    /// as Atoms are `string_cache` items that will have the hash computed from a u32.
-    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
-    name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
+    id_map: TreeOrderedIndexMap,
+    name_map: TreeOrderedIndexMap,
     tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>, FxBuildHasher>>,
     tagns_map: DomRefCell<HashMapTracedValues<QualName, Dom<HTMLCollection>, FxBuildHasher>>,
     classes_map: DomRefCell<HashMapTracedValues<Vec<Atom>, Dom<HTMLCollection>>>,
@@ -1105,15 +1104,9 @@ impl Document {
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    pub(crate) fn unregister_element_id(
-        &self,
-        cx: &mut js::context::JSContext,
-        to_unregister: &Element,
-        id: Atom,
-    ) {
-        self.document_or_shadow_root
-            .unregister_named_element(&self.id_map, to_unregister, &id);
-        self.reset_form_owner_for_listeners(cx, &id);
+    pub(crate) fn unregister_element_id(&self, cx: &mut js::context::JSContext, id: &Atom) {
+        self.id_map.remove(id);
+        self.reset_form_owner_for_listeners(cx, id);
     }
 
     /// Associate an element present in this document with the provided id.
@@ -1121,39 +1114,20 @@ impl Document {
         &self,
         cx: &mut js::context::JSContext,
         element: &Element,
-        id: Atom,
+        id: &Atom,
     ) {
-        let root = self.GetDocumentElement().expect(
-            "The element is in the document, so there must be a document \
-             element.",
-        );
-        self.document_or_shadow_root.register_named_element(
-            &self.id_map,
-            element,
-            &id,
-            DomRoot::from_ref(root.upcast::<Node>()),
-        );
-        self.reset_form_owner_for_listeners(cx, &id);
+        self.id_map.add(id, element);
+        self.reset_form_owner_for_listeners(cx, id);
     }
 
     /// Remove any existing association between the provided name and any elements in this document.
-    pub(crate) fn unregister_element_name(&self, to_unregister: &Element, name: Atom) {
-        self.document_or_shadow_root
-            .unregister_named_element(&self.name_map, to_unregister, &name);
+    pub(crate) fn unregister_element_name(&self, name: &Atom) {
+        self.name_map.remove(name);
     }
 
     /// Associate an element present in this document with the provided name.
-    pub(crate) fn register_element_name(&self, element: &Element, name: Atom) {
-        let root = self.GetDocumentElement().expect(
-            "The element is in the document, so there must be a document \
-             element.",
-        );
-        self.document_or_shadow_root.register_named_element(
-            &self.name_map,
-            element,
-            &name,
-            DomRoot::from_ref(root.upcast::<Node>()),
-        );
+    pub(crate) fn register_element_name(&self, element: &Element, name: &Atom) {
+        self.name_map.add(name, element);
     }
 
     pub(crate) fn register_form_id_listener<T: ?Sized + FormControl>(
@@ -1184,20 +1158,28 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#find-a-potential-indicated-element>
-    fn find_a_potential_indicated_element(&self, fragment: &str) -> Option<DomRoot<Element>> {
+    fn find_a_potential_indicated_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        fragment: &str,
+    ) -> Option<DomRoot<Element>> {
         // Step 1. If there is an element in the document tree whose root is
         // document and that has an ID equal to fragment, then return the first such element in tree order.
         // Step 3. Return null.
-        self.get_element_by_id(&Atom::from(fragment))
+        self.get_element_by_id(cx.no_gc(), &Atom::from(fragment))
             // Step 2. If there is an a element in the document tree whose root is
             // document that has a name attribute whose value is equal to fragment,
             // then return the first such element in tree order.
-            .or_else(|| self.get_anchor_by_name(fragment))
+            .or_else(|| self.get_anchor_by_name(cx, fragment))
     }
 
     /// Attempt to find a named element in this page's document.
     /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
-    fn select_indicated_part(&self, fragment: &str) -> Option<DomRoot<Node>> {
+    fn select_indicated_part(
+        &self,
+        cx: &mut js::context::JSContext,
+        fragment: &str,
+    ) -> Option<DomRoot<Node>> {
         // Step 1. If document's URL does not equal url with exclude fragments set to true, then return null.
         //
         // Already handled by calling function
@@ -1211,7 +1193,8 @@ impl Document {
             return Some(DomRoot::from_ref(self.upcast()));
         }
         // Step 4. Let potentialIndicatedElement be the result of finding a potential indicated element given document and fragment.
-        if let Some(potential_indicated_element) = self.find_a_potential_indicated_element(fragment)
+        if let Some(potential_indicated_element) =
+            self.find_a_potential_indicated_element(cx, fragment)
         {
             // Step 5. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
             return Some(DomRoot::upcast(potential_indicated_element));
@@ -1224,7 +1207,7 @@ impl Document {
         };
         // Step 8. Set potentialIndicatedElement to the result of finding a potential indicated element given document and decodedFragment.
         if let Some(potential_indicated_element) =
-            self.find_a_potential_indicated_element(&decoded_fragment)
+            self.find_a_potential_indicated_element(cx, &decoded_fragment)
         {
             // Step 9. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
             return Some(DomRoot::upcast(potential_indicated_element));
@@ -1243,7 +1226,7 @@ impl Document {
         //
         // > For an HTML document document, its indicated part is the result of
         // > selecting the indicated part given document and document's URL.
-        let Some(indicated_part) = self.select_indicated_part(fragment) else {
+        let Some(indicated_part) = self.select_indicated_part(cx, fragment) else {
             self.set_target_element(None);
             return;
         };
@@ -1288,14 +1271,17 @@ impl Document {
             .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 
-    fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
-        let name = Atom::from(name);
-        self.name_map.borrow().get(&name).and_then(|elements| {
-            elements
-                .iter()
-                .find(|e| e.is::<HTMLAnchorElement>())
-                .map(|e| DomRoot::from_ref(&**e))
-        })
+    fn get_anchor_by_name(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &str,
+    ) -> Option<DomRoot<Element>> {
+        let document_element = self.GetDocumentElement()?;
+        self.name_map
+            .get_all(cx.no_gc(), document_element.upcast(), &Atom::from(name))
+            .iter()
+            .find(|element| element.is::<HTMLAnchorElement>())
+            .map(|element| DomRoot::from_ref(&**element))
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
@@ -3057,16 +3043,12 @@ impl Document {
         result
     }
 
-    pub(crate) fn id_map(
-        &self,
-    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
-        self.id_map.borrow()
+    pub(crate) fn id_map(&self) -> &TreeOrderedIndexMap {
+        &self.id_map
     }
 
-    pub(crate) fn name_map(
-        &self,
-    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
-        self.name_map.borrow()
+    pub(crate) fn name_map(&self) -> &TreeOrderedIndexMap {
+        &self.name_map
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
@@ -3428,7 +3410,6 @@ pub(crate) enum DocumentSource {
     NotFromParser,
 }
 
-#[expect(unsafe_code)]
 impl<'dom> LayoutDom<'dom, Document> {
     #[inline]
     pub(crate) fn is_html_document_for_layout(&self) -> bool {
@@ -3460,9 +3441,7 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
-        let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
-        let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
-        unsafe { LayoutDom::to_layout_slice(matching_elements) }
+        self.unsafe_get().id_map.get_all_for_layout(id)
     }
 }
 
@@ -3606,8 +3585,8 @@ impl Document {
             event_handler: DocumentEventHandler::new(window),
             focus_handler: DocumentFocusHandler::new(window, has_focus),
             embedder_controls: DocumentEmbedderControls::new(window),
-            id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            name_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            id_map: TreeOrderedIndexMap::id(),
+            name_map: TreeOrderedIndexMap::name(),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
@@ -4110,11 +4089,8 @@ impl Document {
             })
     }
 
-    pub(crate) fn get_element_by_id(&self, id: &Atom) -> Option<DomRoot<Element>> {
-        self.id_map
-            .borrow()
-            .get(id)
-            .map(|elements| DomRoot::from_ref(&*elements[0]))
+    pub(crate) fn get_element_by_id(&self, no_gc: &NoGC, id: &Atom) -> Option<DomRoot<Element>> {
+        self.id_map.get(no_gc, self.upcast(), id)
     }
 
     pub(crate) fn ensure_pending_restyle(&self, el: &Element) -> RefMut<'_, PendingRestyle> {
@@ -4293,7 +4269,12 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
         // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
@@ -4313,12 +4294,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
             );
         }
 
@@ -4336,7 +4315,11 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+    pub(crate) fn append_constructed_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        cssom_stylesheet: &CSSStyleSheet,
+    ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut *self.stylesheets.borrow_mut();
@@ -4349,10 +4332,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &self.window.web_font_context(),
             );
         }
 
@@ -4365,15 +4348,38 @@ impl Document {
         );
     }
 
+    fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut js::context::JSContext) {
+        if self.window.font_context().web_fonts_still_loading() != 0 &&
+            let Some(font_face_set) = self.fonts.get()
+        {
+            font_face_set.switch_to_loading(cx);
+        }
+    }
+
     /// Given a stylesheet, load all web fonts from it in Layout.
     pub(crate) fn load_web_fonts_from_stylesheet(
         &self,
+        cx: &mut js::context::JSContext,
         stylesheet: &Arc<Stylesheet>,
-        document_context: &WebFontDocumentContext,
     ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, document_context);
+            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context());
+        self.switch_font_face_set_to_loading_if_needed(cx);
+    }
+
+    pub(crate) fn add_stylesheet_to_stylist(
+        &self,
+        cx: &mut js::context::JSContext,
+        stylesheet: Arc<Stylesheet>,
+        before_stylesheet: Option<Arc<Stylesheet>>,
+    ) {
+        self.window.layout_mut().add_stylesheet(
+            stylesheet,
+            before_stylesheet,
+            &self.window.web_font_context(),
+        );
+        self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -4392,16 +4398,20 @@ impl Document {
         )
     }
 
-    pub(crate) fn get_elements_with_id(&self, id: &Atom) -> Ref<'_, [Dom<Element>]> {
-        Ref::map(self.id_map.borrow(), |map| {
-            map.get(id).map(|vec| &**vec).unwrap_or_default()
-        })
+    pub(crate) fn get_elements_with_id(
+        &self,
+        cx: &mut js::context::JSContext,
+        id: &Atom,
+    ) -> Ref<'_, [Dom<Element>]> {
+        self.id_map.get_all(cx.no_gc(), self.upcast(), id)
     }
 
-    pub(crate) fn get_elements_with_name(&self, name: &Atom) -> Ref<'_, [Dom<Element>]> {
-        Ref::map(self.name_map.borrow(), |map| {
-            map.get(name).map(|vec| &**vec).unwrap_or_default()
-        })
+    pub(crate) fn get_elements_with_name(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &Atom,
+    ) -> Ref<'_, [Dom<Element>]> {
+        self.name_map.get_all(cx.no_gc(), self.upcast(), name)
     }
 
     pub(crate) fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
@@ -5162,8 +5172,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
-    fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        self.get_element_by_id(&Atom::from(id))
+    fn GetElementById(
+        &self,
+        cx: &js::context::JSContext,
+        id: DOMString,
+    ) -> Option<DomRoot<Element>> {
+        self.get_element_by_id(cx, &Atom::from(id))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createelement>
@@ -5800,13 +5814,22 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        self.upcast::<Node>().query_selector(selectors)
+    fn QuerySelector(
+        &self,
+        cx: &mut js::context::JSContext,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
+        self.upcast::<Node>().query_selector(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>().query_selector_all(selectors)
+    fn QuerySelectorAll(
+        &self,
+        cx: &mut js::context::JSContext,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
+        self.upcast::<Node>()
+            .query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
@@ -5906,11 +5929,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 1. Let elements be the list of named elements with the name name that are in a document tree
         // with the Document as their root.
-        let elements_with_name = self.get_elements_with_name(&name);
+        let elements_with_name = self.get_elements_with_name(cx, &name);
         let name_iter = elements_with_name
             .iter()
             .filter(|elem| is_named_element_with_name_attribute(elem));
-        let elements_with_id = self.get_elements_with_id(&name);
+        let elements_with_id = self.id_map.get_all(cx.no_gc(), self.upcast(), &name);
         let id_iter = elements_with_id
             .iter()
             .filter(|elem| is_named_element_with_id_attribute(elem));
@@ -5973,51 +5996,48 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
-
-        let name_map = self.name_map.borrow();
-        for (name, elements) in &(name_map).0 {
-            if name.is_empty() {
-                continue;
-            }
-            let mut name_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_name_attribute(elem));
-            if let Some(first) = name_iter.next() {
-                names_with_first_named_element_map.insert(name, first);
-            }
-        }
-        let id_map = self.id_map.borrow();
-        for (id, elements) in &(id_map).0 {
-            if id.is_empty() {
-                continue;
-            }
-            let mut id_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_id_attribute(elem));
-            if let Some(first) = id_iter.next() {
-                match names_with_first_named_element_map.entry(id) {
-                    Vacant(entry) => drop(entry.insert(first)),
-                    Occupied(mut entry) => {
-                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                            *entry.get_mut() = first;
-                        }
-                    },
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+        let mut names_with_first_named_element_map = HashMap::new();
+        self.name_map
+            .for_each(cx.no_gc(), self.upcast(), |name, elements| {
+                if name.is_empty() {
+                    return;
                 }
-            }
-        }
+                let mut name_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_name_attribute(elem));
+                if let Some(first) = name_iter.next() {
+                    names_with_first_named_element_map.insert(name.clone(), first.as_rooted());
+                }
+            });
 
-        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
-            names_with_first_named_element_map
-                .iter()
-                .map(|(k, v)| (*k, *v))
-                .collect();
+        self.id_map
+            .for_each(cx.no_gc(), self.upcast(), |id, elements| {
+                if id.is_empty() {
+                    return;
+                }
+                let mut id_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_id_attribute(elem));
+                if let Some(first) = id_iter.next() {
+                    match names_with_first_named_element_map.entry(id.clone()) {
+                        Vacant(entry) => drop(entry.insert(first.as_rooted())),
+                        Occupied(mut entry) => {
+                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                                *entry.get_mut() = first.as_rooted();
+                            }
+                        },
+                    }
+                }
+            });
+
+        let mut names_with_first_named_element_vec: Vec<_> =
+            names_with_first_named_element_map.into_iter().collect();
         names_with_first_named_element_vec.sort_unstable_by(|a, b| {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(b.0)
+                a.0.cmp(&b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 Ordering::Less
             } else {
@@ -6026,8 +6046,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         });
 
         names_with_first_named_element_vec
-            .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
+            .into_iter()
+            .map(|(k, _)| DOMString::from(&*k))
             .collect()
     }
 
@@ -6483,16 +6503,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(
         &self,
-        context: JSContext,
+        cx: &mut js::context::JSContext,
         val: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            context,
+            cx,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
-            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.

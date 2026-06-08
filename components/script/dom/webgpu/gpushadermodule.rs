@@ -165,6 +165,6 @@ impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
         promise: &Rc<Promise>,
     ) {
         let info = GPUCompilationInfo::from(&self.global(), response, CanGc::from_cx(cx));
-        promise.resolve_native(&info, CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &info);
     }
 }

@@ -202,20 +202,20 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         // Note: `self` is the registration.
 
         // Step 2: Let promise be a new promise.
-        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
+        let promise = Promise::new2(cx, &self.global());
 
         let Some(worker) = self.get_newest_worker() else {
-            promise.resolve_native(&true, CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &true);
             return promise;
         };
 
         let global = self.global();
         let Some(window) = global.downcast::<Window>() else {
             // Worker navigator does not have a service woker container yet.
-            promise.resolve_native(&false, CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &false);
             return promise;
         };
-        let service_worker_container = window.Navigator().ServiceWorker();
+        let service_worker_container = window.Navigator().ServiceWorker(cx);
 
         // Step 3: Let job be the result of running Create Job with unregister,
         // registration’s storage key, registration’s scope url, null, promise,
@@ -223,9 +223,9 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         // Step 4: Invoke Schedule Job with job.
         // Note: done in the container.
         let Some(storage_key) = global.obtain_storage_key() else {
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         };

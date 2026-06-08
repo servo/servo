@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="iso-8859-8">
+<link rel="help" href="https://crbug.com/516356804">
+<style>
+.target {
+  text-fit: grow consistent;
+  text-box: trim-both cap text;
+}
+</style>
+<body contenteditable=true>
+<div class="target">a b</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.body.focus();
+    document.execCommand("selectAll");
+    document.execCommand("InsertImage");
+    requestAnimationFrame(() => {
+      document.documentElement.removeAttribute('class');
+    });
+  });
+});
+</script>
+</body>
+</html>

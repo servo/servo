@@ -111,8 +111,8 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.collection.SupportedPropertyNames()
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+        self.collection.SupportedPropertyNames(cx)
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of

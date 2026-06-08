@@ -466,9 +466,11 @@ impl Font {
             self.shape_text_fast(text, options)
         } else {
             debug!("shape_text: Using Harfbuzz.");
-            self.shaper
-                .get_or_init(|| Shaper::new(self))
-                .shape_text(text, options)
+            self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
+                text,
+                options,
+                self.template.borrow().font_face_rule.as_ref(),
+            )
         };
 
         let shaped_text = Arc::new(glyphs);

@@ -16,7 +16,9 @@ use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
     JS_IsExceptionPending, JS_SetPendingException,
 };
-use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
+use js::rust::{
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
+};
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
 use script_bindings::trace::RootedTraceableBox;
@@ -24,7 +26,7 @@ use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult, report_pending_exception};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -194,24 +196,40 @@ impl GlobalScope {
             if unsafe { JS_IsExceptionPending(cx) } {
                 warn!("Error evaluating script");
 
-                match (rethrow_errors, script.muted_errors) {
-                    // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-                    (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
-                        // Rethrow evaluationStatus.[[Value]].
-                        return Err(Error::JSFailed);
-                    },
-                    // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-                    (RethrowErrors::Yes, ErrorReporting::Muted) => {
-                        unsafe { JS_ClearPendingException(cx) };
-                        // Throw a "NetworkError" DOMException.
-                        return Err(Error::Network(None));
+                match rethrow_errors {
+                    RethrowErrors::Yes => {
+                        match script.muted_errors {
+                            // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                            // Rethrow evaluationStatus.[[Value]].
+                            ErrorReporting::Unmuted => return Err(Error::JSFailed),
+                            // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                            ErrorReporting::Muted => {
+                                unsafe { JS_ClearPendingException(cx) };
+                                // Throw a "NetworkError" DOMException.
+                                return Err(Error::Network(None));
+                            },
+                        }
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-                    _ => {
-                        // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                        report_pending_exception(cx);
-
-                        // Return evaluationStatus.
+                    RethrowErrors::No => {
+                        // Report an exception given by evaluationStatus.[[Value]] for script's
+                        // settings object's global object.
+                        match script.muted_errors {
+                            ErrorReporting::Unmuted => {
+                                report_pending_exception(cx);
+                            },
+                            ErrorReporting::Muted => {
+                                unsafe { JS_ClearPendingException(cx) };
+                                self.report_an_error(
+                                    cx,
+                                    ErrorInfo {
+                                        message: String::from("Script error."),
+                                        ..Default::default()
+                                    },
+                                    HandleValue::null(),
+                                );
+                            },
+                        }
                         return Err(Error::JSFailed);
                     },
                 }

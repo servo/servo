@@ -2387,6 +2387,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2395,6 +2396,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsLinkText(selector, partial, reply) => {
                 webdriver_handlers::handle_find_elements_link_text(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2422,6 +2424,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2435,6 +2438,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_element_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 element_id,
@@ -2469,6 +2473,7 @@ impl ScriptThread {
                 shadow_root_id,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_css_selector(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2481,6 +2486,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2490,6 +2496,7 @@ impl ScriptThread {
             ),
             WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
                 webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    cx,
                     &documents,
                     pipeline_id,
                     shadow_root_id,

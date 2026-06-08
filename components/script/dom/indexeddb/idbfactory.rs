@@ -623,14 +623,14 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let storage_key = match global.obtain_storage_key() {
             Some(storage_key) => storage_key,
             None => {
-                let p = Promise::new(&global, CanGc::from_cx(cx));
-                p.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                let p = Promise::new2(cx, &global);
+                p.reject_error_with_cx(cx, Error::Security(None));
                 return p;
             },
         };
 
         // Step 3: Let p be a new promise.
-        let p = Promise::new(&global, CanGc::from_cx(cx));
+        let p = Promise::new2(cx, &global);
 
         // Note: the option is required to pass the promise to a task from within the generic callback,
         // see #41356
@@ -657,7 +657,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
                             .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
-                        promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+                        promise.reject_native_with_cx(cx, &rval.handle());
                     },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
@@ -667,7 +667,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                        promise.resolve_native(&info_list, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &info_list);
                 },
             }
             }));

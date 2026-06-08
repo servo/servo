@@ -1641,6 +1641,7 @@ impl ReadableByteStreamController {
 
         if let Some(underlying_source) = self.underlying_source.get() {
             let handler = PromiseNativeHandler::new(
+                cx,
                 &global,
                 Some(Box::new(PullAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_controller),
@@ -1648,7 +1649,6 @@ impl ReadableByteStreamController {
                 Some(Box::new(PullAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_controller),
                 })),
-                CanGc::from_cx(cx),
             );
 
             let mut realm = enter_auto_realm(cx, &*global);
@@ -1783,6 +1783,7 @@ impl ReadableByteStreamController {
 
             // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(StartAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_byte_controller),
@@ -1790,7 +1791,6 @@ impl ReadableByteStreamController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_byte_controller),
                 })),
-                CanGc::from_cx(cx),
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
@@ -1841,7 +1841,7 @@ impl ReadableByteStreamController {
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
                 let promise = Promise::new2(cx, global);
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
                 Ok(promise)
             });
 
@@ -1849,7 +1849,7 @@ impl ReadableByteStreamController {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &rval.handle());
             promise
         });
 

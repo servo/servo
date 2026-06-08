@@ -48,7 +48,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // If v is a DOMString, then follow the below steps:
         // Resolve p with v.
         // Return p.
-        self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
+        self.promise.resolve_with_cx(cx, v);
 
         // NOTE: Since we ask text from arboard, v can't be a Blob
         // If v is a Blob, then follow the below steps:
@@ -72,8 +72,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Reject p with "NotFoundError" DOMException in realm.
         // Return p.
-        self.promise
-            .reject_error(Error::NotFound(None), CanGc::from_cx(cx));
+        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
     }
 }
 
@@ -170,7 +169,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 write_blobs_and_option_to_the_clipboard(global.as_window(), item_list, option);
 
                 // Step 3.3.6 Resolve p.
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
             }),
         );
 
@@ -227,10 +226,10 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
             promise: promise.clone(),
         });
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();

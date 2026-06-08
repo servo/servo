@@ -7,10 +7,11 @@
 use std::cell::RefCell;
 use std::thread::LocalKey;
 
+use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
-use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObjectStatic};
+use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectStatic};
 use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
+    CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSObject,
 };
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
@@ -67,15 +68,6 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
 
     rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
-}
-
-/// Returns wether `obj` is a platform object using dynamic unwrap
-/// <https://heycam.github.io/webidl/#dfn-platform-object>
-#[expect(dead_code)]
-pub(crate) fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
-    is_platform_object(obj, &|o| unsafe {
-        UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ false)
-    })
 }
 
 /// Returns wether `obj` is a platform object using static unwrap
@@ -144,22 +136,21 @@ pub(crate) fn define_all_exposed_interfaces(cx: &mut CurrentRealm, global: &Glob
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn throw_dom_exception(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         result: Error,
-        can_gc: CanGc,
     ) {
-        throw_dom_exception(cx, global, result, can_gc)
+        throw_dom_exception(cx.into(), global, result, CanGc::from_cx(cx))
     }
 
     fn call_html_constructor<
         T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
     >(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         args: &CallArgs,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool {
         call_html_constructor::<T>(cx, args, global, proto_id, creator)
     }
@@ -183,7 +174,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn push_new_element_queue() {
         ScriptThread::custom_element_reaction_stack().push_new_element_queue()
     }
-    fn pop_current_element_queue(cx: &mut js::context::JSContext) {
+    fn pop_current_element_queue(cx: &mut JSContext) {
         ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 

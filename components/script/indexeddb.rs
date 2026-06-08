@@ -262,7 +262,7 @@ pub fn convert_value_to_key(
     if input.is_string() {
         // 3.1. Return a new key with type string and value input.
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
-        let key = unsafe { jsstr_to_string(cx.raw_cx(), string_ptr) };
+        let key = unsafe { jsstr_to_string(cx, string_ptr) };
         return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
     }
 

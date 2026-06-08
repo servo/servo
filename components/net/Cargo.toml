@@ -17,7 +17,7 @@ test = false
 doctest = false
 
 [features]
-test-util = ["hyper-util/server-graceful", "dep:servo-default-resources"]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -37,7 +37,6 @@ fst = { workspace = true }
 futures = { workspace = true }
 futures-core = { workspace = true }
 futures-util = { workspace = true }
-generic-array = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }

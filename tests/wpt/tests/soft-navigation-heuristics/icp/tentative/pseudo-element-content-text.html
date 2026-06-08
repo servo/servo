@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  #content::before {
+    content: "Leading Text ";
+  }
+</style>
+
+<button id="testButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    testButton.addEventListener('click', async () => {
+      container.innerHTML = `<div><div id="content"></div></div>`;
+    }, {once: true});
+
+    const helper = new SoftNavigationTestHelper(t);
+    const icpPromise = helper.waitForIcp();
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    const icps = await icpPromise;
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry');
+
+    assert_equals(
+        icps[0].largestContentfulPaint.id, 'content',
+        'Expected the LCP element to be "content"');
+  }, 'InteractionContentfulPaint considers text pseudo elements as candidates');
+</script>
