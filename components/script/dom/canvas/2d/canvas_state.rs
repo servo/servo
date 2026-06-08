@@ -86,7 +86,7 @@ const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
 /// A lower value keeps the paint thread fed with work (better parallelism),
 /// while a higher value improves batching efficiency (fewer channel operations, lower power).
 ///
-/// See https://github.com/servo/servo/pull/45301 for measurements.
+/// See <https://github.com/servo/servo/pull/45301> for measurements.
 const BUFFER_SIZE: usize = 16;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -306,9 +306,9 @@ impl CanvasState {
     pub(super) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
         if !self.is_paintable() {
             self.buffered_sender.flush().unwrap();
-            return;
+        } else {
+            self.buffered_sender.send_immediate(msg).unwrap();
         }
-        self.buffered_sender.send_immediate(msg).unwrap();
     }
 
     /// Updates WR image and blocks on completion
