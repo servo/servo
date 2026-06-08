@@ -13,7 +13,7 @@ use style::values::generics::position::GenericPositionOrAuto;
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize};
 
-use super::{BuilderForBoxFragment, compute_margin_box_radius, normalize_radii};
+use super::{BuilderForBoxFragment, compute_margin_box_radius};
 use crate::fragment_tree::BoxFragment;
 use crate::geom::PhysicalPoint;
 
@@ -159,13 +159,12 @@ impl StackingContextTreeClipStore {
                         corner.0.height.0.resolve(box_height).px(),
                     )
                 };
-                let mut radii = webrender_api::BorderRadius {
+                let radii = webrender_api::BorderRadius {
                     top_left: corner(&rect.round.top_left),
                     top_right: corner(&rect.round.top_right),
                     bottom_left: corner(&rect.round.bottom_left),
                     bottom_right: corner(&rect.round.bottom_right),
                 };
-                normalize_radii(&layout_box, &mut radii);
                 Some(self.add(
                     radii,
                     shape_rect,
@@ -191,7 +190,7 @@ impl StackingContextTreeClipStore {
                     layout_box.max,
                 );
                 let radius = LayoutSize::new(radius, radius);
-                let mut radii = webrender_api::BorderRadius {
+                let radii = webrender_api::BorderRadius {
                     top_left: radius,
                     top_right: radius,
                     bottom_left: radius,
@@ -199,7 +198,6 @@ impl StackingContextTreeClipStore {
                 };
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
-                normalize_radii(&layout_box, &mut radii);
                 Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             BasicShape::Ellipse(ellipse) => {
@@ -227,7 +225,7 @@ impl StackingContextTreeClipStore {
                 );
                 let radius = LayoutSize::new(radius_x, radius_y);
 
-                let mut radii = webrender_api::BorderRadius {
+                let radii = webrender_api::BorderRadius {
                     top_left: radius,
                     top_right: radius,
                     bottom_left: radius,
@@ -235,7 +233,6 @@ impl StackingContextTreeClipStore {
                 };
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
-                normalize_radii(&rect, &mut radii);
                 Some(self.add(radii, rect, parent_scroll_node_id, parent_clip_chain_id))
             },
             _ => None,

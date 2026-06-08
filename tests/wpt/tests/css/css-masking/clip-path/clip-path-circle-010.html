@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property and circle function with big radius</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#clipping-paths">
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-clip-path">
+<link rel="help" href="https://github.com/servo/servo/issues/45469">
+<link rel="match" href="reference/clip-path-semicircle-ref.html">
+<meta name="fuzzy" content="maxDifference=0-120; totalPixels=0-900">
+<meta name="assert" content="
+  The circle has a radius of 100px, and thus a diameter of 200px.
+  That's twice as big as the height of the element, producing a semicircle.
+  The radius should NOT shrink so that the entire circle would fit.
+">
+
+<p>The test passes if there is a semicircle.</p>
+<div style="width: 200px; height: 100px; background: black;
+            clip-path: circle(100px at 100px 100px)"></div>
