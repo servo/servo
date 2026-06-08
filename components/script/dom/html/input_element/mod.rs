@@ -2374,6 +2374,10 @@ impl VirtualMethods for HTMLInputElement {
         elem.checked_changed.set(self.checked_changed.get());
         elem.upcast::<Element>()
             .set_state(ElementState::CHECKED, self.Checked());
+        // The spec does not mention cloning the indeterminate state, but other browsers
+        // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
+        elem.upcast::<Element>()
+            .set_state(ElementState::INDETERMINATE, self.Indeterminate());
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
