@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
@@ -46,24 +44,23 @@ pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector<AssociatedMemory>,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     canvas_state: CanvasState,
-    associated_memory_buffer_count: Cell<usize>,
 }
 
 impl CanvasRenderingContext2D {
-    fn associated_memory_size(size: Size2D<u64>, buffer_count: usize) -> usize {
+    const RGBA8_BYTES_PER_PIXEL: usize = 4; // 4 bytes per RGBA pixel
+    const ASSOCIATED_MEMORY_BUFFER_COUNT: usize = 2;
+
+    fn associated_memory_size(size: Size2D<u64>) -> usize {
         (size.width as usize)
             .saturating_mul(size.height as usize)
-            .saturating_mul(4) // RGBA 4 byytes per pixel
-            .saturating_mul(buffer_count)
+            .saturating_mul(Self::RGBA8_BYTES_PER_PIXEL)
+            .saturating_mul(Self::ASSOCIATED_MEMORY_BUFFER_COUNT)
     }
 
     pub(crate) fn update_associated_memory_size(&self) {
         self.reflector_.update_memory_size(
             self,
-            Self::associated_memory_size(
-                self.canvas_state.bitmap_dimensions(),
-                self.associated_memory_buffer_count.get(),
-            ),
+            Self::associated_memory_size(self.canvas_state.bitmap_dimensions()),
         );
     }
 
@@ -79,7 +76,6 @@ impl CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,
             canvas_state,
-            associated_memory_buffer_count: Cell::new(1),
         })
     }
 
@@ -115,8 +111,6 @@ impl CanvasRenderingContext2D {
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
         self.canvas_state.set_image_key(image_key);
-        self.associated_memory_buffer_count.set(2);
-        self.update_associated_memory_size();
     }
 
     pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
