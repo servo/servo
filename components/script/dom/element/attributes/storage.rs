@@ -13,7 +13,7 @@ use script_bindings::str::DOMString;
 use style::attr::{AttrIdentifier, AttrValue};
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::root::ToLayout;
+use crate::dom::bindings::root::{LayoutDom, ToLayout};
 use crate::dom::element::Element;
 use crate::dom::node::node::NodeTraits;
 
@@ -181,7 +181,11 @@ impl AttributeEntry {
     pub(crate) fn value_for_layout(&self) -> &AttrValue {
         match self {
             AttributeEntry::Raw(data) => &data.value,
-            AttributeEntry::Dom(attr) => unsafe { attr.to_layout() }.value(),
+            AttributeEntry::Dom(attr) => unsafe {
+                let value: LayoutDom<'_, _> = attr.to_layout();
+                value
+            }
+            .value(),
         }
     }
 
@@ -191,7 +195,11 @@ impl AttributeEntry {
     pub(crate) fn local_name_for_layout(&self) -> &LocalName {
         match self {
             AttributeEntry::Raw(data) => data.local_name(),
-            AttributeEntry::Dom(attr) => unsafe { attr.to_layout() }.local_name(),
+            AttributeEntry::Dom(attr) => unsafe {
+                let value: LayoutDom<'_, _> = attr.to_layout();
+                value
+            }
+            .local_name(),
         }
     }
 
@@ -201,7 +209,11 @@ impl AttributeEntry {
     pub(crate) fn namespace_for_layout(&self) -> &Namespace {
         match self {
             AttributeEntry::Raw(data) => data.namespace(),
-            AttributeEntry::Dom(attr) => unsafe { attr.to_layout() }.namespace(),
+            AttributeEntry::Dom(attr) => unsafe {
+                let value: LayoutDom<'_, _> = attr.to_layout();
+                value
+            }
+            .namespace(),
         }
     }
 }

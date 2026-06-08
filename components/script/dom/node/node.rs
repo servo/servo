@@ -1557,7 +1557,7 @@ impl Node {
         let traced_node = Dom::from_ref(self);
 
         let first_matching_element = with_layout_state(|| {
-            let layout_node = unsafe { traced_node.to_layout() };
+            let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
@@ -1586,7 +1586,7 @@ impl Node {
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
-            let layout_node = unsafe { traced_node.to_layout() };
+            let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;
