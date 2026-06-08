@@ -265,23 +265,31 @@ impl WebView {
         Rc::downgrade(&self.0)
     }
 
+    /// Get the [`WebViewDelegate`] associated with this [`WebView`].
     pub fn delegate(&self) -> Rc<dyn WebViewDelegate> {
         self.inner().delegate.clone()
     }
 
+    /// Get the [`ClipboardDelegate`] associated with this [`WebView`].
     pub fn clipboard_delegate(&self) -> Rc<dyn ClipboardDelegate> {
         self.inner().clipboard_delegate.clone()
     }
 
+    /// Get the [`GamepadDelegate`] associated with this [`WebView`].
     #[cfg(feature = "gamepad")]
     pub fn gamepad_delegate(&self) -> Rc<dyn GamepadDelegate> {
         self.inner().gamepad_delegate.clone()
     }
 
+    /// Get the unique identifier for this [`WebView`].
     pub fn id(&self) -> WebViewId {
         self.inner().id
     }
 
+    /// Get the load status for the page that is currently loading or loaded in this [`WebView`].
+    ///
+    /// The embedder can use [`WebViewDelegate::notify_load_status_changed`] to subscribe
+    /// to changes in the load status.
     pub fn load_status(&self) -> LoadStatus {
         self.inner().load_status
     }
@@ -294,6 +302,8 @@ impl WebView {
         self.delegate().notify_load_status_changed(self, new_value);
     }
 
+    /// Get the URL of the currently active page in this [`WebView`]'s navigation history.
+    /// Returns `None` if no page is currently loaded.
     pub fn url(&self) -> Option<Url> {
         let inner = self.inner();
         inner
@@ -302,6 +312,11 @@ impl WebView {
             .cloned()
     }
 
+    /// Get the current status text for this [`WebView`]. Returns `None` if there is no status text.
+    ///
+    /// The status text changes as the user interacts with the page, for example, by hovering over
+    /// a link. The embedder can use [`WebViewDelegate::notify_status_text_changed`] to subscribe
+    /// to changes in the status text.
     pub fn status_text(&self) -> Option<String> {
         self.inner().status_text.clone()
     }
@@ -314,6 +329,11 @@ impl WebView {
         self.delegate().notify_status_text_changed(self, new_value);
     }
 
+    /// Get the title of the currently active page in this [`WebView`]. Returns `None` if the
+    /// page has no title.
+    ///
+    /// The embedder can use [`WebViewDelegate::notify_page_title_changed`] to subscribe
+    /// to changes in the [`WebView`]'s page title.
     pub fn page_title(&self) -> Option<String> {
         self.inner().page_title.clone()
     }
@@ -326,6 +346,12 @@ impl WebView {
         self.delegate().notify_page_title_changed(self, new_value);
     }
 
+    /// Get a read-only reference to the image data for the favicon of the currently
+    /// active page in this [`WebView`]. Returns `None` if no favicon is available
+    /// for the currently active page.
+    ///
+    /// The embedder can use [`WebViewDelegate::notify_favicon_changed`] to subscribe
+    /// to changes in the [`WebView`]'s favicon.
     pub fn favicon(&self) -> Option<Ref<'_, Image>> {
         Ref::filter_map(self.inner(), |inner| inner.favicon.as_ref()).ok()
     }
@@ -335,6 +361,10 @@ impl WebView {
         self.delegate().notify_favicon_changed(self);
     }
 
+    /// Whether or not this [`WebView`] currently has the keyboard focus.
+    ///
+    /// The embedder can use [`WebViewDelegate::notify_focus_changed`] to subscribe
+    /// to changes in the  [`WebView`]'s focus state.
     pub fn focused(&self) -> bool {
         self.inner().focused
     }
@@ -347,6 +377,11 @@ impl WebView {
         self.delegate().notify_focus_changed(self, new_value);
     }
 
+    /// Get the current [`Cursor`] for this [`WebView`].
+    ///
+    /// The cursor can change as the user interacts with page content. The embedder
+    /// can use [`WebViewDelegate::notify_cursor_changed`] to subscribe to changes in
+    /// the  [`WebView`]'s cursor.
     pub fn cursor(&self) -> Cursor {
         self.inner().cursor
     }
@@ -359,6 +394,7 @@ impl WebView {
         self.delegate().notify_cursor_changed(self, new_value);
     }
 
+    /// Notify Servo that this [`WebView`] has gained keyboard focus.
     pub fn focus(&self) {
         self.inner()
             .servo
@@ -366,6 +402,7 @@ impl WebView {
             .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
     }
 
+    /// Notify Servo that this [`WebView`] has lost keyboard focus.
     pub fn blur(&self) {
         self.inner()
             .servo
@@ -412,10 +449,15 @@ impl WebView {
             .resize_rendering_context(self.id(), new_size);
     }
 
+    /// Get the HiDPI scale factor for this [`WebView`].
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.inner().hidpi_scale_factor
     }
 
+    /// Set the HiDPI scale factor for this [`WebView`].
+    ///
+    /// This scale factor determines how device-independent pixels map to physical device pixels
+    /// and therefore depends on which device this [`WebView`] is being displayed.
     pub fn set_hidpi_scale_factor(
         &self,
         new_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -431,6 +473,7 @@ impl WebView {
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
+    /// Make this [`WebView`] visible within its [`RenderingContext`].
     pub fn show(&self) {
         self.inner()
             .servo
@@ -439,6 +482,7 @@ impl WebView {
             .expect("BUG: invalid WebView instance");
     }
 
+    /// Hide this [`WebView`] within its [`RenderingContext`].
     pub fn hide(&self) {
         self.inner()
             .servo
@@ -447,6 +491,7 @@ impl WebView {
             .expect("BUG: invalid WebView instance");
     }
 
+    /// Notify this [`WebView`] of a change to the system theme (e.g. light or dark mode).
     pub fn notify_theme_change(&self, theme: Theme) {
         self.inner()
             .servo
@@ -457,6 +502,10 @@ impl WebView {
             ))
     }
 
+    /// Load the given URL into this [`WebView`] using the default request headers.
+    ///
+    /// This pushes a new entry onto the navigation history, so the user can navigate
+    /// back to the previous page.
     pub fn load(&self, url: Url) {
         self.inner()
             .servo
@@ -467,7 +516,10 @@ impl WebView {
             ))
     }
 
-    /// Load a [`UrlRequest`] into this [`WebView`].
+    /// Load a [`UrlRequest`] with custom headers into this [`WebView`].
+    ///
+    /// This pushes a new entry onto the navigation history, so the user can navigate
+    /// back to the previous page.
     pub fn load_request(&self, url_request: UrlRequest) {
         self.inner()
             .servo
@@ -478,6 +530,7 @@ impl WebView {
             ))
     }
 
+    /// Reload the currently loaded page in this [`WebView`].
     pub fn reload(&self) {
         self.inner_mut().load_status = LoadStatus::Started;
         self.inner()
@@ -486,10 +539,19 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
+    /// Whether or not this [`WebView`] can go backward in its navigation history.
+    ///
+    /// This is `false` if the currently active page is the oldest entry in the
+    /// [`WebView`]'s navigation history.
     pub fn can_go_back(&self) -> bool {
         self.inner().back_forward_list_index != 0
     }
 
+    /// Go backward in this [`WebView`]'s navigation history by the given number of steps.
+    ///
+    /// Returns a [`TraversalId`] that can be used with the
+    /// [`WebViewDelegate::notify_traversal_complete`] callback to determine when the
+    /// traversal is complete.
     pub fn go_back(&self, amount: usize) -> TraversalId {
         let traversal_id = TraversalId::new();
         self.inner().servo.constellation_proxy().send(
@@ -502,11 +564,20 @@ impl WebView {
         traversal_id
     }
 
+    /// Whether or not this [`WebView`] can go forward in its navigation history.
+    ///
+    /// This is `false` if the currently active page is the most recent entry in
+    /// the [`WebView`]'s navigation history.
     pub fn can_go_forward(&self) -> bool {
         let inner = self.inner();
         inner.back_forward_list.len() > inner.back_forward_list_index + 1
     }
 
+    /// Go forward in this [`WebView`]'s navigation history by the given number of steps.
+    ///
+    /// Returns a [`TraversalId`] that can be used with the
+    /// [`WebViewDelegate::notify_traversal_complete`] callback to determine when the
+    /// traversal is complete.
     pub fn go_forward(&self, amount: usize) -> TraversalId {
         let traversal_id = TraversalId::new();
         self.inner().servo.constellation_proxy().send(
@@ -528,6 +599,12 @@ impl WebView {
             .notify_scroll_event(self.id(), scroll, point);
     }
 
+    /// Notify this [`WebView`] about an [`InputEvent`] such as a mouse click, touch
+    /// event, or key press.
+    ///
+    /// Returns an [`InputEventId`] that can be used with the
+    /// [`WebViewDelegate::notify_input_event_handled`] callback to determine the result of
+    /// processing of the event by the page content.
     pub fn notify_input_event(&self, event: InputEvent) -> InputEventId {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
@@ -553,6 +630,7 @@ impl WebView {
         event_id
     }
 
+    /// Notify this [`WebView`] about a media session event (e.g. play, pause, next track).
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {
         self.inner()
             .servo
@@ -603,6 +681,10 @@ impl WebView {
         self.inner().servo.paint().pinch_zoom(self.id())
     }
 
+    /// Get the ratio of physical device pixels to CSS pixels for this [`WebView`].
+    ///
+    /// The returned scale factor takes into account page zoom, pinch zoom and the
+    /// HiDPI scaling factor.
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.inner()
             .servo
@@ -610,6 +692,7 @@ impl WebView {
             .device_pixels_per_page_pixel(self.id())
     }
 
+    /// Tell the currently active page in this [`WebView`] to exit fullscreen mode.
     pub fn exit_fullscreen(&self) {
         self.inner()
             .servo
@@ -617,20 +700,40 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
     }
 
+    /// Set whether resource usage of this [`WebView`] should be throttled or not.
+    ///
+    /// A throttled [`WebView`] attempts to use less system resources by stopping
+    /// animations and running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
         self.inner().servo.constellation_proxy().send(
             EmbedderToConstellationMessage::SetWebViewThrottled(self.id(), throttled),
         );
     }
 
+    /// Toggle the given [`WebRenderDebugOption`] from its current state.
+    ///
+    /// Note that this method toggles the debugging options globally i.e., it affects
+    /// all [`WebView`]s managed by Servo and not just the [`WebView`] on which
+    /// this method is invoked.
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
         self.inner().servo.paint().toggle_webrender_debug(debugging);
     }
 
+    /// Capture the current WebRender state for this [`WebView`] for debugging.
+    ///
+    /// Note that the captured state includes information about all [`WebView`]s
+    /// that share this [`WebView`]'s [`RenderingContext`].
     pub fn capture_webrender(&self) {
         self.inner().servo.paint().capture_webrender(self.id());
     }
 
+    /// Enable the sampling profiler for debugging performance issues.
+    ///
+    /// The `rate` determines how often samples are taken and `max_duration` is
+    /// the maximum period for which sampling is enabled.
+    ///
+    /// Note that the profiler is enabled globally i.e., for all [`WebView`]s managed
+    /// by Servo rather than just the [`WebView`] on which this method is invoked.
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
         self.inner().servo.constellation_proxy().send(
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration),
@@ -647,7 +750,7 @@ impl WebView {
             ));
     }
 
-    /// Paint the contents of this [`WebView`] into its `RenderingContext`.
+    /// Paint the contents of this [`WebView`] into its [`RenderingContext`].
     pub fn paint(&self) {
         self.inner().servo.paint().render(self.id());
     }
@@ -935,6 +1038,10 @@ pub struct WebViewBuilder {
 }
 
 impl WebViewBuilder {
+    /// Create a [`WebViewBuilder`] that can be used to configure and create a [`WebView`].
+    ///
+    /// The new [`WebView`] will be managed by the given `servo` instance and will
+    /// use `rendering_context` to paint its contents.
     pub fn new(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         Self {
             servo: servo.clone(),
@@ -960,16 +1067,20 @@ impl WebViewBuilder {
         builder
     }
 
+    /// Set the [`WebViewDelegate`] that will receive notifications about the events
+    /// in the [`WebView`] being created.
     pub fn delegate(mut self, delegate: Rc<dyn WebViewDelegate>) -> Self {
         self.delegate = delegate;
         self
     }
 
+    /// Set the initial URL to load in the [`WebView`] being created.
     pub fn url(mut self, url: Url) -> Self {
         self.url = Some(url);
         self
     }
 
+    /// Set the initial HiDPI scale factor for the [`WebView`] being created.
     pub fn hidpi_scale_factor(
         mut self,
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -1001,6 +1112,7 @@ impl WebViewBuilder {
         self
     }
 
+    /// Create the [`WebView`] using the configuration specified in this [`WebViewBuilder`].
     pub fn build(self) -> WebView {
         WebView::new(self)
     }
