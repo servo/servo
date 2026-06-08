@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::cell::LazyCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
@@ -45,6 +46,7 @@ use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 
+use crate::cell::RefOrAtomicRef;
 use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
@@ -72,18 +74,20 @@ fn root_transform_for_layout_node(
 pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<PhysicalSides> {
     let fragments = node.fragments_for_pseudo(None);
     let fragment = fragments.first()?;
-    Some(match fragment {
-        Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-            let padding = box_fragment.padding;
-            PhysicalSides {
-                top: padding.top,
-                left: padding.left,
-                bottom: padding.bottom,
-                right: padding.right,
-            }
-        },
-        _ => Default::default(),
-    })
+    Some(
+        fragment
+            .retrieve_box_fragment()
+            .map(|box_fragment| {
+                let padding = box_fragment.padding;
+                PhysicalSides {
+                    top: padding.top,
+                    left: padding.left,
+                    bottom: padding.bottom,
+                    right: padding.right,
+                }
+            })
+            .unwrap_or_default(),
+    )
 }
 
 pub(crate) fn process_box_area_request(
@@ -326,53 +330,48 @@ pub fn process_resolved_style_request(
     }
 
     let resolve_for_fragment = |fragment: &Fragment| {
-        let (content_rect, margins, padding, specific_layout_info) = match fragment {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                if style.get_box().position != Position::Static {
-                    let resolved_insets = || {
-                        box_fragment.calculate_resolved_insets_if_positioned(layout_thread.into())
-                    };
-                    match longhand_id {
-                        LonghandId::Top => return resolved_insets().top.to_css_string(),
-                        LonghandId::Right => {
-                            return resolved_insets().right.to_css_string();
-                        },
-                        LonghandId::Bottom => {
-                            return resolved_insets().bottom.to_css_string();
-                        },
-                        LonghandId::Left => {
-                            return resolved_insets().left.to_css_string();
-                        },
-                        LonghandId::Transform => {
-                            // If we can compute the string do it, but otherwise fallback to a cruder serialization
-                            // of the value.
-                            if let Ok(string) = serialize_transform_value(Some(box_fragment)) {
-                                return string;
-                            }
-                        },
-                        _ => {},
+        if let Some(box_fragment) = fragment.retrieve_box_fragment() &&
+            style.get_box().position != Position::Static
+        {
+            let resolved_insets =
+                || box_fragment.calculate_resolved_insets_if_positioned(layout_thread.into());
+            match longhand_id {
+                LonghandId::Top => return resolved_insets().top.to_css_string(),
+                LonghandId::Right => {
+                    return resolved_insets().right.to_css_string();
+                },
+                LonghandId::Bottom => {
+                    return resolved_insets().bottom.to_css_string();
+                },
+                LonghandId::Left => {
+                    return resolved_insets().left.to_css_string();
+                },
+                LonghandId::Transform => {
+                    // If we can compute the string do it, but otherwise fallback to a cruder serialization
+                    // of the value.
+                    if let Ok(string) = serialize_transform_value(Some(&box_fragment)) {
+                        return string;
                     }
-                }
-                let content_rect = box_fragment.base.rect();
-                let margins = box_fragment.margin;
-                let padding = box_fragment.padding;
-                let specific_layout_info = box_fragment.specific_layout_info().as_deref().cloned();
-                (content_rect, margins, padding, specific_layout_info)
-            },
-            Fragment::Positioning(positioning_fragment) => (
-                positioning_fragment.base.rect(),
-                SideOffsets2D::zero(),
-                SideOffsets2D::zero(),
-                None,
-            ),
-            _ => return computed_style(Some(fragment)),
-        };
+                },
+                _ => {},
+            }
+        }
+
+        if !matches!(
+            fragment,
+            Fragment::LayoutRoot(..) | Fragment::Box(..) | Fragment::Positioning(..)
+        ) {
+            return computed_style(Some(fragment));
+        }
 
         // https://drafts.csswg.org/css-grid/#resolved-track-list
         // > The grid-template-rows and grid-template-columns properties are
         // > resolved value special case properties.
         //
         // > When an element generates a grid container box...
+        let specific_layout_info = fragment
+            .retrieve_box_fragment()
+            .and_then(|box_fragment| box_fragment.specific_layout_info().as_deref().cloned());
         if display.inside() == DisplayInside::Grid &&
             let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info &&
             let Some(value) = resolve_grid_template(&info, style, longhand_id)
@@ -387,6 +386,20 @@ pub fn process_resolved_style_request(
         //
         // However, all browsers ignore that for margin and padding properties, and resolve to a length
         // even if the property doesn't apply: https://github.com/w3c/csswg-drafts/issues/10391
+        let content_rect =
+            LazyCell::new(|| fragment.base().map(|base| base.rect()).unwrap_or_default());
+        let margins = LazyCell::new(|| {
+            fragment
+                .retrieve_box_fragment()
+                .map(|fragment| fragment.margin)
+                .unwrap_or_default()
+        });
+        let padding = LazyCell::new(|| {
+            fragment
+                .retrieve_box_fragment()
+                .map(|fragment| fragment.padding)
+                .unwrap_or_default()
+        });
         match longhand_id {
             LonghandId::Width if resolved_size_should_be_used_value(fragment) => {
                 content_rect.size.width
@@ -417,6 +430,9 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
     // > Applies to: all elements except non-replaced inlines
     match fragment {
+        Fragment::LayoutRoot(layout_root) => {
+            resolved_size_should_be_used_value(&layout_root.inner())
+        },
         Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
@@ -436,7 +452,10 @@ fn should_honor_min_size_auto(fragment: Option<&Fragment>, style: &ComputedValue
     // <https://github.com/w3c/csswg-drafts/issues/11716>
     // However, when a box is generated and `aspect-ratio` isn't `auto`, we need to preserve
     // the automatic minimum size as `auto`.
-    let Some(Fragment::Box(box_fragment)) = fragment else {
+    if let Some(Fragment::Float(..)) = fragment {
+        return false;
+    };
+    let Some(box_fragment) = fragment.and_then(|fragment| fragment.retrieve_box_fragment()) else {
         return false;
     };
     let flags = box_fragment.base.flags;
@@ -581,6 +600,13 @@ struct OffsetParentFragments {
     grandparent: Option<Fragment>,
 }
 
+impl OffsetParentFragments {
+    fn grandparent_box_fragment(&self) -> Option<RefOrAtomicRef<'_, Arc<BoxFragment>>> {
+        self.grandparent
+            .as_ref()
+            .and_then(|grandparent| grandparent.retrieve_box_fragment())
+    }
+}
 /// <https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#dom-htmlelement-offsetparent>
 #[expect(unsafe_code)]
 fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFragments> {
@@ -596,9 +622,11 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     ) {
         return None;
     }
-    if matches!(
-        fragment, Fragment::Box(fragment) if fragment.style().get_box().position == Position::Fixed
-    ) {
+
+    if fragment
+        .retrieve_box_fragment()
+        .is_some_and(|fragment| fragment.style().get_box().position == Position::Fixed)
+    {
         return None;
     }
 
@@ -613,9 +641,8 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
         maybe_parent_node = unsafe { parent_node.dangerous_dom_parent() };
 
         if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
-            let parent_fragment = match parent_fragment {
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
-                _ => continue,
+            let Some(parent_fragment) = parent_fragment.retrieve_box_fragment() else {
+                continue;
             };
 
             let grandparent_fragment =
@@ -691,7 +718,7 @@ pub fn process_offset_parent_query(
         });
     };
 
-    let parent_fragment = offset_parent_fragment.parent;
+    let parent_fragment = &offset_parent_fragment.parent;
     let parent_is_static_body_element = parent_fragment
         .base
         .flags
@@ -706,13 +733,7 @@ pub fn process_offset_parent_query(
     //    that apply to the element and its ancestors.
     //
     // We generalize this for `offsetRight` as described in the specification.
-    let grandparent_box_fragment = || match offset_parent_fragment.grandparent {
-        Some(Fragment::Box(box_fragment)) | Some(Fragment::Float(box_fragment)) => {
-            Some(box_fragment)
-        },
-        _ => None,
-    };
-
+    //
     // The spec (https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface)
     // says that offsetTop/offsetLeft are always relative to the padding box of the offsetParent.
     // However, in practice this is not true in major browsers in the case that the offsetParent is the body
@@ -721,7 +742,7 @@ pub fn process_offset_parent_query(
     //
     // See <https://github.com/w3c/csswg-drafts/issues/10549>.
     let parent_offset_rect = if parent_is_static_body_element {
-        if let Some(grandparent_fragment) = grandparent_box_fragment() {
+        if let Some(grandparent_fragment) = offset_parent_fragment.grandparent_box_fragment() {
             grandparent_fragment.offset_by_containing_block(
                 &grandparent_fragment.border_rect(),
                 layout_thread.into(),

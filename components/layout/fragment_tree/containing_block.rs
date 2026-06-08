@@ -51,16 +51,15 @@ pub(crate) struct ContainingBlockManager<'a, T> {
 
 impl<'a, T> ContainingBlockManager<'a, T> {
     pub(crate) fn get_containing_block_for_fragment(&self, fragment: &Fragment) -> &T {
-        if let Fragment::Box(box_fragment) = fragment {
-            match box_fragment.style().clone_position() {
-                ComputedPosition::Fixed => self.for_absolute_and_fixed_descendants,
-                ComputedPosition::Absolute => self
-                    .for_absolute_descendants
-                    .unwrap_or(self.for_absolute_and_fixed_descendants),
-                _ => self.for_non_absolute_descendants,
-            }
-        } else {
-            self.for_non_absolute_descendants
+        let Some(box_fragment) = fragment.retrieve_box_fragment() else {
+            return self.for_non_absolute_descendants;
+        };
+        match box_fragment.style().clone_position() {
+            ComputedPosition::Fixed => self.for_absolute_and_fixed_descendants,
+            ComputedPosition::Absolute => self
+                .for_absolute_descendants
+                .unwrap_or(self.for_absolute_and_fixed_descendants),
+            _ => self.for_non_absolute_descendants,
         }
     }
 
