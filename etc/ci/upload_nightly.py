@@ -63,7 +63,7 @@ def upload_to_github_release(platform: str, package: str, package_hash: str, git
 
     extension = path.basename(package).partition(".")[2]
     auth = Auth.Token(os.environ["RELEASE_REPO_TOKEN"])
-    g = Github(auth=auth)
+    g = Github(auth=auth)  # pyrefly: ignore[bad-keyword-argument]
     nightly_repo = g.get_repo(os.environ["RELEASE_REPO"])
     release = nightly_repo.get_release(github_release_id)
 
