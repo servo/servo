@@ -47,7 +47,8 @@ pub(crate) struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
-    const RGBA8_BYTES_PER_PIXEL: usize = 4; // 4 bytes per RGBA pixel
+    const BYTES_PER_RGBA8_PIXEL: usize = 4;
+    /// We have two bitmap buffers one in Canvas Paint Thread and one for WebRender
     const ASSOCIATED_MEMORY_BUFFER_COUNT: usize = 2;
 
     fn associated_memory_size(size: Size2D<u64>) -> usize {
