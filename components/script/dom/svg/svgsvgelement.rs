@@ -155,13 +155,12 @@ impl SVGSVGElement {
         }
     }
 
-    fn invalidate_cached_serialized_subtree(&self) {
+    fn invalidate_cached_serialized_subtree_and_rasterization_result(&self) {
         let owner_window = self.owner_window();
         owner_window
             .image_cache()
             .evict_rasterized_image(&self.uuid);
-        let data_url = self.cached_serialized_data_url.borrow().clone();
-        if let Some(Ok(url)) = data_url {
+        if let Some(Ok(url)) = &*self.cached_serialized_data_url.borrow() {
             owner_window.layout_mut().remove_cached_image(&url);
             owner_window.image_cache().evict_completed_image(
                 &url,
@@ -213,7 +212,7 @@ impl VirtualMethods for SVGSVGElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
 
-        self.invalidate_cached_serialized_subtree();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result();
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
@@ -264,7 +263,7 @@ impl VirtualMethods for SVGSVGElement {
             super_type.children_changed(cx, mutation);
         }
 
-        self.invalidate_cached_serialized_subtree();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result();
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
@@ -272,6 +271,6 @@ impl VirtualMethods for SVGSVGElement {
             s.unbind_from_tree(cx, context);
         }
 
-        self.invalidate_cached_serialized_subtree();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result();
     }
 }
