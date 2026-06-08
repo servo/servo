@@ -2955,23 +2955,23 @@ dependencies = [
 
 [[package]]
 name = "gilrs-core"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23f2cc5144060a7f8d9e02d3fce5d06705376568256a509cdbc3c24d47e4f04"
+checksum = "dc7f0ce6237abcc0523f2a5502b1e3fe5802daaae47ac14e166fe49551301ea9"
 dependencies = [
  "inotify",
  "js-sys",
  "libc",
  "libudev-sys",
  "log",
- "nix",
+ "nix 0.31.3",
  "objc2-core-foundation",
  "objc2-io-kit",
  "uuid",
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.62.2",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -3131,7 +3131,7 @@ dependencies = [
  "log",
  "presser",
  "thiserror 2.0.18",
- "windows 0.62.2",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -3889,7 +3889,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -5273,6 +5273,18 @@ name = "nix"
 version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
+dependencies = [
+ "bitflags 2.11.1",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.31.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
 dependencies = [
  "bitflags 2.11.1",
  "cfg-if",
@@ -7611,7 +7623,7 @@ dependencies = [
  "libc",
  "log",
  "mach2",
- "nix",
+ "nix 0.30.1",
  "rustc-demangle",
  "rustc-hash 2.1.2",
  "serde_json",
@@ -9128,7 +9140,7 @@ dependencies = [
  "mime_guess",
  "napi-derive-ohos",
  "napi-ohos",
- "nix",
+ "nix 0.30.1",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
  "ohos-abilitykit-sys",
