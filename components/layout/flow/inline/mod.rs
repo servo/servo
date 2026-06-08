@@ -842,6 +842,10 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// of the inline box is the state popped from the stack.
     inline_box_state_stack: Vec<Rc<InlineBoxContainerState>>,
 
+    /// The amount of space that will be taken up by all end-side paddings, borders and margins of
+    /// all inline boxes with `box-decoration-break: clone` that we are currently inside of.
+    cloneable_inline_box_end_pbm_size: Au,
+
     /// A collection of [`InlineBoxContainerState`] of all the inlines that are present
     /// in this inline formatting context. We keep this as well as the stack, so that we
     /// can access them during line layout, which may happen after relevant [`InlineBoxContainerState`]s
@@ -956,6 +960,22 @@ impl InlineFormattingContextLayout<'_> {
         })
     }
 
+    fn recalculate_cloneable_pbm(&mut self) {
+        let mut max = Au::zero();
+        let mut current = Au::zero();
+        for inline_box in self.inline_box_state_stack.iter().rev() {
+            if inline_box.clone_pbm {
+                current += inline_box.pbm.padding.inline_end;
+                current += inline_box.pbm.border.inline_end;
+                max = max.max(current);
+                // Handle margin separately since it might be negative.
+                current += inline_box.pbm.margin.inline_end.auto_is(Au::zero);
+                max = max.max(current);
+            }
+        }
+        self.cloneable_inline_box_end_pbm_size = max;
+    }
+
     /// Start laying out a particular [`InlineBox`] into line items. This will push
     /// a new [`InlineBoxContainerState`] onto [`Self::inline_box_state_stack`].
     fn start_inline_box(&mut self, inline_box: &InlineBox) {
@@ -1017,6 +1037,7 @@ impl InlineFormattingContextLayout<'_> {
         );
         self.inline_box_states.push(inline_box_state.clone());
         self.inline_box_state_stack.push(inline_box_state);
+        self.recalculate_cloneable_pbm();
     }
 
     /// Finish laying out a particular [`InlineBox`] into line items. This will
@@ -1026,6 +1047,7 @@ impl InlineFormattingContextLayout<'_> {
             Some(inline_box_state) => inline_box_state,
             None => return, // We are at the root.
         };
+        self.recalculate_cloneable_pbm();
 
         self.current_line_segment
             .max_block_size
@@ -1082,6 +1104,15 @@ impl InlineFormattingContextLayout<'_> {
         self.possibly_push_empty_text_run_to_line_for_text_caret();
 
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
+        // At the end of a line, we need to insert any paddings, borders or margins that might need to be
+        // duplicated due to box-decoration-break
+        for inline_box in self.inline_box_state_stack.iter().rev() {
+            if inline_box.clone_pbm {
+                self.current_line_segment.line_items.push(
+                    LineItem::InlineEndBoxPaddingBorderMargin(inline_box.identifier),
+                );
+            }
+        }
         let (inline_start_position, justification_adjustment) = self
             .calculate_current_line_inline_start_and_justification_adjustment(
                 whitespace_trimmed,
@@ -1147,6 +1178,16 @@ impl InlineFormattingContextLayout<'_> {
                 block: block_end_position,
             }),
         );
+        // At the start of the next line, we need to insert any paddings, borders or margins that might need to be
+        // duplicated due to box-decoration-break
+        for inline_box in self.inline_box_state_stack.iter().rev() {
+            if inline_box.clone_pbm {
+                self.current_line_segment.line_items.push(
+                    LineItem::InlineStartBoxPaddingBorderMargin(inline_box.identifier),
+                );
+            }
+        }
+
         if !line_to_layout.for_block_level {
             self.placement_state.current_block_direction_position = block_end_position;
         }
@@ -1458,7 +1499,9 @@ impl InlineFormattingContextLayout<'_> {
             }
         };
 
-        let inline_would_overflow = potential_line_size.inline > available_line_space.inline;
+        let inline_would_overflow = potential_line_size.inline +
+            self.cloneable_inline_box_end_pbm_size >
+            available_line_space.inline;
         let block_would_overflow = potential_line_size.block > available_line_space.block;
 
         // The first content that is added to a line cannot trigger a line break and
@@ -2034,6 +2077,7 @@ impl InlineFormattingContext {
                 self.default_font.clone(),
             ),
             inline_box_state_stack: Vec::new(),
+            cloneable_inline_box_end_pbm_size: Au::zero(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
             force_line_break_before_new_content: None,

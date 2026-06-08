@@ -10,6 +10,7 @@ use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 
@@ -212,6 +213,10 @@ pub(super) struct InlineBoxContainerState {
 
     /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
     pub pbm: PaddingBorderMargin,
+
+    /// Whether or not the padding, borders and margins of the [`InlineBox`] that this state tracks
+    /// are cloned at line breaks.
+    pub clone_pbm: bool,
 }
 
 impl InlineBoxContainerState {
@@ -237,6 +242,8 @@ impl InlineBoxContainerState {
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
+            clone_pbm: inline_box.base.style.get_border().box_decoration_break ==
+                BoxDecorationBreak::Clone,
         }
     }
 

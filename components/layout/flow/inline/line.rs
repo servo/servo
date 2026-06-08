@@ -392,33 +392,36 @@ impl LineItemLayout<'_, '_> {
         let inline_box = self.layout.ifc.inline_boxes.get(&identifier);
         let inline_box = &*(inline_box.borrow());
 
-        let mut had_start = inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
-        let mut had_end = inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
-
         let containing_block = self.containing_block();
         let containing_block_writing_mode = containing_block.style.writing_mode;
-        if containing_block_writing_mode.is_bidi_ltr() !=
-            inline_box.base.style.writing_mode.is_bidi_ltr()
-        {
-            std::mem::swap(&mut had_start, &mut had_end)
-        }
 
         let mut padding = inline_box_state.pbm.padding;
         let mut border = inline_box_state.pbm.border;
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
-        if !had_start {
-            padding.inline_start = Au::zero();
-            border.inline_start = Au::zero();
-            margin.inline_start = Au::zero();
-        }
-        if !had_end {
-            padding.inline_end = Au::zero();
-            border.inline_end = Au::zero();
-            margin.inline_end = Au::zero();
+        if !inline_box_state.clone_pbm {
+            let mut had_start = inner_state
+                .flags
+                .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
+            let mut had_end = inner_state
+                .flags
+                .contains(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
+
+            if containing_block_writing_mode.is_bidi_ltr() !=
+                inline_box.base.style.writing_mode.is_bidi_ltr()
+            {
+                std::mem::swap(&mut had_start, &mut had_end)
+            }
+
+            if !had_start {
+                padding.inline_start = Au::zero();
+                border.inline_start = Au::zero();
+                margin.inline_start = Au::zero();
+            }
+            if !had_end {
+                padding.inline_end = Au::zero();
+                border.inline_end = Au::zero();
+                margin.inline_end = Au::zero();
+            }
         }
         let pbm_sums = padding + border + margin;
 
