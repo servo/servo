@@ -55,7 +55,8 @@ pub struct GenericOneshotReceiver<T: Serialize + for<'de> Deserialize<'de>>(
     GenericReceiverVariants<T>,
 );
 
-/// Creates a oneshot generic channel. This channel allows only a fixed capacity and might have other optimizations.
+/// Creates a oneshot generic channel used to send only a single message, similar tokio::sync::oneshot.
+/// This is not the same as ipc_channel::oneshot.
 /// The send and receive methods will consume the Sender/Receiver.
 /// We will automatically select ipc or crossbeam channels.
 pub fn oneshot<T>() -> Option<(GenericOneshotSender<T>, GenericOneshotReceiver<T>)>
