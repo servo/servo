@@ -42,16 +42,6 @@ pub(crate) struct TabDescriptorActorMsg {
     url: String,
 }
 
-impl TabDescriptorActorMsg {
-    pub fn browser_id(&self) -> u32 {
-        self.browser_id
-    }
-
-    pub fn actor(&self) -> String {
-        self.actor.clone()
-    }
-}
-
 #[derive(Serialize)]
 struct GetTargetReply {
     from: String,
@@ -200,13 +190,14 @@ impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
     fn encode(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
         let browsing_context_actor =
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        let root_actor = registry.find::<RootActor>("root");
         TabDescriptorActorMsg {
             actor: self.name().into(),
             browser_id: browsing_context_actor.browser_id.value(),
             browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             is_zombie_tab: false,
             outer_window_id: browsing_context_actor.outer_window_id().value(),
-            selected: false,
+            selected: root_actor.active_tab().as_deref() == Some(self.name()),
             title: browsing_context_actor.title(),
             traits: DescriptorTraits {
                 watcher: true,
