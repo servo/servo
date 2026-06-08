@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::LocalName;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::attr::Attr;
@@ -112,7 +112,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, _: &mut JSContext) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();
         for attr in self.owner.attrs().borrow().iter() {

@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -89,8 +89,8 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
-        self.upcast().SupportedPropertyNames(cx)
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+        self.upcast().SupportedPropertyNames(no_gc)
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of

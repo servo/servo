@@ -31,7 +31,7 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
@@ -2319,12 +2319,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, cx: &mut JSContext) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
         let document = self.Document();
         let mut names_with_first_named_element_map = HashMap::new();
         document
             .name_map()
-            .for_each(cx.no_gc(), document.upcast(), |name, elements| {
+            .for_each(no_gc, document.upcast(), |name, elements| {
                 if name.is_empty() {
                     return;
                 }
@@ -2338,7 +2338,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         document
             .id_map()
-            .for_each(cx.no_gc(), document.upcast(), |id, elements| {
+            .for_each(no_gc, document.upcast(), |id, elements| {
                 if id.is_empty() {
                     return;
                 }
