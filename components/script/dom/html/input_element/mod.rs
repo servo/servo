@@ -330,6 +330,20 @@ impl HTMLInputElement {
         )
     }
 
+    pub(crate) fn does_dirname_apply(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Hidden(_) |
+                InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Submit(_)
+        )
+    }
+
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             *self.input_type(),
