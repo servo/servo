@@ -161,9 +161,9 @@ impl SVGSVGElement {
             .image_cache()
             .evict_rasterized_image(&self.uuid);
         if let Some(Ok(url)) = &*self.cached_serialized_data_url.borrow() {
-            owner_window.layout_mut().remove_cached_image(&url);
+            owner_window.layout_mut().remove_cached_image(url);
             owner_window.image_cache().evict_completed_image(
-                &url,
+                url,
                 owner_window.origin().immutable(),
                 &None,
             );
