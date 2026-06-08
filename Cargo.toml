@@ -449,15 +449,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-# [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo = { path = "../stylo/style" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
-# stylo_traits = { path = "../stylo/style_traits" }
+ [patch."https://github.com/servo/stylo"]
+ selectors = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ servo_arc ={ git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo_atoms = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo_dom = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo_malloc_size_of = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo_static_prefs = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ stylo_traits = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
 #
 # Or for another Git dependency:
 #
