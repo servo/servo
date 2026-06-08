@@ -365,4 +365,51 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             CanGc::deprecated_note(),
         )
     }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::CommandEncoderPushDebugGroup {
+                command_encoder_id: self.droppable.encoder.0,
+                label: group_label.to_string(),
+                device_id: self.device.id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::CommandEncoderPushDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::CommandEncoderPopDebugGroup {
+                command_encoder_id: self.droppable.encoder.0,
+                device_id: self.device.id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::CommandEncoderPopDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Err(e) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::CommandEncoderInsertDebugMarker {
+                    command_encoder_id: self.droppable.encoder.0,
+                    label: marker_label.to_string(),
+                    device_id: self.device.id().0,
+                })
+        {
+            warn!("Error sending WebGPURequest::CommandEncoderInsertDebugMarker: {e:?}")
+        }
+    }
 }

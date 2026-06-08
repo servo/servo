@@ -279,6 +279,35 @@ impl WGPU {
                         );
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
+                    WebGPURequest::CommandEncoderPushDebugGroup {
+                        device_id,
+                        command_encoder_id,
+                        label,
+                    } => {
+                        let result = self
+                            .global
+                            .command_encoder_push_debug_group(command_encoder_id, &label);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::CommandEncoderPopDebugGroup {
+                        device_id,
+                        command_encoder_id,
+                    } => {
+                        let result = self
+                            .global
+                            .command_encoder_pop_debug_group(command_encoder_id);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::CommandEncoderInsertDebugMarker {
+                        device_id,
+                        command_encoder_id,
+                        label,
+                    } => {
+                        let result = self
+                            .global
+                            .command_encoder_insert_debug_marker(command_encoder_id, &label);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
                     WebGPURequest::CreateBindGroup {
                         device_id,
                         bind_group_id,
@@ -765,6 +794,43 @@ impl WGPU {
                         let result = self
                             .global
                             .compute_pass_dispatch_workgroups_indirect(pass, buffer_id, offset);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::ComputePassPushDebugGroup {
+                        compute_pass_id,
+                        label,
+                        device_id,
+                    } => {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        let result = self.global.compute_pass_push_debug_group(pass, &label, 0);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::ComputePassPopDebugGroup {
+                        compute_pass_id,
+                        device_id,
+                    } => {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        let result = self.global.compute_pass_pop_debug_group(pass);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                    },
+                    WebGPURequest::ComputePassInsertDebugMarker {
+                        compute_pass_id,
+                        label,
+                        device_id,
+                    } => {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        let result = self
+                            .global
+                            .compute_pass_insert_debug_marker(pass, &label, 0);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::EndComputePass {
