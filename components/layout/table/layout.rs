@@ -98,7 +98,7 @@ impl CellLayout {
         self.layout
             .fragments
             .iter()
-            .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
+            .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositionedPlaceholder(_)))
     }
 }
 

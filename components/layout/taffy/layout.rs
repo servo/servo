@@ -556,7 +556,7 @@ impl TaffyContainer {
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         container_ctx.positioning_context.push(hoisted_box);
-                        Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                        Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment)
                     },
                 };
 

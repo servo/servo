@@ -934,7 +934,7 @@ impl BlockLevelBox {
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
-                Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment)
             },
             BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(
                 float_box
@@ -1989,7 +1989,7 @@ impl<'container> PlacementState<'container> {
                     self.current_margin = fragment_block_margins.end;
                 }
             },
-            Fragment::AbsoluteOrFixedPositioned(fragment) => {
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 // The alignment of absolutes in block flow layout is always "start", so the size of
                 // the static position rectangle does not matter.
                 fragment.borrow_mut().original_static_position_rect = LogicalRect {

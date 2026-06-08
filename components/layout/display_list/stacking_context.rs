@@ -492,7 +492,7 @@ impl Fragment {
                     text_decorations,
                 );
             },
-            Fragment::AbsoluteOrFixedPositioned(fragment) => {
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 let shared_fragment = fragment.borrow();
                 let fragment_ref = match shared_fragment.fragment.as_ref() {
                     Some(fragment_ref) => fragment_ref,
