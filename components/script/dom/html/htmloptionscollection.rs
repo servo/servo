@@ -89,8 +89,8 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.upcast().SupportedPropertyNames()
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+        self.upcast().SupportedPropertyNames(cx)
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of

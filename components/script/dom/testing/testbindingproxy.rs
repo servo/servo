@@ -5,6 +5,7 @@
 // check-tidy: no specs after this line
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
 use crate::dom::bindings::str::DOMString;
@@ -19,7 +20,7 @@ impl TestBindingProxyMethods<crate::DomTypeHolder> for TestBindingProxy {
     fn Length(&self) -> u32 {
         0
     }
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut JSContext) -> Vec<DOMString> {
         vec![]
     }
     fn GetNamedItem(&self, _: DOMString) -> DOMString {

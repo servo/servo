@@ -2259,12 +2259,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let name = Atom::from(name);
 
         // Step 1.
-        let elements_with_name = document.get_elements_with_name(&name);
+        let elements_with_name = document.get_elements_with_name(cx, &name);
         let name_iter = elements_with_name
             .iter()
             .map(|element| &**element)
             .filter(|elem| is_named_element_with_name_attribute(elem));
-        let elements_with_id = document.get_elements_with_id(&name);
+
+        let elements_with_id = document.get_elements_with_id(cx, &name);
         let id_iter = elements_with_id
             .iter()
             .map(|element| &**element)
@@ -2325,52 +2326,51 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
-
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
         let document = self.Document();
-        let name_map = document.name_map();
-        for (name, elements) in &name_map.0 {
-            if name.is_empty() {
-                continue;
-            }
-            let mut name_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_name_attribute(elem));
-            if let Some(first) = name_iter.next() {
-                names_with_first_named_element_map.insert(name, first);
-            }
-        }
-        let id_map = document.id_map();
-        for (id, elements) in &id_map.0 {
-            if id.is_empty() {
-                continue;
-            }
-            let mut id_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_id_attribute(elem));
-            if let Some(first) = id_iter.next() {
-                match names_with_first_named_element_map.entry(id) {
-                    Entry::Vacant(entry) => drop(entry.insert(first)),
-                    Entry::Occupied(mut entry) => {
-                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                            *entry.get_mut() = first;
-                        }
-                    },
+        let mut names_with_first_named_element_map = HashMap::new();
+        document
+            .name_map()
+            .for_each(cx.no_gc(), document.upcast(), |name, elements| {
+                if name.is_empty() {
+                    return;
                 }
-            }
-        }
+                let mut name_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_name_attribute(elem));
+                if let Some(first) = name_iter.next() {
+                    names_with_first_named_element_map.insert(name.clone(), first.as_rooted());
+                }
+            });
 
-        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
-            names_with_first_named_element_map
-                .iter()
-                .map(|(k, v)| (*k, *v))
-                .collect();
+        document
+            .id_map()
+            .for_each(cx.no_gc(), document.upcast(), |id, elements| {
+                if id.is_empty() {
+                    return;
+                }
+                let mut id_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_id_attribute(elem));
+                if let Some(first) = id_iter.next() {
+                    match names_with_first_named_element_map.entry(id.clone()) {
+                        Entry::Vacant(entry) => drop(entry.insert(first.as_rooted())),
+                        Entry::Occupied(mut entry) => {
+                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                                *entry.get_mut() = first.as_rooted();
+                            }
+                        },
+                    }
+                }
+            });
+
+        let mut names_with_first_named_element_vec: Vec<_> =
+            names_with_first_named_element_map.into_iter().collect();
         names_with_first_named_element_vec.sort_unstable_by(|a, b| {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(b.0)
+                a.0.cmp(&b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 cmp::Ordering::Less
             } else {
@@ -2380,7 +2380,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         names_with_first_named_element_vec
             .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
+            .map(|(k, _v)| DOMString::from(&**k))
             .collect()
     }
 
@@ -2682,6 +2682,10 @@ impl Window {
         } else {
             None
         };
+
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
+        document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
         let document_context = self.web_font_context();
 

@@ -123,6 +123,11 @@ impl<K, V, S> HashMapTracedValues<K, V, S> {
     }
 
     #[inline]
+    pub(crate) fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<'_, K, V> {
+        self.0.iter_mut()
+    }
+
+    #[inline]
     pub(crate) fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
         self.0.drain()
     }

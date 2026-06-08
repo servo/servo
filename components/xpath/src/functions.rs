@@ -168,20 +168,22 @@ impl CoreFunction {
                 // https://www.w3.org/TR/1999/REC-xpath-19991116/#function-id
                 // > When the argument to id is of type node-set, then the result is the union of the result
                 // > of applying id to the string-value of each of the nodes in the argument node-set.
-                let mut extend_result_with_matching_nodes = |input: &str| {
-                    result.extend(
-                        normalize_space(input)
-                            .split(' ')
-                            .flat_map(|id| document.get_elements_with_id(id))
-                            .map(|element| element.as_node()),
-                    );
+                let mut extend_result_with_matching_nodes = |cx: &mut D::Context, input: &str| {
+                    for id in normalize_space(input).split(' ') {
+                        result.extend(
+                            document
+                                .get_elements_with_id(cx, id)
+                                .map(|element| element.as_node()),
+                        );
+                    }
                 };
+
                 if let Value::NodeSet(node_set) = argument {
                     for node in node_set.iter() {
-                        extend_result_with_matching_nodes(&node.text_content())
+                        extend_result_with_matching_nodes(cx, &node.text_content())
                     }
                 } else {
-                    extend_result_with_matching_nodes(&argument.convert_to_string())
+                    extend_result_with_matching_nodes(cx, &argument.convert_to_string())
                 }
 
                 result.sort();

@@ -364,6 +364,7 @@ pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
 pub(crate) mod touchlist;
+pub(crate) mod tree_ordered_index_map;
 pub(crate) mod treewalker;
 pub(crate) mod trustedtypes;
 pub(crate) use self::trustedtypes::*;

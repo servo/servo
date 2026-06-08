@@ -112,7 +112,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut JSContext) -> Vec<DOMString> {
         let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();
         for attr in self.owner.attrs().borrow().iter() {

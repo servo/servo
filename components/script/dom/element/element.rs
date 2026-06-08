@@ -3740,15 +3740,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    fn QuerySelector(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        root.query_selector(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
+    fn QuerySelectorAll(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        root.query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -4505,39 +4513,31 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
+                                let old_value = old_value.as_atom();
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        old_value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(old_value);
                                 } else {
-                                    doc.unregister_element_id(cx, self, old_value);
+                                    doc.unregister_element_id(cx, old_value);
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.register_element_id(
                                         self,
-                                        value,
+                                        &value,
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.register_element_id(cx, self, value);
+                                    doc.register_element_id(cx, self, &value);
                                 }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(&value);
                                 } else {
-                                    doc.unregister_element_id(cx, self, value);
+                                    doc.unregister_element_id(cx, &value);
                                 }
                             }
                         },
@@ -4562,16 +4562,15 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
-                                doc.unregister_element_name(self, old_value);
+                                doc.unregister_element_name(old_value.as_atom());
                             }
                             if value != atom!("") {
-                                doc.register_element_name(self, value);
+                                doc.register_element_name(self, &value);
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                doc.unregister_element_name(self, value);
+                                doc.unregister_element_name(&value);
                             }
                         },
                     }
@@ -4668,15 +4667,15 @@ impl VirtualMethods for Element {
 
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root.register_element_id(self, id.clone(), CanGc::from_cx(cx));
+                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
             } else {
-                doc.register_element_id(cx, self, id.clone());
+                doc.register_element_id(cx, self, id);
             }
         }
         if let Some(ref name) = self.name_attribute() &&
             self.containing_shadow_root().is_none()
         {
-            doc.register_element_name(self, name.clone());
+            doc.register_element_name(self, name);
         }
     }
 
@@ -4705,16 +4704,16 @@ impl VirtualMethods for Element {
                 // Only unregister the element id if the node was disconnected from it's shadow root
                 // (as opposed to the whole shadow tree being disconnected as a whole)
                 if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
+                    shadow_root.unregister_element_id(value);
                 }
             } else {
-                doc.unregister_element_id(cx, self, value.clone());
+                doc.unregister_element_id(cx, value);
             }
         }
         if let Some(ref value) = self.name_attribute() &&
             self.containing_shadow_root().is_none()
         {
-            doc.unregister_element_name(self, value.clone());
+            doc.unregister_element_name(value);
         }
     }
 

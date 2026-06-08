@@ -309,6 +309,7 @@ fn matching_links(
 }
 
 fn all_matching_links(
+    cx: &mut JSContext,
     root_node: &Node,
     link_text: String,
     partial: bool,
@@ -317,7 +318,7 @@ fn all_matching_links(
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
     // during the execution of the element location strategy, return error invalid selector.
     root_node
-        .query_selector_all(DOMString::from("a"))
+        .query_selector_all(cx.no_gc(), DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(&nodes, link_text, partial).collect())
 }
@@ -785,6 +786,7 @@ fn retrieve_document_and_check_root_existence(
 }
 
 pub(crate) fn handle_find_elements_css_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -794,7 +796,7 @@ pub(crate) fn handle_find_elements_css_selector(
         Ok(document) => reply
             .send(
                 document
-                    .QuerySelectorAll(DOMString::from(selector))
+                    .QuerySelectorAll(cx, DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -809,6 +811,7 @@ pub(crate) fn handle_find_elements_css_selector(
 }
 
 pub(crate) fn handle_find_elements_link_text(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -818,6 +821,7 @@ pub(crate) fn handle_find_elements_link_text(
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
             .send(all_matching_links(
+                cx,
                 document.upcast::<Node>(),
                 selector,
                 partial,
@@ -928,6 +932,7 @@ pub(crate) fn handle_find_elements_xpath_selector(
 }
 
 pub(crate) fn handle_find_element_elements_css_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -939,7 +944,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 element
                     .upcast::<Node>()
-                    .query_selector_all(DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -953,6 +958,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
 }
 
 pub(crate) fn handle_find_element_elements_link_text(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -963,7 +969,7 @@ pub(crate) fn handle_find_element_elements_link_text(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
-                all_matching_links(element.upcast::<Node>(), selector.clone(), partial)
+                all_matching_links(cx, element.upcast::<Node>(), selector.clone(), partial)
             }),
         )
         .unwrap();
@@ -1017,6 +1023,7 @@ pub(crate) fn handle_find_element_elements_xpath_selector(
 
 /// <https://w3c.github.io/webdriver/#find-elements-from-shadow-root>
 pub(crate) fn handle_find_shadow_elements_css_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
@@ -1028,7 +1035,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -1042,6 +1049,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
 }
 
 pub(crate) fn handle_find_shadow_elements_link_text(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
@@ -1052,13 +1060,14 @@ pub(crate) fn handle_find_shadow_elements_link_text(
     reply
         .send(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
-                all_matching_links(shadow_root.upcast::<Node>(), selector.clone(), partial)
+                all_matching_links(cx, shadow_root.upcast::<Node>(), selector.clone(), partial)
             }),
         )
         .unwrap();
 }
 
 pub(crate) fn handle_find_shadow_elements_tag_name(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
@@ -1075,7 +1084,7 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
             get_known_shadow_root(documents, pipeline, shadow_root_id).map(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map(|nodes| {
                         nodes
                             .iter()

@@ -521,7 +521,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut JSContext) -> Vec<DOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
         enum SourcedNameSource {
@@ -1685,9 +1685,9 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
             let first_relevant_element = if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root
                     .upcast::<DocumentFragment>()
-                    .GetElementById(form_id)
+                    .GetElementById(cx, form_id)
             } else {
-                node.owner_document().GetElementById(form_id)
+                node.owner_document().GetElementById(cx, form_id)
             };
 
             first_relevant_element.and_then(DomRoot::downcast::<HTMLFormElement>)

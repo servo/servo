@@ -1534,11 +1534,18 @@ impl Node {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector(
         &self,
+        no_gc: &NoGC,
         selectors: DOMString,
     ) -> Fallible<Option<DomRoot<Element>>> {
         // > The querySelector(selectors) method steps are to return the first result of running scope-match
         // > a selectors string selectors against this, if the result is not an empty list; otherwise null.
         let document_url = self.owner_document().url().get_arc();
+
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
+        self.owner_document()
+            .id_map()
+            .resolve_all(no_gc, self.owner_doc().upcast());
 
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
@@ -1555,10 +1562,20 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
+    pub(crate) fn query_selector_all(
+        &self,
+        no_gc: &NoGC,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
         // > a selectors string selectors against this.
         let document_url = self.owner_document().url().get_arc();
+
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
+        self.owner_document()
+            .id_map()
+            .resolve_all(no_gc, self.owner_doc().upcast());
 
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
