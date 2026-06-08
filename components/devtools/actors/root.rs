@@ -17,6 +17,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
@@ -283,22 +284,34 @@ impl Actor for RootActor {
             },
 
             "listTabs" => {
+                let top_level_tabs: Vec<_> = self
+                    .tabs
+                    .borrow()
+                    .iter()
+                    .filter(|&tab_name| {
+                        registry
+                            .find::<TabDescriptorActor>(tab_name)
+                            .is_top_level_global(registry)
+                    })
+                    .cloned()
+                    .collect();
+
+                // Ensure a tab is always selected
+                let active_tab_name = self.active_tab.borrow().clone();
+                let some_active_tab = active_tab_name
+                    .as_ref()
+                    .is_some_and(|name| top_level_tabs.contains(name));
+                if let Some(first_tab) = top_level_tabs.first() &&
+                    !some_active_tab
+                {
+                    *self.active_tab.borrow_mut() = Some(first_tab.clone());
+                }
+
                 let reply = ListTabsReply {
                     from: self.name().into(),
-                    tabs: self
-                        .tabs
-                        .borrow()
+                    tabs: top_level_tabs
                         .iter()
-                        .filter_map(|tab_descriptor_name| {
-                            let tab_descriptor_actor =
-                                registry.find::<TabDescriptorActor>(tab_descriptor_name);
-                            // Filter out iframes and workers
-                            if tab_descriptor_actor.is_top_level_global(registry) {
-                                Some(tab_descriptor_actor.encode(registry))
-                            } else {
-                                None
-                            }
-                        })
+                        .map(|tab_name| registry.encode::<TabDescriptorActor, _>(tab_name))
                         .collect(),
                 };
                 request.reply_final(&reply)?
@@ -383,20 +396,23 @@ impl RootActor {
         registry: &ActorRegistry,
         browser_id: u32,
     ) -> Option<TabDescriptorActorMsg> {
-        let mut tab_msg = self
+        let tab_descriptor_actor = self
             .tabs
             .borrow()
             .iter()
-            .map(|tab_descriptor_name| {
-                registry.encode::<TabDescriptorActor, _>(tab_descriptor_name)
-            })
-            .find(|tab_descriptor_actor| tab_descriptor_actor.browser_id() == browser_id);
+            .map(|tab_descriptor_name| registry.find::<TabDescriptorActor>(tab_descriptor_name))
+            .find(|tab_descriptor_actor| {
+                let browsing_context = registry
+                    .find::<BrowsingContextActor>(&tab_descriptor_actor.browsing_context_name);
+                browsing_context.browser_id.value() == browser_id
+            });
 
-        if let Some(ref mut msg) = tab_msg {
-            msg.selected = true;
-            *self.active_tab.borrow_mut() = Some(msg.actor());
+        if let Some(tab_descriptor_actor) = tab_descriptor_actor {
+            *self.active_tab.borrow_mut() = Some(tab_descriptor_actor.name().to_owned());
+            Some(registry.encode::<TabDescriptorActor, _>(tab_descriptor_actor.name()))
+        } else {
+            None
         }
-        tab_msg
     }
 
     pub fn active_tab(&self) -> Option<String> {
