@@ -241,8 +241,7 @@ pub(crate) fn find_enum_value<'a, T>(
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
-#[allow(clippy::result_unit_err)]
-pub fn get_dictionary_property(
+pub(crate) fn get_dictionary_property(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     property: &CStr,

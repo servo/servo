@@ -16,10 +16,10 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
+use crate::dom::bindings::conversions::get_property_jsval;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::types::GlobalScope;
 use crate::native_fn;
 use crate::script_runtime::CanGc;
@@ -115,14 +115,8 @@ fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: Call
     rooted!(&in(cx) let object = chunk.to_object());
 
     // Return ? O.[[Get]](P, V).
-    match get_dictionary_property(cx, object.handle(), c"byteLength", unsafe {
+    get_property_jsval(cx, object.handle(), c"byteLength", unsafe {
         MutableHandleValue::from_raw(args.rval())
-    }) {
-        Ok(true) => true,
-        Ok(false) => {
-            args.rval().set(UndefinedValue());
-            true
-        },
-        Err(()) => false,
-    }
+    })
+    .is_ok()
 }

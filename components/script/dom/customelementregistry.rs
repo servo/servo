@@ -34,7 +34,7 @@ use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior};
+use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior, get_property};
 use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
@@ -239,72 +239,6 @@ impl CustomElementRegistry {
 
         Ok(())
     }
-
-    #[expect(unsafe_code)]
-    fn get_attributes(
-        &self,
-        cx: &mut JSContext,
-        constructor: HandleObject,
-        name: &CStr,
-    ) -> Fallible<Vec<DOMString>> {
-        rooted!(&in(cx) let mut attributes = UndefinedValue());
-        if unsafe { !JS_GetProperty(cx, constructor, name.as_ptr(), attributes.handle_mut()) } {
-            return Err(Error::JSFailed);
-        }
-
-        if attributes.is_undefined() {
-            return Ok(Vec::new());
-        }
-
-        let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            attributes.handle(),
-            StringificationBehavior::Default,
-            CanGc::from_cx(cx),
-        );
-        match conversion {
-            Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::JSFailed),
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.11: Get the value of `formAssociated`.
-    #[expect(unsafe_code)]
-    fn get_form_associated_value(
-        &self,
-        cx: &mut JSContext,
-        constructor: HandleObject,
-    ) -> Fallible<bool> {
-        rooted!(&in(cx) let mut form_associated_value = UndefinedValue());
-        if unsafe {
-            !JS_GetProperty(
-                cx,
-                constructor,
-                c"formAssociated".as_ptr(),
-                form_associated_value.handle_mut(),
-            )
-        } {
-            return Err(Error::JSFailed);
-        }
-
-        if form_associated_value.is_undefined() {
-            return Ok(false);
-        }
-
-        let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            form_associated_value.handle(),
-            (),
-            CanGc::from_cx(cx),
-        );
-        match conversion {
-            Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::JSFailed),
-        }
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
@@ -460,10 +394,16 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
-        let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
+        let observed_attributes: Vec<DOMString> = if callbacks.attribute_changed_callback.is_some()
+        {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(&mut realm, constructor.handle(), c"observedAttributes") {
-                Ok(attributes) => attributes,
+            match get_property(
+                &mut realm,
+                constructor.handle(),
+                c"observedAttributes",
+                StringificationBehavior::Default,
+            ) {
+                Ok(attributes) => attributes.unwrap_or_default(),
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -476,11 +416,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(&mut realm, constructor.handle(), c"disabledFeatures") {
-                Ok(sequence) => (
-                    sequence.iter().any(|s| *s == "internals"),
-                    sequence.iter().any(|s| *s == "shadow"),
-                ),
+            match get_property::<Vec<DOMString>>(
+                &mut realm,
+                constructor.handle(),
+                c"disabledFeatures",
+                StringificationBehavior::Default,
+            ) {
+                Ok(sequence) => {
+                    let sequence = sequence.unwrap_or_default();
+                    (
+                        sequence.iter().any(|s| *s == "internals"),
+                        sequence.iter().any(|s| *s == "shadow"),
+                    )
+                },
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -489,10 +437,10 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         };
 
         // Step 14.11 - 14.12: Handle `formAssociated`.
-        let form_associated = {
+        let form_associated: bool = {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_form_associated_value(&mut realm, constructor.handle()) {
-                Ok(flag) => flag,
+            match get_property(&mut realm, constructor.handle(), c"formAssociated", ()) {
+                Ok(flag) => flag.unwrap_or_default(),
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
