@@ -272,6 +272,10 @@ impl CanvasState {
         self.canvas_id
     }
 
+    pub(super) fn bitmap_dimensions(&self) -> Size2D<u64> {
+        self.size.get()
+    }
+
     pub(super) fn is_paintable(&self) -> bool {
         !self.size.get().is_empty()
     }
