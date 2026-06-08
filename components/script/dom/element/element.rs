@@ -2783,6 +2783,44 @@ impl Element {
                     custom_element_definition.has_attribute_changed_callback()
                 })
     }
+
+    pub(crate) fn register_current_id_and_name_attribute(&self, cx: &mut JSContext) {
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
+            }
+        } else {
+            let document = self.owner_document();
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                document.register_element_id(cx, self, id);
+            }
+            if let Some(ref name) = self.name_attribute() {
+                document.register_element_name(self, name);
+            }
+        }
+    }
+
+    pub(crate) fn unregister_current_id_and_name_attribute(&self, cx: &mut JSContext) {
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            // Only unregister the element id if the node was disconnected from it's
+            // shadow root (as opposed to the whole shadow tree being disconnected as a
+            // whole)
+            if self.upcast::<Node>().is_in_a_shadow_tree() {
+                return;
+            }
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                shadow_root.unregister_element_id(id);
+            }
+        } else {
+            let document = self.owner_document();
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                document.unregister_element_id(cx, id);
+            }
+            if let Some(ref name) = self.name_attribute() {
+                document.unregister_element_name(name);
+            }
+        }
+    }
 }
 
 impl ElementMethods<crate::DomTypeHolder> for Element {
@@ -4655,8 +4693,6 @@ impl VirtualMethods for Element {
             f.bind_form_control_to_tree(cx);
         }
 
-        let doc = self.owner_document();
-
         if let Some(ref shadow_root) = self.shadow_root() {
             shadow_root.bind_to_tree(cx, context);
         }
@@ -4665,18 +4701,7 @@ impl VirtualMethods for Element {
             return;
         }
 
-        if let Some(ref id) = *self.id_attribute.borrow() {
-            if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
-            } else {
-                doc.register_element_id(cx, self, id);
-            }
-        }
-        if let Some(ref name) = self.name_attribute() &&
-            self.containing_shadow_root().is_none()
-        {
-            doc.register_element_name(self, name);
-        }
+        self.register_current_id_and_name_attribute(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -4699,22 +4724,8 @@ impl VirtualMethods for Element {
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(CanGc::from_cx(cx));
         }
-        if let Some(ref value) = *self.id_attribute.borrow() {
-            if let Some(ref shadow_root) = self.containing_shadow_root() {
-                // Only unregister the element id if the node was disconnected from it's shadow root
-                // (as opposed to the whole shadow tree being disconnected as a whole)
-                if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(value);
-                }
-            } else {
-                doc.unregister_element_id(cx, value);
-            }
-        }
-        if let Some(ref value) = self.name_attribute() &&
-            self.containing_shadow_root().is_none()
-        {
-            doc.unregister_element_name(value);
-        }
+
+        self.unregister_current_id_and_name_attribute(cx);
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
