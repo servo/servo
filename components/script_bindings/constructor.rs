@@ -94,7 +94,7 @@ pub(crate) enum InitType {
 }
 
 type HasPropertyFn =
-    fn(crate::script_runtime::JSContext, HandleObject, MutableHandle<'_, *mut JSObject>);
+    fn(&mut js::context::JSContext, HandleObject, MutableHandle<'_, *mut JSObject>);
 
 type ParentFn = fn(&mut js::context::JSContext, HandleObject, MutableHandle<'_, *mut JSObject>);
 
@@ -190,7 +190,7 @@ pub(crate) unsafe fn create_interface<D: DomTypes>(
     if let Some(f) = init.has_named_properties_object {
         rooted!(&in(cx) let mut prototype_proto_proto = prototype_proto.get());
         f(
-            cx.into(),
+            cx,
             prototype_proto_proto.handle(),
             prototype_proto.handle_mut(),
         );
