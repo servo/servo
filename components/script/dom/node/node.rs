@@ -26,8 +26,8 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData, NodeRenderingType,
-    PhysicalSides, TrustedNodeAddress, with_layout_state,
+    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData,
+    NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -665,7 +665,27 @@ impl Node {
         )
     }
 
-    pub(super) fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
+    fn add_pending_accessibility_damage(&self, damage: AccessibilityDamage) {
+        if !self.owner_doc().accessibility_active() {
+            return;
+        }
+
+        self.owner_doc()
+            .accessibility_data_mut()
+            .add_pending_accessibility_damage_for_node(self, damage);
+
+        self.owner_window()
+            .layout()
+            .set_needs_accessibility_update();
+    }
+}
+
+impl Node {
+    fn rare_data(&self) -> Ref<'_, Option<Box<NodeRareData>>> {
+        self.rare_data.borrow()
+    }
+
+    fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -872,7 +892,9 @@ impl Node {
                 self.parent_node
                     .get()
                     .unwrap()
-                    .dirty(NodeDamage::ContentOrHeritage)
+                    .dirty(NodeDamage::ContentOrHeritage);
+
+                self.add_pending_accessibility_damage(AccessibilityDamage::SELF);
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
@@ -1560,6 +1582,9 @@ impl Node {
             next: child,
         });
         MutationObserver::queue_a_mutation_record(cx, new_parent, mutation);
+
+        old_parent.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
+        new_parent.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
 
         Ok(())
     }
@@ -4175,6 +4200,7 @@ impl VirtualMethods for Node {
         {
             list.as_children_list().children_changed(mutation);
         }
+        self.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
 
         self.owner_doc().content_and_heritage_changed(self);
     }
