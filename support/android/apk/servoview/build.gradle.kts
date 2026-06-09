@@ -14,9 +14,6 @@ android {
 
     ndkPath = getNdkDir()
 
-    defaultConfig.versionCode = generatedVersionCode
-    defaultConfig.versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
-
     defaultConfig {
         minSdk = 30
     }
