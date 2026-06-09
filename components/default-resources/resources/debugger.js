@@ -177,12 +177,12 @@ function extractOwnProperties(obj, depth) {
 const previewers = {};
 
 // <https://searchfox.org/firefox-main/source/devtools/shared/DevToolsUtils.js#182>
-function getProperty(obj, name) {
-    const root = obj;
-    while (obj) {
+function getProperty(object, name) {
+    const root = object;
+    while (object) {
         let desc;
         try {
-            desc = obj.getOwnPropertyDescriptor(name);
+            desc = object.getOwnPropertyDescriptor(name);
         } catch (e) {
             return undefined;
         }
@@ -194,23 +194,20 @@ function getProperty(obj, name) {
 
             if (desc.get) {
                 try {
-                    const result = desc.get.call(root);
-                    if (result && "return" in result) {
-                        return result.return;
-                    }
+                    return desc.get.call(root)?.return;
                 } catch (e) { }
             }
 
             return undefined;
         }
 
-        obj = obj.proto;
+        object = object.proto;
     }
 
     return undefined;
 }
 
-// // Calls the property with the given `name` on the given `object`, where
+// Calls the property with the given `name` on the given `object`, where
 // `name` is a string, and `object` a Debugger.Object instance.
 // <https://searchfox.org/firefox-main/source/devtools/shared/DevToolsUtils.js#943>
 function callPropertyOnObject(object, name, ...args) {
@@ -323,8 +320,8 @@ function enumMapEntries(obj, depth) {
 }
 
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#450>
-previewers.Map = [ function MapPreviewer(obj, depth) {
-    const size = getProperty(obj, "size");
+previewers.Map = [ function MapPreviewer(object, depth) {
+    const size = getProperty(object, "size");
     if (typeof size !== "number") {
         return undefined;
     }
@@ -336,7 +333,7 @@ previewers.Map = [ function MapPreviewer(obj, depth) {
 
     preview.entries = [];
     try {
-        for (const entry of enumMapEntries(obj, depth)) {
+        for (const entry of enumMapEntries(object, depth)) {
             preview.entries.push(entry);
         }
     } catch (e) {

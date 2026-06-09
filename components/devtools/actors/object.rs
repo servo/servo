@@ -197,12 +197,11 @@ impl Actor for ObjectActor {
 
             "enumEntries" => {
                 let mut entries = Vec::new();
-                if let Some(preview) = &self.preview {
-                    if let Some(map_entries) = &preview.entries {
-                        for (key, value) in map_entries {
-                            entries
-                                .push(PropertyIteratorEntry::MapEntry(key.clone(), value.clone()));
-                        }
+                if let Some(preview) = &self.preview &&
+                    let Some(map_entries) = &preview.entries
+                {
+                    for (key, value) in map_entries {
+                        entries.push(PropertyIteratorEntry::MapEntry(key.clone(), value.clone()));
                     }
                 }
                 self.reply_property_iterator(request, registry, entries)?
