@@ -46,6 +46,7 @@ use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
     FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
+    compute_used_font_features,
 };
 
 pub(crate) const AFRC: Tag = Tag::new(b"afrc");
@@ -444,20 +445,31 @@ impl ShapingOptions {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
     text: String,
-    options: ShapingOptions,
+    letter_spacing: Option<Au>,
+    word_spacing: Option<Au>,
+    script: Script,
+    language: Language,
+    font_features: Box<[(Tag, u32)]>,
+    flags: ShapingFlags,
 }
 
 impl Font {
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
+        let font_features =
+            compute_used_font_features(options, self.template.borrow().font_face_rule.as_ref())
+                .collect();
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: options.clone(),
+            letter_spacing: options.letter_spacing,
+            word_spacing: options.word_spacing,
+            script: options.script,
+            language: options.language,
+            flags: options.flags,
+            font_features,
         };
-        {
-            let cache = self.cached_shape_data.read();
-            if let Some(shaped_text) = cache.shaped_text.get(&lookup_key) {
-                return shaped_text.clone();
-            }
+
+        if let Some(shaped_text) = self.cached_shape_data.read().shaped_text.get(&lookup_key) {
+            return shaped_text.clone();
         }
 
         let start_time = Instant::now();
@@ -469,7 +481,7 @@ impl Font {
             self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
                 text,
                 options,
-                self.template.borrow().font_face_rule.as_ref(),
+                &lookup_key.font_features,
             )
         };
 

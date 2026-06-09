@@ -629,6 +629,7 @@ pub enum PermissionFeature {
     Bluetooth,
     PersistentStorage,
     ScreenWakeLock(WakeLockType),
+    Gamepad,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.

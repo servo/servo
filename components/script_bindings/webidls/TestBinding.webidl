@@ -627,6 +627,7 @@ callback callbackWithOnlyOneOptionalArg = Promise<undefined> (optional any reaso
 namespace TestNS {
     const unsigned long ONE   = 1;
     const unsigned long TWO   = 0x2;
+    [SameObject] readonly attribute TestBinding testAttribute;
 };
 
 typedef Promise<undefined> PromiseUndefined;

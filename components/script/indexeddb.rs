@@ -30,9 +30,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::utils::{
-    define_dictionary_property, get_dictionary_property, has_own_property,
-};
+use crate::dom::bindings::utils::{define_dictionary_property, has_own_property};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::idbkeyrange::IDBKeyRange;
@@ -631,16 +629,12 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // Let value be ! Get(value, identifier).
-                match get_dictionary_property(
+                get_property_jsval(
                     cx,
                     object.handle(),
                     identifier_name.as_c_str(),
                     current_value.handle_mut(),
-                ) {
-                    Ok(true) => {},
-                    Ok(false) => return Ok(EvaluationResult::Failure),
-                    Err(()) => return Err(Error::JSFailed),
-                }
+                )?;
 
                 // If value is undefined, return failure.
                 if current_value.get().is_undefined() {
@@ -712,16 +706,12 @@ pub(crate) fn can_inject_key_into_value(
         }
 
         // Step 3.4. Set value to ? Get(value, identifier).
-        match get_dictionary_property(
+        get_property_jsval(
             cx,
             current_object.handle(),
             identifier_name.as_c_str(),
             current_value.handle_mut(),
-        ) {
-            Ok(true) => {},
-            Ok(false) => return Ok(false),
-            Err(()) => return Err(Error::JSFailed),
-        }
+        )?;
     }
 
     // Step 4. Return true if value is an Object or an Array, and false otherwise.
@@ -789,16 +779,12 @@ pub(crate) fn inject_key_into_value(
         }
 
         // Step 4.3 Let value be ! Get(value, identifier).
-        match get_dictionary_property(
+        get_property_jsval(
             cx,
             current_object.handle(),
             identifier_name.as_c_str(),
             current_value.handle_mut(),
-        ) {
-            Ok(true) => {},
-            Ok(false) => return Ok(false),
-            Err(()) => return Err(Error::JSFailed),
-        }
+        )?;
 
         // Step 5 "Assert: value is an Object or an Array."
         if !current_value.is_object() {

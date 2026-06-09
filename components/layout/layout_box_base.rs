@@ -29,6 +29,7 @@ use crate::fragment_tree::{
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
+use crate::traversal::ElementDamageSet;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
@@ -151,15 +152,12 @@ impl LayoutBoxBase {
         self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
     }
 
-    pub(crate) fn add_damage(
-        &self,
-        element_damage: LayoutDamage,
-        damage_from_children: LayoutDamage,
-        damage_from_parent: LayoutDamage,
-    ) -> LayoutDamage {
-        let only_descendants_changed = !element_damage.contains(LayoutDamage::Relayout) &&
-            !damage_from_parent.contains(LayoutDamage::Relayout) &&
-            !damage_from_children.contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
+    pub(crate) fn add_damage(&self, damage_set: &ElementDamageSet) -> LayoutDamage {
+        let only_descendants_changed = !damage_set.on_element.contains(LayoutDamage::Relayout) &&
+            !damage_set.from_parent.contains(LayoutDamage::Relayout) &&
+            !damage_set
+                .from_children
+                .contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
             self.fragments.borrow().iter().all(|fragment| {
                 fragment
                     .base()
@@ -169,13 +167,15 @@ impl LayoutBoxBase {
             .store(only_descendants_changed, Ordering::Relaxed);
         self.clear_fragments_and_dirty_fragment_cache();
 
-        if !element_damage.is_empty() ||
-            damage_from_children.contains(LayoutDamage::RecomputeInlineContentSizes)
+        if !damage_set.on_element.is_empty() ||
+            damage_set
+                .from_children
+                .contains(LayoutDamage::RecomputeInlineContentSizes)
         {
             *self.cached_inline_content_size.borrow_mut() = None;
         }
 
-        let mut damage_for_parent = element_damage | damage_from_children;
+        let mut damage_for_parent = damage_set.on_element | damage_set.from_children;
 
         // When a block container has a mix of inline-level and block-level contents, the
         // inline-level ones are wrapped inside an anonymous block associated with the
@@ -189,7 +189,7 @@ impl LayoutBoxBase {
         // and we can keep the cache.
         damage_for_parent.set(
             LayoutDamage::RecomputeInlineContentSizes,
-            !element_damage.is_empty() ||
+            !damage_set.on_element.is_empty() ||
                 (!self.base_fragment_info.is_anonymous() &&
                     self.outer_inline_content_sizes_depend_on_content
                         .load(Ordering::Relaxed)),

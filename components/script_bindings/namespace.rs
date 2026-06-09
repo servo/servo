@@ -8,7 +8,7 @@ use std::ffi::CStr;
 use std::ptr;
 
 use js::context::JSContext;
-use js::jsapi::{JSClass, JSFunctionSpec};
+use js::jsapi::{JSClass, JSFunctionSpec, JSPropertySpec};
 use js::rust::{HandleObject, MutableHandleObject};
 
 use crate::DomTypes;
@@ -44,6 +44,7 @@ pub(crate) fn create_namespace_object<D: DomTypes>(
     proto: HandleObject,
     class: &'static NamespaceObjectClass,
     methods: &[Guard<&'static [JSFunctionSpec]>],
+    attributes: &[Guard<&'static [JSPropertySpec]>],
     constants: &[Guard<&'static [ConstantSpec]>],
     name: &CStr,
     mut rval: MutableHandleObject,
@@ -54,7 +55,7 @@ pub(crate) fn create_namespace_object<D: DomTypes>(
         proto,
         &class.0,
         methods,
-        &[],
+        attributes,
         constants,
         rval.reborrow(),
     );

@@ -6,5 +6,5 @@
 
 // https://w3c.github.io/gamepad/#navigator-interface-extension
 partial interface Navigator {
-  [Pref="dom_gamepad_enabled"] sequence<Gamepad?> getGamepads();
+  [Pref="dom_gamepad_enabled", Throws] sequence<Gamepad?> getGamepads();
 };

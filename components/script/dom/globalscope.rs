@@ -2786,7 +2786,7 @@ impl GlobalScope {
         // Handled in `report_an_error`
 
         // Step 2. Let errorInfo be the result of extracting error information from exception.
-        let error_info = ErrorInfo::from_value(error, cx.into(), CanGc::from_cx(cx));
+        let error_info = ErrorInfo::from_value(cx, error);
 
         // Step 3. Let script be a script found in an implementation-defined way, or null.
         // This should usually be the running script (most notably during run a classic script).

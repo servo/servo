@@ -5,22 +5,23 @@
 use std::cell::Cell;
 use std::collections::VecDeque;
 use std::ffi::CStr;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::context::JSContext;
+use js::conversions::FromJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::Construct1;
-use js::rust::wrappers2::{JS_GetProperty, SameValue};
+use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
@@ -34,7 +35,7 @@ use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior};
+use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavior, get_property};
 use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
@@ -239,72 +240,6 @@ impl CustomElementRegistry {
 
         Ok(())
     }
-
-    #[expect(unsafe_code)]
-    fn get_attributes(
-        &self,
-        cx: &mut JSContext,
-        constructor: HandleObject,
-        name: &CStr,
-    ) -> Fallible<Vec<DOMString>> {
-        rooted!(&in(cx) let mut attributes = UndefinedValue());
-        if unsafe { !JS_GetProperty(cx, constructor, name.as_ptr(), attributes.handle_mut()) } {
-            return Err(Error::JSFailed);
-        }
-
-        if attributes.is_undefined() {
-            return Ok(Vec::new());
-        }
-
-        let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            attributes.handle(),
-            StringificationBehavior::Default,
-            CanGc::from_cx(cx),
-        );
-        match conversion {
-            Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::JSFailed),
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.11: Get the value of `formAssociated`.
-    #[expect(unsafe_code)]
-    fn get_form_associated_value(
-        &self,
-        cx: &mut JSContext,
-        constructor: HandleObject,
-    ) -> Fallible<bool> {
-        rooted!(&in(cx) let mut form_associated_value = UndefinedValue());
-        if unsafe {
-            !JS_GetProperty(
-                cx,
-                constructor,
-                c"formAssociated".as_ptr(),
-                form_associated_value.handle_mut(),
-            )
-        } {
-            return Err(Error::JSFailed);
-        }
-
-        if form_associated_value.is_undefined() {
-            return Ok(false);
-        }
-
-        let conversion = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            form_associated_value.handle(),
-            (),
-            CanGc::from_cx(cx),
-        );
-        match conversion {
-            Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            _ => Err(Error::JSFailed),
-        }
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
@@ -460,10 +395,16 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
-        let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
+        let observed_attributes: Vec<DOMString> = if callbacks.attribute_changed_callback.is_some()
+        {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(&mut realm, constructor.handle(), c"observedAttributes") {
-                Ok(attributes) => attributes,
+            match get_property(
+                &mut realm,
+                constructor.handle(),
+                c"observedAttributes",
+                StringificationBehavior::Default,
+            ) {
+                Ok(attributes) => attributes.unwrap_or_default(),
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -476,11 +417,19 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_attributes(&mut realm, constructor.handle(), c"disabledFeatures") {
-                Ok(sequence) => (
-                    sequence.iter().any(|s| *s == "internals"),
-                    sequence.iter().any(|s| *s == "shadow"),
-                ),
+            match get_property::<Vec<DOMString>>(
+                &mut realm,
+                constructor.handle(),
+                c"disabledFeatures",
+                StringificationBehavior::Default,
+            ) {
+                Ok(sequence) => {
+                    let sequence = sequence.unwrap_or_default();
+                    (
+                        sequence.iter().any(|s| *s == "internals"),
+                        sequence.iter().any(|s| *s == "shadow"),
+                    )
+                },
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -489,10 +438,10 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         };
 
         // Step 14.11 - 14.12: Handle `formAssociated`.
-        let form_associated = {
+        let form_associated: bool = {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match self.get_form_associated_value(&mut realm, constructor.handle()) {
-                Ok(flag) => flag,
+            match get_property(&mut realm, constructor.handle(), c"formAssociated", ()) {
+                Ok(flag) => flag.unwrap_or_default(),
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -744,28 +693,28 @@ impl CustomElementDefinition {
     #[expect(unsafe_code)]
     pub(crate) fn create_element(
         &self,
+        cx: &mut JSContext,
         document: &Document,
         prefix: Option<Prefix>,
         registry: Option<DomRoot<CustomElementRegistry>>,
-        // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
-        let cx = GlobalScope::get_cx();
+
         // Step 5.1.1. Let C be definition’s constructor.
-        rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
-        rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
+        rooted!(&in(cx) let constructor = ObjectValue(self.constructor.callback()));
+        rooted!(&in(cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's realm
-            let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
+            let mut realm = AutoRealm::new(cx, NonNull::new(self.constructor.callback()).unwrap());
+            let cx = &mut realm;
+
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
             run_a_script::<DomTypeHolder, _>(window.upcast(), || {
                 run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                     let args = HandleValueArray::empty();
-                    if unsafe {
-                        !Construct1(*cx, constructor.handle(), &args, element.handle_mut())
-                    } {
+                    if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) }
+                    {
                         Err(Error::JSFailed)
                     } else {
                         Ok(())
@@ -774,9 +723,9 @@ impl CustomElementDefinition {
             })?;
         }
 
-        rooted!(in(*cx) let element_val = ObjectValue(element.get()));
+        rooted!(&in(cx) let element_val = ObjectValue(element.get()));
         let element: DomRoot<Element> =
-            match SafeFromJSValConvertible::safe_from_jsval(cx, element_val.handle(), (), can_gc) {
+            match FromJSValConvertible::safe_from_jsval(cx, element_val.handle(), ()) {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
@@ -963,7 +912,7 @@ fn run_upgrade_constructor(
         }
 
         // Go into the constructor's realm
-        let mut realm = AutoRealm::new(cx, std::ptr::NonNull::new(constructor.callback()).unwrap());
+        let mut realm = AutoRealm::new(cx, NonNull::new(constructor.callback()).unwrap());
         let cx = &mut *realm;
 
         let args = HandleValueArray::empty();
@@ -976,7 +925,7 @@ fn run_upgrade_constructor(
             run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                 if unsafe {
                     !Construct1(
-                        cx.raw_cx(),
+                        cx,
                         constructor_val.handle(),
                         &args,
                         construct_result.handle_mut(),

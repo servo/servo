@@ -97,11 +97,15 @@ impl Gamepad {
         }
     }
 
-    /// When we construct a new gamepad, we initialize the number of buttons and
-    /// axes corresponding to the "standard" gamepad mapping.
-    /// The spec says UAs *may* do this for fingerprint mitigation, and it also
-    /// happens to simplify implementation
-    /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
+    /// From: <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
+    /// The user agent MAY alter the device information exposed through the API to reduce the
+    /// fingerprinting surface. As an example, an implementation can require that a Gamepad
+    /// object have exactly the number of buttons and axes defined in the Standard Gamepad layout
+    /// even if more or fewer inputs are present on the connected device.
+    ///
+    /// So, we initialize the number of buttons and axes corresponding to the "standard" gamepad
+    /// mapping and happens to simplify implementation.
+    /// <https://www.w3.org/TR/gamepad/#dfn-a-new-gamepad>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
@@ -239,26 +243,8 @@ impl Gamepad {
         ]
     }
 
-    /// <https://www.w3.org/TR/gamepad/#on-removing-gamepads>
-    pub(crate) fn update_connected(&self, cx: &mut JSContext, connected: bool, has_gesture: bool) {
-        // Step 2.1. Set gamepad.[[connected]] to false.
-        if self.connected.get() == connected {
-            return;
-        }
+    pub(crate) fn update_connected(&self, connected: bool) {
         self.connected.set(connected);
-
-        let event_type = if connected {
-            GamepadEventType::Connected
-        } else {
-            GamepadEventType::Disconnected
-        };
-
-        // Step 2.3. If gamepad.[[exposed]] is true and document is not null
-        //           and is fully active, then fire an event named
-        //           gamepaddisconnected at gamepad's relevant global object.
-        if has_gesture {
-            self.notify_event(cx, event_type);
-        }
     }
 
     pub(crate) fn index(&self) -> i32 {
@@ -338,6 +324,10 @@ impl Gamepad {
         } else {
             warn!("Button bounds difference is either 0 or non-finite!");
         }
+    }
+
+    pub(crate) fn connected(&self) -> bool {
+        self.connected.get()
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>

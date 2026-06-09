@@ -175,10 +175,10 @@ fn create_html_element(
                     // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
                     return match definition.create_element(
+                        cx,
                         document,
                         prefix.clone(),
                         registry.clone(),
-                        CanGc::from_cx(cx),
                     ) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());

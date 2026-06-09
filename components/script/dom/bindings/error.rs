@@ -31,9 +31,7 @@ pub(crate) use script_bindings::error::*;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::conversions::{
-    ConversionResult, SafeFromJSValConvertible, root_from_object,
-};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, root_from_object};
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
@@ -321,17 +319,18 @@ impl ErrorInfo {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#extract-error>
-    pub(crate) fn from_value(value: HandleValue, cx: SafeJSContext, can_gc: CanGc) -> ErrorInfo {
+    pub(crate) fn from_value(cx: &mut JSContext, value: HandleValue) -> ErrorInfo {
         if value.is_object() {
-            rooted!(in(*cx) let object = value.to_object());
-            if let Some(info) = ErrorInfo::from_object(object.handle(), cx) {
+            rooted!(&in(cx) let object = value.to_object());
+            if let Some(info) = ErrorInfo::from_object(object.handle(), cx.into()) {
                 return info;
             }
         }
 
-        match USVString::safe_from_jsval(cx, value, (), can_gc) {
+        match USVString::safe_from_jsval(cx, value, ()) {
             Ok(ConversionResult::Success(USVString(string))) => {
-                let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
+                let scripted_caller =
+                    unsafe { describe_scripted_caller(cx.raw_cx()) }.unwrap_or_default();
                 ErrorInfo {
                     message: format!("uncaught exception: {}", string),
                     filename: scripted_caller.filename,

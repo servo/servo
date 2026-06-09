@@ -63,11 +63,15 @@ impl OffscreenCanvasRenderingContext2D {
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(Dom::from_ref(canvas)),
             size,
         )
-        .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
+        .map(|context| {
+            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            context.context.update_associated_memory_size();
+            context
+        })
     }
 
-    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
-        self.context.send_canvas_command(msg)
+    pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        self.context.send_canvas_command_immediate(msg)
     }
 }
 

@@ -23,7 +23,7 @@ use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use script_bindings::cell::DomRefCell;
 use servo_arc::Arc as ServoArc;
-use servo_base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericBufferedSender;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{
     CanvasCommand, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
@@ -82,6 +82,12 @@ use crate::script_runtime::CanGc;
 
 const HANGING_BASELINE_DEFAULT: f64 = 0.8;
 const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
+/// Maximum number of buffered canvas commands before an automatic flush is triggered.
+/// A lower value keeps the paint thread fed with work (better parallelism),
+/// while a higher value improves batching efficiency (fewer channel operations, lower power).
+///
+/// See <https://github.com/servo/servo/pull/45301> for measurements.
+const BUFFER_SIZE: usize = 16;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -197,8 +203,6 @@ impl CanvasContextState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) struct CanvasState {
     #[no_trace]
-    canvas_thread_sender: GenericSender<CanvasMsg>,
-    #[no_trace]
     canvas_id: CanvasId,
     #[no_trace]
     size: Cell<Size2D<u64>>,
@@ -220,6 +224,10 @@ pub(super) struct CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#current-default-path>
     #[no_trace]
     current_default_path: DomRefCell<Path>,
+    /// Buffered sender for batching canvas commands.
+    #[ignore_malloc_size_of = "GenericBufferedSender"]
+    #[no_trace]
+    pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
 }
 
 impl CanvasState {
@@ -246,7 +254,6 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         Some(CanvasState {
-            canvas_thread_sender,
             canvas_id,
             size: Cell::new(size),
             state: DomRefCell::new(CanvasContextState::new()),
@@ -257,11 +264,17 @@ impl CanvasState {
             saved_states: DomRefCell::new(Vec::new()),
             origin,
             current_default_path: DomRefCell::new(Path::new()),
+            buffered_sender: GenericBufferedSender::new(
+                canvas_thread_sender,
+                Box::new(move |cmds| (canvas_id, CanvasCommand::ProcessBatchMessages(cmds))),
+                BUFFER_SIZE,
+            ),
         })
     }
 
     pub(super) fn set_image_key(&self, image_key: ImageKey) {
-        self.send_canvas_command(CanvasCommand::SetImageKey(image_key));
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
+        self.send_canvas_command_immediate(CanvasCommand::SetImageKey(image_key));
     }
 
     pub(super) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
@@ -272,6 +285,10 @@ impl CanvasState {
         self.canvas_id
     }
 
+    pub(super) fn bitmap_dimensions(&self) -> Size2D<u64> {
+        self.size.get()
+    }
+
     pub(super) fn is_paintable(&self) -> bool {
         !self.size.get().is_empty()
     }
@@ -280,10 +297,19 @@ impl CanvasState {
         if !self.is_paintable() {
             return;
         }
+        self.buffered_sender.send(msg).unwrap();
+    }
 
-        self.canvas_thread_sender
-            .send((self.get_canvas_id(), msg))
-            .unwrap()
+    /// Send a canvas command immediately.
+    /// If there are buffered commands, they are combined with this message
+    /// into a single `ProcessBatchMessages` to preserve ordering and avoid
+    /// two separate sends.
+    pub(super) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        if !self.is_paintable() {
+            self.buffered_sender.flush().unwrap();
+        } else {
+            self.buffered_sender.send_immediate(msg).unwrap();
+        }
     }
 
     /// Updates WR image and blocks on completion
@@ -292,12 +318,7 @@ impl CanvasState {
             return false;
         }
 
-        self.canvas_thread_sender
-            .send((
-                self.get_canvas_id(),
-                CanvasCommand::UpdateImage(canvas_epoch),
-            ))
-            .unwrap();
+        self.send_canvas_command_immediate(CanvasCommand::UpdateImage(canvas_epoch));
         true
     }
 
@@ -308,13 +329,8 @@ impl CanvasState {
 
         // Step 2. Resize the output bitmap to the new width and height.
         self.size.replace(adjust_canvas_size(size));
-
-        self.canvas_thread_sender
-            .send((
-                self.get_canvas_id(),
-                CanvasCommand::Recreate(Some(self.size.get())),
-            ))
-            .unwrap();
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
+        self.send_canvas_command_immediate(CanvasCommand::Recreate(Some(self.size.get())));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
@@ -326,9 +342,8 @@ impl CanvasState {
         }
 
         // Step 1. Clear canvas's bitmap to transparent black.
-        self.canvas_thread_sender
-            .send((self.get_canvas_id(), CanvasCommand::Recreate(None)))
-            .unwrap();
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
+        self.send_canvas_command_immediate(CanvasCommand::Recreate(None));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state>
@@ -679,7 +694,8 @@ impl CanvasState {
         if let Some(context) = canvas.context() {
             match *context {
                 OffscreenRenderingContext::Context2d(ref context) => {
-                    context.send_canvas_command(CanvasCommand::DrawImageInOther(
+                    self.buffered_sender.flush().unwrap();
+                    context.send_canvas_command_immediate(CanvasCommand::DrawImageInOther(
                         self.get_canvas_id(),
                         dest_rect,
                         source_rect,
@@ -789,7 +805,8 @@ impl CanvasState {
         if let Some(context) = canvas.context() {
             match *context {
                 RenderingContext::Context2d(ref context) => {
-                    context.send_canvas_command(CanvasCommand::DrawImageInOther(
+                    self.buffered_sender.flush().unwrap();
+                    context.send_canvas_command_immediate(CanvasCommand::DrawImageInOther(
                         self.get_canvas_id(),
                         dest_rect,
                         source_rect,
@@ -819,8 +836,9 @@ impl CanvasState {
                         return Err(Error::InvalidState(None));
                     };
                     match *context {
-                        OffscreenRenderingContext::Context2d(ref context) => context
-                            .send_canvas_command(CanvasCommand::DrawImageInOther(
+                        OffscreenRenderingContext::Context2d(ref context) => {
+                            self.buffered_sender.flush().unwrap();
+                            context.send_canvas_command_immediate(CanvasCommand::DrawImageInOther(
                                 self.get_canvas_id(),
                                 dest_rect,
                                 source_rect,
@@ -828,7 +846,8 @@ impl CanvasState {
                                 self.state.borrow().shadow_options(),
                                 self.state.borrow().composition_options(),
                                 self.state.borrow().transform,
-                            )),
+                            ));
+                        },
                         OffscreenRenderingContext::BitmapRenderer(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
                                 return Ok(());
@@ -1865,7 +1884,10 @@ impl CanvasState {
 
         let data = if self.is_paintable() {
             let (sender, receiver) = generic_channel::channel().unwrap();
-            self.send_canvas_command(CanvasCommand::GetImageData(Some(read_rect), sender));
+            self.send_canvas_command_immediate(CanvasCommand::GetImageData(
+                Some(read_rect),
+                sender,
+            ));
 
             let mut snapshot = receiver.recv().unwrap().to_owned();
             snapshot.transform(
@@ -1955,7 +1977,11 @@ impl CanvasState {
 
         // Step 7.
         let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
-        self.send_canvas_command(CanvasCommand::PutImageData(dst_rect, snapshot.to_shared()));
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
+        self.send_canvas_command_immediate(CanvasCommand::PutImageData(
+            dst_rect,
+            snapshot.to_shared(),
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -2509,10 +2535,8 @@ impl CanvasState {
 
 impl Drop for CanvasState {
     fn drop(&mut self) {
-        if let Err(err) = self
-            .canvas_thread_sender
-            .send((self.canvas_id, CanvasCommand::Destroy))
-        {
+        // Flush any buffered commands before closing the canvas.
+        if let Err(err) = self.buffered_sender.send_immediate(CanvasCommand::Destroy) {
             warn!("Could not close canvas: {}", err)
         }
     }

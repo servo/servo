@@ -3,13 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
+use once_cell::race::OnceBox;
 use servo_arc::Arc as ServoArc;
-use servo_base::id::ScrollTreeNodeId;
+use servo_base::id::{AtomicOptionScrollTreeNodeId, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::f32_rect_to_au_rect;
 use style::Zero;
@@ -25,7 +27,8 @@ use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides,
+    SyncPhysicalRectAu, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
@@ -94,17 +97,17 @@ pub(crate) struct BoxFragmentRareData {
 impl BoxFragmentRareData {
     /// Create a new rare data based on information given to the fragment. Ideally, We should
     /// avoid creating rare data as much as possible to reduce the memory cost.
-    fn try_boxed_from(
-        specific_layout_info: Option<SpecificLayoutInfo>,
-    ) -> AtomicRefCell<Option<Box<Self>>> {
-        AtomicRefCell::new(specific_layout_info.map(|info| {
-            Box::new(BoxFragmentRareData {
-                resolved_sticky_insets: None,
-                specific_layout_info: Some(info),
-                generated_clip_id: None,
-                generated_scroll_tree_node_id: None,
+    fn new(specific_layout_info: Option<SpecificLayoutInfo>) -> OnceBox<AtomicRefCell<Self>> {
+        specific_layout_info
+            .map(|info| {
+                OnceBox::with_value(Box::new(AtomicRefCell::new(BoxFragmentRareData {
+                    resolved_sticky_insets: None,
+                    specific_layout_info: Some(info),
+                    generated_clip_id: None,
+                    generated_scroll_tree_node_id: None,
+                })))
             })
-        }))
+            .unwrap_or_default()
     }
 }
 
@@ -116,7 +119,7 @@ pub(crate) struct BoxFragment {
 
     /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
     /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: AtomicRefCell<PhysicalRect<Au>>,
+    pub cumulative_containing_block_rect: SyncPhysicalRectAu,
 
     pub padding: PhysicalSides<Au>,
     pub border: PhysicalSides<Au>,
@@ -131,12 +134,13 @@ pub(crate) struct BoxFragment {
     /// [`Self::content_rect`] ie a rectangle within the parent fragment's content
     /// rectangle. This does not take into account any transforms this fragment applies.
     /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
-    scrollable_overflow: AtomicRefCell<Option<PhysicalRect<Au>>>,
+    scrollable_overflow: SyncPhysicalRectAu,
+    scrollable_overflow_is_up_to_date: AtomicBool,
 
     pub background_mode: BackgroundMode,
 
     /// Rare data that not all kinds of [`BoxFragment`] would have.
-    pub rare_data: AtomicRefCell<Option<Box<BoxFragmentRareData>>>,
+    pub rare_data: OnceBox<AtomicRefCell<BoxFragmentRareData>>,
 
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
@@ -145,7 +149,7 @@ pub(crate) struct BoxFragment {
     /// `StackingContextTree` construction, so isn't available before that time. This is
     /// used to for determining final viewport size and position of this node and will
     /// also be used in the future for hit testing.
-    pub spatial_tree_node: AtomicRefCell<Option<ScrollTreeNodeId>>,
+    pub spatial_tree_node: AtomicOptionScrollTreeNodeId,
 }
 
 impl BoxFragment {
@@ -160,7 +164,7 @@ impl BoxFragment {
         margin: PhysicalSides<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> Self {
-        let rare_data = BoxFragmentRareData::try_boxed_from(specific_layout_info);
+        let rare_data = BoxFragmentRareData::new(specific_layout_info);
         Self {
             base: BaseFragment::new(base_fragment_info, style.into(), content_rect),
             children,
@@ -170,10 +174,11 @@ impl BoxFragment {
             margin,
             baselines: Baselines::default(),
             scrollable_overflow: Default::default(),
+            scrollable_overflow_is_up_to_date: AtomicBool::new(false),
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
-            spatial_tree_node: AtomicRefCell::default(),
+            spatial_tree_node: AtomicOptionScrollTreeNodeId::new(None),
         }
     }
 
@@ -230,34 +235,25 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
-        let mut rare_data = self.rare_data.borrow_mut();
-        if rare_data.is_none() {
-            *rare_data = Some(Default::default());
-        }
-
-        AtomicRefMut::map(rare_data, |rare_data| {
-            rare_data
-                .as_mut()
-                .expect("This data should have just been set")
-        })
+    pub(crate) fn ensure_rare_data(&self) -> AtomicRefMut<'_, BoxFragmentRareData> {
+        self.rare_data.get_or_init(Default::default).borrow_mut()
     }
 
     pub(crate) fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
-        let rare_data = self.rare_data.borrow();
+        let rare_data = self.rare_data.get()?.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
-            rare_data.as_ref()?.specific_layout_info.as_ref()
+            rare_data.specific_layout_info.as_ref()
         })
     }
 
     pub(crate) fn resolved_sticky_insets(
         &self,
     ) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
-        let rare_data = self.rare_data.borrow();
+        let rare_data = self.rare_data.get()?.borrow();
 
         AtomicRef::filter_map(rare_data, |rare_data| {
-            rare_data.as_ref()?.resolved_sticky_insets.as_ref()
+            rare_data.resolved_sticky_insets.as_ref()
         })
     }
 
@@ -266,7 +262,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn generated_clip_id(&self) -> Option<ClipId> {
-        self.rare_data.borrow().as_ref()?.generated_clip_id
+        self.rare_data.get()?.borrow().generated_clip_id
     }
 
     pub(crate) fn set_generated_clip_id(&self, generated_clip_id: ClipId) {
@@ -274,10 +270,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn generated_scroll_tree_node_id(&self) -> Option<ScrollTreeNodeId> {
-        self.rare_data
-            .borrow()
-            .as_ref()?
-            .generated_scroll_tree_node_id
+        self.rare_data.get()?.borrow().generated_scroll_tree_node_id
     }
 
     pub(crate) fn set_generated_scroll_tree_node_id(
@@ -303,17 +296,26 @@ impl BoxFragment {
     /// block, recalculating scrollable overflow when necessary, for instance after a
     /// style change.
     pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
-        *self
-            .scrollable_overflow
-            .borrow_mut()
-            .get_or_insert_with(|| self.calculate_scrollable_overflow())
+        if self
+            .scrollable_overflow_is_up_to_date
+            .load(Ordering::Acquire)
+        {
+            self.scrollable_overflow.get()
+        } else {
+            let rect = self.calculate_scrollable_overflow();
+            self.scrollable_overflow.set(rect);
+            self.scrollable_overflow_is_up_to_date
+                .store(true, Ordering::Release);
+            rect
+        }
     }
 
     /// Clear the scrollable overflow on this [`BoxFragment`]. This is called
     /// during damage propagation when a fragment is preserved, itself or one of its
     /// descendants has scrollable overflow damage.
     pub(crate) fn clear_scrollable_overflow(&self) {
-        *self.scrollable_overflow.borrow_mut() = None;
+        self.scrollable_overflow_is_up_to_date
+            .store(false, Ordering::Release);
     }
 
     /// This is an implementation of:
@@ -420,8 +422,9 @@ impl BoxFragment {
         scrollable_overflow
     }
 
+    #[inline]
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
-        *self.cumulative_containing_block_rect.borrow_mut() = *containing_block;
+        self.cumulative_containing_block_rect.set(*containing_block);
     }
 
     pub(crate) fn offset_by_containing_block(
@@ -430,12 +433,7 @@ impl BoxFragment {
         containing_block_computation: ContainingBlockCalculation<'_>,
     ) -> PhysicalRect<Au> {
         containing_block_computation.ensure();
-        rect.translate(
-            self.cumulative_containing_block_rect
-                .borrow()
-                .origin
-                .to_vector(),
-        )
+        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
     }
 
     pub(crate) fn cumulative_content_box_rect(
@@ -627,7 +625,7 @@ impl BoxFragment {
 
         let containing_block_size = LazyCell::new(|| {
             containing_block_computation.ensure();
-            self.cumulative_containing_block_rect.borrow().size
+            self.cumulative_containing_block_rect.size()
         });
 
         // "A resolved value special case property like top defined in another
@@ -753,6 +751,6 @@ impl BoxFragment {
     }
 
     pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
-        *self.spatial_tree_node.borrow()
+        self.spatial_tree_node.get()
     }
 }

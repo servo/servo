@@ -426,7 +426,7 @@ impl Node {
         }
     }
 
-    pub(crate) fn complete_move_subtree(root: &Node) {
+    pub(crate) fn complete_move_subtree(cx: &mut JSContext, root: &Node) {
         // Flags that reset when a node is moved
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -437,6 +437,12 @@ impl Node {
         for node in root.traverse_preorder(ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
             node.clean_up_style_and_layout_data();
+
+            // Unregister the `id` and `name` attributes for this node. Note that they
+            // will be re-registered when added to the tree again.
+            if let Some(element) = node.downcast::<Element>() {
+                element.unregister_current_id_and_name_attribute(cx);
+            }
 
             // Make sure that we don't accidentally initialize the rare data for this node
             // by setting it to None
@@ -506,7 +512,7 @@ impl Node {
         Self::complete_remove_subtree(cx, child, &context);
     }
 
-    fn move_child(&self, child: &Node) {
+    fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
 
@@ -514,7 +520,7 @@ impl Node {
         child.next_sibling.set(None);
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
-        Self::complete_move_subtree(child)
+        Self::complete_move_subtree(cx, child)
     }
 
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -1399,7 +1405,7 @@ impl Node {
         );
 
         // Step 13. Remove node from oldParent’s children.
-        old_parent.move_child(node);
+        old_parent.move_child(cx, node);
 
         // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -1551,7 +1557,7 @@ impl Node {
         let traced_node = Dom::from_ref(self);
 
         let first_matching_element = with_layout_state(|| {
-            let layout_node = unsafe { traced_node.to_layout() };
+            let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
@@ -1580,7 +1586,7 @@ impl Node {
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
-            let layout_node = unsafe { traced_node.to_layout() };
+            let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;

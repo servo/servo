@@ -61,7 +61,6 @@ mod from_embedder {
                 Self::LogEntry(..) => target!("LogEntry"),
                 Self::NewWebView(..) => target!("NewWebView"),
                 Self::CloseWebView(..) => target!("CloseWebView"),
-                Self::SendError(..) => target!("SendError"),
                 Self::FocusWebView(..) => target!("FocusWebView"),
                 Self::BlurWebView => target!("BlurWebView"),
                 Self::ForwardInputEvent(_webview_id, event, ..) => event.log_target(),
