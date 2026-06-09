@@ -207,6 +207,8 @@ pub struct Preferences {
     pub dom_touch_events_legacy_apis_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#transient-activation-duration>
     pub dom_transient_activation_duration_ms: i64,
+    // feature: Web Animations | #36950 | Web/API/Web_Animations_API
+    pub dom_web_animations_enabled: bool,
     /// Enable WebGL2 APIs.
     // feature: WebGL2 | #41394 | Web/API/WebGL2RenderingContext
     pub dom_webgl2_enabled: bool,
@@ -425,6 +427,7 @@ impl Preferences {
             dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
                 cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
+            dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),

@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/web-animations-1/#animation
 
-[Exposed=Window]
+[Exposed=Window, Pref="dom_web_animations_enabled"]
 interface Animation : EventTarget {
   constructor(optional AnimationEffect? effect = null/*,
               optional AnimationTimeline? timeline */);

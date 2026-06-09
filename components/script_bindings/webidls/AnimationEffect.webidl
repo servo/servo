@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/web-animations-1/#animationeffect
-[Exposed=Window]
+[Exposed=Window, Pref="dom_web_animations_enabled"]
 interface AnimationEffect {
 //     EffectTiming         getTiming();
 //     ComputedEffectTiming getComputedTiming();
