@@ -245,6 +245,7 @@ impl Fragment {
     pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let rect = match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.with_style();
                 // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
                 // " If the element has no associated CSS layout box or if the
                 //   CSS layout box is inline, return zero." For this check we

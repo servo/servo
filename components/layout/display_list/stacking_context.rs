@@ -759,7 +759,8 @@ impl BoxFragment {
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
     ) {
-        let style = self.style();
+        let with_style = self.with_style();
+        let style = with_style.style();
         let establishes_containing_block_for_all_descendants =
             style.establishes_containing_block_for_all_descendants(self.base.flags);
         let establishes_containing_block_for_absolute_descendants =
@@ -834,7 +835,7 @@ impl BoxFragment {
         // > Note that text decorations are not propagated to floating and absolutely
         // > positioned descendants, nor to the contents of atomic inline-level descendants
         // > such as inline blocks and inline tables.
-        let text_decorations = match self.is_atomic_inline_level() ||
+        let text_decorations = match with_style.is_atomic_inline_level() ||
             self.base
                 .flags
                 .contains(FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER)
