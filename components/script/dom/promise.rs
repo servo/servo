@@ -96,7 +96,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_js_promise(obj: HandleObject, mut cx: SafeJSContext) -> Rc<Promise> {
         // SAFETY: callers pass a valid promise object.
         unsafe { assert!(IsPromiseObject(obj)) };

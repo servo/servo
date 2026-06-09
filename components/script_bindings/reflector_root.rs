@@ -24,10 +24,13 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::script_runtime::JSContext;
 
 #[derive(JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 struct ReflectorRootInternal {
     /// The rooted reflector value. While `rooted` is true an `AddRawValueRoot` registration is
     /// keyed on this cell's address, which is stable because the cell lives in a heap (`Rc`)
     /// allocation in `ReflectorRoot`.
+    /// `value` can be assumed to be rooted for the life-time, since manual unrooting is unsafe,
+    /// and requires the caller to promise that `value` will not be used after this point anymore.
     value: Heap<JSVal>,
     /// Whether `value` is rooted or not. Avoids double unroots.
     rooted: Cell<bool>,
