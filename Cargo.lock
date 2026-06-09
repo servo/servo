@@ -7729,7 +7729,7 @@ dependencies = [
 
 [[package]]
 name = "servo-capi"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "dpi",
  "libc",
@@ -7740,7 +7740,7 @@ dependencies = [
 
 [[package]]
 name = "servo-capi-tests"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cc",
 ]

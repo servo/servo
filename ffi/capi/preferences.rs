@@ -44,7 +44,10 @@ pub extern "C" fn servo_preferences_create() -> *mut ServoPreferences {
 /// another API that takes ownership of it.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_preferences_free(preferences: *mut ServoPreferences) {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `preferences` documented above.
@@ -77,7 +80,10 @@ pub unsafe extern "C" fn servo_preferences_set_bool(
     name: *const c_char,
     value: bool,
 ) {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -120,7 +126,10 @@ pub unsafe extern "C" fn servo_preferences_get_bool(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> bool {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -171,7 +180,10 @@ pub unsafe extern "C" fn servo_preferences_set_string(
     name: *const c_char,
     value: *const c_char,
 ) {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
     assert!(!value.is_null(), "value pointer must not be null");
 
@@ -228,7 +240,10 @@ pub unsafe extern "C" fn servo_preferences_get_string(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> *mut c_char {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -306,7 +321,10 @@ pub unsafe extern "C" fn servo_preferences_set_i64(
     name: *const c_char,
     value: i64,
 ) {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -349,7 +367,10 @@ pub unsafe extern "C" fn servo_preferences_get_i64(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> i64 {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -396,7 +417,10 @@ pub unsafe extern "C" fn servo_preferences_set_u64(
     name: *const c_char,
     value: u64,
 ) {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -439,7 +463,10 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> u64 {
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
     assert!(!name.is_null(), "name pointer must not be null");
 
     // SAFETY: The caller is assumed to uphold the safety requirements
@@ -461,4 +488,3 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
         _ => unreachable!(),
     }
 }
-

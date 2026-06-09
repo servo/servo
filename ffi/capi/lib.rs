@@ -115,7 +115,10 @@ pub unsafe extern "C" fn servo_builder_set_preferences(
     preferences: *mut ServoPreferences,
 ) {
     assert!(!builder.is_null(), "builder pointer must not be null");
-    assert!(!preferences.is_null(), "preferences pointer must not be null");
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `builder` and `preferences` documented above.
