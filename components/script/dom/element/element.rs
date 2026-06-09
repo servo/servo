@@ -53,7 +53,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, CSSFloat, GenericAtomIdent, computed, specified};
+use style::values::{AtomIdent, AtomString, CSSFloat, GenericAtomIdent, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -1540,14 +1540,14 @@ impl<'dom> LayoutDom<'dom, Element> {
         None
     }
 
-    pub(crate) fn get_lang_for_layout(self) -> String {
+    pub(crate) fn get_lang_for_layout(self) -> AtomString {
         let mut current_node = Some(self.upcast::<Node>());
         while let Some(node) = current_node {
             current_node = node.composed_parent_node_ref();
             match node.downcast::<Element>() {
                 Some(elem) => {
                     if let Some(attr) = elem.get_lang_attr_val_for_layout() {
-                        return attr.to_owned();
+                        return AtomString::from(attr);
                     }
                 },
                 None => continue,
@@ -1555,7 +1555,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
         // TODO: Check meta tags for a pragma-set default language
         // TODO: Check HTTP Content-Language header
-        String::new()
+        AtomString::from("")
     }
 
     #[inline]
