@@ -132,12 +132,6 @@ class AndroidTarget(CrossBuildTarget):
         if config["android"]["ndk"]:
             env["ANDROID_NDK_ROOT"] = config["android"]["ndk"]
 
-        toolchains = path.join(topdir, "android-toolchains")
-        for kind in ["sdk", "ndk"]:
-            default = os.path.join(toolchains, kind)
-            if os.path.isdir(default):
-                env.setdefault(f"ANDROID_{kind.upper()}_ROOT", default)
-
         if "IN_NIX_SHELL" in env and ("ANDROID_NDK_ROOT" not in env or "ANDROID_SDK_ROOT" not in env):
             print("Please set SERVO_ANDROID_BUILD=1 when starting the Nix shell to include the Android SDK/NDK.")
             sys.exit(1)

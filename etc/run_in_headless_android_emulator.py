@@ -85,10 +85,6 @@ def tool_path(directory, bin_name):
         if os.path.exists(path):
             return path
 
-    path = os.path.join(os.path.dirname(__file__), "..", "android-toolchains", "sdk", directory, bin_name)
-    if os.path.exists(path):
-        return path
-
     return bin_name
 
 

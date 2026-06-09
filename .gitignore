@@ -5,7 +5,6 @@
 /.servobuild
 /.wpt
 /.vs
-/android-toolchains
 /target
 /tests/wpt/reftests-report/report.html
 /python/_virtualenv*
