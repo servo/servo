@@ -199,6 +199,46 @@ fn test_theme_change() {
 }
 
 #[test]
+fn test_theme_change_media_query_event() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                r#"data:text/html,<!DOCTYPE html><html><script>
+            let mediaQueryChanges = 0;
+            const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQueryList.addEventListener('change', () => {
+                mediaQueryChanges += 1;
+                console.log(mediaQueryChanges);
+            });
+            </script></html>"#,
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Check that we increment mediaQueryChanges each time the theme changes.
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(0.0)));
+
+    webview.notify_theme_change(Theme::Dark);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(1.0)));
+
+    webview.notify_theme_change(Theme::Light);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(2.0)));
+}
+
+#[test]
 fn test_cursor_change() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());
