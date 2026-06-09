@@ -13,8 +13,8 @@ use crate::display_list::{
     ClipId, FragmentTextDecoration, StackingContext, StackingContextFragments,
 };
 use crate::fragment_tree::{
-    BoxFragment, Fragment, FragmentFlags, IFrameFragment, ImageFragment, PositioningFragment,
-    TextFragment,
+    BoxFragment, BoxFragmentWithStyle, Fragment, FragmentFlags, IFrameFragment, ImageFragment,
+    PositioningFragment, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
 
@@ -60,8 +60,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > Step 4: If root is a block-level box, paint a block’s decorations given root
         // > and canvas.
         let root_fragment = stacking_context.fragment();
-        if let Some(root_fragment) = root_fragment &&
-            !root_fragment.with_style().is_inline_box()
+        let root_fragment = root_fragment.as_ref().map(|f| f.with_style());
+        if let Some(root_fragment) = &root_fragment &&
+            !root_fragment.is_inline_box()
         {
             self.handle_box(&state, root_fragment);
         }
@@ -77,7 +78,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             );
         }
 
-        if let Some(root_fragment) = root_fragment {
+        if let Some(root_fragment) = &root_fragment {
             self.traverse_stacking_context_inner(&state, root_fragment);
         }
 
@@ -133,6 +134,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > paint a stacking container given the descendant and canvas.
         if old_float_length < self.floats.len() {
             for (state, float_fragment) in &self.floats.split_off(old_float_length) {
+                let float_fragment = &float_fragment.with_style();
                 self.handle_box(state, float_fragment);
                 self.traverse_stacking_context_inner(state, float_fragment);
             }
@@ -170,6 +172,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         root: &Arc<BoxFragment>,
         is_block_level: bool,
     ) {
+        let root = &root.with_style();
         let old_outlines_length = self.outlines.len();
 
         // > Step 4: If root is a block-level box, paint a block’s decorations given root
@@ -279,6 +282,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         fragment: &Arc<BoxFragment>,
         at_root_of_stacking_context: bool,
     ) {
+        let fragment = &fragment.with_style();
         let is_flex_or_grid = fragment.is_flex_or_grid_item();
         if fragment.is_replaced() {
             if is_flex_or_grid {
@@ -473,9 +477,10 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         }
     }
 
-    fn handle_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+    fn handle_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         if fragment.has_outline() {
-            self.outlines.push((state.clone(), fragment.clone()));
+            self.outlines
+                .push((state.clone(), fragment.box_fragment.clone()));
         }
         self.handler.visit_box(state, fragment);
     }

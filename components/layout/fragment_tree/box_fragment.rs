@@ -709,13 +709,6 @@ impl BoxFragment {
         )
     }
 
-    /// Whether or not this [`BoxFragment`] has outlines.
-    pub(crate) fn has_outline(&self) -> bool {
-        let style = self.style();
-        let outline = style.get_outline();
-        !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
-    }
-
     pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
         self.spatial_tree_node.get()
     }
@@ -788,5 +781,12 @@ impl<'a> BoxFragmentWithStyle<'a> {
             },
             _ => false,
         }
+    }
+
+    /// Whether or not this [`BoxFragment`] has outlines.
+    pub(crate) fn has_outline(&self) -> bool {
+        let style = self.style();
+        let outline = style.get_outline();
+        !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
     }
 }
