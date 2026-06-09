@@ -424,7 +424,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         let element_lang = match override_lang {
             Some(Some(lang)) => lang,
             Some(None) => AtomString::default(),
-            None => AtomString::from(&*self.element.get_lang_for_layout()),
+            None => self.element.get_lang_for_layout(),
         };
         extended_filtering(&element_lang, value)
     }
