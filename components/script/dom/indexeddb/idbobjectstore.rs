@@ -617,8 +617,9 @@ impl IDBObjectStore {
             .index_set
             .borrow_mut()
             .remove(name)
-            .expect("Earlier steps of the algorithm checked that the index exists");
-        self.index_set.borrow_mut().insert(new_name.clone(), index);
+            .expect("Earlier steps of the algorithm checked that the index exists")
+            .as_rooted();
+        self.index_set.borrow_mut().insert(new_name.clone(), Dom::from_ref(&index));
     }
 }
 
