@@ -123,7 +123,7 @@ impl<'a> BackgroundPainter<'a> {
     ) -> wr::CommonItemProperties {
         let clip = self.clip(fragment_builder, builder, state, layer_index);
         let style = fragment_builder.fragment.style();
-        let mut common = builder.common_properties(state, painting_area, &style);
+        let mut common = builder.common_properties(state, painting_area, style);
         if let Some(clip_chain_id) = clip {
             common.clip_chain_id = clip_chain_id;
         }

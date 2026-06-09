@@ -913,7 +913,8 @@ impl BoxFragment {
         parent_clip_id: ClipId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
-        let style = self.style();
+        let with_style = self.with_style();
+        let style = with_style.style();
         let overflow = style.effective_overflow(self.base.flags);
 
         if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
@@ -940,7 +941,7 @@ impl BoxFragment {
             // https://drafts.csswg.org/css-overflow-3/#corner-clipping
             let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                let builder = BuilderForBoxFragment::new(self, containing_block_rect.origin);
+                let builder = BuilderForBoxFragment::new(&with_style, containing_block_rect.origin);
                 let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
                 match overflow_clip_margin.visual_box {
                     OverflowClipMarginBox::ContentBox => {
@@ -983,7 +984,7 @@ impl BoxFragment {
             .to_webrender();
 
         let clip_id = stacking_context_tree.clip_store.add(
-            BuilderForBoxFragment::new(self, containing_block_rect.origin).border_radius(),
+            BuilderForBoxFragment::new(&with_style, containing_block_rect.origin).border_radius(),
             scroll_frame_rect,
             parent_scroll_node_id,
             parent_clip_id,

@@ -152,6 +152,25 @@ pub(crate) struct BoxFragment {
     pub spatial_tree_node: AtomicOptionScrollTreeNodeId,
 }
 
+/// Constructed from `&BoxFragment` and dereferences to it so it can mostly
+/// be used in the same ways, except the `.style()` method is shadowed to use an existing
+/// `atomic_refcell::AtomicRef` that lives as long as `BoxFragmentWithStyle`.
+///
+/// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
+/// increments and decrements on `ArcRefCell`’s borrow counter.
+pub(crate) struct BoxFragmentWithStyle<'a> {
+    box_fragment: &'a BoxFragment,
+    style: AtomicRef<'a, ServoArc<ComputedValues>>,
+}
+
+impl std::ops::Deref for BoxFragmentWithStyle<'_> {
+    type Target = BoxFragment;
+
+    fn deref(&self) -> &Self::Target {
+        self.box_fragment
+    }
+}
+
 impl BoxFragment {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -189,6 +208,13 @@ impl BoxFragment {
 
     pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
         self.base.style()
+    }
+
+    pub(crate) fn with_style(&self) -> BoxFragmentWithStyle<'_> {
+        BoxFragmentWithStyle {
+            box_fragment: self,
+            style: self.style(),
+        }
     }
 
     /// Get the baselines for this [`BoxFragment`] if they are compatible with the given [`WritingMode`].
@@ -752,5 +778,11 @@ impl BoxFragment {
 
     pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
         self.spatial_tree_node.get()
+    }
+}
+
+impl<'a> BoxFragmentWithStyle<'a> {
+    pub(crate) fn style(&self) -> &ServoArc<ComputedValues> {
+        &self.style
     }
 }
