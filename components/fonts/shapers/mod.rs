@@ -61,7 +61,7 @@ pub(crate) trait GlyphShapingResult {
 ///
 /// The order of precedence for resolving font-specific font feature properties is specified in
 /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>.
-fn compute_used_font_features(
+pub(crate) fn compute_used_font_features(
     options: &ShapingOptions,
     font_face_rule: Option<&FontFaceRule>,
 ) -> impl Iterator<Item = (Tag, u32)> {
