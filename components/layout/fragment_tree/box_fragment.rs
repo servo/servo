@@ -701,17 +701,6 @@ impl BoxFragment {
         )
     }
 
-    pub(crate) fn has_collapsed_borders(&self) -> bool {
-        match self.specific_layout_info().as_deref() {
-            Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
-            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
-            Some(SpecificLayoutInfo::TableWrapper) => {
-                self.style().get_inherited_table().border_collapse == BorderCollapse::Collapse
-            },
-            _ => false,
-        }
-    }
-
     /// Whether or not this is the [`BoxFragment`] for a table grid with collapsed borders.
     pub(crate) fn is_table_grid_with_collapsed_borders(&self) -> bool {
         matches!(
@@ -788,5 +777,16 @@ impl<'a> BoxFragmentWithStyle<'a> {
     /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
     pub(crate) fn is_atomic_inline_level(&self) -> bool {
         self.style().is_atomic_inline_level(self.base.flags)
+    }
+
+    pub(crate) fn has_collapsed_borders(&self) -> bool {
+        match self.specific_layout_info().as_deref() {
+            Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
+            Some(SpecificLayoutInfo::TableWrapper) => {
+                self.style().get_inherited_table().border_collapse == BorderCollapse::Collapse
+            },
+            _ => false,
+        }
     }
 }
