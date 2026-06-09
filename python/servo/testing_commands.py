@@ -15,6 +15,7 @@ import os.path as path
 import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
 from argparse import ArgumentParser
 from contextlib import chdir
@@ -449,9 +450,33 @@ class MachCommands(CommandBase):
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
     @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
+    @CommandArgument(
+        "--update-expectations",
+        "-U",
+        default=False,
+        action="store_true",
+        help="Update test expectations after test run",
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
-        return self._test_wpt(servo_binary, multiprocess, **kwargs)
+    def test_wpt(self, servo_binary: str, multiprocess: bool, update_expectations: bool, **kwargs: Any) -> int:
+        if update_expectations:
+            if kwargs["log_raw"]:
+                print("Do not specify --log-raw when updating tests directly")
+                return 1
+            with tempfile.TemporaryDirectory() as temp_dir:
+                kwargs["log_raw"] = [os.path.join(temp_dir, "wpt.log")]
+
+        test_return_value = self._test_wpt(servo_binary, multiprocess, **kwargs)
+
+        # We should only update when the tests actually failed. In any other case
+        # such as incorrect command parameters, we shouldn't run the update command.
+        # Confusingly, the test command has an exit command of 0 when its command
+        # parameters are invalid (for example a non-existent test file).
+        if update_expectations and test_return_value == 1:
+            update_arguments = wpt.update.parse_args_update(kwargs["log_raw"])
+            return self.update_wpt(**vars(update_arguments))
+
+        return test_return_value
 
     @CommandBase.allow_target_configuration
     def _test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
