@@ -325,7 +325,7 @@ function createFrameActor(frame, pipelineId) {
         frameActorId = registerFrameActor(pipelineId, {
             // TODO: Some properties throw if terminated is true
             // TODO: arguments: frame.arguments,
-            displayName: frame.script.displayName,
+            displayName: frame.script.displayName ?? null,
             onStack: frame.onStack,
             oldest: frame.older == null,
             terminated: frame.terminated,

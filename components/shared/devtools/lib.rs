@@ -678,7 +678,7 @@ pub struct RecommendedBreakpointLocation {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct FrameInfo {
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub on_stack: bool,
     pub oldest: bool,
     pub terminated: bool,

@@ -592,7 +592,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let (tx, rx) = channel::<String>().unwrap();
 
         let frame = devtools_traits::FrameInfo {
-            display_name: result.displayName.clone().into(),
+            display_name: result.displayName.clone().map(String::from),
             on_stack: result.onStack,
             oldest: result.oldest,
             terminated: result.terminated,
