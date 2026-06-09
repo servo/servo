@@ -904,9 +904,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::InvalidState(None));
         }
         // Step 6. If transaction’s state is not active, throw a "TransactionInactiveError" DOMException.
-        if !transaction.is_active() || !transaction.is_usable() {
-            return Err(Error::TransactionInactive(None));
-        }
+        self.check_transaction_active()?;
 
         // Step 7. If store’s name is equal to name, terminate these steps.
         if *self.name.borrow() == name {
