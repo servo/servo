@@ -257,7 +257,7 @@ impl AccessibilityTree {
     fn assert_removed_nodes_were_rooted(
         &mut self,
         update: &AccessibilityUpdate,
-        mut rooted_nodes: std::collections::HashSet<OpaqueNode, rustc_hash::FxBuildHasher>,
+        mut rooted_nodes: FxHashSet<OpaqueNode>,
     ) {
         debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
         for (id, change) in update.tree_changes.iter() {
