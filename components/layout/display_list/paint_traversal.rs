@@ -110,8 +110,11 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             .leave_stacking_context(&state, stacking_context_state);
     }
 
-    fn traverse_stacking_context_inner(&mut self, state: &TraversalState, root: &Arc<BoxFragment>) {
-        let root = &root.with_style();
+    fn traverse_stacking_context_inner(
+        &mut self,
+        state: &TraversalState,
+        root: &BoxFragmentWithStyle<'_>,
+    ) {
         let old_float_length = self.floats.len();
         let mut saw_inline_level_or_replaced = root.is_replaced();
 
