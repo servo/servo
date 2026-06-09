@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::iter;
 use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
@@ -84,6 +85,8 @@ pub struct AccessibilityTree {
     ///
     /// This must be kept in sync with [`Self::opaque_node_to_id`].
     id_to_opaque_node: FxHashMap<NodeId, OpaqueNode>,
+    /// A map to allow retrieving a node's parent ID, if any.
+    node_to_parent: FxHashMap<NodeId, NodeId>,
     /// Sent with each [`accesskit::TreeUpdate`]. This allows this tree to be
     /// [grafted](https://docs.rs/accesskit/latest/accesskit/struct.Node.html#method.tree_id) into
     /// an application's tree.
@@ -139,6 +142,7 @@ impl AccessibilityTree {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
             id_to_opaque_node: FxHashMap::default(),
+            node_to_parent: FxHashMap::default(),
             tree_id,
             root_node_id: None,
             embedder_epoch,
@@ -228,6 +232,18 @@ impl AccessibilityTree {
             panic!("{id:?} does not exist in tree");
         };
         node.clone()
+    }
+
+    fn parent_for_node(&self, node_id: &NodeId) -> Option<NodeId> {
+        self.node_to_parent.get(node_id).cloned()
+    }
+
+    fn set_parent_for_node(&mut self, node_id: NodeId, parent_id: Option<NodeId>) {
+        if let Some(parent_id) = parent_id {
+            self.node_to_parent.insert(node_id, parent_id);
+        } else {
+            self.node_to_parent.remove(&node_id);
+        }
     }
 
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
@@ -322,18 +338,26 @@ impl AccessibilityTree {
             return;
         };
         // Traverse the tree from the given root.
-        let mut node_ids = vec![root_node_id];
+        let mut node_ids = vec![(root_node_id, None)];
         let mut seen_node_ids = FxHashSet::default();
-        while let Some(node_id) = node_ids.pop() {
+        while let Some((node_id, parent_id)) = node_ids.pop() {
             // If this fails, then the tree is not a tree at all.
             assert!(
                 seen_node_ids.insert(node_id),
                 "Tree contains {node_id:?} in multiple places"
             );
+            assert_eq!(self.node_to_parent.get(&node_id).cloned(), parent_id);
+
             // If this fails, then the tree has dangling references.
             let node = self.assert_node_for_id(&node_id);
             let node = node.borrow();
-            node_ids.extend(node.child_ids().iter().rev());
+            node_ids.extend(
+                node.child_ids()
+                    .iter()
+                    .cloned()
+                    .rev()
+                    .zip(iter::repeat(Some(node_id))),
+            );
         }
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
@@ -547,6 +571,9 @@ impl AccessibilityNode {
                 let removed_child = tree.assert_node_for_id(old_id);
                 let removed_child = removed_child.borrow();
                 removed_child.set_subtree_state_change(TreeChange::Removed, tree, update);
+                if tree.parent_for_node(old_id) == Some(self.id) {
+                    tree.set_parent_for_node(*old_id, None);
+                }
             }
         }
 
@@ -557,6 +584,7 @@ impl AccessibilityNode {
                 if !update.is_new(new_id) {
                     new_child.set_subtree_state_change(TreeChange::PendingMove, tree, update);
                 }
+                tree.set_parent_for_node(*new_id, Some(self.id));
             }
         }
 
@@ -659,13 +687,12 @@ impl AccessibilityUpdate {
     }
 
     fn set_tree_state_change(&mut self, node_id: NodeId, change: TreeChange) {
-        let old_change = self.tree_changes.get(&node_id);
-
         assert!(
             change != TreeChange::Moved,
             "Incoming change must never be Moved"
         );
 
+        let old_change = self.tree_changes.get(&node_id);
         let new_change = old_change
             .map(|old_change| match (old_change, change) {
                 (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
