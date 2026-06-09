@@ -59,7 +59,7 @@ impl AccessibilityData {
     /// which are still disconnected from the tree.
     /// This should be called instead of [`Self::unroot_all_removed_nodes()`] during reflow
     /// if [`pref::expensive_accessibility_test_assertions_enabled`] set.
-    pub(crate) fn unroot_and_drain_all_removed_nodes(&mut self) -> Vec<OpaqueNode> {
+    pub(crate) fn unroot_and_drain_all_removed_nodes(&mut self) -> FxHashSet<OpaqueNode> {
         self.rooted_nodes
             .drain()
             .filter_map(|node| {

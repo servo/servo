@@ -29,7 +29,7 @@ struct AccessibilityUpdate {
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
     /// is set.
-    rooted_nodes: Option<Vec<OpaqueNode>>,
+    rooted_nodes: Option<FxHashSet<OpaqueNode>>,
 }
 
 struct AccessibilityNode {
@@ -127,7 +127,7 @@ impl AccessibilityTree {
     pub(super) fn update_tree(
         &mut self,
         root_dom_node: &ServoLayoutNode<'_>,
-        rooted_nodes: Option<Vec<OpaqueNode>>,
+        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
         let root_node = self.get_or_create_node(root_dom_node, &mut update);
@@ -216,17 +216,27 @@ impl AccessibilityTree {
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
         // If we got rooted_nodes from the document's AccessibilityData, assert that every node
-        // we removed during this update was rooted.
-        if let Some(rooted_nodes) = update.rooted_nodes {
+        // we removed during this update was rooted, and any leftover rooted nodes were never known
+        // to the accessibility tree.
+        if let Some(mut rooted_nodes) = update.rooted_nodes {
             debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
-            let rooted_nodes = FxHashSet::from_iter(rooted_nodes);
             for (id, change) in update.tree_changes.iter() {
                 if change == &TreeChange::Removed {
                     let node = self.assert_node_for_id(id);
                     if let Some(opaque_node) = node.borrow().opaque_node {
-                        assert!(rooted_nodes.contains(&opaque_node));
+                        assert!(
+                            rooted_nodes.remove(&opaque_node),
+                            "Node removed from accessibility tree wasn't rooted: {node:?}"
+                        );
                     }
                 };
+            }
+
+            for leftover_node in rooted_nodes {
+                assert!(
+                    !self.opaque_node_to_id.contains_key(&leftover_node),
+                    "Found node removed from DOM tree but not accessibility tree"
+                );
             }
         }
 
@@ -570,7 +580,7 @@ impl Debug for AccessibilityNode {
 }
 
 impl AccessibilityUpdate {
-    fn new(rooted_nodes: Option<Vec<OpaqueNode>>) -> Self {
+    fn new(rooted_nodes: Option<FxHashSet<OpaqueNode>>) -> Self {
         Self {
             changed_nodes: FxHashSet::default(),
             tree_changes: FxHashMap::default(),

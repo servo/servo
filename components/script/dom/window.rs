@@ -62,7 +62,7 @@ use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -2690,7 +2690,8 @@ impl Window {
 
         let document_context = self.web_font_context();
 
-        let mut rooted_nodes_for_accessibility_integrity_check: Option<Vec<OpaqueNode>> = None;
+        let mut rooted_nodes_for_accessibility_integrity_check: Option<FxHashSet<OpaqueNode>> =
+            None;
 
         if self.layout().accessibility_active() {
             let mut accessibility_data = document.accessibility_data_mut();

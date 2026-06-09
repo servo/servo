@@ -47,7 +47,7 @@ use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
 use profile_traits::time;
 pub use pseudo_element_chain::PseudoElementChain;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -704,7 +704,7 @@ pub struct ReflowRequest {
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
     /// is set.
-    pub rooted_nodes_for_accessibility_integrity_check: Option<Vec<OpaqueNode>>,
+    pub rooted_nodes_for_accessibility_integrity_check: Option<FxHashSet<OpaqueNode>>,
 }
 
 impl ReflowRequest {
