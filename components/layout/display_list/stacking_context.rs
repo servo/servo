@@ -662,8 +662,10 @@ impl BoxFragment {
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
     ) {
+        let with_style = &self.with_style();
+        let style = with_style.style();
         let Some(stacking_context_type) = self.stacking_context_type() else {
-            self.build_stacking_context_tree_for_children(
+            with_style.build_stacking_context_tree_for_children(
                 stacking_context_tree,
                 containing_block,
                 containing_block_info,
@@ -683,15 +685,13 @@ impl BoxFragment {
             &new_scroll_frame_size,
         );
 
-        let clip_id = self.build_clip_frame_if_necessary(
+        let clip_id = with_style.build_clip_frame_if_necessary(
             stacking_context_tree,
             spatial_id.unwrap_or(containing_block.scroll_node_id),
             containing_block.clip_id,
             &containing_block.rect,
         );
 
-        let with_style = &self.with_style();
-        let style = with_style.style();
         let clip_id = stacking_context_tree
             .clip_store
             .add_for_clip_path(
@@ -731,7 +731,7 @@ impl BoxFragment {
             box_fragment,
             text_decorations.clone(),
         );
-        self.build_stacking_context_tree_for_children(
+        with_style.build_stacking_context_tree_for_children(
             stacking_context_tree,
             containing_block,
             containing_block_info,
@@ -754,17 +754,18 @@ impl BoxFragment {
             .children
             .append(&mut stolen_children);
     }
+}
 
+impl BoxFragmentWithStyle<'_> {
     fn build_stacking_context_tree_for_children(
-        self: &Arc<Self>,
+        &self,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
     ) {
-        let with_style = self.with_style();
-        let style = with_style.style();
+        let style = self.style();
         let establishes_containing_block_for_all_descendants =
             style.establishes_containing_block_for_all_descendants(self.base.flags);
         let establishes_containing_block_for_absolute_descendants =
@@ -779,7 +780,7 @@ impl BoxFragment {
             .for_non_absolute_descendants
             .scroll_frame_size;
         let mut new_clip_id = containing_block.clip_id;
-        if let Some(overflow_frame_data) = with_style.build_overflow_frame_if_necessary(
+        if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
             stacking_context_tree,
             new_scroll_node_id,
             new_clip_id,
@@ -839,7 +840,7 @@ impl BoxFragment {
         // > Note that text decorations are not propagated to floating and absolutely
         // > positioned descendants, nor to the contents of atomic inline-level descendants
         // > such as inline blocks and inline tables.
-        let text_decorations = match with_style.is_atomic_inline_level() ||
+        let text_decorations = match self.is_atomic_inline_level() ||
             self.base
                 .flags
                 .contains(FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER)
@@ -910,9 +911,7 @@ impl BoxFragment {
             parent_clip_id,
         ))
     }
-}
 
-impl BoxFragmentWithStyle<'_> {
     fn build_overflow_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
