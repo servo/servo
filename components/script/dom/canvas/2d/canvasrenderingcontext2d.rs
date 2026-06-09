@@ -110,6 +110,10 @@ impl CanvasRenderingContext2D {
         self.canvas_state.send_canvas_command(msg)
     }
 
+    pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        self.canvas_state.send_canvas_command_immediate(msg)
+    }
+
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
         self.canvas_state.set_image_key(image_key);
     }
@@ -149,7 +153,7 @@ impl CanvasContext for CanvasRenderingContext2D {
 
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.canvas_state
-            .send_canvas_command(CanvasCommand::GetImageData(None, sender));
+            .send_canvas_command_immediate(CanvasCommand::GetImageData(None, sender));
         Some(receiver.recv().unwrap().to_owned())
     }
 
