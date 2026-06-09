@@ -740,16 +740,6 @@ impl WebView {
         );
     }
 
-    pub fn send_error(&self, message: String) {
-        self.inner()
-            .servo
-            .constellation_proxy()
-            .send(EmbedderToConstellationMessage::SendError(
-                Some(self.id()),
-                message,
-            ));
-    }
-
     /// Paint the contents of this [`WebView`] into its [`RenderingContext`].
     pub fn paint(&self) {
         self.inner().servo.paint().render(self.id());
