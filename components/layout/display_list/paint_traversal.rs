@@ -352,7 +352,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         match fragment {
             Fragment::Box(box_fragment) => self.traverse_box_in_a_line_box(
                 state,
-                box_fragment,
+                &box_fragment.with_style(),
                 false, /* at_stacking_context_root */
             ),
             Fragment::Text(text_fragment) => {
@@ -377,10 +377,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_box_in_a_line_box(
         &mut self,
         state: &TraversalState,
-        box_fragment: &Arc<BoxFragment>,
+        box_fragment: &BoxFragmentWithStyle<'_>,
         at_stacking_context_root: bool,
     ) {
-        let box_fragment = &box_fragment.with_style();
         // If this box establishes a stacking context or stacking container, do not paint
         // it during this phase. Instead it is painted when the stacking context or container
         // is processed.
