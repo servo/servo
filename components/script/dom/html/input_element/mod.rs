@@ -331,6 +331,8 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+    /// We intentionally do not match the Reset Button or Button state in order to align with
+    /// other implementations.
     pub(crate) fn is_auto_directionality_form_associated_element(&self) -> bool {
         matches!(
             *self.input_type(),
@@ -341,9 +343,7 @@ impl HTMLInputElement {
                 InputType::Url(_) |
                 InputType::Email(_) |
                 InputType::Password(_) |
-                InputType::Submit(_) |
-                InputType::Reset(_) |
-                InputType::Button(_)
+                InputType::Submit(_)
         )
     }
 
