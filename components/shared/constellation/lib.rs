@@ -72,8 +72,6 @@ pub enum EmbedderToConstellationMessage {
     NewWebView(ServoUrl, NewWebViewDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
-    /// Panic a top level browsing context.
-    SendError(Option<WebViewId>, String),
     /// Make a webview focused. [EmbedderMsg::WebViewFocused] will be sent with
     /// the result of this operation.
     FocusWebView(WebViewId),

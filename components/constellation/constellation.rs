@@ -1418,14 +1418,6 @@ where
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
-            // Panic a top level browsing context.
-            EmbedderToConstellationMessage::SendError(webview_id, error) => {
-                warn!("Constellation got a SendError message from WebView {webview_id:?}: {error}");
-                let Some(webview_id) = webview_id else {
-                    return;
-                };
-                self.handle_panic_in_webview(webview_id, &error, &None);
-            },
             EmbedderToConstellationMessage::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
