@@ -11,4 +11,4 @@ dependencies = [
 license = "Apache-2.0 OR MIT"
 
 [tool.uv]
-native-tls = true
+system-certs = true
