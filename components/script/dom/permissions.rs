@@ -410,6 +410,7 @@ impl Convert<PermissionFeature> for PermissionName {
             PermissionName::Screen_wake_lock => {
                 PermissionFeature::ScreenWakeLock(WakeLockType::Screen)
             },
+            PermissionName::Gamepad => PermissionFeature::Gamepad,
         }
     }
 }

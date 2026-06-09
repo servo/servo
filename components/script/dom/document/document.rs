@@ -4638,6 +4638,7 @@ impl Document {
             self.window
                 .Navigator()
                 .GetGamepads()
+                .unwrap_or_default()
                 .iter_mut()
                 .for_each(|gamepad| {
                     if let Some(g) = gamepad {

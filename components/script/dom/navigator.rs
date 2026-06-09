@@ -29,6 +29,8 @@ use servo_url::ServoUrl;
 
 use crate::body::Extractable;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+#[cfg(feature = "gamepad")]
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -412,7 +414,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
     #[cfg(feature = "gamepad")]
-    fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
+    fn GetGamepads(&self) -> Fallible<Vec<Option<DomRoot<Gamepad>>>> {
         use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 
         // Step 1. Let doc be the current global object's associated Document.
@@ -421,11 +423,21 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         let doc = window.Document();
 
         // Step 2. If doc is null or doc is not fully active, then return an empty list.
-        // TODO Step 3. If doc is not allowed to use the "gamepad" permission,
-        //         then throw a "SecurityError" DOMException.
+        if !doc.is_fully_active() {
+            return Ok(Vec::new());
+        }
+
+        // Step 3. If doc is not allowed to use the "gamepad" permission,
+        // then throw a "SecurityError" DOMException.
+        if !doc.allowed_to_use_feature(PermissionName::Gamepad) {
+            return Err(Error::Security(Some(
+                "Gamepad permission not allowed".into(),
+            )));
+        }
+
         // Step 4. If this.[[hasGamepadGesture]] is false, then return an empty list.
-        if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
-            return Vec::new();
+        if !self.has_gamepad_gesture.get() {
+            return Ok(Vec::new());
         }
 
         // Step 5. Let now be the current high resolution time given the current global object.
@@ -433,7 +445,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
         // Step 6. Let gamepads be an empty list.
         // Step 7. For each gamepad of this.[[gamepads]]:
-        self.gamepads
+        Ok(self
+            .gamepads
             .borrow()
             .iter()
             .map(|slot| {
@@ -447,7 +460,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                     }
                 })
             })
-            .collect() // Step 7.2. Append gamepad to gamepads.
+            .collect()) // Step 7.2. Append gamepad to gamepads.
         // Step 8. Return gamepads.
     }
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
