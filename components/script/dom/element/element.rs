@@ -1555,7 +1555,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
         // TODO: Check meta tags for a pragma-set default language
         // TODO: Check HTTP Content-Language header
-        AtomString::from("")
+        AtomString::default()
     }
 
     #[inline]
