@@ -915,62 +915,31 @@ impl ImageCache for ImageCacheImpl {
             }
         }
 
-        let (key, decoded) = {
-            let result = store
-                .pending_loads
-                .get_cached(url.clone(), origin.clone(), cors_setting);
-            match result {
-                CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
-                    (&Some(Ok(_)), _) => {
-                        return ImageCacheResult::Pending(key);
-                        debug!("Sync decoding {} ({:?})", url, key);
-                        (
-                            key,
-                            decode_bytes_sync(
-                                key,
-                                pl.bytes.as_slice(),
-                                pl.cors_status,
-                                pl.content_type.clone(),
-                                self.fontdb.clone(),
-                            ),
-                        )
-                    },
-                    (&None, Some(meta)) => {
-                        debug!("Metadata available for {} ({:?})", url, key);
-                        return ImageCacheResult::Available(
-                            ImageOrMetadataAvailable::MetadataAvailable(*meta, key),
-                        );
-                    },
-                    (&Some(Err(_)), _) | (&None, &None) => {
-                        debug!("{} ({:?}) is still pending", url, key);
-                        return ImageCacheResult::Pending(key);
-                    },
+        let result = store
+            .pending_loads
+            .get_cached(url.clone(), origin, cors_setting);
+        match result {
+            CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
+                (&Some(Ok(_)), _) => ImageCacheResult::Pending(key),
+                (&None, Some(meta)) => {
+                    debug!("Metadata available for {} ({:?})", url, key);
+                    ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(
+                        *meta, key,
+                    ))
                 },
-                CacheResult::Miss(Some((key, _pl))) => {
-                    debug!("Should be requesting {} ({:?})", url, key);
-                    return ImageCacheResult::ReadyForRequest(key);
+                (&Some(Err(_)), _) | (&None, &None) => {
+                    debug!("{} ({:?}) is still pending", url, key);
+                    ImageCacheResult::Pending(key)
                 },
-                CacheResult::Miss(None) => {
-                    debug!("Couldn't find an entry for {}", url);
-                    return ImageCacheResult::FailedToLoadOrDecode;
-                },
-            }
-        };
-
-        // In the case where a decode is ongoing (or waiting in a queue) but we
-        // have the full response available, we decode the bytes synchronously
-        // and ignore the async decode when it finishes later.
-        // TODO: make this behaviour configurable according to the caller's needs.
-        store.handle_decoder(decoded);
-        match store.get_completed_image_if_available(url, origin, cors_setting) {
-            Some(Ok((image, image_url))) => {
-                ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
-                    image,
-                    url: image_url,
-                })
             },
-            // Note: this happens if we are pending a batch of image keys.
-            _ => ImageCacheResult::Pending(key),
+            CacheResult::Miss(Some((key, _pl))) => {
+                debug!("Should be requesting {} ({:?})", url, key);
+                ImageCacheResult::ReadyForRequest(key)
+            },
+            CacheResult::Miss(None) => {
+                debug!("Couldn't find an entry for {}", url);
+                ImageCacheResult::FailedToLoadOrDecode
+            },
         }
     }
 
