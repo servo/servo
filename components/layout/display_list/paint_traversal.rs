@@ -172,10 +172,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_stacking_container(
         &mut self,
         state: &TraversalState,
-        root: &Arc<BoxFragment>,
+        root: &BoxFragmentWithStyle<'_>,
         is_block_level: bool,
     ) {
-        let root = &root.with_style();
         let old_outlines_length = self.outlines.len();
 
         // > Step 4: If root is a block-level box, paint a block’s decorations given root
@@ -455,7 +454,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 Fragment::LayoutRoot(layout_root_fragment) => {
                     self.traverse_stacking_container(
                         &state.without_text_decorations(),
-                        &layout_root_fragment.inner_box_fragment(),
+                        &layout_root_fragment.inner_box_fragment().with_style(),
                         true, /* is_block_level */
                     );
                 },
@@ -471,7 +470,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 Fragment::Box(box_fragment) => {
                     self.traverse_stacking_container(
                         &state.without_text_decorations(),
-                        box_fragment,
+                        &box_fragment.with_style(),
                         true, /* is_block_level */
                     );
                 },
