@@ -1037,7 +1037,9 @@ impl InlineFormattingContextLayout<'_> {
         );
         self.inline_box_states.push(inline_box_state.clone());
         self.inline_box_state_stack.push(inline_box_state);
-        self.recalculate_cloneable_pbm();
+        if self.inline_box_state_stack.last().unwrap().clone_pbm {
+            self.recalculate_cloneable_pbm();
+        }
     }
 
     /// Finish laying out a particular [`InlineBox`] into line items. This will
@@ -1047,7 +1049,10 @@ impl InlineFormattingContextLayout<'_> {
             Some(inline_box_state) => inline_box_state,
             None => return, // We are at the root.
         };
-        self.recalculate_cloneable_pbm();
+
+        if inline_box_state.clone_pbm {
+            self.recalculate_cloneable_pbm();
+        }
 
         self.current_line_segment
             .max_block_size
