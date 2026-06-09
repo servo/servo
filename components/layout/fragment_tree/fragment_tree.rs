@@ -117,10 +117,12 @@ impl FragmentTree {
 
         // Ensure that scrollable overflow that is unreachable is not included in the final
         // rectangle. See <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
-        first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
-            scrollable_overflow,
-            self.initial_containing_block,
-        )
+        first_root_fragment
+            .with_style()
+            .clip_wholly_unreachable_scrollable_overflow(
+                scrollable_overflow,
+                self.initial_containing_block,
+            )
     }
 
     pub(crate) fn find<T>(
