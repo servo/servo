@@ -58,22 +58,20 @@ pub(crate) mod module {
         CreateProxyHandler, GetProxyReservedSlot, JS_GetReservedSlot, ProxyTraps,
     };
     pub(crate) use js::jsapi::{
-        __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmErrorPrototype,
-        GetRealmFunctionPrototype, GetRealmIteratorPrototype, GetRealmObjectPrototype,
-        GetWellKnownSymbol, Handle as RawHandle, HandleId as RawHandleId,
-        HandleObject as RawHandleObject, JS_AtomizeAndPinString, JS_ForwardGetPropertyTo,
-        JS_GetPropertyDescriptorById, JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot,
-        JSAutoRealm, JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
-        JSClassOps, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS,
-        JSJitGetterCallArgs, JSJitInfo, JSJitInfo__bindgen_ty_1, JSJitInfo__bindgen_ty_2,
-        JSJitInfo__bindgen_ty_3, JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType,
-        JSJitMethodCallArgs, JSJitSetterCallArgs, JSNativeWrapper, JSPROP_ENUMERATE,
-        JSPROP_PERMANENT, JSPROP_READONLY, JSPropertySpec, JSPropertySpec_Accessor,
-        JSPropertySpec_AccessorsOrValue, JSPropertySpec_AccessorsOrValue_Accessors,
-        JSPropertySpec_Kind, JSPropertySpec_Name, JSPropertySpec_ValueWrapper,
-        JSPropertySpec_ValueWrapper__bindgen_ty_1, JSPropertySpec_ValueWrapper_Type, JSTracer,
-        JSTypedMethodJitInfo, JSValueType, MutableHandle as RawMutableHandle,
-        MutableHandleIdVector as RawMutableHandleIdVector,
+        __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmFunctionPrototype, GetWellKnownSymbol,
+        Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
+        JS_AtomizeAndPinString, JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById,
+        JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm,
+        JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
+        JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSJitGetterCallArgs,
+        JSJitInfo, JSJitInfo__bindgen_ty_1, JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3,
+        JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType, JSJitMethodCallArgs,
+        JSJitSetterCallArgs, JSNativeWrapper, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
+        JSPropertySpec, JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
+        JSPropertySpec_AccessorsOrValue_Accessors, JSPropertySpec_Kind, JSPropertySpec_Name,
+        JSPropertySpec_ValueWrapper, JSPropertySpec_ValueWrapper__bindgen_ty_1,
+        JSPropertySpec_ValueWrapper_Type, JSTracer, JSTypedMethodJitInfo, JSValueType,
+        MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
         MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
         ObjectOpResult, PropertyDescriptor, SymbolCode, jsid,
     };
@@ -96,8 +94,8 @@ pub(crate) mod module {
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
     pub(crate) use crate::constant::{ConstantSpec, ConstantVal};
     pub(crate) use crate::constructor::{
-        CallbackInit, NamespaceInit, call_default_constructor, create_callback_interface_objects,
-        create_namespace_interface_objects,
+        CallbackInit, InitType, InterfaceInit, NamespaceInit, call_default_constructor,
+        create_callback_interface_objects, create_interface, create_namespace_interface_objects,
     };
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::conversions::native_from_handlevalue;
@@ -112,10 +110,9 @@ pub(crate) mod module {
     pub(crate) use crate::inheritance::Castable;
     pub(crate) use crate::interface::{
         ConstructorClassHook, InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass,
-        ProtoOrIfaceIndex, create_global_object, create_interface_prototype_object,
-        create_named_constructors, create_noncallback_interface_object, define_dom_interface,
-        define_guarded_methods, define_guarded_properties, get_per_interface_object_handle,
-        is_exposed_in,
+        ProtoOrIfaceIndex, create_global_object, create_named_constructors,
+        create_noncallback_interface_object, define_dom_interface, define_guarded_methods,
+        define_guarded_properties, get_per_interface_object_handle, is_exposed_in,
     };
     pub(crate) use crate::iterable::{Iterable, IterableIterator, IteratorType};
     #[cfg(feature = "testbinding")]
