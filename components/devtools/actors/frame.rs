@@ -48,7 +48,7 @@ pub(crate) struct FrameActorMsg {
     type_: String,
     arguments: Vec<Value>,
     async_cause: Option<String>,
-    display_name: String,
+    display_name: Option<String>,
     oldest: bool,
     state: FrameState,
     this: ObjectActorMsg,
@@ -155,7 +155,6 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
             type_: self.frame_result.type_.clone(),
             arguments: vec![],
             async_cause,
-            // TODO: Should be optional
             display_name: self.frame_result.display_name.clone(),
             this: registry.encode::<ObjectActor, _>(&self.object_actor),
             oldest: self.frame_result.oldest,
