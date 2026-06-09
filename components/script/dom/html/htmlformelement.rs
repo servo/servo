@@ -1294,12 +1294,14 @@ impl HTMLFormElement {
 
             // Step: 5.11. If the element has a dirname attribute, that attribute's value is not the empty
             // string, and the element is an auto-directionality form-associated element:
-            // https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements
-            let input_matches = child_element
+            // From: <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+            // Input elements whose type attribute is in the Hidden, Text, Search, Telephone, URL, Email,
+            // Password, Submit Button, Reset Button, or Button state, and textarea elements.
+            let is_input_auto_directionality_form_associated_element = child_element
                 .downcast::<HTMLInputElement>()
                 .is_some_and(|input| input.is_auto_directionality_form_associated_element());
-            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
-            if !dirname.is_empty() && (input_matches || textarea_matches) {
+            let is_textarea_element = child_element.is::<HTMLTextAreaElement>();
+            if !dirname.is_empty() && (is_input_auto_directionality_form_associated_element || is_textarea_element) {
                 // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
                 // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
                 let dir = DOMString::from(child_element.directionality());
