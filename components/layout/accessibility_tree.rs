@@ -130,8 +130,7 @@ impl AccessibilityTree {
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
-        let root_node = self.get_or_create_node(root_dom_node, &mut update);
-        let root_node_id = root_node.borrow().id;
+        let (root_node_id, _) = self.get_or_create_node(root_dom_node, &mut update);
         self.root_node_id = Some(root_node_id);
 
         self.update_node_and_descendants(root_dom_node, &mut update);
@@ -166,7 +165,7 @@ impl AccessibilityTree {
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
         update: &mut AccessibilityUpdate,
-    ) -> ArcRefCell<AccessibilityNode> {
+    ) -> (NodeId, ArcRefCell<AccessibilityNode>) {
         let id = self.id_for_opaque(dom_node.opaque());
 
         let node = self.nodes.entry(id).or_insert_with(|| {
@@ -182,15 +181,7 @@ impl AccessibilityTree {
             new_node.set_html_tag(&local_name);
         }
 
-        node.clone()
-    }
-
-    fn node_for_dom_node(
-        &self,
-        dom_node: &ServoLayoutNode<'_>,
-    ) -> Option<ArcRefCell<AccessibilityNode>> {
-        let id = self.existing_id_for_opaque(dom_node.opaque())?;
-        self.nodes.get(id).cloned()
+        (id, node.clone())
     }
 
     fn assert_node_for_dom_node(
@@ -373,13 +364,12 @@ impl AccessibilityNode {
         let new_children: Vec<_> = dom_node
             .flat_tree_children()
             .map(|dom_child| {
-                let child_node_id = match tree.node_for_dom_node(&dom_child) {
-                    Some(child_node) => child_node.borrow().id,
+                let child_node_id = match tree.existing_id_for_opaque(dom_child.opaque()) {
+                    Some(&id) => id,
                     None => {
-                        let new_child = tree.get_or_create_node(&dom_child, update);
-                        let child_node_id = new_child.borrow().id;
-                        newly_created.insert(child_node_id);
-                        child_node_id
+                        let (new_child_id, _) = tree.get_or_create_node(&dom_child, update);
+                        newly_created.insert(new_child_id);
+                        new_child_id
                     },
                 };
 
