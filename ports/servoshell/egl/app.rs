@@ -78,8 +78,6 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         false
     }
 
-    fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
-
     #[cfg_attr(
         not(all(feature = "tracing", feature = "tracing-hitrace")),
         expect(unused_variables)

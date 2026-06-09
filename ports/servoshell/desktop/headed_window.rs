@@ -538,9 +538,20 @@ impl HeadedWindow {
         window: Rc<ServoShellWindow>,
         event: WindowEvent,
     ) {
-        if event == WindowEvent::RedrawRequested {
-            // WARNING: do not defer painting or presenting to some later tick of the event
-            // loop or servoshell may become unresponsive! (servo#30312)
+        // Handle resize events first, so that any subsequent redrawing draws onto a buffer of the
+        // correct size.
+        let mut resized = false;
+        if let WindowEvent::Resized(new_inner_size) = event &&
+            self.inner_size.get() != new_inner_size
+        {
+            self.inner_size.set(new_inner_size);
+            self.window_rendering_context.resize(new_inner_size);
+            resized = true;
+        }
+
+        // If requested to redraw or resized, repaint as soon as possible, so that new buffer
+        // contents are available to the window manager.
+        if event == WindowEvent::RedrawRequested || resized {
             let mut gui = self.gui.borrow_mut();
             gui.update(&state, &window, self);
             gui.paint(&self.winit_window);
@@ -621,10 +632,6 @@ impl HeadedWindow {
                     .borrow_mut()
                     .on_window_event(&self.winit_window, event);
 
-                if let WindowEvent::Resized(_) = event {
-                    self.rebuild_user_interface(&state, &window);
-                }
-
                 if let WindowEvent::Focused(true) = event {
                     state.handle_focused(window.clone());
                 }
@@ -649,140 +656,126 @@ impl HeadedWindow {
             },
         }
 
-        if !consumed {
-            // Make sure to handle early resize events even when there are no webviews yet
-            if let WindowEvent::Resized(new_inner_size) = event &&
-                self.inner_size.get() != new_inner_size
-            {
-                self.inner_size.set(new_inner_size);
-                // This should always be set to inner size
-                // because we are resizing `SurfmanRenderingContext`.
-                // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
-                self.window_rendering_context.resize(new_inner_size);
-            }
+        if !consumed && let Some(webview) = window.active_webview() {
+            match event {
+                WindowEvent::KeyboardInput { event, .. } => {
+                    self.handle_keyboard_input(state, &window, event)
+                },
+                WindowEvent::ModifiersChanged(modifiers) => {
+                    self.modifiers_state.set(modifiers.state())
+                },
+                WindowEvent::MouseInput { state, button, .. } => {
+                    self.handle_mouse_button_event(&webview, button, state);
+                },
+                WindowEvent::CursorMoved { position, .. } => {
+                    self.handle_mouse_move_event(&webview, position);
+                },
+                WindowEvent::CursorLeft { .. } => {
+                    let webview_rect: Rect<_, _> = webview.size().into();
+                    if webview_rect.contains(self.webview_relative_mouse_point.get()) {
+                        webview.notify_input_event(InputEvent::MouseLeftViewport(
+                            MouseLeftViewportEvent::default(),
+                        ));
+                    }
+                },
+                WindowEvent::MouseWheel { delta, .. } => {
+                    let (delta_x, delta_y, mode) = match delta {
+                        MouseScrollDelta::LineDelta(delta_x, delta_y) => (
+                            (delta_x * LINE_WIDTH) as f64,
+                            (delta_y * LINE_HEIGHT) as f64,
+                            WheelMode::DeltaPixel,
+                        ),
+                        MouseScrollDelta::PixelDelta(delta) => {
+                            (delta.x, delta.y, WheelMode::DeltaPixel)
+                        },
+                    };
 
-            if let Some(webview) = window.active_webview() {
-                match event {
-                    WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state, &window, event)
-                    },
-                    WindowEvent::ModifiersChanged(modifiers) => {
-                        self.modifiers_state.set(modifiers.state())
-                    },
-                    WindowEvent::MouseInput { state, button, .. } => {
-                        self.handle_mouse_button_event(&webview, button, state);
-                    },
-                    WindowEvent::CursorMoved { position, .. } => {
-                        self.handle_mouse_move_event(&webview, position);
-                    },
-                    WindowEvent::CursorLeft { .. } => {
-                        let webview_rect: Rect<_, _> = webview.size().into();
-                        if webview_rect.contains(self.webview_relative_mouse_point.get()) {
-                            webview.notify_input_event(InputEvent::MouseLeftViewport(
-                                MouseLeftViewportEvent::default(),
-                            ));
-                        }
-                    },
-                    WindowEvent::MouseWheel { delta, .. } => {
-                        let (delta_x, delta_y, mode) = match delta {
-                            MouseScrollDelta::LineDelta(delta_x, delta_y) => (
-                                (delta_x * LINE_WIDTH) as f64,
-                                (delta_y * LINE_HEIGHT) as f64,
-                                WheelMode::DeltaPixel,
-                            ),
-                            MouseScrollDelta::PixelDelta(delta) => {
-                                (delta.x, delta.y, WheelMode::DeltaPixel)
+                    // Create wheel event before snapping to the major axis of movement
+                    let delta = WheelDelta {
+                        x: delta_x,
+                        y: delta_y,
+                        z: 0.0,
+                        mode,
+                    };
+                    let point = self.webview_relative_mouse_point.get();
+                    webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
+                        delta,
+                        point.into(),
+                    )));
+                },
+                WindowEvent::Touch(touch) => {
+                    webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+                        winit_phase_to_touch_event_type(touch.phase),
+                        TouchId(touch.id as i32),
+                        DevicePoint::new(touch.location.x as f32, touch.location.y as f32).into(),
+                    )));
+                },
+                WindowEvent::PinchGesture { delta, .. } => {
+                    webview.adjust_pinch_zoom(
+                        delta as f32 + 1.0,
+                        self.webview_relative_mouse_point.get(),
+                    );
+                },
+                WindowEvent::CloseRequested => {
+                    window.schedule_close();
+                },
+                WindowEvent::ThemeChanged(theme) => {
+                    webview.notify_theme_change(match theme {
+                        winit::window::Theme::Light => Theme::Light,
+                        winit::window::Theme::Dark => Theme::Dark,
+                    });
+                },
+                WindowEvent::Ime(ime) => match ime {
+                    Ime::Enabled => {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::Start,
+                                data: String::new(),
                             },
-                        };
-
-                        // Create wheel event before snapping to the major axis of movement
-                        let delta = WheelDelta {
-                            x: delta_x,
-                            y: delta_y,
-                            z: 0.0,
-                            mode,
-                        };
-                        let point = self.webview_relative_mouse_point.get();
-                        webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
-                            delta,
-                            point.into(),
                         )));
                     },
-                    WindowEvent::Touch(touch) => {
-                        webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
-                            winit_phase_to_touch_event_type(touch.phase),
-                            TouchId(touch.id as i32),
-                            DevicePoint::new(touch.location.x as f32, touch.location.y as f32)
-                                .into(),
+                    Ime::Preedit(text, _) => {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::Update,
+                                data: text,
+                            },
                         )));
                     },
-                    WindowEvent::PinchGesture { delta, .. } => {
-                        webview.adjust_pinch_zoom(
-                            delta as f32 + 1.0,
-                            self.webview_relative_mouse_point.get(),
-                        );
+                    Ime::Commit(text) => {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
+                                state: servo::CompositionState::End,
+                                data: text,
+                            },
+                        )));
                     },
-                    WindowEvent::CloseRequested => {
-                        window.schedule_close();
-                    },
-                    WindowEvent::ThemeChanged(theme) => {
-                        webview.notify_theme_change(match theme {
-                            winit::window::Theme::Light => Theme::Light,
-                            winit::window::Theme::Dark => Theme::Dark,
-                        });
-                    },
-                    WindowEvent::Ime(ime) => match ime {
-                        Ime::Enabled => {
-                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                servo::CompositionEvent {
-                                    state: servo::CompositionState::Start,
-                                    data: String::new(),
-                                },
-                            )));
-                        },
-                        Ime::Preedit(text, _) => {
-                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                servo::CompositionEvent {
-                                    state: servo::CompositionState::Update,
-                                    data: text,
-                                },
-                            )));
-                        },
-                        Ime::Commit(text) => {
-                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                                servo::CompositionEvent {
-                                    state: servo::CompositionState::End,
-                                    data: text,
-                                },
-                            )));
-                        },
-                        Ime::Disabled => {
-                            // There are two reasons we receive this message from winit:
-                            //
-                            // 1. The user dismissed the IME. In that case we want to inform Servo
-                            //    so it can unfocus the current editable element.
-                            // 2. Servo changed focus and requested that we dismiss the IME, which
-                            //    in turn triggers this message. We know this is the case when we don't
-                            //    expect any IME to be open and shouldn't send any more messages to
-                            //    Servo as it might cause unexpected blurring of the newly focused
-                            //    element.
-                            if self.visible_input_method.take().is_some() {
-                                webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
-                            }
-                        },
-                    },
-                    WindowEvent::DroppedFile(dropped_file) => {
-                        if let Ok(url) = Url::from_file_path(&dropped_file) {
-                            webview.load(url);
-                        } else {
-                            log::error!(
-                                "Failed to create URL for dropped file ({})",
-                                dropped_file.display()
-                            );
+                    Ime::Disabled => {
+                        // There are two reasons we receive this message from winit:
+                        //
+                        // 1. The user dismissed the IME. In that case we want to inform Servo
+                        //    so it can unfocus the current editable element.
+                        // 2. Servo changed focus and requested that we dismiss the IME, which
+                        //    in turn triggers this message. We know this is the case when we don't
+                        //    expect any IME to be open and shouldn't send any more messages to
+                        //    Servo as it might cause unexpected blurring of the newly focused
+                        //    element.
+                        if self.visible_input_method.take().is_some() {
+                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
                         }
                     },
-                    _ => {},
-                }
+                },
+                WindowEvent::DroppedFile(dropped_file) => {
+                    if let Ok(url) = Url::from_file_path(&dropped_file) {
+                        webview.load(url);
+                    } else {
+                        log::error!(
+                            "Failed to create URL for dropped file ({})",
+                            dropped_file.display()
+                        );
+                    }
+                },
+                _ => {},
             }
         }
     }
@@ -849,10 +842,6 @@ impl PlatformWindow for HeadedWindow {
         self.device_pixel_ratio_override
             .map(Scale::new)
             .unwrap_or_else(|| self.device_hidpi_scale_factor())
-    }
-
-    fn rebuild_user_interface(&self, state: &RunningAppState, window: &ServoShellWindow) {
-        self.gui.borrow_mut().update(state, window, self);
     }
 
     fn update_user_interface_state(&self, _: &RunningAppState, window: &ServoShellWindow) -> bool {

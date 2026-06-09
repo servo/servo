@@ -384,11 +384,6 @@ pub(crate) trait PlatformWindow {
     fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     fn get_fullscreen(&self) -> bool;
-    /// Request that the `Window` rebuild its user interface, if it has one. This should
-    /// not repaint, but should prepare the user interface for painting when it is
-    /// actually requested.
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
-    fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
     /// Inform the `Window` that the state of a `WebView` has changed and that it should
     /// do an incremental update of user interface state. Returns `true` if the user
     /// interface actually changed and a rebuild  and repaint is needed, `false` otherwise.
