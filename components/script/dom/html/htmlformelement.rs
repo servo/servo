@@ -1301,7 +1301,9 @@ impl HTMLFormElement {
                 .downcast::<HTMLInputElement>()
                 .is_some_and(|input| input.is_auto_directionality_form_associated_element());
             let is_textarea_element = child_element.is::<HTMLTextAreaElement>();
-            if !dirname.is_empty() && (is_input_auto_directionality_form_associated_element || is_textarea_element) {
+            if !dirname.is_empty() &&
+                (is_input_auto_directionality_form_associated_element || is_textarea_element)
+            {
                 // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
                 // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
                 let dir = DOMString::from(child_element.directionality());
