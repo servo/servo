@@ -6,9 +6,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::Deref;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
-use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
@@ -82,9 +80,6 @@ pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
-
-/// Nanoseconds spent shaping text across all layout threads.
-static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 // PlatformFont encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
@@ -454,6 +449,7 @@ struct ShapeCacheEntry {
 }
 
 impl Font {
+    #[servo_tracing::instrument(name = "Font::shape_text", skip_all)]
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
         let font_features =
             compute_used_font_features(options, self.template.borrow().font_face_rule.as_ref())
@@ -472,7 +468,6 @@ impl Font {
             return shaped_text.clone();
         }
 
-        let start_time = Instant::now();
         let glyphs = if self.can_do_fast_shaping(text, options) {
             debug!("shape_text: Using ASCII fast path.");
             self.shape_text_fast(text, options)
@@ -488,11 +483,6 @@ impl Font {
         let shaped_text = Arc::new(glyphs);
         let mut cache = self.cached_shape_data.write();
         cache.shaped_text.insert(lookup_key, shaped_text.clone());
-
-        TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
-            ((Instant::now() - start_time).as_nanos()) as usize,
-            Ordering::Relaxed,
-        );
 
         shaped_text
     }
