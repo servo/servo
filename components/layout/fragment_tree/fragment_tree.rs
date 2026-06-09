@@ -131,10 +131,12 @@ impl FragmentTree {
         if !first_root_fragment.is_root_element() {
             return scrollable_overflow;
         }
-        first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
-            scrollable_overflow,
-            self.initial_containing_block,
-        )
+        first_root_fragment
+            .with_style()
+            .clip_wholly_unreachable_scrollable_overflow(
+                scrollable_overflow,
+                self.initial_containing_block,
+            )
     }
 
     pub(crate) fn find<T>(

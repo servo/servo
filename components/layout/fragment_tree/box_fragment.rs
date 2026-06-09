@@ -356,6 +356,7 @@ impl BoxFragment {
             return Rect::zero();
         }
 
+        let with_style = self.with_style();
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.base.rect().origin.to_vector();
 
@@ -394,7 +395,7 @@ impl BoxFragment {
                     // scrollable overflow area from the rectangle, but also clips it.
                     // This makes the resulting value more like the "scroll area" rather
                     // than the "scrollable overflow."
-                    let scrollable_overflow_from_child = self
+                    let scrollable_overflow_from_child = with_style
                         .clip_wholly_unreachable_scrollable_overflow(
                             scrollable_overflow_from_child,
                             physical_padding_rect,
@@ -415,9 +416,10 @@ impl BoxFragment {
         //
         // TODO: For input elements, we also disable the padding in the inline direction, as we
         // do not have a way to scroll the textual input element in inline direction yet.
-        let should_include_additional_padding =
-            self.style().establishes_scroll_container(self.base.flags) &&
-                !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT);
+        let should_include_additional_padding = with_style
+            .style()
+            .establishes_scroll_container(self.base.flags) &&
+            !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT);
 
         if should_include_additional_padding {
             scrollable_overflow = self
@@ -437,10 +439,11 @@ impl BoxFragment {
                     // Applying padding could also cause the rectangle to overflow to
                     // the wholly unreachable scrollable overflow, clipping the overflow
                     // here prevents this.
-                    let padding_contribution = self.clip_wholly_unreachable_scrollable_overflow(
-                        padding_contribution,
-                        physical_padding_rect,
-                    );
+                    let padding_contribution = with_style
+                        .clip_wholly_unreachable_scrollable_overflow(
+                            padding_contribution,
+                            physical_padding_rect,
+                        );
 
                     acc.union(&padding_contribution)
                 });
@@ -581,47 +584,6 @@ impl BoxFragment {
             })
             .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
             .unwrap_or(overflow)
-    }
-
-    /// Return the clipped scrollable overflow based on its scroll origin, determined by
-    /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
-    /// unreachable. For an element, the clip rect is the padding rect and for viewport,
-    /// it is the initial containing block.
-    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
-        &self,
-        scrollable_overflow_from_child: PhysicalRect<Au>,
-        clipping_rect: PhysicalRect<Au>,
-    ) -> PhysicalRect<Au> {
-        // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
-        // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
-        // > beyond the scroll origin in either axis is considered the unreachable scrollable
-        // > overflow region: content rendered here is not accessible to the reader, see § 2.2
-        // > Scrollable Overflow. A scroll container is said to be scrolled to its scroll
-        // > origin when its scroll origin coincides with the corresponding corner of its
-        // > scrollport. This scroll position, the scroll origin position, usually, but not
-        // > always, coincides with the initial scroll position.
-        let scrolling_direction = self.style().overflow_direction();
-        let mut clipping_box = clipping_rect.to_box2d();
-        if scrolling_direction.rightward {
-            clipping_box.max.x = MAX_AU;
-        } else {
-            clipping_box.min.x = MIN_AU;
-        }
-
-        if scrolling_direction.downward {
-            clipping_box.max.y = MAX_AU;
-        } else {
-            clipping_box.min.y = MIN_AU;
-        }
-
-        let scrollable_overflow_box = scrollable_overflow_from_child
-            .to_box2d()
-            .intersection_unchecked(&clipping_box);
-
-        match scrollable_overflow_box.is_negative() {
-            false => scrollable_overflow_box.to_rect(),
-            true => Rect::zero(),
-        }
     }
 
     pub(crate) fn calculate_resolved_insets_if_positioned(
@@ -784,5 +746,46 @@ impl BoxFragment {
 impl<'a> BoxFragmentWithStyle<'a> {
     pub(crate) fn style(&self) -> &ServoArc<ComputedValues> {
         &self.style
+    }
+
+    /// Return the clipped scrollable overflow based on its scroll origin, determined by
+    /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
+    /// unreachable. For an element, the clip rect is the padding rect and for viewport,
+    /// it is the initial containing block.
+    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
+        &self,
+        scrollable_overflow_from_child: PhysicalRect<Au>,
+        clipping_rect: PhysicalRect<Au>,
+    ) -> PhysicalRect<Au> {
+        // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
+        // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
+        // > beyond the scroll origin in either axis is considered the unreachable scrollable
+        // > overflow region: content rendered here is not accessible to the reader, see § 2.2
+        // > Scrollable Overflow. A scroll container is said to be scrolled to its scroll
+        // > origin when its scroll origin coincides with the corresponding corner of its
+        // > scrollport. This scroll position, the scroll origin position, usually, but not
+        // > always, coincides with the initial scroll position.
+        let scrolling_direction = self.style().overflow_direction();
+        let mut clipping_box = clipping_rect.to_box2d();
+        if scrolling_direction.rightward {
+            clipping_box.max.x = MAX_AU;
+        } else {
+            clipping_box.min.x = MIN_AU;
+        }
+
+        if scrolling_direction.downward {
+            clipping_box.max.y = MAX_AU;
+        } else {
+            clipping_box.min.y = MIN_AU;
+        }
+
+        let scrollable_overflow_box = scrollable_overflow_from_child
+            .to_box2d()
+            .intersection_unchecked(&clipping_box);
+
+        match scrollable_overflow_box.is_negative() {
+            false => scrollable_overflow_box.to_rect(),
+            true => Rect::zero(),
+        }
     }
 }
