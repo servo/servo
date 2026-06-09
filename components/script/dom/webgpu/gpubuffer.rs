@@ -184,7 +184,16 @@ impl GPUBuffer {
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        self.Destroy();
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropBuffer(self.buffer.0))
+        {
+            error!(
+                "Failed to send WebGPURequest::DropBuffer({:?}) ({}) - Potential leak",
+                self.buffer.0, e
+            );
+        }
     }
 }
 
