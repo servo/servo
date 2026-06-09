@@ -25,6 +25,7 @@ use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::color::Color;
 use style::values::computed::image::{Gradient, Image};
+use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
@@ -56,6 +57,9 @@ pub(crate) struct LayoutContext<'a> {
     /// The minimum size a job needs to be to be counted when determining if the number of
     /// jobs exceeds [`Self::parallelism_job_count_minimum`].
     pub parallelism_job_size_minimum: usize,
+
+    /// The device dimensions on which this layout is running, in device pixels.
+    pub device_size: Size2D<f32, DevicePixel>,
 }
 
 impl LayoutContext<'_> {

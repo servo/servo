@@ -223,6 +223,10 @@ pub(crate) struct RunningAppState {
     /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
     /// and [`ServoShellWindow::create_toplevel_webview()`].
     accessibility_active: Cell<bool>,
+
+    /// Temporary storage to allow calling `WebviewDelegate` methods while the
+    /// `WebView` is being constructed.
+    window_of_webview_under_construction: RefCell<Option<Rc<ServoShellWindow>>>,
 }
 
 impl RunningAppState {
@@ -273,6 +277,7 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            window_of_webview_under_construction: Default::default(),
         }
     }
 
@@ -464,7 +469,12 @@ impl RunningAppState {
 
     pub(crate) fn window_for_webview_id(&self, webview_id: WebViewId) -> Rc<ServoShellWindow> {
         self.maybe_window_for_webview_id(webview_id)
+            .or_else(|| self.window_of_webview_under_construction.borrow().clone())
             .unwrap_or_else(|| panic!("Looking for unexpected WebView: {webview_id:?}"))
+    }
+
+    pub(crate) fn set_window_for_webview_construction(&self, window: Option<Rc<ServoShellWindow>>) {
+        *self.window_of_webview_under_construction.borrow_mut() = window;
     }
 
     pub(crate) fn platform_window_for_webview_id(
