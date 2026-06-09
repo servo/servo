@@ -47,7 +47,7 @@ use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -64,6 +64,7 @@ use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
@@ -3401,6 +3402,23 @@ impl Document {
 
     pub(crate) fn accessibility_active(&self) -> bool {
         self.window().layout().accessibility_active()
+    }
+
+    pub(crate) fn rooted_nodes_for_accessibility_integrity_check(
+        &self,
+    ) -> Option<FxHashSet<OpaqueNode>> {
+        if !self.accessibility_active() {
+            return None;
+        }
+
+        let mut accessibility_data = self.accessibility_data_mut();
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            return Some(accessibility_data.unroot_and_drain_all_removed_nodes());
+        }
+
+        accessibility_data.unroot_all_removed_nodes();
+        None
     }
 }
 
