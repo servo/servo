@@ -169,6 +169,15 @@
       {}
      ]
     ],
+    "webgl": {
+     "weak-reference-crash.html": [
+      "e557c86a1ad014bd96b8370ab5306dd2342d0cdb",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
     "window-resizeTo-not-permitted-crash.html": [
      "7b6a67ff81436a91048bdb627f303f7fab2762f7",
      [
