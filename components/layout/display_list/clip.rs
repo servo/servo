@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
-
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::id::ScrollTreeNodeId;
@@ -16,7 +14,7 @@ use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize};
 
 use super::{BuilderForBoxFragment, compute_margin_box_radius};
-use crate::fragment_tree::BoxFragment;
+use crate::fragment_tree::BoxFragmentWithStyle;
 use crate::geom::PhysicalPoint;
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
@@ -81,7 +79,7 @@ impl StackingContextTreeClipStore {
         clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
-        box_fragment: &Arc<BoxFragment>,
+        box_fragment: &BoxFragmentWithStyle<'_>,
         containing_block_origin: PhysicalPoint<Au>,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
@@ -91,8 +89,7 @@ impl StackingContextTreeClipStore {
             ClipPath::Box(ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
             _ => return None,
         };
-        let fragment = box_fragment.with_style();
-        let fragment_builder = BuilderForBoxFragment::new(&fragment, containing_block_origin);
+        let fragment_builder = BuilderForBoxFragment::new(box_fragment, containing_block_origin);
         let layout_rect = match geometry_box {
             ShapeBox::BorderBox => fragment_builder.border_rect,
             ShapeBox::ContentBox => *fragment_builder.content_rect(),

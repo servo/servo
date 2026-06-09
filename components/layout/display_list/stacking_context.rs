@@ -687,14 +687,15 @@ impl BoxFragment {
             &containing_block.rect,
         );
 
-        let style = self.style();
+        let with_style = &self.with_style();
+        let style = with_style.style();
         let clip_id = stacking_context_tree
             .clip_store
             .add_for_clip_path(
                 &style.get_svg().clip_path,
                 spatial_id.unwrap_or(containing_block.scroll_node_id),
                 clip_id.unwrap_or(containing_block.clip_id),
-                self,
+                with_style,
                 containing_block.rect.origin,
             )
             .or(clip_id);
