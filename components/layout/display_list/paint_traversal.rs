@@ -61,7 +61,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > and canvas.
         let root_fragment = stacking_context.fragment();
         if let Some(root_fragment) = root_fragment &&
-            !root_fragment.is_inline_box()
+            !root_fragment.with_style().is_inline_box()
         {
             self.handle_box(&state, root_fragment);
         }
@@ -110,6 +110,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     }
 
     fn traverse_stacking_context_inner(&mut self, state: &TraversalState, root: &Arc<BoxFragment>) {
+        let root = &root.with_style();
         let old_float_length = self.floats.len();
         let mut saw_inline_level_or_replaced = root.is_replaced();
 
@@ -205,6 +206,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 );
             },
             Fragment::Box(box_fragment) => {
+                let box_fragment = &box_fragment.with_style();
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
@@ -387,6 +389,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         box_fragment: &Arc<BoxFragment>,
         at_stacking_context_root: bool,
     ) {
+        let box_fragment = &box_fragment.with_style();
         // If this box establishes a stacking context or stacking container, do not paint
         // it during this phase. Instead it is painted when the stacking context or container
         // is processed.
@@ -529,7 +532,8 @@ pub(crate) struct TraversalState {
 
 impl TraversalState {
     #[inline]
-    pub(crate) fn push_box_fragment(&self, box_fragment: &BoxFragment) -> Self {
+    pub(crate) fn push_box_fragment(&self, box_fragment: &Arc<BoxFragment>) -> Self {
+        let box_fragment = box_fragment.with_style();
         let style = box_fragment.style();
 
         // Text decorations are not propagated to atomic inline-level descendants.

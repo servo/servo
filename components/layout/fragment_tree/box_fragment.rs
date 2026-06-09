@@ -160,8 +160,8 @@ pub(crate) struct BoxFragment {
 /// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
 /// increments and decrements on `ArcRefCell`’s borrow counter.
 pub(crate) struct BoxFragmentWithStyle<'a> {
-    box_fragment: &'a Arc<BoxFragment>,
-    style: AtomicRef<'a, ServoArc<ComputedValues>>,
+    pub(crate) box_fragment: &'a Arc<BoxFragment>,
+    pub(crate) style: AtomicRef<'a, ServoArc<ComputedValues>>,
 }
 
 impl std::ops::Deref for BoxFragmentWithStyle<'_> {
@@ -680,18 +680,6 @@ impl BoxFragment {
         convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
     }
 
-    /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
-    /// <https://drafts.csswg.org/css-display-3/#inline-box>
-    pub(crate) fn is_inline_box(&self) -> bool {
-        self.style().is_inline_box(self.base.flags)
-    }
-
-    /// Whether this is an atomic inline-level box.
-    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
-    pub(crate) fn is_atomic_inline_level(&self) -> bool {
-        self.style().is_atomic_inline_level(self.base.flags)
-    }
-
     /// Whether or this is a flex or grid item.
     pub(crate) fn is_flex_or_grid_item(&self) -> bool {
         self.base
@@ -788,5 +776,17 @@ impl<'a> BoxFragmentWithStyle<'a> {
             false => scrollable_overflow_box.to_rect(),
             true => Rect::zero(),
         }
+    }
+
+    /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
+    /// <https://drafts.csswg.org/css-display-3/#inline-box>
+    pub(crate) fn is_inline_box(&self) -> bool {
+        self.style().is_inline_box(self.base.flags)
+    }
+
+    /// Whether this is an atomic inline-level box.
+    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
+    pub(crate) fn is_atomic_inline_level(&self) -> bool {
+        self.style().is_atomic_inline_level(self.base.flags)
     }
 }

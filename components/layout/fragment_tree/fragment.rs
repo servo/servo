@@ -291,6 +291,7 @@ impl Fragment {
         let Some(fragment) = self.retrieve_box_fragment() else {
             return Rect::zero();
         };
+        let fragment = fragment.with_style();
 
         // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
         // " If the element has no associated CSS layout box or if the
