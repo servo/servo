@@ -337,7 +337,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libegl1-mesa-dev libegl-dev
-      - name: Install cargo-c # required by `ffi/capi_tests/build.rs`.
+      - name: Install cargo-c # required by servo-capi-tests's build.rs
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-c

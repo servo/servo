@@ -75,7 +75,7 @@ fn main() {
         .and_then(|p| p.parent())
         .expect("servo_capi_tests is not under workspace root");
 
-    // This build script is about execute a nested cargo instance. The outer cargo
+    // This build script is about to execute a nested cargo instance. The outer cargo
     // instance that is running the current build script is already holding a lock
     // on the `target/debug` or `target/release` directory. So we specify our own
     // directory for `cargo cinstall` to use.

@@ -7,4 +7,4 @@ Since we want to test the shared object and not the statically linked rlib, we u
 The tests are still triggered using `cargo test` by exposing the entry point to the tests from the C test runner and invoking them from Rust using `extern fn`.
 
 ### Running the tests
-Run ` cargo test -p servo-capi-tests` from the root to exectute the tests.
+Run ` cargo test -p servo-capi-tests` from the root to execute the tests.

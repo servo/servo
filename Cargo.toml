@@ -4,8 +4,8 @@ members = [
     "components/media/examples",
     "components/xpath",
     "ffi/capi",
-    "ffi/capi_tests",
     "ports/servoshell",
+    "tests/capi",
     "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]
