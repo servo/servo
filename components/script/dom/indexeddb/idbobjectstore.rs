@@ -611,6 +611,14 @@ impl IDBObjectStore {
         self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(rename_index_operation))
             .unwrap();
+
+        // We also need to update the key in the index set
+        let index = self
+            .index_set
+            .borrow_mut()
+            .remove(name)
+            .expect("Earlier steps of the algorithm checked that the index exists");
+        self.index_set.borrow_mut().insert(new_name.clone(), index);
     }
 }
 
