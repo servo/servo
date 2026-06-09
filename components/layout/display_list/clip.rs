@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::id::ScrollTreeNodeId;
@@ -79,7 +81,7 @@ impl StackingContextTreeClipStore {
         clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
-        box_fragment: &BoxFragment,
+        box_fragment: &Arc<BoxFragment>,
         containing_block_origin: PhysicalPoint<Au>,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {
