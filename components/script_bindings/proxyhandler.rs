@@ -882,9 +882,10 @@ impl<'cx> DerefMut for Realm<'cx> {
 }
 
 #[expect(non_snake_case)]
-pub(crate) fn JSProxyHandlerOwnPropertyKeys<D, T>(
+/// SAFETY: cx must point to a valid, non-null JS context.
+pub(crate) unsafe fn JSProxyHandlerOwnPropertyKeys<D, T>(
     config: JSProxyHandlerOwnPropertyKeysConfig<T>,
-    cx: *mut crate::import::base::RawJSContext,
+    cx: *mut js::jsapi::JSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
@@ -893,7 +894,7 @@ where
     T: DomObject,
 {
     unsafe {
-        let mut cx = crate::import::base::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
         let mut cx = CurrentRealm::assert(&mut cx);
         let current_realm = &mut cx;
         let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
@@ -917,9 +918,8 @@ where
 
         if let Some(length_fn) = config.indexed_getter_and_length {
             let length = (length_fn)(&*unwrapped_proxy, &mut cx);
+            rooted!(&in(cx) let mut rooted_jsid: jsid);
             for i in 0..length {
-                rooted!(&in(cx) let mut rooted_jsid: jsid);
-
                 int_to_jsid(i as i32, rooted_jsid.handle_mut());
                 AppendToIdVector(props, rooted_jsid.handle());
             }
@@ -970,7 +970,7 @@ pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
 #[expect(non_snake_case)]
 pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T, D>(
     config: JSProxyHandlerOwnEnumerablePropertyKeysConfig<T>,
-    cx: *mut crate::import::base::RawJSContext,
+    cx: *mut js::jsapi::JSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
@@ -979,7 +979,7 @@ where
     T: DomObject,
 {
     unsafe {
-        let mut cx = crate::import::base::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
         let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
         let mut cx = CurrentRealm::assert(&mut cx);
         let current_realm = &mut cx;
@@ -998,9 +998,8 @@ where
         };
         if let Some(length_fn) = config.indexed_getter_and_length {
             let length = (length_fn)(&*unwrapped_proxy, &mut cx);
+            rooted!(&in(cx) let mut rooted_jsid: jsid);
             for i in 0..length {
-                rooted!(&in(cx) let mut rooted_jsid: jsid);
-
                 int_to_jsid(i as i32, rooted_jsid.handle_mut());
                 AppendToIdVector(props, rooted_jsid.handle());
             }
