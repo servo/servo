@@ -11,12 +11,11 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_base::generic_channel::channel;
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
-use crate::actors::object::{ObjectActor, ObjectActorMsg};
 use crate::actors::source::SourceActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::{StreamId, debugger_value_to_json};
 
 #[derive(Serialize)]
 struct FrameEnvironmentReply {
@@ -51,7 +50,7 @@ pub(crate) struct FrameActorMsg {
     display_name: String,
     oldest: bool,
     state: FrameState,
-    this: ObjectActorMsg,
+    this: Value,
     #[serde(rename = "where")]
     where_: FrameWhere,
 }
@@ -61,7 +60,6 @@ pub(crate) struct FrameActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct FrameActor {
     name: String,
-    object_actor: String,
     source_name: String,
     frame_result: FrameInfo,
     current_offset: AtomicRefCell<(u32, u32)>,
@@ -117,11 +115,9 @@ impl FrameActor {
         source_name: String,
         frame_result: FrameInfo,
     ) -> Arc<Self> {
-        let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None, None);
         let name = new_actor_name::<Self>();
         let actor = Self {
             name,
-            object_actor: object_name,
             source_name,
             frame_result,
             current_offset: Default::default(),
@@ -157,7 +153,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
             async_cause,
             // TODO: Should be optional
             display_name: self.frame_result.display_name.clone(),
-            this: registry.encode::<ObjectActor, _>(&self.object_actor),
+            this: debugger_value_to_json(registry, self.frame_result.this_value.clone()),
             oldest: self.frame_result.oldest,
             state,
             where_: FrameWhere {

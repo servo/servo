@@ -25,4 +25,5 @@ dictionary EnvironmentInfo {
     DOMString scopeKind;
     DOMString functionDisplayName;
     required DOMString serializedBindings;
+    DOMString serializedObject;
 };

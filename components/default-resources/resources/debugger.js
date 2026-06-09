@@ -328,6 +328,7 @@ function createFrameActor(frame, pipelineId) {
             displayName: frame.script.displayName,
             onStack: frame.onStack,
             oldest: frame.older == null,
+            serializedThis: JSON.stringify(createValueGrip(frame.this, 0)),
             terminated: frame.terminated,
             type_: frame.type,
             url: frame.script.url,
@@ -605,6 +606,11 @@ function createEnvironmentActor(environment) {
     let bindingVariables = [];
     if (environment.type == "declarative") {
         bindingVariables = buildBindings(environment);
+    }
+
+    // <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js#62>
+    if (environment.type == "object" || environment.type == "with") {
+        info.serializedObject = JSON.stringify(createValueGrip(environment.object, 0));
     }
     info.serializedBindings = JSON.stringify(bindingVariables);
 

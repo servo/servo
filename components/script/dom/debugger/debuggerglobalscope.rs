@@ -5,8 +5,8 @@
 use std::cell::RefCell;
 
 use devtools_traits::{
-    BlackboxCoverage, DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg,
-    SourceInfo, WorkerId,
+    BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -591,10 +591,21 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
+        let this_value = match serde_json::from_str::<devtools_traits::DebuggerValue>(
+            &result.serializedThis.str(),
+        ) {
+            Ok(this_value) => this_value,
+            Err(error) => {
+                warn!("Failed to parse serialized debugger frame this value: {error}");
+                return None;
+            },
+        };
+
         let frame = devtools_traits::FrameInfo {
             display_name: result.displayName.clone().into(),
             on_stack: result.onStack,
             oldest: result.oldest,
+            this_value,
             terminated: result.terminated,
             type_: result.type_.clone().into(),
             url: result.url.clone().into(),
@@ -633,10 +644,23 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 return None;
             },
         };
+        let object = match environment.serializedObject.as_ref() {
+            Some(serialized_object) => {
+                match serde_json::from_str::<DebuggerValue>(&serialized_object.str()) {
+                    Ok(object) => Some(object),
+                    Err(error) => {
+                        warn!("Failed to parse serialized debugger environment object: {error}");
+                        return None;
+                    },
+                }
+            },
+            None => None,
+        };
         let environment = devtools_traits::EnvironmentInfo {
             type_: environment.type_.clone().map(String::from),
             scope_kind: environment.scopeKind.clone().map(String::from),
             function_display_name: environment.functionDisplayName.clone().map(String::from),
+            object,
             binding_variables,
         };
 
