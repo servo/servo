@@ -150,7 +150,10 @@ impl Fragment {
     pub(crate) fn scrolling_area(&self, layout_thread: &LayoutThread) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                .offset_by_containing_block(&fragment.scrollable_overflow(), layout_thread.into()),
+                .offset_by_containing_block(
+                    &fragment.with_style().scrollable_overflow(),
+                    layout_thread.into(),
+                ),
             _ => self.scrollable_overflow_for_parent(),
         }
     }
@@ -171,7 +174,7 @@ impl Fragment {
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.scrollable_overflow_for_parent()
+                fragment.with_style().scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositioned(_) |
