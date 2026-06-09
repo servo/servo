@@ -922,6 +922,7 @@ impl ImageCache for ImageCacheImpl {
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
+                        return ImageCacheResult::Pending(key);
                         debug!("Sync decoding {} ({:?})", url, key);
                         (
                             key,
