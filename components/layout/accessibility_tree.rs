@@ -215,29 +215,8 @@ impl AccessibilityTree {
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
-        // If we got rooted_nodes from the document's AccessibilityData, assert that every node
-        // we removed during this update was rooted, and any leftover rooted nodes were never known
-        // to the accessibility tree.
-        if let Some(mut rooted_nodes) = update.rooted_nodes {
-            debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
-            for (id, change) in update.tree_changes.iter() {
-                if change == &TreeChange::Removed {
-                    let node = self.assert_node_for_id(id);
-                    if let Some(opaque_node) = node.borrow().opaque_node {
-                        assert!(
-                            rooted_nodes.remove(&opaque_node),
-                            "Node removed from accessibility tree wasn't rooted: {node:?}"
-                        );
-                    }
-                };
-            }
-
-            for leftover_node in rooted_nodes {
-                assert!(
-                    !self.opaque_node_to_id.contains_key(&leftover_node),
-                    "Found node removed from DOM tree but not accessibility tree"
-                );
-            }
+        if let Some(rooted_nodes) = std::mem::take(&mut update.rooted_nodes) {
+            self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
 
         for id in update
@@ -269,6 +248,35 @@ impl AccessibilityTree {
 
         if pref!(expensive_accessibility_test_assertions_enabled) {
             self.assert_integrity();
+        }
+    }
+
+    /// If we got `rooted_nodes` from the document's `AccessibilityData`, assert that every node we
+    /// removed during this update was rooted, and any leftover rooted nodes were never known to the
+    /// accessibility tree.
+    fn assert_removed_nodes_were_rooted(
+        &mut self,
+        update: &AccessibilityUpdate,
+        mut rooted_nodes: std::collections::HashSet<OpaqueNode, rustc_hash::FxBuildHasher>,
+    ) {
+        debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
+        for (id, change) in update.tree_changes.iter() {
+            if change == &TreeChange::Removed {
+                let node = self.assert_node_for_id(id);
+                if let Some(opaque_node) = node.borrow().opaque_node {
+                    assert!(
+                        rooted_nodes.remove(&opaque_node),
+                        "Node removed from accessibility tree wasn't rooted: {node:?}"
+                    );
+                }
+            };
+        }
+
+        for leftover_node in rooted_nodes {
+            assert!(
+                !self.opaque_node_to_id.contains_key(&leftover_node),
+                "Found node removed from DOM tree but not accessibility tree"
+            );
         }
     }
 
