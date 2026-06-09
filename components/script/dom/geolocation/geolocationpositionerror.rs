@@ -11,8 +11,8 @@ use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use script_bindings::reflector::reflect_dom_object;
 use crate::dom::globalscope::GlobalScope;
+use script_bindings::reflector::reflect_dom_object;
 
 #[dom_struct]
 pub struct GeolocationPositionError {

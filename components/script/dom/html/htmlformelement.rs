@@ -1288,17 +1288,17 @@ impl HTMLFormElement {
                 }
             }
 
-            let child_element = child.downcast::<Element>().unwrap();
-            let input_matches = child_element
-                .downcast::<HTMLInputElement>()
-                .is_some_and(|input| input.does_dirname_apply());
-            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
-
             // Step: 5.11.1 Let dirname be the value of the element's dirname attribute.
+            let child_element = child.downcast::<Element>().unwrap();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
 
             // Step: 5.11. If the element has a dirname attribute, that attribute's value is not the empty
             // string, and the element is an auto-directionality form-associated element:
+            // https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements
+            let input_matches = child_element
+                .downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.is_auto_directionality_form_associated_element());
+            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             if !dirname.is_empty() && (input_matches || textarea_matches) {
                 // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
                 // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
