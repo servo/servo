@@ -408,25 +408,18 @@ fn calculate_box_size(
             )
         },
         ResizeObserverBoxOptions::Device_pixel_content_box => {
-            let device_pixel_ratio = target.owner_window().device_pixel_ratio();
+            let device_pixel_ratio = target.owner_window().device_pixel_ratio().get() as f64;
             let content_box = target
                 .owner_window()
                 .box_area_query(target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
+            let to_device_px = |length: Au| (length.to_f64_px() * device_pixel_ratio).round();
             Rect::new(
-                content_box
-                    .origin
-                    .map(|coordinate| coordinate.to_nearest_pixel(device_pixel_ratio.get()) as f64),
+                content_box.origin.map(to_device_px),
                 Size2D::new(
-                    content_box
-                        .size
-                        .width
-                        .to_nearest_pixel(device_pixel_ratio.get()) as f64,
-                    content_box
-                        .size
-                        .height
-                        .to_nearest_pixel(device_pixel_ratio.get()) as f64,
+                    to_device_px(content_box.size.width),
+                    to_device_px(content_box.size.height),
                 ),
             )
         },
