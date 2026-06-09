@@ -595,6 +595,23 @@ impl IDBObjectStore {
             .insert(name, Dom::from_ref(&index));
         index
     }
+
+    pub(crate) fn has_index(&self, name: &DOMString) -> bool {
+        self.index_set.borrow().contains_key(name)
+    }
+
+    pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
+        let rename_index_operation = SyncOperation::RenameIndex(
+            self.global().origin().immutable().clone(),
+            self.db_name.to_string(),
+            self.name.borrow().to_string(),
+            String::from(name.clone()),
+            String::from(new_name.clone()),
+        );
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(rename_index_operation))
+            .unwrap();
+    }
 }
 
 impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
@@ -887,7 +904,9 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::InvalidState(None));
         }
         // Step 6. If transaction’s state is not active, throw a "TransactionInactiveError" DOMException.
-        self.check_transaction_active()?;
+        if !transaction.is_active() || !transaction.is_usable() {
+            return Err(Error::TransactionInactive(None));
+        }
 
         // Step 7. If store’s name is equal to name, terminate these steps.
         if *self.name.borrow() == name {
@@ -961,7 +980,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
 
         // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
-        if self.index_set.borrow().contains_key(&name) {
+        if self.has_index(&name) {
             return Err(Error::Constraint(None));
         }
 

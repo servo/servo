@@ -67,6 +67,12 @@ pub trait KvsEngine: MallocSizeOf {
         unique: bool,
         multi_entry: bool,
     ) -> Result<CreateObjectResult, Self::Error>;
+    fn rename_index(
+        &self,
+        store_name: &str,
+        index_name: String,
+        new_name: String,
+    ) -> Result<(), Self::Error>;
     fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error>;
 
     fn version(&self) -> Result<u64, Self::Error>;

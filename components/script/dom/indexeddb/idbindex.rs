@@ -4,8 +4,11 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::MutableHandleValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
+use script_bindings::codegen::GenericBindings::IDBTransactionBinding::IDBTransactionMode;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::error::{Error, ErrorResult};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;
 
@@ -18,7 +21,7 @@ use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 pub(crate) struct IDBIndex {
     reflector_: Reflector,
     object_store: Dom<IDBObjectStore>,
-    name: DOMString,
+    name: DomRefCell<DOMString>,
     multi_entry: bool,
     unique: bool,
     key_path: KeyPath,
@@ -35,7 +38,7 @@ impl IDBIndex {
         IDBIndex {
             reflector_: Reflector::new(),
             object_store: Dom::from_ref(object_store),
-            name,
+            name: DomRefCell::new(name),
             multi_entry,
             unique,
             key_path,
@@ -66,6 +69,54 @@ impl IDBIndex {
 }
 
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-name>
+    fn Name(&self) -> DOMString {
+        self.name.borrow().clone()
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#ref-for-dom-idbindex-name%E2%91%A2>
+    fn SetName(&self, name: DOMString) -> ErrorResult {
+        // Step 2: Let transaction be this’s transaction.
+        let transaction = self.object_store.transaction();
+
+        // Step 4: If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
+        if transaction.get_mode() != IDBTransactionMode::Versionchange {
+            return Err(Error::InvalidState(None));
+        }
+
+        // Step 5: If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        if !transaction.is_active() {
+            return Err(Error::TransactionInactive(None));
+        }
+
+        // Step 6: If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
+        let old_name = self.name.borrow().clone();
+        if !self.object_store.has_index(&old_name) ||
+            !transaction
+                .get_db()
+                .object_store_exists(&self.object_store.get_name())
+        {
+            return Err(Error::InvalidState(None));
+        }
+
+        // Step 7: If index’s name is equal to name, terminate these steps.
+        if old_name == name {
+            return Ok(());
+        }
+
+        // Step 8: If an index named name already exists in index’s object store, throw a "ConstraintError" DOMException.
+        if self.object_store.has_index(&name) {
+            return Err(Error::Constraint(None));
+        }
+
+        // Step 9: Set index’s name to name.
+        self.object_store.rename_index(&old_name, &name);
+
+        // Step 10: Set this’s name to name.
+        *self.name.borrow_mut() = name;
+        Ok(())
+    }
+
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-objectstore>
     fn ObjectStore(&self) -> DomRoot<IDBObjectStore> {
         self.object_store.as_rooted()
