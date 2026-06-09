@@ -275,10 +275,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_line_boxes_and_replaced_for_box(
         &mut self,
         state: &TraversalState,
-        fragment: &Arc<BoxFragment>,
+        fragment: &BoxFragmentWithStyle<'_>,
         at_root_of_stacking_context: bool,
     ) {
-        let fragment = &fragment.with_style();
         let is_flex_or_grid = fragment.is_flex_or_grid_item();
         if fragment.is_replaced() {
             if is_flex_or_grid {
@@ -321,7 +320,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 }
                 self.traverse_line_boxes_and_replaced_for_box(
                     state,
-                    box_fragment,
+                    &box_fragment.with_style(),
                     at_root_of_stacking_context,
                 );
             },
