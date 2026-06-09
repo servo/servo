@@ -26,6 +26,10 @@ struct AccessibilityUpdate {
     changed_nodes: FxHashSet<NodeId>,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<NodeId, TreeChange>,
+    /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
+    /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
+    /// is set.
+    rooted_nodes: Option<FxHashSet<OpaqueNode>>,
 }
 
 struct AccessibilityNode {
@@ -123,8 +127,9 @@ impl AccessibilityTree {
     pub(super) fn update_tree(
         &mut self,
         root_dom_node: &ServoLayoutNode<'_>,
+        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
-        let mut update = AccessibilityUpdate::new();
+        let mut update = AccessibilityUpdate::new(rooted_nodes);
         let root_node = self.get_or_create_node(root_dom_node, &mut update);
         let root_node_id = root_node.borrow().id;
         self.root_node_id = Some(root_node_id);
@@ -210,6 +215,10 @@ impl AccessibilityTree {
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
+        if let Some(rooted_nodes) = std::mem::take(&mut update.rooted_nodes) {
+            self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
+        }
+
         for id in update
             .tree_changes
             .drain()
@@ -242,6 +251,35 @@ impl AccessibilityTree {
         }
     }
 
+    /// If we got `rooted_nodes` from the document's `AccessibilityData`, assert that every node we
+    /// removed during this update was rooted, and any leftover rooted nodes were never known to the
+    /// accessibility tree.
+    fn assert_removed_nodes_were_rooted(
+        &mut self,
+        update: &AccessibilityUpdate,
+        mut rooted_nodes: FxHashSet<OpaqueNode>,
+    ) {
+        debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
+        for (id, change) in update.tree_changes.iter() {
+            if change == &TreeChange::Removed {
+                let node = self.assert_node_for_id(id);
+                if let Some(opaque_node) = node.borrow().opaque_node {
+                    assert!(
+                        rooted_nodes.remove(&opaque_node),
+                        "Node removed from accessibility tree wasn't rooted: {node:?}"
+                    );
+                }
+            };
+        }
+
+        for leftover_node in rooted_nodes {
+            assert!(
+                !self.opaque_node_to_id.contains_key(&leftover_node),
+                "Found node removed from DOM tree but not accessibility tree"
+            );
+        }
+    }
+
     fn existing_id_for_opaque(&self, opaque: OpaqueNode) -> Option<&NodeId> {
         self.opaque_node_to_id.get(&opaque)
     }
@@ -262,11 +300,10 @@ impl AccessibilityTree {
     ///
     /// For accessibility tests only, because it’s expensive.
     fn assert_integrity(&self) {
+        debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
         let Some(root_node_id) = self.root_node_id else {
             return;
         };
-
-        assert!(pref!(expensive_accessibility_test_assertions_enabled));
         // Traverse the tree from the given root.
         let mut node_ids = vec![root_node_id];
         let mut seen_node_ids = FxHashSet::default();
@@ -551,10 +588,11 @@ impl Debug for AccessibilityNode {
 }
 
 impl AccessibilityUpdate {
-    fn new() -> Self {
+    fn new(rooted_nodes: Option<FxHashSet<OpaqueNode>>) -> Self {
         Self {
             changed_nodes: FxHashSet::default(),
             tree_changes: FxHashMap::default(),
+            rooted_nodes,
         }
     }
 
@@ -639,7 +677,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
         );
     }
 
-    let mut update = AccessibilityUpdate::new();
+    let mut update = AccessibilityUpdate::new(None);
 
     {
         let node_3 = tree.assert_node_for_id(&NodeId(3));

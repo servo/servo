@@ -6,6 +6,7 @@ use js::context::NoGC;
 use rustc_hash::FxHashSet;
 use script_bindings::root::Dom;
 use servo_config::pref;
+use style::dom::OpaqueNode;
 
 use crate::dom::Node;
 
@@ -43,17 +44,35 @@ impl AccessibilityData {
     ///   temporarily root it here in between its removal from the tree and the subsequent reflow.
     /// - During reflow, the accessibility tree is updated, and all stale accessibility nodes are
     ///   removed.
-    /// - After reflow, we can safely un-root these nodes by dropping all the strong references
-    ///   being held here, and allow them to potentially be GCed.
-    ///   See [`Self::unroot_all_removed_nodes()`].
+    /// - Once reflow has begun, no further DOM mutations can occur, and we can safely un-root these
+    ///   nodes by dropping all the strong references being held here. This will allow them to be
+    ///   potential candidates for GC after reflow has finished.
+    ///   See [`Self::unroot_all_removed_nodes()`] and
+    ///   [`Self::unroot_and_drain_all_removed_nodes()`].
     pub(crate) fn root_removed_node(&mut self, _no_gc: &NoGC, node_to_root: &Node) {
         debug_assert!(pref!(accessibility_enabled));
 
         self.rooted_nodes.insert(Dom::from_ref(node_to_root));
     }
 
+    /// Clear all nodes which were rooted using [`Self::root_removed_node()`], and return the nodes
+    /// which are still disconnected from the tree.
+    /// This should be called instead of [`Self::unroot_all_removed_nodes()`] during reflow
+    /// if [`pref::expensive_accessibility_test_assertions_enabled`] set.
+    pub(crate) fn unroot_and_drain_all_removed_nodes(&mut self) -> FxHashSet<OpaqueNode> {
+        self.rooted_nodes
+            .drain()
+            .filter_map(|node| {
+                if node.is_connected() {
+                    return None;
+                }
+                Some(node.to_opaque())
+            })
+            .collect()
+    }
+
     /// Clear all nodes which were rooted using [`Self::root_removed_node()`].
-    /// This should be called at the end of reflow.
+    /// This should only be called during reflow.
     pub(crate) fn unroot_all_removed_nodes(&mut self) {
         self.rooted_nodes.clear();
     }
