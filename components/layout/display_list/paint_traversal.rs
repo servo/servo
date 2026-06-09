@@ -499,7 +499,7 @@ pub(crate) trait PaintTraversalHandler {
         stacking_context_state: Self::StackingContextState,
     );
 
-    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>);
+    fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>);
     fn visit_iframe(&mut self, _state: &TraversalState, _fragment: &Arc<IFrameFragment>) {}
     fn visit_image(
         &mut self,

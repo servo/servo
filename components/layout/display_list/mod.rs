@@ -679,7 +679,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         }
     }
 
-    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+    fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         fragment.base.visit_fragment(self);
 
         if let Some(mut inspector_highlight) = self.inspector_highlight.take() &&
@@ -689,12 +689,11 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             self.inspector_highlight = Some(inspector_highlight);
         }
 
-        let fragment = fragment.with_style();
         if fragment.style().get_inherited_box().visibility != Visibility::Visible {
             return;
         };
 
-        BuilderForBoxFragment::new(&fragment, state.origin).build(self, state)
+        BuilderForBoxFragment::new(fragment, state.origin).build(self, state)
     }
 
     fn visit_iframe(&mut self, state: &TraversalState, fragment: &Arc<IFrameFragment>) {

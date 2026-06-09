@@ -552,6 +552,12 @@ impl<'a> BoxFragmentWithStyle<'a> {
         &self.style
     }
 
+    /// Calling this is redundant, you already have a `BoxFragmentWithStyle`
+    #[expect(dead_code)]
+    pub(crate) fn with_style(&self) -> &Self {
+        self
+    }
+
     /// Return the clipped scrollable overflow based on its scroll origin, determined by
     /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
     /// unreachable. For an element, the clip rect is the padding rect and for viewport,
