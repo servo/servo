@@ -49,6 +49,8 @@ use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
+#[cfg(feature = "gamepad")]
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
@@ -1697,9 +1699,15 @@ impl DocumentEventHandler {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
-        // TODO Step 1. Let document be the current global object's associated Document; otherwise null.
-        // TODO Step 2. If document is not null and is not allowed to use the "gamepad" permission,
+        // Step 1. Let document be the current global object's associated Document; otherwise null.
+        let doc = self.window.Document();
+
+        // Step 2. If document is not null and is not allowed to use the "gamepad" permission,
         //         then abort these steps.
+        if !doc.allowed_to_use_feature(PermissionName::Gamepad) {
+            return;
+        }
+
         let trusted_window = Trusted::new(&*self.window);
 
         // Step 3. Queue a global task on the gamepad task source with the current global object
