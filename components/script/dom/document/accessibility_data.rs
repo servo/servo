@@ -3,12 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::NoGC;
-use rustc_hash::FxHashSet;
+use layout_api::{AccessibilityDamage, TrustedNodeAddress};
+use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_config::pref;
 use style::dom::OpaqueNode;
 
 use crate::dom::Node;
+use crate::dom::bindings::trace::NoTrace;
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -16,6 +19,10 @@ pub(crate) struct AccessibilityData {
     /// Nodes which have been unbound from the DOM but may not yet have been removed from the
     /// accessibility tree. This is cleared after each reflow.
     rooted_nodes: FxHashSet<Dom<Node>>,
+
+    /// Damage to the accessibility tree as a result of DOM mutations. This is drained and sent to
+    /// the accessibility tree during reflow.
+    pending_damage: NoTrace<DomRefCell<FxHashMap<TrustedNodeAddress, AccessibilityDamage>>>,
 }
 
 impl AccessibilityData {
@@ -75,5 +82,26 @@ impl AccessibilityData {
     /// This should only be called during reflow.
     pub(crate) fn unroot_all_removed_nodes(&mut self) {
         self.rooted_nodes.clear();
+    }
+
+    /// Track accessibility damage to the given node caused by mutations in the DOM tree.
+    pub(crate) fn add_pending_accessibility_damage_for_node(
+        &self,
+        node: &Node,
+        damage: AccessibilityDamage,
+    ) {
+        assert!(pref!(accessibility_enabled));
+
+        let map = &mut self.pending_damage.0.borrow_mut();
+        let pending_damage = map.entry(node.to_trusted_node_address()).or_default();
+        *pending_damage |= damage;
+    }
+
+    /// Drain all pending accessibility damage so that it can be passed to the accessibility tree.
+    pub(crate) fn drain_pending_accessibility_damage(
+        &mut self,
+    ) -> Vec<(TrustedNodeAddress, AccessibilityDamage)> {
+        let pending_damage = &mut self.pending_damage.0.borrow_mut();
+        pending_damage.drain().collect()
     }
 }
