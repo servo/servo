@@ -245,7 +245,7 @@ swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 sys-locale = "0.3"
-taffy = { version = "0.10.1", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
+taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "89f7d72dd4d97d36f2068bc7f3f54b91b9c88ba1", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
 tempfile = "3"
 tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
