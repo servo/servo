@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU, MIN_AU};
@@ -152,19 +153,19 @@ pub(crate) struct BoxFragment {
     pub spatial_tree_node: AtomicOptionScrollTreeNodeId,
 }
 
-/// Constructed from `&BoxFragment` and dereferences to it so it can mostly
+/// Contains `&Arc<BoxFragment>` and dereferences to it so it can mostly
 /// be used in the same ways, except the `.style()` method is shadowed to use an existing
 /// `atomic_refcell::AtomicRef` that lives as long as `BoxFragmentWithStyle`.
 ///
 /// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
 /// increments and decrements on `ArcRefCell`’s borrow counter.
 pub(crate) struct BoxFragmentWithStyle<'a> {
-    box_fragment: &'a BoxFragment,
+    box_fragment: &'a Arc<BoxFragment>,
     style: AtomicRef<'a, ServoArc<ComputedValues>>,
 }
 
 impl std::ops::Deref for BoxFragmentWithStyle<'_> {
-    type Target = BoxFragment;
+    type Target = Arc<BoxFragment>;
 
     fn deref(&self) -> &Self::Target {
         self.box_fragment
@@ -210,7 +211,7 @@ impl BoxFragment {
         self.base.style()
     }
 
-    pub(crate) fn with_style(&self) -> BoxFragmentWithStyle<'_> {
+    pub(crate) fn with_style(self: &Arc<Self>) -> BoxFragmentWithStyle<'_> {
         BoxFragmentWithStyle {
             box_fragment: self,
             style: self.style(),
@@ -321,7 +322,7 @@ impl BoxFragment {
     /// Get the scrollable overflow for this [`BoxFragment`] relative to its containing
     /// block, recalculating scrollable overflow when necessary, for instance after a
     /// style change.
-    pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow(self: &Arc<Self>) -> PhysicalRect<Au> {
         if self
             .scrollable_overflow_is_up_to_date
             .load(Ordering::Acquire)
@@ -347,7 +348,7 @@ impl BoxFragment {
     /// This is an implementation of:
     /// - <https://drafts.csswg.org/css-overflow-3/#scrollable>.
     /// - <https://drafts.csswg.org/cssom-view/#scrolling-area>
-    fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
+    fn calculate_scrollable_overflow(self: &Arc<Self>) -> PhysicalRect<Au> {
         // Fragments with `IS_COLLAPSED` (currently only table cells that are part of
         // table tracks with `visibility: collapse`) should not contribute to scrollable
         // overflow. This behavior matches Chrome, but not Firefox.
@@ -516,7 +517,7 @@ impl BoxFragment {
             .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
     }
 
-    pub(crate) fn print(&self, tree: &mut PrintTree) {
+    pub(crate) fn print(self: &Arc<Self>, tree: &mut PrintTree) {
         tree.new_level(format!(
             "Box\
                 \nbase={:?}\
@@ -543,7 +544,7 @@ impl BoxFragment {
         tree.end_level();
     }
 
-    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+    pub(crate) fn scrollable_overflow_for_parent(self: &Arc<Self>) -> PhysicalRect<Au> {
         let style = self.style();
         let mut overflow = self.border_rect();
         if !style.establishes_scroll_container(self.base.flags) {

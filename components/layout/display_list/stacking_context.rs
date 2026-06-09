@@ -556,7 +556,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -575,7 +575,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_reference_frame(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -654,7 +654,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_stacking_context(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -755,7 +755,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_for_children(
-        &self,
+        self: &Arc<Self>,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -910,7 +910,7 @@ impl BoxFragment {
     }
 
     fn build_overflow_frame_if_necessary(
-        &self,
+        self: &Arc<Self>,
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_id: ClipId,
