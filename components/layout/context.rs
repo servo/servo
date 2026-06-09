@@ -25,6 +25,7 @@ use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::color::Color;
 use style::values::computed::image::{Gradient, Image};
+use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
@@ -47,6 +48,9 @@ pub(crate) struct LayoutContext<'a> {
 
     /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
     pub painter_id: PainterId,
+
+    /// The device dimensions on which this layout is running, in device pixels.
+    pub device_size: Size2D<f32, DevicePixel>,
 }
 
 pub enum ResolvedImage<'a> {

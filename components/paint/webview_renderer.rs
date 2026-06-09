@@ -12,7 +12,7 @@ use embedder_traits::{
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll, TouchEvent,
     TouchEventType, ViewportDetails, WebViewPoint, WheelEvent,
 };
-use euclid::{Scale, Vector2D};
+use euclid::{Scale, Size2D, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use paint_api::display_list::ScrollType;
@@ -116,6 +116,9 @@ pub(crate) struct WebViewRenderer {
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: ViewportDescription,
 
+    /// The dimensions of the device on which this WebView is rendering.
+    device_size: Size2D<f32, DevicePixel>,
+
     //
     // Data that is shared with the parent renderer.
     //
@@ -154,6 +157,7 @@ impl WebViewRenderer {
             hidden: false,
             animating: false,
             viewport_description: Default::default(),
+            device_size: viewport_details.device_size,
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -1055,6 +1059,7 @@ impl WebViewRenderer {
                 ViewportDetails {
                     hidpi_scale_factor: device_pixel_ratio,
                     size: layout_viewport,
+                    device_size: self.device_size,
                 },
                 WindowSizeType::Resize,
             ),
@@ -1070,6 +1075,17 @@ impl WebViewRenderer {
         if self.hidpi_scale_factor == old_scale_factor {
             return false;
         }
+
+        self.send_window_size_message();
+        true
+    }
+
+    /// Set the `device_size` for this renderer, returning `true` if the value actually changed.
+    pub(crate) fn set_device_size(&mut self, new_size: Size2D<f32, DevicePixel>) -> bool {
+        if self.device_size == new_size {
+            return false;
+        }
+        self.device_size = new_size;
 
         self.send_window_size_message();
         true

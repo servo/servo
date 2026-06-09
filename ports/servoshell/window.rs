@@ -103,6 +103,7 @@ impl ServoShellWindow {
             WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
                 .url(url)
                 .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
+                .device_size(self.platform_window.screen_geometry().size.cast())
                 .user_content_manager(state.user_content_manager.clone())
                 .delegate(state.clone());
 

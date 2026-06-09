@@ -115,6 +115,7 @@ pub(crate) struct WebViewInner {
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    device_size: Size2D<f32, DevicePixel>,
     load_status: LoadStatus,
     status_text: Option<String>,
     page_title: Option<String>,
@@ -163,6 +164,7 @@ impl WebView {
             grafted_accesskit_tree_id: None,
             grafted_accesskit_tree_epoch: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
+            device_size: builder.device_size,
             load_status: LoadStatus::Started,
             status_text: None,
             page_title: None,
@@ -254,6 +256,7 @@ impl WebView {
         ViewportDetails {
             size: scaled_viewport_size / Scale::new(1.0),
             hidpi_scale_factor: Scale::new(inner.hidpi_scale_factor.0),
+            device_size: inner.device_size,
         }
     }
 
@@ -471,6 +474,18 @@ impl WebView {
             .servo
             .paint()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
+    }
+
+    pub fn set_device_size(&self, new_size: Size2D<f32, DevicePixel>) {
+        if self.inner().device_size == new_size {
+            return;
+        }
+
+        self.inner_mut().device_size = new_size;
+        self.inner()
+            .servo
+            .paint()
+            .set_device_size(self.id(), new_size);
     }
 
     /// Make this [`WebView`] visible within its [`RenderingContext`].
@@ -1020,6 +1035,7 @@ pub struct WebViewBuilder {
     delegate: Rc<dyn WebViewDelegate>,
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    device_size: Size2D<f32, DevicePixel>,
     create_new_webview_responder: Option<IpcResponder<Option<NewWebViewDetails>>>,
     user_content_manager: Option<Rc<UserContentManager>>,
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
@@ -1035,6 +1051,7 @@ impl WebViewBuilder {
     pub fn new(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         Self {
             servo: servo.clone(),
+            device_size: rendering_context.size2d().cast(),
             rendering_context,
             url: None,
             hidpi_scale_factor: Scale::new(1.0),
@@ -1076,6 +1093,11 @@ impl WebViewBuilder {
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     ) -> Self {
         self.hidpi_scale_factor = hidpi_scale_factor;
+        self
+    }
+
+    pub fn device_size(mut self, device_size: Size2D<f32, DevicePixel>) -> Self {
+        self.device_size = device_size;
         self
     }
 
