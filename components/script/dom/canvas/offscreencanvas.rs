@@ -12,15 +12,17 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
+use script_bindings::canvas::CanvasSizeTrait;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto_and_cx};
 use script_bindings::weakref::WeakRef;
+use script_shared::canvas::CanvasContext;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 
-use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
+use crate::canvas_context::OffscreenRenderingContext;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
@@ -62,6 +64,12 @@ pub(crate) struct OffscreenCanvas {
 
     /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
     placeholder: Option<WeakRef<HTMLCanvasElement>>,
+}
+
+impl CanvasSizeTrait for OffscreenCanvas {
+    fn get_size(&self) -> Size2D<u32> {
+        self.get_size()
+    }
 }
 
 impl OffscreenCanvas {

@@ -24,6 +24,7 @@ use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
+use script_shared::canvas::CanvasContext;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
@@ -37,7 +38,8 @@ use servo_canvas_traits::webgl::{
 use servo_config::pref;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
+use crate::DomTypeHolder;
+use crate::canvas_context::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -1996,7 +1998,7 @@ impl WebGLRenderingContext {
     }
 }
 
-impl CanvasContext for WebGLRenderingContext {
+impl CanvasContext<DomTypeHolder> for WebGLRenderingContext {
     type ID = WebGLContextId;
 
     fn context_id(&self) -> Self::ID {

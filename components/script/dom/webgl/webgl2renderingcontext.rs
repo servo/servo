@@ -19,6 +19,7 @@ use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_shared::canvas::CanvasContext;
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -30,7 +31,7 @@ use url::Host;
 use webrender_api::ImageKey;
 
 use super::validations::types::TexImageTarget;
-use crate::canvas_context::CanvasContext;
+use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -976,7 +977,7 @@ impl WebGL2RenderingContext {
     }
 }
 
-impl CanvasContext for WebGL2RenderingContext {
+impl CanvasContext<DomTypeHolder> for WebGL2RenderingContext {
     type ID = WebGLContextId;
 
     fn context_id(&self) -> Self::ID {

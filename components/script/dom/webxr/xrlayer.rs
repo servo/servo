@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_shared::canvas::CanvasContext;
 use servo_canvas_traits::webgl::WebGLContextId;
 use webxr_api::LayerId;
 
-use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::Dom;
 use crate::dom::eventtarget::EventTarget;

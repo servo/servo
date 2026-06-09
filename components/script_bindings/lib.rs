@@ -17,6 +17,7 @@ extern crate malloc_size_of_derive;
 
 pub mod assert;
 pub mod callback;
+pub mod canvas;
 pub mod cell;
 mod constant;
 mod constructor;

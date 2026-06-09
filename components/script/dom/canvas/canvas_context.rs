@@ -7,11 +7,12 @@
 use euclid::default::Size2D;
 use pixels::Snapshot;
 use script_bindings::root::{Dom, DomRoot};
+use script_shared::canvas::CanvasContext;
 use webrender_api::ImageKey;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::node::{Node, NodeTraits};
+use crate::dom::node::NodeTraits;
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;
 use crate::dom::types::{
@@ -63,53 +64,6 @@ impl From<&HTMLCanvasElementOrOffscreenCanvas> for RootedHTMLCanvasElementOrOffs
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
                 RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas.as_rooted())
             },
-        }
-    }
-}
-
-pub(crate) trait CanvasContext {
-    type ID;
-
-    fn context_id(&self) -> Self::ID;
-
-    fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas>;
-
-    fn resize(&self);
-
-    // Resets the backing bitmap (to transparent or opaque black) without the
-    // context state reset.
-    // Used by OffscreenCanvas.transferToImageBitmap.
-    fn reset_bitmap(&self);
-
-    /// Returns none if area of canvas is zero.
-    ///
-    /// In case of other errors it returns cleared snapshot
-    fn get_image_data(&self) -> Option<Snapshot>;
-
-    fn origin_is_clean(&self) -> bool {
-        true
-    }
-
-    fn size(&self) -> Size2D<u32> {
-        self.canvas()
-            .map(|canvas| canvas.size())
-            .unwrap_or_default()
-    }
-
-    fn mark_as_dirty(&self);
-
-    fn onscreen(&self) -> bool {
-        let Some(canvas) = self.canvas() else {
-            return false;
-        };
-
-        match canvas {
-            RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                canvas.upcast::<Node>().is_connected()
-            },
-            // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
-            // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-            RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
         }
     }
 }
@@ -190,7 +144,7 @@ impl RenderingContext {
     }
 }
 
-impl CanvasContext for RenderingContext {
+impl CanvasContext<DomTypeHolder> for RenderingContext {
     type ID = ();
 
     fn context_id(&self) -> Self::ID {}
@@ -326,7 +280,7 @@ pub(crate) enum OffscreenRenderingContext {
     Detached,
 }
 
-impl CanvasContext for OffscreenRenderingContext {
+impl CanvasContext<DomTypeHolder> for OffscreenRenderingContext {
     type ID = ();
 
     fn context_id(&self) -> Self::ID {}

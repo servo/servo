@@ -8760,6 +8760,7 @@ dependencies = [
  "servo-pixels",
  "servo-profile-traits",
  "servo-script-bindings",
+ "servo-script-shared",
  "servo-script-traits",
  "servo-storage-traits",
  "servo-timers",
@@ -8809,6 +8810,7 @@ dependencies = [
  "bitflags 2.11.1",
  "crossbeam-channel",
  "encoding_rs",
+ "euclid",
  "html5ever",
  "indexmap",
  "keyboard-types",
@@ -8829,6 +8831,7 @@ dependencies = [
  "servo-dom-struct",
  "servo-jstraceable-derive",
  "servo-malloc-size-of",
+ "servo-pixels",
  "servo-profile-traits",
  "servo-url",
  "servo-webxr-api",
@@ -8840,6 +8843,15 @@ dependencies = [
  "tracing",
  "xml5ever",
  "zeroize",
+]
+
+[[package]]
+name = "servo-script-shared"
+version = "0.3.0"
+dependencies = [
+ "euclid",
+ "servo-pixels",
+ "servo-script-bindings",
 ]
 
 [[package]]

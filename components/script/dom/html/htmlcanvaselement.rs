@@ -13,9 +13,11 @@ use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
+use script_bindings::canvas::CanvasSizeTrait;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
+use script_shared::canvas::CanvasContext;
 use servo_base::Epoch;
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::BlobImpl;
@@ -26,7 +28,7 @@ use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
 use webrender_api::ImageKey;
 
-use crate::canvas_context::{CanvasContext, RenderingContext};
+use crate::canvas_context::RenderingContext;
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
@@ -178,6 +180,12 @@ impl LayoutDom<'_, HTMLCanvasElement> {
             width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
             height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
         }
+    }
+}
+
+impl CanvasSizeTrait for HTMLCanvasElement {
+    fn get_size(&self) -> Size2D<u32> {
+        self.get_size()
     }
 }
 

@@ -7,13 +7,15 @@ use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
+use script_shared::canvas::CanvasContext;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
 use super::canvas_state::CanvasState;
-use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
+use crate::DomTypeHolder;
+use crate::canvas_context::{CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
@@ -126,7 +128,7 @@ impl CanvasRenderingContext2D {
     }
 }
 
-impl CanvasContext for CanvasRenderingContext2D {
+impl CanvasContext<DomTypeHolder> for CanvasRenderingContext2D {
     type ID = CanvasId;
 
     fn context_id(&self) -> Self::ID {

@@ -126,6 +126,7 @@ rand = { workspace = true }
 regex = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }
+script_shared = { workspace = true }
 script_bindings = { workspace = true }
 script_traits = { workspace = true }
 sec1 = { workspace = true }
