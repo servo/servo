@@ -82,12 +82,16 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
 
         // Step 4: If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if transaction.get_mode() != IDBTransactionMode::Versionchange {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Transaction is not an upgrade transaction".to_owned(),
+            )));
         }
 
         // Step 5: If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
-            return Err(Error::TransactionInactive(None));
+            return Err(Error::TransactionInactive(Some(
+                "Transaction is not active while updating index name".to_owned(),
+            )));
         }
 
         // Step 6: If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
@@ -97,7 +101,9 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
                 .get_db()
                 .object_store_exists(&self.object_store.get_name())
         {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Index or its object store has been deleted".to_owned(),
+            )));
         }
 
         // Step 7: If index’s name is equal to name, terminate these steps.
@@ -107,7 +113,9 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
 
         // Step 8: If an index named name already exists in index’s object store, throw a "ConstraintError" DOMException.
         if self.object_store.has_index(&name) {
-            return Err(Error::Constraint(None));
+            return Err(Error::Constraint(Some(
+                "An index with the given name already exists".to_owned(),
+            )));
         }
 
         // Step 9: Set index’s name to name.
