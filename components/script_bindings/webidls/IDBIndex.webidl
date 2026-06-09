@@ -9,7 +9,7 @@
 
 [Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBIndex {
-  // attribute DOMString name;
+  [SetterThrows] attribute DOMString name;
   [SameObject] readonly attribute IDBObjectStore objectStore;
   readonly attribute any keyPath;
   readonly attribute boolean multiEntry;
