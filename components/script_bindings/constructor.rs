@@ -201,7 +201,7 @@ pub(crate) unsafe fn create_interface<D: DomTypes>(
 
     rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
     create_interface_prototype_object::<D>(
-        cx.into(),
+        cx,
         global,
         prototype_proto.handle(),
         init.prototype_class,
