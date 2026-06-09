@@ -283,6 +283,10 @@ impl ShapedText {
 
         let mut previous_character_offset = None;
         let mut glyph_store = ShapedText::new(shaped_glyph_data.len(), shaped_run_is_rtl);
+        if shaped_glyph_data.len() == 0 {
+            return glyph_store;
+        }
+
         for mut shaped_glyph in shaped_glyph_data.iter() {
             // The glyph "cluster" (HarfBuzz terminology) is the byte offset in the string that
             // this glyph corresponds to. More than one glyph can share a cluster.

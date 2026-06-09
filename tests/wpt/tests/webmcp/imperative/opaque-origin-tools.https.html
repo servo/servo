@@ -13,10 +13,10 @@ promise_test(async t => {
   assert_equals(self.origin, 'null');
 
   const toolchange_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
-  navigator.modelContext.registerTool({
+  document.modelContext.registerTool({
     name: 'opaque_tool',
     description: 'Opaque tool description',
     execute: async () => 'success'
@@ -26,13 +26,13 @@ promise_test(async t => {
 
   // The tool should be available, but its execution is rejected because opaque
   // origins lose their same-origin identity during string serialization ("null").
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'opaque_tool');
 
   await promise_rejects_dom(
     t,
     'UnknownError',
-    navigator.modelContext.executeTool(tool, '{}'),
+    document.modelContext.executeTool(tool, '{}'),
     'executeTool() must reject with UnknownError in opaque origin documents'
   );
 }, 'An opaque origin document can register but not execute its own tools');

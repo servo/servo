@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
@@ -24,7 +25,6 @@ use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct StereoPannerNode {
@@ -35,10 +35,10 @@ pub(crate) struct StereoPannerNode {
 impl StereoPannerNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
-        can_gc: CanGc,
     ) -> Fallible<StereoPannerNode> {
         let node_options = options.parent.unwrap_or(
             2,
@@ -53,6 +53,7 @@ impl StereoPannerNode {
         }
         let pan = *options.pan;
         let source_node = AudioScheduledSourceNode::new_inherited(
+            cx,
             AudioNodeInit::StereoPannerNode(options.convert()),
             context,
             node_options,
@@ -61,6 +62,7 @@ impl StereoPannerNode {
         )?;
         let node_id = source_node.node().node_id();
         let pan = AudioParam::new(
+            cx,
             window,
             context,
             node_id,
@@ -70,7 +72,6 @@ impl StereoPannerNode {
             pan,
             -1.,
             1.,
-            can_gc,
         );
 
         Ok(StereoPannerNode {
@@ -80,28 +81,28 @@ impl StereoPannerNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        Self::new_with_proto(window, None, context, options, can_gc)
+        Self::new_with_proto(cx, window, None, context, options)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        let node = StereoPannerNode::new_inherited(window, context, options, can_gc)?;
-        Ok(reflect_dom_object_with_proto(
+        let node = StereoPannerNode::new_inherited(cx, window, context, options)?;
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -109,13 +110,13 @@ impl StereoPannerNode {
 impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-stereopannernode-stereopannernode>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        StereoPannerNode::new_with_proto(window, proto, context, options, can_gc)
+        StereoPannerNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan>

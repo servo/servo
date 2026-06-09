@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: transparent background rect composited (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<style>
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+</canvas>
+
+<script>
+function runTest() {
+  var context = canvas.getContext("2d");
+  context.shadowColor = "black";
+  context.shadowBlur = 5;
+  context.shadowOffsetX = 20;
+  context.shadowOffsetY = 10;
+  context.fillStyle = "green";
+  context.fillRect(20, 30, 20, 20);
+  context.fillRect(20, 110, 20, 20);
+  context.fillRect(100, 30, 20, 20);
+  context.fillRect(100, 110, 20, 20);
+}
+
+onload = () => runTest();
+
+</script>

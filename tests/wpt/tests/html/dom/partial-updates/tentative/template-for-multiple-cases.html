@@ -103,21 +103,21 @@
 
     add_test_scenario(
       "Void marker at start",
-      `<?marker name=p> content`,
+      `<?marker name="p"> content`,
       `<template for="p">New</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Void marker at end",
-      `New <?marker name=p>`,
+      `New <?marker name="p">`,
       `<template for="p">content</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Void marker in the middle",
-      `New <?marker name=p> content`,
+      `New <?marker name="p"> content`,
       `<template for="p">X</template>`,
       `New X content`,
     );
@@ -138,8 +138,8 @@
 
     add_test_scenario(
       "Multiple templates for same marker",
-      `<?marker name=b> content`,
-      `<template for="b">X<?marker name=b></template><template for="b">Y</template>`,
+      `<?marker name="b"> content`,
+      `<template for="b">X<?marker name="b"></template><template for="b">Y</template>`,
       `XY content`,
     );
 

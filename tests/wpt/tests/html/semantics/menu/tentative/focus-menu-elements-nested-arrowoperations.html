@@ -32,8 +32,8 @@ menulist {
 </menulist>
 
 <menulist id="menulist2">
- <menuitem id="e" command="show-menu" commandfor="menulist4">Command E</menuitem>
- <menuitem id="f" command="hide-menu" commandfor="menulist4">Command F</menuitem>
+ <menuitem id="e" command="show-popover" commandfor="menulist4">Command E</menuitem>
+ <menuitem id="f" command="toggle-popover" commandfor="menulist4">Command F</menuitem>
  <menuitem id="g" command="toggle-menu" commandfor="menulist3">Commands G</menuitem>
 </menulist>
 
@@ -78,14 +78,14 @@ async function navigateMenus() {
   await test_driver.send_keys(document.activeElement, ArrowDown);
   assert_equals(document.activeElement, e);
   await test_driver.send_keys(document.activeElement, ArrowRight);
-  assert_equals(document.activeElement, c, "show-menu does not create special submenu relationship");
+  assert_equals(document.activeElement, c, "show-popover does not create special submenu relationship");
   await test_driver.send_keys(document.activeElement, ArrowLeft);
   assert_equals(document.activeElement, b);
   await test_driver.send_keys(document.activeElement, ArrowDown);
   await test_driver.send_keys(document.activeElement, ArrowDown);
   assert_equals(document.activeElement, f);
   await test_driver.send_keys(document.activeElement, ArrowRight);
-  assert_equals(document.activeElement, c, "hide-menu does not create special submenu relationship");
+  assert_equals(document.activeElement, c, "toggle-popover does not create special submenu relationship");
 }
 
 promise_test(async (t) => {

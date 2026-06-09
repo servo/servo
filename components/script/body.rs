@@ -47,7 +47,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
@@ -292,7 +292,7 @@ impl TransmitBodyConnectHandler {
                 }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(cx));
+                    PromiseNativeHandler::new(cx, &global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>));
 
                 let mut realm = enter_auto_realm(cx, &*global);
                 let realm = &mut realm.current_realm();
@@ -319,8 +319,7 @@ impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        let _realm = InRealm::Already(&cx.into());
-        let is_done = match get_read_promise_done(cx.into(), &v, CanGc::from_cx(cx)) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -337,7 +336,7 @@ impl Callback for TransmitBodyPromiseHandler {
             return self.stream.stop_reading(cx);
         }
 
-        let chunk = match get_read_promise_bytes(cx.into(), &v, CanGc::from_cx(cx)) {
+        let chunk = match get_read_promise_bytes(cx, &v) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -351,8 +350,8 @@ impl Callback for TransmitBodyPromiseHandler {
         // TODO: queue a fetch task on request to process request body for request.
         let _ = self
             .bytes_sender
-            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_bytes(
-                &chunk,
+            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_vec(
+                chunk,
             )));
     }
 }
@@ -422,7 +421,14 @@ impl ExtractedBody {
         let task_source = global.task_manager().networking_task_source();
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
-        let in_memory = stream.get_in_memory_bytes();
+        // Empty extracted bodies are always representable as an in-memory empty payload.
+        let in_memory = stream.get_in_memory_bytes().or_else(|| {
+            if total_bytes == Some(0) {
+                Some(GenericSharedMemory::from_bytes(&[]))
+            } else {
+                None
+            }
+        });
 
         let net_source = match source {
             BodySource::Null => NetBodySource::Null,
@@ -698,9 +704,9 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
-        promise.reject_error(
+        promise.reject_error_with_cx(
+            cx,
             Error::Type(c"The body's stream is disturbed or locked".to_owned()),
-            CanGc::from_cx(cx),
         );
         return promise;
     }
@@ -734,7 +740,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     if stream.is_errored() {
         rooted!(&in(cx) let mut stored_error = UndefinedValue());
         stream.get_stored_error(stored_error.handle_mut());
-        promise.reject(cx.into(), stored_error.handle(), CanGc::from_cx(cx));
+        promise.reject_with_cx(cx, stored_error.handle());
         return promise;
     }
 
@@ -745,7 +751,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let reader = match stream.acquire_default_reader(CanGc::from_cx(cx)) {
         Ok(r) => r,
         Err(e) => {
-            promise.reject_error(e, CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, e);
             return promise;
         },
     };
@@ -775,7 +781,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject(cx.into(), v, CanGc::from_cx(cx));
+            error_promise.reject_with_cx(cx, v);
         }),
     );
 
@@ -796,18 +802,18 @@ fn resolve_result_promise(
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native(&USVString(s), CanGc::from_cx(cx)),
-                FetchedData::Json(j) => promise.resolve_native(&j, CanGc::from_cx(cx)),
-                FetchedData::BlobData(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::FormData(f) => promise.resolve_native(&f, CanGc::from_cx(cx)),
-                FetchedData::Bytes(b) => promise.resolve_native(&b, CanGc::from_cx(cx)),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a, CanGc::from_cx(cx)),
+                FetchedData::Text(s) => promise.resolve_native_with_cx(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native_with_cx(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
+                FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
                 FetchedData::JSException(e) => {
                     promise.reject_native(&e.handle(), CanGc::from_cx(cx))
                 },
             };
         },
-        Err(err) => promise.reject_error(err, CanGc::from_cx(cx)),
+        Err(err) => promise.reject_error_with_cx(cx, err),
     }
 }
 
@@ -891,9 +897,9 @@ fn run_blob_data_algorithm(
         "".to_string()
     };
     let blob = Blob::new(
+        cx,
         root,
         BlobImpl::new_from_bytes(bytes, normalize_type_string(&mime_string)),
-        CanGc::from_cx(cx),
     );
     Ok(FetchedData::BlobData(blob))
 }

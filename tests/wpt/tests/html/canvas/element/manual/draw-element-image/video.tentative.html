@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage repaints video frames</title>
+  <meta name="fuzzy" content="maxDifference=0-19;totalPixels=0-4096">
+  <link rel="match" href="video-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <script src='/html/canvas/resources/wait-for-canvas-paint.js'></script>
+  <style>
+  #child {
+    width: 64px;
+    height: 64px;
+  }
+  #video {
+    width: 64px;
+    height: 64px;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id=child>
+      <video id=video src="/media/fast-red-green.webm" autoplay muted></video>
+    </div>
+  </canvas>
+  <script type="module">
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let child = document.getElementById('child');
+
+await waitForCanvasPaint(canvas);
+
+video.src = "/media/fast-red-green.webm";
+video.onended = takeScreenshot;
+
+canvas.onpaint = () => {
+  ctx.drawElementImage(child, 0, 0);
+};
+  </script>
+</body>
+</html>

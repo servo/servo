@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>attr() looks up on the originating element across shadow boundaries</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-attr">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-parts-1/#part">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  /* ::part() rule from outside the shadow tree: attr() reads from the host. */
+  #host-part::part(label) {
+    color: attr(data-color type(<color>), red);
+    font-size: attr(data-size type(<percentage>), 100%);
+  }
+  /* ::part() reaching into a deeper shadow via exportparts: attr() reads from the
+     outer host (the rule's match target). */
+  #host-outer::part(inner-label) {
+    color: attr(data-color type(<color>), red);
+  }
+</style>
+
+<part-host id="host-part" data-color="green" data-size="200%"></part-host>
+<outer-host id="host-outer" data-color="green"></outer-host>
+
+<div id="slotted-host">
+  <template shadowrootmode="open">
+    <style>
+      /* ::slotted() rule inside a shadow tree: attr() reads from the slotted element. */
+      ::slotted(span) {
+        color: attr(data-color type(<color>), red);
+      }
+    </style>
+    <slot></slot>
+  </template>
+  <span data-color="green">slotted</span>
+</div>
+
+<script>
+  customElements.define("part-host", class extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: "open" });
+      const span = document.createElement("span");
+      span.setAttribute("part", "label");
+      root.appendChild(span);
+    }
+  });
+
+  // outer-host wraps inner-host and exports inner-host's "label" part as "inner-label",
+  // so the document's #host-outer::part(inner-label) rule cascades two shadow boundaries deep.
+  customElements.define("inner-host", class extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: "open" });
+      const span = document.createElement("span");
+      span.setAttribute("part", "label");
+      root.appendChild(span);
+    }
+  });
+  customElements.define("outer-host", class extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: "open" });
+      const inner = document.createElement("inner-host");
+      inner.setAttribute("exportparts", "label: inner-label");
+      root.appendChild(inner);
+    }
+  });
+
+  test(() => {
+    const host = document.getElementById("host-part");
+    const part = host.shadowRoot.querySelector("[part='label']");
+    assert_equals(getComputedStyle(part).color, "rgb(0, 128, 0)",
+      "::part() attr() reads data-color from host");
+  }, "::part() attr() resolves on shadow host");
+
+  test(() => {
+    const host = document.getElementById("host-part");
+    const part = host.shadowRoot.querySelector("[part='label']");
+    assert_equals(getComputedStyle(part).fontSize, "32px",
+      "::part() attr() reads data-size from host");
+  }, "::part() attr() with percentage type resolves on shadow host");
+
+  test(() => {
+    const host = document.getElementById("host-part");
+    const part = host.shadowRoot.querySelector("[part='label']");
+    host.setAttribute("data-color", "blue");
+    assert_equals(getComputedStyle(part).color, "rgb(0, 0, 255)",
+      "::part() attr() invalidates when host attribute changes");
+  }, "::part() attr() invalidation on host attribute change");
+
+  test(() => {
+    const outer = document.getElementById("host-outer");
+    const inner = outer.shadowRoot.querySelector("inner-host");
+    const part = inner.shadowRoot.querySelector("[part='label']");
+    assert_equals(getComputedStyle(part).color, "rgb(0, 128, 0)",
+      "::part() across two shadow boundaries reads from the outer host");
+  }, "::part() attr() resolves on the originating host across exportparts");
+
+  test(() => {
+    const outer = document.getElementById("host-outer");
+    const inner = outer.shadowRoot.querySelector("inner-host");
+    const part = inner.shadowRoot.querySelector("[part='label']");
+    outer.setAttribute("data-color", "blue");
+    assert_equals(getComputedStyle(part).color, "rgb(0, 0, 255)",
+      "::part() across two shadow boundaries invalidates on outer host attribute change");
+  }, "::part() attr() invalidation across exportparts");
+
+  test(() => {
+    const slotted = document.querySelector("#slotted-host > span");
+    slotted.setAttribute("data-color", "blue");
+    assert_equals(getComputedStyle(slotted).color, "rgb(0, 0, 255)",
+      "::slotted() attr() invalidates when the slotted element's attribute changes");
+  }, "::slotted() attr() invalidation on the slotted element");
+</script>

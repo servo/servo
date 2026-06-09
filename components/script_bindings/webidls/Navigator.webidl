@@ -11,7 +11,6 @@ Navigator includes NavigatorID;
 Navigator includes NavigatorLanguage;
 Navigator includes NavigatorOnLine;
 Navigator includes NavigatorContentUtils;
-//Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
 Navigator includes NavigatorCookies;
 Navigator includes NavigatorConcurrentHardware;

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
+use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
@@ -99,7 +100,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
                 if s.is_empty() {
                     return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
                 }
-                transform_to_matrix(s.to_string())
+                transform_to_matrix(&s.str())
                     .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
@@ -483,7 +484,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         // 1. Parse transformList into an abstract matrix, and let
         // matrix and 2dTransform be the result. If the result is failure,
         // then throw a "SyntaxError" DOMException.
-        match transform_to_matrix(transformList.to_string()) {
+        match transform_to_matrix(&transformList.str()) {
             Ok(tuple) => {
                 // 2. Set is 2D to the value of 2dTransform.
                 self.parent.set_is2D(tuple.0);
@@ -535,9 +536,9 @@ impl Serializable for DOMMatrix {
     }
 
     fn deserialize(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
@@ -564,10 +565,15 @@ impl Serializable for DOMMatrix {
                     0.0,
                     1.0,
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ))
         } else {
-            Ok(Self::new(owner, false, serialized.matrix, can_gc))
+            Ok(Self::new(
+                owner,
+                false,
+                serialized.matrix,
+                CanGc::from_cx(cx),
+            ))
         }
     }
 

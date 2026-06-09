@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
@@ -34,7 +35,6 @@ use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -78,7 +78,7 @@ impl BluetoothDevice {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         id: DOMString,
         name: Option<DOMString>,
@@ -91,10 +91,7 @@ impl BluetoothDevice {
         )
     }
 
-    pub(crate) fn get_gatt(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> DomRoot<BluetoothRemoteGATTServer> {
+    pub(crate) fn get_gatt(&self, cx: &mut JSContext) -> DomRoot<BluetoothRemoteGATTServer> {
         self.gatt
             .or_init(|| BluetoothRemoteGATTServer::new(cx, &self.global(), self))
     }
@@ -105,7 +102,7 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_service(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         service: &BluetoothServiceMsg,
         server: &BluetoothRemoteGATTServer,
     ) -> DomRoot<BluetoothRemoteGATTService> {
@@ -128,7 +125,7 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_characteristic(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         characteristic: &BluetoothCharacteristicMsg,
         service: &BluetoothRemoteGATTService,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
@@ -170,7 +167,7 @@ impl BluetoothDevice {
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::IsRepresentedDeviceNull(
-                self.Id().to_string(),
+                String::from(self.Id()),
                 sender,
             ))
             .unwrap();
@@ -179,7 +176,7 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_descriptor(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         descriptor: &BluetoothDescriptorMsg,
         characteristic: &BluetoothRemoteGATTCharacteristic,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
@@ -207,7 +204,7 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
-    pub(crate) fn clean_up_disconnected_device(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn clean_up_disconnected_device(&self, cx: &mut JSContext) {
         // Step 1.
         self.get_gatt(cx).set_connected(false);
 
@@ -242,17 +239,14 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
-    pub(crate) fn garbage_collect_the_connection(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> ErrorResult {
+    pub(crate) fn garbage_collect_the_connection(&self, cx: &mut JSContext) -> ErrorResult {
         // Step 1: TODO: Check if other systems using this device.
 
         // Step 2.
         let context = self.get_context();
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
-            if id == &self.Id().to_string() && device.get_gatt(cx).Connected() {
+            if id == &self.Id().str() as &str && device.get_gatt(cx).Connected() {
                 return Ok(());
             }
         }
@@ -282,10 +276,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>
-    fn GetGatt(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
+    fn GetGatt(&self, cx: &mut JSContext) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
         // Step 1.
         if self
             .global()
@@ -339,7 +330,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
 impl AsyncBluetoothListener for BluetoothDevice {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: BluetoothResponse,
         promise: &Rc<Promise>,
     ) {
@@ -349,12 +340,11 @@ impl AsyncBluetoothListener for BluetoothDevice {
                 // Step 3.1.
                 self.watching_advertisements.set(true);
                 // Step 3.2.
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
             },
-            _ => promise.reject_error(
-                Error::Type(c"Something went wrong...".to_owned()),
-                CanGc::from_cx(cx),
-            ),
+            _ => {
+                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
+            },
         }
     }
 }

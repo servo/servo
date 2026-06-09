@@ -5,7 +5,8 @@
 use std::cell::RefCell;
 
 use devtools_traits::{
-    DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    BlackboxCoverage, DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg,
+    SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -21,18 +22,12 @@ use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
-use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
-use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::{
-    EnvironmentInfo, EnvironmentVariable,
-};
+use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
-use crate::dom::bindings::codegen::GenericBindings::DebuggerEvalEventBinding::{
-    EvalResult, PropertyDescriptor,
-};
+use crate::dom::bindings::codegen::GenericBindings::DebuggerEvalEventBinding::EvalResult;
 use crate::dom::bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use crate::dom::bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
@@ -41,12 +36,14 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debugger::debuggerblackboxevent::DebuggerBlackboxEvent;
 use crate::dom::debugger::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debugger::debuggerframeevent::DebuggerFrameEvent;
 use crate::dom::debugger::debuggergetenvironmentevent::DebuggerGetEnvironmentEvent;
 use crate::dom::debugger::debuggerinterruptevent::DebuggerInterruptEvent;
 use crate::dom::debugger::debuggerresumeevent::DebuggerResumeEvent;
 use crate::dom::debugger::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
+use crate::dom::debugger::debuggerunblackboxevent::DebuggerUnblackboxEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{
     DebuggerAddDebuggeeEvent, DebuggerEvalEvent, DebuggerGetPossibleBreakpointsEvent, Event,
@@ -176,7 +173,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
         );
     }
@@ -211,7 +208,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerEvalEvent::new"
         );
     }
@@ -234,7 +231,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
@@ -254,7 +251,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
@@ -265,7 +262,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerInterruptEvent::new"
         );
     }
@@ -294,7 +291,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerFrameEvent::new"
         );
     }
@@ -317,7 +314,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerGetEnvironmentEvent::new"
         );
     }
@@ -335,7 +332,7 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerResumeEvent::new"
         );
     }
@@ -355,8 +352,44 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), CanGc::from_cx(cx)),
+            event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerClearBreakpointEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_blackbox(
+        &self,
+        cx: &mut JSContext,
+        spidermonkey_id: u32,
+        coverage: BlackboxCoverage,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerBlackboxEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            coverage,
+            CanGc::from_cx(cx),
+        ));
+        assert!(
+            event.fire(cx, self.upcast()),
+            "Guaranteed by DebuggerBlackboxEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_unblackbox(
+        &self,
+        cx: &mut JSContext,
+        spidermonkey_id: u32,
+        coverage: BlackboxCoverage,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerUnblackboxEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            coverage,
+            CanGc::from_cx(cx),
+        ));
+        assert!(
+            event.fire(cx, self.upcast()),
+            "Guaranteed by DebuggerUnblackboxEvent::new"
         );
     }
 }
@@ -491,9 +524,22 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
+        let has_exception = result.hasException.unwrap_or(false);
+        let value = match serde_json::from_str::<devtools_traits::DebuggerValue>(
+            &result.serializedValue.str(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                warn!("Failed to parse serialized debugger eval value: {error}");
+                devtools_traits::DebuggerValue::StringValue(
+                    "failed to parse eval result".to_string(),
+                )
+            },
+        };
+
         let reply = EvaluateJSReply {
-            value: parse_debugger_value(&result.value, result.preview.as_ref()),
-            has_exception: result.hasException.unwrap_or(false),
+            value,
+            has_exception,
         };
 
         let _ = sender.send(reply);
@@ -546,7 +592,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let (tx, rx) = channel::<String>().unwrap();
 
         let frame = devtools_traits::FrameInfo {
-            display_name: result.displayName.clone().into(),
+            display_name: result.displayName.clone().map(String::from),
             on_stack: result.onStack,
             oldest: result.oldest,
             terminated: result.terminated,
@@ -578,19 +624,20 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
+        let binding_variables = match serde_json::from_str::<Vec<devtools_traits::PropertyDescriptor>>(
+            &environment.serializedBindings.str(),
+        ) {
+            Ok(binding_variables) => binding_variables,
+            Err(error) => {
+                warn!("Failed to parse serialized debugger environment bindings: {error}");
+                return None;
+            },
+        };
         let environment = devtools_traits::EnvironmentInfo {
             type_: environment.type_.clone().map(String::from),
             scope_kind: environment.scopeKind.clone().map(String::from),
             function_display_name: environment.functionDisplayName.clone().map(String::from),
-            binding_variables: environment
-                .bindingVariables
-                .as_deref()
-                .into_iter()
-                .flatten()
-                .map(|EnvironmentVariable { property, preview }| {
-                    parse_property_descriptor(property, preview.as_ref())
-                })
-                .collect(),
+            binding_variables,
         };
 
         let msg = ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
@@ -611,94 +658,5 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_get_environment()");
 
         let _ = sender.send(environment_actor_id.into());
-    }
-}
-
-fn parse_property_descriptor(
-    property: &PropertyDescriptor,
-    preview: Option<&ObjectPreview>,
-) -> devtools_traits::PropertyDescriptor {
-    devtools_traits::PropertyDescriptor {
-        name: property.name.to_string(),
-        value: parse_debugger_value(&property.value, preview),
-        configurable: property.configurable,
-        enumerable: property.enumerable,
-        writable: property.writable,
-        is_accessor: property.isAccessor,
-    }
-}
-
-fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPreview {
-    devtools_traits::ObjectPreview {
-        kind: preview.kind.clone().into(),
-        own_properties: preview.ownProperties.as_ref().map(|properties| {
-            properties
-                .iter()
-                .map(|property| parse_property_descriptor(property, None))
-                .collect()
-        }),
-        own_properties_length: preview.ownPropertiesLength,
-        function: preview
-            .function
-            .as_ref()
-            .map(|fields| devtools_traits::FunctionPreview {
-                name: fields.name.as_ref().map(|s| s.to_string()),
-                display_name: fields.displayName.as_ref().map(|s| s.to_string()),
-                parameter_names: fields
-                    .parameterNames
-                    .iter()
-                    .map(|p| p.to_string())
-                    .collect(),
-                is_async: fields.isAsync,
-                is_generator: fields.isGenerator,
-            }),
-        array_length: preview.arrayLength,
-        items: preview.items.as_ref().map(|items| {
-            items
-                .iter()
-                .map(|item| parse_debugger_value(item, None))
-                .collect()
-        }),
-    }
-}
-
-fn parse_debugger_value(
-    value: &DebuggerValue,
-    preview: Option<&ObjectPreview>,
-) -> devtools_traits::DebuggerValue {
-    use devtools_traits::DebuggerValue::*;
-    match &*value.valueType.str() {
-        "undefined" => VoidValue,
-        "null" => NullValue,
-        "boolean" => BooleanValue(value.booleanValue.unwrap_or(false)),
-        "Infinity" => NumberValue(f64::INFINITY),
-        "-Infinity" => NumberValue(f64::NEG_INFINITY),
-        "NaN" => NumberValue(f64::NAN),
-        "-0" => NumberValue(-0.0),
-        "number" => {
-            let num = value.numberValue.map(|f| *f).unwrap_or(0.0);
-            NumberValue(num)
-        },
-        "string" => StringValue(
-            value
-                .stringValue
-                .as_ref()
-                .map(|s| s.to_string())
-                .unwrap_or_default(),
-        ),
-        "object" => {
-            let class = value
-                .objectClass
-                .as_ref()
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "Object".to_string());
-
-            ObjectValue {
-                uuid: uuid::Uuid::new_v4().to_string(),
-                class,
-                preview: preview.map(parse_object_preview),
-            }
-        },
-        _ => unreachable!(),
     }
 }

@@ -10,10 +10,33 @@
   <script src="/wai-aria/scripts/aria-utils.js"></script>
 </head>
 <body>
+<p>Tests contextual computedrole mappings for the <code>LI</code> element defined in <a href="https://w3c.github.io/html-aam/">HTML-AAM</a>,
+where the returned computed role is expected to change based on whether the <code>LI</code> element is an accessibility child of a list element, or not.<p>
+
 
 <li data-testname="el-li-orphaned" class="ex-generic">x</li><!-- todo: should orphaned roles be tested in a new ./roles-orphaned.html file? -->
 
+<ul role="none">
+  <li data-testname="el-li-orphaned-within-list-role-none" class="ex-generic">x</li>
+</ul>
+
+<ul>
+  <div>
+    <li data-testname="el-li-within-generic-within-list-parent" class="ex" data-expectedrole="listitem">x</li>
+  </div>
+</ul>
+
+
+<ul aria-owns="t"></ul>
+<li data-testname="el-li-orphaned-in-dom-but-owned-by-list-element" id=t class="ex" data-expectedrole="listitem">x</li>
+
+
+<div role="list">
+  <li data-testname="el-li-within-explicit-role-list-parent" class="ex" data-expectedrole="listitem">x</li>
+</div>
+
 <script>
+AriaUtils.verifyRolesBySelector(".ex");
 AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 </script>
 

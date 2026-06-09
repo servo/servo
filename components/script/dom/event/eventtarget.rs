@@ -72,7 +72,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
@@ -473,10 +473,6 @@ impl EventTarget {
             .map_or(EventListeners(vec![]), |listeners| listeners.clone())
     }
 
-    pub(crate) fn dispatch_event(&self, cx: &mut JSContext, event: &Event) -> bool {
-        event.dispatch(cx, self, false)
-    }
-
     pub(crate) fn remove_all_listeners(&self) {
         let mut handlers = self.handlers.borrow_mut();
         for (ty, entries) in handlers.iter() {
@@ -714,8 +710,8 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            let ar = enter_realm(self);
-            report_pending_exception(cx.into(), InRealm::Entered(&ar), CanGc::from_cx(cx));
+            let mut realm = enter_auto_realm(cx, self);
+            report_pending_exception(&mut realm.current_realm());
             return None;
         }
 
@@ -874,7 +870,7 @@ impl EventTarget {
             CanGc::from_cx(cx),
         );
         event.set_composed(composed.into());
-        event.fire(self, CanGc::from_cx(cx))
+        event.fire(cx, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
@@ -1010,7 +1006,7 @@ impl EventTarget {
         }
 
         // The get the parent algorithm for an IDBDatabase returns null.
-        if self.downcast::<IDBDatabase>().is_some() {
+        if self.is::<IDBDatabase>() {
             return None;
         }
 
@@ -1111,7 +1107,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
             return Err(Error::InvalidState(None));
         }
         event.set_trusted(false);
-        Ok(self.dispatch_event(cx, event))
+        Ok(event.dispatch(cx, self, false))
     }
 }
 

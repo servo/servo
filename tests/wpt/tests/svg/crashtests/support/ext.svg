@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <pattern id="p" patternUnits="userSpaceOnUse" width="100" height="100">
+    <filter id="fp">
+      <!-- An SVG with a nested (raster) image load. -->
+      <feImage href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiI+PGltYWdlIHg9IjAiIHk9IjAiIGhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBUUFBQUMxSEF3Q0FBQUFDMGxFUVZSNDJtUDgveDhBQXVzQjlRRHE2UUFBQUFCSlJVNUVya0pnZ2c9PSIvPjwvc3ZnPg=="/>
+    </filter>
+    <rect x="0" y="0" width="100" height="100" fill="orange" filter="url(#fp)"/>
+  </pattern>
+</svg>

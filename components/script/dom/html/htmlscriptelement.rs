@@ -50,7 +50,7 @@ use crate::dom::element::{
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -66,7 +66,7 @@ use crate::script_module::{
     ImportMap, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
@@ -348,11 +348,10 @@ pub(crate) type ScriptResult = Result<Script, ()>;
 
 // TODO merge classic and module scripts
 #[derive(JSTraceable, MallocSizeOf)]
-#[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
     Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
-    ImportMap(ScriptOrigin),
+    ImportMap(Fallible<ImportMap>),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -767,18 +766,16 @@ impl HTMLScriptElement {
 
         // Step 20. If el has an event attribute and a for attribute, and el's type is "classic", then:
         if script_type == ScriptType::Classic {
-            let for_attribute = element.get_attribute(&local_name!("for"));
-            let event_attribute = element.get_attribute(&local_name!("event"));
-            if let (Some(ref for_attribute), Some(ref event_attribute)) =
-                (for_attribute, event_attribute)
-            {
-                let for_value = for_attribute.value().to_ascii_lowercase();
+            let for_attribute = element.get_attribute_string_value(&local_name!("for"));
+            let event_attribute = element.get_attribute_string_value(&local_name!("event"));
+            if let (Some(for_attribute), Some(event_attribute)) = (for_attribute, event_attribute) {
+                let for_value = for_attribute.to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
                     return;
                 }
 
-                let event_value = event_attribute.value().to_ascii_lowercase();
+                let event_value = event_attribute.to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
                     return;
@@ -791,8 +788,8 @@ impl HTMLScriptElement {
         // If el does not have a charset attribute, or if getting an encoding failed,
         // then let encoding be el's node document's the encoding.
         let encoding = element
-            .get_attribute(&local_name!("charset"))
-            .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
+            .get_attribute_string_value(&local_name!("charset"))
+            .and_then(|charset| Encoding::for_label(charset.as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
         // Step 22. CORS setting.
@@ -814,12 +811,9 @@ impl HTMLScriptElement {
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.
-        let im_attribute = element.get_attribute(&local_name!("integrity"));
-        let integrity_val = im_attribute.as_ref().map(|a| a.value());
-        let integrity_metadata = match integrity_val {
-            Some(ref value) => &***value,
-            None => "",
-        };
+        let integrity_val = element.get_attribute_string_value(&local_name!("integrity"));
+        let integrity_val_is_none = integrity_val.is_none();
+        let integrity_metadata = integrity_val.unwrap_or_default();
 
         // Step 26. Let referrer policy be the current state of el's referrerpolicy content attribute.
         let referrer_policy = referrer_policy_for_element(element);
@@ -837,7 +831,7 @@ impl HTMLScriptElement {
         // Step 29. Fetch options.
         let mut options = ScriptFetchOptions {
             cryptographic_nonce,
-            integrity_metadata: integrity_metadata.to_owned(),
+            integrity_metadata,
             parser_metadata,
             referrer_policy,
             credentials_mode: module_credentials_mode,
@@ -851,9 +845,9 @@ impl HTMLScriptElement {
         let kind = self.get_script_kind(script_type);
         let delayed_document = self.get_script_active_document(kind);
 
-        if let Some(src) = element.get_attribute(&local_name!("src")) {
-            // Step 31. If el has a src content attribute, then:
-
+        // Step 31. If el has a src content attribute, then:
+        // Step 31.2. Let src be the value of el's src attribute.
+        if let Some(src) = element.get_attribute_string_value(&local_name!("src")) {
             // Step 31.1. If el's type is "importmap".
             if script_type == ScriptType::ImportMap {
                 // then queue an element task on the DOM manipulation task source
@@ -861,9 +855,6 @@ impl HTMLScriptElement {
                 self.queue_error_event();
                 return;
             }
-
-            // Step 31.2. Let src be the value of el's src attribute.
-            let src = src.value();
 
             // Step 31.3. If src is the empty string.
             if src.is_empty() {
@@ -878,7 +869,7 @@ impl HTMLScriptElement {
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
-                    warn!("error parsing URL for script {}", &**src);
+                    warn!("error parsing URL for script {}", src);
                     self.queue_error_event();
                     return;
                 },
@@ -907,7 +898,7 @@ impl HTMLScriptElement {
                 ScriptType::Module => {
                     // If el does not have an integrity attribute, then set options's integrity metadata to
                     // the result of resolving a module integrity metadata with url and settings object.
-                    if integrity_val.is_none() {
+                    if integrity_val_is_none {
                         options.integrity_metadata = global
                             .import_map()
                             .resolve_a_module_integrity_metadata(&url);
@@ -1017,15 +1008,8 @@ impl HTMLScriptElement {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
                     let import_map_result =
-                        parse_an_import_map_string(global, Rc::clone(&text_rc), base_url.clone());
-                    let script = Script::ImportMap(ScriptOrigin::internal(
-                        text_rc,
-                        base_url,
-                        options,
-                        script_type,
-                        self.global().unminified_js_dir(),
-                        import_map_result,
-                    ));
+                        parse_an_import_map_string(cx, global, Rc::clone(&text_rc), base_url);
+                    let script = Script::ImportMap(import_map_result);
 
                     // Step 34.3
                     self.execute(cx, Ok(script));
@@ -1064,7 +1048,7 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_event(cx, atom!("error"));
+                self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 return;
             },
 
@@ -1114,9 +1098,9 @@ impl HTMLScriptElement {
                 self.owner_global()
                     .run_a_module_script(cx, module_tree, false);
             },
-            Script::ImportMap(script) => {
+            Script::ImportMap(import_map) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                register_import_map(cx, &self.owner_global(), script.import_map);
+                register_import_map(cx, &self.owner_global(), import_map);
             },
         }
 
@@ -1128,7 +1112,7 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_event(cx, atom!("load"));
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
         }
     }
 
@@ -1143,18 +1127,15 @@ impl HTMLScriptElement {
     pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
-        let type_attr = element.get_attribute(&local_name!("type"));
-        let language_attr = element.get_attribute(&local_name!("language"));
+        let type_attr = element.get_attribute_string_value(&local_name!("type"));
+        let language_attr = element.get_attribute_string_value(&local_name!("language"));
 
-        match (
-            type_attr.as_ref().map(|t| t.value()),
-            language_attr.as_ref().map(|l| l.value()),
-        ) {
-            (Some(ref ty), _) if ty.is_empty() => {
+        match (type_attr, language_attr) {
+            (Some(ty), _) if ty.is_empty() => {
                 debug!("script type empty, inferring js");
                 Some(ScriptType::Classic)
             },
-            (None, Some(ref lang)) if lang.is_empty() => {
+            (None, Some(lang)) if lang.is_empty() => {
                 debug!("script type empty, inferring js");
                 Some(ScriptType::Classic)
             },
@@ -1162,9 +1143,9 @@ impl HTMLScriptElement {
                 debug!("script type empty, inferring js");
                 Some(ScriptType::Classic)
             },
-            (None, Some(ref lang)) => {
-                debug!("script language={}", &***lang);
-                let language = format!("text/{}", &***lang);
+            (None, Some(lang)) => {
+                debug!("script language={}", lang);
+                let language = format!("text/{}", lang);
 
                 if SCRIPT_JS_MIMES.contains(&language.to_ascii_lowercase().as_str()) {
                     Some(ScriptType::Classic)
@@ -1172,8 +1153,8 @@ impl HTMLScriptElement {
                     None
                 }
             },
-            (Some(ref ty), _) => {
-                debug!("script type={}", &***ty);
+            (Some(ty), _) => {
+                debug!("script type={}", ty);
 
                 if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) == "module" {
                     return Some(ScriptType::Module);
@@ -1208,18 +1189,6 @@ impl HTMLScriptElement {
 
     pub(crate) fn get_non_blocking(&self) -> bool {
         self.non_blocking.get()
-    }
-
-    fn dispatch_event(&self, cx: &mut JSContext, type_: Atom) -> bool {
-        let window = self.owner_window();
-        let event = Event::new(
-            window.upcast(),
-            type_,
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
-        );
-        event.fire_with_cx(cx, self.upcast())
     }
 
     fn text(&self) -> DOMString {

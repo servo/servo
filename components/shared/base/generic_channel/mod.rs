@@ -29,6 +29,8 @@ pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};
 pub use shared_memory::GenericSharedMemory;
 mod generic_channelset;
 pub use generic_channelset::{GenericReceiverSet, GenericSelectionResult};
+mod buffered;
+pub use buffered::GenericBufferedSender;
 
 /// Cache for being in Ipc Mode
 static USE_IPC: OnceLock<bool> = OnceLock::new();

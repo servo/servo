@@ -4,6 +4,7 @@
 
 pub(crate) use self::node::*;
 pub(crate) mod focus;
+pub(crate) mod iterators;
 #[allow(clippy::module_inception, reason = "The interface name is node")]
 pub(crate) mod node;
 pub(crate) mod nodeiterator;

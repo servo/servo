@@ -493,7 +493,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         try:
             while not self.close_connection:
                 data = self.request.recv(window_size)
-                if data == '':
+                if data == b'':
                     self.logger.debug('(%s) Socket Closed' % self.uid)
                     self.close_connection = True
                     continue
@@ -524,6 +524,10 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
         except OSError as e:
             self.logger.error(f'({self.uid}) Closing Connection - \n{str(e)}')
+            if not self.close_connection:
+                self.close_connection = True
+        except ProtocolError as e:
+            self.logger.debug(f'H2 protocol error - {str(e)}')
             if not self.close_connection:
                 self.close_connection = True
         except Exception as e:
@@ -607,9 +611,9 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             # wire. Flush the headers here.
             try:
                 h2response.write_status_headers()
-            except StreamClosedError:
+            except (StreamClosedError, ProtocolError):
                 # work around https://github.com/web-platform-tests/wpt/issues/27786
-                # The stream was already closed.
+                # The stream or connection was already closed.
                 return
 
             request_wrapper._dispatcher = dispatcher
@@ -737,9 +741,12 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             if getattr(frame, "stream_ended", False):
                 try:
                     self.finish_handling(request, response, req_handler)
-                except StreamClosedError:
-                    self.logger.debug('(%s - %s) Unable to write response; stream closed' %
-                                    (self.uid, stream_id))
+                except (StreamClosedError, ProtocolError):
+                    # The stream or connection was closed before we could
+                    # finish writing the response.
+                    self.logger.debug(
+                        '(%s - %s) Unable to write response; stream or '
+                        'connection closed' % (self.uid, stream_id))
                 break
 
         cleanup()

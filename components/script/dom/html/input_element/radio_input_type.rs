@@ -8,7 +8,6 @@ use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInpu
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
@@ -22,7 +21,8 @@ use crate::dom::htmlinputelement::input_type::InputType;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::input_element::{HTMLInputElement, InputActivationState};
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 
@@ -176,10 +176,10 @@ impl SpecificInputType for RadioInputType {
 
     fn unbind_from_tree(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
         form_owner: Option<DomRoot<HTMLFormElement>>,
         context: &UnbindContext,
-        can_gc: CanGc,
     ) {
         let root = context.parent.GetRootNode(&GetRootNodeOptions::empty());
         for r in radio_group_iter(
@@ -188,8 +188,8 @@ impl SpecificInputType for RadioInputType {
             form_owner.as_deref(),
             &root,
         ) {
-            r.validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            r.validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
 }
@@ -210,8 +210,8 @@ pub(crate) fn perform_radio_group_validation(
         .GetRootNode(&GetRootNodeOptions::empty());
     let form = elem.form_owner();
     for r in radio_group_iter(elem, group, form.as_deref(), &root) {
-        r.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        r.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 }
 

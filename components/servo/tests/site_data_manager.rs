@@ -610,7 +610,7 @@ fn test_clear_cookies() {
         Ok(JSValue::String("foo1=bar1; foo2=bar2; foo3=bar3".into()))
     );
 
-    servo_test.servo().site_data_manager().clear_cookies();
+    servo_test.servo().site_data_manager().clear_cookies(None);
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.cookie");
     assert_eq!(result, Ok(JSValue::String("".into())));
@@ -684,7 +684,7 @@ fn test_set_cookie() {
     servo_test
         .servo()
         .site_data_manager()
-        .set_cookie_for_url(page_url.clone(), cookie);
+        .set_cookie_for_url(page_url.clone(), cookie, None);
 
     // Verify it is returned by get_cookies_for_url.
     // Don't need sync call because set and get messages are processed in order.

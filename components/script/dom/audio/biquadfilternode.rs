@@ -6,8 +6,9 @@ use std::cell::Cell;
 use std::f32;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::biquad_filter_node::{
     BiquadFilterNodeMessage, BiquadFilterNodeOptions, FilterType,
 };
@@ -28,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct BiquadFilterNode {
@@ -43,10 +43,10 @@ pub(crate) struct BiquadFilterNode {
 impl BiquadFilterNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
-        can_gc: CanGc,
     ) -> Fallible<BiquadFilterNode> {
         let node_options =
             options
@@ -55,6 +55,7 @@ impl BiquadFilterNode {
         let filter = Cell::new(options.type_);
         let options = options.convert();
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::BiquadFilterNode(options),
             context,
             node_options,
@@ -62,6 +63,7 @@ impl BiquadFilterNode {
             1, // outputs
         )?;
         let gain = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -71,9 +73,9 @@ impl BiquadFilterNode {
             options.gain, // default value
             f32::MIN,     // min value
             f32::MAX,     // max value
-            can_gc,
         );
         let q = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -83,9 +85,9 @@ impl BiquadFilterNode {
             options.q, // default value
             f32::MIN,  // min value
             f32::MAX,  // max value
-            can_gc,
         );
         let frequency = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -95,9 +97,9 @@ impl BiquadFilterNode {
             options.frequency, // default value
             f32::MIN,          // min value
             f32::MAX,          // max value
-            can_gc,
         );
         let detune = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -107,7 +109,6 @@ impl BiquadFilterNode {
             options.detune, // default value
             f32::MIN,       // min value
             f32::MAX,       // max value
-            can_gc,
         );
         Ok(BiquadFilterNode {
             node,
@@ -120,28 +121,28 @@ impl BiquadFilterNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        Self::new_with_proto(window, None, context, options, can_gc)
+        Self::new_with_proto(cx, window, None, context, options)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        let node = BiquadFilterNode::new_inherited(window, context, options, can_gc)?;
-        Ok(reflect_dom_object_with_proto(
+        let node = BiquadFilterNode::new_inherited(cx, window, context, options)?;
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -149,13 +150,13 @@ impl BiquadFilterNode {
 impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-biquadfilternode-context-options>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new_with_proto(window, proto, context, options, can_gc)
+        BiquadFilterNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain>

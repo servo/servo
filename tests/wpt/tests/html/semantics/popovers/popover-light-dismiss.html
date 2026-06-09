@@ -475,10 +475,10 @@ promise_test(async () => {
   p17.addEventListener('beforetoggle', logEvents);
   p18.addEventListener('beforetoggle', (e) => {
     logEvents(e);
-    p17.showPopover();
+    assert_throws_dom("InvalidStateError", () => p17.showPopover());
   });
   p16.hidePopover();
-  assert_array_equals(events,['hide p18','show p17','hide p16'],'There should not be a hide event for p17');
+  assert_array_equals(events,['hide p18','hide p16'],'There should not be a hide event for p17');
   assert_false(p16.matches(':popover-open'));
   assert_false(p17.matches(':popover-open'));
   assert_false(p18.matches(':popover-open'));
@@ -496,14 +496,13 @@ promise_test(async () => {
   const logEvents = (e) => {events.push(`${e.newState==='open' ? 'show' : 'hide'} ${e.target.id}`)};
   p19.addEventListener('beforetoggle', (e) => {
     logEvents(e);
-    p20.showPopover();
+    assert_throws_dom("InvalidStateError", () => p20.showPopover());
   });
   p20.addEventListener('beforetoggle', logEvents);
   p19.hidePopover();
-  assert_array_equals(events,['hide p19','show p20'],'There should not be a second hide event for 19');
+  assert_array_equals(events,['hide p19'],'There should not be a second hide event for 19');
   assert_false(p19.matches(':popover-open'));
-  assert_true(p20.matches(':popover-open'));
-  p20.hidePopover(); // Cleanup
+  assert_false(p20.matches(':popover-open'));
 },'Show an unrelated popover during "hide popover"');
 </script>
 
@@ -521,12 +520,12 @@ promise_test(async () => {
   const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
   p22.addEventListener('beforetoggle', (e) => {
     logEvents(e);
-    p24.showPopover()
+    assert_throws_dom("InvalidStateError", () => p24.showPopover());
   });
   p23.addEventListener('beforetoggle', logEvents);
   p24.addEventListener('beforetoggle', logEvents);
   p23.showPopover();
-  assert_array_equals(events, ['show p23', 'hide p22', 'show p24'], 'hiding p24 does not fire event');
+  assert_array_equals(events, ['show p23', 'hide p22'], 'hiding p24 does not fire event');
   assert_false(p22.matches(':popover-open'));
   assert_true(p23.matches(':popover-open'));
   assert_false(p24.matches(':popover-open'));
@@ -547,7 +546,7 @@ promise_test(async () => {
   const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
   p26.addEventListener('beforetoggle', (e) => {
     logEvents(e);
-    p28.showPopover();
+    assert_throws_dom("InvalidStateError", () => p28.showPopover());
   });
   p27.addEventListener('beforetoggle', logEvents);
   p28.addEventListener('beforetoggle', (e) => {
@@ -555,7 +554,8 @@ promise_test(async () => {
     p27.showPopover();
   });
   p27.showPopover();
-  assert_array_equals(events, ['show p27', 'hide p26', 'show p28', 'show p27'], 'Nested showPopover should not fire event for its HideAllPopoversUntil');
+  assert_array_equals(events, ['show p27', 'hide p26'],
+      'Nested showPopover should not fire event for its HideAllPopoversUntil');
   assert_false(p26.matches(':popover-open'));
   assert_true(p27.matches(':popover-open'));
   assert_false(p28.matches(':popover-open'));
@@ -617,3 +617,149 @@ promise_test(async () => {
   assert_true(p30.matches(':popover-open'),'showing after pointerup');
 },`Pointer down inside invoker and up outside that invoker shouldn't dismiss popover`);
 </script>
+
+<div id=p31 popover=auto>p31
+  <button id=buttonp32 popovertarget=p32>Open p32</button>
+  <div id=p33 popover=auto>p33</div>
+</div>
+<div id=p32 popover=auto>p32
+  <button id=buttonp33 popovertarget=p33>Open p33</button>
+</div>
+<script>
+test(() => {
+  assert_false(p31.matches(':popover-open'));
+  assert_false(p32.matches(':popover-open'));
+  assert_false(p33.matches(':popover-open'));
+
+  p31.showPopover();
+  buttonp32.click();
+  buttonp33.click();
+
+  assert_true(p31.matches(':popover-open'), 'p31 should be open');
+  assert_true(p32.matches(':popover-open'), 'p32 should be open');
+  assert_true(p33.matches(':popover-open'), 'p33 should be open');
+
+  p31.hidePopover();
+  assert_false(p31.matches(':popover-open'), 'p31 should be closed');
+  assert_false(p32.matches(':popover-open'), 'p32 should be closed');
+  assert_false(p33.matches(':popover-open'), 'p33 should be closed');
+}, 'Invoker and DOM ancestor relationship - "latest" wins');
+</script>
+
+<div id=p34 popover=auto>p34
+  <div id=p35 popover=auto>p35</div>
+  <div id=p36 popover=hint>p36</div>
+</div>
+<div id=p37 popover=auto>p37</div>
+<script>
+promise_test(async () => {
+  assert_false(p34.matches(':popover-open'));
+  assert_false(p35.matches(':popover-open'));
+  assert_false(p36.matches(':popover-open'));
+
+  p34.showPopover();
+  p35.showPopover();
+  p36.showPopover();
+
+  assert_true(p34.matches(':popover-open'), 'p34 should be open');
+  assert_true(p35.matches(':popover-open'), 'p35 should be open');
+  assert_true(p36.matches(':popover-open'), 'p36 should be open');
+
+  await clickOn(p36);
+  // Note: this should *not* reset "hint stack parent".
+  assert_true(p34.matches(':popover-open'), 'p34 should remain open');
+  assert_false(p35.matches(':popover-open'), 'p35 should be light dismissed (clicking on the hint dismisses non-ancestor autos)');
+  assert_true(p36.matches(':popover-open'), 'p36 should remain open - clicking the hint shouldn\'t close it');
+
+  p34.hidePopover();
+  assert_false(p34.matches(':popover-open'), 'p34 should be closed');
+  assert_false(p36.matches(':popover-open'), 'p36 should be closed - p34 is still its hint stack parent');
+}, 'Test "hint stack parent" behavior');
+
+promise_test(async () => {
+  assert_false(p34.matches(':popover-open'));
+  assert_false(p35.matches(':popover-open'));
+  assert_false(p36.matches(':popover-open'));
+  assert_false(p37.matches(':popover-open'));
+
+  const invoker37 = document.createElement('button');
+  invoker37.popoverTargetElement = p37;
+  p34.appendChild(invoker37);
+
+  p34.showPopover();
+  p35.showPopover();
+  p36.showPopover();
+
+  assert_true(p34.matches(':popover-open'), 'p34 should be open');
+  assert_true(p35.matches(':popover-open'), 'p35 should be open');
+  assert_true(p36.matches(':popover-open'), 'p36 should be open');
+
+  p37.showPopover({source: invoker37});
+  assert_true(p37.matches(':popover-open'), 'p37 open');
+  assert_true(p34.matches(':popover-open'), 'p34 stays open');
+  assert_false(p35.matches(':popover-open'), 'p35 closed');
+  assert_false(p36.matches(':popover-open'), 'p36 closed (hints are closed by auto opening)');
+
+  p34.hidePopover();
+  assert_false(p37.matches(':popover-open'), 'p37 closed');
+}, 'Opening a new auto popover should hide all hint popovers, even in the nested case');
+</script>
+
+<div id=p38 popover=auto>p38
+  <div id=p39 popover=auto>p39
+    <div id=p40 popover=hint>p40</div>
+  </div>
+</div>
+<script>
+promise_test(async () => {
+  assert_false(p38.matches(':popover-open'));
+  assert_false(p39.matches(':popover-open'));
+  assert_false(p40.matches(':popover-open'));
+
+  p38.showPopover();
+  p39.showPopover();
+  p40.showPopover();
+
+  assert_true(p38.matches(':popover-open'), 'p38 should be open');
+  assert_true(p39.matches(':popover-open'), 'p39 should be open');
+  assert_true(p40.matches(':popover-open'), 'p40 should be open');
+
+  await clickOn(p40);
+  assert_true(p38.matches(':popover-open'), 'p38 should remain open');
+  assert_true(p39.matches(':popover-open'), 'p39 should remain open');
+  assert_true(p40.matches(':popover-open'), 'p40 should remain open');
+
+  p38.hidePopover();
+  assert_false(p38.matches(':popover-open'), 'p38 should be closed');
+  assert_false(p39.matches(':popover-open'), 'p39 should be closed');
+  assert_false(p40.matches(':popover-open'), 'p40 should be closed - closing grandparent auto popover closes child hint popover');
+}, 'Test "hint stack parent" behavior with deep nested auto popovers - closing grandparent closes hint');
+
+promise_test(async () => {
+  assert_false(p38.matches(':popover-open'));
+  assert_false(p39.matches(':popover-open'));
+  assert_false(p40.matches(':popover-open'));
+
+  p38.showPopover();
+  p39.showPopover();
+  p40.showPopover();
+
+  assert_true(p38.matches(':popover-open'), 'p38 should be open');
+  assert_true(p39.matches(':popover-open'), 'p39 should be open');
+  assert_true(p40.matches(':popover-open'), 'p40 should be open');
+
+  await clickOn(p40);
+  assert_true(p38.matches(':popover-open'), 'p38 should remain open');
+  assert_true(p39.matches(':popover-open'), 'p39 should remain open');
+  assert_true(p40.matches(':popover-open'), 'p40 should remain open');
+
+  p39.hidePopover();
+  assert_false(p39.matches(':popover-open'), 'p39 should be closed');
+  assert_false(p40.matches(':popover-open'), 'p40 should be closed - p39 is its hint stack parent');
+  assert_true(p38.matches(':popover-open'), 'p38 should remain open');
+
+  p38.hidePopover();
+  assert_false(p38.matches(':popover-open'), 'p38 should be closed');
+}, 'Test "hint stack parent" behavior with deep nested auto popovers - closing parent closes hint');
+</script>
+

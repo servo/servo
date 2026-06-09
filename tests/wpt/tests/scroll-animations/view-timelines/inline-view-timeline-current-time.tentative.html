@@ -95,7 +95,7 @@
                           "Timeline's currentTime at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's currentTime at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
+    assert_equals(getComputedStyle(target).opacity, '1',
                   'Effect is in the after phase at effect end time');
 
     // Advance to the scroll limit.
@@ -142,7 +142,6 @@
     assert_equals(getComputedStyle(target).opacity, "0.5",
                   'Effect enters active phase at container start boundary');
 
-
     // Advance to midpoint
     await runAndWaitForFrameUpdate(() => {
       container.scrollLeft = 100;
@@ -162,7 +161,7 @@
                           "Timeline's current time at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's current time at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
+    assert_equals(getComputedStyle(target).opacity, '1',
                   'Effect at the end of the active phase');
 
     // Advance to scroll limit.
@@ -298,7 +297,7 @@
                           "Timeline's currentTime at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's currentTime at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
+    assert_equals(getComputedStyle(target).opacity, '1',
                   'Effect is in the after phase at effect end time');
 
     // Advance to the scroll limit.

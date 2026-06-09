@@ -176,14 +176,16 @@ impl Selection {
         };
 
         // Step 2. Canonicalize whitespace at the active range's start.
-        active_range
-            .start_container()
-            .canonicalize_whitespace(active_range.start_offset(), true);
+        active_range.start_container().canonicalize_whitespace(
+            cx,
+            active_range.start_offset(),
+            true,
+        );
 
         // Step 3. Canonicalize whitespace at the active range's end.
         active_range
             .end_container()
-            .canonicalize_whitespace(active_range.end_offset(), true);
+            .canonicalize_whitespace(cx, active_range.end_offset(), true);
 
         // Step 4. Let (start node, start offset) be the last equivalent point for the active range's start.
         let (mut start_node, mut start_offset) =
@@ -318,13 +320,13 @@ impl Selection {
             // Step 21.1. Call deleteData(start offset, end offset − start offset) on start node.
             if start_text
                 .upcast::<CharacterData>()
-                .DeleteData(start_offset, end_offset - start_offset)
+                .DeleteData(cx, start_offset, end_offset - start_offset)
                 .is_err()
             {
                 unreachable!("Must always be able to delete");
             }
             // Step 21.2. Canonicalize whitespace at (start node, start offset), with fix collapsed space false.
-            start_node.canonicalize_whitespace(start_offset, false);
+            start_node.canonicalize_whitespace(cx, start_offset, false);
             // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 self.collapse_current_range(
@@ -351,7 +353,7 @@ impl Selection {
             let Some(start_text) = start_node.downcast::<Text>() &&
             start_text
                 .upcast::<CharacterData>()
-                .DeleteData(start_offset, start_node.len() - start_offset)
+                .DeleteData(cx, start_offset, start_node.len() - start_offset)
                 .is_err()
         {
             unreachable!("Must always be able to delete");
@@ -434,21 +436,23 @@ impl Selection {
             let Some(end_text) = end_node.downcast::<Text>() &&
             end_text
                 .upcast::<CharacterData>()
-                .DeleteData(0, end_offset)
+                .DeleteData(cx, 0, end_offset)
                 .is_err()
         {
             unreachable!("Must always be able to delete");
         }
 
         // Step 27. Canonicalize whitespace at the active range's start, with fix collapsed space false.
-        active_range
-            .start_container()
-            .canonicalize_whitespace(active_range.start_offset(), false);
+        active_range.start_container().canonicalize_whitespace(
+            cx,
+            active_range.start_offset(),
+            false,
+        );
 
         // Step 28. Canonicalize whitespace at the active range's end, with fix collapsed space false.
         active_range
             .end_container()
-            .canonicalize_whitespace(active_range.end_offset(), false);
+            .canonicalize_whitespace(cx, active_range.end_offset(), false);
 
         // Step 29.
         //

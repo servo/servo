@@ -185,7 +185,7 @@ fn abort_fetch_call(
     cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
+    promise.reject_with_cx(cx, abort_reason);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
     if let Some(body) = request.body() &&
         body.is_readable()
@@ -228,7 +228,7 @@ pub(crate) fn Fetch(
     let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
             response.error_stream(cx, e.clone());
-            promise.reject_error(e, CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, e);
             return promise;
         },
         Ok(r) => r,
@@ -565,10 +565,8 @@ impl FetchResponseListener for FetchContext {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
             Err(error) => {
-                promise.reject_error(
-                    Error::Type(cformat!("Network error: {:?}", error)),
-                    CanGc::from_cx(cx),
-                );
+                promise
+                    .reject_error_with_cx(cx, Error::Type(cformat!("Network error: {:?}", error)));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::from_cx(cx));
@@ -620,7 +618,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native(&self.response_object.root(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 

@@ -43,11 +43,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointFlags, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult, FragmentType, Layout,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -1151,7 +1151,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Alert {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
+            message: String::from(message),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
@@ -1184,7 +1184,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Confirm {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
+            message: String::from(message),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
@@ -1235,8 +1235,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let dialog = SimpleDialogRequest::Prompt {
             id: self.Document().embedder_controls().next_control_id(),
-            message: message.to_string(),
-            default: default.to_string(),
+            message: String::from(message),
+            default: String::from(default),
             response_sender: sender,
         };
         self.send_to_embedder(EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog));
@@ -1537,9 +1537,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
-        self.as_global_scope()
-            .report_an_exception(cx, error, can_gc);
+    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+        self.as_global_scope().report_an_exception(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
@@ -1834,7 +1833,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn WebdriverException(&self, cx: &mut JSContext, value: HandleValue) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let error_info = ErrorInfo::from_value(value, cx.into(), CanGc::from_cx(cx));
+            let error_info = ErrorInfo::from_value(cx, value);
             let _ = webdriver_script_sender.send(Err(
                 JavaScriptEvaluationError::EvaluationFailure(Some(
                     javascript_error_info_from_error_info(cx, &error_info, value),
@@ -1881,6 +1880,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle>
     fn GetComputedStyle(
         &self,
+        cx: &mut JSContext,
         element: &Element,
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
@@ -1933,6 +1933,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         //
         // Step 6:  Return a live CSSStyleProperties object with the following properties:
         CSSStyleDeclaration::new(
+            cx,
             self,
             if is_null {
                 CSSStyleOwner::Null
@@ -1941,7 +1942,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             pseudo,
             CSSModificationAccess::Readonly,
-            CanGc::deprecated_note(),
         )
     }
 
@@ -2111,8 +2111,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.client_window().min.x
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screenleft>
+    fn ScreenLeft(&self) -> i32 {
+        self.client_window().min.x
+    }
+
     /// <https://drafts.csswg.org/cssom-view/#dom-window-screeny>
     fn ScreenY(&self) -> i32 {
+        self.client_window().min.y
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screentop>
+    fn ScreenTop(&self) -> i32 {
         self.client_window().min.y
     }
 
@@ -2171,9 +2181,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     #[cfg(feature = "bluetooth")]
-    fn TestRunner(&self) -> DomRoot<TestRunner> {
+    fn TestRunner(&self, cx: &mut js::context::JSContext) -> DomRoot<TestRunner> {
         self.test_runner
-            .or_init(|| TestRunner::new(self.upcast(), CanGc::deprecated_note()))
+            .or_init(|| TestRunner::new(cx, self.upcast()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {
@@ -2249,12 +2259,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let name = Atom::from(name);
 
         // Step 1.
-        let elements_with_name = document.get_elements_with_name(&name);
+        let elements_with_name = document.get_elements_with_name(cx, &name);
         let name_iter = elements_with_name
             .iter()
             .map(|element| &**element)
             .filter(|elem| is_named_element_with_name_attribute(elem));
-        let elements_with_id = document.get_elements_with_id(&name);
+
+        let elements_with_id = document.get_elements_with_id(cx, &name);
         let id_iter = elements_with_id
             .iter()
             .map(|element| &**element)
@@ -2315,52 +2326,51 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
-
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
         let document = self.Document();
-        let name_map = document.name_map();
-        for (name, elements) in &name_map.0 {
-            if name.is_empty() {
-                continue;
-            }
-            let mut name_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_name_attribute(elem));
-            if let Some(first) = name_iter.next() {
-                names_with_first_named_element_map.insert(name, first);
-            }
-        }
-        let id_map = document.id_map();
-        for (id, elements) in &id_map.0 {
-            if id.is_empty() {
-                continue;
-            }
-            let mut id_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_id_attribute(elem));
-            if let Some(first) = id_iter.next() {
-                match names_with_first_named_element_map.entry(id) {
-                    Entry::Vacant(entry) => drop(entry.insert(first)),
-                    Entry::Occupied(mut entry) => {
-                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                            *entry.get_mut() = first;
-                        }
-                    },
+        let mut names_with_first_named_element_map = HashMap::new();
+        document
+            .name_map()
+            .for_each(cx.no_gc(), document.upcast(), |name, elements| {
+                if name.is_empty() {
+                    return;
                 }
-            }
-        }
+                let mut name_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_name_attribute(elem));
+                if let Some(first) = name_iter.next() {
+                    names_with_first_named_element_map.insert(name.clone(), first.as_rooted());
+                }
+            });
 
-        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
-            names_with_first_named_element_map
-                .iter()
-                .map(|(k, v)| (*k, *v))
-                .collect();
+        document
+            .id_map()
+            .for_each(cx.no_gc(), document.upcast(), |id, elements| {
+                if id.is_empty() {
+                    return;
+                }
+                let mut id_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_id_attribute(elem));
+                if let Some(first) = id_iter.next() {
+                    match names_with_first_named_element_map.entry(id.clone()) {
+                        Entry::Vacant(entry) => drop(entry.insert(first.as_rooted())),
+                        Entry::Occupied(mut entry) => {
+                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                                *entry.get_mut() = first.as_rooted();
+                            }
+                        },
+                    }
+                }
+            });
+
+        let mut names_with_first_named_element_vec: Vec<_> =
+            names_with_first_named_element_map.into_iter().collect();
         names_with_first_named_element_vec.sort_unstable_by(|a, b| {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(b.0)
+                a.0.cmp(&b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 cmp::Ordering::Less
             } else {
@@ -2370,7 +2380,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         names_with_first_named_element_vec
             .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
+            .map(|(k, _v)| DOMString::from(&**k))
             .collect()
     }
 
@@ -2400,11 +2410,11 @@ impl Window {
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     pub(crate) fn create_named_properties_object(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
-        window_named_properties::create(cx, proto, object)
+        window_named_properties::create(cx.into(), proto, object)
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
@@ -2487,6 +2497,10 @@ impl Window {
         self.as_global_scope()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Callbacks may contain `Trusted` references, which are rooted and would
+        // prevent the window from being GCed.
+        self.pending_image_callbacks.borrow_mut().clear();
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
@@ -2669,7 +2683,14 @@ impl Window {
             None
         };
 
+        // If there are any duplicate ids, their targets may need to be updated in the id map before
+        // layout runs, so that the map can gather their elements in DOM order.
+        document.id_map().resolve_all(cx.no_gc(), document.upcast());
+
         let document_context = self.web_font_context();
+
+        let rooted_nodes_for_accessibility_integrity_check =
+            document.rooted_nodes_for_accessibility_integrity_check();
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
@@ -2684,6 +2705,7 @@ impl Window {
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             document_context,
+            rooted_nodes_for_accessibility_integrity_check,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
@@ -3107,10 +3129,9 @@ impl Window {
     pub(crate) fn elements_from_point_query(
         &self,
         point: LayoutPoint,
-        flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult> {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
-        self.layout().query_elements_from_point(point, flags)
+        self.layout().query_elements_from_point(point)
     }
 
     pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
@@ -3142,7 +3163,7 @@ impl Window {
         point_in_frame: Point2D<f32, CSSPixel>,
     ) -> Option<HitTestResult> {
         let result = self
-            .elements_from_point_query(point_in_frame.cast_unit(), ElementsFromPointFlags::empty())
+            .elements_from_point_query(point_in_frame.cast_unit())
             .into_iter()
             .nth(0)?;
 
@@ -3410,9 +3431,7 @@ impl Window {
                 0u32,
                 CanGc::from_cx(cx),
             );
-            uievent
-                .upcast::<Event>()
-                .fire(self.upcast(), CanGc::from_cx(cx));
+            uievent.upcast::<Event>().fire(cx, self.upcast());
         }
 
         true
@@ -3438,9 +3457,7 @@ impl Window {
                 0u32,
                 CanGc::from_cx(cx),
             );
-            uievent
-                .upcast::<Event>()
-                .fire(visual_viewport.upcast(), CanGc::from_cx(cx));
+            uievent.upcast::<Event>().fire(cx, visual_viewport.upcast());
 
             self.has_changed_visual_viewport_dimension.set(false);
         }
@@ -3477,7 +3494,7 @@ impl Window {
             );
             event
                 .upcast::<Event>()
-                .fire(mql.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                .fire(cx, mql.upcast::<EventTarget>());
         }
     }
 
@@ -3923,13 +3940,13 @@ impl Window {
             if let Ok(ports) = structuredclone::read(cx, this.upcast(), data, message_clone.handle_mut()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
+                    cx,
                     this.upcast(),
                     this.upcast(),
                     message_clone.handle(),
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
-                    CanGc::from_cx(cx),
                 );
             } else {
                 // Step 4, fire messageerror.
@@ -4012,7 +4029,7 @@ unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
 
 impl WindowHelpers for Window {
     fn create_named_properties_object(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {

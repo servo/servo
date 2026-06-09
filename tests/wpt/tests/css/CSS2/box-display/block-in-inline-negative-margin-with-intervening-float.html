@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline negative margin with intervening float</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="block-in-inline-negative-margin-with-intervening-float-ref.html">
+<meta name="assert" content="A negative margin-bottom on a block-in-inline propagates through an intervening float to overlap the next block-in-inline.">
+<style>
+.container { width: 200px; }
+.first { width: 200px; height: 30px; margin-bottom: -10px; background: blue; }
+.intervening { float: left; width: 80px; height: 30px; background: yellow; }
+.second { width: 200px; height: 30px; background: green; }
+</style>
+<p>Blue and green rectangles overlapping by 10px; yellow float intersects them.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <div class="intervening"></div>
+    <span><div class="second"></div></span>
+</div>

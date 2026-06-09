@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <title>aria-actions: target excluded from host accname (tentative)</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2208">
+  <link rel="help" href="https://github.com/w3c/aria/pull/1805">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<!--
+  When name-from-content fires on a host that uses aria-actions, the
+  referenced target's text must not bleed into the host's accname.
+  Without the exclusion, this button would compute "Save document Edit".
+-->
+
+<button class="ex" aria-actions="edit-doc"
+        data-testname="aria-actions: target excluded from host accname"
+        data-expectedlabel="Save document">
+  Save document
+  <span id="edit-doc">Edit</span>
+</button>
+
+<script>
+  AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+
+</body>
+</html>

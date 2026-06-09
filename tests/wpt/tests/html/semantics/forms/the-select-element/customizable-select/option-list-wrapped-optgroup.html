@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-select-option-list">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+test(() => {
+  const select = document.createElement('select');
+  const div = document.createElement('div');
+  const optgroup = document.createElement('optgroup');
+  const option = document.createElement('option');
+  option.value = 'wrapped-optgroup';
+  optgroup.appendChild(option);
+  div.appendChild(optgroup);
+  select.appendChild(div);
+  document.body.appendChild(select);
+
+  assert_equals(select.options.length, 1, 'options.length');
+  assert_equals(select.options[0], option, 'options[0]');
+  assert_equals(select.value, 'wrapped-optgroup', 'select.value');
+  select.remove();
+}, 'option inside optgroup inside wrapper div is in the option list');
+
+test(() => {
+  const select = document.createElement('select');
+  const div = document.createElement('div');
+  const outerOptgroup = document.createElement('optgroup');
+  const innerOptgroup = document.createElement('optgroup');
+  const option = document.createElement('option');
+  innerOptgroup.appendChild(option);
+  outerOptgroup.appendChild(innerOptgroup);
+  div.appendChild(outerOptgroup);
+  select.appendChild(div);
+  document.body.appendChild(select);
+
+  assert_equals(select.options.length, 0,
+    'option inside nested optgroups inside wrapper should not be in option list');
+  select.remove();
+}, 'nested optgroups inside wrapper still excluded from option list');
+</script>

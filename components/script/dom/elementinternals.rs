@@ -187,10 +187,10 @@ impl ElementInternals {
         }
     }
 
-    pub(crate) fn is_invalid(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn is_invalid(&self, cx: &mut JSContext) -> bool {
         self.is_target_form_associated() &&
             self.is_instance_validatable() &&
-            !self.satisfies_constraints(can_gc)
+            !self.satisfies_constraints(cx)
     }
 
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
@@ -246,10 +246,10 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-setvalidity>
     fn SetValidity(
         &self,
+        cx: &mut JSContext,
         flags: &ValidityStateFlags,
         message: Option<DOMString>,
         anchor: Option<&HTMLElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. Let element be this's target element.
         // Step 2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException.
@@ -271,8 +271,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
 
         // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
         // `flag` to `value`.
-        self.validity_state(can_gc).update_invalid_flags(bits);
-        self.validity_state(can_gc).update_pseudo_classes(can_gc);
+        self.validity_state(cx).update_invalid_flags(bits);
+        self.validity_state(cx).update_pseudo_classes(cx);
 
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.
@@ -329,13 +329,13 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validity>
-    fn GetValidity(&self, can_gc: CanGc) -> Fallible<DomRoot<ValidityState>> {
+    fn GetValidity(&self, cx: &mut JSContext) -> Fallible<DomRoot<ValidityState>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(Some(
                 "The target element is not a form-associated custom element".to_owned(),
             )));
         }
-        Ok(self.validity_state(can_gc))
+        Ok(self.validity_state(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
@@ -413,13 +413,13 @@ impl Validatable for ElementInternals {
         self.target_element.upcast::<Element>()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         debug_assert!(self.is_target_form_associated());
         self.validity_state.or_init(|| {
             ValidityState::new(
+                cx,
                 &self.target_element.owner_window(),
                 self.target_element.upcast(),
-                can_gc,
             )
         })
     }

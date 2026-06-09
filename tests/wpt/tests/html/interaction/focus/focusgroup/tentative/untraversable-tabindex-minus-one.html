@@ -32,9 +32,6 @@
 
 <script>
   promise_test(async t => {
-    const b1 = document.getElementById("b1");
-    const b2 = document.getElementById("b2");
-    const b3 = document.getElementById("b3");
 
     // 1. Navigation FROM tabindex=-1 (b2 -> b3)
     await focusAndSendDirectionalInput(b2, kRight);
@@ -55,9 +52,6 @@
   }, "Elements with tabindex=-1 participate in focusgroup navigation when focused, but are skipped relative to other items.");
 
   promise_test(async t => {
-    const start = document.getElementById("start");
-    const mid = document.getElementById("mid");
-    const end = document.getElementById("end");
 
     // 5. Navigation stops at bounds if adjacent items are tabindex=-1
     await focusAndSendDirectionalInput(mid, kRight);
@@ -76,10 +70,6 @@
   }, "Navigation respects bounds when edges are tabindex=-1.");
 
   promise_test(async t => {
-    const w1 = document.getElementById("w1");
-    const w2 = document.getElementById("w2");
-    const w3 = document.getElementById("w3");
-    const w4 = document.getElementById("w4");
 
     // 7. Wrap skips tabindex=-1 items at ends
     await focusAndSendDirectionalInput(w3, kRight);

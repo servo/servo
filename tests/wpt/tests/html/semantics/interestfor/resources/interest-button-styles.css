@@ -1,21 +1,23 @@
 .fake-interest-button {
-  display: inline-block;
+  display: if(media(hover:hover): none; else: inline-block);
   color: inherit;
   background-color: transparent;
   box-sizing: border-box;
-  margin-inline-start: 0.25em;
-  min-block-size: max(24px, 1lh);
   min-inline-size: 24px;
+  min-block-size: max(24px, 1lh);
+  margin-inline-start: 0.25em;
+  margin-block: min(-24px, -1lh);
+  align-content: center;
   text-align: center;
   user-select: none;
   cursor: help;
 }
 
 .fake-interest-button:hover {
-  background-color: color-mix(in lab, currentColor 10%, transparent);
+  background-color: color-mix(currentColor 10%, transparent);
 }
 
 .fake-interest-button:active {
-  background-color: color-mix(in lab, currentColor 20%, transparent);
+  background-color: color-mix(currentColor 20%, transparent);
 }
 

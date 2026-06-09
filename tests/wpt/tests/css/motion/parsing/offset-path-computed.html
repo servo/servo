@@ -82,6 +82,22 @@ test_computed_value("offset-path", "ellipse(farthest-side 4% at bottom left)", "
 
 test_computed_value("offset-path", "polygon(1% 2%)");
 test_computed_value("offset-path", "polygon(1px 2px, 3% 4%)");
+test_computed_value(
+    "offset-path",
+    "polygon(round 1em, 1px 2px, 3em 4em)",
+    "polygon(round 16px, 1px 2px, 48px 64px)");
+test_computed_value(
+    "offset-path",
+    "polygon(evenodd round 6pt, 1px 2px, 3em 4em, 6pt 6%)",
+    "polygon(evenodd round 8px, 1px 2px, 48px 64px, 8px 6%)");
+test_computed_value(
+    "offset-path",
+    "polygon(round 0px, 1px 2px, 3px 4px)",
+    "polygon(1px 2px, 3px 4px)");
+test_computed_value(
+    "offset-path",
+    "polygon(round calc(1em + 2px), 1px 2px, 3px 4px)",
+    "polygon(round 18px, 1px 2px, 3px 4px)");
 
 // All <basic-shape-rect> functions compute to the equivalent inset() function.
 // Given "xywh(x y w h)", the equivalent function is

@@ -16,6 +16,7 @@ use crate::dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMe
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::document::Document;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
@@ -129,7 +130,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
         }
 
         // Step 3-1.
-        for following_node in node.following_nodes(&self.root_node) {
+        for following_node in node.following_nodes(&self.root_node, ShadowIncluding::No) {
             // Step 3-2.
             let result = self.accept_node(cx, &following_node)?;
 

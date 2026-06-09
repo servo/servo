@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::ResizeObserverEntryBinding::ResizeObserverEntryMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -59,13 +60,13 @@ impl ResizeObserverEntry {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         target: &Element,
         content_rect: &DOMRectReadOnly,
         border_box_size: &[&ResizeObserverSize],
         content_box_size: &[&ResizeObserverSize],
         device_pixel_content_box_size: &[&ResizeObserverSize],
-        can_gc: CanGc,
     ) -> DomRoot<ResizeObserverEntry> {
         let entry = Box::new(ResizeObserverEntry::new_inherited(
             target,
@@ -74,7 +75,7 @@ impl ResizeObserverEntry {
             content_box_size,
             device_pixel_content_box_size,
         ));
-        reflect_dom_object_with_proto(entry, window, None, can_gc)
+        reflect_dom_object_with_proto_and_cx(entry, window, None, cx)
     }
 }
 

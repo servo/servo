@@ -52,11 +52,11 @@ export const kOpInfo =
   storage: {
     contexts: ['compute-pass-encoder', 'render-pass-encoder', 'render-bundle-encoder'],
     readUsage: 0,
-    writeUsage: GPUConst.TextureUsage.STORAGE
+    writeUsage: GPUConst.TextureUsage.STORAGE_BINDING
   },
   sample: {
     contexts: ['compute-pass-encoder', 'render-pass-encoder', 'render-bundle-encoder'],
-    readUsage: GPUConst.TextureUsage.SAMPLED,
+    readUsage: GPUConst.TextureUsage.TEXTURE_BINDING,
     writeUsage: 0
   },
   'attachment-store': {

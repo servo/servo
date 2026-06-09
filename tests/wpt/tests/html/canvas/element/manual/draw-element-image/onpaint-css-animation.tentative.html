@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire for ticking CSS animation</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0); }
+    to { transform: rotate(360deg); }
+  }
+  #grandchild {
+    width: 100px;
+    height: 100px;
+    /*
+      Note that transform changes on #child would not cause repaints, as
+      transforms on direct canvas element children are ignored, but transforms
+      on a grandchild are not ignored and will cause repaints.
+    */
+    animation: spin 2s linear infinite;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child">
+    <div id="grandchild"></div>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  promise_test(async t => {
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    canvas.onpaint = () => {
+      onPaintCount++;
+      canvas.getContext('2d').drawElementImage(child, 0, 0);
+    };
+
+    // 1. Wait a frame and assert that onpaint fires due to the animation.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should fire as the css animation ticks.');
+
+    // 2. Wait a frame and assert that onpaint fires again.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2, 'onpaint should fire twice as the css animation ticks.');
+
+    // 3. Wait a frame and assert that onpaint fires again.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 3, 'onpaint should fire thrice as the css animation ticks.');
+  }, 'onpaint should fire for ticking CSS animations');
+</script>

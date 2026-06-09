@@ -6,6 +6,7 @@ Compound statement execution.
 import { keysOf } from '../../../../common/util/data_tables.js';
 
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
+import { runFlowControlTest } from '../flow_control/harness.js';
 
 export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
@@ -134,4 +135,34 @@ fn((t) => {
     new Int32Array(kTests[t.params.case].values),
     kTests[t.params.case].src
   );
+});
+
+g.test('eval_order').
+desc('Tests evaluation order of compound assignment, lhs is evaluated before rhs').
+fn((t) => {
+  runFlowControlTest(t, (f) => ({
+    entrypoint: `
+arr[0] = 41;
+${f.expect_order(0)}
+arr[idx()] += foo();
+${f.expect_order(3)}
+if (arr[0] == 42) {
+  ${f.expect_order(4)}
+} else {
+  ${f.expect_not_reached()}
+}
+`,
+    extra: `
+var<private> arr : array<u32, 1>;
+fn idx() -> u32 {
+  ${f.expect_order(1)}
+  return 0;
+}
+fn foo() -> u32 {
+  ${f.expect_order(2)}
+  arr[0] = 10;
+  return 1;
+}
+`
+  }));
 });

@@ -118,11 +118,15 @@ u.
 combine('returnType', keysOf(kValuesTypes)).
 combine('textureType', kNonStorageTextureTypes).
 beginSubcases().
+combine('let', [false, true]).
 expand('texelType', (t) =>
 kNonStorageTextureTypeInfo[t.textureType].texelTypes.map((v) => v.toString())
 )
 ).
 fn((t) => {
+  if (t.params.let) {
+    t.skipIfLanguageFeatureNotSupported('texture_and_sampler_let');
+  }
   const { returnType, textureType, texelType } = t.params;
   const returnVarType = kValuesTypes[returnType];
   const { returnType: returnRequiredType, hasLevelArg } =
@@ -132,11 +136,14 @@ fn((t) => {
   const texelArgType = stringToType(texelType);
   const textureWGSL = getNonStorageTextureTypeWGSL(textureType, texelArgType);
   const levelWGSL = hasLevelArg ? ', 0' : '';
+  const t_let = t.params.let ? `let t_let = t;` : ``;
+  const param = t.params.let ? 't_let' : `t${levelWGSL}`;
 
   const code = `
 @group(0) @binding(0) var t: ${textureWGSL};
 @fragment fn fs() -> @location(0) vec4f {
-  let v: ${varWGSL} = textureDimensions(t${levelWGSL});
+  ${t_let}
+  let v: ${varWGSL} = textureDimensions(${param});
   return vec4f(0);
 }
 `;

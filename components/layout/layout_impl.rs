@@ -21,7 +21,7 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
-    LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
@@ -55,7 +55,7 @@ use style::context::{
 };
 use style::device::Device;
 use style::device::servo::FontMetricsProvider;
-use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
+use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -64,7 +64,7 @@ use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
-use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
+use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
@@ -107,6 +107,9 @@ static STYLE_THREAD_POOL: Mutex<&LazyLock<style::global_style_data::StyleThreadP
 
 /// A CSS file to style the user agent stylesheet.
 static USER_AGENT_CSS: &[u8] = include_bytes!("./stylesheets/user-agent.css");
+
+/// A CSS file to style the user agent stylesheet in HTML documents.
+static HTML_MODE_CSS: &[u8] = include_bytes!("./stylesheets/html-mode.css");
 
 /// A CSS file to style the Servo browser.
 static SERVO_CSS: &[u8] = include_bytes!("./stylesheets/servo.css");
@@ -217,6 +220,9 @@ pub struct LayoutThread {
 
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
+
+    /// Whether accessibility is active for this Layout.
+    accessibility_active: Cell<bool>,
 
     /// Layout's internal representation of its accessibility tree.
     /// This is `None` if accessibility is not active.
@@ -578,13 +584,12 @@ impl Layout for LayoutThread {
     fn query_elements_from_point(
         &self,
         point: webrender_api::units::LayoutPoint,
-        flags: layout_api::ElementsFromPointFlags,
     ) -> Vec<layout_api::ElementsFromPointResult> {
         with_layout_state(|| {
             self.stacking_context_tree
                 .borrow_mut()
                 .as_mut()
-                .map(|tree| HitTest::run(tree, point, flags))
+                .map(|tree| HitTest::run(tree, point))
                 .unwrap_or_default()
         })
     }
@@ -719,16 +724,22 @@ impl Layout for LayoutThread {
     }
 
     fn set_accessibility_active(&self, active: bool, epoch: Epoch) {
+        self.accessibility_active.set(active);
         if !active {
             self.accessibility_tree.replace(None);
             return;
         }
+
         self.set_needs_accessibility_update();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_some() {
             return;
         }
         *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
+    }
+
+    fn accessibility_active(&self) -> bool {
+        self.accessibility_active.get()
     }
 
     fn needs_accessibility_update(&self) -> bool {
@@ -795,6 +806,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
+            accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
         }
@@ -923,7 +935,11 @@ impl LayoutThread {
         }
     }
 
-    fn handle_accessibility_tree_update(&self, root_element: &ServoLayoutNode) -> bool {
+    fn handle_accessibility_tree_update(
+        &self,
+        root_element: &ServoLayoutNode,
+        reflow_request: &mut ReflowRequest,
+    ) -> bool {
         if !self.needs_accessibility_update() {
             return false;
         }
@@ -933,8 +949,10 @@ impl LayoutThread {
         };
 
         let accessibility_tree = &mut *accessibility_tree;
-        if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
-            // TODO(#4344): send directly to embedder over the pipeline_to_embedder_sender cloned from ScriptThread.
+        let rooted_nodes =
+            std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
+
+        if let Some(tree_update) = accessibility_tree.update_tree(root_element, rooted_nodes) {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.
@@ -943,7 +961,7 @@ impl LayoutThread {
                 .send(EmbedderMsg::AccessibilityTreeUpdate(
                     self.webview_id,
                     tree_update,
-                    accessibility_tree.epoch(),
+                    accessibility_tree.embedder_epoch(),
                 ));
         }
         self.needs_accessibility_update.set(false);
@@ -1004,7 +1022,7 @@ impl LayoutThread {
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
         }
-        if self.handle_accessibility_tree_update(&root_element.as_node()) {
+        if self.handle_accessibility_tree_update(&root_element.as_node(), &mut reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 
@@ -1045,6 +1063,18 @@ impl LayoutThread {
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
                 self.load_all_web_fonts_from_stylesheet_with_guard(
                     stylesheet,
+                    guards.ua_or_user,
+                    &reflow_request.document_context,
+                );
+            }
+
+            if document.is_html_document() {
+                self.stylist.append_stylesheet(
+                    ua_stylesheets.html_mode_stylesheet.clone(),
+                    guards.ua_or_user,
+                );
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    &ua_stylesheets.html_mode_stylesheet,
                     guards.ua_or_user,
                     &reflow_request.document_context,
                 );
@@ -1185,9 +1215,9 @@ impl LayoutThread {
 
         let root_node = root_element.as_node();
         let damage_from_environment = if device_has_changed {
-            RestyleDamage::RELAYOUT
+            LayoutDamage::Relayout
         } else {
-            Default::default()
+            LayoutDamage::empty()
         };
 
         let mut box_tree = self.box_tree.borrow_mut();
@@ -1210,15 +1240,15 @@ impl LayoutThread {
             }
         };
 
-        if damage.contains(RestyleDamage::REBUILD_STACKING_CONTEXT) {
+        if damage.contains(LayoutDamage::RebuildStackingContextTree) {
             self.need_new_stacking_context_tree.set(true);
         }
-        if damage.contains(RestyleDamage::REPAINT) {
+        if damage.contains(LayoutDamage::Repaint) {
             self.need_new_display_list.set(true);
         }
 
-        if !damage.contains(RestyleDamage::RELAYOUT) {
-            if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
+        if !damage.contains(LayoutDamage::Relayout) {
+            if damage.contains(LayoutDamage::RecalculateOverflow) {
                 assert!(self.need_new_display_list.get());
                 assert!(self.need_new_stacking_context_tree.get());
                 self.fragment_tree
@@ -1298,7 +1328,7 @@ impl LayoutThread {
             .map(|tree| tree.paint_info.scroll_tree.scroll_offsets());
 
         // This will be done during `StackingContextTree::new` below
-        self.need_containing_block_calculation.set(true);
+        self.need_containing_block_calculation.set(false);
 
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
@@ -1571,11 +1601,15 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
                     ),
                 ];
 
+                let html_mode_stylesheet =
+                    parse_ua_stylesheet(shared_lock, "html-mode.css", HTML_MODE_CSS);
+
                 let quirks_mode_stylesheet =
                     parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS);
 
                 Rc::new(UserAgentStylesheets {
                     user_agent_stylesheets,
+                    html_mode_stylesheet,
                     quirks_mode_stylesheet,
                 })
             })
@@ -1587,6 +1621,8 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
 pub struct UserAgentStylesheets {
     /// The user agent stylesheets.
     pub user_agent_stylesheets: Vec<DocumentStyleSheet>,
+    /// The user agent stylesheet for HTML documents.
+    pub html_mode_stylesheet: DocumentStyleSheet,
     /// The quirks mode stylesheet.
     pub quirks_mode_stylesheet: DocumentStyleSheet,
 }

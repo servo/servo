@@ -337,7 +337,6 @@ fn(async (t) => {
       0b01010101010101010101010101010101
     )
   },
-
   // Zero count
   { input: [pattern, all_1, u32(0), u32(0)], expected: pattern },
   { input: [pattern, all_1, u32(1), u32(0)], expected: pattern },
@@ -367,6 +366,11 @@ fn(async (t) => {
           0b10101010101010101010101010101010,
           0b01010101010101010101010101010101
         )
+      },
+      // Difficult edge case involving a MAX_UINT 'count'.
+      {
+        input: [V(5), V(1), u32(1), u32(4294967295)],
+        expected: V(3)
       }]
 
     );

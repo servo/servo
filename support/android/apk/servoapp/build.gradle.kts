@@ -4,48 +4,25 @@ plugins {
     id("com.android.application")
 }
 
+layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoapp")
+
 android {
     compileSdk = 34
     buildToolsVersion = "34.0.0"
 
     namespace = "org.servo.servoshell"
 
-    layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoapp")
-
     defaultConfig {
         applicationId = "org.servo.servoshell"
         minSdk = 30
         targetSdk = 34
         versionCode = generatedVersionCode
-        versionName = "0.2.0"
+        versionName = "0.3.0"
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    // Share all of that with servoview
-    flavorDimensions.add("default")
-
-    productFlavors {
-        register("basic") {
-        }
-    }
-
-    splits {
-        density {
-            isEnable = false
-        }
-        abi {
-            isEnable = false
-        }
-    }
-
-    sourceSets {
-        named("main") {
-            java.srcDirs("src/main/java")
-        }
     }
 
     val signingKeyInfo = getSigningKeyInfo()
@@ -69,7 +46,7 @@ android {
             signingConfig =
                 signingConfigs.getByName(if (signingKeyInfo != null) "release" else "debug")
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
 
         // Custom build types
@@ -127,37 +104,37 @@ android {
             }
         }
     }
+}
 
-    // Ignore default "debug" and "release" build types
-    androidComponents {
-        beforeVariants {
-            if (it.buildType == "release" || it.buildType == "debug") {
-                it.enable = false
-            }
+// Ignore default "debug" and "release" build types
+androidComponents {
+    beforeVariants {
+        if (it.buildType == "release" || it.buildType == "debug") {
+            it.enable = false
         }
     }
+}
 
-    project.afterEvaluate {
-        android.applicationVariants.forEach { variant ->
-            val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
-            val matcher = pattern.matcher(variant.name)
-            if (!matcher.find()) {
-                throw GradleException("Invalid variant name for output: " + variant.name)
-            }
-            val arch = matcher.group(1)
-            val debug = variant.name.contains("Debug")
-            val finalFolder = getTargetDir(debug, arch)
-            val finalFile = File(finalFolder, "servoapp.apk")
-            variant.outputs.forEach { output ->
-                val copyAndRenameAPKTask =
-                    project.task<Copy>("copyAndRename${variant.name.capitalize()}APK") {
-                        from(output.outputFile.parent)
-                        into(finalFolder)
-                        include(output.outputFile.name)
-                        rename(output.outputFile.name, finalFile.name)
-                    }
-                variant.assembleProvider.get().finalizedBy(copyAndRenameAPKTask)
-            }
+project.afterEvaluate {
+    android.applicationVariants.forEach { variant ->
+        val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
+        val matcher = pattern.matcher(variant.name)
+        if (!matcher.find()) {
+            throw GradleException("Invalid variant name for output: " + variant.name)
+        }
+        val arch = matcher.group(1)
+        val debug = variant.name.contains("Debug")
+        val finalFolder = getTargetDir(debug, arch)
+        val finalFile = File(finalFolder, "servoapp.apk")
+        variant.outputs.forEach { output ->
+            val copyAndRenameAPKTask =
+                project.task<Copy>("copyAndRename${variant.name.capitalize()}APK") {
+                    from(output.outputFile.parent)
+                    into(finalFolder)
+                    include(output.outputFile.name)
+                    rename(output.outputFile.name, finalFile.name)
+                }
+            variant.assembleProvider.get().finalizedBy(copyAndRenameAPKTask)
         }
     }
 }

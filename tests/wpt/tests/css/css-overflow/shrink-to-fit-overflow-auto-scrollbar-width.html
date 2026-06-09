@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Shrink-to-fit blocks with overflow-y:auto should include scrollbar in width</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test {
+  height: 26px;
+  overflow-y: auto;
+  border: 2px solid green;
+}
+.scroll {
+  height: 26px;
+  overflow-y: scroll;
+  border: 2px solid green;
+}
+.content {
+  width: 40px;
+  height: 80px;
+}
+.float { float: left; }
+.inline-block { display: inline-block; }
+.abspos-container { position: relative; height: 60px; }
+.abspos { position: absolute; }
+</style>
+
+<div class="test float" id="float-auto"><div class="content"></div></div>
+<div class="scroll float" id="float-scroll"><div class="content"></div></div>
+<div style="clear: both;"></div>
+
+<div class="test inline-block" id="inline-block-auto"><div class="content"></div></div>
+<div class="scroll inline-block" id="inline-block-scroll"><div class="content"></div></div>
+
+<div class="abspos-container">
+  <div class="test abspos" id="abspos-auto"><div class="content"></div></div>
+</div>
+<div class="abspos-container">
+  <div class="scroll abspos" id="abspos-scroll"><div class="content"></div></div>
+</div>
+
+<script>
+test(() => {
+  const auto = document.getElementById("float-auto");
+  const scroll = document.getElementById("float-scroll");
+  assert_equals(auto.offsetWidth, scroll.offsetWidth);
+}, "Float with overflow-y:auto includes scrollbar in shrink-to-fit width");
+
+test(() => {
+  const auto = document.getElementById("inline-block-auto");
+  const scroll = document.getElementById("inline-block-scroll");
+  assert_equals(auto.offsetWidth, scroll.offsetWidth);
+}, "Inline-block with overflow-y:auto includes scrollbar in shrink-to-fit width");
+
+test(() => {
+  const auto = document.getElementById("abspos-auto");
+  const scroll = document.getElementById("abspos-scroll");
+  assert_equals(auto.offsetWidth, scroll.offsetWidth);
+}, "Abspos with overflow-y:auto includes scrollbar in shrink-to-fit width");
+</script>

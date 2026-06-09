@@ -216,9 +216,9 @@ impl GPUDevice {
         // Queue a global task, using the webgpu task source, to fire an event named
         // uncapturederror at a GPUDevice using GPUUncapturedErrorEvent.
         self.global().task_manager().webgpu_task_source().queue(
-            task!(fire_uncaptured_error: move || {
+            task!(fire_uncaptured_error: move |cx| {
                 let this = this.root();
-                let error = GPUError::from_error(&this.global(), error, CanGc::deprecated_note());
+                let error = GPUError::from_error(&this.global(), error, CanGc::from_cx(cx));
 
                 let event = GPUUncapturedErrorEvent::new(
                     &this.global(),
@@ -227,10 +227,10 @@ impl GPUDevice {
                         error,
                         parent: EventInit::empty(),
                     },
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
 
-                event.upcast::<Event>().fire(this.upcast(), CanGc::deprecated_note());
+                event.upcast::<Event>().fire(cx, this.upcast());
             }),
         );
     }
@@ -350,9 +350,8 @@ impl GPUDevice {
                     self.validate_texture_format_required_features(&dss_desc.format)
                         .map(|format| wgpu_types::DepthStencilState {
                             format,
-                            // TODO(sagudev): these need webidl sync
-                            depth_write_enabled: Some(dss_desc.depthWriteEnabled),
-                            depth_compare: Some(dss_desc.depthCompare.convert()),
+                            depth_write_enabled: dss_desc.depthWriteEnabled,
+                            depth_compare: dss_desc.depthCompare.map(|dc| dc.convert()),
                             stencil: wgpu_types::StencilState {
                                 front: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
@@ -640,12 +639,10 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
             Ok(None) | Err(PopError::Lost) => {
                 promise.resolve_native(&None::<Option<GPUError>>, CanGc::from_cx(cx))
             },
-            Err(PopError::Empty) => {
-                promise.reject_error(Error::Operation(None), CanGc::from_cx(cx))
-            },
+            Err(PopError::Empty) => promise.reject_error_with_cx(cx, Error::Operation(None)),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(&self.global(), error, CanGc::from_cx(cx));
-                promise.resolve_native(&error, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &error);
             },
         }
     }

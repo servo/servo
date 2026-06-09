@@ -340,6 +340,43 @@ const gatherNDTests = [
       }
     }
   },
+  {
+    'name': 'gatherND float32 rank-5 input and rank-5 indices',
+    'graph': {
+      'inputs': {
+        'gatherNDInput': {
+          'data': [
+            1, 2, 3, 4, 5, 6, 7, 8,
+            9, 10, 11, 12, 13, 14, 15, 16,
+            17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float32'}
+        },
+        'gatherNDIndices': {
+          'data': [0],
+          'descriptor': {shape: [1, 1, 1, 1, 1], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'gatherND',
+        'arguments': [{input: 'gatherNDInput'}, {indices: 'gatherNDIndices'}],
+        'outputs': 'gatherNDOutput'
+      }],
+      'expectedOutputs': {
+        'gatherNDOutput': {
+          'data': [
+            1, 2, 3, 4, 5, 6, 7, 8,
+            9, 10, 11, 12, 13, 14, 15, 16
+          ],
+          'descriptor': {
+            'shape': [1, 1, 1, 1, 2, 2, 2, 2],
+            'dataType': 'float32'
+          }
+        }
+      }
+    }
+  },
 
   // float16 tests
   {

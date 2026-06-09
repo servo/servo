@@ -13,6 +13,7 @@ use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use net_traits::CustomResponseMediator;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
@@ -20,7 +21,7 @@ use net_traits::request::{
 };
 use rand::random;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
-use servo_base::id::PipelineId;
+use servo_base::id::{PipelineId, ServiceWorkerId};
 use servo_config::pref;
 use servo_constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
@@ -30,6 +31,7 @@ use style::thread_state::{self, ThreadState};
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
+use crate::dom::bindings::codegen::Bindings::ClientBinding::FrameType;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
@@ -39,13 +41,14 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::client::Client;
 use crate::dom::csp::Violation;
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
-use crate::dom::extendablemessageevent::ExtendableMessageEvent;
+use crate::dom::extendablemessageevent::{ExtendableMessageEvent, MessageSource};
 use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
@@ -182,6 +185,9 @@ pub(crate) struct ServiceWorkerGlobalScope {
     /// currently only used to signal shutdown.
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
+
+    #[no_trace]
+    worker_id: ServiceWorkerId,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
@@ -240,6 +246,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        worker_id: ServiceWorkerId,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -262,6 +269,7 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
             control_receiver,
+            worker_id,
         }
     }
 
@@ -280,6 +288,7 @@ impl ServiceWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
         debugger_global: &DebuggerGlobalScope,
+        worker_id: ServiceWorkerId,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
@@ -295,6 +304,7 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
             font_context,
+            worker_id,
         ));
         let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
         scope
@@ -318,6 +328,7 @@ impl ServiceWorkerGlobalScope {
         context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        worker_id: ServiceWorkerId,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -373,6 +384,7 @@ impl ServiceWorkerGlobalScope {
                 let devtools_mpsc_port = devtools_receiver.route_preserving_errors();
 
                 let resource_threads_sender = init.resource_threads.sender();
+                let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
                     script_url.clone(),
@@ -387,18 +399,21 @@ impl ServiceWorkerGlobalScope {
                     closing,
                     font_context,
                     &debugger_global,
+                    worker_id,
                     cx,
                 );
 
                 let worker_scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
-                debugger_global.fire_add_debuggee(
-                    cx,
-                    global_scope,
-                    pipeline_id,
-                    Some(worker_scope.worker_id()),
-                );
+                if devtools_enabled {
+                    debugger_global.fire_add_debuggee(
+                        cx,
+                        global_scope,
+                        pipeline_id,
+                        Some(worker_scope.worker_id()),
+                    );
+                }
 
                 let referrer = referrer_url
                     .map(Referrer::ReferrerUrl)
@@ -457,8 +472,7 @@ impl ServiceWorkerGlobalScope {
                         true,
                     );
                     _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
-                    let in_realm_proof = (&mut realm).into();
-                    global.dispatch_activate(&mut realm, InRealm::Already(&in_realm_proof));
+                    global.dispatch_activate(&mut realm);
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -517,6 +531,14 @@ impl ServiceWorkerGlobalScope {
                 let cx = &mut realm.current_realm();
 
                 rooted!(&in(cx) let mut message = UndefinedValue());
+                let client = Client::new(
+                    scope.upcast(),
+                    self.swmanager_sender.clone(),
+                    self.scope_url.clone(),
+                    FrameType::None,
+                    self.worker_id,
+                    CanGc::from_cx(cx),
+                );
                 if let Ok(ports) =
                     structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
                 {
@@ -525,6 +547,7 @@ impl ServiceWorkerGlobalScope {
                         target,
                         scope.upcast(),
                         message.handle(),
+                        Some(MessageSource::Client(client)),
                         ports,
                     );
                 } else {
@@ -549,10 +572,10 @@ impl ServiceWorkerGlobalScope {
         ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
-    fn dispatch_activate(&self, cx: &mut js::context::JSContext, _realm: InRealm) {
+    fn dispatch_activate(&self, cx: &mut CurrentRealm) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false, CanGc::from_cx(cx));
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(cx, event);
+        event.dispatch(cx, self.upcast(), false);
     }
 }
 

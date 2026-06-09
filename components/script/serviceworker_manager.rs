@@ -18,12 +18,15 @@ use fonts::FontContext;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
-use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericSender, ReceiveError, RoutedReceiver,
+};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
 use servo_constellation_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
-    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerSenders, ScopeThings,
+    ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, ServiceWorkerRegistrationInfo,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -65,10 +68,15 @@ impl ServiceWorker {
 
     /// Forward a DOM message to the running service worker scope.
     fn forward_dom_message(&self, msg: DOMMessage) {
-        let DOMMessage { origin, data } = msg;
+        let DOMMessage {
+            origin,
+            data,
+            pipeline_id,
+        } = msg;
         let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
             WorkerScriptMsg::DOMMessage(MessageData {
                 origin,
+                pipeline_id,
                 data: Box::new(data),
             }),
         ));
@@ -143,10 +151,15 @@ struct ServiceWorkerRegistration {
     context: Option<ThreadSafeJSContext>,
     /// The closing flag for the worker.
     closing: Option<Arc<AtomicBool>>,
+    /// <https://w3c.github.io/ServiceWorker/#serviceworkercontainer-service-worker-client>
+    /// The client of the container to which this registration belongs.
+    client: GenericCallback<ServiceWorkerAlgorithmResult>,
 }
 
 impl ServiceWorkerRegistration {
-    pub(crate) fn new() -> ServiceWorkerRegistration {
+    pub(crate) fn new(
+        client: GenericCallback<ServiceWorkerAlgorithmResult>,
+    ) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             id: ServiceWorkerRegistrationId::new(),
             active_worker: None,
@@ -156,6 +169,7 @@ impl ServiceWorkerRegistration {
             control_sender: None,
             context: None,
             closing: None,
+            client,
         }
     }
 
@@ -197,17 +211,17 @@ impl ServiceWorkerRegistration {
     fn update_registration_state(
         &mut self,
         target: RegistrationUpdateTarget,
-        worker: ServiceWorker,
+        worker: Option<ServiceWorker>,
     ) {
         match target {
             RegistrationUpdateTarget::Active => {
-                self.active_worker = Some(worker);
+                self.active_worker = worker;
             },
             RegistrationUpdateTarget::Waiting => {
-                self.waiting_worker = Some(worker);
+                self.waiting_worker = worker;
             },
             RegistrationUpdateTarget::Installing => {
-                self.installing_worker = Some(worker);
+                self.installing_worker = worker;
             },
         }
     }
@@ -217,9 +231,6 @@ impl ServiceWorkerRegistration {
 pub struct ServiceWorkerManager {
     /// <https://w3c.github.io/ServiceWorker/#dfn-scope-to-registration-map>
     registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
-    // Will be useful to implement posting a message to a client.
-    // See https://github.com/servo/servo/issues/24660
-    _constellation_sender: GenericSender<SWManagerMsg>,
     // own sender to send messages here
     own_sender: GenericSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
@@ -235,7 +246,6 @@ impl ServiceWorkerManager {
         own_sender: GenericSender<ServiceWorkerMsg>,
         from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
         resource_port: Receiver<CustomResponseMediator>,
-        constellation_sender: GenericSender<SWManagerMsg>,
         font_context: Arc<FontContext>,
     ) -> ServiceWorkerManager {
         // Install a pipeline-namespace in the current thread.
@@ -246,7 +256,6 @@ impl ServiceWorkerManager {
             own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
-            _constellation_sender: constellation_sender,
             font_context,
         }
     }
@@ -302,21 +311,63 @@ impl ServiceWorkerManager {
                 // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
             },
             ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
-                if let Some(registration) = self.registrations.get_mut(&scope_url) &&
-                    let Some(ref worker) = registration.active_worker
-                {
-                    worker.forward_dom_message(msg);
+                if let Some(registration) = self.registrations.get_mut(&scope_url) {
+                    if let Some(ref worker) = registration.active_worker {
+                        worker.forward_dom_message(msg);
+                    } else if let Some(ref worker) = registration.waiting_worker {
+                        worker.forward_dom_message(msg);
+                    } else if let Some(ref worker) = registration.installing_worker {
+                        worker.forward_dom_message(msg);
+                    }
                 }
             },
-            ServiceWorkerMsg::ScheduleJob(job) => match job.job_type {
-                JobType::Register => {
+            ServiceWorkerMsg::ForwardWorkerMessage {
+                data,
+                url,
+                source,
+                origin,
+            } => {
+                let Some(registration) = self.registrations.get(&url) else {
+                    warn!("No registration found for scope URL when forwarding message to worker.");
+                    return true;
+                };
+                let script_url = if let Some(worker) = registration.active_worker.as_ref() {
+                    worker.script_url.clone()
+                } else if let Some(worker) = registration.waiting_worker.as_ref() {
+                    worker.script_url.clone()
+                } else if let Some(worker) = registration.installing_worker.as_ref() {
+                    worker.script_url.clone()
+                } else {
+                    warn!("No worker found for scope URL when forwarding message to worker.");
+                    return true;
+                };
+                if registration
+                    .client
+                    .send(ServiceWorkerAlgorithmResult::MessageFromWorker {
+                        message: data,
+                        source,
+                        scope_url: url,
+                        script_url,
+                        origin,
+                    })
+                    .is_err()
+                {
+                    warn!("Failed to forward message from worker to script.");
+                }
+            },
+            ServiceWorkerMsg::HandleAlgorithm(algorithm) => match algorithm {
+                ServiceWorkerAlgorithm::StartRegister(job) => {
                     self.handle_register_job(job);
                 },
-                JobType::Update => {
-                    self.handle_update_job(job);
+                ServiceWorkerAlgorithm::Unregister(job) => {
+                    self.handle_unregister_job(job);
                 },
-                JobType::Unregister => {
-                    // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
+                ServiceWorkerAlgorithm::MatchServiceWorkerRegistration {
+                    storage_key,
+                    client_url,
+                    result_handler,
+                } => {
+                    self.handle_match_registration(storage_key, client_url, result_handler);
                 },
             },
             ServiceWorkerMsg::Exit => return false,
@@ -324,42 +375,257 @@ impl ServiceWorkerManager {
         true
     }
 
+    /// <https://w3c.github.io/ServiceWorker/#unregister>
+    fn handle_unregister_job(&mut self, job: Job) {
+        // Step 1: Let registration be the result of running Get Registration given job’s storage key and job’s scope url.
+        if self.registrations.remove(&job.scope_url).is_none() {
+            // Step 2: If registration is null, then:
+            // Step 2.1: Invoke Resolve Job Promise with job and false.
+            if job
+                .client
+                .send(ServiceWorkerAlgorithmResult::Job(
+                    JobResult::ResolvePromise(JobResultValue::Unregister(false)),
+                ))
+                .is_err()
+            {
+                warn!("Failed to send unregister result to script.");
+            }
+            // Step 2.2: Invoke Finish Job with job and abort these steps.
+            // TODO: Finish Job.
+            return;
+        };
+
+        // Step 3: Remove registration map[(registration’s storage key, job’s scope url)].
+        // Note: done by removing the registration from the map above.
+
+        // Step 4: Invoke Resolve Job Promise with job and true.
+        if job
+            .client
+            .send(ServiceWorkerAlgorithmResult::Job(
+                JobResult::ResolvePromise(JobResultValue::Unregister(true)),
+            ))
+            .is_err()
+        {
+            warn!("Failed to send unregister result to script.");
+        }
+
+        // Step 5: Invoke Try Clear Registration with registration.
+        // TODO: Try Clear Registration.
+
+        // Step 6: Invoke Finish Job with job.
+        // TODO: Finish Job.
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#match-service-worker-registration>
+    fn handle_match_registration(
+        &self,
+        storage_key: ImmutableOrigin,
+        client_url: ServoUrl,
+        result_handler: GenericCallback<ServiceWorkerAlgorithmResult>,
+    ) {
+        // Step 1: Run the following steps atomically.
+        // Note: done using the channel from which this message was received.
+
+        // Step 2: Let clientURLString be serialized clientURL.
+        let client_url_string = client_url.as_str();
+
+        // Step 3: Let matchingScopeString be the empty string.
+        let mut matching_scope_string = String::new();
+
+        // Step 4: Let scopeStringSet be an empty list.
+        let mut scope_string_set = Vec::new();
+
+        // Step 5: For each (entry storage key, entry scope) of registration map’s keys:
+        for (entry_storage_key, entry_scope) in self.registrations.keys().map(|k| (k.origin(), k)) {
+            // Step 5.1. If storage key equals entry storage key, then append entry scope to the end of scopeStringSet.
+            if storage_key == entry_storage_key {
+                scope_string_set.push(entry_scope.as_str());
+            }
+        }
+
+        // Step 6: Set matchingScopeString to the longest value in scopeStringSet which the value of clientURLString starts with, if it exists.
+        for scope in scope_string_set {
+            if client_url_string.starts_with(scope) && scope.len() > matching_scope_string.len() {
+                matching_scope_string = scope.to_owned();
+            }
+        }
+
+        // Step 7: Let matchingScope be null.
+        let mut matching_scope = None;
+
+        // Step 8: If matchingScopeString is not the empty string, then:
+        if !matching_scope_string.is_empty() {
+            // Step 8.1. Set matchingScope to the result of parsing matchingScopeString.
+            let Ok(parsed_matching_scope) = ServoUrl::parse(&matching_scope_string) else {
+                error!("Failed to parse matching scope string as URL.");
+                if result_handler
+                    .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(None))
+                    .is_err()
+                {
+                    warn!("Failed to send match registration result to script.");
+                }
+                return;
+            };
+            matching_scope = Some(parsed_matching_scope);
+
+            // Step 8.2: Assert: matchingScope’s origin and clientURL’s origin are same origin.
+            debug_assert_eq!(
+                matching_scope.as_ref().unwrap().origin(),
+                client_url.origin()
+            );
+        }
+
+        let Some(matching_scope) = matching_scope else {
+            if result_handler
+                .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(None))
+                .is_err()
+            {
+                warn!("Failed to send match registration result to script.");
+            }
+            return;
+        };
+
+        // Step 9: Return the result of running Get Registration given storage key and matchingScope.
+        let registration = self.registrations.get(&matching_scope);
+        let info = registration
+            .as_ref()
+            .map(|registration| ServiceWorkerRegistrationInfo {
+                scope_url: matching_scope,
+                script_url: registration
+                    .get_newest_worker()
+                    .expect("Registration should have a worker.")
+                    .script_url,
+                storage_key,
+                id: registration.id,
+                installing_worker: registration
+                    .installing_worker
+                    .as_ref()
+                    .map(|worker| worker.id),
+                waiting_worker: registration.waiting_worker.as_ref().map(|worker| worker.id),
+                active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+            });
+        if result_handler
+            .send(ServiceWorkerAlgorithmResult::MatchServiceWorkerRegistration(info))
+            .is_err()
+        {
+            warn!("Failed to send match registration result to script.");
+        }
+    }
+
     /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
     fn handle_register_job(&mut self, mut job: Job) {
+        // Step 1: If the result of running potentially trustworthy origin with the origin of job’s script url as the argument is Not Trusted, then:
         if !job.script_url.origin().is_potentially_trustworthy() {
-            // Step 1.1
-            let _ = job
+            // Step 1.1: Invoke Reject Job Promise with job and "SecurityError" DOMException.
+            if job
                 .client
-                .send(JobResult::RejectPromise(JobError::SecurityError));
+                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                    JobError::SecurityError,
+                )))
+                .is_err()
+            {
+                warn!("Failed to send reject job promise result to script.");
+            }
+
+            // TODO Step 1.2: Invoke Finish Job with job and abort these steps.
+            // TODO: Finish Job.
             return;
         }
 
+        // Step 2: If job’s script url’s origin and job’s referrer’s origin are not same origin, then:
+        // Step 3: If job’s scope url’s origin and job’s referrer’s origin are not same origin, then:
+        // Note: both steps done in one conditional.
         if job.script_url.origin() != job.referrer.origin() ||
             job.scope_url.origin() != job.referrer.origin()
         {
-            // Step 2.1
-            let _ = job
+            // Step 2.1: Invoke Reject Job Promise with job and "SecurityError" DOMException
+            if job
                 .client
-                .send(JobResult::RejectPromise(JobError::SecurityError));
+                .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                    JobError::SecurityError,
+                )))
+                .is_err()
+            {
+                warn!("Failed to send reject job promise result to script.");
+            }
+
+            // TODO Step 2.2: Invoke Finish Job with job and abort these steps.
             return;
         }
 
-        // Step 4: Get registration.
+        // Step 4: Let registration be the result of running Get Registration given job’s storage key and job’s scope url.
         if let Some(registration) = self.registrations.get(&job.scope_url) {
-            // Step 5, we have a registation.
+            // Step 5: If registration is not null, then:
 
-            // Step 5.1, get newest worker
+            // Step 5.1: Let newestWorker be the result of running the Get Newest Worker algorithm passing registration as the argument.
             let newest_worker = registration.get_newest_worker();
 
-            // step 5.2
+            // step 5.2: If newestWorker is not null, job’s script url equals newestWorker’s script url, job’s worker type equals newestWorker’s type, and job’s update via cache mode’s value equals registration’s update via cache mode, then:
             if newest_worker.is_some() {
                 // TODO: the various checks of job versus worker.
 
-                // Step 2.1: Run resolve job.
+                // Step 5.2.1: Invoke Resolve Job Promise with job and registration.
+                // Step 5.2.2: Invoke Finish Job with job and abort these steps.
+                // TODO: Finish Job.
                 let client = job.client.clone();
-                let _ = client.send(JobResult::ResolvePromise(
-                    job,
-                    JobResultValue::Registration {
+                let _ = client.send(ServiceWorkerAlgorithmResult::Job(
+                    JobResult::ResolvePromise(JobResultValue::Register(
+                        ServiceWorkerRegistrationInfo {
+                            scope_url: job.scope_url.clone(),
+                            script_url: job.script_url.clone(),
+                            storage_key: job.storage_key.clone(),
+                            id: registration.id,
+                            installing_worker: registration
+                                .installing_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                            waiting_worker: registration
+                                .waiting_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                            active_worker: registration
+                                .active_worker
+                                .as_ref()
+                                .map(|worker| worker.id),
+                        },
+                    )),
+                ));
+            }
+        } else {
+            // Step 6: Else
+            // Step 6.1: Invoke Set Registration algorithm with job’s storage key, job’s scope url, and job’s update via cache mode.
+            let new_registration = ServiceWorkerRegistration::new(job.client.clone());
+            self.registrations
+                .insert(job.scope_url.clone(), new_registration);
+
+            // Step 7: Invoke Update algorithm passing job as the argument.
+            job.job_type = JobType::Update;
+            self.handle_update_job(job);
+        }
+    }
+
+    /// <https://www.w3.org/TR/service-workers/#install>
+    fn install(&mut self, job: Job, new_worker: ServiceWorker) {
+        let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
+            error!("Registration should exist when installing a worker.");
+            return;
+        };
+
+        // Step 4: Run the Update Registration State algorithm passing registration, "installing" and worker as the arguments.
+        registration.update_registration_state(
+            RegistrationUpdateTarget::Installing,
+            Some(new_worker.clone()),
+        );
+
+        // Step 7: Invoke Resolve Job Promise with job and registration
+        let client = job.client.clone();
+        if client
+            .send(ServiceWorkerAlgorithmResult::Job(
+                JobResult::ResolvePromise(JobResultValue::Register(
+                    ServiceWorkerRegistrationInfo {
+                        scope_url: job.scope_url.clone(),
+                        storage_key: job.storage_key.clone(),
+                        script_url: job.script_url.clone(),
                         id: registration.id,
                         installing_worker: registration
                             .installing_worker
@@ -371,82 +637,74 @@ impl ServiceWorkerManager {
                             .map(|worker| worker.id),
                         active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
                     },
-                ));
-            }
-        } else {
-            // Step 6: we do not have a registration.
-
-            // Step 6.1: Run Set Registration.
-            let new_registration = ServiceWorkerRegistration::new();
-            self.registrations
-                .insert(job.scope_url.clone(), new_registration);
-
-            // Step 7: Schedule update
-            job.job_type = JobType::Update;
-            let _ = self.own_sender.send(ServiceWorkerMsg::ScheduleJob(job));
+                )),
+            ))
+            .is_err()
+        {
+            warn!("Failed to send resolve job promise result to script.");
         }
+
+        // Step 17: Run the Update Registration State algorithm passing registration,
+        // "waiting" and registration’s installing worker as the arguments.
+        registration.update_registration_state(RegistrationUpdateTarget::Waiting, Some(new_worker));
+
+        // Step 18: Run the Update Registration State algorithm passing registration, "installing" and null as the arguments.
+        // TODO: registration.update_registration_state(RegistrationUpdateTarget::Installing, None);
+        // Note: commenting out for now, because it causes errors in tests,
+        // probably because we are still lacking functionality elsewhere.
+
+        // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.
+        // TODO: queue tasks above and wait for them to execute.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#update>
     fn handle_update_job(&mut self, job: Job) {
         // Step 1: Get registation
-        if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
-            // Step 3.
-            let newest_worker = registration.get_newest_worker();
+        let (job, new_worker) =
+            if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
+                // Step 3.
+                let newest_worker = registration.get_newest_worker();
 
-            // Step 4.
-            if let Some(worker) = newest_worker &&
-                worker.script_url != job.script_url
-            {
-                let _ = job
-                    .client
-                    .send(JobResult::RejectPromise(JobError::TypeError));
+                // Step 4.
+                if let Some(worker) = newest_worker &&
+                    worker.script_url != job.script_url
+                {
+                    let _ = job.client.send(ServiceWorkerAlgorithmResult::Job(
+                        JobResult::RejectPromise(JobError::TypeError),
+                    ));
+                    return;
+                }
+
+                let scope_things = job
+                    .scope_things
+                    .clone()
+                    .expect("Update job should have scope things.");
+
+                // Very roughly steps 5 to 18.
+                // TODO: implement all steps precisely.
+                let (new_worker, join_handle, control_sender, context, closing) =
+                    update_serviceworker(
+                        self.own_sender.clone(),
+                        job.scope_url.clone(),
+                        scope_things,
+                        self.font_context.clone(),
+                    );
+
+                // Since we've just started the worker thread, ensure we can shut it down later.
+                registration.note_worker_thread(join_handle, control_sender, context, closing);
+
+                (job, new_worker)
+            } else {
+                // Step 2
+                let _ =
+                    job.client
+                        .send(ServiceWorkerAlgorithmResult::Job(JobResult::RejectPromise(
+                            JobError::TypeError,
+                        )));
                 return;
-            }
-
-            let scope_things = job
-                .scope_things
-                .clone()
-                .expect("Update job should have scope things.");
-
-            // Very roughly steps 5 to 18.
-            // TODO: implement all steps precisely.
-            let (new_worker, join_handle, control_sender, context, closing) = update_serviceworker(
-                self.own_sender.clone(),
-                job.scope_url.clone(),
-                scope_things,
-                self.font_context.clone(),
-            );
-
-            // Since we've just started the worker thread, ensure we can shut it down later.
-            registration.note_worker_thread(join_handle, control_sender, context, closing);
-
-            // Step 19, run Install.
-
-            // Install: Step 4, run Update Registration State.
-            registration
-                .update_registration_state(RegistrationUpdateTarget::Installing, new_worker);
-
-            // Install: Step 7, run Resolve Job Promise.
-            let client = job.client.clone();
-            let _ = client.send(JobResult::ResolvePromise(
-                job,
-                JobResultValue::Registration {
-                    id: registration.id,
-                    installing_worker: registration
-                        .installing_worker
-                        .as_ref()
-                        .map(|worker| worker.id),
-                    waiting_worker: registration.waiting_worker.as_ref().map(|worker| worker.id),
-                    active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
-                },
-            ));
-        } else {
-            // Step 2
-            let _ = job
-                .client
-                .send(JobResult::RejectPromise(JobError::TypeError));
-        }
+            };
+        // Step 17: Else, invoke Install algorithm with job, worker, and registration as its arguments.
+        self.install(job, new_worker);
     }
 }
 
@@ -505,6 +763,7 @@ fn update_serviceworker(
         context_sender,
         closing.clone(),
         font_context,
+        worker_id,
     );
 
     let context = context_receiver
@@ -528,7 +787,6 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             resource_threads,
             own_sender,
             receiver,
-            swmanager_sender: constellation_sender,
             system_font_service_sender,
             paint_api,
         } = sw_senders;
@@ -546,14 +804,8 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         ));
 
         let swmanager_thread = move || {
-            ServiceWorkerManager::new(
-                own_sender,
-                from_constellation,
-                resource_port,
-                constellation_sender,
-                font_context,
-            )
-            .handle_message()
+            ServiceWorkerManager::new(own_sender, from_constellation, resource_port, font_context)
+                .handle_message()
         };
         if thread::Builder::new()
             .name("SvcWorkerManager".to_owned())

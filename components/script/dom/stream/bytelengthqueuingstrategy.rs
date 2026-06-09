@@ -16,10 +16,10 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
+use crate::dom::bindings::conversions::get_property_jsval;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::types::GlobalScope;
 use crate::native_fn;
 use crate::script_runtime::CanGc;
@@ -88,10 +88,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
 #[expect(unsafe_code)]
-pub(crate) fn byte_length_queuing_strategy_size(
-    cx: &mut js::context::JSContext,
-    args: CallArgs,
-) -> bool {
+fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: CallArgs) -> bool {
     // Step 1. Let steps be the following steps, given chunk:
     // Step 1.1. Return ? GetV(chunk, "byteLength").
     let chunk = unsafe { HandleValue::from_raw(args.get(0)) };
@@ -118,20 +115,8 @@ pub(crate) fn byte_length_queuing_strategy_size(
     rooted!(&in(cx) let object = chunk.to_object());
 
     // Return ? O.[[Get]](P, V).
-    match unsafe {
-        get_dictionary_property(
-            cx.raw_cx(),
-            object.handle(),
-            c"byteLength",
-            MutableHandleValue::from_raw(args.rval()),
-            CanGc::from_cx(cx),
-        )
-    } {
-        Ok(true) => true,
-        Ok(false) => {
-            args.rval().set(UndefinedValue());
-            true
-        },
-        Err(()) => false,
-    }
+    get_property_jsval(cx, object.handle(), c"byteLength", unsafe {
+        MutableHandleValue::from_raw(args.rval())
+    })
+    .is_ok()
 }

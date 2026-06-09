@@ -145,13 +145,17 @@ jobs:
           cat C:\init\incremental_build_debug.txt
           echo "`$env:LIBCLANG_PATH now = $env:LIBCLANG_PATH"
           echo "`$env:PATH now = $env:PATH"
-
       - name: Build (${{ inputs.profile }})
         env:
           RUSTFLAGS: "-D warnings"
         run: |
           .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           mv C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows
+      - name: Build with vello backend (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: "-D warnings"
+        run: |
+          .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }} --feature vello
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
         if: ${{ runner.environment != 'self-hosted' && startsWith(github.workspace, 'D:\') }}
@@ -167,6 +171,11 @@ jobs:
       - name: Install cargo nextest (self-hosted)
         if: ${{ runner.environment == 'self-hosted' && inputs.unit-tests }}
         run: cargo install cargo-nextest --locked
+      # On self-hosted windows runners sometimes OOM for Unit tests
+      - name: Set CARGO_BUILD_JOBS for self-hosted runner
+        if: ${{ runner.environment == 'self-hosted' }}
+        shell: bash
+        run: echo "CARGO_BUILD_JOBS=-2" >> $GITHUB_ENV
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         id: run_unit_tests
@@ -179,7 +188,7 @@ jobs:
         # if unit-tests were supposed to run, and not if they were skipped (e.g., due
         # to an earlier failure).
         if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           report_type: test_results
           files: target/nextest/ci/junit.xml
@@ -246,13 +255,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

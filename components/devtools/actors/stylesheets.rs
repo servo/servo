@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -10,7 +12,7 @@ use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSender;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::long_string::{LongStringActor, LongStringObj};
 use crate::protocol::ClientRequest;
@@ -74,8 +76,8 @@ pub(crate) struct StyleSheetsActor {
 }
 
 impl Actor for StyleSheetsActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
     fn handle_message(
         &self,
@@ -91,7 +93,7 @@ impl Actor for StyleSheetsActor {
             "getStyleSheets" => {
                 let style_sheets = self.get_stylesheets_data(&browsing_context_actor);
                 let msg = GetStyleSheetsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     style_sheets,
                 };
                 request.reply_final(&msg)?
@@ -120,10 +122,9 @@ impl Actor for StyleSheetsActor {
                         warn!("Stylesheet fetched without text content");
                         "Error fetching CSS text".to_string()
                     });
-                let long_string_name = LongStringActor::register(registry, css_text);
-                let long_string_actor = registry.find::<LongStringActor>(&long_string_name);
+                let long_string_actor = LongStringActor::register(registry, css_text);
                 let msg = GetTextReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     text: long_string_actor.long_string_obj(),
                 };
                 request.reply_final(&msg)?
@@ -139,15 +140,14 @@ impl StyleSheetsActor {
         registry: &ActorRegistry,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: String,
-    ) -> String {
-        let name = registry.new_name::<Self>();
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = StyleSheetsActor {
-            name: name.clone(),
+            name,
             script_sender,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn get_stylesheets_data(
@@ -162,27 +162,22 @@ impl StyleSheetsActor {
                 tx,
             ));
         let style_sheets = rx.recv().unwrap();
+        let url = browsing_context_actor.url();
+        let browsing_context_id = browsing_context_actor.browsing_context_id.value();
         style_sheets
             .into_iter()
             .map(|info| StyleSheetData {
-                resource_id: format!(
-                    "{}-{}",
-                    browsing_context_actor.browsing_context_id.value(),
-                    info.style_sheet_index
-                ),
-                browsing_context_id: browsing_context_actor.browsing_context_id.value(),
+                resource_id: format!("{}-{}", browsing_context_id, info.style_sheet_index),
+                browsing_context_id,
                 href: info.href.clone(),
-                node_href: browsing_context_actor.url.borrow().clone(),
+                node_href: url.clone(),
                 disabled: info.disabled,
                 title: (!info.title.is_empty()).then_some(info.title),
                 system: info.system,
                 is_new: false,
                 file_name: None,
                 source_map_url: Some("".to_string()),
-                source_map_base_url: Some(
-                    info.href
-                        .unwrap_or_else(|| browsing_context_actor.url.borrow().clone()),
-                ),
+                source_map_base_url: Some(info.href.unwrap_or_else(|| url.clone())),
                 style_sheet_index: info.style_sheet_index,
                 constructed: false,
                 rule_count: info.rule_count,

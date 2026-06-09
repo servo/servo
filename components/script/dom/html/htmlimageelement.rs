@@ -71,11 +71,10 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlmapelement::HTMLMapElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
-};
+use crate::dom::node::{BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -637,13 +636,13 @@ impl HTMLImageElement {
 
         // Step 2. If srcset is not an empty string, then set source set to the result of parsing
         // srcset.
-        if let Some(srcset) = element.get_attribute(&local_name!("srcset")) {
-            source_set.image_sources = parse_a_srcset_attribute(&srcset.value());
+        if let Some(srcset) = element.get_attribute_string_value(&local_name!("srcset")) {
+            source_set.image_sources = parse_a_srcset_attribute(&srcset);
         }
 
         // Step 3. Set source set's source size to the result of parsing sizes with img.
-        if let Some(sizes) = element.get_attribute(&local_name!("sizes")) {
-            source_set.source_size = parse_a_sizes_attribute(&sizes.value());
+        if let Some(sizes) = element.get_attribute_string_value(&local_name!("sizes")) {
+            source_set.source_size = parse_a_sizes_attribute(&sizes);
         }
 
         // Step 4. If default source is not the empty string and source set does not contain an
@@ -660,7 +659,7 @@ impl HTMLImageElement {
             .all(|source| source.descriptor.width.is_none());
         if !src.is_empty() && no_density_source_of_1 && no_width_descriptor {
             source_set.image_sources.push(ImageSource {
-                url: src.to_string(),
+                url: String::from(src),
                 descriptor: Descriptor {
                     width: None,
                     density: None,
@@ -722,9 +721,9 @@ impl HTMLImageElement {
             // Step 5.3. If child does not have a srcset attribute, continue to the next child.
             // Step 5.4. Parse child's srcset attribute and let source set be the returned source
             // set.
-            match element.get_attribute(&local_name!("srcset")) {
+            match element.get_attribute_string_value(&local_name!("srcset")) {
                 Some(srcset) => {
-                    source_set.image_sources = parse_a_srcset_attribute(&srcset.value());
+                    source_set.image_sources = parse_a_srcset_attribute(&srcset);
                 },
                 _ => continue,
             }
@@ -736,30 +735,30 @@ impl HTMLImageElement {
 
             // Step 5.6. If child has a media attribute, and its value does not match the
             // environment, continue to the next child.
-            if let Some(media) = element.get_attribute(&local_name!("media")) &&
-                !MediaList::matches_environment(&element.owner_document(), &media.value())
+            if let Some(media) = element.get_attribute_string_value(&local_name!("media")) &&
+                !MediaList::matches_environment(&element.owner_document(), &media)
             {
                 continue;
             }
 
             // Step 5.7. Parse child's sizes attribute with img, and let source set's source size be
             // the returned value.
-            if let Some(sizes) = element.get_attribute(&local_name!("sizes")) {
-                source_set.source_size = parse_a_sizes_attribute(&sizes.value());
+            if let Some(sizes) = element.get_attribute_string_value(&local_name!("sizes")) {
+                source_set.source_size = parse_a_sizes_attribute(&sizes);
             }
 
             // Step 5.8. If child has a type attribute, and its value is an unknown or unsupported
             // MIME type, continue to the next child.
-            if let Some(type_) = element.get_attribute(&local_name!("type")) &&
-                !is_supported_image_mime_type(&type_.value())
+            if let Some(type_) = element.get_attribute_string_value(&local_name!("type")) &&
+                !is_supported_image_mime_type(&type_)
             {
                 continue;
             }
 
             // Step 5.9. If child has width or height attributes, set el's dimension attribute
             // source to child. Otherwise, set el's dimension attribute source to el.
-            if element.get_attribute(&local_name!("width")).is_some() ||
-                element.get_attribute(&local_name!("height")).is_some()
+            if element.has_attribute(&local_name!("width")) ||
+                element.has_attribute(&local_name!("height"))
             {
                 self.dimension_attribute_source.set(Some(element));
             } else {
@@ -1117,7 +1116,7 @@ impl HTMLImageElement {
             .get_string_attribute(&local_name!("src"));
 
         if !self.uses_srcset_or_picture() && !src.is_empty() {
-            selected_source = Some(USVString(src.to_string()));
+            selected_source = Some(USVString(String::from(src)));
             selected_pixel_density = Some(1_f64);
         };
 
@@ -1391,7 +1390,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(&(), CanGc::from_cx(cx));
+                    trusted_promise.root().resolve_native_with_cx(cx, &());
                 }
             }));
     }
@@ -1418,7 +1417,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::from_cx(cx));
+                    trusted_promise.root().reject_error_with_cx(cx, Error::Encoding(None));
                 }
             }));
     }
@@ -1554,9 +1553,7 @@ impl HTMLImageElement {
 
     pub(crate) fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
-        let usemap_attr = elem.get_attribute(&local_name!("usemap"))?;
-
-        let value = usemap_attr.value();
+        let value = elem.get_attribute_string_value(&local_name!("usemap"))?;
 
         if value.is_empty() || !value.is_char_boundary(1) {
             return None;

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2036130">
+<rect fill="red" id="svg-rect0" width="50"></rect>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const a = document.getElementById('svg-rect0').animate([{
+    transform: "perspective(500px) rotateX(45deg)",
+  }], { });
+  a.updatePlaybackRate(0);
+  a.timeline = new ScrollTimeline({source: document.getElementById('x')});
+  // The crash happens during a restyle that flushes layer changes for the
+  // animation. The reftest TYPE_LOAD harness doesn't tick rAFs after load, so
+  // without reftest-wait + two rAFs we finish the test before the restyle that
+  // would exercise the compositor path runs.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+});
+</script>

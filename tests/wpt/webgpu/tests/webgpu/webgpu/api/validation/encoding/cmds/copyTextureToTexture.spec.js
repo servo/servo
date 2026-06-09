@@ -4,6 +4,7 @@
 copyTextureToTexture tests.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kTextureUsages, kTextureDimensions } from '../../../../capability_info.js';
+import { GPUConst } from '../../../../constants.js';
 import {
   kAllTextureFormats,
   kCompressedTextureFormats,
@@ -215,7 +216,14 @@ Test that copyTextureToTexture source/destination need COPY_SRC/COPY_DST usages.
 paramsSubcasesOnly((u) =>
 u //
 .combine('srcUsage', kTextureUsages).
-combine('dstUsage', kTextureUsages)
+combine('dstUsage', kTextureUsages).
+unless(({ srcUsage, dstUsage }) => {
+  // TRANSIENT_ATTACHMENT is only valid when combined with RENDER_ATTACHMENT.
+  return (
+    srcUsage === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT ||
+    dstUsage === GPUConst.TextureUsage.TRANSIENT_ATTACHMENT);
+
+})
 ).
 fn((t) => {
   const { srcUsage, dstUsage } = t.params;

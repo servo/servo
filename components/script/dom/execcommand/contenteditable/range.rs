@@ -15,7 +15,8 @@ use crate::dom::execcommand::basecommand::{
 };
 use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
 use crate::dom::html::htmllielement::HTMLLIElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
@@ -110,7 +111,7 @@ impl Range {
         // Step 2. If some inclusive ancestor of start node is an li,
         // set start offset to the index of the last such li in tree order, and set start node to that li's parent.
         if let Some(li_ancestor) = start_node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors_unrooted(cx.no_gc(), ShadowIncluding::No)
             .find(|ancestor| ancestor.is::<HTMLLIElement>())
         {
             start_offset = li_ancestor.index();
@@ -149,7 +150,7 @@ impl Range {
         // set end offset to one plus the index of the last such li in tree order,
         // and set end node to that li's parent.
         if let Some(li_ancestor) = end_node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors_unrooted(cx.no_gc(), ShadowIncluding::No)
             .find(|ancestor| ancestor.is::<HTMLLIElement>())
         {
             end_offset = 1 + li_ancestor.index();

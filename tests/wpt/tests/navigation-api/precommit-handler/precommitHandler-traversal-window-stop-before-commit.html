@@ -17,24 +17,20 @@ promise_test(async t => {
   assert_equals(navigation.entries().length, start_length + 2);
   assert_equals(navigation.currentEntry.index, start_index + 2);
 
-  let stopped_first_traverse = false;
   navigation.onnavigate = t.step_func(e => {
-    if (!stopped_first_traverse) {
-      stopped_first_traverse = true;
-      t.step_timeout(() => window.stop(), 0);
-    }
+    t.step_timeout(() => window.stop(), 0);
     e.intercept({ precommitHandler: () => new Promise(r => t.step_timeout(r, 10)) });
   });
 
-  let navigatesuccess_called = false;
   let navigateerror_called = false;
-  navigation.onnavigatesuccess = t.step_func(() => {
-    navigatesuccess_called = true;
-    assert_equals(location.hash, "#1");
-  });
   navigation.onnavigateerror = t.step_func(() => {
     navigateerror_called = true;
     assert_equals(location.hash, "#2");
+  })
+  let navigatesuccess_called = false;
+  navigation.onnavigatesuccess = t.step_func(() => {
+    navigatesuccess_called = true;
+    assert_equals(location.hash, "#1");
   });
 
   await assertBothRejectDOM(t, navigation.back(), "AbortError");
@@ -42,15 +38,6 @@ promise_test(async t => {
   assert_equals(navigation.currentEntry.index, start_index + 2);
   assert_equals(location.hash, "#2");
   assert_true(navigateerror_called);
-  assert_false(navigatesuccess_called);
-
-  // Ensure navigation.entries() remains in sync with the session history in
-  // spite of the window.stop(), and navigation.back() does not skip over #1.
-  await navigation.back().finished;
-
-  assert_equals(navigation.currentEntry.index, start_index + 1);
-  assert_equals(location.hash, "#1");
-  assert_true(navigatesuccess_called);
-}, " precommitHandler traverse with window.stop() before commit");
+}, "precommitHandler traversal is not aborted by window.stop() before commit");
 </script>
 </body>

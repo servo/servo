@@ -105,3 +105,35 @@ directory_test(async (t, root_dir) => {
       await file_handle.isSameEntry(dir_handle),
       'a file and directory handle pointing at the same path should not be considered the same entry');
 }, 'isSameEntry comparing a file to a directory of the same path returns false');
+
+async function clone_handle_via_message_channel(handle) {
+  const channel = new MessageChannel();
+  return new Promise((resolve, reject) => {
+    channel.port2.onmessage = event => resolve(event.data);
+    channel.port2.onmessageerror = () => reject(new Error('messageerror'));
+    channel.port1.postMessage(handle);
+  });
+}
+
+directory_test(async (t, root_dir) => {
+  const handle = await createEmptyFile('mtime.txt', root_dir);
+  const cloned = await clone_handle_via_message_channel(handle);
+
+  assert_true(await handle.isSameEntry(cloned));
+  assert_true(await cloned.isSameEntry(handle));
+}, 'isSameEntry with a file handle that was just cloned via postMessage');
+
+directory_test(async (t, root_dir) => {
+  const subdir = await createDirectory('subdir-name', root_dir);
+  const cloned = await clone_handle_via_message_channel(subdir);
+
+  assert_true(await subdir.isSameEntry(cloned));
+  assert_true(await cloned.isSameEntry(subdir));
+}, 'isSameEntry with a directory handle that was just cloned via postMessage');
+
+directory_test(async (t, root_dir) => {
+  const cloned = await clone_handle_via_message_channel(root_dir);
+
+  assert_true(await root_dir.isSameEntry(cloned));
+  assert_true(await cloned.isSameEntry(root_dir));
+}, 'isSameEntry with a root directory handle that was just cloned via postMessage');

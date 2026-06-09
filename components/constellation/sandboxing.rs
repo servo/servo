@@ -13,7 +13,9 @@ use std::{env, process};
         not(target_os = "android"),
         not(target_env = "ohos"),
         not(target_arch = "arm"),
-        not(target_arch = "aarch64")
+        not(target_arch = "aarch64"),
+        not(target_arch = "riscv32"),
+        not(target_arch = "riscv64")
     )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
@@ -99,7 +101,9 @@ pub fn content_process_sandbox_profile() -> Profile {
     not(target_os = "android"),
     not(target_env = "ohos"),
     not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+    not(target_arch = "aarch64"),
+    not(target_arch = "riscv32"),
+    not(target_arch = "riscv64")
 ))]
 pub fn content_process_sandbox_profile() -> Profile {
     use std::path::PathBuf;
@@ -130,6 +134,8 @@ pub fn content_process_sandbox_profile() -> Profile {
     target_os = "android",
     target_env = "ohos",
     target_arch = "arm",
+    target_arch = "riscv32",
+    target_arch = "riscv64",
 
     // exclude apple arm devices
     all(target_arch = "aarch64", not(target_os = "macos"))
@@ -144,7 +150,9 @@ pub fn content_process_sandbox_profile() {
     target_os = "android",
     target_env = "ohos",
     target_arch = "arm",
-    target_arch = "aarch64"
+    target_arch = "aarch64",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
@@ -175,7 +183,9 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     not(target_os = "android"),
     not(target_env = "ohos"),
     not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+    not(target_arch = "aarch64"),
+    not(target_arch = "riscv32"),
+    not(target_arch = "riscv64")
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};

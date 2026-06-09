@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+  <link rel="match" href="alignment-baseline-vertical-rl-001-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="alignment-baseline on horizontal text with the same baseline set as its parent has no effect" />
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=baseline">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    .baseline     #target { alignment-baseline: baseline; }
+    .text-bottom  #target { alignment-baseline: text-bottom; }
+    .alphabetic   #target { alignment-baseline: alphabetic; }
+    .ideographic  #target { alignment-baseline: ideographic; }
+    .middle       #target { alignment-baseline: middle; }
+    .central      #target { alignment-baseline: central; }
+    .mathematical #target { alignment-baseline: mathematical; }
+    .hanging      #target { alignment-baseline: hanging; }
+    .text-top     #target { alignment-baseline: text-top; }
+  </style>
+</head>
+<body>
+  <span id="container" style="font: 200px/1 'BaselineDiagnostic'; writing-mode: vertical-rl;">X<span id="target">X</span></span>
+</body>
+</html>

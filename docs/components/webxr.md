@@ -3,4 +3,4 @@
 Moved to the Servo book:
 
 - Servo’s architecture
-  - [WebXR](https://book.servo.org/architecture/webxr.html)
+  - [WebXR](https://book.servo.org/design-documentation/webxr.html)

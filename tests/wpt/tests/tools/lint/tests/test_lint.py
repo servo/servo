@@ -5,6 +5,8 @@ import os
 import sys
 from unittest import mock
 
+import pytest
+
 from ...localpaths import repo_root
 from .. import lint as lint_mod
 from ..lint import filter_ignorelist_errors, parse_ignorelist, lint, create_parser
@@ -438,3 +440,33 @@ def test_main_all():
                 m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", None, None, 0)
     finally:
         sys.argv = orig_argv
+
+
+
+def test_run_main_no_errors_returns():
+    with mock.patch.object(lint_mod, 'main', return_value=0):
+        lint_mod._run_main(['--all'])  # should not raise
+
+
+def test_run_main_errors_exits_1():
+    with mock.patch.object(lint_mod, 'main', return_value=5):
+        with pytest.raises(SystemExit) as exc_info:
+            lint_mod._run_main(['--all'])
+    assert exc_info.value.code == 1
+
+
+def test_run_main_argument_error_exits_2():
+    with pytest.raises(SystemExit) as exc_info:
+        lint_mod._run_main(['--json', '--markdown'])
+    assert exc_info.value.code == 2
+
+
+def test_run_main_exception_exits_3(capsys):
+    with mock.patch.object(lint_mod, 'main', side_effect=RuntimeError('simulated crash')):
+        with pytest.raises(SystemExit) as exc_info:
+            lint_mod._run_main(['--all'])
+    assert exc_info.value.code == 3
+
+    captured = capsys.readouterr()
+    assert 'Traceback (most recent call last):' in captured.err
+    assert 'RuntimeError: simulated crash' in captured.err

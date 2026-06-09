@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
@@ -12,12 +13,13 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::GenericSender;
 
 use super::source::{SourceManager, SourcesReply};
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
 use crate::generic_channel::channel;
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -120,23 +122,22 @@ impl ThreadActor {
         registry: &ActorRegistry,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: Option<String>,
-    ) -> String {
-        let name = registry.new_name::<Self>();
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = ThreadActor {
-            name: name.clone(),
+            name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
 impl Actor for ThreadActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -149,11 +150,11 @@ impl Actor for ThreadActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "attach" => {
-                let pause_name = PauseActor::register(registry);
+                let pause_actor = PauseActor::register(registry);
                 let msg = ThreadAttached {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "paused".to_owned(),
-                    actor: pause_name,
+                    actor: pause_actor.name().into(),
                     frame: 0,
                     error: 0,
                     recording_endpoint: 0,
@@ -165,7 +166,9 @@ impl Actor for ThreadActor {
                     },
                 };
                 request.write_json_packet(&msg)?;
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             "resume" => {
@@ -178,11 +181,13 @@ impl Actor for ThreadActor {
                 ));
 
                 let msg = ThreadResumedReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "resumed".to_owned(),
                 };
                 request.write_json_packet(&msg)?;
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             "interrupt" => {
@@ -190,15 +195,19 @@ impl Actor for ThreadActor {
                     .send(DevtoolScriptControlMsg::Interrupt)
                     .map_err(|_| ActorError::Internal)?;
 
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
-            "reconfigure" => request.reply_final(&EmptyReplyMsg { from: self.name() })?,
+            "reconfigure" => request.reply_final(&EmptyReplyMsg {
+                from: self.name().into(),
+            })?,
 
             "getAvailableEventBreakpoints" => {
                 // TODO: Send list of available event breakpoints (animation, clipboard, load...)
                 let msg = GetAvailableEventBreakpointsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: vec![],
                 };
                 request.reply_final(&msg)?
@@ -208,7 +217,7 @@ impl Actor for ThreadActor {
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     sources: self.source_manager.source_forms(registry),
                 };
                 request.reply_final(&msg)?
@@ -240,7 +249,7 @@ impl Actor for ThreadActor {
                 // Frame actors should be registered here
                 // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     frames: result
                         .iter()
                         .map(|frame_name| registry.encode::<FrameActor, _>(frame_name))

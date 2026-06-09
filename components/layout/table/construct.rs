@@ -70,8 +70,26 @@ impl AnonymousTableContent<'_> {
         }
     }
 
-    fn contents_are_whitespace_only(contents: &[Self]) -> bool {
-        contents.iter().all(|content| content.is_whitespace_only())
+    // If all contents are whitespace only, it removes them except for unclosed
+    // EnterDisplayContents, and returns true. Otherwise, it returns false.
+    fn remove_whitespace_only(contents: &mut Vec<Self>) -> bool {
+        if !contents.iter().all(Self::is_whitespace_only) {
+            return false;
+        }
+        let mut enter_display_contents = vec![];
+        for content in contents.drain(..) {
+            match content {
+                AnonymousTableContent::EnterDisplayContents(_) => {
+                    enter_display_contents.push(content);
+                },
+                AnonymousTableContent::LeaveDisplayContents => {
+                    enter_display_contents.pop();
+                },
+                _ => {},
+            }
+        }
+        std::mem::swap(contents, &mut enter_display_contents);
+        true
     }
 }
 
@@ -692,12 +710,9 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
     }
 
     fn finish_anonymous_row_if_needed(&mut self) {
-        if AnonymousTableContent::contents_are_whitespace_only(&self.current_anonymous_row_content)
-        {
-            self.current_anonymous_row_content.clear();
+        if AnonymousTableContent::remove_whitespace_only(&mut self.current_anonymous_row_content) {
             return;
         }
-
         let row_content = std::mem::take(&mut self.current_anonymous_row_content);
         let anonymous_info = self
             .info
@@ -706,6 +721,7 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
         let mut row_builder =
             TableRowBuilder::new(self, &anonymous_info, self.current_propagated_data);
 
+        let mut enter_display_contents = vec![];
         for cell_content in row_content {
             match cell_content {
                 AnonymousTableContent::Element {
@@ -719,14 +735,18 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
                 AnonymousTableContent::Text(info, text) => {
                     row_builder.handle_text(&info, text);
                 },
-                AnonymousTableContent::EnterDisplayContents(styles) => {
-                    row_builder.enter_display_contents(styles)
+                AnonymousTableContent::EnterDisplayContents(ref styles) => {
+                    row_builder.enter_display_contents(styles.clone());
+                    enter_display_contents.push(cell_content);
                 },
-                AnonymousTableContent::LeaveDisplayContents => row_builder.leave_display_contents(),
+                AnonymousTableContent::LeaveDisplayContents => {
+                    row_builder.leave_display_contents();
+                    enter_display_contents.pop();
+                },
             }
         }
-
         row_builder.finish();
+        self.current_anonymous_row_content = enter_display_contents;
 
         let style = anonymous_info.style.clone();
         let table_row = ArcRefCell::new(TableTrack {
@@ -980,9 +1000,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
     }
 
     fn finish_anonymous_row_if_needed(&mut self) {
-        if AnonymousTableContent::contents_are_whitespace_only(&self.current_anonymous_row_content)
-        {
-            self.current_anonymous_row_content.clear();
+        if AnonymousTableContent::remove_whitespace_only(&mut self.current_anonymous_row_content) {
             return;
         }
 
@@ -998,6 +1016,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
         let mut row_builder =
             TableRowBuilder::new(self.table_traversal, &anonymous_info, self.propagated_data);
 
+        let mut enter_display_contents = vec![];
         for cell_content in row_content {
             match cell_content {
                 AnonymousTableContent::Element {
@@ -1011,12 +1030,17 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
                 AnonymousTableContent::Text(info, text) => {
                     row_builder.handle_text(&info, text);
                 },
-                AnonymousTableContent::EnterDisplayContents(styles) => {
-                    row_builder.enter_display_contents(styles)
+                AnonymousTableContent::EnterDisplayContents(ref styles) => {
+                    row_builder.enter_display_contents(styles.clone());
+                    enter_display_contents.push(cell_content);
                 },
-                AnonymousTableContent::LeaveDisplayContents => row_builder.leave_display_contents(),
+                AnonymousTableContent::LeaveDisplayContents => {
+                    row_builder.leave_display_contents();
+                    enter_display_contents.pop();
+                },
             }
         }
+        self.current_anonymous_row_content = enter_display_contents;
 
         row_builder.finish();
 
@@ -1131,9 +1155,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
     }
 
     fn finish_current_anonymous_cell_if_needed(&mut self) {
-        if AnonymousTableContent::contents_are_whitespace_only(&self.current_anonymous_cell_content)
-        {
-            self.current_anonymous_cell_content.clear();
+        if AnonymousTableContent::remove_whitespace_only(&mut self.current_anonymous_cell_content) {
             return;
         }
 
@@ -1145,6 +1167,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
         let propagated_data = self.propagated_data.disallowing_percentage_table_columns();
         let mut builder = BlockContainerBuilder::new(context, &anonymous_info, propagated_data);
 
+        let mut enter_display_contents = vec![];
         for cell_content in self.current_anonymous_cell_content.drain(..) {
             match cell_content {
                 AnonymousTableContent::Element {
@@ -1158,12 +1181,17 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                 AnonymousTableContent::Text(info, text) => {
                     builder.handle_text(&info, text);
                 },
-                AnonymousTableContent::EnterDisplayContents(styles) => {
-                    builder.enter_display_contents(styles)
+                AnonymousTableContent::EnterDisplayContents(ref styles) => {
+                    builder.enter_display_contents(styles.clone());
+                    enter_display_contents.push(cell_content);
                 },
-                AnonymousTableContent::LeaveDisplayContents => builder.leave_display_contents(),
+                AnonymousTableContent::LeaveDisplayContents => {
+                    builder.leave_display_contents();
+                    enter_display_contents.pop();
+                },
             }
         }
+        self.current_anonymous_cell_content = enter_display_contents;
 
         let block_container = builder.finish();
         let new_table_cell = ArcRefCell::new(TableSlotCell {

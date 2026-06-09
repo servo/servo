@@ -60,10 +60,10 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::input_element::input_type::InputType;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, ShadowIncluding, UnbindContext,
-    from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
 };
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;
@@ -167,10 +167,8 @@ impl HTMLElement {
         // a string consisting of only ASCII whitespace, or is a media query list that
         // matches the user's environment according to the definitions given in Media Queries. [MQ]
         self.element
-            .get_attribute(&local_name!("media"))
-            .is_none_or(|media| {
-                MediaList::matches_environment(&self.owner_document(), &media.value())
-            })
+            .get_attribute_string_value(&local_name!("media"))
+            .is_none_or(|media| MediaList::matches_environment(&self.owner_document(), &media))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#editing-host>
@@ -184,15 +182,15 @@ impl HTMLElement {
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
-    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, cx: &mut JSContext) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = self.owner_window();
             CSSStyleDeclaration::new(
+                cx,
                 &global,
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
-                can_gc,
             )
         })
     }
@@ -755,7 +753,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(value.to_string())
+            .update_nonce_internal_slot(String::from(value))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -795,10 +793,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return Default::default();
         }
 
-        let access_key_string = self
-            .element
-            .get_string_attribute(&local_name!("accesskey"))
-            .to_string();
+        let access_key_string =
+            String::from(self.element.get_string_attribute(&local_name!("accesskey")));
 
         #[cfg(target_os = "macos")]
         let access_key_label = format!("⌃⌥{access_key_string}");
@@ -1133,7 +1129,7 @@ impl HTMLElement {
         let node_chars = node.downcast::<CharacterData>().expect("Node is Text");
         let next_chars = next.downcast::<CharacterData>().expect("Next node is Text");
         node_chars
-            .ReplaceData(node_chars.Length(), 0, next_chars.Data())
+            .ReplaceData(cx, node_chars.Length(), 0, next_chars.Data())
             .expect("Got chars from Text");
 
         // Step 4:Remove next.
@@ -1213,37 +1209,11 @@ impl VirtualMethods for HTMLElement {
             .attribute_mutated(cx, attr, mutation);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
-            // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
-            (name, mutation)
-                if name.starts_with("on") && EventTarget::is_content_event_handler(name) =>
-            {
-                let evtarget = self.upcast::<EventTarget>();
-                let event_name = &name[2..];
-                match mutation {
-                    // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
-                    AttributeMutation::Set(..) => {
-                        let source = &**attr.value();
-                        let source_line = 1; // TODO(#9604) get current JS execution line
-                        evtarget.set_event_handler_uncompiled(
-                            self.owner_window().get_url(),
-                            source_line,
-                            event_name,
-                            source,
-                        );
-                    },
-                    // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
-                    AttributeMutation::Removed => {
-                        evtarget
-                            .set_event_handler_common::<EventHandlerNonNull>(cx, event_name, None);
-                    },
-                }
-            },
-
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             // Adding a "disabled" attribute disables an enabled form element.
             (&local_name!("disabled"), AttributeMutation::Set(..))

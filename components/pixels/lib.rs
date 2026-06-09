@@ -6,6 +6,7 @@ mod snapshot;
 
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,6 +16,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
+use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
@@ -241,17 +243,16 @@ pub enum EncodedImageType {
     Webp,
 }
 
-impl From<String> for EncodedImageType {
+impl From<&str> for EncodedImageType {
     // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
     // User agents must support PNG ("image/png"). User agents may support other
     // types. If the user agent does not support the requested type, then it
     // must create the file using the PNG format.
     // Anything different than image/jpeg or image/webp is thus treated as PNG.
-    fn from(mime_type: String) -> Self {
-        let mime = mime_type.to_lowercase();
-        if mime == "image/jpeg" {
+    fn from(mime_string: &str) -> Self {
+        if mime_string.eq_ignore_ascii_case("image/jpeg") {
             Self::Jpeg
-        } else if mime == "image/webp" {
+        } else if mime_string.eq_ignore_ascii_case("image/webp") {
             Self::Webp
         } else {
             Self::Png
@@ -281,6 +282,11 @@ pub enum CorsStatus {
     Unsafe,
 }
 
+#[derive(Clone, MallocSizeOf, PartialEq)]
+pub enum Repeat {
+    Infinite,
+    Finite(NonZeroU32),
+}
 /// A version of [`RasterImage`] that can be sent across IPC channels.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
@@ -306,6 +312,10 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
+    /// The loop count for this image's animation. For animated images, this
+    /// has a default value of `Repeat::Infinite` (if no loop count is specified in
+    /// the image).  For images that do not animate, this will be `None`.
+    pub loop_count: Option<Repeat>,
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
@@ -401,23 +411,29 @@ impl RasterImage {
         self.frames.get(index)
     }
 
+    /// Returns tuple containing three items:
+    ///   - An [`ImageDescriptor`] descriptor used to describe this image to WebRender
+    ///   - A [`GenericSharedMemory`] containing the image data
+    ///  - Whether or not this image should be cached in the `Painter` animating image cache.
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
-    ) -> (ImageDescriptor, GenericSharedMemory) {
+    ) -> (ImageDescriptor, GenericSharedMemory, bool) {
         let frame = self
             .frames
             .get(frame_index)
             .unwrap_or_else(|| panic!("Asked for a frame that did not exist: {frame_index:?}"));
 
-        let (format, data) = match self.format {
+        let (format, data, should_animate) = match self.format {
             PixelFormat::BGRA8 => (
                 WebRenderImageFormat::BGRA8,
-                GenericSharedMemory::from_bytes(&self.bytes),
+                GenericSharedMemory::from_arc_vec(self.bytes.clone()),
+                self.should_animate(),
             ),
             PixelFormat::RGBA8 => (
                 WebRenderImageFormat::RGBA8,
-                GenericSharedMemory::from_bytes(&self.bytes),
+                GenericSharedMemory::from_arc_vec(self.bytes.clone()),
+                self.should_animate(),
             ),
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
@@ -427,7 +443,11 @@ impl RasterImage {
                 }
                 (
                     WebRenderImageFormat::BGRA8,
-                    GenericSharedMemory::from_bytes(&bytes),
+                    GenericSharedMemory::from_vec(bytes),
+                    // As we are transforming each frame individually we cache all frames
+                    // in the painter and adjust the offset, therefore this image should not
+                    // be added to the Painter's image cache.
+                    false,
                 )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
@@ -445,7 +465,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, data)
+        (descriptor, data, should_animate)
     }
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
@@ -486,7 +506,7 @@ impl RasterImage {
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
-            bytes: Arc::new(GenericSharedMemory::from_bytes(&self.bytes)),
+            bytes: Arc::new(GenericSharedMemory::from_arc_vec(self.bytes.clone())),
             frames: self.frames.clone(),
             is_opaque: self.is_opaque,
         })
@@ -784,6 +804,7 @@ fn decode_static_image(
         id: None,
         cors_status,
         is_opaque,
+        loop_count: None,
     })
 }
 
@@ -803,6 +824,10 @@ where
     let mut frame_data = vec![];
     let mut total_number_of_bytes = 0;
     let mut is_opaque = true;
+    let loop_count = match animated_image_decoder.loop_count() {
+        LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
+        LoopCount::Infinite => Repeat::Infinite,
+    };
     let frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
@@ -860,6 +885,7 @@ where
         format: PixelFormat::RGBA8,
         bytes: Arc::new(bytes),
         is_opaque,
+        loop_count: Some(loop_count),
     })
 }
 

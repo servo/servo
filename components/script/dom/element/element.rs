@@ -53,7 +53,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, CSSFloat, GenericAtomIdent, computed, specified};
+use style::values::{AtomIdent, AtomString, CSSFloat, GenericAtomIdent, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -70,11 +70,14 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
     ElementMethods, GetHTMLOptions, ScrollIntoViewContainer, ScrollLogicalPosition, ShadowRootInit,
 };
+use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMethods, ShadowRootMode, SlotAssignmentMode,
 };
@@ -110,6 +113,7 @@ use crate::dom::element::attributes::storage::{
     AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
@@ -143,11 +147,12 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::input_element::HTMLInputElement;
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, Node, NodeDamage, NodeFlags,
-    NodeTraits, ShadowIncluding, UnbindContext,
+    NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -379,7 +384,7 @@ impl Element {
                 doc.note_node_with_dirty_descendants(self.upcast());
                 restyle
                     .damage
-                    .insert(LayoutDamage::descendant_has_box_damage());
+                    .insert(RestyleDamage::from(LayoutDamage::DescendantHasBoxDamage));
             },
             NodeDamage::Other => {
                 doc.note_node_with_dirty_descendants(self.upcast());
@@ -958,12 +963,12 @@ impl Element {
 
     pub(crate) fn ensure_contenteditable_selection_range(
         &self,
+        cx: &mut JSContext,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<Range> {
         self.ensure_rare_data()
             .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(document, None, can_gc))
+            .or_init(|| Range::new_with_doc(document, None, CanGc::from_cx(cx)))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
@@ -1354,8 +1359,7 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         // Aspect ratio when providing both width and height.
         // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
-        if (self.downcast::<HTMLImageElement>().is_some() ||
-            self.downcast::<HTMLVideoElement>().is_some()) &&
+        if (self.is::<HTMLImageElement>() || self.is::<HTMLVideoElement>()) &&
             let LengthOrPercentageOrAuto::Length(width) = width &&
             let LengthOrPercentageOrAuto::Length(height) = height
         {
@@ -1536,14 +1540,14 @@ impl<'dom> LayoutDom<'dom, Element> {
         None
     }
 
-    pub(crate) fn get_lang_for_layout(self) -> String {
+    pub(crate) fn get_lang_for_layout(self) -> AtomString {
         let mut current_node = Some(self.upcast::<Node>());
         while let Some(node) = current_node {
             current_node = node.composed_parent_node_ref();
             match node.downcast::<Element>() {
                 Some(elem) => {
                     if let Some(attr) = elem.get_lang_attr_val_for_layout() {
-                        return attr.to_owned();
+                        return AtomString::from(attr);
                     }
                 },
                 None => continue,
@@ -1551,7 +1555,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
         // TODO: Check meta tags for a pragma-set default language
         // TODO: Check HTTP Content-Language header
-        String::new()
+        AtomString::default()
     }
 
     #[inline]
@@ -1625,7 +1629,7 @@ impl<'dom> LayoutDom<'dom, Element> {
             return;
         };
 
-        let element_internals = unsafe { element_internals.to_layout() };
+        let element_internals: LayoutDom<'_, _> = unsafe { element_internals.to_layout() };
         if let Some(states) = element_internals.unsafe_get().custom_states_for_layout() {
             for state in unsafe { states.unsafe_get().set_for_layout().iter() } {
                 // FIXME: This creates new atoms whenever it is called, which is not optimal.
@@ -2030,6 +2034,24 @@ impl Element {
         self.handle_attribute_changes(cx, AttrRef::Dom(attr), None, Some(&*attr.value()), reason);
     }
 
+    pub(crate) fn with_attribute<R, F>(
+        &self,
+        namespace: &Namespace,
+        local_name: &LocalName,
+        map_func: F,
+    ) -> Option<R>
+    where
+        F: FnOnce(AttrRef<'_>) -> R,
+    {
+        self.attrs
+            .borrow()
+            .iter()
+            .find(|attribute| {
+                attribute.local_name() == local_name && attribute.namespace() == namespace
+            })
+            .map(map_func)
+    }
+
     /// This is the inner logic for:
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-namespace>
     ///
@@ -2047,24 +2069,6 @@ impl Element {
             .iter()
             .position(|a| a.local_name() == local_name && a.namespace() == namespace)?;
         Some(self.attrs.ensure_dom(cx, idx, self))
-    }
-
-    /// This is the inner logic for:
-    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
-    ///
-    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
-    #[expect(unsafe_code)]
-    pub(crate) fn get_attribute(&self, local_name: &LocalName) -> Option<DomRoot<Attr>> {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
-        debug_assert_eq!(
-            *local_name,
-            local_name.to_ascii_lowercase(),
-            "All namespace-less attribute accesses should use a lowercase ASCII name"
-        );
-        self.get_attribute_with_namespace(cx, &ns!(), local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
@@ -2268,13 +2272,9 @@ impl Element {
     }
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&local_name!("class"))
-            .is_some_and(|attr| {
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom| case_sensitivity.eq_atom(name, atom))
-            })
+        self.get_tokenlist_attribute(&local_name!("class"))
+            .iter()
+            .any(|atom| case_sensitivity.eq_atom(name, atom))
     }
 
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
@@ -2484,7 +2484,7 @@ impl Element {
             return false;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
-        if self.downcast::<HTMLScriptElement>().is_some() {
+        if self.is::<HTMLScriptElement>() {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
@@ -2604,7 +2604,7 @@ impl Element {
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, false, cx);
+        let new_children = ServoParser::parse_html_fragment(cx, self, markup, false);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
@@ -2782,6 +2782,44 @@ impl Element {
                 .is_some_and(|custom_element_definition| {
                     custom_element_definition.has_attribute_changed_callback()
                 })
+    }
+
+    pub(crate) fn register_current_id_and_name_attribute(&self, cx: &mut JSContext) {
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
+            }
+        } else {
+            let document = self.owner_document();
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                document.register_element_id(cx, self, id);
+            }
+            if let Some(ref name) = self.name_attribute() {
+                document.register_element_name(self, name);
+            }
+        }
+    }
+
+    pub(crate) fn unregister_current_id_and_name_attribute(&self, cx: &mut JSContext) {
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            // Only unregister the element id if the node was disconnected from it's
+            // shadow root (as opposed to the whole shadow tree being disconnected as a
+            // whole)
+            if self.upcast::<Node>().is_in_a_shadow_tree() {
+                return;
+            }
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                shadow_root.unregister_element_id(id);
+            }
+        } else {
+            let document = self.owner_document();
+            if let Some(ref id) = *self.id_attribute.borrow() {
+                document.unregister_element_id(cx, id);
+            }
+            if let Some(ref name) = self.name_attribute() {
+                document.unregister_element_name(name);
+            }
+        }
     }
 }
 
@@ -3487,11 +3525,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, cx: &mut JSContext, html: TrustedHTMLOrString) -> ErrorResult {
+    fn SetHTMLUnsafe(
+        &self,
+        cx: &mut JSContext,
+        html: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
+    ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
-        let html = TrustedHTML::get_trusted_type_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
             html,
@@ -3504,8 +3547,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             DomRoot::from_ref(self.upcast())
         };
 
-        // Step 3. Unsafely set HTML given target, this, and compliantHTML
-        Node::unsafely_set_html(&target, self, html, cx);
+        // Step 3. Set and filter HTML given target, this, compliantHTML, options, and false.
+        Sanitizer::set_and_filter_html(cx, &target, self, compliant_html, options, false)?;
+
         Ok(())
     }
 
@@ -3734,15 +3778,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    fn QuerySelector(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        root.query_selector(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
+    fn QuerySelectorAll(
+        &self,
+        cx: &mut JSContext,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        root.query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -3783,7 +3835,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let quirks_mode = document.quirks_mode();
         Ok(with_layout_state(|| {
             #[expect(unsafe_code)]
-            let layout_element = unsafe { traced_self.to_layout() };
+            let layout_element: LayoutDom<'_, _> = unsafe { traced_self.to_layout() };
             dom_apis::element_matches(
                 &ServoDangerousStyleElement::from(layout_element.upcast()),
                 &selectors,
@@ -3815,7 +3867,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let quirks_mode = document.quirks_mode();
         let closest_element = with_layout_state(|| {
             #[expect(unsafe_code)]
-            let layout_element = unsafe { traced_self.to_layout() };
+            let layout_element: LayoutDom<'_, _> = unsafe { traced_self.to_layout() };
             dom_apis::element_closest(
                 ServoDangerousStyleElement::from(layout_element.upcast()),
                 &selectors,
@@ -3935,6 +3987,80 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let doc = self.owner_document();
         doc.enter_fullscreen(self, can_gc)
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
+    fn SetPointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers, then throw a DOMException with the name "NotFoundError".
+        //
+        // Note: "active pointers" is global across documents. We can only cheaply check
+        // active pointers in this element's document. If the pointer is active in another
+        // document (e.g., parent/child frame), step 5 below will silently terminate.
+        // We intentionally do not throw here in that case to avoid being stricter than
+        // the spec.
+
+        // Step 2. If the element is not connected, throw a "InvalidStateError" DOMException.
+        if !self.upcast::<Node>().is_connected() {
+            return Err(Error::InvalidState(Some(
+                "Can't capture pointer on an unconnected element".into(),
+            )));
+        }
+
+        // Step 3. If this method is invoked while the document has a locked element
+        // (pointerLockElement), throw an "InvalidStateError" DOMException.
+        // TODO: Implement when pointer lock is supported.
+
+        // Step 4/5. If the pointer is not in the active buttons state or the element's
+        // node document is not the active document of the pointer, then terminate these
+        // steps. `is_active_pointer` on this document covers both conditions: it returns
+        // true only when the pointer is in the active buttons state in *this* document,
+        // which implies this document is the pointer's active document.
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Ok(());
+        }
+
+        // Step 6. For the specified pointerId, set the pending pointer capture target
+        // override to the Element on which this method was invoked.
+        event_handler.set_pending_pointer_capture(pointer_id, self);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-releasepointercapture>
+    fn ReleasePointerCapture(&self, pointer_id: i32) -> ErrorResult {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+
+        // Step 1. If the pointerId provided as the method's argument does not match any of
+        // the active pointers and these steps are not being invoked as a result of the
+        // implicit release of pointer capture, then throw a DOMException with the name "NotFoundError".
+        if !event_handler.is_active_pointer(pointer_id) {
+            return Err(Error::NotFound(Some(
+                "Can't release a pointer that is not active".into(),
+            )));
+        }
+
+        // Step 2. If hasPointerCapture is false for the Element with the specified pointerId,
+        // then terminate these steps.
+        if !event_handler.has_pointer_capture(pointer_id, self) {
+            return Ok(());
+        }
+
+        // Step 3. For the specified pointerId, clear the pending pointer capture target override.
+        event_handler.clear_pending_pointer_capture(pointer_id);
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/pointerevents/#dom-element-haspointercapture>
+    fn HasPointerCapture(&self, pointer_id: i32) -> bool {
+        let document = self.owner_document();
+        let event_handler = document.event_handler();
+        event_handler.has_pointer_capture(pointer_id, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
@@ -4380,6 +4506,31 @@ impl VirtualMethods for Element {
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match *attr.local_name() {
+            // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
+            // Event handler content attributes are defined on `Element` rather than `HTMLElement`
+            // so that other element types (such as SVG elements) activate them as well.
+            ref name if name.starts_with("on") && EventTarget::is_content_event_handler(name) => {
+                let evtarget = self.upcast::<EventTarget>();
+                let event_name = &name[2..];
+                match mutation {
+                    // https://html.spec.whatwg.org/multipage/#activate-an-event-handler
+                    AttributeMutation::Set(..) => {
+                        let source = &**attr.value();
+                        let source_line = 1; // TODO(#9604) get current JS execution line
+                        evtarget.set_event_handler_uncompiled(
+                            self.owner_window().get_url(),
+                            source_line,
+                            event_name,
+                            source,
+                        );
+                    },
+                    // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
+                    AttributeMutation::Removed => {
+                        evtarget
+                            .set_event_handler_common::<EventHandlerNonNull>(cx, event_name, None);
+                    },
+                }
+            },
             local_name!("style") => self.update_style_attribute(attr, mutation),
             local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
@@ -4400,39 +4551,31 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
+                                let old_value = old_value.as_atom();
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        old_value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(old_value);
                                 } else {
-                                    doc.unregister_element_id(self, old_value, CanGc::from_cx(cx));
+                                    doc.unregister_element_id(cx, old_value);
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.register_element_id(
                                         self,
-                                        value,
+                                        &value,
                                         CanGc::from_cx(cx),
                                     );
                                 } else {
-                                    doc.register_element_id(self, value, CanGc::from_cx(cx));
+                                    doc.register_element_id(cx, self, &value);
                                 }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(
-                                        self,
-                                        value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.unregister_element_id(&value);
                                 } else {
-                                    doc.unregister_element_id(self, value, CanGc::from_cx(cx));
+                                    doc.unregister_element_id(cx, &value);
                                 }
                             }
                         },
@@ -4457,16 +4600,15 @@ impl VirtualMethods for Element {
                     match mutation {
                         AttributeMutation::Set(old_value, _) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.as_atom().clone();
-                                doc.unregister_element_name(self, old_value);
+                                doc.unregister_element_name(old_value.as_atom());
                             }
                             if value != atom!("") {
-                                doc.register_element_name(self, value);
+                                doc.register_element_name(self, &value);
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                doc.unregister_element_name(self, value);
+                                doc.unregister_element_name(&value);
                             }
                         },
                     }
@@ -4548,10 +4690,8 @@ impl VirtualMethods for Element {
         }
 
         if let Some(f) = self.as_maybe_form_control() {
-            f.bind_form_control_to_tree(CanGc::from_cx(cx));
+            f.bind_form_control_to_tree(cx);
         }
-
-        let doc = self.owner_document();
 
         if let Some(ref shadow_root) = self.shadow_root() {
             shadow_root.bind_to_tree(cx, context);
@@ -4561,18 +4701,7 @@ impl VirtualMethods for Element {
             return;
         }
 
-        if let Some(ref id) = *self.id_attribute.borrow() {
-            if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root.register_element_id(self, id.clone(), CanGc::from_cx(cx));
-            } else {
-                doc.register_element_id(self, id.clone(), CanGc::from_cx(cx));
-            }
-        }
-        if let Some(ref name) = self.name_attribute() &&
-            self.containing_shadow_root().is_none()
-        {
-            doc.register_element_name(self, name.clone());
-        }
+        self.register_current_id_and_name_attribute(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -4582,7 +4711,7 @@ impl VirtualMethods for Element {
             // TODO: The valid state of ancestors might be wrong if the form control element
             // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
             // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
-            f.unbind_form_control_from_tree(CanGc::from_cx(cx));
+            f.unbind_form_control_from_tree(cx);
         }
 
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
@@ -4595,22 +4724,8 @@ impl VirtualMethods for Element {
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(CanGc::from_cx(cx));
         }
-        if let Some(ref value) = *self.id_attribute.borrow() {
-            if let Some(ref shadow_root) = self.containing_shadow_root() {
-                // Only unregister the element id if the node was disconnected from it's shadow root
-                // (as opposed to the whole shadow tree being disconnected as a whole)
-                if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
-                }
-            } else {
-                doc.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
-            }
-        }
-        if let Some(ref value) = self.name_attribute() &&
-            self.containing_shadow_root().is_none()
-        {
-            doc.unregister_element_name(self, value.clone());
-        }
+
+        self.unregister_current_id_and_name_attribute(cx);
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -4812,19 +4927,18 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_invalid(&self, needs_update: bool, can_gc: CanGc) -> bool {
+    pub(crate) fn is_invalid(&self, cx: &mut JSContext, needs_update: bool) -> bool {
         if let Some(validatable) = self.as_maybe_validatable() {
             if needs_update {
                 validatable
-                    .validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                    .validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
             }
-            return validatable.is_instance_validatable() &&
-                !validatable.satisfies_constraints(can_gc);
+            return validatable.is_instance_validatable() && !validatable.satisfies_constraints(cx);
         }
 
         if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid(can_gc);
+            return internals.is_invalid(cx);
         }
         false
     }
@@ -5104,9 +5218,9 @@ impl TagName {
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attribute| {
-            let value = attribute.value().to_ascii_lowercase();
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
             if value == "anonymous" || value == "use-credentials" {
                 DOMString::from(value)
             } else {
@@ -5131,9 +5245,9 @@ pub(crate) fn set_cross_origin_attribute(
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     element
-        .get_attribute(&local_name!("referrerpolicy"))
-        .map(|attribute| {
-            let value = attribute.value().to_ascii_lowercase();
+        .get_attribute_string_value(&local_name!("referrerpolicy"))
+        .map(|value| {
+            let value = value.to_ascii_lowercase();
             if value == "no-referrer" ||
                 value == "no-referrer-when-downgrade" ||
                 value == "same-origin" ||
@@ -5153,23 +5267,23 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute(&local_name!("referrerpolicy"))
-        .map(|attribute| ReferrerPolicy::from(&**attribute.value()))
+        .get_attribute_string_value(&local_name!("referrerpolicy"))
+        .map(|value| ReferrerPolicy::from(value.as_ref()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| CorsSettings::from_enumerated_attribute(value.as_ref()))
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute-credentials-mode>
 pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> CredentialsMode {
     element
-        .get_attribute(&local_name!("crossorigin"))
-        .map(|attr| {
-            if attr.value().eq_ignore_ascii_case("use-credentials") {
+        .get_attribute_string_value(&local_name!("crossorigin"))
+        .map(|value| {
+            if value.eq_ignore_ascii_case("use-credentials") {
                 CredentialsMode::Include
             } else {
                 // The attribute's invalid value default and empty value default are both the Anonymous state.

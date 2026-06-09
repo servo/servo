@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: :visited column-rule-color alpha is clamped to unvisited alpha.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-visited-alpha-clamp-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-gap: 20px;
+    grid-template-columns: 100px 100px;
+    height: 100px;
+
+    column-rule-color: rgba(255, 0, 0, 0.5);
+    column-rule-style: solid;
+    column-rule-width: 10px;
+  }
+  .item {
+    background: white;
+  }
+  .grid-link:visited .grid-container {
+    column-rule-color: rgba(0, 0, 255, 1.0);
+  }
+</style>
+<a href="" class="grid-link">
+  <div class="grid-container">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</a>

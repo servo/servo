@@ -43,7 +43,6 @@ use crate::dom::servoparser::{
     ElementAttribute, ParsingAlgorithm, attach_declarative_shadow_inner, create_element_for_token,
 };
 use crate::dom::virtualmethods::vtable_for;
-use crate::script_runtime::CanGc;
 
 type ParseNodeId = usize;
 
@@ -491,6 +490,7 @@ impl Tokenizer {
                     .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))
                     .collect();
                 let element = create_element_for_token(
+                    cx,
                     name,
                     attrs,
                     &self.document,
@@ -498,7 +498,6 @@ impl Tokenizer {
                     ParsingAlgorithm::Normal,
                     &self.custom_element_reaction_stack,
                     had_duplicate_attributes,
-                    cx,
                 );
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
@@ -600,7 +599,7 @@ impl Tokenizer {
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form, CanGc::from_cx(cx));
+                    control.set_form_owner_from_parser(cx, &form);
                 }
             },
             ParseOperation::Pop { node } => {

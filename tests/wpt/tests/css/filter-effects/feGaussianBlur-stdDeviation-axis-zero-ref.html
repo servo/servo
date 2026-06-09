@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<title>feGaussianBlur: blur is applied along the non-zero axis when stdDeviation is "0 X" or "X 0" - reference</title>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#element-attrdef-fegaussianblur-stddeviation">
+<style>body { margin: 0; background: white; }</style>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+  <defs>
+    <filter id="blurY" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="0.0001 5"/>
+    </filter>
+    <filter id="blurX" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5 0.0001"/>
+    </filter>
+  </defs>
+  <rect x="20" y="25" width="50" height="50" fill="green" filter="url(#blurY)"/>
+  <rect x="120" y="25" width="50" height="50" fill="green" filter="url(#blurX)"/>
+</svg>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>test reference</title>
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    font-family: halt-font;
+    font-size: 20px;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.space-all {
+    text-spacing-trim: space-all;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ（<span class="space-all">）</span><ruby>あ<rt>ああああああああ</ruby><span class="space-all">（</span>）あ</div>
+<div class=measure>あ（<span class="space-all">）</span>　あ　<span class="space-all">（</span>）あ</div>
+</body>

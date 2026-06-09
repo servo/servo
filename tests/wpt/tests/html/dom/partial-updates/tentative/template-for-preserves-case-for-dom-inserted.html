@@ -9,12 +9,12 @@
 <script>
   const placeholder = document.getElementById("placeholder");
   placeholder.append(
-    document.createProcessingInstruction("Start", "name=a"),
+    document.createProcessingInstruction("Start", 'name="a"'),
     document.createProcessingInstruction("End", ""),
-    document.createProcessingInstruction("MARKER", "name=b"),
-    document.createProcessingInstruction("marKER", "name=c"),
-    document.createProcessingInstruction("marker", "name=d"),
-    document.createProcessingInstruction("start", "name=e"),
+    document.createProcessingInstruction("MARKER", 'name="b"'),
+    document.createProcessingInstruction("marKER", 'name="c"'),
+    document.createProcessingInstruction("marker", 'name="d"'),
+    document.createProcessingInstruction("start", 'name="e"'),
     document.createProcessingInstruction("end", ""),
     "f"
   );
@@ -28,7 +28,7 @@
   test(() => {
     assert_equals(
       document.getElementById("placeholder").innerHTML,
-      "<?Start name=a?><?End ?><?MARKER name=b?><?marKER name=c?>def",
+      '<?Start name="a"?><?End ?><?MARKER name="b"?><?marKER name="c"?>def',
     );
     assert_equals(document.querySelectorAll("template[for]").length, 3);
   }, "marker/end/start PI targets are parsed as lower case");

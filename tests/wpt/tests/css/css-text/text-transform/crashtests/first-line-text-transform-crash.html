@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Crash when text-transform increases length before a control character in ::first-line</title>
+<link rel="help" href="https://crbug.com/449295641">
+<style>
+div {
+  white-space: pre;
+}
+div::first-line {
+  text-transform: uppercase;
+}
+</style>
+<div>&szlig;&#9;</div>

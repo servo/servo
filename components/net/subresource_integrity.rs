@@ -7,7 +7,6 @@ use std::str::Split;
 use std::sync::LazyLock;
 
 use base64::Engine;
-use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
 use regex::Regex;
@@ -135,10 +134,7 @@ pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<Sri
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response>
-fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
-    body: MutexGuard<ResponseBody>,
-    mut hasher: D,
-) -> String {
+fn apply_algorithm_to_response<D: Digest>(body: MutexGuard<ResponseBody>, mut hasher: D) -> String {
     if let ResponseBody::Done(ref vec) = *body {
         hasher.update(vec);
         let response_digest = hasher.finalize(); // Now hash

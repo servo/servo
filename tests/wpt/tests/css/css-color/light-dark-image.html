@@ -45,6 +45,10 @@ test_light_dark_image(
   'dark.png")'
 );
 
+// 'none' inside light-dark() image computes to image(transparent) per CSS
+// Color 5, which then resolves to image(rgba(0, 0, 0, 0)) per the
+// computed-value rules for <color>.
+// https://drafts.csswg.org/css-color-5/#valdef-light-dark-none
 test_light_dark_image(
   "background-image",
   "light-dark(none, url('dark.png'))",

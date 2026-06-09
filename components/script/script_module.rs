@@ -82,7 +82,7 @@ use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
 
@@ -470,13 +470,10 @@ impl ModuleTree {
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
 
-            let in_realm_proof = cx.into();
-            let in_realm = InRealm::Already(&in_realm_proof);
-
             unsafe {
                 JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
             }
-            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx);
         }
     }
 
@@ -628,7 +625,7 @@ impl Callback for QueueTaskHandler {
 
         global.task_manager().networking_task_source().queue(
             task!(continue_module_loading: move |cx| {
-                promise.root().resolve_native(&(), CanGc::from_cx(cx));
+                promise.root().resolve_native_with_cx(cx, &());
             }),
         );
     }
@@ -754,7 +751,7 @@ impl FetchResponseListener for ModuleContext {
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native(&(), CanGc::from_cx(cx));
+            return promise.resolve_native_with_cx(cx, &());
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -833,7 +830,7 @@ impl FetchResponseListener for ModuleContext {
         }
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native(&(), CanGc::from_cx(cx));
+        promise.resolve_native_with_cx(cx, &());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -907,7 +904,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
     let payload = Payload::PromiseRecord(promise);
@@ -1008,7 +1005,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
 
-    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let specifier = unsafe { jsstr_to_string(cx, NonNull::new(jsstr).unwrap()) };
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         module_data,
@@ -1130,8 +1127,8 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     let specifier = unsafe {
         let value = HandleValue::from_raw(args.get(0));
 
-        match NonNull::new(ToString(cx.raw_cx(), value)) {
-            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
+        match NonNull::new(ToString(cx, value)) {
+            Some(jsstr) => jsstr_to_string(cx, jsstr).into(),
             None => return false,
         }
     };
@@ -1449,10 +1446,10 @@ fn fetch_the_descendants_and_link_module_script(
         })));
 
     let handler = PromiseNativeHandler::new(
+        cx,
         global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
-        CanGc::from_cx(cx),
     );
 
     run_a_callback::<DomTypeHolder, _>(global, || {
@@ -1510,7 +1507,7 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(global, Some(handler), None, CanGc::from_cx(cx));
+    let handler = PromiseNativeHandler::new(cx, global, Some(handler), None);
 
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
@@ -1528,10 +1525,10 @@ pub(crate) fn fetch_a_single_module_script(
             // Append an handler to the existing pending fetch, once resolved it will queue a task
             // to run onComplete.
             let continue_loading_handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(QueueTaskHandler { promise })),
                 None,
-                CanGc::from_cx(cx),
             );
 
             // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
@@ -1694,25 +1691,26 @@ pub(crate) fn register_import_map(
     match result {
         Ok(new_import_map) => {
             // Step 2. Merge existing and new import maps, given global and result's import map.
-            merge_existing_and_new_import_maps(global, new_import_map);
+            merge_existing_and_new_import_maps(cx, global, new_import_map);
         },
         Err(exception) => {
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
 
-            let in_realm_proof = cx.into();
-            let in_realm = InRealm::Already(&in_realm_proof);
-
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
             throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
-            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx);
         },
     }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-existing-and-new-import-maps>
-fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: ImportMap) {
+fn merge_existing_and_new_import_maps(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    new_import_map: ImportMap,
+) {
     // Step 1. Let newImportMapScopes be a deep copy of newImportMap's scopes.
     let new_import_map_scopes = new_import_map.scopes;
 
@@ -1750,7 +1748,11 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
                     {
                         // The user agent may report a warning to the console indicating the ignored rule.
                         // They may choose to avoid reporting if the rule is identical to an existing one.
-                        Console::internal_warn(global, format!("Ignored rule: {key} -> {val:?}."));
+                        Console::internal_warn(
+                            cx,
+                            global,
+                            format!("Ignored rule: {key} -> {val:?}."),
+                        );
                         // Remove scopeImports[specifierKey].
                         false
                     } else {
@@ -1765,6 +1767,7 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
             // set oldImportMap's scopes[scopePrefix] to the result of
             // merging module specifier maps, given scopeImports and oldImportMap's scopes[scopePrefix].
             let merged_module_specifier_map = merge_module_specifier_maps(
+                cx,
                 global,
                 scope_imports,
                 &old_import_map.scopes[&scope_prefix],
@@ -1784,7 +1787,7 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
         if old_import_map.integrity.contains_key(url) {
             // Step 5.1.1 The user agent may report a warning to the console indicating the ignored rule.
             // They may choose to avoid reporting if the rule is identical to an existing one.
-            Console::internal_warn(global, format!("Ignored rule: {url} -> {integrity}."));
+            Console::internal_warn(cx, global, format!("Ignored rule: {url} -> {integrity}."));
             // Step 5.1.2 Continue.
             continue;
         }
@@ -1806,7 +1809,11 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
             if record.specifier.starts_with(specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
-                Console::internal_warn(global, format!("Ignored rule: {specifier} -> {val:?}."));
+                Console::internal_warn(
+                    cx,
+                    global,
+                    format!("Ignored rule: {specifier} -> {val:?}."),
+                );
                 // Remove newImportMapImports[specifier].
                 false
             } else {
@@ -1818,7 +1825,7 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
     // Step 7. Set oldImportMap's imports to the result of merge module specifier maps,
     // given newImportMapImports and oldImportMap's imports.
     let merged_module_specifier_map =
-        merge_module_specifier_maps(global, new_import_map_imports, &old_import_map.imports);
+        merge_module_specifier_maps(cx, global, new_import_map_imports, &old_import_map.imports);
     old_import_map.imports = merged_module_specifier_map;
 
     // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
@@ -1830,6 +1837,7 @@ fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: Impo
 
 /// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
 fn merge_module_specifier_maps(
+    cx: &mut JSContext,
     global: &GlobalScope,
     new_map: ModuleSpecifierMap,
     old_map: &ModuleSpecifierMap,
@@ -1843,7 +1851,7 @@ fn merge_module_specifier_maps(
         if old_map.contains_key(&specifier) {
             // Step 2.1.1 The user agent may report a warning to the console indicating the ignored rule.
             // They may choose to avoid reporting if the rule is identical to an existing one.
-            Console::internal_warn(global, format!("Ignored rule: {specifier} -> {url:?}."));
+            Console::internal_warn(cx, global, format!("Ignored rule: {specifier} -> {url:?}."));
 
             // Step 2.1.2 Continue.
             continue;
@@ -1858,6 +1866,7 @@ fn merge_module_specifier_maps(
 
 /// <https://html.spec.whatwg.org/multipage/#parse-an-import-map-string>
 pub(crate) fn parse_an_import_map_string(
+    cx: &mut JSContext,
     global: &GlobalScope,
     input: Rc<DOMString>,
     base_url: ServoUrl,
@@ -1887,7 +1896,7 @@ pub(crate) fn parse_an_import_map_string(
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
         // normalizing a module specifier map given parsed["imports"] and baseURL.
         sorted_and_normalized_imports =
-            sort_and_normalize_module_specifier_map(global, imports, &base_url);
+            sort_and_normalize_module_specifier_map(cx, global, imports, &base_url);
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
@@ -1903,7 +1912,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
         // normalizing scopes given parsed["scopes"] and baseURL.
-        sorted_and_normalized_scopes = sort_and_normalize_scopes(global, scopes, &base_url)?;
+        sorted_and_normalized_scopes = sort_and_normalize_scopes(cx, global, scopes, &base_url)?;
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
@@ -1919,7 +1928,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
         // a module integrity map given parsed["integrity"] and baseURL.
-        normalized_integrity = normalize_module_integrity_map(global, integrity, &base_url);
+        normalized_integrity = normalize_module_integrity_map(cx, global, integrity, &base_url);
     }
 
     // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
@@ -1928,6 +1937,7 @@ pub(crate) fn parse_an_import_map_string(
     parsed.retain(|k, _| !matches!(k.as_str(), "imports" | "scopes" | "integrity"));
     if !parsed.is_empty() {
         Console::internal_warn(
+            cx,
             global,
             "Invalid top-level key was present in the import map.
                 Only \"imports\", \"scopes\", and \"integrity\" are allowed."
@@ -1945,6 +1955,7 @@ pub(crate) fn parse_an_import_map_string(
 
 /// <https://html.spec.whatwg.org/multipage/#sorting-and-normalizing-a-module-specifier-map>
 fn sort_and_normalize_module_specifier_map(
+    cx: &mut JSContext,
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
@@ -1957,7 +1968,7 @@ fn sort_and_normalize_module_specifier_map(
         // Step 2.1 Let normalized_specifier_key be the result of
         // normalizing a specifier key given specifier_key and base_url.
         let Some(normalized_specifier_key) =
-            normalize_specifier_key(global, specifier_key, base_url)
+            normalize_specifier_key(cx, global, specifier_key, base_url)
         else {
             // Step 2.2 If normalized_specifier_key is null, then continue.
             continue;
@@ -1967,7 +1978,7 @@ fn sort_and_normalize_module_specifier_map(
         let JsonValue::String(value) = value else {
             // Step 2.3.1 The user agent may report a warning to the console
             // indicating that addresses need to be strings.
-            Console::internal_warn(global, "Addresses need to be strings.".to_string());
+            Console::internal_warn(cx, global, "Addresses need to be strings.".to_string());
 
             // Step 2.3.2 Set normalized[normalized_specifier_key] to null.
             normalized.insert(normalized_specifier_key, None);
@@ -1983,6 +1994,7 @@ fn sort_and_normalize_module_specifier_map(
             // Step 2.5.1. The user agent may report a warning to the console
             // indicating that the address was invalid.
             Console::internal_warn(
+                cx,
                 global,
                 format!("Value failed to resolve to module specifier: {value}"),
             );
@@ -2000,6 +2012,7 @@ fn sort_and_normalize_module_specifier_map(
             // indicating that an invalid address was given for the specifier key specifierKey;
             // since specifierKey ends with a slash, the address needs to as well.
             Console::internal_warn(
+                cx,
                 global,
                 format!(
                     "Invalid address for specifier key '{specifier_key}': {address_url}.
@@ -2025,6 +2038,7 @@ fn sort_and_normalize_module_specifier_map(
 
 /// <https://html.spec.whatwg.org/multipage/#sorting-and-normalizing-scopes>
 fn sort_and_normalize_scopes(
+    cx: &mut JSContext,
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
@@ -2049,6 +2063,7 @@ fn sort_and_normalize_scopes(
             // Step 2.3.1 The user agent may report a warning
             // to the console that the scope prefix URL was not parseable.
             Console::internal_warn(
+                cx,
                 global,
                 format!("Scope prefix URL was not parseable: {scope_prefix}"),
             );
@@ -2062,7 +2077,7 @@ fn sort_and_normalize_scopes(
         // Step 2.5 Set normalized[normalizedScopePrefix] to the result of sorting and
         // normalizing a module specifier map given potentialSpecifierMap and baseURL.
         let normalized_specifier_map =
-            sort_and_normalize_module_specifier_map(global, potential_specifier_map, base_url);
+            sort_and_normalize_module_specifier_map(cx, global, potential_specifier_map, base_url);
         normalized.insert(normalized_scope_prefix, normalized_specifier_map);
     }
 
@@ -2074,6 +2089,7 @@ fn sort_and_normalize_scopes(
 
 /// <https://html.spec.whatwg.org/multipage/#normalizing-a-module-integrity-map>
 fn normalize_module_integrity_map(
+    cx: &mut JSContext,
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
@@ -2092,6 +2108,7 @@ fn normalize_module_integrity_map(
             // Step 2.2.1 The user agent may report a warning
             // to the console indicating that the key failed to resolve.
             Console::internal_warn(
+                cx,
                 global,
                 format!("Key failed to resolve to module specifier: {key}"),
             );
@@ -2104,6 +2121,7 @@ fn normalize_module_integrity_map(
             // Step 2.3.1 The user agent may report a warning
             // to the console indicating that integrity metadata values need to be strings.
             Console::internal_warn(
+                cx,
                 global,
                 "Integrity metadata values need to be strings.".to_string(),
             );
@@ -2121,6 +2139,7 @@ fn normalize_module_integrity_map(
 
 /// <https://html.spec.whatwg.org/multipage/#normalizing-a-specifier-key>
 fn normalize_specifier_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     specifier_key: &str,
     base_url: &ServoUrl,
@@ -2130,6 +2149,7 @@ fn normalize_specifier_key(
         // step 1.1 The user agent may report a warning to the console
         // indicating that specifier keys may not be the empty string.
         Console::internal_warn(
+            cx,
             global,
             "Specifier keys may not be the empty string.".to_string(),
         );

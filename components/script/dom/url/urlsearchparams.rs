@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use url::form_urlencoded;
 
 use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::url::URL;
-use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#interface-urlsearchparams>
 #[dom_struct]
@@ -39,24 +39,24 @@ impl URLSearchParams {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         url: Option<&URL>,
-        can_gc: CanGc,
     ) -> DomRoot<URLSearchParams> {
-        Self::new_with_proto(global, None, url, can_gc)
+        Self::new_with_proto(cx, global, None, url)
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: Option<&URL>,
-        can_gc: CanGc,
     ) -> DomRoot<URLSearchParams> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(URLSearchParams::new_inherited(url)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -68,13 +68,13 @@ impl URLSearchParams {
 impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
     /// <https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString,
     ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
-        let query = URLSearchParams::new_with_proto(global, proto, None, can_gc);
+        let query = URLSearchParams::new_with_proto(cx, global, proto, None);
         match init {
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init) => {
                 // Step 2.

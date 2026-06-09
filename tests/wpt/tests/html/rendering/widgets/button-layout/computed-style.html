@@ -37,16 +37,13 @@ for (const val of displayValues) {
 
 for (let input of document.querySelectorAll("input")) {
   test(() => {
-    if (input.type == "image") {
-      assert_equals(getComputedStyle(input).overflow, "visible", "Should not be clip by default");
-      return;
-    }
+    let clipMargin = input.type == "image" ? "content-box" : "0px"
     assert_equals(getComputedStyle(input).overflow, "clip", "Should be clip by default");
-    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Should use 0 margin");
+    assert_equals(getComputedStyle(input).overflowClipMargin, clipMargin, "Should use 0 margin");
     input.style.overflow = "visible";
     input.style.overflowClipMargin = "10px";
     assert_equals(getComputedStyle(input).overflow, "clip", "Clip be !important");
-    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Clip margin should be !important too");
+    assert_equals(getComputedStyle(input).overflowClipMargin, clipMargin, "Clip margin should be !important too");
   }, `<input type=${input.type}> overflow/overflow-clip-margin`);
 }
 </script>

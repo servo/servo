@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<math>
+  <mtable>
+    <mtr>
+      <mtd id="target"></mtd>
+    </mtr>
+  </mtable>
+</math>
+<script>
+const target = document.getElementById('target');
+const caption = document.createElement('caption');
+target.appendChild(caption);
+document.body.offsetTop;
+target.insertBefore(document.createTextNode('text'), caption);
+</script>

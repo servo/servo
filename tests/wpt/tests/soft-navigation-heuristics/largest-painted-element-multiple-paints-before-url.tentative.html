@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset="utf-8">
-<title>SoftNavigationEntry largestInteractionContentfulPaint attribute: Multiple paints before URL.</title>
+<title>SoftNavigationEntry getLargestInteractionContentfulPaint() method: Multiple paints before URL.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -17,7 +17,7 @@
     let largeId;
 
     clickTarget.addEventListener('click', async () => {
-      // Yield to ensure task tracking is working and we mark a timeOrigin.
+      // Yield to ensure task tracking is working.
       await new Promise(r => t.step_timeout(r, 0));
 
       // First paint (small).
@@ -34,14 +34,15 @@
     await test_driver.click(clickTarget);
     const entry = await soft_nav_promise;
 
+    assert_true("getLargestInteractionContentfulPaint" in entry, "getLargestInteractionContentfulPaint method should exist on soft nav entry");
     assert_true("paintTime" in entry, "paintTime attribute should exist on soft nav entry");
     assert_greater_than(entry.paintTime, 0, "soft nav entry paintTime should be greater than 0");
 
-    const largest = entry.largestInteractionContentfulPaint;
-    assert_not_equals(largest, null, "largestInteractionContentfulPaint is not null");
-    assert_equals(largest.id, largeId, "largestInteractionContentfulPaint is the large one");
-    assert_true("paintTime" in largest, "paintTime attribute should exist on ICP entry");
-    assert_greater_than(largest.paintTime, 0, "ICP entry paintTime should be greater than 0");
-    assert_greater_than(largest.paintTime, entry.paintTime, "ICP paintTime should be later than FCP paintTime");
-  }, "Test that the largestInteractionContentfulPaint attribute is correctly set with multiple paints before URL change");
+    const largest = entry.getLargestInteractionContentfulPaint();
+    assert_not_equals(largest, null, "getLargestInteractionContentfulPaint() is not null");
+    assert_equals(largest.largestContentfulPaint.id, largeId, "getLargestInteractionContentfulPaint() is the large one");
+    assert_true("paintTime" in largest.largestContentfulPaint, "paintTime attribute should exist on ICP entry");
+    assert_greater_than(largest.largestContentfulPaint.paintTime, 0, "ICP entry paintTime should be greater than 0");
+    assert_greater_than(largest.largestContentfulPaint.paintTime, entry.paintTime, "ICP paintTime should be later than FCP paintTime");
+  }, "Test that the getLargestInteractionContentfulPaint() method is correctly set with multiple paints before URL change");
 </script>

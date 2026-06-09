@@ -295,21 +295,6 @@ impl Event {
         self.dispatch_inner(cx, target, legacy_target_override, None)
     }
 
-    pub(crate) fn dispatch_with_legacy_output_did_listeners_throw(
-        &self,
-        cx: &mut JSContext,
-        target: &EventTarget,
-        legacy_target_override: bool,
-        legacy_output_did_listeners_throw: &Cell<bool>,
-    ) -> bool {
-        self.dispatch_inner(
-            cx,
-            target,
-            legacy_target_override,
-            Some(legacy_output_did_listeners_throw),
-        )
-    }
-
     fn dispatch_inner(
         &self,
         cx: &mut JSContext,
@@ -766,21 +751,9 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#firing-events>
-    #[expect(unsafe_code)]
-    pub(crate) fn fire(&self, target: &EventTarget, _can_gc: CanGc) -> bool {
+    pub(crate) fn fire(&self, cx: &mut JSContext, target: &EventTarget) -> bool {
         self.set_trusted(true);
-
-        // TODO https://github.com/servo/servo/issues/44499
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
-        target.dispatch_event(cx, self)
-    }
-
-    pub(crate) fn fire_with_cx(&self, cx: &mut JSContext, target: &EventTarget) -> bool {
-        self.set_trusted(true);
-
-        target.dispatch_event(cx, self)
+        self.dispatch(cx, target, false)
     }
 
     pub(crate) fn fire_with_legacy_output_did_listeners_throw(
@@ -790,12 +763,7 @@ impl Event {
         legacy_output_did_listeners_throw: &Cell<bool>,
     ) -> bool {
         self.set_trusted(true);
-        self.dispatch_with_legacy_output_did_listeners_throw(
-            cx,
-            target,
-            false,
-            legacy_output_did_listeners_throw,
-        )
+        self.dispatch_inner(cx, target, false, Some(legacy_output_did_listeners_throw))
     }
 
     /// <https://dom.spec.whatwg.org/#inner-event-creation-steps>

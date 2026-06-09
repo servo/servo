@@ -5,8 +5,9 @@
 use std::f32;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::gain_node::GainNodeOptions;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
@@ -23,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{GainNodeMethods, 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GainNode {
@@ -34,10 +34,10 @@ pub(crate) struct GainNode {
 impl GainNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
-        can_gc: CanGc,
     ) -> Fallible<GainNode> {
         let node_options =
             options
@@ -45,6 +45,7 @@ impl GainNode {
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let gain = *options.gain;
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::GainNode(options.convert()),
             context,
             node_options,
@@ -52,6 +53,7 @@ impl GainNode {
             1, // outputs
         )?;
         let gain = AudioParam::new(
+            cx,
             window,
             context,
             node.node_id(),
@@ -61,7 +63,6 @@ impl GainNode {
             gain,     // default value
             f32::MIN, // min value
             f32::MAX, // max value
-            can_gc,
         );
         Ok(GainNode {
             node,
@@ -70,28 +71,28 @@ impl GainNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<GainNode>> {
-        Self::new_with_proto(window, None, context, options, can_gc)
+        Self::new_with_proto(cx, window, None, context, options)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &GainOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<GainNode>> {
-        let node = GainNode::new_inherited(window, context, options, can_gc)?;
-        Ok(reflect_dom_object_with_proto(
+        let node = GainNode::new_inherited(cx, window, context, options)?;
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -99,13 +100,13 @@ impl GainNode {
 impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &GainOptions,
     ) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new_with_proto(window, proto, context, options, can_gc)
+        GainNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>

@@ -41,11 +41,11 @@ Notes:
     assert_equals(lcpEntries.length, 1);
     assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
 
-    const softLcpPromise = new Promise((resolve) => {
+    const icpPromise = new Promise((resolve) => {
       new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (entry.url.includes("lcp-100x50")) {
-            resolve(entry.url);
+          if (entry.largestContentfulPaint && entry.largestContentfulPaint.url.includes("lcp-100x50")) {
+            resolve(entry.largestContentfulPaint.url);
             return;
           }
         }
@@ -57,7 +57,7 @@ Notes:
       test_driver.click(document.getElementById("click-target"));
     }
     await helper.withTimeoutMessage(
-      softLcpPromise,
+      icpPromise,
       "Timed out waiting for LCP entry for background image-set image.",
       /*timeoutMs=*/ 3000,
     );

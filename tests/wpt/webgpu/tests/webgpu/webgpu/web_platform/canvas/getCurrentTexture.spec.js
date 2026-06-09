@@ -11,8 +11,37 @@ import { kAllCanvasTypes, createCanvas } from '../../util/create_elements.js';
 
 const kFormat = 'bgra8unorm';
 
+function expectSingleColorInCanvas(
+t,
+canvas,
+expectedColor,
+tolerance = 0.01)
+{
+  const { width, height } = canvas;
+  const copy = new OffscreenCanvas(width, height);
+  const copyCtx = copy.getContext('2d');
+  copyCtx.drawImage(canvas, 0, 0);
+  const imageData = copyCtx.getImageData(0, 0, width, height);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    expectedColor.forEach((expected, ch) => {
+      const actual = imageData.data[i + ch] / 255;
+      const diff = Math.abs(actual - expected);
+      t.expect(
+        diff < tolerance,
+        () =>
+        `at ${i % width}x${
+        i / width
+        }, channel: ${ch}, expected: ${expected}, actual: ${actual}, <  ${tolerance}`
+      );
+    });
+  }
+}
+
 class GPUContextTest extends AllFeaturesMaxLimitsGPUTest {
-  initCanvasContext(canvasType = 'onscreen') {
+  initCanvasContext(
+  canvasType = 'onscreen',
+  usage = 0)
+  {
     const canvas = createCanvas(this, canvasType, 2, 2);
     if (canvasType === 'onscreen') {
       // To make sure onscreen canvas are visible
@@ -35,7 +64,7 @@ class GPUContextTest extends AllFeaturesMaxLimitsGPUTest {
     ctx.configure({
       device: this.device,
       format: kFormat,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | usage
     });
 
     return ctx;
@@ -431,5 +460,183 @@ fn((t) => {
       break;
     default:
       break;
+  }
+});
+
+g.test('compatibility').
+desc(
+  `
+Test that the texture returned from getCurrentTexture has textureBindingViewDimension
+and that it's undefined in core and '2d' in compatibility mode.
+  `
+).
+params((u) =>
+u //
+.combine('canvasType', kAllCanvasTypes)
+).
+fn((t) => {
+  const { canvasType } = t.params;
+  const ctx = t.initCanvasContext(canvasType);
+  const texture = ctx.getCurrentTexture();
+  t.expect(() => 'textureBindingViewDimension' in texture);
+
+  const expected = t.isCompatibility ? '2d' : undefined;
+  t.expect(texture.textureBindingViewDimension === expected);
+});
+
+g.test('usage_as_color_attachment_and_resolve_target').
+desc(
+  `
+Test that the texture returned from getCurrentTexture can be used as a color attachment.
+  `
+).
+params((u) =>
+u //
+.combine('canvasType', kAllCanvasTypes).
+combine('withView', [true, false]).
+combine('asResolveTarget', [true, false])
+).
+fn((t) => {
+  const { canvasType, withView, asResolveTarget } = t.params;
+  const ctx = t.initCanvasContext(canvasType);
+  const texture = ctx.getCurrentTexture();
+
+  const clearValue = [1, 0.5, 0, 1];
+  const encoder = t.device.createCommandEncoder();
+
+  if (asResolveTarget) {
+    const srcTexture = t.createTextureTracked({
+      size: [texture.width, texture.height, 1],
+      format: texture.format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      sampleCount: 4
+    });
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: withView ? srcTexture.createView() : srcTexture,
+        resolveTarget: withView ? texture.createView() : texture,
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue
+      }]
+
+    });
+    pass.end();
+  } else {
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: withView ? texture.createView() : texture,
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue
+      }]
+
+    });
+    pass.end();
+  }
+  t.device.queue.submit([encoder.finish()]);
+  expectSingleColorInCanvas(t, ctx.canvas, clearValue);
+});
+
+g.test('usage_as_texture_binding').
+params((u) =>
+u //
+.combine('canvasType', kAllCanvasTypes).
+combine('withView', [true, false])
+).
+fn((t) => {
+  const { canvasType, withView } = t.params;
+  const ctx = t.initCanvasContext(canvasType, GPUTextureUsage.TEXTURE_BINDING);
+  const texture = ctx.getCurrentTexture();
+
+  const clearValue = [1, 1, 0, 1];
+  const encoder = t.device.createCommandEncoder();
+
+  // clear canvas to solid color.
+  {
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: texture.createView(),
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue
+      }]
+
+    });
+    pass.end();
+  }
+
+  // Render canvas to texture
+  {
+    const module = t.device.createShaderModule({
+      code: `
+          @vertex
+          fn vs(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
+            let pos = array(
+              vec2f(-1, -1),
+              vec2f(-1,  3),
+              vec2f( 3, -1),
+            );
+            return vec4f(pos[index], 0, 1);
+          }
+
+          @group(0) @binding(0) var tex: texture_2d<f32>;
+
+          @fragment
+          fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+            return textureLoad(tex, vec2u(pos.xy), 0);
+          }
+        `
+    });
+
+    const pipeline = t.device.createRenderPipeline({
+      layout: 'auto',
+      vertex: { module },
+      fragment: { module, targets: [{ format: texture.format }] }
+    });
+
+    const bindGroup = t.device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+      {
+        binding: 0,
+        resource: withView ? texture.createView() : texture
+      }]
+
+    });
+
+    const dstTexture = t.createTextureTracked({
+      size: [texture.width, texture.height, 1],
+      format: texture.format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
+
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: dstTexture.createView(),
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
+    });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.draw(3);
+    pass.end();
+    t.device.queue.submit([encoder.finish()]);
+
+    t.expectSingleColor(dstTexture, dstTexture.format, {
+      size: [dstTexture.width, dstTexture.height, 1],
+      exp: {
+        R: clearValue[0],
+        G: clearValue[1],
+        B: clearValue[2],
+        A: clearValue[3]
+      }
+    });
   }
 });

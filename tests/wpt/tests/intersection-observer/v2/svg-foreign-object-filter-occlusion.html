@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  svg {
+    position: absolute;
+    left: 150px;
+    top: 150px;
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+  }
+  foreignObject {
+    pointer-events: bounding-box;
+  }
+</style>
+<div id="target"></div>
+<svg>
+  <foreignObject id="fo" x="0" y="0" width="10" height="10">
+    <div style="width: 10px; height: 10px; background: blue;"></div>
+  </foreignObject>
+</svg>
+<script>
+async_test(t => {
+  const target = document.getElementById("target");
+  const fo = document.getElementById("fo");
+  let observation_count = 0;
+
+  const observer = new IntersectionObserver(t.step_func(entries => {
+    entries.forEach(entry => {
+      observation_count++;
+      if (observation_count === 1) {
+        assert_true(entry.isVisible, "Initially visible");
+        // Trigger filter change to occlude target
+        fo.style.filter = "drop-shadow(-140px -140px red)";
+      } else if (observation_count === 2) {
+        assert_false(entry.isVisible, "Should be occluded by filter");
+        observer.disconnect();
+        t.done();
+      }
+    });
+  }), {trackVisibility: true, delay: 100});
+
+  observer.observe(target);
+}, "IntersectionObserver observes visibility changes from SVG foreignObject filter changes");
+</script>

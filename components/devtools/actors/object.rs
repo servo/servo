@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::property_iterator::PropertyIteratorActor;
 use crate::actors::symbol_iterator::SymbolIteratorActor;
 use crate::protocol::ClientRequest;
@@ -122,12 +122,13 @@ pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
+    own_property_length: Option<u32>,
     preview: Option<devtools_traits::ObjectPreview>,
 }
 
 impl Actor for ObjectActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/object.js
@@ -180,14 +181,12 @@ impl Actor for ObjectActor {
                         preview.own_properties.clone().unwrap_or_default()
                     }
                 });
-                let property_iterator_name = PropertyIteratorActor::register(registry, properties);
-                let property_iterator_actor =
-                    registry.find::<PropertyIteratorActor>(&property_iterator_name);
+                let property_iterator_actor = PropertyIteratorActor::register(registry, properties);
                 let count = property_iterator_actor.count();
                 let msg = EnumReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     iterator: EnumIterator {
-                        actor: property_iterator_name,
+                        actor: property_iterator_actor.name().into(),
                         type_: EnumIteratorType::PropertyIterator,
                         count,
                     },
@@ -197,11 +196,11 @@ impl Actor for ObjectActor {
             },
 
             "enumSymbols" => {
-                let symbol_iterator_name = SymbolIteratorActor::register(registry);
+                let symbol_iterator_actor = SymbolIteratorActor::register(registry);
                 let msg = EnumReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     iterator: EnumIterator {
-                        actor: symbol_iterator_name,
+                        actor: symbol_iterator_actor.name().into(),
                         type_: EnumIteratorType::SymbolIterator,
                         count: 0,
                     },
@@ -211,7 +210,7 @@ impl Actor for ObjectActor {
 
             "prototype" => {
                 let msg = PrototypeReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     prototype: self.encode(registry),
                 };
                 request.reply_final(&msg)?
@@ -228,25 +227,28 @@ impl ObjectActor {
         registry: &ActorRegistry,
         uuid: Option<String>,
         class: String,
+        own_property_length: Option<u32>,
         preview: Option<devtools_traits::ObjectPreview>,
     ) -> String {
         let Some(uuid) = uuid else {
-            let name = registry.new_name::<Self>();
+            let name = new_actor_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: None,
                 class,
+                own_property_length,
                 preview,
             };
             registry.register(actor);
             return name;
         };
-        if !registry.script_actor_registered(uuid.clone()) {
-            let name = registry.new_name::<Self>();
+        if !registry.script_actor_registered(&uuid) {
+            let name = new_actor_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),
                 class,
+                own_property_length,
                 preview,
             };
 
@@ -255,7 +257,7 @@ impl ObjectActor {
 
             name
         } else {
-            registry.script_to_actor(uuid)
+            registry.script_to_actor(&uuid)
         }
     }
 }
@@ -263,7 +265,7 @@ impl ObjectActor {
 impl ActorEncode<ObjectActorMsg> for ObjectActor {
     fn encode(&self, registry: &ActorRegistry) -> ObjectActorMsg {
         let mut msg = ObjectActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: "object".into(),
             class: self.class.clone(),
             extensible: true,
@@ -271,7 +273,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             sealed: false,
             function: None,
             preview: None,
-            own_property_length: None,
+            own_property_length: self.own_property_length,
         };
 
         // Build preview
@@ -279,7 +281,6 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
         let Some(preview) = self.preview.clone() else {
             return msg;
         };
-        msg.own_property_length = preview.own_properties_length;
 
         let function = preview.function.map(|function| FunctionPreview {
             name: function.name.clone(),

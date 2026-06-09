@@ -16,12 +16,16 @@ test_computed_value("background-clip", "border-box");
 test_computed_value("background-clip", "padding-box");
 test_computed_value("background-clip", "content-box");
 test_computed_value("background-clip", "border-area");
+test_computed_value("background-clip", "border-box, padding-box, content-box, border-area");
+
 test_computed_value("background-clip", "text");
 test_computed_value("background-clip", "border-area text");
 test_computed_value("background-clip", "text border-area", "border-area text");
 
-// See background-computed.html for a test with multiple background images.
-test_computed_value("background-clip", "border-box, padding-box, content-box, border-area", "border-box");
+document.getElementById("target").style['background-image'] = "none, none";
+test_computed_value("background-clip", "border-box", "border-box", "multiple base values");
+test_computed_value("background-clip", "border-box, padding-box", "border-box, padding-box", "multiple base values");
+test_computed_value("background-clip", "border-box, padding-box, content-box", "border-box, padding-box, content-box", "multiple base values");
 </script>
 </body>
 </html>

@@ -133,11 +133,14 @@ const test_container = document.getElementById("test_container");
  */
 for (let i = 0; i < tests.length; i++) {
     let [target, parent] = tests[i];
-    async_test(function(t) {
+    promise_test(async function(t) {
         let test = document.createElement("div");
         test_container.appendChild(test);
         test.appendChild(parent);
         getContainer(parent).appendChild(target);
+        t.add_cleanup(function() {
+            test_container.removeChild(test);
+        });
 
         // for later filtering out the activations belonging to this test
         for (let e of test.getElementsByClassName("activates")) {
@@ -150,15 +153,11 @@ for (let i = 0; i < tests.length; i++) {
         getClickTarget(target).click();
 
         // Need to spin event loop twice, as some clicks might dispatch another task
-        t.step_timeout(() => {
-            t.step_timeout(t.step_func_done(() => {
-                    assert_array_equals(getActivations(i), getExpectedActivations(target));
-            }), 0);
-        }, 0);
-
-        t.add_cleanup(function() {
-            test_container.removeChild(test);
+        await new Promise(r => {
+            t.step_timeout(() => t.step_timeout(r, 0), 0);
         });
+
+        assert_array_equals(getActivations(i), getExpectedActivations(target));
     }, `When clicking child ${toString(target)} of parent ${toString(parent)}, only child should be activated.`);
 }
 </script>

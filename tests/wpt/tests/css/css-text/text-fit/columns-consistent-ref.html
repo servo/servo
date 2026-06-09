@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  width: 102px;
+  columns: 2;
+  column-gap: 2px;
+  height: 24px;
+  background: #ddd;
+  font: 10px/1 Ahem;
+  border: 2px solid blue;
+}
+</style>
+<body>
+<div class="container">
+  <div>AAAAA BpB</div>
+</div>
+
+<div class="container" style="font-size:25px">
+AA<br>p
+</div>
+
+<div class="container" style="font-size:25px">
+AA<br>p
+</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

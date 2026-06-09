@@ -18,10 +18,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
-use crate::layout_box_base::{
-    IndependentFormattingContextLayoutResult, IndependentFormattingContextLayoutResultAndInputs,
-    LayoutBoxBase, LayoutResultAndInputs,
-};
+use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{
@@ -112,7 +109,7 @@ impl IndependentFormattingContext {
             self.propagated_data,
         );
 
-        self.base.clear_fragments_and_fragment_cache();
+        self.base.clear_fragments_and_dirty_fragment_cache();
         *self.base.cached_inline_content_size.borrow_mut() = None;
         self.base.repair_style(&node_and_style_info.style);
     }
@@ -464,27 +461,21 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> (IndependentFormattingContextLayoutResult, bool) {
-        if let Some(LayoutResultAndInputs::IndependentFormattingContext(cache)) =
-            self.base.cached_layout_result.borrow().as_ref()
+        if let Some(cached_layout_result) = self
+            .base
+            .cached_independent_formatting_context_layout_if_applicable(
+                positioning_context,
+                containing_block_for_children,
+            )
         {
-            let cache = &**cache;
-            if cache.containing_block_for_children_size.inline ==
-                containing_block_for_children.size.inline &&
-                (cache.containing_block_for_children_size.block ==
-                    containing_block_for_children.size.block ||
-                    !cache.result.depends_on_block_constraints)
-            {
-                positioning_context.append(cache.positioning_context.clone());
-                return (cache.result.clone(), true);
-            }
-            #[cfg(feature = "tracing")]
-            tracing::debug!(
-                name: "IndependentFormattingContext::layout cache miss",
-                cached = ?cache.containing_block_for_children_size,
-                required = ?containing_block_for_children.size,
-            );
+            return (cached_layout_result, true);
         }
 
+        #[cfg(feature = "tracing")]
+        tracing::debug!(
+            name: "IndependentFormattingContext::layout cache miss",
+            required = ?containing_block_for_children.size,
+        );
         let mut child_positioning_context = PositioningContext::default();
         let result = self.layout_without_caching(
             layout_context,
@@ -494,17 +485,12 @@ impl IndependentFormattingContext {
             preferred_aspect_ratio,
             lazy_block_size,
         );
-
-        *self.base.cached_layout_result.borrow_mut() =
-            Some(LayoutResultAndInputs::IndependentFormattingContext(
-                Box::new(IndependentFormattingContextLayoutResultAndInputs {
-                    result: result.clone(),
-                    positioning_context: child_positioning_context.clone(),
-                    containing_block_for_children_size: containing_block_for_children.size.clone(),
-                }),
-            ));
+        self.base.cache_independent_formatting_context_layout(
+            containing_block_for_children,
+            &child_positioning_context,
+            &result,
+        );
         positioning_context.append(child_positioning_context);
-
         (result, false)
     }
 

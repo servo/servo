@@ -24,7 +24,9 @@ use stylo_atoms::Atom;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -47,9 +49,10 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{
-    BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
-    UnbindContext, VecPreOrderInsertionHelper,
+    BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, UnbindContext,
+    VecPreOrderInsertionHelper,
 };
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
@@ -69,6 +72,7 @@ pub(crate) enum IsUserAgentWidget {
 /// <https://dom.spec.whatwg.org/#interface-shadowroot>
 #[dom_struct]
 pub(crate) struct ShadowRoot {
+    /// The [`DocumentFragment`] that this [`ShadowRoot`] inherits from.
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
@@ -199,7 +203,12 @@ impl ShadowRoot {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
         // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
@@ -218,10 +227,7 @@ impl ShadowRoot {
             .cloned();
 
         if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-            self.window
-                .layout_mut()
-                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
         }
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -235,7 +241,11 @@ impl ShadowRoot {
 
     /// Append a constructed stylesheet to the back of shadow root stylesheet set.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+    pub(crate) fn append_constructed_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        cssom_stylesheet: &CSSStyleSheet,
+    ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
@@ -244,10 +254,7 @@ impl ShadowRoot {
         let insertion_point = stylesheets.iter().last().cloned();
 
         if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-            self.window
-                .layout_mut()
-                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
         }
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -283,27 +290,13 @@ impl ShadowRoot {
 
     /// Remove any existing association between the provided id and any elements
     /// in this shadow tree.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, _can_gc: CanGc) {
-        self.document_or_shadow_root.unregister_named_element(
-            self.document_fragment.id_map(),
-            to_unregister,
-            &id,
-        );
+    pub(crate) fn unregister_element_id(&self, id: &Atom) {
+        self.document_fragment.id_map().remove(id);
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, _can_gc: CanGc) {
-        let root = self
-            .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        self.document_or_shadow_root.register_named_element(
-            self.document_fragment.id_map(),
-            element,
-            &id,
-            root,
-        );
+    pub(crate) fn register_element_id(&self, element: &Element, id: &Atom, _can_gc: CanGc) {
+        self.document_fragment.id_map().add(id, element)
     }
 
     pub(crate) fn register_slot(&self, slot: &HTMLSlotElement) {
@@ -525,21 +518,29 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         &self,
         cx: &mut js::context::JSContext,
         value: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
     ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
-        let value = TrustedHTML::get_trusted_type_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
         )?;
-        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
-        let target = self.upcast::<Node>();
-        let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, cx);
+        // Step 2. Set and filter HTML given this, this's shadow host, compliantHTML, options, and
+        // false.
+        Sanitizer::set_and_filter_html(
+            cx,
+            self.upcast(),
+            &self.Host(),
+            compliant_html,
+            options,
+            false,
+        )?;
+
         Ok(())
     }
 
@@ -582,16 +583,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(
         &self,
-        context: JSContext,
+        cx: &mut js::context::JSContext,
         val: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            context,
+            cx,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.

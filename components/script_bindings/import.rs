@@ -42,7 +42,7 @@ pub(crate) mod base {
     pub(crate) use crate::proxyhandler::CrossOriginProperties;
     pub(crate) use crate::reflector::{DomGlobalGeneric, DomObject};
     pub(crate) use crate::root::DomRoot;
-    pub(crate) use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
     pub(crate) use crate::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::trace::RootedTraceableBox;
     pub(crate) use crate::utils::{get_dictionary_property, set_dictionary_property};
@@ -56,7 +56,6 @@ pub(crate) mod module {
     pub(crate) use js::conversions::ToJSValConvertible;
     pub(crate) use js::glue::{
         CreateProxyHandler, GetProxyReservedSlot, JS_GetReservedSlot, ProxyTraps,
-        SetProxyReservedSlot,
     };
     pub(crate) use js::jsapi::{
         __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmErrorPrototype,
@@ -76,22 +75,16 @@ pub(crate) mod module {
         JSTypedMethodJitInfo, JSValueType, MutableHandle as RawMutableHandle,
         MutableHandleIdVector as RawMutableHandleIdVector,
         MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-        ObjectOpResult, PropertyDescriptor, SymbolCode, UndefinedHandleValue, jsid,
+        ObjectOpResult, PropertyDescriptor, SymbolCode, jsid,
     };
-    pub(crate) use js::jsval::PrivateValue;
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers::{
         AppendToIdVector, Call, GetPropertyKeys, JS_CopyOwnPropertiesAndPrivateFields,
-        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty,
-        JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithGivenProto,
-        JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype,
-        JS_WrapObject, NewProxyObject, RUST_INTERNED_STRING_TO_JSID, RUST_SYMBOL_TO_JSID,
-        int_to_jsid,
+        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty, JS_NewObjectWithoutMetadata,
+        JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype, RUST_INTERNED_STRING_TO_JSID,
+        RUST_SYMBOL_TO_JSID, int_to_jsid,
     };
-    pub(crate) use js::rust::{
-        CustomAutoRooterGuard, GCMethods, Handle, MutableHandle, get_context_realm,
-        get_object_class, get_object_realm,
-    };
+    pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, typedarray,
@@ -102,12 +95,14 @@ pub(crate) mod module {
     pub(crate) use crate::codegen::Globals::Globals;
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
     pub(crate) use crate::constant::{ConstantSpec, ConstantVal};
-    pub(crate) use crate::constructor::call_default_constructor;
+    pub(crate) use crate::constructor::{
+        CallbackInit, NamespaceInit, call_default_constructor, create_callback_interface_objects,
+        create_namespace_interface_objects,
+    };
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::conversions::native_from_handlevalue;
     pub(crate) use crate::conversions::{
-        DOM_OBJECT_SLOT, StringificationBehavior, is_array_like, jsid_to_string,
-        native_from_object_static,
+        StringificationBehavior, is_array_like, jsid_to_string, native_from_object_static,
     };
     pub(crate) use crate::error::{Error, ErrorResult};
     pub(crate) use crate::finalize::{
@@ -117,20 +112,18 @@ pub(crate) mod module {
     pub(crate) use crate::inheritance::Castable;
     pub(crate) use crate::interface::{
         ConstructorClassHook, InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass,
-        ProtoOrIfaceIndex, create_callback_interface_object, create_global_object,
-        create_interface_prototype_object, create_named_constructors,
-        create_noncallback_interface_object, define_dom_interface, define_guarded_methods,
-        define_guarded_properties, get_per_interface_object_handle, is_exposed_in,
+        ProtoOrIfaceIndex, create_global_object, create_interface_prototype_object,
+        create_named_constructors, create_noncallback_interface_object, define_dom_interface,
+        define_guarded_methods, define_guarded_properties, get_per_interface_object_handle,
+        is_exposed_in,
     };
     pub(crate) use crate::iterable::{Iterable, IterableIterator, IteratorType};
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::like::Maplike;
     pub(crate) use crate::like::Setlike;
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
-    pub(crate) use crate::namespace::{NamespaceObjectClass, create_namespace_object};
-    pub(crate) use crate::proxyhandler::{
-        ensure_expando_object, get_expando_object, set_property_descriptor,
-    };
+    pub(crate) use crate::namespace::NamespaceObjectClass;
+    pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::root::{Dom, DomSlice};
@@ -143,6 +136,5 @@ pub(crate) mod module {
         get_array_index_from_id, get_property_on_prototype, has_property_on_prototype,
         may_resolve_global, may_resolve_window, resolve_global, resolve_window, trace_global,
     };
-    pub(crate) use crate::weakref::DOM_WEAK_SLOT;
     pub(crate) use crate::{JSTraceable, proxyhandler};
 }

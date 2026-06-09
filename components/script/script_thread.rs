@@ -1277,7 +1277,7 @@ impl ScriptThread {
             }
 
             if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(CanGc::from_cx(cx));
+                document.deliver_resize_loop_error_notification(cx);
                 // Ensure that another turn of the event loop occurs to process
                 // the skipped observations.
                 document.add_rendering_update_reason(
@@ -2196,7 +2196,7 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
+                devtools::handle_get_computed_style(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(cx, &self.devtools_state, id, &node_id, reply)
@@ -2305,6 +2305,14 @@ impl ScriptThread {
                     .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
             },
+            DevtoolScriptControlMsg::Blackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_blackbox(cx, spidermonkey_id, coverage);
+            },
+            DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_unblackbox(cx, spidermonkey_id, coverage);
+            },
         }
     }
 
@@ -2379,6 +2387,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2387,6 +2396,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsLinkText(selector, partial, reply) => {
                 webdriver_handlers::handle_find_elements_link_text(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2414,6 +2424,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2427,6 +2438,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_element_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 element_id,
@@ -2461,6 +2473,7 @@ impl ScriptThread {
                 shadow_root_id,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_css_selector(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2473,6 +2486,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2482,6 +2496,7 @@ impl ScriptThread {
             ),
             WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
                 webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    cx,
                     &documents,
                     pipeline_id,
                     shadow_root_id,
@@ -2586,7 +2601,14 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
+                webdriver_handlers::handle_get_css(
+                    cx,
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                )
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(cx, &documents, pipeline_id, node_id, reply)
@@ -3206,6 +3228,10 @@ impl ScriptThread {
                 window.discard_browsing_context();
             }
 
+            // Clear the image cache now, instead of waiting for the Window to be
+            // garbage collected. See servo/servo#45239.
+            window.image_cache().clear();
+
             debug!("{pipeline_id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
         }
@@ -3474,8 +3500,14 @@ impl ScriptThread {
             incomplete.theme,
             self.this.clone(),
         );
-        self.debugger_global
-            .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
+        if self.senders.devtools_server_sender.is_some() {
+            self.debugger_global.fire_add_debuggee(
+                cx,
+                window.upcast(),
+                incomplete.pipeline_id,
+                None,
+            );
+        }
 
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;
@@ -3582,7 +3614,10 @@ impl ScriptThread {
         let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
         if let Some(refresh_val) = refresh_header {
             // There are tests that this header handles Unicode code points
-            document.shared_declarative_refresh_steps(refresh_val.as_bytes());
+            document.shared_declarative_refresh_steps(
+                refresh_val.as_bytes(),
+                /* from_meta_element */ false,
+            );
         }
 
         document.set_ready_state(cx, DocumentReadyState::Loading);
@@ -3638,20 +3673,20 @@ impl ScriptThread {
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
-                cx,
             );
         } else {
             ServoParser::parse_html_document(
+                cx,
                 &document,
                 None,
                 final_url,
                 encoding_hint_from_content_type,
                 incomplete.load_data.container_document_encoding,
-                cx,
             );
         }
 

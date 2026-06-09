@@ -61,7 +61,7 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use script_bindings::reflector::DomObject;
-use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
+use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive, temp_cx};
 use script_bindings::settings_stack::run_a_script;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::pref;
@@ -95,7 +95,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -496,7 +496,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                         CanGc::from_cx(cx),
                     );
 
-                    event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+                    event.upcast::<Event>().fire(cx, &target);
                 })
             );
             },
@@ -505,10 +505,10 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: &mut js::context::JSContext, str_: HandleString) -> DOMString {
+fn safely_convert_null_to_string(cx: &js::context::JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
-        Some(str_) => unsafe { jsstr_to_string(cx.raw_cx(), str_) },
+        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
     })
 }
 
@@ -670,7 +670,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 
                 log::error!(
                     "Unhandled promise rejection: {}",
-                    stringify_handle_value(reason.handle())
+                    stringify_handle_value( cx, reason.handle())
                 );
 
                 let event = PromiseRejectionEvent::new(
@@ -682,7 +682,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                     reason.handle(),
                     CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+                event.upcast::<Event>().fire(cx, &target);
 
                 // TODO: Step 4.1.3 If notCanceled is true, then the user agent may report
                 // p.[[PromiseResult]] to a developer console.
@@ -1452,13 +1452,14 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     global: HandleObject,
     closure: *mut ScriptEnvironmentPreparer_Closure,
 ) {
-    let cx = GlobalScope::get_cx();
+    // SAFETY: always safe from a JS engine hook.
+    let mut cx = unsafe { temp_cx() };
     let global = unsafe { GlobalScope::from_object(global.get()) };
-    let ar = enter_realm(&*global);
+    let mut realm = enter_auto_realm(&mut cx, &*global);
 
     run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
-            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::deprecated_note());
+        if unsafe { !RunScriptEnvironmentPreparerClosure(realm.raw_cx(), closure) } {
+            report_pending_exception(&mut realm.current_realm());
         };
     });
 }

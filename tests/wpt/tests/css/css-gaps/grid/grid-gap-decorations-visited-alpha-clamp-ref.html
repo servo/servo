@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-gap: 20px;
+    grid-template-columns: 100px 100px;
+    height: 100px;
+
+    column-rule-color: rgba(0, 0, 255, 0.5);
+    column-rule-style: solid;
+    column-rule-width: 10px;
+  }
+  .item {
+    background: white;
+  }
+</style>
+<div class="grid-container">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

@@ -24,9 +24,6 @@
 
 <script>
   promise_test(async t => {
-    var before = document.getElementById("before");
-    var item1 = document.getElementById("item1");
-    var after = document.getElementById("after");
 
     await focusAndWait(before);
     await sendTabForward();
@@ -37,9 +34,6 @@
   }, "Tab enters focusgroup at first item in tree order and exits normally");
 
   promise_test(async t => {
-    var after = document.getElementById("after");
-    var item1 = document.getElementById("item1");
-    var before = document.getElementById("before");
 
     await focusAndWait(after);
     await navigateFocusBackward();
@@ -50,9 +44,6 @@
   }, "Shift+Tab enters focusgroup at first item in tree order and exits normally");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
 
     await focusAndWait(item1);
 

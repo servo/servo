@@ -17,44 +17,7 @@ partial interface DebuggerGlobalScope {
 };
 
 dictionary EvalResult {
-    required DebuggerValue value;
-    ObjectPreview preview;
+    required DOMString serializedValue;
     required DOMString completionType;
     boolean hasException;
-};
-
-dictionary PropertyDescriptor {
-    required DOMString name;
-    required DebuggerValue value;
-    required boolean configurable;
-    required boolean enumerable;
-    required boolean writable;
-    required boolean isAccessor;
-};
-
-dictionary DebuggerValue {
-    required DOMString valueType;
-    boolean booleanValue;
-    double numberValue;
-    DOMString stringValue;
-    DOMString objectClass;
-};
-
-dictionary ObjectPreview {
-    required DOMString kind;
-    sequence<PropertyDescriptor> ownProperties;
-    unsigned long ownPropertiesLength;
-    unsigned long arrayLength;
-    sequence<DebuggerValue> items;
-    FunctionPreview function;
-};
-
-// Function-specific metadata
-// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js>
-dictionary FunctionPreview {
-    DOMString name;
-    DOMString displayName;
-    required sequence<DOMString> parameterNames;
-    boolean isAsync;
-    boolean isGenerator;
 };

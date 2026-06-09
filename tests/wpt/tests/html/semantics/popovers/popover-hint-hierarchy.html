@@ -83,27 +83,6 @@ promise_test(async (t) => {
   assertOpen('after auto click',auto1);
 }, 'Clicking outside consistently closes both auto and hint popovers.');
 
-// Same as "weirdness 3" but with all popovers nested in an outer auto popover
-promise_test(async (t) => {
-  t.add_cleanup(hideAll);
-
-  auto1.showPopover();
-  auto2.showPopover({source: auto1});
-  hint1.showPopover({source: auto1});
-  assertOpen('initial', auto1, auto2, hint1);
-
-  await clickOn(hint1);
-  assertOpen('after hint click', auto1, hint1);
-
-  auto2.showPopover({source: auto1});
-  assertOpen('auto reopen hides hint', auto1, auto2);
-  hint1.showPopover({source: auto1});
-  assertOpen('reopen hint', auto1, auto2, hint1);
-
-  await clickOn(auto2);
-  assertOpen('after auto click', auto1, auto2);
-}, 'Clicking outside consistently closes both auto and hint popovers (nested).');
-
 // this is "weirdness 4" from https://github.com/whatwg/html/issues/12304
 test((t) => {
   t.add_cleanup(hideAll);
@@ -132,10 +111,10 @@ promise_test(async (t) => {
   assertOpen('initial',hint1);
 
   // Imperative
-  assert_throws_dom('InvalidStateError', () => {
-    auto1.showPopover({source: hint1});
-  }, 'Opening auto popover inside hint popover is not allowed');
-  assertOpen('after show',hint1);
+  auto1.showPopover({source: hint1}); // "demoted" to hint
+  assertOpen('after show',auto1,hint1);
+
+  auto1.hidePopover();
 
   // Declarative
   const invoker = document.createElement('button');
@@ -143,6 +122,6 @@ promise_test(async (t) => {
   t.add_cleanup(() => invoker.remove());
   hint1.appendChild(invoker);
   await clickOn(invoker);
-  assertOpen('after click',hint1);
-}, 'Opening an auto popover inside a hint popover is disallowed and will fail.');
+  assertOpen('after click',auto1,hint1);
+}, 'Opening an auto popover inside a hint popover is allowed and it downgrades to hint.');
 </script>

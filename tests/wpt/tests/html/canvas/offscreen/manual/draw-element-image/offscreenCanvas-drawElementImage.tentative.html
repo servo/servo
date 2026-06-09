@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<title>OffscreenCanvas.drawElementImage should draw an ElementImage</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  await waitForCanvasPaint(canvas);
+
+  let elementImage = canvas.captureElementImage(child);
+  assert_equals(elementImage.width, 100);
+  assert_equals(elementImage.height, 100);
+
+  const offscreen = canvas.transferControlToOffscreen();
+  const offscreenContext = offscreen.getContext('2d');
+  let draw_transform = offscreenContext.drawElementImage(elementImage, 0, 0);
+  assert_array_equals(
+    offscreenContext.getImageData(0, 0, 1, 1).data,
+    [0, 128, 0, 255]);
+
+  let expected = new DOMMatrix().translateSelf(0, 0);
+  assert_array_equals(
+    draw_transform.toFloat64Array(),
+    expected.toFloat64Array());
+}, 'OffscreenCanvas.drawElementImage should draw an ElementImage');
+
+promise_test(async t => {
+  await waitForCanvasPaint(canvas);
+
+  const offscreen = new OffscreenCanvas(200, 200);
+  const offscreenContext = offscreen.getContext('2d');
+
+  assert_throws_dom('InvalidStateError',
+    () => offscreenContext.drawElementImage(child, 0, 0),
+    'drawElementImage with Element on OffscreenCanvas should throw InvalidStateError');
+
+  assert_throws_dom('InvalidStateError',
+    () => offscreen.getElementTransform(child, new DOMMatrix()),
+    'getElementTransform with Element on OffscreenCanvas should throw InvalidStateError');
+}, 'Passing an Element to OffscreenCanvas methods on the main thread throws InvalidStateError');
+</script>

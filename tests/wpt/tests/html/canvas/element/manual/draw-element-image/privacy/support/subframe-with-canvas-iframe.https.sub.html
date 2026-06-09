@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>subframe loaded cross-origin that itself loads iframes</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 10px;
+    height: 20px;
+    background: blue;
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 10px;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="10" height="20" layoutsubtree>
+    <div id=child>
+      <!-- This frame is loading from the same origin as the main frame, which
+           is not the origin of this frame. -->
+      <iframe id=crossOrigin width=10 height=10 src="https://{{host}}:{{ports[https][0]}}/html/canvas/element/manual/draw-element-image/resources/iframe-subframe-red.html"></iframe>
+      <!-- This frame is loading from the same origin as this frame, which
+           is not the origin of the main frame. -->
+      <iframe id=sameOrigin width=10 height=10 src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/html/canvas/element/manual/draw-element-image/resources/iframe-subframe-green.html"></iframe>
+    </div>
+  </canvas>
+
+  <script>
+    let sPendingIframesToLoad = 2;
+
+    function pendingIframeLoaded() {
+      if (!--sPendingIframesToLoad) {
+        promise_test(async function(t) {
+          // Wait for the window to have a non-zero size.
+          while (window.innerWidth == 0) {
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
+
+          await waitForCanvasPaint(canvas);
+          const context = canvas.getContext("2d");
+          context.drawElementImage(child, 0, 0);
+
+          // Fetch all pixel data once to avoid multiple slow readbacks.
+          const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+          let pixel = _getPixelFromImageData(imgData, 5, 5);
+          assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin should not draw");
+
+          pixel = _getPixelFromImageData(imgData, 5, 15);
+          assert_array_equals(pixel, [0, 128, 0, 255], "Same origin should draw");
+        });
+      }
+    }
+
+    sameOrigin.onload = pendingIframeLoaded;
+    crossOrigin.onload = pendingIframeLoaded;
+  </script>
+</body>
+</html>

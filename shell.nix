@@ -8,7 +8,7 @@ with import (builtins.fetchTarball {
   # NixOS users: if servoshell crashes with an assertion failure in surfman’s x11/connection.rs,
   # eglInitialize() may be failing, or you may be building with an incompatible version of glibc.
   # Use your system nixpkgs here, change `llvmPackages` below if necessary, then do a clean build.
-  url = "https://github.com/NixOS/nixpkgs/archive/ffbc9f8cbaacfb331b6017d5a5abb21a492c9a38.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/d233902339c02a9c334e7e593de68855ad26c4cb.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -83,8 +83,8 @@ stdenv.mkDerivation (androidEnvironment // {
   buildInputs = [
     # Native dependencies
     fontconfig freetype libunwind
-    xorg.libxcb
-    xorg.libX11
+    libxcb
+    libx11
 
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
@@ -146,7 +146,7 @@ stdenv.mkDerivation (androidEnvironment // {
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
     # Fixes missing library errors
-    wayland xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
+    wayland libxcursor libxrandr libxi libxkbcommon
 
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.

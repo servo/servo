@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="invoker" interestfor="target">Invoker</button>
+<div id="target" popover>Target</div>
+
+<script>
+test(() => {
+  const invoker = document.getElementById('invoker');
+  const isFinePointer = window.matchMedia('(pointer: fine)').matches;
+  const displayStyle = getComputedStyle(invoker, '::interest-button').display;
+
+  if (isFinePointer) {
+    assert_equals(displayStyle, 'none', 'Interest button should be display: none when pointer is fine');
+  } else {
+    assert_equals(displayStyle, 'inline-block', 'Interest button should be displayed when pointer is not fine');
+  }
+}, 'Interest button pseudo element display responds correctly to the environment pointer type');
+</script>

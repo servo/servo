@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :heading() pseudo-class in :has() argument with headingoffset/headingreset</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#headings">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: grey }
+  #ancestor:has(:heading(1)) ~ #has_heading_1 { color: red }
+  #ancestor:has(:heading(2)) ~ #has_heading_2 { color: orange }
+  #ancestor:has(:heading(3)) ~ #has_heading_3 { color: yellow }
+  #ancestor:has(:heading(1, 2)) ~ #has_heading_1_2 { color: green }
+</style>
+<div id="ancestor"><h1 id="h1"></h1></div>
+<div id="has_heading_1"></div>
+<div id="has_heading_2"></div>
+<div id="has_heading_3"></div>
+<div id="has_heading_1_2"></div>
+<script>
+const grey = "rgb(128, 128, 128)";
+const red = "rgb(255, 0, 0)";
+const orange = "rgb(255, 165, 0)";
+const yellow = "rgb(255, 255, 0)";
+const green = "rgb(0, 128, 0)";
+
+function testColors(test_name,
+                    has_heading_1_color,
+                    has_heading_2_color,
+                    has_heading_3_color,
+                    has_heading_1_2_color) {
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_1).color, has_heading_1_color);
+  }, test_name + ": #has_heading_1");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_2).color, has_heading_2_color);
+  }, test_name + ": #has_heading_2");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_3).color, has_heading_3_color);
+  }, test_name + ": #has_heading_3");
+  test(function() {
+      assert_equals(getComputedStyle(has_heading_1_2).color, has_heading_1_2_color);
+  }, test_name + ": #has_heading_1_2");
+}
+
+testColors("Initial colors", red, grey, grey, green);
+
+// Set headingoffset on the heading itself: h1 -> level 2
+h1.setAttribute("headingoffset", "1");
+testColors("h1[headingoffset=1]", grey, orange, grey, green);
+
+// Increase offset: h1 -> level 3
+h1.setAttribute("headingoffset", "2");
+testColors("h1[headingoffset=2]", grey, grey, yellow, grey);
+
+// Remove offset: h1 -> level 1
+h1.removeAttribute("headingoffset");
+testColors("h1 with headingoffset removed", red, grey, grey, green);
+
+// Move offset to the ancestor: h1 -> level 2
+ancestor.setAttribute("headingoffset", "1");
+testColors("ancestor[headingoffset=1]", grey, orange, grey, green);
+
+// Increase ancestor offset: h1 -> level 3
+ancestor.setAttribute("headingoffset", "2");
+testColors("ancestor[headingoffset=2]", grey, grey, yellow, grey);
+
+// headingreset on the heading cuts ancestor's offset: h1 -> level 1
+h1.setAttribute("headingreset", "");
+testColors("h1[headingreset] (cuts ancestor offset)", red, grey, grey, green);
+
+// Remove headingreset: h1 -> level 3 again
+h1.removeAttribute("headingreset");
+testColors("h1 with headingreset removed", grey, grey, yellow, grey);
+
+// Clear ancestor offset: h1 -> level 1
+ancestor.removeAttribute("headingoffset");
+testColors("ancestor with headingoffset removed", red, grey, grey, green);
+
+// Set offset via IDL property
+h1.headingOffset = 1;
+testColors("h1.headingOffset = 1", grey, orange, grey, green);
+
+h1.headingOffset = 0;
+testColors("h1.headingOffset = 0", red, grey, grey, green);
+
+// headingreset toggling via IDL property
+ancestor.setAttribute("headingoffset", "2");
+testColors("ancestor[headingoffset=2] again", grey, grey, yellow, grey);
+
+h1.headingReset = true;
+testColors("h1.headingReset = true", red, grey, grey, green);
+
+h1.headingReset = false;
+testColors("h1.headingReset = false", grey, grey, yellow, grey);
+</script>

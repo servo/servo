@@ -22,7 +22,7 @@ compression_dictionary_promise_test(async (t) => {
   // decompressed.
   const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
-}, 'Decompresion using Brotli with the dictionary works as expected');
+}, 'Decompression using Brotli with the dictionary works as expected');
 
 compression_dictionary_promise_test(async (t) => {
   const dict = await (await fetch(kRegisterDictionaryPath)).text();
@@ -36,7 +36,7 @@ compression_dictionary_promise_test(async (t) => {
   // decompressed.
   const data_url = `${kCompressedDataPath}?content_encoding=dcz`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
-}, 'Decompresion using Zstandard with the dictionary works as expected');
+}, 'Decompression using Zstandard with the dictionary works as expected');
 
 compression_dictionary_promise_test(async (t) => {
   const dict =
@@ -52,7 +52,31 @@ compression_dictionary_promise_test(async (t) => {
   const data_url =
       getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=dcb`);
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
-}, 'Decompresion of a cross origin resource works as expected');
+}, 'Decompression of a cross origin resource works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb&hash_mismatch=true`;
+  const res = await fetch(data_url);
+  await promise_rejects_js(t, TypeError, res.text());
+}, 'Decompression using Brotli fails when dictionary hash mismatches');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  const data_url = `${kCompressedDataPath}?content_encoding=dcz&hash_mismatch=true`;
+  const res = await fetch(data_url);
+  await promise_rejects_js(t, TypeError, res.text());
+}, 'Decompression using Zstandard fails when dictionary hash mismatches');
 
 </script>
 </body>

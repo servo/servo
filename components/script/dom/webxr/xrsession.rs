@@ -237,8 +237,8 @@ impl XRSession {
         let callback =
             ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
                 let this = this.clone();
-                task_source.queue(task!(xr_event_callback: move || {
-                    this.root().event_callback(message.unwrap(), CanGc::deprecated_note());
+                task_source.queue(task!(xr_event_callback: move |cx| {
+                    this.root().event_callback(cx, message.unwrap());
                 }))
             })
             .expect("Could not create callback");
@@ -266,13 +266,13 @@ impl XRSession {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(session_initial_inputs: move || {
+            .queue(task!(session_initial_inputs: move |cx| {
                 let this = this.root();
-                this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::deprecated_note());
+                this.input_sources.add_input_sources(cx, &this, &initial_inputs);
             }));
     }
 
-    fn event_callback(&self, event: XREvent, can_gc: CanGc) {
+    fn event_callback(&self, cx: &mut js::context::JSContext, event: XREvent) {
         match event {
             XREvent::SessionEnd => {
                 // https://immersive-web.github.io/webxr/#shut-down-the-session
@@ -284,7 +284,7 @@ impl XRSession {
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
                 for promise in self.end_promises.borrow_mut().drain(..) {
-                    promise.resolve_native(&(), can_gc);
+                    promise.resolve_native_with_cx(cx, &());
                 }
                 // Step 7
                 let event = XRSessionEvent::new(
@@ -293,9 +293,9 @@ impl XRSession {
                     false,
                     false,
                     self,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
-                event.upcast::<Event>().fire(self.upcast(), can_gc);
+                event.upcast::<Event>().fire(cx, self.upcast());
             },
             XREvent::Select(input, kind, ty, frame) => {
                 use stylo_atoms::Atom;
@@ -307,7 +307,8 @@ impl XRSession {
                 let source = self.input_sources.find(input);
                 let atom_index = if kind == SelectKind::Squeeze { 1 } else { 0 };
                 if let Some(source) = source {
-                    let frame = XRFrame::new(self.global().as_window(), self, frame, can_gc);
+                    let frame =
+                        XRFrame::new(self.global().as_window(), self, frame, CanGc::from_cx(cx));
                     frame.set_active(true);
                     if ty == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
@@ -317,9 +318,9 @@ impl XRSession {
                             false,
                             &frame,
                             &source,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
-                        event.upcast::<Event>().fire(self.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, self.upcast());
                     } else {
                         if ty == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
@@ -329,9 +330,9 @@ impl XRSession {
                                 false,
                                 &frame,
                                 &source,
-                                can_gc,
+                                CanGc::from_cx(cx),
                             );
-                            event.upcast::<Event>().fire(self.upcast(), can_gc);
+                            event.upcast::<Event>().fire(cx, self.upcast());
                         }
                         let event = XRInputSourceEvent::new(
                             self.global().as_window(),
@@ -340,9 +341,9 @@ impl XRSession {
                             false,
                             &frame,
                             &source,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
-                        event.upcast::<Event>().fire(self.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, self.upcast());
                     }
                     frame.set_active(false);
                 }
@@ -360,22 +361,22 @@ impl XRSession {
                     false,
                     false,
                     self,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
-                event.upcast::<Event>().fire(self.upcast(), can_gc);
+                event.upcast::<Event>().fire(cx, self.upcast());
                 // The page may be visible again, dirty the layers
                 // This also wakes up the event loop if necessary
                 self.dirty_layers();
             },
             XREvent::AddInput(info) => {
-                self.input_sources.add_input_sources(self, &[info], can_gc);
+                self.input_sources.add_input_sources(cx, self, &[info]);
             },
             XREvent::RemoveInput(id) => {
-                self.input_sources.remove_input_source(self, id, can_gc);
+                self.input_sources.remove_input_source(cx, self, id);
             },
             XREvent::UpdateInput(id, source) => {
                 self.input_sources
-                    .add_remove_input_source(self, id, source, can_gc);
+                    .add_remove_input_source(cx, self, id, source);
             },
             XREvent::InputChanged(id, frame) => {
                 self.input_frames.borrow_mut().insert(id, frame);
@@ -397,8 +398,11 @@ impl XRSession {
                         base == base_space
                     })
                     .for_each(|space| {
-                        let offset =
-                            XRRigidTransform::new(self.global().as_window(), transform, can_gc);
+                        let offset = XRRigidTransform::new(
+                            self.global().as_window(),
+                            transform,
+                            CanGc::from_cx(cx),
+                        );
                         let event = XRReferenceSpaceEvent::new(
                             self.global().as_window(),
                             atom!("reset"),
@@ -406,9 +410,9 @@ impl XRSession {
                             false,
                             space,
                             Some(&*offset),
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
-                        event.upcast::<Event>().fire(space.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, space.upcast());
                     });
             },
         }
@@ -605,7 +609,7 @@ impl XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#apply-the-nominal-frame-rate>
-    fn apply_nominal_framerate(&self, rate: f32, can_gc: CanGc) {
+    fn apply_nominal_framerate(&self, cx: &mut js::context::JSContext, rate: f32) {
         if self.framerate.get() == rate || self.ended.get() {
             return;
         }
@@ -618,9 +622,9 @@ impl XRSession {
             false,
             false,
             self,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        event.upcast::<Event>().fire(self.upcast(), can_gc);
+        event.upcast::<Event>().fire(cx, self.upcast());
     }
 }
 
@@ -896,9 +900,9 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
-    fn End(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn End(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global, can_gc);
+        let p = Promise::new2(cx, &global);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises
@@ -909,7 +913,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             //
             // However, if end_promises is empty, then all end() promises have already resolved,
             // so the session has completely shut down and we should not queue up more promises
-            p.resolve_native(&(), can_gc);
+            p.resolve_native_with_cx(cx, &());
             return p;
         }
         self.end_promises.borrow_mut().push(p.clone());
@@ -922,7 +926,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         // Disconnect any still-attached XRInputSources
         for source in 0..self.input_sources.Length() {
             self.input_sources
-                .remove_input_source(self, InputId(source), can_gc);
+                .remove_input_source(cx, self, InputId(source));
         }
         p
     }
@@ -1075,11 +1079,11 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         let callback =
             ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
                 let this = this.clone();
-                task_source.queue(task!(update_session_framerate: move || {
+                task_source.queue(task!(update_session_framerate: move |cx| {
                     let session = this.root();
-                    session.apply_nominal_framerate(message.unwrap(), CanGc::deprecated_note());
+                    session.apply_nominal_framerate(cx, message.unwrap());
                     if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                        promise.resolve_native(&(), CanGc::deprecated_note());
+                        promise.resolve_native_with_cx(cx, &());
                     };
                 }));
             })

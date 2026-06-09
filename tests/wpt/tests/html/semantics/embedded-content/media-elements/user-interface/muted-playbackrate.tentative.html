@@ -1,0 +1,74 @@
+<!doctype html>
+<title>muted reflects an extreme playbackRate</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#concept-media-muted">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>video, audio { display: none; }</style>
+<div id="log"></div>
+
+<script>
+// A media element is muted when its playbackRate is so low or so high that the
+// user agent cannot play audio usefully. The muted getter returns true when the
+// element is muted, and the :muted pseudo-class matches it.
+// https://html.spec.whatwg.org/multipage/media.html#concept-media-muted
+//
+// Tentative: the exact playbackRate range that mutes audio is user-agent
+// defined, and not every engine surfaces this condition through the muted
+// getter. The rates below sit at the edge of the playbackRate range engines
+// accept, so the test runs everywhere without throwing.
+const HIGH_RATE = 16;
+const LOW_RATE = 0.0625;
+
+for (const tagName of ['audio', 'video']) {
+  test(t => {
+    const m = document.createElement(tagName);
+    document.body.appendChild(m);
+    t.add_cleanup(() => m.remove());
+
+    assert_false(m.muted, 'not muted at the default playbackRate');
+    assert_false(m.matches(':muted'), ':muted does not match at the default playbackRate');
+
+    m.playbackRate = HIGH_RATE;
+    assert_true(m.muted, 'muted at a very high playbackRate');
+    assert_true(m.matches(':muted'), ':muted matches at a very high playbackRate');
+
+    m.playbackRate = 1;
+    assert_false(m.muted, 'not muted back at the normal playbackRate');
+    assert_false(m.matches(':muted'), ':muted does not match back at the normal playbackRate');
+
+    m.playbackRate = LOW_RATE;
+    assert_true(m.muted, 'muted at a very low playbackRate');
+    assert_true(m.matches(':muted'), ':muted matches at a very low playbackRate');
+  }, `${tagName}.muted reflects an extreme playbackRate`);
+
+  test(t => {
+    const m = document.createElement(tagName);
+    document.body.appendChild(m);
+    t.add_cleanup(() => m.remove());
+
+    // The playbackRate condition applies regardless of the muted state, so an
+    // element explicitly unmuted via the setter is still muted at an extreme rate.
+    m.muted = false;
+    m.playbackRate = HIGH_RATE;
+    assert_true(m.muted, 'an extreme playbackRate mutes even after muted was set to false');
+    assert_true(m.matches(':muted'), ':muted matches for an extreme playbackRate after the setter');
+  }, `${tagName}.muted reflects an extreme playbackRate after the muted setter`);
+
+  test(t => {
+    const m = document.createElement(tagName);
+    document.body.appendChild(m);
+    t.add_cleanup(() => m.remove());
+
+    // An element muted via the setter stays muted regardless of playbackRate:
+    // a normal rate does not unmute it, and an extreme rate keeps it muted.
+    m.muted = true;
+    m.playbackRate = 1;
+    assert_true(m.muted, 'a normal playbackRate does not unmute an element muted via the setter');
+    assert_true(m.matches(':muted'), ':muted still matches at a normal playbackRate');
+
+    m.playbackRate = HIGH_RATE;
+    assert_true(m.muted, 'an extreme playbackRate keeps an element muted via the setter muted');
+    assert_true(m.matches(':muted'), ':muted still matches at an extreme playbackRate');
+  }, `${tagName}: playbackRate does not unmute an element muted via the muted setter`);
+}
+</script>

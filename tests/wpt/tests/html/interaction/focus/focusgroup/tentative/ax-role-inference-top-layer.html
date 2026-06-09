@@ -31,7 +31,6 @@ promise_test(async t => {
 }, 'Sibling outside the popover still infers the implied tab role');
 
 promise_test(async t => {
-  const pop = document.getElementById('pop');
   assert_false(pop.matches(':popover-open'),
     'precondition: popover starts closed');
   pop.showPopover();

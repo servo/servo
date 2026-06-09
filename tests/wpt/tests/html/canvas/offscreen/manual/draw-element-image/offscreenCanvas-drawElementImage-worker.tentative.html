@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<title>OffscreenCanvas.drawElementImage should work in a worker thread</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+'use strict';
+
+const workerCode = `
+  let ctx;
+  self.onmessage = function(e) {
+    if (e.data.canvas) {
+      ctx = e.data.canvas.getContext('2d');
+    }
+    if (e.data.elementImage) {
+      ctx.drawElementImage(e.data.elementImage, 0, 0);
+      self.postMessage(ctx.getImageData(0, 0, 1, 1).data);
+    }
+  };
+`;
+
+promise_test(async t => {
+  await waitForCanvasPaint(canvas);
+
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const worker = new Worker(URL.createObjectURL(blob));
+
+  const offscreen = canvas.transferControlToOffscreen();
+  worker.postMessage({ canvas: offscreen }, [offscreen]);
+
+  const green_promise = new Promise(resolve => {
+    worker.onmessage = t.step_func(msg => {
+      if (msg.data instanceof Uint8ClampedArray) {
+        assert_array_equals(msg.data, [0, 128, 0, 255]);
+        resolve();
+      } else {
+        assert_unreached();
+      }
+    })
+  });
+
+  let elementImage = canvas.captureElementImage(child);
+  worker.postMessage({ elementImage: elementImage }, [elementImage]);
+
+  return green_promise;
+}, 'OffscreenCanvas.drawElementImage should work in a worker thread');
+</script>

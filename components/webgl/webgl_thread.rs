@@ -1260,7 +1260,7 @@ impl WebGLImpl {
                     (false, _) => SnapshotAlphaMode::Opaque,
                 };
                 sender
-                    .send((GenericSharedMemory::from_bytes(&pixels), alpha_mode))
+                    .send((GenericSharedMemory::from_vec(pixels), alpha_mode))
                     .unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {

@@ -24,7 +24,7 @@ dictionary PauseReason {
 };
 
 dictionary FrameInfo {
-    required DOMString displayName;
+    required DOMString? displayName;
     required boolean onStack;
     required boolean oldest;
     required boolean terminated;

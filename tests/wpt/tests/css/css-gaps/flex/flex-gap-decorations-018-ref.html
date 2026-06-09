@@ -14,9 +14,6 @@
         height: 190px;
         flex-wrap: wrap;
         flex-direction: column;
-        row-rule-color: red;
-        row-rule-width: 20px;
-        row-rule-style: groove;
     }
 
     .items {
@@ -26,6 +23,15 @@
         height: 50px;
     }
 
+    .row-rule {
+        margin: 0px;
+        padding: 0px;
+        height: 0px;
+        width: 50px;
+        border-bottom: 20px groove red;
+        position: absolute;
+        left: 2px;
+    }
 </style>
 
 <div id="flexbox">
@@ -33,3 +39,5 @@
     <div class="items">Two</div>
     <div class="items">Three</div>
 </div>
+<div class="row-rule" style="top: 52px;"></div>
+<div class="row-rule" style="top: 122px;"></div>

@@ -2918,6 +2918,7 @@ impl TableSlotCell {
             self.context.base.style.clone(),
             vertical_align_fragment_rect.as_physical(None),
             layout.layout.fragments,
+            false, /* is_line_box */
         );
 
         // Adjust the static position of all absolute children based on the

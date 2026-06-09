@@ -1,0 +1,36 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage should work when the canvas is fullscreen.</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="fullscreen-canvas-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<canvas id="canvas" width="100" height="100" layoutsubtree>
+  <div id="target" style="width: 100px; height: 100px; background: green;"></div>
+</canvas>
+
+<script>
+  canvas.onpaint = () => {
+    const ctx = canvas.getContext('2d');
+    ctx.reset();
+    ctx.drawElementImage(target, 0, 0, canvas.width, canvas.height);
+  }
+  canvas.requestPaint();
+
+  // Size the canvas grid to match the css size.
+  const observer = new ResizeObserver(([entry]) => {
+    canvas.width = entry.contentBoxSize[0].inlineSize;
+    canvas.height = entry.contentBoxSize[0].blockSize;
+  });
+  observer.observe(canvas);
+
+  onload = async () => {
+    await test_driver.bless("request fullscreen", () => canvas.requestFullscreen());
+    await waitForCanvasPaint(canvas);
+    takeScreenshot();
+  };
+</script>
+</html>

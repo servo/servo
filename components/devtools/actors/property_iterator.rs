@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::PropertyDescriptor;
 use malloc_size_of_derive::MallocSizeOf;
@@ -10,7 +11,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::object::ObjectPropertyDescriptor;
 use crate::protocol::ClientRequest;
 
@@ -28,14 +29,10 @@ pub(crate) struct PropertyIteratorActor {
 }
 
 impl PropertyIteratorActor {
-    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            properties,
-        };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self { name, properties };
+        registry.register::<Self>(actor)
     }
 
     pub fn count(&self) -> u32 {
@@ -44,8 +41,8 @@ impl PropertyIteratorActor {
 }
 
 impl Actor for PropertyIteratorActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -73,7 +70,7 @@ impl Actor for PropertyIteratorActor {
                 }
 
                 let reply = SliceReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     own_properties,
                 };
                 request.reply_final(&reply)?

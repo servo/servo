@@ -10,7 +10,7 @@
         <script>
 promise_test(async (test) => {
     const frameDOMException = frame.contentWindow.DOMException;
-    const transform = new frame.contentWindow.SFrameTransform;
+    const transform = new frame.contentWindow.SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     frame.remove();
     assert_throws_dom("InvalidStateError", frameDOMException, () => transform.readable);
 });

@@ -55,6 +55,9 @@ def main(request, response):
         if content_encoding == b"dcz":
             # Send the pre compressed file
             response.content = large_dcz_data if use_large else dcz_data
+        if b'hash_mismatch' in request.GET:
+            offset = 4 if content_encoding == b"dcb" else 8
+            response.content = response.content[:offset] + b'\x00' * 32 + response.content[offset + 32:]
 
 
 

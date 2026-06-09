@@ -127,7 +127,7 @@ partial interface Element {
 
 // https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface Element {
-  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
+  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
@@ -152,6 +152,13 @@ enum ScrollIntoViewContainer { "all", "nearest" };
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Element {
   Promise<undefined> requestFullscreen();
+};
+
+// https://w3c.github.io/pointerevents/#extensions-to-the-element-interface
+partial interface Element {
+  [Throws] undefined setPointerCapture(long pointerId);
+  [Throws] undefined releasePointerCapture(long pointerId);
+  boolean hasPointerCapture(long pointerId);
 };
 
 Element includes ChildNode;

@@ -28,12 +28,14 @@ use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
+use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStretch, FontStyle, FontSynthesis, FontVariantLigatures, FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStretch, FontStyle, FontSynthesis, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
@@ -44,6 +46,7 @@ use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
     FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
+    compute_used_font_features,
 };
 
 pub(crate) const AFRC: Tag = Tag::new(b"afrc");
@@ -54,17 +57,28 @@ pub(crate) const CLIG: Tag = Tag::new(b"clig");
 pub(crate) const COLR: Tag = Tag::new(b"COLR");
 pub(crate) const FRAC: Tag = Tag::new(b"frac");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
+pub(crate) const FWID: Tag = Tag::new(b"fwid");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
+pub(crate) const JP04: Tag = Tag::new(b"jp04");
+pub(crate) const JP78: Tag = Tag::new(b"jp78");
+pub(crate) const JP83: Tag = Tag::new(b"jp83");
+pub(crate) const JP90: Tag = Tag::new(b"jp90");
 pub(crate) const KERN: Tag = Tag::new(b"kern");
 pub(crate) const LIGA: Tag = Tag::new(b"liga");
 pub(crate) const LNUM: Tag = Tag::new(b"lnum");
 pub(crate) const ONUM: Tag = Tag::new(b"onum");
 pub(crate) const ORDN: Tag = Tag::new(b"ordn");
 pub(crate) const PNUM: Tag = Tag::new(b"pnum");
+pub(crate) const PWID: Tag = Tag::new(b"pwid");
+pub(crate) const RUBY: Tag = Tag::new(b"ruby");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
+pub(crate) const SMPL: Tag = Tag::new(b"smpl");
+pub(crate) const SUBS: Tag = Tag::new(b"subs");
+pub(crate) const SUPS: Tag = Tag::new(b"sups");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
+pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
@@ -388,7 +402,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     ///
@@ -405,6 +419,12 @@ pub struct ShapingOptions {
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property.
     pub numeric: FontVariantNumeric,
+    /// The value of the `font-variant-east-asian` property.
+    pub east_asian: FontVariantEastAsian,
+    /// The value of the `font-feature-settings` property.
+    pub feature_settings: FontFeatureSettings,
+    /// The value of the `font-variant-position` property.
+    pub position: FontVariantPosition,
     /// Various flags.
     pub flags: ShapingFlags,
 }
@@ -425,20 +445,31 @@ impl ShapingOptions {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
     text: String,
-    options: ShapingOptions,
+    letter_spacing: Option<Au>,
+    word_spacing: Option<Au>,
+    script: Script,
+    language: Language,
+    font_features: Box<[(Tag, u32)]>,
+    flags: ShapingFlags,
 }
 
 impl Font {
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
+        let font_features =
+            compute_used_font_features(options, self.template.borrow().font_face_rule.as_ref())
+                .collect();
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: *options,
+            letter_spacing: options.letter_spacing,
+            word_spacing: options.word_spacing,
+            script: options.script,
+            language: options.language,
+            flags: options.flags,
+            font_features,
         };
-        {
-            let cache = self.cached_shape_data.read();
-            if let Some(shaped_text) = cache.shaped_text.get(&lookup_key) {
-                return shaped_text.clone();
-            }
+
+        if let Some(shaped_text) = self.cached_shape_data.read().shaped_text.get(&lookup_key) {
+            return shaped_text.clone();
         }
 
         let start_time = Instant::now();
@@ -447,9 +478,11 @@ impl Font {
             self.shape_text_fast(text, options)
         } else {
             debug!("shape_text: Using Harfbuzz.");
-            self.shaper
-                .get_or_init(|| Shaper::new(self))
-                .shape_text(text, options)
+            self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
+                text,
+                options,
+                &lookup_key.font_features,
+            )
         };
 
         let shaped_text = Arc::new(glyphs);

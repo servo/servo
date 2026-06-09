@@ -202,6 +202,10 @@ combine('type', [
 beginSubcases()
 ).
 fn((t) => {
+  // If the `uniform_buffer_standard_layout` feature is supported, the `uniform` address space has
+  // the same layout constraints as `storage`.
+  const has_ubo_std_layout = t.hasLanguageFeature('uniform_buffer_standard_layout');
+
   // While this would fail validation, it doesn't fail for any reasons related to alignment.
   // Atomics are not allowed in uniform address space as they have to be read_write.
   if (t.params.address_space === 'uniform' && t.params.type.name.startsWith('atomic')) {
@@ -213,12 +217,12 @@ fn((t) => {
     code += 'enable f16;\n';
   }
 
-  // Testing the struct case, generate the structf
+  // Testing the struct case, generate the struct
   if (t.params.type.name === 'S') {
     code += `struct S {
         a: mat4x2<f32>,          // Align 8
         b: array<vec${
-    t.params.address_space === 'storage' ? 2 : 4
+    t.params.address_space === 'storage' || has_ubo_std_layout ? 2 : 4
     }<i32>, 2>,  // Storage align 8, uniform 16
       }
       `;
@@ -226,7 +230,7 @@ fn((t) => {
 
   // Alignment value listed in the spec
   const min_align =
-  t.params.address_space === 'storage' ?
+  t.params.address_space === 'storage' || has_ubo_std_layout ?
   `${t.params.type.storage}` :
   `${t.params.type.uniform}`;
   const align = t.params.align === 'alignment' ? min_align : t.params.align;
@@ -250,13 +254,14 @@ fn((t) => {
       return vec4<f32>(.4, .2, .3, .1);
     }`;
 
-  // An array of `vec2` in uniform will not validate because, while the alignment on the array
-  // itself is fine, the `vec2` element inside the array will have the wrong alignment. Uniform
-  // requires that inner vec2 to have an align 16 which can only be done by specifying `vec4`
-  // instead.
-  const fails =
-  t.params.address_space === 'uniform' && t.params.type.name.startsWith('array<vec2') ||
-  align < min_align;
+  let fails = align < min_align;
+  if (!has_ubo_std_layout) {
+    // An array of `vec2` in uniform will not validate because, while the alignment on the array
+    // itself is fine, the `vec2` element inside the array will have the wrong alignment. Uniform
+    // requires that inner vec2 to have an align 16 which can only be done by specifying `vec4`
+    // instead.
+    fails ||= t.params.address_space === 'uniform' && t.params.type.name.startsWith('array<vec2');
+  }
 
   t.expectCompileResult(!fails, code);
 });

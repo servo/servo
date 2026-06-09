@@ -81,8 +81,9 @@ impl HTMLAnchorElement {
     /// Get the full URL of the `href` attribute of this `<a>` element, returning `None` if
     /// the URL could not be joined with the `Document` URL.
     pub(crate) fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
-        self.upcast::<Element>()
-            .get_attribute(&local_name!("href"))?;
+        if !self.upcast::<Element>().has_attribute(&local_name!("href")) {
+            return None;
+        }
         self.owner_document().base_url().join(&self.Href()).ok()
     }
 }

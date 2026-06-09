@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 use serde_json::Map;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::protocol::ClientRequest;
@@ -34,8 +36,8 @@ pub(crate) struct BreakpointListActor {
 }
 
 impl Actor for BreakpointListActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -80,11 +82,15 @@ impl Actor for BreakpointListActor {
                         .map_err(|_| ActorError::Internal)?;
                 }
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "setActiveEventBreakpoints" => {
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "removeBreakpoint" => {
@@ -116,7 +122,9 @@ impl Actor for BreakpointListActor {
                         .map_err(|_| ActorError::Internal)?;
                 }
 
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -126,19 +134,20 @@ impl Actor for BreakpointListActor {
 }
 
 impl BreakpointListActor {
-    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let name = registry.new_name::<Self>();
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             browsing_context_name,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 }
 
 impl ActorEncode<ActorMsg> for BreakpointListActor {
     fn encode(&self, _: &ActorRegistry) -> ActorMsg {
-        ActorMsg { actor: self.name() }
+        ActorMsg {
+            actor: self.name().into(),
+        }
     }
 }

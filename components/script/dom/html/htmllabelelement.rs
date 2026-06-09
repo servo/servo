@@ -8,7 +8,6 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -23,9 +22,9 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLLabelElement {
@@ -101,12 +100,12 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-label-control>
     fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
-        let for_attr = match self.upcast::<Element>().get_attribute(&local_name!("for")) {
-            Some(for_attr) => for_attr,
-            None => return self.first_labelable_descendant(),
+        let Some(for_value) = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("for"))
+        else {
+            return self.first_labelable_descendant();
         };
-
-        let for_value = for_attr.Value();
 
         // "If the attribute is specified and there is an element in the tree
         // whose ID is equal to the value of the for attribute, and the first
@@ -168,7 +167,7 @@ impl VirtualMethods for HTMLLabelElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+            self.form_attribute_mutated(cx, mutation);
         }
     }
 }

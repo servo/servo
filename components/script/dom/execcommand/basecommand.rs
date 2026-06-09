@@ -40,9 +40,9 @@ use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::execcommand::commands::unlink::execute_unlink_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::selection::Selection;
-use crate::script_runtime::CanGc;
 
 #[derive(Default, Clone, Copy, MallocSizeOf)]
 pub(crate) enum DefaultSingleLineContainerName {
@@ -299,15 +299,13 @@ impl CssPropertyName {
         element: &HTMLElement,
         new_value: DOMString,
     ) {
-        let style = element.Style(CanGc::from_cx(cx));
+        let style = element.Style(cx);
 
         let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
     }
 
     pub(crate) fn remove_from_element(&self, cx: &mut JSContext, element: &HTMLElement) {
-        let _ = element
-            .Style(CanGc::from_cx(cx))
-            .RemoveProperty(cx, self.property_name());
+        let _ = element.Style(cx).RemoveProperty(cx, self.property_name());
     }
 }
 

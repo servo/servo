@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex item with aspect-ratio and padding should size correctly in column flex</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="A flex item with aspect-ratio: 1, width: 200px, and padding: 100px in a column flex container should be 400x400 (content 200x200 + padding 100 on each side).">
+<link rel="match" href="flex-aspect-ratio-content-box-padding-001-ref.html">
+<style>
+.container {
+    display: flex;
+    flex-direction: column;
+}
+
+.box {
+    width: 200px;
+    aspect-ratio: 1;
+    padding: 100px;
+    overflow: hidden;
+    background: green;
+}
+</style>
+<div class="container">
+    <div class="box"></div>
+</div>

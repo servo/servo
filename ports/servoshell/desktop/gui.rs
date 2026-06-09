@@ -607,7 +607,6 @@ impl Gui {
                     pos2(0.0, available_rect.max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
-                window.set_needs_repaint();
             }
 
             window.repaint_webviews();
@@ -626,6 +625,12 @@ impl Gui {
                 });
             }
         });
+
+        // If any egui widget requested a repaint, also request a repaint for our
+        // containing window. This allows egui widget to animate on their own.
+        if self.context.egui_ctx.has_requested_repaint() {
+            window.set_needs_repaint();
+        }
 
         let adapter = self
             .context

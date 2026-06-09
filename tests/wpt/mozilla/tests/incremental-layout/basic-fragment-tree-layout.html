@@ -54,10 +54,11 @@ window.onload = () => {
         // - body
         // - #div1
         // - #div1 > #p1
+        // - #div1 > #p1::text("Example1") (linebox)
         // - #div1 > #p1::text("Example1")
         // - #div2
         // - #div3
-        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.rebuiltFragmentCount, 8, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
     }, "Updating div1's width property rebuilds some fragments");
 
@@ -96,8 +97,9 @@ window.onload = () => {
         // - #div3
         // - #div3 > #section3
         // - #div3 > #section3 > #p3
+        // - #div3 > #p3::text("Example3") (linebox)
         // - #div3 > #p3::text("Example3")
-        assert_equals(result.rebuiltFragmentCount, 8, "rebuiltFragmentCount");
+        assert_equals(result.rebuiltFragmentCount, 9, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
     }, "Updating div3's width property rebuilds some fragments");
 

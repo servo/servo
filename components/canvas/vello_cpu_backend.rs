@@ -47,6 +47,7 @@ pub(crate) struct VelloCPUDrawTarget {
     /// This is because paint_transform is rarely set,
     /// so it's cheaper to always reset it after use.
     ctx: vello_cpu::RenderContext,
+    resources: vello_cpu::Resources,
     pixmap: vello_cpu::Pixmap,
     clips: Vec<(Path, kurbo::Affine)>,
     state: State,
@@ -111,7 +112,9 @@ impl VelloCPUDrawTarget {
         if self.state == State::Drawing {
             self.ignore_clips(|self_| {
                 self_.ctx.flush();
-                self_.ctx.render_to_pixmap(&mut self_.pixmap);
+                self_
+                    .ctx
+                    .render_to_pixmap(&mut self_.resources, &mut self_.pixmap);
                 self_.ctx.reset();
                 self_.state = State::Rendered;
             });
@@ -150,6 +153,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         let size = size.cast();
         Self {
             ctx: vello_cpu::RenderContext::new(size.width, size.height),
+            resources: vello_cpu::Resources::new(),
             pixmap: vello_cpu::Pixmap::new(size.width, size.height),
             clips: Vec::new(),
             state: State::Rendered,
@@ -173,6 +177,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         self.ctx.push_layer(
             Some(&clip_path.to_path(0.1)),
             Some(blend_mode.into()),
+            None,
             None,
             None,
         );
@@ -318,7 +323,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                     };
                     self_
                         .ctx
-                        .glyph_run(font)
+                        .glyph_run(&mut self_.resources, font)
                         .font_size(text_run.pt_size)
                         .fill_glyphs(text_run.glyphs_and_positions.iter().map(
                             |glyph_and_position| vello_cpu::Glyph {
@@ -425,7 +430,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                     };
                     self_
                         .ctx
-                        .glyph_run(font)
+                        .glyph_run(&mut self_.resources, font)
                         .font_size(text_run.pt_size)
                         .stroke_glyphs(text_run.glyphs_and_positions.iter().map(
                             |glyph_and_position| vello_cpu::Glyph {
@@ -577,7 +582,7 @@ fn paint(style: FillOrStrokeStyle, alpha: f64) -> vello_cpu::PaintType {
                     vello_cpu::ImageSource::Pixmap(pixmap) => Arc::get_mut(pixmap)
                         .expect("pixmap should not be shared with anyone at this point")
                         .multiply_alpha((alpha * 255.0) as u8),
-                    vello_cpu::ImageSource::OpaqueId(_) => unimplemented!(),
+                    vello_cpu::ImageSource::OpaqueId { .. } => unimplemented!(),
                 };
                 vello_cpu::PaintType::Image(image)
             },

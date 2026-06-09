@@ -3,4 +3,4 @@
 Moved to the Servo book:
 
 - Servo’s architecture
-  - [Directory structure](https://book.servo.org/architecture/directory-structure.html)
+  - [Project structure](https://book.servo.org/design-documentation/project-structure.html)

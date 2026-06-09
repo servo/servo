@@ -5,6 +5,7 @@
 use std::sync::mpsc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
@@ -29,11 +30,12 @@ pub(crate) struct MediaElementAudioSourceNode {
 impl MediaElementAudioSourceNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
+        cx: &mut JSContext,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<MediaElementAudioSourceNode> {
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::MediaElementSourceNode,
             &context.base(),
             Default::default(),
@@ -54,23 +56,23 @@ impl MediaElementAudioSourceNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, media_element, cx)
+        Self::new_with_proto(cx, window, None, context, media_element)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(context, media_element, cx)?;
+        let node = MediaElementAudioSourceNode::new_inherited(cx, context, media_element)?;
         Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
@@ -83,18 +85,18 @@ impl MediaElementAudioSourceNode {
 impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         MediaElementAudioSourceNode::new_with_proto(
+            cx,
             window,
             proto,
             context,
             &options.mediaElement,
-            cx,
         )
     }
 

@@ -40,6 +40,12 @@ pub fn add_observer(observer: Box<dyn PreferencesObserver>) {
 /// Update the values of the global preferences for the current process. This also notifies the
 /// observers previously added using [`add_observer`].
 pub fn set(preferences: Preferences) {
+    // Get list of changes, returning early if the preferences haven't changed.
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
+    if changed.is_empty() {
+        return;
+    }
+
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
@@ -63,8 +69,6 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
-
-    let changed = preferences.diff(&PREFERENCES.read().unwrap());
 
     *PREFERENCES.write().unwrap() = preferences;
 
@@ -199,6 +203,8 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
+    /// <https://w3c.github.io/touch-events/#conditionally-exposing-legacy-touch-event-apis>
+    pub dom_touch_events_legacy_apis_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#transient-activation-duration>
     pub dom_transient_activation_duration_ms: i64,
     /// Enable WebGL2 APIs.
@@ -346,6 +352,9 @@ pub struct Preferences {
     pub log_filter: String,
     /// Whether the accessibility code is enabled.
     pub accessibility_enabled: bool,
+    /// Whether to run accessibility tree integrity checks, and any other expensive checks.
+    /// This should only be true in tests.
+    pub expensive_accessibility_test_assertions_enabled: bool,
 }
 
 impl Preferences {
@@ -411,6 +420,10 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
+            // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
+            // Additionally, enabling it in ohos for compatibility as well.
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
+                cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
@@ -437,6 +450,7 @@ impl Preferences {
             dom_worklet_timeout_ms: 10,
             dom_visual_viewport_enabled: false,
             accessibility_enabled: false,
+            expensive_accessibility_test_assertions_enabled: false,
             fonts_default: String::new(),
             fonts_default_monospace_size: 13,
             fonts_default_size: 16,

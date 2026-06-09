@@ -13,7 +13,8 @@ use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRange
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::document::Document;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

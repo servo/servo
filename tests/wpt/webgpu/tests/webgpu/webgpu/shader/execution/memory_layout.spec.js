@@ -934,8 +934,12 @@ beforeAllSubcases((t) => {
     `Skipping atomic test for non-storage address space`
   );
 
+  // If the `uniform_buffer_standard_layout` feature is supported, the `uniform` address space has
+  // the same layout constraints as `storage`.
+  const ubo_std_layout = t.hasLanguageFeature('uniform_buffer_standard_layout');
+
   t.skipIf(
-    testcase.skip_uniform === true && t.params.aspace === 'uniform',
+    !ubo_std_layout && testcase.skip_uniform === true && t.params.aspace === 'uniform',
     `Uniform requires 16 byte alignment`
   );
 }).

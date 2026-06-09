@@ -123,9 +123,8 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
         let url = element
-            .get_attribute(&local_name!("src"))
-            .and_then(|src| {
-                let url = src.value();
+            .get_attribute_string_value(&local_name!("src"))
+            .and_then(|url| {
                 if url.is_empty() {
                     None
                 } else {
@@ -823,19 +822,18 @@ impl HTMLIFrameElement {
     /// property or clears it is the value isn't specified. Notably, an unspecified sandboxing
     /// attribute (no sandboxing) is different from an empty one (full sandboxing).
     fn parse_sandbox_attribute(&self) {
-        let attribute = self
-            .upcast::<Element>()
-            .get_attribute(&local_name!("sandbox"));
-        self.sandboxing_flag_set
-            .set(attribute.map(|attribute_value| {
-                let tokens: Vec<_> = attribute_value
-                    .value()
-                    .as_tokens()
-                    .iter()
-                    .map(|atom| atom.to_string().to_ascii_lowercase())
-                    .collect();
-                parse_a_sandboxing_directive(&tokens)
-            }));
+        let sandbox_value =
+            self.upcast::<Element>()
+                .with_attribute(&ns!(), &local_name!("sandbox"), |attribute| {
+                    let tokens: Vec<_> = attribute
+                        .value()
+                        .as_tokens()
+                        .iter()
+                        .map(|atom| atom.to_string().to_ascii_lowercase())
+                        .collect();
+                    parse_a_sandboxing_directive(&tokens)
+                });
+        self.sandboxing_flag_set.set(sandbox_value);
     }
 
     /// Step 4.2. of <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
@@ -1222,20 +1220,24 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(cx, context);
         }
-        self.owner_document().invalidate_iframes_collection();
+
+        self.owner_document().iframes_mut().add(self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-removing-steps>
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.unbind_from_tree(cx, context);
+        }
 
-        // The iframe HTML element removing steps, given removedNode, are to destroy a child navigable given removedNode
+        // The iframe HTML element removing steps, given removedNode, are to destroy a child
+        // navigable given removedNode
         self.destroy_child_navigable(cx);
 
-        self.owner_document().invalidate_iframes_collection();
+        self.owner_document().iframes_mut().remove(self);
     }
 }
 

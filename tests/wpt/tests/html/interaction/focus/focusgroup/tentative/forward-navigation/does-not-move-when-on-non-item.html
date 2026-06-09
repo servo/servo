@@ -19,12 +19,9 @@
   <span id=item2 tabindex=0>item2</span>
 </div>
 
-
 <script>
 
   promise_test(async t => {
-    var nonitem1 = document.getElementById("nonitem1");
-
     await focusAndSendDirectionalInput(nonitem1, kDown);
     assert_equals(document.activeElement, nonitem1);
 

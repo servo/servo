@@ -2,7 +2,6 @@
 <html class=reftest-wait>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/resources/testdriver-actions.js"></script>
 
 <style>
 select, ::picker(select) {
@@ -21,11 +20,8 @@ select:focus-visible {
 <script>
 (async () => {
   const select = document.querySelector('select');
-  await new test_driver.Actions()
-    .pointerMove(1, 1, { origin: select })
-    .pointerDown()
-    .pointerUp()
-    .send();
+  await test_driver.bless();
+  select.showPicker();
   await new Promise(requestAnimationFrame);
   document.documentElement.classList.remove('reftest-wait');
 })();

@@ -136,7 +136,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             // Step 2.1. Let parsedURL be the result of basic URL parsing value.
             // Step 2.2. If parsedURL is not failure, then return a new Origin object whose
             //           origin is set to parsedURL's origin.
-            match ServoUrl::parse(&s.to_string()) {
+            match ServoUrl::parse(&s.str()) {
                 Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
                 Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }

@@ -127,6 +127,7 @@ fn translate(input: &str, from: &str, to: &str) -> String {
 impl CoreFunction {
     pub(crate) fn evaluate<D: Dom>(
         &self,
+        cx: &mut D::Context,
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error> {
         match self {
@@ -143,42 +144,46 @@ impl CoreFunction {
                 Ok(Value::Number(predicate_ctx.index as f64))
             },
             CoreFunction::Count(expr) => {
-                let nodes = expr.evaluate(context).and_then(try_extract_nodeset)?;
+                let nodes = expr.evaluate(cx, context).and_then(try_extract_nodeset)?;
                 Ok(Value::Number(nodes.len() as f64))
             },
             CoreFunction::String(expr_opt) => match expr_opt {
-                Some(expr) => Ok(Value::String(expr.evaluate(context)?.convert_to_string())),
+                Some(expr) => Ok(Value::String(
+                    expr.evaluate(cx, context)?.convert_to_string(),
+                )),
                 None => Ok(Value::String(context.context_node.text_content())),
             },
             CoreFunction::Concat(exprs) => {
                 let strings: Result<Vec<_>, _> = exprs
                     .iter()
-                    .map(|e| Ok(e.evaluate(context)?.convert_to_string()))
+                    .map(|e| Ok(e.evaluate(cx, context)?.convert_to_string()))
                     .collect();
                 Ok(Value::String(strings?.join("")))
             },
             CoreFunction::Id(expr) => {
-                let argument = expr.evaluate(context)?;
+                let argument = expr.evaluate(cx, context)?;
                 let document = context.context_node.owner_document();
                 let mut result = NodeSet::default();
 
                 // https://www.w3.org/TR/1999/REC-xpath-19991116/#function-id
                 // > When the argument to id is of type node-set, then the result is the union of the result
                 // > of applying id to the string-value of each of the nodes in the argument node-set.
-                let mut extend_result_with_matching_nodes = |input: &str| {
-                    result.extend(
-                        normalize_space(input)
-                            .split(' ')
-                            .flat_map(|id| document.get_elements_with_id(id))
-                            .map(|element| element.as_node()),
-                    );
+                let mut extend_result_with_matching_nodes = |cx: &mut D::Context, input: &str| {
+                    for id in normalize_space(input).split(' ') {
+                        result.extend(
+                            document
+                                .get_elements_with_id(cx, id)
+                                .map(|element| element.as_node()),
+                        );
+                    }
                 };
+
                 if let Value::NodeSet(node_set) = argument {
                     for node in node_set.iter() {
-                        extend_result_with_matching_nodes(&node.text_content())
+                        extend_result_with_matching_nodes(cx, &node.text_content())
                     }
                 } else {
-                    extend_result_with_matching_nodes(&argument.convert_to_string())
+                    extend_result_with_matching_nodes(cx, &argument.convert_to_string())
                 }
 
                 result.sort();
@@ -187,7 +192,7 @@ impl CoreFunction {
             CoreFunction::LocalName(expr_opt) => {
                 let node = match expr_opt {
                     Some(expr) => expr
-                        .evaluate(context)
+                        .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
                         .first(),
                     None => Some(context.context_node.clone()),
@@ -198,7 +203,7 @@ impl CoreFunction {
             CoreFunction::NamespaceUri(expr_opt) => {
                 let node = match expr_opt {
                     Some(expr) => expr
-                        .evaluate(context)
+                        .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
                         .first(),
                     None => Some(context.context_node.clone()),
@@ -209,7 +214,7 @@ impl CoreFunction {
             CoreFunction::Name(expr_opt) => {
                 let node = match expr_opt {
                     Some(expr) => expr
-                        .evaluate(context)
+                        .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
                         .first(),
                     None => Some(context.context_node.clone()),
@@ -218,31 +223,32 @@ impl CoreFunction {
                 Ok(Value::String(name))
             },
             CoreFunction::StartsWith(str1, str2) => {
-                let s1 = str1.evaluate(context)?.convert_to_string();
-                let s2 = str2.evaluate(context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string();
+                let s2 = str2.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::Boolean(s1.starts_with(&s2)))
             },
             CoreFunction::Contains(str1, str2) => {
-                let s1 = str1.evaluate(context)?.convert_to_string();
-                let s2 = str2.evaluate(context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string();
+                let s2 = str2.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::Boolean(s1.contains(&s2)))
             },
             CoreFunction::SubstringBefore(str1, str2) => {
-                let s1 = str1.evaluate(context)?.convert_to_string();
-                let s2 = str2.evaluate(context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string();
+                let s2 = str2.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::String(substring_before(&s1, &s2)))
             },
             CoreFunction::SubstringAfter(str1, str2) => {
-                let s1 = str1.evaluate(context)?.convert_to_string();
-                let s2 = str2.evaluate(context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string();
+                let s2 = str2.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::String(substring_after(&s1, &s2)))
             },
             CoreFunction::Substring(source_expression, start, length) => {
-                let source = source_expression.evaluate(context)?.convert_to_string();
-                let start_idx = start.evaluate(context)?.convert_to_number().round() as isize - 1;
+                let source = source_expression.evaluate(cx, context)?.convert_to_string();
+                let start_idx =
+                    start.evaluate(cx, context)?.convert_to_number().round() as isize - 1;
                 let result = if let Some(length_expression) = length {
                     let length = length_expression
-                        .evaluate(context)?
+                        .evaluate(cx, context)?
                         .convert_to_number()
                         .round() as isize;
                     substring(&source, start_idx, Some(length))
@@ -253,34 +259,34 @@ impl CoreFunction {
             },
             CoreFunction::StringLength(expr_opt) => {
                 let string = match expr_opt {
-                    Some(expr) => expr.evaluate(context)?.convert_to_string(),
+                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(),
                     None => context.context_node.text_content(),
                 };
                 Ok(Value::Number(string.chars().count() as f64))
             },
             CoreFunction::NormalizeSpace(expr_opt) => {
                 let string = match expr_opt {
-                    Some(expr) => expr.evaluate(context)?.convert_to_string(),
+                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(),
                     None => context.context_node.text_content(),
                 };
 
                 Ok(Value::String(normalize_space(&string)))
             },
             CoreFunction::Translate(str1, str2, str3) => {
-                let string = str1.evaluate(context)?.convert_to_string();
-                let from = str2.evaluate(context)?.convert_to_string();
-                let to = str3.evaluate(context)?.convert_to_string();
+                let string = str1.evaluate(cx, context)?.convert_to_string();
+                let from = str2.evaluate(cx, context)?.convert_to_string();
+                let to = str3.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::String(translate(&string, &from, &to)))
             },
             CoreFunction::Number(expr_opt) => {
                 let val = match expr_opt {
-                    Some(expr) => expr.evaluate(context)?,
+                    Some(expr) => expr.evaluate(cx, context)?,
                     None => Value::String(context.context_node.text_content()),
                 };
                 Ok(Value::Number(val.convert_to_number()))
             },
             CoreFunction::Sum(expr) => {
-                let nodes = expr.evaluate(context).and_then(try_extract_nodeset)?;
+                let nodes = expr.evaluate(cx, context).and_then(try_extract_nodeset)?;
                 let sum = nodes
                     .iter()
                     .map(|node| parse_number_from_string(&node.text_content()))
@@ -288,28 +294,28 @@ impl CoreFunction {
                 Ok(Value::Number(sum))
             },
             CoreFunction::Floor(expr) => {
-                let num = expr.evaluate(context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number();
                 Ok(Value::Number(num.floor()))
             },
             CoreFunction::Ceiling(expr) => {
-                let num = expr.evaluate(context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number();
                 Ok(Value::Number(num.ceil()))
             },
             CoreFunction::Round(expr) => {
-                let num = expr.evaluate(context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number();
                 Ok(Value::Number(num.round()))
             },
-            CoreFunction::Boolean(expr) => {
-                Ok(Value::Boolean(expr.evaluate(context)?.convert_to_boolean()))
-            },
+            CoreFunction::Boolean(expr) => Ok(Value::Boolean(
+                expr.evaluate(cx, context)?.convert_to_boolean(),
+            )),
             CoreFunction::Not(expr) => Ok(Value::Boolean(
-                !expr.evaluate(context)?.convert_to_boolean(),
+                !expr.evaluate(cx, context)?.convert_to_boolean(),
             )),
             CoreFunction::True => Ok(Value::Boolean(true)),
             CoreFunction::False => Ok(Value::Boolean(false)),
             CoreFunction::Lang(expr) => {
                 let context_lang = context.context_node.language();
-                let lang = expr.evaluate(context)?.convert_to_string();
+                let lang = expr.evaluate(cx, context)?.convert_to_string();
                 Ok(Value::Boolean(lang_matches(context_lang.as_deref(), &lang)))
             },
         }

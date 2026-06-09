@@ -102,6 +102,7 @@ function sizeAndAlignmentOf(ty, source) {
 
   if (ty instanceof ArrayType) {
     const out = sizeAndAlignmentOf(ty.elementType, source);
+    // MAINTENANCE_TODO(#4485): Remove this when all implementors support uniform_buffer_standard_layout.
     if (source === 'uniform') {
       out.alignment = align(out.alignment, 16);
     }
@@ -155,6 +156,7 @@ callback)
     alignment = Math.max(alignment, sizeAndAlign.alignment);
   }
 
+  // MAINTENANCE_TODO(#4485): Remove this when all implementors support uniform_buffer_standard_layout.
   if (source === 'uniform') {
     alignment = align(alignment, 16);
   }

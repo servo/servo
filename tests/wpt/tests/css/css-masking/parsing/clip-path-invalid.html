@@ -43,6 +43,14 @@ test_invalid_value("clip-path", "ellipse(10% -20% at 30% 40%)");
 test_invalid_value("clip-path", "ellipse(-50px 60px at 70% 80%)");
 
 test_invalid_value("clip-path", "polygon(1%)");
+test_invalid_value("clip-path", "polygon(round, 1px 2px)");
+test_invalid_value("clip-path", "polygon(round -1px, 1px 2px)");
+test_invalid_value("clip-path", "polygon(round 1%, 1px 2px)");
+test_invalid_value("clip-path", "polygon(round 45deg, 1px 2px)");
+test_invalid_value("clip-path", "polygon(round 1px 1px 2px)");
+test_invalid_value("clip-path", "polygon(1px 2px, round 1px)");
+test_invalid_value("clip-path", "polygon(round 1px round 2px, 1px 2px)");
+test_invalid_value("clip-path", "polygon(round 1px nonzero, 1px 2px)");
 
 test_invalid_value("clip-path", "unknown-box");
 

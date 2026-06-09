@@ -1,0 +1,41 @@
+<!doctype html>
+<title>CSS Container Queries Test: style() container with display:contents survives descendant restyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @container style(--green) {
+    .test {
+      background-color: rgb(0, 128, 0);
+    }
+  }
+  .test.toggled {
+    outline: 1px solid black;
+  }
+</style>
+<div id="rendered" style="--green: ;">
+  <div id="rendered-target" class="test"></div>
+</div>
+<div id="contents" style="--green: ; display: contents;">
+  <div id="contents-target" class="test"></div>
+</div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("rendered-target")).backgroundColor, green);
+    assert_equals(getComputedStyle(document.getElementById("contents-target")).backgroundColor, green);
+  }, "Initial style() container match applies under both rendered and display:contents containers");
+
+  test(() => {
+    document.getElementById("rendered-target").classList.add("toggled");
+    document.getElementById("contents-target").classList.add("toggled");
+    assert_equals(getComputedStyle(document.getElementById("rendered-target")).backgroundColor, green,
+      "Rendered container: descendant restyle keeps style() container match");
+    assert_equals(getComputedStyle(document.getElementById("contents-target")).backgroundColor, green,
+      "display:contents container: descendant restyle keeps style() container match");
+  }, "Restyling a descendant must not lose the style() container match when the container is display:contents");
+</script>

@@ -174,7 +174,6 @@ impl WebGLQuery {
         self.query_result_available.set(Some(is_available));
     }
 
-    #[rustfmt::skip]
     pub(crate) fn get_parameter(
         &self,
         context: &WebGLRenderingContext,
@@ -184,8 +183,7 @@ impl WebGLQuery {
             return Err(InvalidOperation);
         }
         match pname {
-            constants::QUERY_RESULT |
-            constants::QUERY_RESULT_AVAILABLE => {},
+            constants::QUERY_RESULT | constants::QUERY_RESULT_AVAILABLE => {},
             _ => return Err(InvalidEnum),
         }
 

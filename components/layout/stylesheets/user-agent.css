@@ -295,11 +295,6 @@ table:is(
   border-color: black;
 }
 
-
-:is(table, thead, tbody, tfoot, tr) > form {
-  display: none !important;
-}
-
 input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {
   overflow: clip !important;
   overflow-clip-margin: 0 !important;

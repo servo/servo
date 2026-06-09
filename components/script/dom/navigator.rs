@@ -29,6 +29,8 @@ use servo_url::ServoUrl;
 
 use crate::body::Extractable;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+#[cfg(feature = "gamepad")]
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -44,8 +46,6 @@ use crate::dom::credentialmanagement::credentialscontainer::CredentialsContainer
 use crate::dom::csp::{GlobalCspReporting, Violation};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::Gamepad;
-#[cfg(feature = "gamepad")]
-use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::geolocation::Geolocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediadevices::MediaDevices;
@@ -184,24 +184,10 @@ impl Navigator {
     }
 
     #[cfg(feature = "gamepad")]
-    pub(crate) fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
+    pub(crate) fn set_gamepad(&self, index: usize, gamepad: Option<&Gamepad>) {
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
-            gamepad_to_set.set(Some(gamepad));
+            gamepad_to_set.set(gamepad);
         }
-        if self.has_gamepad_gesture.get() {
-            gamepad.set_exposed(true);
-            if self.global().as_window().Document().is_fully_active() {
-                gamepad.notify_event(GamepadEventType::Connected, can_gc);
-            }
-        }
-    }
-
-    #[cfg(feature = "gamepad")]
-    pub(crate) fn remove_gamepad(&self, index: usize) {
-        if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
-            gamepad_to_remove.set(None);
-        }
-        self.shrink_gamepads_list();
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
@@ -217,8 +203,9 @@ impl Navigator {
         }
     }
 
+    /// Step 2.6 of <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     #[cfg(feature = "gamepad")]
-    fn shrink_gamepads_list(&self) {
+    pub(crate) fn shrink_gamepads_list(&self) {
         let mut gamepad_list = self.gamepads.borrow_mut();
         for i in (0..gamepad_list.len()).rev() {
             if gamepad_list.get(i).is_none() {
@@ -227,6 +214,16 @@ impl Navigator {
                 break;
             }
         }
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub(crate) fn get_connected_gamepad(&self) -> Vec<DomRoot<Gamepad>> {
+        self.gamepads
+            .borrow()
+            .iter()
+            .filter_map(|gamepad| gamepad.get())
+            .filter(|gamepad| gamepad.connected())
+            .collect()
     }
 
     #[cfg(feature = "gamepad")]
@@ -351,9 +348,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     #[cfg(feature = "bluetooth")]
-    fn Bluetooth(&self) -> DomRoot<Bluetooth> {
+    fn Bluetooth(&self, cx: &mut js::context::JSContext) -> DomRoot<Bluetooth> {
         self.bluetooth
-            .or_init(|| Bluetooth::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| Bluetooth::new(cx, &self.global()))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
@@ -405,9 +402,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
-    fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
+    fn ServiceWorker(&self, cx: &mut js::context::JSContext) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| ServiceWorkerContainer::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled>
@@ -417,17 +414,54 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
     #[cfg(feature = "gamepad")]
-    fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
+    fn GetGamepads(&self) -> Fallible<Vec<Option<DomRoot<Gamepad>>>> {
+        use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+
+        // Step 1. Let doc be the current global object's associated Document.
         let global = self.global();
         let window = global.as_window();
         let doc = window.Document();
 
-        // TODO: Handle permissions policy once implemented
-        if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
-            return Vec::new();
+        // Step 2. If doc is null or doc is not fully active, then return an empty list.
+        if !doc.is_fully_active() {
+            return Ok(Vec::new());
         }
 
-        self.gamepads.borrow().iter().map(|g| g.get()).collect()
+        // Step 3. If doc is not allowed to use the "gamepad" permission,
+        // then throw a "SecurityError" DOMException.
+        if !doc.allowed_to_use_feature(PermissionName::Gamepad) {
+            return Err(Error::Security(Some(
+                "Gamepad permission not allowed".into(),
+            )));
+        }
+
+        // Step 4. If this.[[hasGamepadGesture]] is false, then return an empty list.
+        if !self.has_gamepad_gesture.get() {
+            return Ok(Vec::new());
+        }
+
+        // Step 5. Let now be the current high resolution time given the current global object.
+        let now = *window.Performance().Now();
+
+        // Step 6. Let gamepads be an empty list.
+        // Step 7. For each gamepad of this.[[gamepads]]:
+        Ok(self
+            .gamepads
+            .borrow()
+            .iter()
+            .map(|slot| {
+                slot.get().inspect(|gamepad| {
+                    // Step 7.1. If gamepad is not null and gamepad.[[exposed]] is false:
+                    if !gamepad.exposed() {
+                        // Step 7.1.1. Set gamepad.[[exposed]] to true.
+                        gamepad.set_exposed(true);
+                        // Step 7.1.2. Set gamepad.[[timestamp]] to now.
+                        gamepad.update_timestamp(now);
+                    }
+                })
+            })
+            .collect()) // Step 7.2. Append gamepad to gamepads.
+        // Step 8. Return gamepads.
     }
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {

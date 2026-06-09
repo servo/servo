@@ -333,40 +333,40 @@ impl ReplacedContents {
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
-        if let ComputedUrl::Valid(image_url) = image_url {
-            let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
-                node.opaque(),
-                image_url.clone().into(),
-                LayoutImageDestination::BoxTreeConstruction,
-                InternalRequest::No,
-            ) {
-                LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
-                    ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                        if let Image::Raster(image) = &image {
-                            context
-                                .image_resolver
-                                .handle_animated_image(node.opaque(), image.clone());
-                        }
-                        let metadata = image.metadata();
-                        (Some(image), metadata.width as f32, metadata.height as f32)
-                    },
-                    ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
-                        (None, metadata.width as f32, metadata.height as f32)
-                    },
+        let ComputedUrl::Valid(image_url) = image_url else {
+            return None;
+        };
+        let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
+            node.opaque(),
+            image_url.clone().into(),
+            LayoutImageDestination::BoxTreeConstruction,
+            InternalRequest::No,
+        ) {
+            LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
+                ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                    if let Image::Raster(image) = &image {
+                        context
+                            .image_resolver
+                            .handle_animated_image(node.opaque(), image.clone());
+                    }
+                    let metadata = image.metadata();
+                    (Some(image), metadata.width as f32, metadata.height as f32)
                 },
-                LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
-            };
-            return Some(Self {
-                kind: ReplacedContentKind::Image(ImageInfo {
-                    image,
-                    showing_broken_image_icon: false,
-                    url: Some(image_url.clone().into()),
-                }),
-                natural_size: NaturalSizes::from_width_and_height(width, height),
-                base_fragment_info: node.into(),
-            });
-        }
-        None
+                ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
+                    (None, metadata.width as f32, metadata.height as f32)
+                },
+            },
+            LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
+        };
+        Some(Self {
+            kind: ReplacedContentKind::Image(ImageInfo {
+                image,
+                showing_broken_image_icon: false,
+                url: Some(image_url.clone().into()),
+            }),
+            natural_size: NaturalSizes::from_width_and_height(width, height),
+            base_fragment_info: node.into(),
+        })
     }
 
     pub fn from_image(

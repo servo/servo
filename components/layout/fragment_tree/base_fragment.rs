@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicI32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
-use euclid::{Point2D, Rect, Size2D};
 use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -18,12 +17,11 @@ use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style_traits::CSSPixel;
 use web_atoms::local_name;
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
 
 #[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
 #[repr(u8)]
@@ -61,7 +59,7 @@ pub(crate) struct BaseFragment {
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
-    rect: Rect<AtomicI32, CSSPixel>,
+    rect: SyncPhysicalRectAu,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
     pub status: AtomicU8,
@@ -69,14 +67,14 @@ pub(crate) struct BaseFragment {
 
 impl std::fmt::Debug for BaseFragment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BaseFragment")
-            .field("tag", &self.tag)
-            .field("flags", &self.flags)
-            .field("rect", &self.rect)
-            .field(
-                "status",
-                &FragmentStatus::from_u8(self.status.load(Ordering::Relaxed)),
-            )
+        let mut formatter = f.debug_struct("BaseFragment");
+        let mut formatter = formatter.field("tag", &self.tag);
+        if !self.flags.is_empty() {
+            formatter = formatter.field("flags", &self.flags);
+        }
+        formatter
+            .field("rect", &self.rect())
+            .field("status", &self.status())
             .finish()
     }
 }
@@ -91,55 +89,29 @@ impl BaseFragment {
             tag: base_fragment_info.tag,
             flags: base_fragment_info.flags,
             style,
-            rect: Rect::new(
-                Point2D::new(rect.origin.x.0.into(), rect.origin.y.0.into()),
-                Size2D::new(rect.size.width.0.into(), rect.size.height.0.into()),
-            ),
+            rect: SyncPhysicalRectAu::new(rect),
             status: AtomicU8::new(FragmentStatus::New as u8),
         }
     }
 
     #[inline]
     pub(crate) fn rect(&self) -> PhysicalRect<Au> {
-        PhysicalRect::new(
-            Point2D::new(
-                Au::new(self.rect.origin.x.load(Ordering::Relaxed)),
-                Au::new(self.rect.origin.y.load(Ordering::Relaxed)),
-            ),
-            Size2D::new(
-                Au::new(self.rect.size.width.load(Ordering::Relaxed)),
-                Au::new(self.rect.size.height.load(Ordering::Relaxed)),
-            ),
-        )
+        self.rect.get()
     }
 
     #[inline]
     pub(crate) fn set_rect(&self, new_rect: PhysicalRect<Au>) {
-        let origin = &self.rect.origin;
-        origin.x.store(new_rect.origin.x.0, Ordering::Relaxed);
-        origin.y.store(new_rect.origin.y.0, Ordering::Relaxed);
-
-        let size = &self.rect.size;
-        size.width.store(new_rect.size.width.0, Ordering::Relaxed);
-        size.height.store(new_rect.size.height.0, Ordering::Relaxed);
+        self.rect.set(new_rect);
     }
 
     #[inline]
     pub(crate) fn translate_rect(&self, offset: PhysicalSize<Au>) {
-        // This code explicitly does not use `AtomicI32::fetch_add`, as we rely on Au's
-        // overflow detection to clamp the resulting value between `MAX_AU` and `MIN_AU`.
-        let origin = &self.rect.origin;
-        let new_x = Au::new(origin.x.load(Ordering::Relaxed)) + offset.width;
-        origin.x.store(new_x.0, Ordering::Relaxed);
-        let new_y = Au::new(origin.y.load(Ordering::Relaxed)) + offset.height;
-        origin.y.store(new_y.0, Ordering::Relaxed);
+        self.rect.translate(offset)
     }
 
     #[inline]
     pub(crate) fn set_rect_origin(&self, offset: PhysicalPoint<Au>) {
-        let origin = &self.rect.origin;
-        origin.x.store(offset.x.0, Ordering::Relaxed);
-        origin.y.store(offset.y.0, Ordering::Relaxed);
+        self.rect.set_origin(offset)
     }
 
     pub(crate) fn is_anonymous(&self) -> bool {
@@ -224,11 +196,14 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
             return Self::anonymous();
         }
 
+        if node.as_element().is_some_and(|element| element.is_root()) {
+            flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
+        }
+
         if let Some(element) = node.as_html_element() {
             if element.is_body_element_of_html_element_root() {
                 flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
             }
-
             match element.local_name() {
                 &local_name!("br") => {
                     flags.insert(FragmentFlags::IS_BR_ELEMENT);
@@ -240,10 +215,6 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                     flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
                 },
                 _ => {},
-            }
-
-            if element.is_root() {
-                flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
         };
 
@@ -304,10 +275,23 @@ malloc_size_of_is_0!(FragmentFlags);
 
 /// A data structure used to hold DOM and pseudo-element information about
 /// a particular layout object.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
     pub(crate) pseudo_element_chain: PseudoElementChain,
+}
+
+impl std::fmt::Debug for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Tag({:?}", self.node))?;
+        if let Some(pseudo) = self.pseudo_element_chain.primary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        if let Some(pseudo) = self.pseudo_element_chain.secondary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        f.write_str(")")
+    }
 }
 
 impl Tag {

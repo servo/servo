@@ -159,6 +159,13 @@ function index_get_all_test_setup(storeName, callback, testDescription) {
                 expectedRecords.push({key: attr, primaryKey: letter, value});
               }
             });
+            // Records were pushed in primary-key order; sort into index-key
+            // cursor order (index key ASC, then primary key ASC within each
+            // index key) so that filterWithGetAllRecordsOptions works correctly.
+            expectedRecords.sort((a, b) => {
+              const keyCmp = indexedDB.cmp(a.key, b.key);
+              return keyCmp !== 0 ? keyCmp : indexedDB.cmp(a.primaryKey, b.primaryKey);
+            });
             return;
           }
           case 'empty': {

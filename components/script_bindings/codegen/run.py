@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 def main() -> None:
     os.chdir(os.path.join(os.path.dirname(__file__)))
-    sys.path.insert(0, os.path.join(SCRIPT_BINDINGS_ROOT, "third_party", "WebIDL"))
+    sys.path.insert(0, os.path.join(SCRIPT_BINDINGS_ROOT, "third_party", "WebIDL", "parser"))
     sys.path.insert(0, os.path.join(SCRIPT_BINDINGS_ROOT, "third_party", "ply"))
 
     css_properties_json, out_dir = sys.argv[1:]

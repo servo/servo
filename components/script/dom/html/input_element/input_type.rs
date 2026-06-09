@@ -6,7 +6,6 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use stylo_atoms::Atom;
 use time::OffsetDateTime;
 
@@ -355,10 +354,10 @@ pub(crate) trait SpecificInputType {
 
     fn unbind_from_tree(
         &self,
+        _cx: &mut JSContext,
         _input: &HTMLInputElement,
         _form_owner: Option<DomRoot<HTMLFormElement>>,
         _context: &UnbindContext,
-        _can_gc: CanGc,
     ) {
     }
 }

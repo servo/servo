@@ -24,6 +24,7 @@ combine('vectorize', [undefined, 2, 3, 4]).
 combine('non_uniform_discard', [false, true])
 ).
 fn(async (t) => {
+  t.skipIf(t.isCompatibility, `${builtin} not supported in compatibility mode`);
   const cases = await d.get('scalar');
   runFWidthTest(t, cases, builtin, t.params.non_uniform_discard, t.params.vectorize);
 });

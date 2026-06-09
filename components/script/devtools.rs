@@ -44,10 +44,10 @@ use crate::dom::css::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement};
 use crate::realms::enter_realm;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
@@ -240,9 +240,9 @@ pub(crate) fn handle_get_stylesheets(
         for i in 0..node.stylesheet_list_owner().stylesheet_count() {
             if let Some(s) = node.stylesheet_list_owner().stylesheet_at(i) {
                 stylesheets.push(StyleSheetInfo {
-                    href: s.href().map(|h| h.to_string()),
+                    href: s.href().map(String::from),
                     disabled: s.disabled(),
-                    title: s.title().to_string(),
+                    title: String::from(s.title()),
                     style_sheet_index: i as i32,
                     system: s.origin() == Origin::UserAgent,
                     rule_count: s.get_rule_count(),
@@ -271,7 +271,7 @@ pub(crate) fn handle_get_stylesheet_text(
         if let Some(node) = stylesheet.owner_node() {
             let text = node.upcast::<Node>().GetTextContent().unwrap_or_default();
             if !text.is_empty() {
-                return Some(text.to_string());
+                return Some(String::from(text));
             }
         }
 
@@ -280,7 +280,7 @@ pub(crate) fn handle_get_stylesheet_text(
         let mut css_text = String::new();
         for i in 0..rules.Length() {
             if let Some(rule) = rules.Item(cx, i) {
-                css_text.push_str(&rule.CssText().to_string());
+                css_text.push_str(&rule.CssText().str());
                 css_text.push('\n');
             }
         }
@@ -307,13 +307,13 @@ pub(crate) fn handle_get_children(
     let mut pipeline_state = state.mut_pipeline_state_for(pipeline).unwrap();
 
     let inline: Vec<_> = parent
-        .children_unrooted(cx.no_gc())
+        .children()
         .map(|child| {
             let window = child.owner_window();
             let Some(elem) = child.downcast::<Element>() else {
                 return false;
             };
-            let computed_style = window.GetComputedStyle(elem, None);
+            let computed_style = window.GetComputedStyle(cx, elem, None);
             let display = computed_style.Display();
             display == "inline"
         })
@@ -363,15 +363,21 @@ pub(crate) fn handle_get_attribute_style(
         reply.send(None).unwrap();
         return;
     };
-    let style = elem.Style(CanGc::from_cx(cx));
+    let style = elem.Style(cx);
 
     let msg = (0..style.Length())
         .map(|i| {
             let name = style.Item(i);
             NodeStyle {
-                name: name.to_string(),
-                value: style.GetPropertyValue(name.clone()).to_string(),
-                priority: style.GetPropertyPriority(name).to_string(),
+                // This code has to clone the name values, even though
+                // these function actually would only need to borrow,
+                // but the binding generator forces an owned DOMString
+                // in the signature.
+                // It'd be nice to not have to do this here and in the
+                // similar cases below, but I don't see how.
+                value: String::from(style.GetPropertyValue(name.clone())),
+                priority: String::from(style.GetPropertyPriority(name.clone())),
+                name: String::from(name),
             }
         })
         .collect();
@@ -403,7 +409,7 @@ fn build_rule_map(
         }
 
         if let Some(layer_rule) = rule.downcast::<CSSLayerBlockRule>() {
-            let name = layer_rule.Name().to_string();
+            let name = String::from(layer_rule.Name());
             let mut next = ancestors.to_vec();
             next.push(AncestorData::Layer {
                 actor_id: None,
@@ -524,9 +530,9 @@ pub(crate) fn handle_get_stylesheet_style(
                 .map(|i| {
                     let name = declaration.Item(i);
                     NodeStyle {
-                        name: name.to_string(),
-                        value: declaration.GetPropertyValue(name.clone()).to_string(),
-                        priority: declaration.GetPropertyPriority(name).to_string(),
+                        value: String::from(declaration.GetPropertyValue(name.clone())),
+                        priority: String::from(declaration.GetPropertyPriority(name.clone())),
+                        name: String::from(name),
                     }
                 })
                 .collect(),
@@ -537,6 +543,7 @@ pub(crate) fn handle_get_stylesheet_style(
 }
 
 pub(crate) fn handle_get_computed_style(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
@@ -551,15 +558,15 @@ pub(crate) fn handle_get_computed_style(
     let elem = node
         .downcast::<Element>()
         .expect("This should be an element");
-    let computed_style = window.GetComputedStyle(elem, None);
+    let computed_style = window.GetComputedStyle(cx, elem, None);
 
     let msg = (0..computed_style.Length())
         .map(|i| {
             let name = computed_style.Item(i);
             NodeStyle {
-                name: name.to_string(),
-                value: computed_style.GetPropertyValue(name.clone()).to_string(),
-                priority: computed_style.GetPropertyPriority(name).to_string(),
+                value: String::from(computed_style.GetPropertyValue(name.clone())),
+                priority: String::from(computed_style.GetPropertyPriority(name.clone())),
+                name: String::from(name),
             }
         })
         .collect();
@@ -588,7 +595,7 @@ pub(crate) fn handle_get_layout(
     let height = rect.Height() as f32;
 
     let window = node.owner_window();
-    let computed_style = window.GetComputedStyle(element, None);
+    let computed_style = window.GetComputedStyle(cx, element, None);
     let computed_layout = ComputedNodeLayout {
         display: computed_style.Display().into(),
         position: computed_style.Position().into(),
@@ -737,7 +744,7 @@ pub(crate) fn handle_modify_rule(
     let elem = node
         .downcast::<HTMLElement>()
         .expect("This should be an HTMLElement");
-    let style = elem.Style(CanGc::from_cx(cx));
+    let style = elem.Style(cx);
 
     for modification in modifications {
         let _ = style.SetProperty(

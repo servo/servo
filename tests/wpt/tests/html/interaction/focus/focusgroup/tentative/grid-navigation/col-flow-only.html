@@ -27,31 +27,21 @@
 <script>
 
   promise_test(async t => {
-    var r1c3 = document.getElementById("r1c3");
-
     await focusAndSendDirectionalInput(r1c3, kRight);
     assert_equals(document.activeElement, r1c3);
   }, "Navigating right should not flow the focus horziontally when not supported by the focusgroup.");
 
   promise_test(async t => {
-    var r1c2 = document.getElementById("r1c2");
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r2c1, kDown);
     assert_equals(document.activeElement, r1c2);
   }, "When on the last row, navigating down should move the focus to first row and next column if the focusgroup flows horizontally.");
 
   promise_test(async t => {
-    var r2c1 = document.getElementById("r2c1");
-
     await focusAndSendDirectionalInput(r2c1, kLeft);
     assert_equals(document.activeElement, r2c1);
   }, "Navigating left should not flow the focus horziontally when not supported by the focusgroup.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r2c3 = document.getElementById("r2c3");
-
     await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r2c3);
   }, "When on the first row, navigating up should move the focus to last row and previous column if the focusgroup flows horizontally.");

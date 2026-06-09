@@ -23,7 +23,7 @@
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("popover_fg");
+  const pop = popover_fg;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -33,7 +33,7 @@ promise_test(async t => {
 }, "Popover with own focusgroup is excluded from ancestor arrow navigation");
 
 promise_test(async t => {
-  const pop = document.getElementById("popover_fg");
+  const pop = popover_fg;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -59,7 +59,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("focusable_pop");
+  const pop = focusable_pop;
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 

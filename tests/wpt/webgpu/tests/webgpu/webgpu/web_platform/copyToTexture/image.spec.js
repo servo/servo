@@ -6,7 +6,8 @@ copyExternalImageToTexture from HTMLImageElement source.
 import { raceWithRejectOnTimeout } from '../../../common/util/util.js';
 import {
   getBaseFormatForRegularTextureFormat,
-  kPossibleValidTextureFormatsForCopyE2T } from
+  isTextureFormatPossiblyUsableWithCopyExternalImageToTexture,
+  kRegularTextureFormats } from
 '../../format_info.js';
 import * as ttu from '../../texture_test_utils.js';
 import { TextureUploadingUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
@@ -58,7 +59,8 @@ desc(
 params((u) =>
 u.
 combine('srcDoFlipYDuringCopy', [true, false]).
-combine('dstColorFormat', kPossibleValidTextureFormatsForCopyE2T).
+combine('dstColorFormat', kRegularTextureFormats).
+filter((t) => isTextureFormatPossiblyUsableWithCopyExternalImageToTexture(t.dstColorFormat)).
 combine('dstPremultiplied', [true, false]).
 beginSubcases().
 combine('width', [1, 2, 4, 15, 255, 256]).

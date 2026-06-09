@@ -49,11 +49,11 @@ async function checkVideoIsUpdated(test, shouldBeUpdated, count, referenceData)
 promise_test(async (test) => {
     await setMediaPermission("granted", ["camera"]);
     const localStream = await navigator.mediaDevices.getUserMedia({video: true});
-    const senderTransform = new SFrameTransform({ compatibilityMode: "H264" });
-    const receiverTransform = new SFrameTransform({ compatibilityMode: "H264" });
+    const senderTransform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const receiverTransform = new RTCRtpSFrameDecrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]).then(key => {
        senderTransform.setEncryptionKey(key);
-       receiverTransform.setEncryptionKey(key);
+       receiverTransform.addDecryptionKey(key);
     });
 
     let sender, receiver;

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Images: object-fit applies to stale image while revalidating</title>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://issues.chromium.org/issues/40757070">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/utils.js"></script>
+<style>
+#target, img { height: 100px; width: 100px }
+#target { background: green }
+img { display: block; object-fit: cover }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get("id") || token();
+const revalidated = location.search.includes("revalidate");
+
+window.onload = () => {
+  const image = document.createElement("img");
+  image.onload = () => revalidated || (location.search = `?id=${id}&revalidate`);
+  image.src = `support/object-fit-stale-image.py?id=${id}`;
+
+  if (!revalidated) {
+    return;
+  }
+
+  document.getElementById("target").append(image);
+  takeScreenshot();
+}
+</script>
+</html>

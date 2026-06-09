@@ -505,7 +505,7 @@ impl DocumentFocusHandler {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
-        event.fire(event_target, CanGc::from_cx(cx));
+        event.fire(cx, event_target);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>

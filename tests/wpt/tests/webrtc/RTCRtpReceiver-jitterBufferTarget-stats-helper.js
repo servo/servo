@@ -58,7 +58,8 @@ async function applyJitterBufferTarget(t, kind, target) {
   assert_equals(receiver.jitterBufferTarget, target,
     `jitterBufferTarget increase target for ${kind}`);
 
-  result = await measureDelayFromStats(t, receiver, 10, target, 20);
+  const tolerance = target / 10;
+  result = await measureDelayFromStats(t, receiver, 20, target, tolerance);
   assert_true(result, 'jitterBuffer does not reach target');
 
   receiver.jitterBufferTarget = 0;

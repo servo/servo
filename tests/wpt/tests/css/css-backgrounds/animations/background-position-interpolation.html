@@ -111,27 +111,27 @@ test_interpolation({
   from: 'top 0px left 0px',
   to: 'left 80px top 80px',
 }, [
-  {at: -0.25, expect: '-20px -20px, -20px -20px, -20px -20px, -20px -20px'},
-  {at: 0, expect:     '  0px   0px,   0px   0px,   0px   0px,   0px   0px'},
-  {at: 0.25, expect:  ' 20px  20px,  20px  20px,  20px  20px,  20px  20px'},
-  {at: 0.5, expect:   ' 40px  40px,  40px  40px,  40px  40px,  40px  40px'},
-  {at: 0.75, expect:  ' 60px  60px,  60px  60px,  60px  60px,  60px  60px'},
-  {at: 1, expect:     ' 80px  80px,  80px  80px,  80px  80px,  80px  80px'},
-  {at: 1.25, expect:  '100px 100px, 100px 100px, 100px 100px, 100px 100px'},
+  {at: -0.25, expect: '-20px -20px'},
+  {at: 0, expect:     '  0px   0px'},
+  {at: 0.25, expect:  ' 20px  20px'},
+  {at: 0.5, expect:   ' 40px  40px'},
+  {at: 0.75, expect:  ' 60px  60px'},
+  {at: 1, expect:     ' 80px  80px'},
+  {at: 1.25, expect:  '100px 100px'},
 ]);
 
 // Test mismatched numbers of position values.
 test_interpolation({
   property: 'background-position',
-  from: '0px 0px, 80px 0px',
-  to: '40px 40px, 80px 80px, 0px 80px',
+  from: '0px 0px, 80px 0px',            // intepreted as [  0px  0px, 80px  0px, 0px  0px, 80px  0px,  0px  0px, 80px  0px ] via repetition
+  to: '40px 40px, 80px 80px, 0px 80px', // intepreted as [ 40px 40px, 80px 80px, 0px 80px, 40px 40px, 80px 80px,  0px 80px ] via repetition
 }, [
-  {at: -0.25, expect: '-10px -10px, 80px -20px, 0px -20px, 90px -10px'},
-  {at: 0, expect:     '  0px   0px, 80px   0px, 0px   0px, 80px   0px'},
-  {at: 0.25, expect:  ' 10px  10px, 80px  20px, 0px  20px, 70px  10px'},
-  {at: 0.5, expect:   ' 20px  20px, 80px  40px, 0px  40px, 60px  20px'},
-  {at: 0.75, expect:  ' 30px  30px, 80px  60px, 0px  60px, 50px  30px'},
-  {at: 1, expect:     ' 40px  40px, 80px  80px, 0px  80px, 40px  40px'},
-  {at: 1.25, expect:  ' 50px  50px, 80px 100px, 0px 100px, 30px  50px'},
+  {at: -0.25, expect: '-10px -10px, 80px -20px,  0px -20px, 90px -10px, -20px -20px, 100px -20px'},
+  {at: 0, expect:     '  0px   0px, 80px   0px,  0px   0px, 80px   0px,   0px   0px,  80px   0px'},
+  {at: 0.25, expect:  ' 10px  10px, 80px  20px,  0px  20px, 70px  10px,  20px  20px,  60px  20px'},
+  {at: 0.5, expect:   ' 20px  20px, 80px  40px,  0px  40px, 60px  20px,  40px  40px,  40px  40px'},
+  {at: 0.75, expect:  ' 30px  30px, 80px  60px,  0px  60px, 50px  30px,  60px  60px,  20px  60px'},
+  {at: 1, expect:     ' 40px  40px, 80px  80px,  0px  80px, 40px  40px,  80px  80px,   0px  80px'},
+  {at: 1.25, expect:  ' 50px  50px, 80px  100px, 0px 100px, 30px  50px, 100px 100px, -20px 100px'},
 ]);
 </script>

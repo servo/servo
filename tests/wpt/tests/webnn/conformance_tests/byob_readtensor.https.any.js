@@ -1,5 +1,5 @@
 // META: title=test WebNN API tensor operations
-// META: global=window,worker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -195,3 +195,38 @@ promise_test(async (t) => {
 
   await checks;
 }, `readTensor() rejects when the MLTensor is destroyed`);
+
+promise_test(async (t) => {
+  const tensorA = await mlContext.createTensor({
+    dataType: 'int32',
+    shape: [32, 1024],  // Use large tensor to trigger crbug.com/511826204.
+    readable: true,
+    writable: true,
+  });
+  const tensorB = await mlContext.createTensor({
+    dataType: 'int32',
+    shape: [32],  // Probe with smaller tensor for speed.
+    readable: true,
+    writable: true,
+  });
+  const lengthA = tensorA.shape.reduce((a, b) => a * b);
+  const contentsA = new Int32Array(lengthA).fill(1);
+  const lengthB = tensorB.shape.reduce((a, b) => a * b);
+  const contentsB = new Int32Array(lengthB).fill(2);
+
+  mlContext.writeTensor(tensorA, contentsA);
+  mlContext.writeTensor(tensorB, contentsB);
+
+  const bufferA = new ArrayBuffer(contentsA.byteLength);
+  const readPromise = mlContext.readTensor(tensorA, bufferA);
+  bufferA.transfer();
+
+  await promise_rejects_js(t, TypeError, readPromise);
+
+  const bufferB = new ArrayBuffer(contentsB.byteLength);
+  await mlContext.readTensor(tensorB, bufferB);
+  assert_array_equals(new Int32Array(bufferB), contentsB);
+
+  tensorA.destroy();
+  tensorB.destroy();
+}, `Subsequent readTensor() after reading into a detached buffer gets correct data`);

@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -33,7 +33,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -125,7 +124,7 @@ impl CSSStyleOwner {
                 result
             },
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                rule.parent_stylesheet().will_modify();
+                rule.parent_stylesheet().will_modify(cx);
                 let result = {
                     let mut guard = rule.shared_lock().write();
                     f(&mut *pdb.borrow().write_with(&mut guard), &mut changed)
@@ -254,20 +253,20 @@ impl CSSStyleDeclaration {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &Window,
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
-        can_gc: CanGc,
     ) -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSStyleDeclaration::new_inherited(
                 owner,
                 pseudo,
                 modification_access,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 

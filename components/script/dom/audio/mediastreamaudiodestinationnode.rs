@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::ServoMedia;
@@ -31,7 +32,7 @@ pub(crate) struct MediaStreamAudioDestinationNode {
 impl MediaStreamAudioDestinationNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         context: &AudioContext,
         options: &AudioNodeOptions,
     ) -> Fallible<MediaStreamAudioDestinationNode> {
@@ -44,6 +45,7 @@ impl MediaStreamAudioDestinationNode {
             ChannelInterpretation::Speakers,
         );
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::MediaStreamDestinationNode(socket),
             context.upcast(),
             node_options,
@@ -57,7 +59,7 @@ impl MediaStreamAudioDestinationNode {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         context: &AudioContext,
         options: &AudioNodeOptions,
@@ -67,7 +69,7 @@ impl MediaStreamAudioDestinationNode {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
@@ -88,7 +90,7 @@ impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
 {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-mediastreamaudiodestinationnode>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,

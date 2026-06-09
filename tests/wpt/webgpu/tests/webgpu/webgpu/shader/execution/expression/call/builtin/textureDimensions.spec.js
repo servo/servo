@@ -239,14 +239,16 @@ levelArg,
 values)
 {
   const outputType = values.expected.length > 1 ? `vec${values.expected.length}u` : 'u32';
+  const allowLet = t.hasLanguageFeature('texture_and_sampler_let');
+  const decl = allowLet ? 'let t = texture;' : '';
+  const tex = allowLet ? 't' : 'texture';
   const wgsl = `
 @group(0) @binding(0) var texture : ${textureType};
 
 fn getValue() -> ${outputType} {
+  ${decl}
   return ${
-  levelArg !== undefined ?
-  `textureDimensions(texture, ${levelArg})` :
-  'textureDimensions(texture)'
+  levelArg !== undefined ? `textureDimensions(${tex}, ${levelArg})` : `textureDimensions(${tex})`
   };
 }
 `;

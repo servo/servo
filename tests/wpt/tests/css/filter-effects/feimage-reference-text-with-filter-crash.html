@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter Effects: feImage referencing text with filter should not crash</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feImageElement">
+<link rel="help" href="https://crbug.com/517036885">
+<svg width="200" height="200">
+  <rect width="100" height="100" fill="green" filter="url(#filter)"></rect>
+  <filter id="filter">
+    <feImage href="#text"></feImage>
+  </filter>
+  <text id="text" x="50" y="50" filter="url(#non-existent)">Text</text>
+</svg>

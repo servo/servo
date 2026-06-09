@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>appearance:base-select must not clip its button text or icon</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-select-element">
+<link rel=match href="select-button-text-and-icon-clipping-ref.html">
+<link rel=stylesheet href="/fonts/ahem.css">
+<meta name=assert content="An appearance:base-select <select> should not have its button text or icon clipped, regardless of whether a button element is used.">
+
+<style>
+  select {
+    appearance: base-select;
+    box-sizing: border-box;
+    width: 40px;
+    border: 0;
+    padding: 0;
+    font: 20px/1 Ahem;
+    color: black;
+  }
+  select::picker-icon {
+    content: "X";
+    color: red;
+  }
+</style>
+
+<p><select><option>XXX</option></select>
+<p><select><button><selectedcontent></selectedcontent></button><option>XXX</option></select>

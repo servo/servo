@@ -4,11 +4,11 @@
 <title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
-<link rel="match" href="../../../../../reference/ref-filled-green-100px-square.xht">
+<link rel="match" href="row-subgrid-extra-margin-006-ref.html">
 <style>
 .wrapper {
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 104px;
   background: red;
 }
 .grid-lanes {
@@ -26,8 +26,26 @@
 </style>
 </head>
 <body>
-<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
 <div class="wrapper">
+<!--
+  Grid lanes container height = 104px (2 rows of 52px each).
+
+  Each leaf is a span-1 subgrid nested two levels deep (leaf inside
+  inner1 or inner2 inside outer). The padding from every level of the
+  chain contributes to the leaf's margin. The leaf with the largest
+  total margin contribution ends up at:
+    leaf's pad-T (11) + inner's pad-T (11) + outer's pad-T (11) on
+    the start side, plus leaf's pad-B (9) and half of outer's
+    row-gap (20/2 = 10) on the end side, for a total of 52.
+
+  Per the WG resolution at
+  https://github.com/w3c/csswg-drafts/issues/10926, every subgrid in
+  an auto-placed grid-lanes chain must accommodate its margin
+  contribution at every row it could land in. Every row ends up
+  sized to the dominant leaf's 52px:
+    2 rows * 52px = 104px.
+-->
   <div class="grid-lanes">
     <div class="subgrid" style="grid-row: span 2; gap: 20px 10px">
       <div class="subgrid" style="grid-row: span 2;">

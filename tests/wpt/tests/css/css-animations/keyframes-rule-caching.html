@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Tests that given two identical sheets containing the same @keyframes rule, modifying one sheet doesn't affect the other sheet</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#interface-csskeyframesrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style1">
+  @keyframes --anim {
+    from { color: red; }
+    to { color: black; }
+  }
+</style>
+<style id="style2">
+  @keyframes --anim {
+    from { color: red; }
+    to { color: black; }
+  }
+</style>
+<script>
+  test(() => {
+    style1.sheet.cssRules[0].cssRules[1].style.color = "green";
+    assert_equals(style1.sheet.cssRules[0].cssRules[1].style.color, "green", "sheet1 keyframe changed");
+    assert_equals(style2.sheet.cssRules[0].cssRules[1].style.color, "black", "sheet2 keyframe did not change");
+  }, "Modifying one sheet should not affect the other");
+</script>

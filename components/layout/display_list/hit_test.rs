@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use embedder_traits::Cursor;
 use euclid::{Box2D, Vector2D};
 use kurbo::{Ellipse, Shape};
-use layout_api::{ElementsFromPointFlags, ElementsFromPointResult};
+use layout_api::ElementsFromPointResult;
 use rustc_hash::FxHashMap;
 use servo_base::id::ScrollTreeNodeId;
 use servo_geometry::FastLayoutTransform;
@@ -19,16 +21,12 @@ use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
 
 use crate::display_list::clip::{Clip, ClipId};
-use crate::display_list::stacking_context::StackingContextSection;
-use crate::display_list::{
-    StackingContext, StackingContextContent, StackingContextTree, ToWebRender,
-};
-use crate::fragment_tree::{Fragment, FragmentFlags};
+use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler};
+use crate::display_list::{StackingContext, StackingContextTree, ToWebRender, TraversalState};
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, TextFragment};
 use crate::geom::PhysicalRect;
 
 pub(crate) struct HitTest<'a> {
-    /// The flags which describe how to perform this [`HitTest`].
-    flags: ElementsFromPointFlags,
     /// The point to test for this hit test, relative to the page.
     point_to_test: LayoutPoint,
     /// A cached version of [`Self::point_to_test`] projected to a spatial node, to avoid
@@ -46,19 +44,25 @@ impl<'a> HitTest<'a> {
     pub(crate) fn run(
         stacking_context_tree: &'a StackingContextTree,
         point_to_test: LayoutPoint,
-        flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult> {
         let mut hit_test = Self {
-            flags,
             point_to_test,
             projected_point_to_test: None,
             stacking_context_tree,
             results: Vec::new(),
             clip_hit_test_results: FxHashMap::default(),
         };
-        stacking_context_tree
-            .root_stacking_context
-            .hit_test(&mut hit_test);
+
+        PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut hit_test);
+
+        // PaintTraversal::traverse walks forward through all fragments via the stacking
+        // context tree, so results will be in back-to-front order. We want results to be
+        // front-to-back order, so reverse them.
+        //
+        // TODO: Eventually PaintTraversal should support walking backward through
+        // fragments.
+        hit_test.results.reverse();
+
         hit_test.results
     }
 
@@ -112,127 +116,38 @@ impl<'a> HitTest<'a> {
     }
 }
 
+impl PaintTraversalHandler for HitTest<'_> {
+    type StackingContextState = ();
+
+    fn visit_stacking_context(&mut self, _: &StackingContext) -> Self::StackingContextState {}
+    fn leave_stacking_context(&mut self, _: &TraversalState, _: Self::StackingContextState) {}
+    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+        Fragment::Box(fragment.clone()).hit_test(state, self);
+    }
+    fn visit_text(
+        &mut self,
+        state: &TraversalState,
+        _: PhysicalRect<Au>,
+        fragment: &Arc<TextFragment>,
+    ) {
+        Fragment::Text(fragment.clone()).hit_test(state, self);
+    }
+}
+
 impl Clip {
     fn contains(&self, point: LayoutPoint) -> bool {
         rounded_rect_contains_point(self.rect, &self.radii, point)
     }
 }
 
-impl StackingContext {
-    /// Perform a hit test against a [`StackingContext`]. Note that this is the reverse
-    /// of the stacking context walk algorithm in `stacking_context.rs`. Any changes made
-    /// here should be reflected in the forward version in that file.
-    fn hit_test(&self, hit_test: &mut HitTest) -> bool {
-        let mut contents = self.contents.iter().rev().peekable();
-
-        // Step 10: Outlines
-        // We only use `StackingContextSection::Outline` as an override when building the
-        // display list. So we shouldn't encounter it here.
-        assert!(
-            contents
-                .peek()
-                .is_none_or(|child| child.section() != StackingContextSection::Outline)
-        );
-
-        // Steps 8 and 9: Stacking contexts with non-negative ‘z-index’, and
-        // positioned stacking containers (where ‘z-index’ is auto)
-        let mut real_stacking_contexts_and_positioned_stacking_containers = self
-            .real_stacking_contexts_and_positioned_stacking_containers
-            .iter()
-            .rev()
-            .peekable();
-        while real_stacking_contexts_and_positioned_stacking_containers
-            .peek()
-            .is_some_and(|child| child.z_index() >= 0)
-        {
-            let child = real_stacking_contexts_and_positioned_stacking_containers
-                .next()
-                .unwrap();
-            if child.hit_test(hit_test) {
-                return true;
-            }
-        }
-
-        // Steps 7 and 8: Fragments and inline stacking containers
-        while contents
-            .peek()
-            .is_some_and(|child| child.section() == StackingContextSection::Foreground)
-        {
-            let child = contents.next().unwrap();
-            if self.hit_test_content(child, hit_test) {
-                return true;
-            }
-        }
-
-        // Step 6: Float stacking containers
-        for child in self.float_stacking_containers.iter().rev() {
-            if child.hit_test(hit_test) {
-                return true;
-            }
-        }
-
-        // Step 5: Block backgrounds and borders
-        while contents.peek().is_some_and(|child| {
-            child.section() == StackingContextSection::DescendantBackgroundsAndBorders
-        }) {
-            let child = contents.next().unwrap();
-            if self.hit_test_content(child, hit_test) {
-                return true;
-            }
-        }
-
-        // Step 4: Stacking contexts with negative ‘z-index’
-        for child in real_stacking_contexts_and_positioned_stacking_containers {
-            if child.hit_test(hit_test) {
-                return true;
-            }
-        }
-
-        // Steps 2 and 3: Borders and background for the root
-        while contents.peek().is_some_and(|child| {
-            child.section() == StackingContextSection::OwnBackgroundsAndBorders
-        }) {
-            let child = contents.next().unwrap();
-            if self.hit_test_content(child, hit_test) {
-                return true;
-            }
-        }
-        false
-    }
-
-    pub(crate) fn hit_test_content(
-        &self,
-        content: &StackingContextContent,
-        hit_test: &mut HitTest<'_>,
-    ) -> bool {
-        match content {
-            StackingContextContent::Fragment {
-                scroll_node_id,
-                clip_id,
-                containing_block,
-                fragment,
-                ..
-            } => {
-                hit_test.hit_test_clip_id(*clip_id) &&
-                    fragment.hit_test(hit_test, *scroll_node_id, containing_block)
-            },
-            StackingContextContent::AtomicInlineStackingContainer { index } => {
-                self.atomic_inline_stacking_containers[*index].hit_test(hit_test)
-            },
-        }
-    }
-}
-
 impl Fragment {
-    pub(crate) fn hit_test(
-        &self,
-        hit_test: &mut HitTest,
-        spatial_node_id: ScrollTreeNodeId,
-        containing_block: &PhysicalRect<Au>,
-    ) -> bool {
+    pub(crate) fn hit_test(&self, state: &TraversalState, hit_test: &mut HitTest) -> bool {
         let Some(tag) = self.tag() else {
             return false;
         };
+        if !hit_test.hit_test_clip_id(state.clip_id) {
+            return false;
+        }
 
         let mut hit_test_fragment_inner =
             |style: &ComputedValues,
@@ -252,7 +167,7 @@ impl Fragment {
                 }
 
                 let (point_in_spatial_node, transform) =
-                    match hit_test.location_in_spatial_node(spatial_node_id) {
+                    match hit_test.location_in_spatial_node(state.spatial_id) {
                         Some(point) => point,
                         None => return false,
                     };
@@ -264,7 +179,7 @@ impl Fragment {
                     return false;
                 }
 
-                let fragment_rect = fragment_rect.translate(containing_block.origin.to_vector());
+                let fragment_rect = fragment_rect.translate(state.origin.to_vector());
                 if is_root_element {
                     let viewport_size = hit_test
                         .stacking_context_tree
@@ -297,7 +212,13 @@ impl Fragment {
                     point_in_target,
                     cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
                 });
-                !hit_test.flags.contains(ElementsFromPointFlags::FindAll)
+
+                // Since there is no reverse PaintTraversal, hit testing always searches
+                // the entire fragment tree (in stacking context order), which is why this
+                // is always returning `false` (keep looking). Once PaintTraversal can
+                // walk backward through fragments, this can return `true` if FindAll
+                // isn't specified.
+                false
             };
 
         match self {

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <title>4-quadrant sprite — TL terracotta, TR teal, BL indigo, BR sand</title>
+  <rect x="0" y="0" width="100" height="100" fill="#d46847"/>
+  <rect x="100" y="0" width="100" height="100" fill="#2a9d8f"/>
+  <rect x="0" y="100" width="100" height="100" fill="#264653"/>
+  <rect x="100" y="100" width="100" height="100" fill="#e9c46a"/>
+</svg>

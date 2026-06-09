@@ -17,6 +17,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
@@ -159,8 +160,9 @@ struct GetProcessResponse {
     process_descriptor: ProcessActorMsg,
 }
 
-#[derive(Default, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct RootActor {
+    name: String,
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
     process_name: String,
@@ -170,8 +172,8 @@ pub(crate) struct RootActor {
 }
 
 impl Actor for RootActor {
-    fn name(&self) -> String {
-        "root".to_owned()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -185,7 +187,7 @@ impl Actor for RootActor {
         match msg_type {
             "connect" => {
                 let message = EmptyReplyMsg {
-                    from: "root".into(),
+                    from: self.name().into(),
                 };
                 request.reply_final(&message)?
             },
@@ -194,7 +196,7 @@ impl Actor for RootActor {
             "getProcess" => {
                 let process_descriptor = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = GetProcessResponse {
-                    from: self.name(),
+                    from: self.name().into(),
                     process_descriptor,
                 };
                 request.reply_final(&reply)?
@@ -202,7 +204,7 @@ impl Actor for RootActor {
 
             "getRoot" => {
                 let reply = GetRootReply {
-                    from: "root".to_owned(),
+                    from: self.name().into(),
                     global_actors: self.global_actors.clone(),
                 };
                 request.reply_final(&reply)?
@@ -219,7 +221,7 @@ impl Actor for RootActor {
                 };
 
                 let reply = GetTabReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     tab,
                 };
                 request.reply_final(&reply)?
@@ -236,7 +238,7 @@ impl Actor for RootActor {
             "listProcesses" => {
                 let process_descriptor = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = ListProcessesResponse {
-                    from: self.name(),
+                    from: self.name().into(),
                     processes: vec![process_descriptor],
                 };
                 request.reply_final(&reply)?
@@ -253,7 +255,7 @@ impl Actor for RootActor {
                         // Find correct scope url in the service worker
                         let scope = url.clone();
                         ServiceWorkerRegistrationMsg {
-                            actor: worker_actor.name(),
+                            actor: worker_actor.name().into(),
                             scope,
                             url: url.clone(),
                             registration_state: "".to_string(),
@@ -263,7 +265,7 @@ impl Actor for RootActor {
                             installing_worker: None,
                             waiting_worker: None,
                             active_worker: Some(ServiceWorkerInfo {
-                                actor: worker_actor.name(),
+                                actor: worker_actor.name().into(),
                                 url,
                                 state: 4, // activated
                                 state_text: "activated".to_string(),
@@ -275,29 +277,41 @@ impl Actor for RootActor {
                     })
                     .collect();
                 let reply = ListServiceWorkerRegistrationsReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     registrations,
                 };
                 request.reply_final(&reply)?
             },
 
             "listTabs" => {
+                let top_level_tabs: Vec<_> = self
+                    .tabs
+                    .borrow()
+                    .iter()
+                    .filter(|&tab_name| {
+                        registry
+                            .find::<TabDescriptorActor>(tab_name)
+                            .is_top_level_global(registry)
+                    })
+                    .cloned()
+                    .collect();
+
+                // Ensure a tab is always selected
+                let active_tab_name = self.active_tab.borrow().clone();
+                let some_active_tab = active_tab_name
+                    .as_ref()
+                    .is_some_and(|name| top_level_tabs.contains(name));
+                if let Some(first_tab) = top_level_tabs.first() &&
+                    !some_active_tab
+                {
+                    *self.active_tab.borrow_mut() = Some(first_tab.clone());
+                }
+
                 let reply = ListTabsReply {
-                    from: "root".to_owned(),
-                    tabs: self
-                        .tabs
-                        .borrow()
+                    from: self.name().into(),
+                    tabs: top_level_tabs
                         .iter()
-                        .filter_map(|tab_descriptor_name| {
-                            let tab_descriptor_actor =
-                                registry.find::<TabDescriptorActor>(tab_descriptor_name);
-                            // Filter out iframes and workers
-                            if tab_descriptor_actor.is_top_level_global() {
-                                Some(tab_descriptor_actor.encode(registry))
-                            } else {
-                                None
-                            }
-                        })
+                        .map(|tab_name| registry.encode::<TabDescriptorActor, _>(tab_name))
                         .collect(),
                 };
                 request.reply_final(&reply)?
@@ -305,7 +319,7 @@ impl Actor for RootActor {
 
             "listWorkers" => {
                 let reply = ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     workers: self
                         .workers
                         .borrow()
@@ -318,7 +332,7 @@ impl Actor for RootActor {
 
             "protocolDescription" => {
                 let msg = ProtocolDescriptionReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     types: Types {
                         performance: PerformanceActor::description(),
                         device: DeviceActor::description(),
@@ -329,12 +343,16 @@ impl Actor for RootActor {
 
             "watchResources" => {
                 // TODO: Respond to watch resource requests
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             "unwatchResources" => {
                 // TODO: Respond to unwatch resource requests
-                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -347,22 +365,27 @@ impl RootActor {
     /// Registers the root actor and its global actors (those not associated with a specific target).
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
-        let device_name = DeviceActor::register(registry);
-        let performance_name = PerformanceActor::register(registry);
-        let preference_name = PreferenceActor::register(registry);
+        let device_actor = DeviceActor::register(registry);
+        let performance_actor = PerformanceActor::register(registry);
+        let preference_actor = PreferenceActor::register(registry);
 
         // Process descriptor
-        let process_name = ProcessActor::register(registry);
+        let process_actor = ProcessActor::register(registry);
 
         // Root actor
         let root_actor = Self {
+            // TODO: Create an actual name for the root actor
+            name: "root".into(),
             global_actors: GlobalActors {
-                device_actor: device_name,
-                perf_actor: performance_name,
-                preference_actor: preference_name,
+                device_actor: device_actor.name().into(),
+                perf_actor: performance_actor.name().into(),
+                preference_actor: preference_actor.name().into(),
             },
-            process_name,
-            ..Default::default()
+            process_name: process_actor.name().into(),
+            active_tab: AtomicRefCell::new(None),
+            tabs: AtomicRefCell::new(vec![]),
+            workers: AtomicRefCell::new(vec![]),
+            service_workers: AtomicRefCell::new(vec![]),
         };
 
         registry.register(root_actor);
@@ -373,20 +396,23 @@ impl RootActor {
         registry: &ActorRegistry,
         browser_id: u32,
     ) -> Option<TabDescriptorActorMsg> {
-        let mut tab_msg = self
+        let tab_descriptor_actor = self
             .tabs
             .borrow()
             .iter()
-            .map(|tab_descriptor_name| {
-                registry.encode::<TabDescriptorActor, _>(tab_descriptor_name)
-            })
-            .find(|tab_descriptor_actor| tab_descriptor_actor.browser_id() == browser_id);
+            .map(|tab_descriptor_name| registry.find::<TabDescriptorActor>(tab_descriptor_name))
+            .find(|tab_descriptor_actor| {
+                let browsing_context = registry
+                    .find::<BrowsingContextActor>(&tab_descriptor_actor.browsing_context_name);
+                browsing_context.browser_id.value() == browser_id
+            });
 
-        if let Some(ref mut msg) = tab_msg {
-            msg.selected = true;
-            *self.active_tab.borrow_mut() = Some(msg.actor());
+        if let Some(tab_descriptor_actor) = tab_descriptor_actor {
+            *self.active_tab.borrow_mut() = Some(tab_descriptor_actor.name().to_owned());
+            Some(registry.encode::<TabDescriptorActor, _>(tab_descriptor_actor.name()))
+        } else {
+            None
         }
-        tab_msg
     }
 
     pub fn active_tab(&self) -> Option<String> {
@@ -397,7 +423,7 @@ impl RootActor {
 impl ActorEncode<RootActorMsg> for RootActor {
     fn encode(&self, _: &ActorRegistry) -> RootActorMsg {
         RootActorMsg {
-            from: "root".to_owned(),
+            from: self.name().into(),
             application_type: "browser".to_owned(),
             traits: RootTraits {
                 sources: false,

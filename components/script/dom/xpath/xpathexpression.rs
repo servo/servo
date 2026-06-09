@@ -78,6 +78,7 @@ impl XPathExpression {
         let window = global.as_window();
 
         let result_value = evaluate_parsed_xpath::<XPathImplementation>(
+            cx,
             &self.parsed_expression,
             DomRoot::from_ref(context_node).into(),
         )

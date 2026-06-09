@@ -69,7 +69,7 @@
     const icps = await helper.withTimeoutMessage(
         icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
     assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
-    assert_equals(icps[0].id, 'content', 'Expected ICP candidate to be "content"');
+    assert_equals(icps[0].largestContentfulPaint.id, 'content', 'Expected ICP candidate to be "content"');
 
     // Finally, check to make sure we don't get an additional timing entry.
     return elementTimingPromise;

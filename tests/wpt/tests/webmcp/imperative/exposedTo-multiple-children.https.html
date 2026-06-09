@@ -58,7 +58,7 @@ promise_test(async t => {
   assert_equals(toolchange_result.result, 'fired', 'Frame C received toolchange event');
 
   // Parent does not see the tool.
-  let tools = await navigator.modelContext.getTools();
+  let tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], "Parent sees no tools");
 
   // Frame C should see the tool.
@@ -82,13 +82,13 @@ promise_test(async t => {
   //   2. `toolchange` does not fire in the parent frame.
   let unreg_fired = false;
   const unreg_listener = () => { unreg_fired = true; };
-  navigator.modelContext.addEventListener('toolchange', unreg_listener);
+  document.modelContext.addEventListener('toolchange', unreg_listener);
   const parent_timeout_promise = new Promise(resolve => t.step_timeout(resolve, 4000));
 
   iframe_b.contentWindow.postMessage({ action: 'unregister', name: 'tool_b_to_c' }, '*');
   const [child_response] = await Promise.all([child_unreg_promise, parent_timeout_promise]);
 
-  navigator.modelContext.removeEventListener('toolchange', unreg_listener);
+  document.modelContext.removeEventListener('toolchange', unreg_listener);
   assert_false(unreg_fired, 'Parent should not receive toolchange event on unregistration');
   assert_equals(child_response.result, 'fired', 'Frame C should receive toolchange event on unregistration');
 

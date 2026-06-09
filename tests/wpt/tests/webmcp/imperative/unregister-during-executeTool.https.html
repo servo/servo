@@ -25,7 +25,7 @@ promise_test(async t => {
   // 1. Tell the cross-origin iframe to register an endless tool,
   // exposing it to the parent origin.
   const toolchange_promise = new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
   iframe.contentWindow.postMessage({
@@ -40,11 +40,11 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'endless_tool');
   assert_true(!!tool, 'Tool should be registered and visible to parent');
 
-  const execute_promise = navigator.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
 
   // Wait briefly to ensure the execution message has started, and that the
   // execution request is now "pending", such that tool unregistration will

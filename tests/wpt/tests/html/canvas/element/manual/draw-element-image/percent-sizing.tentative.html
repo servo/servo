@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: percentage sizing of canvas children</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="basic-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 50%;
+  height: 50%;
+  background: green;
+}
+#canvas {
+  background: grey;
+  position: relative;
+  left: 0px;
+  top: 0px;
+}
+#wrapper {
+  width: 400px;
+  height: 400px;
+}
+</style>
+
+<div id=wrapper>
+  <canvas id=canvas width="200" height="200" layoutsubtree>
+    <div id=child></div>
+  </canvas>
+</div>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

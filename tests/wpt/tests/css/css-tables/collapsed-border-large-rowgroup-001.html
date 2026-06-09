@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>border-collapse with rowspan past rowgroup size</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapse-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1990533">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2039560">
+<link rel="match" href="collapsed-border-large-rowgroup-001-ref.html">
+<style>
+  table {
+    border-collapse: collapse;
+    border: 8px solid cyan;
+  }
+  td {
+    border: 4px solid black;
+  }
+</style>
+<table>
+  <tr>
+    <td>A</td>
+    <td rowspan="2">B</td>
+  </tr>
+</table>

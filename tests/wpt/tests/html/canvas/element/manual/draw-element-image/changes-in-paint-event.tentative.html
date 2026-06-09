@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas changes made in the paint event should be reflected in the current frame</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="changes-in-paint-event-ref.html" />
+
+<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" layoutsubtree></canvas>
+
+<script>
+  const ctx = canvas.getContext('2d');
+
+  // Loop to update the canvas element to red every requestAnimationFrame.
+  function rafUpdate() {
+    ctx.fillStyle = 'red';
+    ctx.fillRect(0, 0, 100, 100);
+
+    requestAnimationFrame(rafUpdate);
+  }
+  requestAnimationFrame(rafUpdate);
+
+  // Loop to update the canvas element to green every canvas paint event.
+  canvas.onpaint = () => {
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 100, 100);
+
+    canvas.requestPaint();
+  }
+  canvas.requestPaint();
+
+  window.onload = async () => {
+    // Wait four frames, then end the test. The test should end with #canvas
+    // painting green.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    document.documentElement.classList.remove('reftest-wait');
+  };
+</script>

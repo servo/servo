@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::audio::audiobuffer::AudioBuffer;
@@ -18,7 +19,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct OfflineAudioCompletionEvent {
@@ -35,35 +35,35 @@ impl OfflineAudioCompletionEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         rendered_buffer: &AudioBuffer,
-        can_gc: CanGc,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             type_,
             bubbles,
             cancelable,
             rendered_buffer,
-            can_gc,
         )
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         rendered_buffer: &AudioBuffer,
-        can_gc: CanGc,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         let event = Box::new(OfflineAudioCompletionEvent::new_inherited(rendered_buffer));
-        let ev = reflect_dom_object_with_proto(event, window, proto, can_gc);
+        let ev = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -75,22 +75,22 @@ impl OfflineAudioCompletionEvent {
 impl OfflineAudioCompletionEventMethods<crate::DomTypeHolder> for OfflineAudioCompletionEvent {
     /// <https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-offlineaudiocompletionevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &OfflineAudioCompletionEventInit,
     ) -> Fallible<DomRoot<OfflineAudioCompletionEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(OfflineAudioCompletionEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             bubbles,
             cancelable,
             &init.renderedBuffer,
-            can_gc,
         ))
     }
 

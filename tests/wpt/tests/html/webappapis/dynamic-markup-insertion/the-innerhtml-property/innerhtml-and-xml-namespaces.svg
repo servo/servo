@@ -86,6 +86,12 @@
       }, "default namespace applied to sibling of namespace-resetting element in parse of fragment.");
 
       test(() => {
+        prefixedContainer.innerHTML = "<e><h:template xmlns=''><g></g></h:template><h/></e>";
+        assert_equals(prefixedContainer.firstChild.firstChild.content.firstChild.namespaceURI, null);
+        assert_equals(prefixedContainer.firstChild.lastChild.namespaceURI, SVG_NS);
+      }, "default namespace applied to sibling of namespace-resetting template element in parse of fragment.");
+
+      test(() => {
         prefixedContainer.innerHTML = "<e><f xmlns=''><g xmlns=''></g><h/></f><i></i></e>";
         assert_equals(prefixedContainer.firstChild.namespaceURI, SVG_NS);
         assert_equals(prefixedContainer.firstChild.firstChild.namespaceURI, null);

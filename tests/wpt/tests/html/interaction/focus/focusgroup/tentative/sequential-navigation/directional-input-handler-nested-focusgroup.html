@@ -25,8 +25,6 @@
 <script>
 
   promise_test(async t => {
-    const btn2 = document.getElementById("btn2");
-    const search = document.getElementById("search");
 
     // Directional navigation TO native directional input handler works, FROM does not.
     await focusAndSendDirectionalInput(btn2, kRight);
@@ -35,10 +33,6 @@
   }, "Native directional input handler detection respects nested focusgroup's enabled axes");
 
   promise_test(async t => {
-    const btn1 = document.getElementById("btn1");
-    const btn2 = document.getElementById("btn2");
-    const search = document.getElementById("search");
-    const btn4 = document.getElementById("btn4");
 
     // Directional navigation in outer and inner focusgroups.
     await focusAndSendDirectionalInput(btn1, kDown);

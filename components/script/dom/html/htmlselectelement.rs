@@ -7,6 +7,7 @@ use std::iter;
 
 use crate::dom::activation::Activatable;
 use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::iterators::ShadowIncluding;
 use script_bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -39,7 +40,7 @@ use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, 
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
@@ -378,7 +379,7 @@ impl HTMLSelectElement {
         shadow_tree
             .selected_option
             .upcast::<CharacterData>()
-            .SetData(displayed_text.trim().into());
+            .SetData(cx, displayed_text.trim().into());
     }
 
     pub(crate) fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
@@ -720,8 +721,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             opt.set_selectedness(false);
         }
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
@@ -766,8 +767,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
-        self.validity_state(can_gc)
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -781,13 +782,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
-        self.validity_state(can_gc).set_custom_error_message(error);
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
 
@@ -811,11 +812,8 @@ impl VirtualMethods for HTMLSelectElement {
                 self.multiple_attribute_mutated(cx, mutation);
             },
             local_name!("required") => {
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(
-                        ValidationFlags::VALUE_MISSING,
-                        CanGc::from_cx(cx),
-                    );
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
             },
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -831,14 +829,11 @@ impl VirtualMethods for HTMLSelectElement {
                     },
                 }
 
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(
-                        ValidationFlags::VALUE_MISSING,
-                        CanGc::from_cx(cx),
-                    );
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             _ => {},
         }
@@ -926,9 +921,9 @@ impl Validatable for HTMLSelectElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -939,8 +934,8 @@ impl Validatable for HTMLSelectElement {
 
     fn perform_validation(
         &self,
+        _cx: &mut JSContext,
         validate_flags: ValidationFlags,
-        _can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 

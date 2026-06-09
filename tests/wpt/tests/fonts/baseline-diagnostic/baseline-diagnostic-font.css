@@ -9,6 +9,27 @@
   src: url('./BaselineDiagnostic.ttf') format('opentype');
 }
 
+:root {
+  /**
+   * Variables representing the positions of the given baselines/metrics from the top
+   * of the em-box as a percentage of the em-height. The top of the em-box (ascent) has
+   * a position of 0, and the bottom of the em-box (descent) has a position of 1.
+   */
+  --baseline-diagnostic-ascent: calc(1 - (800 + 200) / 1000);
+  --baseline-diagnostic-ideographic-over: calc(1 - (750 + 200) / 1000);
+  --baseline-diagnostic-hanging: calc(1 - (650 + 200) / 1000);
+  --baseline-diagnostic-cap-height: calc(1 - (550 + 200) / 1000);
+  --baseline-diagnostic-math: calc(1 - (450 + 200) / 1000);
+  --baseline-diagnostic-central: calc(1 - (350 + 200) / 1000);
+  --baseline-diagnostic-em-middle: calc(1 - (300 + 200) / 1000);
+  --baseline-diagnostic-x-height: calc(1 - (250 + 200) / 1000);
+  --baseline-diagnostic-x-middle: calc(1 - (150 + 200) / 1000);
+  --baseline-diagnostic-alphabetic: calc(1 - (50 + 200) / 1000);
+  --baseline-diagnostic-zero: calc(1 - (0 + 200) / 1000);
+  --baseline-diagnostic-ideographic-under: calc(1 - (-50 + 200) / 1000);
+  --baseline-diagnostic-descent: calc(1 - (-200 + 200) / 1000);
+}
+
 @font-face {
   /**
    * Same as the "BaselineDiagnostic" font, but uses the common alphabetic baseline
@@ -16,4 +37,25 @@
    */
   font-family: "BaselineDiagnosticAlphabeticZero";
   src: url('./BaselineDiagnosticAlphabeticZero.ttf') format('opentype');
+}
+
+:root {
+  /**
+   * Variables representing the positions of the given baselines/metrics from the top
+   * of the em-box as a percentage of the em-height. The top of the em-box (ascent) has
+   * a position of 0, and the bottom of the em-box (descent) has a position of 1.
+   */
+  --baseline-diagnostic-alphabetic-zero-ascent: calc(1 - (800 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-ideographic-over: calc(1 - (750 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-hanging: calc(1 - (650 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-cap-height: calc(1 - (550 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-math: calc(1 - (450 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-central: calc(1 - (350 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-em-middle: calc(1 - (300 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-x-height: calc(1 - (250 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-x-middle: calc(1 - (125 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-alphabetic: calc(1 - (0 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-zero: calc(1 - (0 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-ideographic-under: calc(1 - (-50 + 200) / 1000);
+  --baseline-diagnostic-alphabetic-zero-descent: calc(1 - (-200 + 200) / 1000);
 }

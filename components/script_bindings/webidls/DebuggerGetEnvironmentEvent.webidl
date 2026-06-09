@@ -20,14 +20,9 @@ partial interface DebuggerGlobalScope {
     );
 };
 
-dictionary EnvironmentVariable {
-    required PropertyDescriptor property;
-    ObjectPreview preview;
-};
-
 dictionary EnvironmentInfo {
     DOMString type_;
     DOMString scopeKind;
     DOMString functionDisplayName;
-    sequence<EnvironmentVariable> bindingVariables;
+    required DOMString serializedBindings;
 };

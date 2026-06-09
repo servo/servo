@@ -89,7 +89,7 @@ use crate::dom::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -175,10 +175,10 @@ fn create_html_element(
                     // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
                     return match definition.create_element(
+                        cx,
                         document,
                         prefix.clone(),
                         registry.clone(),
-                        CanGc::from_cx(cx),
                     ) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
@@ -192,13 +192,10 @@ fn create_html_element(
                             let mut realm = enter_auto_realm(cx, &*global);
                             let cx = &mut realm.current_realm();
 
-                            let in_realm_proof = cx.into();
-                            let in_realm = InRealm::Already(&in_realm_proof);
-
                             // Substep 1. Report exception for definition’s constructor’s corresponding
                             // JavaScript object’s associated realm’s global object.
                             throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
-                            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+                            report_pending_exception(cx);
 
                             // Substep 2. Set result to the result of creating an element internal given document,
                             // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.

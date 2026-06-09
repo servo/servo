@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Replaced element with percentage height and intrinsic aspect ratio contributes to intrinsic width</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+
+<style>
+.flex {
+  display: flex;
+}
+.item {
+  height: 100px;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="flex">
+  <div class="item">
+    <canvas width="10" height="10"></canvas>
+  </div>
+</div>

@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
@@ -97,13 +97,18 @@ impl Gamepad {
         }
     }
 
-    /// When we construct a new gamepad, we initialize the number of buttons and
-    /// axes corresponding to the "standard" gamepad mapping.
-    /// The spec says UAs *may* do this for fingerprint mitigation, and it also
-    /// happens to simplify implementation
-    /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
+    /// From: <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
+    /// The user agent MAY alter the device information exposed through the API to reduce the
+    /// fingerprinting surface. As an example, an implementation can require that a Gamepad
+    /// object have exactly the number of buttons and axes defined in the Standard Gamepad layout
+    /// even if more or fewer inputs are present on the connected device.
+    ///
+    /// So, we initialize the number of buttons and axes corresponding to the "standard" gamepad
+    /// mapping and happens to simplify implementation.
+    /// <https://www.w3.org/TR/gamepad/#dfn-a-new-gamepad>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         gamepad_id: u32,
         id: String,
@@ -112,14 +117,13 @@ impl Gamepad {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
         xr: bool,
-        can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let buttons = Gamepad::init_buttons(window, can_gc);
+        let buttons = Gamepad::init_buttons(window, CanGc::from_cx(cx));
         rooted_vec!(let buttons <- buttons.iter().map(DomRoot::as_traced));
         let vibration_actuator =
-            GamepadHapticActuator::new(window, gamepad_id, supported_haptic_effects, can_gc);
+            GamepadHapticActuator::new(cx, window, gamepad_id, supported_haptic_effects);
         let index = if xr { -1 } else { 0 };
-        let gamepad = reflect_dom_object(
+        let gamepad = reflect_dom_object_with_cx(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
                 id,
@@ -135,7 +139,7 @@ impl Gamepad {
                 &vibration_actuator,
             )),
             window,
-            can_gc,
+            cx,
         );
         gamepad.init_axes();
         gamepad
@@ -239,21 +243,8 @@ impl Gamepad {
         ]
     }
 
-    pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
-        if self.connected.get() == connected {
-            return;
-        }
+    pub(crate) fn update_connected(&self, connected: bool) {
         self.connected.set(connected);
-
-        let event_type = if connected {
-            GamepadEventType::Connected
-        } else {
-            GamepadEventType::Disconnected
-        };
-
-        if has_gesture {
-            self.notify_event(event_type, can_gc);
-        }
     }
 
     pub(crate) fn index(&self) -> i32 {
@@ -268,12 +259,20 @@ impl Gamepad {
         self.timestamp.set(timestamp);
     }
 
-    pub(crate) fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
-        let event =
-            GamepadEvent::new_with_type(self.global().as_window(), event_type, self, can_gc);
+    pub(crate) fn notify_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        event_type: GamepadEventType,
+    ) {
+        let event = GamepadEvent::new_with_type(
+            self.global().as_window(),
+            event_type,
+            self,
+            CanGc::from_cx(cx),
+        );
         event
             .upcast::<Event>()
-            .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);
+            .fire(cx, self.global().as_window().upcast::<EventTarget>());
     }
 
     /// Initialize the number of axes in the "standard" gamepad mapping.
@@ -325,6 +324,10 @@ impl Gamepad {
         } else {
             warn!("Button bounds difference is either 0 or non-finite!");
         }
+    }
+
+    pub(crate) fn connected(&self) -> bool {
+        self.connected.get()
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>

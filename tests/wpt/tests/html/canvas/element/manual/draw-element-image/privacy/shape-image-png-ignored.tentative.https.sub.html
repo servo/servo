@@ -1,0 +1,97 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin png image for shape-outside</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #child {
+      width: 100px;
+      height: 200px;
+      background: blue;
+      color: black;
+      font-family: Ahem;
+      font-size: 50px;
+      line-height: 50px;
+    }
+    #sameOrigin {
+      float: left;
+      height: 100px;
+      shape-outside: url("https://{{location[host]}}/images/left-half-rectangle-50.png");
+      shape-image-threshold: 0.6;
+    }
+    #crossOrigin {
+      float: left;
+      height: 100px;
+      shape-outside: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/left-half-rectangle-50.png");
+      shape-image-threshold: 0.6;
+    }
+    img {
+      margin: 0px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <div id="sameOrigin">
+        <img src="/images/left-half-rectangle-50.png"/>
+      </div>
+      <div id="crossOrigin">
+      </div>
+      X
+      X
+      X
+      X
+    </div>
+  </canvas>
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(document.getElementById("child"), 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        // The expected result has the top left 50x100 rect green due to the
+        // img in the shape region. The top right 50x100 should be black due
+        // to the first 2 X outside the shape. The bottom left 50x100
+        // should be black due to the last 2 X not being outside the
+        // cross-origin shape which is ignored. And the bottom right 50x100
+        // should be red because nothing is drawn over the background.
+
+        let pixel = _getPixelFromImageData(imgData, 25, 25);
+        assert_array_equals(pixel, [0, 100, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 75, 25);
+        assert_array_equals(pixel, [0, 0, 0, 255], "Same origin should draw text");
+
+        pixel = _getPixelFromImageData(imgData, 25, 75);
+        assert_array_equals(pixel, [0, 100, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 75, 75);
+        assert_array_equals(pixel, [0, 0, 0, 255], "Same origin should draw text");
+
+        pixel = _getPixelFromImageData(imgData, 25, 125);
+        assert_array_equals(pixel, [0, 0, 0, 255], "Cross origin should draw text");
+
+        pixel = _getPixelFromImageData(imgData, 75, 125);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin should draw text");
+
+        pixel = _getPixelFromImageData(imgData, 25, 175);
+        assert_array_equals(pixel, [0, 0, 0, 255], "Cross origin should not draw");
+
+        pixel = _getPixelFromImageData(imgData, 75, 175);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

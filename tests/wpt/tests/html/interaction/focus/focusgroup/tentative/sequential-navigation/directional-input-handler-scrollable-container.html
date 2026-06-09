@@ -66,75 +66,63 @@
 <script>
 
   promise_test(async t => {
-    const btn1 = document.getElementById("t1_btn1");
-    const hscroll = document.getElementById("t1_hscroll");
-    const btn2 = document.getElementById("t1_btn2");
-
     // Directional navigation TO horizontal scroll container works.
-    await focusAndSendDirectionalInput(btn1, kRight);
-    assert_equals(document.activeElement, hscroll,
+    await focusAndSendDirectionalInput(t1_btn1, kRight);
+    assert_equals(document.activeElement, t1_hscroll,
       "Right should navigate to horizontal scroll container");
 
     // Horizontal directional input (inline axis) are blocked - scroll container uses them.
-    await focusAndSendDirectionalInput(hscroll, kRight);
-    assert_equals(document.activeElement, hscroll,
+    await focusAndSendDirectionalInput(t1_hscroll, kRight);
+    assert_equals(document.activeElement, t1_hscroll,
       "Right should NOT move focus (scroll container uses inline axis)");
 
-    await focusAndSendDirectionalInput(hscroll, kLeft);
-    assert_equals(document.activeElement, hscroll,
+    await focusAndSendDirectionalInput(t1_hscroll, kLeft);
+    assert_equals(document.activeElement, t1_hscroll,
       "Left should NOT move focus (scroll container uses inline axis)");
 
     // Vertical directional input (block axis) should still work - scroll container doesn't use them.
-    await focusAndSendDirectionalInput(hscroll, kDown);
-    assert_equals(document.activeElement, btn2,
+    await focusAndSendDirectionalInput(t1_hscroll, kDown);
+    assert_equals(document.activeElement, t1_btn2,
       "Down SHOULD move focus (scroll container doesn't use block axis)");
 
-    await focusAndSendDirectionalInput(hscroll, kUp);
-    assert_equals(document.activeElement, btn1,
+    await focusAndSendDirectionalInput(t1_hscroll, kUp);
+    assert_equals(document.activeElement, t1_btn1,
       "Up SHOULD move focus (scroll container doesn't use block axis)");
   }, "Horizontal-only scroll container blocks inline axis but allows block axis navigation");
 
   promise_test(async t => {
-    const btn1 = document.getElementById("t2_btn1");
-    const vscroll = document.getElementById("t2_vscroll");
-    const btn2 = document.getElementById("t2_btn2");
-
     // Directional navigation TO vertical scroll container works.
-    await focusAndSendDirectionalInput(btn1, kRight);
-    assert_equals(document.activeElement, vscroll,
+    await focusAndSendDirectionalInput(t2_btn1, kRight);
+    assert_equals(document.activeElement, t2_vscroll,
       "Right should navigate to vertical scroll container");
 
     // Vertical directional input (block axis) are blocked - scroll container uses them.
-    await focusAndSendDirectionalInput(vscroll, kDown);
-    assert_equals(document.activeElement, vscroll,
+    await focusAndSendDirectionalInput(t2_vscroll, kDown);
+    assert_equals(document.activeElement, t2_vscroll,
       "Down should NOT move focus (scroll container uses block axis)");
 
-    await focusAndSendDirectionalInput(vscroll, kUp);
-    assert_equals(document.activeElement, vscroll,
+    await focusAndSendDirectionalInput(t2_vscroll, kUp);
+    assert_equals(document.activeElement, t2_vscroll,
       "Up should NOT move focus (scroll container uses block axis)");
 
     // Horizontal directional input (inline axis) should still work - scroll container doesn't use them.
-    await focusAndSendDirectionalInput(vscroll, kRight);
-    assert_equals(document.activeElement, btn2,
+    await focusAndSendDirectionalInput(t2_vscroll, kRight);
+    assert_equals(document.activeElement, t2_btn2,
       "Right SHOULD move focus (scroll container doesn't use inline axis)");
 
-    await focusAndSendDirectionalInput(vscroll, kLeft);
-    assert_equals(document.activeElement, btn1,
+    await focusAndSendDirectionalInput(t2_vscroll, kLeft);
+    assert_equals(document.activeElement, t2_btn1,
       "Left SHOULD move focus (scroll container doesn't use inline axis)");
   }, "Vertical-only scroll container blocks block axis but allows inline axis navigation");
 
   promise_test(async t => {
-    const btn1 = document.getElementById("t3_btn1");
-    const bothscroll = document.getElementById("t3_bothscroll");
-    const btn2 = document.getElementById("t3_btn2");
-
     // Directional navigation TO both-axis scroll container works.
-    await focusAndSendDirectionalInput(btn1, kRight);
-    assert_equals(document.activeElement, bothscroll,
+    await focusAndSendDirectionalInput(t3_btn1, kRight);
+    assert_equals(document.activeElement, t3_bothscroll,
       "Right should navigate to both-axis scroll container");
 
     // All directional input is blocked - scroll container uses both axes.
-    await assert_directional_input_does_not_move_focus(bothscroll);
+    await assert_directional_input_does_not_move_focus(t3_bothscroll);
   }, "Both-axis scroll container blocks all directional navigation");
 
 </script>

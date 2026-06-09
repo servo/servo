@@ -35,6 +35,7 @@ The baselines for different widgets, as implemented in Firefox, are as follows:
 <input type=submit>
 <input type=reset>
 <input type=button>
+<input type=image>
    Like inline-block but 'overflow' is forced to 'visible' and text inside is vertically centered.
 
 <input type=checkbox> with 'appearance: auto'
@@ -51,10 +52,6 @@ The baselines for different widgets, as implemented in Firefox, are as follows:
    Like inline-block but 'overflow' is forced to to 'visible' and it contains a button; the button
    can affect where the baseline is.
 
-<input type=image> showing alt text, with 'overflow: visible'
-   Like inline-block.
-
-<input type=image> showing an image
 <input type=image> showing alt text, with 'overflow' something other than 'visible'
 <input type=range>
 <input type=checkbox> with 'appearance: none'
@@ -212,9 +209,9 @@ This table gets populated by the script.
           return refColorInputLikeOffsetTop;
         case 'checkbox':
         case 'radio':
-          return (style.includes('appearance: none;')) ? refImageInputShowingImageLikeOffsetTop : refCheckboxInputAppearanceAutoLikeOffsetTop;
+          return style.includes('appearance: none;') ? refImageInputShowingImageLikeOffsetTop : refCheckboxInputAppearanceAutoLikeOffsetTop;
         case 'image':
-          return (src === 'data:,broken' && style.includes('overflow: visible;')) ? refImageInputShowingAltOverflowVisibleLikeOffsetTop : refImageInputShowingImageLikeOffsetTop;
+          return src === 'data:,broken' ? refImageInputShowingAltOverflowVisibleLikeOffsetTop : refImageInputShowingImageLikeOffsetTop;
         default:
           return refTextInputLikeOffsetTop;
       }

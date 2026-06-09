@@ -9,7 +9,7 @@
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
 use script_bindings::cell::DomRefCell;
-use script_bindings::script_runtime::temp_cx;
+use script_bindings::script_runtime::runtime_is_alive;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::root::Dom;
@@ -70,11 +70,17 @@ impl LoadBlocker {
 }
 
 impl Drop for LoadBlocker {
-    #[expect(unsafe_code)]
     fn drop(&mut self) {
-        if let Some(load) = self.load.take() {
-            let mut cx = unsafe { temp_cx() };
-            self.doc.finish_load(load, &mut cx);
+        // We need to check here if the whole runtime is alive, otherwise
+        // we interact with a document that is also being dropped. That
+        // would panic, since we should no longer schedule a task for
+        // a dropped runtime. Therefore, we should only run the drop logic
+        // in case this element is dropped, but its containing document
+        // is still alive.
+        if runtime_is_alive() &&
+            let Some(load) = self.load.take()
+        {
+            self.doc.finish_load_for_dropped_blocker(load);
         }
     }
 }

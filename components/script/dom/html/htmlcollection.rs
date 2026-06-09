@@ -17,6 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::element::Element;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 
@@ -368,7 +369,7 @@ impl HTMLCollection {
         filter: &'a (dyn CollectionFilter + 'static),
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
         after
-            .following_nodes(&self.root)
+            .following_nodes(&self.root, ShadowIncluding::No)
             .filter_map(DomRoot::downcast)
             .filter(move |element| filter.filter(element, &self.root))
     }
@@ -484,7 +485,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     }
 
     /// <https://dom.spec.whatwg.org/#interface-htmlcollection>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &mut js::context::JSContext) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];
 

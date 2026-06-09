@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>background-clip:text includes children that establish a stacking context</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9563">
+<link rel="match" href="clip-text-stacking-context-child-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.clip {
+  font: 30px/1 Ahem;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+.clip span {
+  display: block;
+}
+.t1 span {
+  will-change: mask-image;
+}
+.t2 span {
+  isolation: isolate;
+}
+.t3 span {
+  mix-blend-mode: lighten;
+}
+.t4 span {
+  scale: 1;
+}
+.t5 span {
+  clip-path: inset(0);
+}
+.t6 span {
+  contain: paint;
+}
+.t7 {
+  display: flex;
+}
+.t7 span {
+  z-index: 1;
+}
+.t8 {
+  overflow: hidden;
+}
+.t8 span {
+  float: left;
+}
+</style>
+<!-- Each row's child uses a property that establishes a stacking context.
+     Test passes if every row shows the same green X glyphs as the reference,
+     i.e. the child's text is included in the background-clip:text mask. -->
+<div class="clip t1">XXXXX<span>XXXXX</span></div>
+<div class="clip t2">XXXXX<span>XXXXX</span></div>
+<div class="clip t3">XXXXX<span>XXXXX</span></div>
+<div class="clip t4">XXXXX<span>XXXXX</span></div>
+<div class="clip t5">XXXXX<span>XXXXX</span></div>
+<div class="clip t6">XXXXX<span>XXXXX</span></div>
+<div class="clip t7">XXXXX<span>XXXXX</span></div>
+<div class="clip t8">XXXXX<span>XXXXX</span></div>

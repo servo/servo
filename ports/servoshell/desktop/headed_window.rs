@@ -502,12 +502,7 @@ impl HeadedWindow {
         // cursor too, when all dialogs close. In general, we need a better cursor
         // management strategy.
         self.set_cursor(Cursor::Default);
-
-        let length = dialogs.len();
         dialogs.retain_mut(callback);
-        if length != dialogs.len() {
-            window.set_needs_repaint();
-        }
     }
 
     fn add_dialog(&self, webview_id: WebViewId, dialog: Dialog) {
@@ -551,25 +546,23 @@ impl HeadedWindow {
             gui.paint(&self.winit_window);
         }
 
-        let forward_mouse_event_to_egui = |point: Option<PhysicalPosition<f64>>| {
+        if let WindowEvent::CursorMoved { position, .. } = event {
+            self.last_mouse_position.set(Some(
+                winit_position_to_euclid_point(position).to_f32() / self.hidpi_scale_factor(),
+            ));
+        }
+        let should_forward_mouse_event_to_egui = || {
+            // If a dialog is showing, it always captures all mouse events.
             if window
                 .active_webview()
                 .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
             {
                 return true;
             }
-
-            let Some(point) = point
-                .map(|point| {
-                    winit_position_to_euclid_point(point).to_f32() / self.hidpi_scale_factor()
-                })
-                .or(self.last_mouse_position.get())
-            else {
-                return true;
-            };
-
-            self.last_mouse_position.set(Some(point));
-            self.gui.borrow().is_in_egui_toolbar_rect(point)
+            // Otherwise, if the cursor is over the egui interface, forward the event.
+            self.last_mouse_position
+                .get()
+                .is_none_or(|point| self.gui.borrow().is_in_egui_toolbar_rect(point))
         };
 
         // Handle the event
@@ -597,8 +590,6 @@ impl HeadedWindow {
                 // the GUI, and present the new frame.
                 self.winit_window.request_redraw();
             },
-            WindowEvent::CursorMoved { position, .. }
-                if !forward_mouse_event_to_egui(Some(position)) => {},
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
                 button: MouseButton::Forward,
@@ -616,7 +607,7 @@ impl HeadedWindow {
                 consumed = true;
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
-                if !forward_mouse_event_to_egui(None) =>
+                if !should_forward_mouse_event_to_egui() =>
             {
                 self.gui.borrow().surrender_focus();
             },
@@ -642,9 +633,19 @@ impl HeadedWindow {
                     self.winit_window.request_redraw();
                 }
 
-                // TODO how do we handle the tab key? (see doc for consumed)
-                // Note that servo doesn’t yet support tabbing through links and inputs
-                consumed = response.consumed;
+                // All CursorMoved events, even when forwarded to the WebView, are also
+                // forwarded to Gui (above). This is because egui needs to know when
+                // the mouse is moving in other parts of the view in order to properly
+                // hide tooltips.
+                if let WindowEvent::CursorMoved { .. } = event &&
+                    !should_forward_mouse_event_to_egui()
+                {
+                    consumed = false;
+                } else {
+                    // TODO how do we handle the tab key? (see doc for consumed)
+                    // Note that servo doesn’t yet support tabbing through links and inputs
+                    consumed = response.consumed;
+                }
             },
         }
 
@@ -770,6 +771,16 @@ impl HeadedWindow {
                             }
                         },
                     },
+                    WindowEvent::DroppedFile(dropped_file) => {
+                        if let Ok(url) = Url::from_file_path(&dropped_file) {
+                            webview.load(url);
+                        } else {
+                            log::error!(
+                                "Failed to create URL for dropped file ({})",
+                                dropped_file.display()
+                            );
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -862,17 +873,8 @@ impl PlatformWindow for HeadedWindow {
         self.gui.borrow_mut().update_webview_data(window)
     }
 
-    fn request_repaint(&self, window: &ServoShellWindow) {
+    fn request_repaint(&self, _: &ServoShellWindow) {
         self.winit_window.request_redraw();
-
-        // FIXME: This is a workaround for dialogs, which do not seem to animate, unless we
-        // constantly repaint the egui scene.
-        if window
-            .active_webview()
-            .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
-        {
-            window.set_needs_repaint();
-        }
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {

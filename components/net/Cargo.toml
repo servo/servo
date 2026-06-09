@@ -17,11 +17,11 @@ test = false
 doctest = false
 
 [features]
-test-util = ["hyper-util/server-graceful", "dep:servo-default-resources"]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
+async-compression = { workspace = true, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = { workspace = true }
 async-tungstenite = { workspace = true }
 base64 = { workspace = true }
@@ -37,7 +37,6 @@ fst = { workspace = true }
 futures = { workspace = true }
 futures-core = { workspace = true }
 futures-util = { workspace = true }
-generic-array = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
@@ -59,7 +58,7 @@ paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
-quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
+quick_cache = { workspace = true, features = ["ahash"] }
 regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
@@ -74,6 +73,7 @@ servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 servo_arc = { workspace = true }
 sha2 = { workspace = true }
+smallvec = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }

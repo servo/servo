@@ -75,6 +75,37 @@ function runTests(mutation, mutationName) {
         mutation(shadowRoot2, element);
         assert_equals(element.customElementRegistry, registry1);
     }, "An element with scoped registry should not change its registry when run " + mutationName + " into another shadow tree with different scoped registry.")
+
+    test(() => {
+        const registry = new CustomElementRegistry;
+        const host = document.createElement('div');
+        host.attachShadow({mode: 'open', customElementRegistry: registry});
+        const child = document.createElement('div');
+        assert_equals(child.customElementRegistry, window.customElements,
+            'Before insertion, child should have the global registry');
+        mutation(host.shadowRoot, child);
+        assert_equals(child.customElementRegistry, window.customElements,
+            'After insertion into scoped shadow root, child should retain the global registry');
+        child.remove();
+        assert_equals(child.customElementRegistry, window.customElements,
+            'After removal from scoped shadow root, child should still have the global registry');
+    }, "A freshly created element should preserve global registry after " + mutationName + " into and removal from a scoped shadow root.")
+
+    test(() => {
+        const registryA = new CustomElementRegistry;
+        const registryB = new CustomElementRegistry;
+        const hostA = document.createElement('div');
+        hostA.attachShadow({mode: 'open', customElementRegistry: registryA});
+        const hostB = document.createElement('div');
+        hostB.attachShadow({mode: 'open', customElementRegistry: registryB});
+        const child = document.createElement('div');
+        mutation(hostA.shadowRoot, child);
+        assert_equals(child.customElementRegistry, window.customElements,
+            'After insertion into shadow root A, child should retain the global registry');
+        mutation(hostB.shadowRoot, child);
+        assert_equals(child.customElementRegistry, window.customElements,
+            'After moving to shadow root B, child should still retain the global registry');
+    }, "A freshly created element should preserve global registry when run " + mutationName + " between scoped shadow roots.")
 };
 
 runTests(function (parent, child) { parent.append(child); }, "append");

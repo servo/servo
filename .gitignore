@@ -43,9 +43,6 @@ webrender-captures/
 *.iws
 *.iml
 
-## Gradle
-.gradle
-
 ## VSCode
 .vscode
 !/.vscode/extensions.json
@@ -63,6 +60,9 @@ Sessionx.vim
 
 # Zed
 /.zed
+
+# NeoVim
+.nvim.lua
 
 /unminified-js
 /unminified-css

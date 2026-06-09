@@ -1,0 +1,21 @@
+diff --git a/WebIDL.py b/WebIDL.py
+index 6aaa7e9f8a5..d60c817dafe 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
+@@ -3347,6 +3347,13 @@ class IDLUnionType(IDLType):
+             return type.name
+ 
+         for i, type in enumerate(self.memberTypes):
++            # Exclude typedefs because if given "typedef (B or C) test",
++            # we want AOrTest, not AOrBOrC
++            if not type.isComplete() and not isinstance(type, IDLTypedefType):
++                self.memberTypes[i] = type.complete(scope)
++
++        # We do this again to complete the typedef types
++        for (i, type) in enumerate(self.memberTypes):
+             if not type.isComplete():
+                 self.memberTypes[i] = type.complete(scope)
+ 
+-- 
+2.51.0
+

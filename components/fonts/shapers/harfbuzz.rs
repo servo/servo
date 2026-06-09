@@ -28,13 +28,11 @@ use harfbuzz_sys::{
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
-use style::values::computed::{FontVariantLigatures, FontVariantNumeric};
 
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    AFRC, BASE, CALT, CLIG, DLIG, FRAC, Font, FontBaseline, FontTableMethods, GlyphId, HLIG, KERN,
-    LIGA, LNUM, ONUM, ORDN, PNUM, ShapedText, ShapingFlags, ShapingOptions, TNUM, ZERO,
+    BASE, Font, FontBaseline, FontTableMethods, GlyphId, ShapedText, ShapingFlags, ShapingOptions,
     fixed_to_float, float_to_fixed,
 };
 
@@ -247,6 +245,7 @@ impl Shaper {
         &self,
         text: &str,
         options: &ShapingOptions,
+        font_features: &[(Tag, u32)],
     ) -> HarfbuzzGlyphShapingResult {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
@@ -279,118 +278,15 @@ impl Shaper {
             );
             hb_buffer_set_language(hb_buffer, hb_language);
 
-            let mut features = Vec::new();
-
-            let mut add_feature = |tag: Tag, value: u32| {
-                features.push(hb_feature_t {
+            let mut features: Vec<_> = font_features
+                .iter()
+                .map(|(tag, value)| hb_feature_t {
                     tag: u32::from_be_bytes(tag.to_be_bytes()),
-                    value,
+                    value: *value,
                     start: 0,
                     end: hb_buffer_get_length(hb_buffer),
                 })
-            };
-
-            if options.ligatures == FontVariantLigatures::NORMAL {
-                add_feature(LIGA, 1);
-                add_feature(CLIG, 1);
-            } else if options.ligatures == FontVariantLigatures::NONE {
-                add_feature(LIGA, 0);
-                add_feature(CLIG, 0);
-                add_feature(DLIG, 0);
-                add_feature(HLIG, 0);
-                add_feature(CALT, 0);
-            } else {
-                if options
-                    .ligatures
-                    .contains(FontVariantLigatures::COMMON_LIGATURES)
-                {
-                    add_feature(LIGA, 1);
-                    add_feature(CLIG, 1);
-                } else if options
-                    .ligatures
-                    .contains(FontVariantLigatures::NO_COMMON_LIGATURES)
-                {
-                    add_feature(LIGA, 0);
-                    add_feature(CLIG, 0);
-                }
-
-                if options
-                    .ligatures
-                    .contains(FontVariantLigatures::DISCRETIONARY_LIGATURES)
-                {
-                    add_feature(DLIG, 1);
-                } else if options
-                    .ligatures
-                    .contains(FontVariantLigatures::NO_DISCRETIONARY_LIGATURES)
-                {
-                    add_feature(DLIG, 0);
-                }
-
-                if options
-                    .ligatures
-                    .contains(FontVariantLigatures::HISTORICAL_LIGATURES)
-                {
-                    add_feature(HLIG, 1);
-                } else if options
-                    .ligatures
-                    .contains(FontVariantLigatures::NO_HISTORICAL_LIGATURES)
-                {
-                    add_feature(HLIG, 0);
-                }
-
-                if options.ligatures.contains(FontVariantLigatures::CONTEXTUAL) {
-                    add_feature(CALT, 1);
-                } else if options
-                    .ligatures
-                    .contains(FontVariantLigatures::NO_CONTEXTUAL)
-                {
-                    add_feature(CALT, 0);
-                }
-            }
-
-            if options.numeric.contains(FontVariantNumeric::LINING_NUMS) {
-                add_feature(LNUM, 1);
-            } else if options.numeric.contains(FontVariantNumeric::OLDSTYLE_NUMS) {
-                add_feature(ONUM, 1);
-            }
-            if options
-                .numeric
-                .contains(FontVariantNumeric::PROPORTIONAL_NUMS)
-            {
-                add_feature(PNUM, 1);
-            } else if options.numeric.contains(FontVariantNumeric::TABULAR_NUMS) {
-                add_feature(TNUM, 1);
-            }
-            if options
-                .numeric
-                .contains(FontVariantNumeric::DIAGONAL_FRACTIONS)
-            {
-                add_feature(FRAC, 1);
-            } else if options
-                .numeric
-                .contains(FontVariantNumeric::STACKED_FRACTIONS)
-            {
-                add_feature(AFRC, 1);
-            }
-            if options.numeric.contains(FontVariantNumeric::ORDINAL) {
-                add_feature(ORDN, 1);
-            }
-            if options.numeric.contains(FontVariantNumeric::SLASHED_ZERO) {
-                add_feature(ZERO, 1);
-            }
-
-            if options
-                .flags
-                .contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
-            {
-                features.push(hb_feature_t {
-                    tag: u32::from_be_bytes(KERN.to_be_bytes()),
-                    value: 0,
-                    start: 0,
-                    end: hb_buffer_get_length(hb_buffer),
-                })
-            }
-
+                .collect();
             hb_shape(
                 self.hb_font,
                 hb_buffer,
@@ -402,8 +298,17 @@ impl Shaper {
         }
     }
 
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        ShapedText::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
+    pub(crate) fn shape_text(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+        font_features: &[(Tag, u32)],
+    ) -> ShapedText {
+        ShapedText::with_shaped_glyph_data(
+            text,
+            options,
+            &self.shaped_glyph_data(text, options, font_features),
+        )
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {

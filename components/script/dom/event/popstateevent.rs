@@ -70,14 +70,21 @@ impl PopStateEvent {
     }
 
     pub(crate) fn dispatch_jsval(
+        cx: &mut js::context::JSContext,
         target: &EventTarget,
         window: &Window,
         state: HandleValue,
-        can_gc: CanGc,
     ) {
-        let event =
-            PopStateEvent::new(window, None, atom!("popstate"), false, false, state, can_gc);
-        event.upcast::<Event>().fire(target, can_gc);
+        let event = PopStateEvent::new(
+            window,
+            None,
+            atom!("popstate"),
+            false,
+            false,
+            state,
+            CanGc::from_cx(cx),
+        );
+        event.upcast::<Event>().fire(cx, target);
     }
 }
 

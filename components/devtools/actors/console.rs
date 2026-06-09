@@ -7,6 +7,7 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
@@ -194,15 +195,14 @@ pub(crate) struct ConsoleActor {
 }
 
 impl ConsoleActor {
-    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> String {
+    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> Arc<Self> {
         let actor = Self {
-            name: name.clone(),
+            name,
             root,
             cached_events: Default::default(),
             client_ready_to_receive_messages: false.into(),
         };
-        registry.register(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
@@ -259,7 +259,7 @@ impl ConsoleActor {
         let has_exception = eval_result.has_exception;
 
         let reply = EvaluateJSReply {
-            from: self.name(),
+            from: self.name().into(),
             input,
             result: debugger_value_to_json(registry, eval_result.value),
             timestamp: get_time_stamp(),
@@ -350,8 +350,8 @@ impl ConsoleActor {
 }
 
 impl Actor for ConsoleActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -367,7 +367,9 @@ impl Actor for ConsoleActor {
                 self.cached_events
                     .borrow_mut()
                     .remove(&self.current_unique_id(registry));
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
 
@@ -375,7 +377,7 @@ impl Actor for ConsoleActor {
             //      http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js
             "autocomplete" => {
                 let msg = AutocompleteReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     matches: vec![],
                     match_prop: "".to_owned(),
                 };
@@ -390,7 +392,7 @@ impl Actor for ConsoleActor {
             "evaluateJSAsync" => {
                 let result_id = Uuid::new_v4().to_string();
                 let early_reply = EvaluateJSAsyncReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     result_id: result_id.clone(),
                 };
                 // Emit an eager reply so that the client starts listening
@@ -405,7 +407,7 @@ impl Actor for ConsoleActor {
 
                 let reply = self.evaluate_js(registry, msg).unwrap();
                 let msg = EvaluateJSEvent {
-                    from: self.name(),
+                    from: self.name().into(),
                     type_: "evaluationResult".to_owned(),
                     input: reply.input,
                     result: reply.result,
@@ -422,7 +424,7 @@ impl Actor for ConsoleActor {
 
             "setPreferences" => {
                 let msg = SetPreferencesReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     updated: vec![],
                 };
                 request.reply_final(&msg)?

@@ -1,4 +1,4 @@
-// META: global=window,worker
+// META: global=window,dedicatedworker
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: script=./resources/utils.js
@@ -23,7 +23,8 @@ idl_test(
       MLContext: ['context'],
       MLOperand: ['input', 'constant', 'output'],
       MLGraphBuilder: ['builder'],
-      MLGraph: ['graph']
+      MLGraph: ['graph'],
+      MLTensor: ['tensor']
     });
 
     self.context = await navigator.ml.createContext();
@@ -35,5 +36,8 @@ idl_test(
     self.output = builder.add(input, constant);
 
     self.graph = await builder.build({output});
+
+    self.tensor = await context.createTensor(
+        {dataType: 'float32', shape: [2, 3], readable: true, writable: true});
   }
 );

@@ -22,10 +22,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-
     await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to nested item2");
 

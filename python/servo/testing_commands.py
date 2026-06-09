@@ -215,6 +215,7 @@ class MachCommands(CommandBase):
             "servo-storage-traits",
             "servo-xpath",
             "servo-deny-public-fields",
+            "servo-dom-struct",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -311,6 +312,7 @@ class MachCommands(CommandBase):
     )
     def test_tidy(self, all_files: bool, no_progress: bool, github_annotations: bool) -> int:
         tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
+        coauthors_failed = tidy.run_coauthors_check()
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)
@@ -322,7 +324,7 @@ class MachCommands(CommandBase):
         taplo_failed = format_toml_files_with_taplo()
 
         format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
-        tidy_failed = format_failed or tidy_failed
+        tidy_failed = format_failed or tidy_failed or coauthors_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
@@ -384,16 +386,30 @@ class MachCommands(CommandBase):
         else:
             print("SKIP: Install tshark manually")
 
+        print("Verifying integrity of WebIDL parser...")
+        try:
+            result = subprocess.run(
+                ["components/script_bindings/third_party/WebIDL/manage.py", "verify"], check=True, capture_output=True
+            )
+            print("OK")
+        except subprocess.CalledProcessError as e:
+            print(f"Process failed with exit status {e.returncode}: {e.cmd}", file=sys.stderr)
+            print(f"stdout: {repr(e.stdout)}", file=sys.stderr)
+            print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
+            raise e
+
         if all or tests:
             print("Running WebIDL tests...")
 
-            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "third_party", "WebIDL"))
+            test_file_dir = path.abspath(
+                path.join(PROJECT_TOPLEVEL_PATH, "components", "script_bindings", "third_party", "WebIDL", "parser")
+            )
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
             run_globals: dict[str, Any] = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-            passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
+            passed = not run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
 
@@ -401,9 +417,21 @@ class MachCommands(CommandBase):
     @CommandArgument("test_names", nargs=argparse.REMAINDER, help="Only run tests that match these patterns")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_devtools(self, servo_binary: str, test_names: list[str], **kwargs: Any) -> int:
+        import pytest
+
+        args = [
+            os.path.join(SCRIPT_PATH, "devtools_tests"),
+            "--servo-binary",
+            servo_binary,
+            "--script-path",
+            SCRIPT_PATH,
+            "-v",
+        ]
+        if test_names:
+            args.extend(["-k", " or ".join(test_names)])
+
         print("Running devtools tests...")
-        passed = servo.devtools_tests.run_tests(SCRIPT_PATH, servo_binary, test_names)
-        return 0 if passed else 1
+        return pytest.main(args)
 
     @Command(
         "test-wpt-failure",
@@ -767,6 +795,8 @@ class MachCommands(CommandBase):
             return res
         # https://github.com/gpuweb/cts/pull/2770
         delete(path.join(clone_dir, "out-wpt", "cts-chunked2sec.https.html"))
+        # we have incomplete workers implementation and webgpu does not work there
+        delete(path.join(clone_dir, "out-wpt", "cts-withsomeworkers.https.html"))
         cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
         # patch
         with open(cts_html, "r") as file:

@@ -303,7 +303,7 @@ impl Request {
 
         // Step 23. If init["integrity"] exists, then set request’s integrity metadata to it.
         if let Some(init_integrity) = init.integrity.as_ref() {
-            let integrity = init_integrity.clone().to_string();
+            let integrity = init_integrity.to_string();
             request.integrity_metadata = integrity;
         }
 

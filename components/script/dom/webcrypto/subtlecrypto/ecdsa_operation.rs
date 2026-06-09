@@ -50,11 +50,16 @@ pub(crate) fn sign(
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
     let m = match hash_algorithm.name() {
-        CryptoAlgorithm::Sha1 => Sha1::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha256 => Sha256::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha384 => Sha384::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha512 => Sha512::new_with_prefix(message).finalize().to_vec(),
-        _ => return Err(Error::NotSupported(None)),
+        CryptoAlgorithm::Sha1 => Sha1::digest(message).to_vec(),
+        CryptoAlgorithm::Sha256 => Sha256::digest(message).to_vec(),
+        CryptoAlgorithm::Sha384 => Sha384::digest(message).to_vec(),
+        CryptoAlgorithm::Sha512 => Sha512::digest(message).to_vec(),
+        hash_algorithm_name => {
+            return Err(Error::NotSupported(Some(format!(
+                "Unsupported hash algorithm for ECDSA: {}",
+                hash_algorithm_name.as_str()
+            ))));
+        },
     };
 
     // Step 4. Let d be the ECDSA private key associated with key.

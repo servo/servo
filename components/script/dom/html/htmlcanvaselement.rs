@@ -280,14 +280,8 @@ impl HTMLCanvasElement {
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let context = WebGLRenderingContext::new(
-            &window,
-            &canvas,
-            WebGLVersion::WebGL1,
-            size,
-            attrs,
-            CanGc::from_cx(cx),
-        )?;
+        let context =
+            WebGLRenderingContext::new(cx, &window, &canvas, WebGLVersion::WebGL1, size, attrs)?;
         self.set_rendering_context(|| RenderingContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -297,10 +291,8 @@ impl HTMLCanvasElement {
         cx: &mut js::context::JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !WebGL2RenderingContext::is_webgl2_enabled(
-            cx.into(),
-            self.global().reflector().get_jsobject(),
-        ) {
+        if !WebGL2RenderingContext::is_webgl2_enabled(cx, self.global().reflector().get_jsobject())
+        {
             return None;
         }
         if let Some(ctx) = self.context() {
@@ -314,8 +306,7 @@ impl HTMLCanvasElement {
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let context =
-            WebGL2RenderingContext::new(&window, &canvas, size, attrs, CanGc::from_cx(cx))?;
+        let context = WebGL2RenderingContext::new(cx, &window, &canvas, size, attrs)?;
         self.set_rendering_context(|| RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -369,7 +360,7 @@ impl HTMLCanvasElement {
         options: HandleValue,
     ) -> Option<GLContextAttributes> {
         unsafe {
-            match WebGLContextAttributes::new(cx.into(), options, CanGc::from_cx(cx)) {
+            match WebGLContextAttributes::new(cx, options) {
                 Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
                 Ok(ConversionResult::Failure(error)) => {
                     throw_type_error(cx.raw_cx(), &error);
@@ -540,7 +531,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             return Ok(USVString("data:,".into()));
         };
 
-        let image_type = EncodedImageType::from(mime_type.to_string());
+        let image_type = EncodedImageType::from(&mime_type.str() as &str);
 
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
@@ -595,7 +586,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             .borrow_mut()
             .insert(callback_id, callback);
         let quality = Self::maybe_quality(quality);
-        let image_type = EncodedImageType::from(mime_type.to_string());
+        let image_type = EncodedImageType::from(&mime_type.str() as &str);
 
         self.global()
             .task_manager()
@@ -624,7 +615,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
+                       blob = Blob::new(cx, &this.global(), blob_impl);
                        Some(&*blob)
                    }
                    Err(..) => None,

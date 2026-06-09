@@ -17,7 +17,6 @@ TODO:
     - should make whole encoder invalid
 - ?
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { objectEquals } from '../../../../common/util/util.js';
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
@@ -51,9 +50,6 @@ desc(
   `
   Test that beginning a {compute,render} pass before ending the previous {compute,render} pass
   causes an error.
-
-  TODO(https://github.com/gpuweb/gpuweb/issues/5207): Resolve whether a validation error
-  should be raised immediately if '!firstPassEnd && endPasses = [1, 0]'.
   `
 ).
 params((u) =>
@@ -63,8 +59,6 @@ combine('pass1Type', ['compute', 'render']).
 beginSubcases().
 combine('firstPassEnd', [true, false]).
 combine('endPasses', [[], [0], [1], [0, 1], [1, 0]])
-// Don't end the first pass multiple times (that generates a validation error but doesn't invalidate the encoder)
-.unless((p) => p.firstPassEnd && p.endPasses.includes(0))
 ).
 fn((t) => {
   const { pass0Type, pass1Type, firstPassEnd, endPasses } = t.params;
@@ -83,15 +77,16 @@ fn((t) => {
 
   const passes = [firstPass, secondPass];
   for (const index of endPasses) {
-    passes[index].end();
+    const validEnd = index === 0 && !firstPassEnd || index === 1 && firstPassEnd;
+    t.expectValidationError(() => {
+      passes[index].end();
+    }, !validEnd);
   }
 
-  // If {endPasses} is '[1]' and {firstPass} ends, it's a control case.
-  const valid = firstPassEnd && objectEquals(endPasses, [1]);
-
+  const validFinish = firstPassEnd && endPasses.includes(1);
   t.expectValidationError(() => {
     encoder.finish();
-  }, !valid);
+  }, !validFinish);
 });
 
 g.test('call_after_successful_finish').

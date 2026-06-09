@@ -2,6 +2,8 @@
 <meta charset="UTF-8">
 <title>CSS Reference: symbols function, invalid</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="flags" content="ahem image" />
 <style type="text/css">
   @counter-style triangle-right {
     system: cyclic;
@@ -33,43 +35,43 @@
   .t-d { list-style-type: triangle-down; }
   .t-r { list-style-type: triangle-right; }
   .t-l { list-style-type: triangle-left; }
-  div { font: 16px system-ui; margin: 1em; border: 1px solid gray; }
-  li::marker { font-family: inherit; }
+  div { font: 20px Ahem; margin: 1em; border: 1px solid gray; }
+  li::marker { font-family: system-ui; }
 </style>
 
 <div style="width: 10em;">
 <ul dir="ltr">
-  <li class="t-r">closed ltr
-  <li class="t-d">open ltr
+  <li class="t-r">CL
+  <li class="t-d">OL
 </ul>
 <ul dir="rtl">
-  <li class="t-l">closed rtl
-  <li class="t-d">open rtl
+  <li class="t-l">CR
+  <li class="t-d">OR
 </ul>
-<p dir="ltr">&#x25b8;&nbsp;closed ltr
-<p dir="rtl">&#x25c2;&nbsp;closed rtl
+<p dir="ltr">&#x25b8;&nbsp;CL
+<p dir="rtl">&#x25c2;&nbsp;CR
 </div>
 <div style="writing-mode: vertical-lr; height: 10em;">
 <ul dir="ltr">
-  <li class="t-d">closed ltr
-  <li class="t-r">open ltr
+  <li class="t-d">CL
+  <li class="t-r">OL
 </ul>
 <ul dir="rtl">
-  <li class="t-u">closed rtl
-  <li class="t-r">open rtl
+  <li class="t-u">CR
+  <li class="t-r">OR
 </ul>
-<p dir="ltr">&#x25be;&nbsp;closed ltr
-<p dir="rtl">&#x25b4;&nbsp;closed rtl
+<p dir="ltr">&#x25be;&nbsp;CL
+<p dir="rtl">&#x25b4;&nbsp;CR
 </div>
 <div style="writing-mode: vertical-rl; height: 10em;">
 <ul dir="ltr">
-  <li class="t-d">closed ltr
-  <li class="t-l">open ltr
+  <li class="t-d">CL
+  <li class="t-l">OL
 </ul>
 <ul dir="rtl">
-  <li class="t-u">closed rtl
-  <li class="t-l">open rtl
+  <li class="t-u">CR
+  <li class="t-l">OR
 </ul>
-<p dir="ltr">&#x25be;&nbsp;closed ltr
-<p dir="rtl">&#x25b4;&nbsp;closed rtl
+<p dir="ltr">&#x25be;&nbsp;CL
+<p dir="rtl">&#x25b4;&nbsp;CR
 </div>

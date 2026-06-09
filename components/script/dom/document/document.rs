@@ -25,9 +25,9 @@ use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
-use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::context::NoGC;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
@@ -47,7 +47,7 @@ use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -64,6 +64,7 @@ use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
+use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
@@ -94,7 +95,9 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
-use crate::dom::bindings::codegen::Bindings::SanitizerBinding::SetHTMLOptions;
+use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
+    SetHTMLOptions, SetHTMLUnsafeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
@@ -127,6 +130,7 @@ use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
 };
 use crate::dom::customevent::CustomEvent;
+use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
@@ -161,12 +165,13 @@ use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -185,6 +190,7 @@ use crate::dom::storageevent::StorageEvent;
 use crate::dom::text::Text;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
+use crate::dom::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
@@ -236,6 +242,8 @@ pub(crate) struct RefreshRedirectDue {
     pub(crate) url: ServoUrl,
     #[ignore_malloc_size_of = "non-owning"]
     pub(crate) window: DomRoot<Window>,
+    /// Whether the refresh originated from a `<meta>` element.
+    pub(crate) from_meta_element: bool,
 }
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
@@ -246,9 +254,13 @@ impl RefreshRedirectDue {
         // automatic features browsing context flag set,
         // then navigate document's node navigable to urlRecord using document,
         // with historyHandling set to "replace".
-        //
-        // TODO: check sandbox
-        // TODO: Check if meta was given
+        if self.from_meta_element &&
+            self.window.Document().has_active_sandboxing_flag(
+                SandboxingFlagSet::SANDBOXED_AUTOMATIC_FEATURES_BROWSING_CONTEXT_FLAG,
+            )
+        {
+            return;
+        }
         let load_data = self
             .window
             .load_data_for_document(self.url.clone(), self.window.pipeline_id());
@@ -275,6 +287,8 @@ pub(crate) enum DeclarativeRefresh {
         #[no_trace]
         url: ServoUrl,
         time: u64,
+        /// Whether the refresh originated from a `<meta>` element.
+        from_meta_element: bool,
     },
     CreatedAfterLoad,
 }
@@ -347,10 +361,8 @@ pub(crate) struct Document {
     focus_handler: DocumentFocusHandler,
     /// A helper to handle showing and hiding user interface controls in the embedding layer.
     embedder_controls: DocumentEmbedderControls,
-    /// Caches for the getElement methods. It is safe to use FxHash for these maps
-    /// as Atoms are `string_cache` items that will have the hash computed from a u32.
-    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
-    name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
+    id_map: TreeOrderedIndexMap,
+    name_map: TreeOrderedIndexMap,
     tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>, FxBuildHasher>>,
     tagns_map: DomRefCell<HashMapTracedValues<QualName, Dom<HTMLCollection>, FxBuildHasher>>,
     classes_map: DomRefCell<HashMapTracedValues<Vec<Atom>, Dom<HTMLCollection>>>,
@@ -646,6 +658,9 @@ pub(crate) struct Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
     css_styling_flag: Cell<bool>,
+
+    /// Data necessary for maintaining the accessibility tree.
+    accessibility_data: DomRefCell<AccessibilityData>,
 }
 
 impl Document {
@@ -1090,45 +1105,30 @@ impl Document {
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, can_gc: CanGc) {
-        self.document_or_shadow_root
-            .unregister_named_element(&self.id_map, to_unregister, &id);
-        self.reset_form_owner_for_listeners(&id, can_gc);
+    pub(crate) fn unregister_element_id(&self, cx: &mut js::context::JSContext, id: &Atom) {
+        self.id_map.remove(id);
+        self.reset_form_owner_for_listeners(cx, id);
     }
 
     /// Associate an element present in this document with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, can_gc: CanGc) {
-        let root = self.GetDocumentElement().expect(
-            "The element is in the document, so there must be a document \
-             element.",
-        );
-        self.document_or_shadow_root.register_named_element(
-            &self.id_map,
-            element,
-            &id,
-            DomRoot::from_ref(root.upcast::<Node>()),
-        );
-        self.reset_form_owner_for_listeners(&id, can_gc);
+    pub(crate) fn register_element_id(
+        &self,
+        cx: &mut js::context::JSContext,
+        element: &Element,
+        id: &Atom,
+    ) {
+        self.id_map.add(id, element);
+        self.reset_form_owner_for_listeners(cx, id);
     }
 
     /// Remove any existing association between the provided name and any elements in this document.
-    pub(crate) fn unregister_element_name(&self, to_unregister: &Element, name: Atom) {
-        self.document_or_shadow_root
-            .unregister_named_element(&self.name_map, to_unregister, &name);
+    pub(crate) fn unregister_element_name(&self, name: &Atom) {
+        self.name_map.remove(name);
     }
 
     /// Associate an element present in this document with the provided name.
-    pub(crate) fn register_element_name(&self, element: &Element, name: Atom) {
-        let root = self.GetDocumentElement().expect(
-            "The element is in the document, so there must be a document \
-             element.",
-        );
-        self.document_or_shadow_root.register_named_element(
-            &self.name_map,
-            element,
-            &name,
-            DomRoot::from_ref(root.upcast::<Node>()),
-        );
+    pub(crate) fn register_element_name(&self, element: &Element, name: &Atom) {
+        self.name_map.add(name, element);
     }
 
     pub(crate) fn register_form_id_listener<T: ?Sized + FormControl>(
@@ -1159,20 +1159,28 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#find-a-potential-indicated-element>
-    fn find_a_potential_indicated_element(&self, fragment: &str) -> Option<DomRoot<Element>> {
+    fn find_a_potential_indicated_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        fragment: &str,
+    ) -> Option<DomRoot<Element>> {
         // Step 1. If there is an element in the document tree whose root is
         // document and that has an ID equal to fragment, then return the first such element in tree order.
         // Step 3. Return null.
-        self.get_element_by_id(&Atom::from(fragment))
+        self.get_element_by_id(cx.no_gc(), &Atom::from(fragment))
             // Step 2. If there is an a element in the document tree whose root is
             // document that has a name attribute whose value is equal to fragment,
             // then return the first such element in tree order.
-            .or_else(|| self.get_anchor_by_name(fragment))
+            .or_else(|| self.get_anchor_by_name(cx, fragment))
     }
 
     /// Attempt to find a named element in this page's document.
     /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
-    fn select_indicated_part(&self, fragment: &str) -> Option<DomRoot<Node>> {
+    fn select_indicated_part(
+        &self,
+        cx: &mut js::context::JSContext,
+        fragment: &str,
+    ) -> Option<DomRoot<Node>> {
         // Step 1. If document's URL does not equal url with exclude fragments set to true, then return null.
         //
         // Already handled by calling function
@@ -1186,7 +1194,8 @@ impl Document {
             return Some(DomRoot::from_ref(self.upcast()));
         }
         // Step 4. Let potentialIndicatedElement be the result of finding a potential indicated element given document and fragment.
-        if let Some(potential_indicated_element) = self.find_a_potential_indicated_element(fragment)
+        if let Some(potential_indicated_element) =
+            self.find_a_potential_indicated_element(cx, fragment)
         {
             // Step 5. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
             return Some(DomRoot::upcast(potential_indicated_element));
@@ -1199,7 +1208,7 @@ impl Document {
         };
         // Step 8. Set potentialIndicatedElement to the result of finding a potential indicated element given document and decodedFragment.
         if let Some(potential_indicated_element) =
-            self.find_a_potential_indicated_element(&decoded_fragment)
+            self.find_a_potential_indicated_element(cx, &decoded_fragment)
         {
             // Step 9. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
             return Some(DomRoot::upcast(potential_indicated_element));
@@ -1218,7 +1227,7 @@ impl Document {
         //
         // > For an HTML document document, its indicated part is the result of
         // > selecting the indicated part given document and document's URL.
-        let Some(indicated_part) = self.select_indicated_part(fragment) else {
+        let Some(indicated_part) = self.select_indicated_part(cx, fragment) else {
             self.set_target_element(None);
             return;
         };
@@ -1263,14 +1272,17 @@ impl Document {
             .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 
-    fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
-        let name = Atom::from(name);
-        self.name_map.borrow().get(&name).and_then(|elements| {
-            elements
-                .iter()
-                .find(|e| e.is::<HTMLAnchorElement>())
-                .map(|e| DomRoot::from_ref(&**e))
-        })
+    fn get_anchor_by_name(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &str,
+    ) -> Option<DomRoot<Element>> {
+        let document_element = self.GetDocumentElement()?;
+        self.name_map
+            .get_all(cx.no_gc(), document_element.upcast(), &Atom::from(name))
+            .iter()
+            .find(|element| element.is::<HTMLAnchorElement>())
+            .map(|element| DomRoot::from_ref(&**element))
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
@@ -1938,9 +1950,19 @@ impl Document {
                             CanGc::from_cx(cx),
                         )
                         .upcast::<Event>()
-                        .fire(window.upcast(), CanGc::from_cx(cx));
+                        .fire(cx, window.upcast());
                 }));
         }
+    }
+
+    pub(crate) fn finish_load_for_dropped_blocker(&self, load: LoadType) {
+        let this = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(check_finished_load: move |cx| {
+                this.root().finish_load(load, cx);
+            }));
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
@@ -2158,13 +2180,17 @@ impl Document {
         //
         // At least time seconds have elapsed since document's completely loaded time,
         // adjusted to take into account user or user agent preferences.
-        if let Some(DeclarativeRefresh::PendingLoad { url, time }) =
-            &*self.declarative_refresh.borrow()
+        if let Some(DeclarativeRefresh::PendingLoad {
+            url,
+            time,
+            from_meta_element,
+        }) = &*self.declarative_refresh.borrow()
         {
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: DomRoot::from_ref(self.window()),
                     url: url.clone(),
+                    from_meta_element: *from_meta_element,
                 }),
                 Duration::from_secs(*time),
             );
@@ -2265,7 +2291,7 @@ impl Document {
                 );
                 let page_show_event = page_show_event.upcast::<Event>();
                 page_show_event.set_trusted(true);
-                page_show_event.fire(window.upcast(), CanGc::from_cx(cx));
+                page_show_event.fire(cx, window.upcast());
 
                 // Step 9.12. Completely finish loading the Document.
                 document.completely_finish_loading();
@@ -2347,7 +2373,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result, cx);
+                .resume_with_pending_parsing_blocking_script(cx, &element, result);
         }
     }
 
@@ -2696,19 +2722,13 @@ impl Document {
     /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes(&self) -> Ref<'_, IFrameCollection> {
-        self.iframes.borrow_mut().validate(self);
         self.iframes.borrow()
     }
 
     /// A mutable reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes_mut(&self) -> RefMut<'_, IFrameCollection> {
-        self.iframes.borrow_mut().validate(self);
         self.iframes.borrow_mut()
-    }
-
-    pub(crate) fn invalidate_iframes_collection(&self) {
-        self.iframes.borrow_mut().invalidate();
     }
 
     pub(crate) fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
@@ -3024,16 +3044,12 @@ impl Document {
         result
     }
 
-    pub(crate) fn id_map(
-        &self,
-    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
-        self.id_map.borrow()
+    pub(crate) fn id_map(&self) -> &TreeOrderedIndexMap {
+        &self.id_map
     }
 
-    pub(crate) fn name_map(
-        &self,
-    ) -> Ref<'_, HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
-        self.name_map.borrow()
+    pub(crate) fn name_map(&self) -> &TreeOrderedIndexMap {
+        &self.name_map
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
@@ -3096,14 +3112,14 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
-    pub(crate) fn deliver_resize_loop_error_notification(&self, can_gc: CanGc) {
+    pub(crate) fn deliver_resize_loop_error_notification(&self, cx: &mut js::context::JSContext) {
         let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
             message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
             ..Default::default()
         };
         self.window
             .as_global_scope()
-            .report_an_error(error_info, HandleValue::null(), can_gc);
+            .report_an_error(cx, error_info, HandleValue::null());
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {
@@ -3368,7 +3384,7 @@ impl Document {
         };
 
         // Steps 10-11.
-        parser.write(string.into(), cx);
+        parser.write(cx, string.into());
 
         Ok(())
     }
@@ -3379,6 +3395,31 @@ impl Document {
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
+
+    pub(crate) fn accessibility_data_mut(&self) -> RefMut<'_, AccessibilityData> {
+        self.accessibility_data.borrow_mut()
+    }
+
+    pub(crate) fn accessibility_active(&self) -> bool {
+        self.window().layout().accessibility_active()
+    }
+
+    pub(crate) fn rooted_nodes_for_accessibility_integrity_check(
+        &self,
+    ) -> Option<FxHashSet<OpaqueNode>> {
+        if !self.accessibility_active() {
+            return None;
+        }
+
+        let mut accessibility_data = self.accessibility_data_mut();
+
+        if pref!(expensive_accessibility_test_assertions_enabled) {
+            return Some(accessibility_data.unroot_and_drain_all_removed_nodes());
+        }
+
+        accessibility_data.unroot_all_removed_nodes();
+        None
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3387,7 +3428,6 @@ pub(crate) enum DocumentSource {
     NotFromParser,
 }
 
-#[expect(unsafe_code)]
 impl<'dom> LayoutDom<'dom, Document> {
     #[inline]
     pub(crate) fn is_html_document_for_layout(&self) -> bool {
@@ -3419,9 +3459,7 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
-        let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
-        let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
-        unsafe { LayoutDom::to_layout_slice(matching_elements) }
+        self.unsafe_get().id_map.get_all_for_layout(id)
     }
 }
 
@@ -3565,8 +3603,8 @@ impl Document {
             event_handler: DocumentEventHandler::new(window),
             focus_handler: DocumentFocusHandler::new(window, has_focus),
             embedder_controls: DocumentEmbedderControls::new(window),
-            id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            name_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            id_map: TreeOrderedIndexMap::id(),
+            name_map: TreeOrderedIndexMap::name(),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
@@ -3678,6 +3716,7 @@ impl Document {
             value_override: Default::default(),
             default_single_line_container_name: Default::default(),
             css_styling_flag: Default::default(),
+            accessibility_data: Default::default(),
         }
     }
 
@@ -4068,11 +4107,8 @@ impl Document {
             })
     }
 
-    pub(crate) fn get_element_by_id(&self, id: &Atom) -> Option<DomRoot<Element>> {
-        self.id_map
-            .borrow()
-            .get(id)
-            .map(|elements| DomRoot::from_ref(&*elements[0]))
+    pub(crate) fn get_element_by_id(&self, no_gc: &NoGC, id: &Atom) -> Option<DomRoot<Element>> {
+        self.id_map.get(no_gc, self.upcast(), id)
     }
 
     pub(crate) fn ensure_pending_restyle(&self, el: &Element) -> RefMut<'_, PendingRestyle> {
@@ -4182,14 +4218,14 @@ impl Document {
         self.fullscreen_element.set(element);
     }
 
-    fn reset_form_owner_for_listeners(&self, id: &Atom, can_gc: CanGc) {
+    fn reset_form_owner_for_listeners(&self, cx: &mut js::context::JSContext, id: &Atom) {
         let map = self.form_id_listener_map.borrow();
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
-                    .reset_form_owner(can_gc);
+                    .reset_form_owner(cx);
             }
         }
     }
@@ -4225,9 +4261,8 @@ impl Document {
         #[expect(unsafe_code)]
         unsafe {
             for shadow_root in self.shadow_roots.borrow_for_layout().iter() {
-                shadow_root
-                    .to_layout()
-                    .flush_stylesheets_for_layout(stylist, guard);
+                let layout: LayoutDom<'_, _> = shadow_root.to_layout();
+                layout.flush_stylesheets_for_layout(stylist, guard);
             }
         }
         self.shadow_roots_styles_changed.set(false);
@@ -4251,7 +4286,12 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_owned_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        owner_node: &Element,
+        sheet: Arc<Stylesheet>,
+    ) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
 
         // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
@@ -4271,12 +4311,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
             );
         }
 
@@ -4294,7 +4332,11 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
+    pub(crate) fn append_constructed_stylesheet(
+        &self,
+        cx: &mut js::context::JSContext,
+        cssom_stylesheet: &CSSStyleSheet,
+    ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut *self.stylesheets.borrow_mut();
@@ -4307,10 +4349,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            self.window.layout_mut().add_stylesheet(
+            self.add_stylesheet_to_stylist(
+                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &self.window.web_font_context(),
             );
         }
 
@@ -4323,15 +4365,38 @@ impl Document {
         );
     }
 
+    fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut js::context::JSContext) {
+        if self.window.font_context().web_fonts_still_loading() != 0 &&
+            let Some(font_face_set) = self.fonts.get()
+        {
+            font_face_set.switch_to_loading(cx);
+        }
+    }
+
     /// Given a stylesheet, load all web fonts from it in Layout.
     pub(crate) fn load_web_fonts_from_stylesheet(
         &self,
+        cx: &mut js::context::JSContext,
         stylesheet: &Arc<Stylesheet>,
-        document_context: &WebFontDocumentContext,
     ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, document_context);
+            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context());
+        self.switch_font_face_set_to_loading_if_needed(cx);
+    }
+
+    pub(crate) fn add_stylesheet_to_stylist(
+        &self,
+        cx: &mut js::context::JSContext,
+        stylesheet: Arc<Stylesheet>,
+        before_stylesheet: Option<Arc<Stylesheet>>,
+    ) {
+        self.window.layout_mut().add_stylesheet(
+            stylesheet,
+            before_stylesheet,
+            &self.window.web_font_context(),
+        );
+        self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
@@ -4350,16 +4415,20 @@ impl Document {
         )
     }
 
-    pub(crate) fn get_elements_with_id(&self, id: &Atom) -> Ref<'_, [Dom<Element>]> {
-        Ref::map(self.id_map.borrow(), |map| {
-            map.get(id).map(|vec| &**vec).unwrap_or_default()
-        })
+    pub(crate) fn get_elements_with_id(
+        &self,
+        cx: &mut js::context::JSContext,
+        id: &Atom,
+    ) -> Ref<'_, [Dom<Element>]> {
+        self.id_map.get_all(cx.no_gc(), self.upcast(), id)
     }
 
-    pub(crate) fn get_elements_with_name(&self, name: &Atom) -> Ref<'_, [Dom<Element>]> {
-        Ref::map(self.name_map.borrow(), |map| {
-            map.get(name).map(|vec| &**vec).unwrap_or_default()
-        })
+    pub(crate) fn get_elements_with_name(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &Atom,
+    ) -> Ref<'_, [Dom<Element>]> {
+        self.name_map.get_all(cx.no_gc(), self.upcast(), name)
     }
 
     pub(crate) fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
@@ -4450,7 +4519,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8]) {
+    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8], from_meta_element: bool) {
         // 1. If document's will declaratively refresh is true, then return.
         if self.will_declaratively_refresh() {
             return;
@@ -4515,15 +4584,19 @@ impl Document {
             } else {
                 // 11.12 If urlRecord is failure, then return.
                 return;
+            };
+            // 11.13 If urlRecord's scheme is "javascript", then return.
+            if url_record.scheme() == "javascript" {
+                return;
             }
         }
         // 12. Set document's will declaratively refresh to true.
         if self.completely_loaded() {
-            // TODO: handle active sandboxing flag
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: DomRoot::from_ref(self.window()),
                     url: url_record,
+                    from_meta_element,
                 }),
                 Duration::from_secs(time),
             );
@@ -4532,6 +4605,7 @@ impl Document {
             self.set_declarative_refresh(DeclarativeRefresh::PendingLoad {
                 url: url_record,
                 time,
+                from_meta_element,
             });
         }
     }
@@ -4582,6 +4656,7 @@ impl Document {
             self.window
                 .Navigator()
                 .GetGamepads()
+                .unwrap_or_default()
                 .iter_mut()
                 .for_each(|gamepad| {
                     if let Some(g) = gamepad {
@@ -4775,6 +4850,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         cx: &mut js::context::JSContext,
         window: &Window,
         s: TrustedHTMLOrString,
+        options: &SetHTMLUnsafeOptions,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
@@ -4819,8 +4895,16 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
-        // Step 5. Return document.
+        ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
+
+        // Step 5. Let sanitizer be the result of calling get a sanitizer instance from options with
+        // options and false.
+        let sanitizer = Sanitizer::get_sanitizer_instance_from_options(cx, window, options, false)?;
+
+        // Step 6. Call sanitize on document with sanitizer and false.
+        sanitizer.sanitize(cx, document.upcast(), false)?;
+
+        // Step 7. Return document.
         document.set_ready_state(cx, DocumentReadyState::Complete);
         Ok(document)
     }
@@ -4865,7 +4949,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         );
 
         // Step 3. Parse HTML from a string given document and html.
-        ServoParser::parse_html_document(&document, Some(html), url, None, None, cx);
+        ServoParser::parse_html_document(cx, &document, Some(html), url, None, None);
 
         // Step 4. Let sanitizer be the result of calling get a sanitizer instance from options with
         // options and true.
@@ -5106,8 +5190,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>
-    fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        self.get_element_by_id(&Atom::from(id))
+    fn GetElementById(
+        &self,
+        cx: &js::context::JSContext,
+        id: DOMString,
+    ) -> Option<DomRoot<Element>> {
+        self.get_element_by_id(cx, &Atom::from(id))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createelement>
@@ -5744,13 +5832,22 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        self.upcast::<Node>().query_selector(selectors)
+    fn QuerySelector(
+        &self,
+        cx: &mut js::context::JSContext,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
+        self.upcast::<Node>().query_selector(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>().query_selector_all(selectors)
+    fn QuerySelectorAll(
+        &self,
+        cx: &mut js::context::JSContext,
+        selectors: DOMString,
+    ) -> Fallible<DomRoot<NodeList>> {
+        self.upcast::<Node>()
+            .query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
@@ -5850,11 +5947,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 1. Let elements be the list of named elements with the name name that are in a document tree
         // with the Document as their root.
-        let elements_with_name = self.get_elements_with_name(&name);
+        let elements_with_name = self.get_elements_with_name(cx, &name);
         let name_iter = elements_with_name
             .iter()
             .filter(|elem| is_named_element_with_name_attribute(elem));
-        let elements_with_id = self.get_elements_with_id(&name);
+        let elements_with_id = self.id_map.get_all(cx.no_gc(), self.upcast(), &name);
         let id_iter = elements_with_id
             .iter()
             .filter(|elem| is_named_element_with_id_attribute(elem));
@@ -5917,51 +6014,48 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
-
-        let name_map = self.name_map.borrow();
-        for (name, elements) in &(name_map).0 {
-            if name.is_empty() {
-                continue;
-            }
-            let mut name_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_name_attribute(elem));
-            if let Some(first) = name_iter.next() {
-                names_with_first_named_element_map.insert(name, first);
-            }
-        }
-        let id_map = self.id_map.borrow();
-        for (id, elements) in &(id_map).0 {
-            if id.is_empty() {
-                continue;
-            }
-            let mut id_iter = elements
-                .iter()
-                .filter(|elem| is_named_element_with_id_attribute(elem));
-            if let Some(first) = id_iter.next() {
-                match names_with_first_named_element_map.entry(id) {
-                    Vacant(entry) => drop(entry.insert(first)),
-                    Occupied(mut entry) => {
-                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                            *entry.get_mut() = first;
-                        }
-                    },
+    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+        let mut names_with_first_named_element_map = HashMap::new();
+        self.name_map
+            .for_each(cx.no_gc(), self.upcast(), |name, elements| {
+                if name.is_empty() {
+                    return;
                 }
-            }
-        }
+                let mut name_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_name_attribute(elem));
+                if let Some(first) = name_iter.next() {
+                    names_with_first_named_element_map.insert(name.clone(), first.as_rooted());
+                }
+            });
 
-        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
-            names_with_first_named_element_map
-                .iter()
-                .map(|(k, v)| (*k, *v))
-                .collect();
+        self.id_map
+            .for_each(cx.no_gc(), self.upcast(), |id, elements| {
+                if id.is_empty() {
+                    return;
+                }
+                let mut id_iter = elements
+                    .iter()
+                    .filter(|elem| is_named_element_with_id_attribute(elem));
+                if let Some(first) = id_iter.next() {
+                    match names_with_first_named_element_map.entry(id.clone()) {
+                        Vacant(entry) => drop(entry.insert(first.as_rooted())),
+                        Occupied(mut entry) => {
+                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                                *entry.get_mut() = first.as_rooted();
+                            }
+                        },
+                    }
+                }
+            });
+
+        let mut names_with_first_named_element_vec: Vec<_> =
+            names_with_first_named_element_map.into_iter().collect();
         names_with_first_named_element_vec.sort_unstable_by(|a, b| {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(b.0)
+                a.0.cmp(&b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 Ordering::Less
             } else {
@@ -5970,8 +6064,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         });
 
         names_with_first_named_element_vec
-            .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
+            .into_iter()
+            .map(|(k, _)| DOMString::from(&*k))
             .collect()
     }
 
@@ -6368,7 +6462,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         resolver: Option<Rc<XPathNSResolver>>,
     ) -> Fallible<DomRoot<crate::dom::types::XPathExpression>> {
         let parsed_expression =
-            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+            parse_expression(cx, &expression.str(), resolver, self.is_html_document())?;
         Ok(XPathExpression::new(
             cx,
             &self.window,
@@ -6398,7 +6492,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         result: Option<&crate::dom::types::XPathResult>,
     ) -> Fallible<DomRoot<crate::dom::types::XPathResult>> {
         let parsed_expression =
-            parse_expression(&expression.str(), resolver, self.is_html_document())?;
+            parse_expression(cx, &expression.str(), resolver, self.is_html_document())?;
         XPathExpression::new(cx, &self.window, None, parsed_expression).evaluate_internal(
             cx,
             context_node,
@@ -6427,16 +6521,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn SetAdoptedStyleSheets(
         &self,
-        context: JSContext,
+        cx: &mut js::context::JSContext,
         val: HandleValue,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            context,
+            cx,
             self.adopted_stylesheets.borrow_mut().as_mut(),
             val,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
-            can_gc,
         );
 
         // If update is successful, clear the FrozenArray cache.

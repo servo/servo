@@ -25,7 +25,6 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct SVGElement {
@@ -105,15 +104,15 @@ impl VirtualMethods for SVGElement {
 
 impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, cx: &mut JSContext) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = self.owner_window();
             CSSStyleDeclaration::new(
+                cx,
                 &global,
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::deprecated_note(),
             )
         })
     }
@@ -129,7 +128,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(value.to_string())
+            .update_nonce_internal_slot(String::from(value))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>

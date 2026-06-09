@@ -128,13 +128,17 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         };
 
         if let Ok(rule) = rule {
-            self.css_rule.parent_stylesheet().will_modify();
-            let mut guard = self.css_rule.shared_lock().write();
-            self.keyframes_rule
-                .borrow()
-                .write_with(&mut guard)
-                .keyframes
-                .push(rule);
+            self.css_rule.parent_stylesheet().will_modify(cx);
+
+            {
+                let mut guard = self.css_rule.shared_lock().write();
+                self.keyframes_rule
+                    .borrow()
+                    .write_with(&mut guard)
+                    .keyframes
+                    .push(rule);
+            }
+
             self.rulelist(cx).append_lazy_dom_rule();
             self.css_rule.parent_stylesheet().notify_invalidations();
         }
@@ -143,7 +147,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule>
     fn DeleteRule(&self, cx: &mut JSContext, selector: DOMString) {
         if let Some(idx) = self.find_rule(&selector) {
-            let _ = self.rulelist(cx).remove_rule(idx as u32);
+            let _ = self.rulelist(cx).remove_rule(cx, idx as u32);
         }
     }
 
@@ -172,11 +176,11 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
-    fn SetName(&self, value: DOMString) -> ErrorResult {
+    fn SetName(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
-        self.css_rule.parent_stylesheet().will_modify();
+        self.css_rule.parent_stylesheet().will_modify(cx);
         let name = KeyframesName::from_ident(&value.str());
         let mut guard = self.css_rule.shared_lock().write();
         self.keyframes_rule.borrow().write_with(&mut guard).name = name;

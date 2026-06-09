@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<link rel="match" href="corner-shape-backdrop-filter-video-overflow-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="help" href="https://issues.chromium.org/issues/505751225">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  body {
+    margin: 0;
+    background: #f0f;
+  }
+
+  .container {
+    position: relative;
+    width: 220px;
+    height: 160px;
+    border-radius: 60px;
+    corner-shape: squircle;
+    overflow: hidden;
+    background: black;
+    margin: 20px;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 40px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0%);
+    backdrop-filter: brightness(1);
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <video autoplay muted loop oncanplaythrough="takeScreenshot()">
+      <source src="/media/white.webm" type="video/webm">
+      <source src="/media/white.mp4" type="video/mp4">
+    </video>
+    <div class="button"></div>
+  </div>
+</body>
+</html>

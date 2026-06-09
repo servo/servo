@@ -336,13 +336,15 @@ async function validateIcpEntries(t, softNavEntries, lcps, icps, lcps_after) {
     assert_true(icpsByNavId.has(navId),
       `An ICP entry should be present for navigationId ${navId}`);
 
-    // Get the largest ICP entry for this specific navigation.
-    // TODO: validate multiple candidates (i.e. each is newer + larger).
-    const icp = icpsByNavId.get(navId).at(-1);
+    const validIcps = icpsByNavId.get(navId).filter(i => !!i.largestContentfulPaint);
+    if (validIcps.length === 0) {
+      continue;
+    }
+    const icp = validIcps.at(-1);
 
-    assert_not_equals(lcp.size, icp.size,
+    assert_not_equals(lcp.size, icp.largestContentfulPaint.size,
       `LCP element should not have identical size to ICP element for navigationId ${navId}.`);
-    assert_not_equals(lcp.startTime, icp.startTime,
+    assert_not_equals(lcp.startTime, icp.largestContentfulPaint.startTime,
       `LCP element should not have identical startTime to ICP element for navigationId ${navId}.`);
   }
 }
@@ -361,45 +363,49 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   assert_equals(entry.name, '', "Entry name should be the empty string");
   assert_equals(entry.entryType, 'interaction-contentful-paint',
     "Entry type should be interaction-contentful-paint");
+
+  const lcp = entry.largestContentfulPaint;
+  assert_true(!!lcp, "largestContentfulPaint attribute should exist");
+
   // The entry's url can be truncated.
-  assert_equals(expectedUrl.substr(0, 100), entry.url.substr(0, 100),
-    `Expected URL ${expectedUrl} should at least start with the entry's URL ${entry.url}`);
-  assert_equals(entry.id, expectedID, "Entry ID matches expected one");
-  assert_equals(entry.element, document.getElementById(expectedID),
+  assert_equals(expectedUrl.substr(0, 100), lcp.url.substr(0, 100),
+    `Expected URL ${expectedUrl} should at least start with the entry's URL ${lcp.url}`);
+  assert_equals(lcp.id, expectedID, "Entry ID matches expected one");
+  assert_equals(lcp.element, document.getElementById(expectedID),
     "Entry element is expected one");
   if (options.includes('skip')) {
     return;
   }
-  assert_greater_than_equal(performance.now(), entry.renderTime,
+  assert_greater_than_equal(performance.now(), lcp.renderTime,
     'renderTime should occur before the entry is dispatched to the observer.');
   if (options.includes('sizeLowerBound')) {
-    assert_greater_than(entry.size, expectedSize);
+    assert_greater_than(lcp.size, expectedSize);
   } else if (options.includes('approximateSize')) {
-    assert_approx_equals(entry.size, expectedSize, 1);
+    assert_approx_equals(lcp.size, expectedSize, 1);
   } else {
-    assert_equals(entry.size, expectedSize);
+    assert_equals(lcp.size, expectedSize);
   }
 
-  assert_true("paintTime" in entry, "paintTime attribute should exist");
-  assert_greater_than_equal(entry.paintTime, timeLowerBound,
+  assert_true("paintTime" in lcp, "paintTime attribute should exist");
+  assert_greater_than_equal(lcp.paintTime, timeLowerBound,
     'paintTime should represent the time when the UA started painting');
 
   // PaintTimingMixin
-  if ("presentationTime" in entry && entry.presentationTime !== null) {
-    assert_greater_than(entry.presentationTime, entry.paintTime);
-    assert_equals(entry.presentationTime, entry.renderTime);
+  if ("presentationTime" in lcp && lcp.presentationTime !== null) {
+    assert_greater_than(lcp.presentationTime, lcp.paintTime);
+    assert_equals(lcp.presentationTime, lcp.renderTime);
   } else {
-    assert_equals(entry.renderTime, entry.paintTime);
+    assert_equals(lcp.renderTime, lcp.paintTime);
   }
 
   if (options.includes('animated')) {
-    assert_less_than(entry.renderTime, image_delay,
+    assert_less_than(lcp.renderTime, image_delay,
       'renderTime should be smaller than the delay applied to the second frame');
-    assert_greater_than(entry.renderTime, 0,
+    assert_greater_than(lcp.renderTime, 0,
       'renderTime should be larger than 0');
   }
   else {
-    assert_between_inclusive(entry.loadTime, timeLowerBound, entry.renderTime,
+    assert_between_inclusive(lcp.loadTime, timeLowerBound, lcp.renderTime,
       'loadTime should occur between the lower bound and the renderTime');
   }
 }

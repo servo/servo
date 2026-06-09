@@ -27,6 +27,10 @@
 <div id=target></div>
 
 <style>
+  [interestfor]::interest-button {
+    /* Always show the pseudo, regardless of media. */
+    display: inline-block;
+  }
   .example:not(.defaultcontent) {
     & [interestfor]::before {
       content: "::before";

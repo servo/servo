@@ -6,9 +6,11 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
+use std::sync::Arc;
+
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
-use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use devtools_traits::DevtoolsPageInfo;
 use embedder_traits::Theme;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
@@ -17,7 +19,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel::{self, GenericSender, SendError};
 use servo_base::id::PipelineId;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
@@ -26,8 +28,8 @@ use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
-use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
-use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
+use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId};
+use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -52,19 +54,6 @@ struct FrameUpdateMsg {
     is_top_level: bool,
     url: String,
     title: String,
-}
-
-#[derive(Serialize)]
-struct TabNavigated {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    url: String,
-    title: Option<String>,
-    #[serde(rename = "nativeConsoleAPI")]
-    native_console_api: bool,
-    state: String,
-    is_frame_switching: bool,
 }
 
 #[derive(Serialize)]
@@ -131,8 +120,6 @@ pub(crate) struct BrowsingContextActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct BrowsingContextActor {
     name: String,
-    pub title: AtomicRefCell<String>,
-    pub url: AtomicRefCell<String>,
     /// This corresponds to webview_id
     pub browser_id: DevtoolsBrowserId,
     // TODO: Should these ids be atomic?
@@ -142,11 +129,11 @@ pub(crate) struct BrowsingContextActor {
     accessibility_name: String,
     pub console_name: String,
     css_properties_name: String,
-    pub(crate) inspector_name: String,
+    pub inspector_name: String,
+    pub page_info: AtomicRefCell<DevtoolsPageInfo>,
     reflow_name: String,
     pub style_sheets_name: String,
     pub thread_name: String,
-    _tab: String,
     // Different pipelines may run on different script threads.
     // These should be kept around even when the active pipeline is updated,
     // in case the browsing context revisits a pipeline via history navigation.
@@ -164,8 +151,8 @@ impl ResourceAvailable for BrowsingContextActor {
 }
 
 impl Actor for BrowsingContextActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -179,12 +166,14 @@ impl Actor for BrowsingContextActor {
         match msg_type {
             "listFrames" => {
                 // TODO: Find out what needs to be listed here
-                let msg = EmptyReplyMsg { from: self.name() };
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
                 request.reply_final(&msg)?
             },
             "listWorkers" => {
                 request.reply_final(&ListWorkersReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     // TODO: Find out what needs to be listed here
                     workers: vec![],
                 })?
@@ -206,16 +195,10 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
-        let name = registry.new_name::<BrowsingContextActor>();
-        let DevtoolsPageInfo {
-            title,
-            url,
-            is_top_level_global,
-            ..
-        } = page_info;
+    ) -> Arc<Self> {
+        let name = new_actor_name::<BrowsingContextActor>();
 
-        let accessibility_name = AccessibilityActor::register(registry);
+        let accessibility_actor = AccessibilityActor::register(registry);
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -223,22 +206,22 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties_name = CssPropertiesActor::register(registry, properties);
 
-        let inspector_name = InspectorActor::register(registry, name.clone());
+        let css_properties_actor = CssPropertiesActor::register(registry, properties);
 
-        let reflow_name = ReflowActor::register(registry);
+        let inspector_actor = InspectorActor::register(registry, name.clone());
 
-        let style_sheets_name =
+        let reflow_actor = ReflowActor::register(registry);
+
+        let style_sheets_actor =
             StyleSheetsActor::register(registry, script_sender.clone(), name.clone());
 
-        let tab_descriptor_name =
-            TabDescriptorActor::register(registry, name.clone(), is_top_level_global);
+        let _ = TabDescriptorActor::register(registry, name.clone());
 
-        let thread_name =
+        let thread_actor =
             ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
-        let watcher_name = WatcherActor::register(
+        let watcher_actor = WatcherActor::register(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -248,28 +231,24 @@ impl BrowsingContextActor {
         script_chans.insert(pipeline_id, script_sender);
 
         let actor = BrowsingContextActor {
-            name: name.clone(),
-            script_chans: AtomicRefCell::new(script_chans),
-            title: AtomicRefCell::new(title),
-            url: AtomicRefCell::new(url.into_string()),
-            active_pipeline_id: AtomicRefCell::new(pipeline_id),
-            active_outer_window_id: AtomicRefCell::new(outer_window_id),
+            name,
+            script_chans: script_chans.into(),
+            active_pipeline_id: pipeline_id.into(),
+            active_outer_window_id: outer_window_id.into(),
             browser_id,
             browsing_context_id,
-            accessibility_name,
+            accessibility_name: accessibility_actor.name().into(),
             console_name,
-            css_properties_name,
-            inspector_name,
-            reflow_name,
-            style_sheets_name,
-            _tab: tab_descriptor_name,
-            thread_name,
-            watcher_name,
+            css_properties_name: css_properties_actor.name().into(),
+            inspector_name: inspector_actor.name().into(),
+            page_info: page_info.into(),
+            reflow_name: reflow_actor.name().into(),
+            style_sheets_name: style_sheets_actor.name().into(),
+            thread_name: thread_actor.name().into(),
+            watcher_name: watcher_actor.name().into(),
         };
 
-        registry.register::<Self>(actor);
-
-        name
+        registry.register::<Self>(actor)
     }
 
     pub(crate) fn handle_new_global(
@@ -282,59 +261,22 @@ impl BrowsingContextActor {
             .insert(pipeline, script_sender);
     }
 
-    pub(crate) fn handle_navigate<'a>(
-        &self,
-        state: NavigationState,
-        id_map: &mut IdMap,
-        connections: impl Iterator<Item = &'a mut DevtoolsConnection>,
-    ) {
-        let (pipeline_id, title, url, state) = match state {
-            NavigationState::Start(url) => (None, None, url, "start"),
-            NavigationState::Stop(pipeline, info) => {
-                (Some(pipeline), Some(info.title), info.url, "stop")
-            },
-        };
-        if let Some(pipeline_id) = pipeline_id {
-            let outer_window_id = id_map.outer_window_id(pipeline_id);
-            *self.active_outer_window_id.borrow_mut() = outer_window_id;
-            *self.active_pipeline_id.borrow_mut() = pipeline_id;
-        }
-        url.as_str().clone_into(&mut self.url.borrow_mut());
-        if let Some(ref t) = title {
-            self.title.borrow_mut().clone_from(t);
-        }
-
-        let msg = TabNavigated {
-            from: self.name(),
-            type_: "tabNavigated".to_owned(),
-            url: url.as_str().to_owned(),
-            title,
-            native_console_api: true,
-            state: state.to_owned(),
-            is_frame_switching: false,
-        };
-
-        for stream in connections {
-            let _ = stream.write_json_packet(&msg);
-        }
-    }
-
     pub(crate) fn title_changed(&self, pipeline_id: PipelineId, title: String) {
         if pipeline_id != self.pipeline_id() {
             return;
         }
-        *self.title.borrow_mut() = title;
+        self.page_info.borrow_mut().title = title;
     }
 
     pub(crate) fn frame_update(&self, request: &mut ClientRequest) {
         let _ = request.write_json_packet(&FrameUpdateReply {
-            from: self.name(),
+            from: self.name().into(),
             type_: "frameUpdate".into(),
             frames: vec![FrameUpdateMsg {
                 id: self.browsing_context_id.value(),
                 is_top_level: true,
-                title: self.title.borrow().clone(),
-                url: self.url.borrow().clone(),
+                title: self.title(),
+                url: self.url(),
             }],
         });
     }
@@ -347,6 +289,25 @@ impl BrowsingContextActor {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         *self.active_pipeline_id.borrow()
+    }
+
+    pub(crate) fn title(&self) -> String {
+        self.page_info.borrow().title.clone()
+    }
+
+    pub(crate) fn url(&self) -> String {
+        self.page_info.borrow().url.clone().into_string()
+    }
+
+    pub(crate) fn update_pipeline(
+        &self,
+        pipeline_id: PipelineId,
+        outer_window_id: DevtoolsOuterWindowId,
+        page_info: DevtoolsPageInfo,
+    ) {
+        *self.active_pipeline_id.borrow_mut() = pipeline_id;
+        *self.active_outer_window_id.borrow_mut() = outer_window_id;
+        *self.page_info.borrow_mut() = page_info;
     }
 
     pub(crate) fn outer_window_id(&self) -> DevtoolsOuterWindowId {
@@ -379,7 +340,7 @@ impl BrowsingContextActor {
 impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
     fn encode(&self, _: &ActorRegistry) -> BrowsingContextActorMsg {
         BrowsingContextActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
                 frames: true,
@@ -388,8 +349,8 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
                 supports_top_level_target_flag: true,
                 watchpoints: true,
             },
-            title: self.title.borrow().clone(),
-            url: self.url.borrow().clone(),
+            title: self.title(),
+            url: self.url(),
             browser_id: self.browser_id.value(),
             browsing_context_id: self.browsing_context_id.value(),
             outer_window_id: self.outer_window_id().value(),

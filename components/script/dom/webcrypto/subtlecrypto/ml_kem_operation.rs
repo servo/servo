@@ -2,17 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use der::asn1::{BitString, OctetString};
-use der::{AnyRef, Choice, Decode, Encode, Sequence};
 use js::context::JSContext;
-use ml_kem::kem::{Decapsulate, Encapsulate, EncapsulationKey};
+use ml_dsa::KeyExport;
+use ml_kem::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey};
 use ml_kem::{
-    B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
-    MlKem1024, MlKem1024Params,
+    Decapsulate, DecapsulationKey, Encapsulate, EncapsulationKey, Generate, KeyInit, MlKem512,
+    MlKem768, MlKem1024, TryKeyInit,
 };
-use pkcs8::rand_core::{OsRng, RngCore};
-use pkcs8::spki::AlgorithmIdentifier;
-use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -28,102 +24,6 @@ use crate::dom::subtlecrypto::{
     SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
 };
 
-/// Object Identifier (OID) of MK-KEM-512
-/// Section 3 of <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
-const ID_ALG_ML_KEM_512: &str = "2.16.840.1.101.3.4.4.1";
-
-/// Object Identifier (OID) of MK-KEM-768
-/// Section 3 of <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
-const ID_ALG_ML_KEM_768: &str = "2.16.840.1.101.3.4.4.2";
-
-/// Object Identifier (OID) of MK-KEM-1024
-/// Section 3 of <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
-const ID_ALG_ML_KEM_1024: &str = "2.16.840.1.101.3.4.4.3";
-
-/// Structure in Rust representing the `both` SEQUENCE used in the following ASN.1 structures, as
-/// defined in [draft-ietf-lamps-kyber-certificates-11 Section 6].
-///
-/// - ASN.1 ML-KEM-512-PrivateKey Structure
-/// - ASN.1 ML-KEM-768-PrivateKey Structure
-/// - ASN.1 ML-KEM-1024-PrivateKey Structure
-///
-/// <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
-///
-/// ```text
-/// both SEQUENCE {
-///   seed OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (1632))
-///   }
-/// ```
-///
-/// ```text
-/// both SEQUENCE {
-///   seed OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (2400))
-///   }
-/// ```
-///
-/// ```text
-/// both SEQUENCE {
-///   seed OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (3168))
-///   }
-/// ```
-#[derive(Sequence)]
-struct Both {
-    seed: OctetString,
-    expanded_key: OctetString,
-}
-
-/// Structure in Rust representing all the following three structures as defined in
-/// [draft-ietf-lamps-kyber-certificates-11 Section 6].
-///
-/// - ASN.1 ML-KEM-512-PrivateKey Structure
-/// - ASN.1 ML-KEM-768-PrivateKey Structure
-/// - ASN.1 ML-KEM-1024-PrivateKey Structure
-///
-/// <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
-///
-/// ```text
-/// ML-KEM-512-PrivateKey ::= CHOICE {
-///   seed [0] OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (1632)),
-///   both SEQUENCE {
-///     seed OCTET STRING (SIZE (64)),
-///     expandedKey OCTET STRING (SIZE (1632))
-///     }
-///   }
-/// ```
-///
-/// ```text
-/// ML-KEM-768-PrivateKey ::= CHOICE {
-///   seed [0] OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (2400)),
-///   both SEQUENCE {
-///     seed OCTET STRING (SIZE (64)),
-///     expandedKey OCTET STRING (SIZE (2400))
-///     }
-///   }
-/// ```
-///
-/// ```text
-/// ML-KEM-1024-PrivateKey ::= CHOICE {
-///   seed [0] OCTET STRING (SIZE (64)),
-///   expandedKey OCTET STRING (SIZE (3168)),
-///   both SEQUENCE {
-///     seed OCTET STRING (SIZE (64)),
-///     expandedKey OCTET STRING (SIZE (3168))
-///     }
-///   }
-/// ```
-#[derive(Choice)]
-enum MlKemPrivateKeyStructure {
-    #[asn1(context_specific = "0", tag_mode = "IMPLICIT")]
-    Seed(OctetString),
-    ExpandedKey(OctetString),
-    Both(Both),
-}
-
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
 pub(crate) fn encapsulate(
     normalized_algorithm: &SubtleAlgorithm,
@@ -133,7 +33,7 @@ pub(crate) fn encapsulate(
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
         return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
+            "[[type]] internal slot of key is not \"public\"".into(),
         )));
     }
 
@@ -148,45 +48,36 @@ pub(crate) fn encapsulate(
     // Step 5. If the ML-KEM.Encaps function returned an error, return an OperationError.
     let (shared_key, ciphertext) = match normalized_algorithm.name {
         CryptoAlgorithm::MlKem512 => {
-            let Handle::MlKem512PublicKey(encoded_ek) = key.handle() else {
+            let Handle::MlKem512PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-512 public key".to_string(),
+                    "The key handle is not representing an ML-KEM-512 public key".into(),
                 )));
             };
-            let ek = EncapsulationKey::<MlKem512Params>::from_bytes(encoded_ek);
-            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
-                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
-            })?;
-            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+            let (ciphertext, shared_key) = public_key.encapsulate();
+            (shared_key.to_vec(), ciphertext.to_vec())
         },
         CryptoAlgorithm::MlKem768 => {
-            let Handle::MlKem768PublicKey(encoded_ek) = key.handle() else {
+            let Handle::MlKem768PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-768 public key".to_string(),
+                    "The key handle is not representing an ML-KEM-768 public key".into(),
                 )));
             };
-            let ek = EncapsulationKey::<MlKem768Params>::from_bytes(encoded_ek);
-            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
-                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
-            })?;
-            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+            let (ciphertext, shared_key) = public_key.encapsulate();
+            (shared_key.to_vec(), ciphertext.to_vec())
         },
         CryptoAlgorithm::MlKem1024 => {
-            let Handle::MlKem1024PublicKey(encoded_ek) = key.handle() else {
+            let Handle::MlKem1024PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-1024 public key".to_string(),
+                    "The key handle is not representing an ML-KEM-1024 public key".into(),
                 )));
             };
-            let ek = EncapsulationKey::<MlKem1024Params>::from_bytes(encoded_ek);
-            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
-                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
-            })?;
-            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+            let (ciphertext, shared_key) = public_key.encapsulate();
+            (shared_key.to_vec(), ciphertext.to_vec())
         },
-        _ => {
+        name => {
             return Err(Error::NotSupported(Some(format!(
                 "{} is not an ML-KEM algorithm",
-                normalized_algorithm.name.as_str()
+                name.as_str()
             ))));
         },
     };
@@ -215,7 +106,7 @@ pub(crate) fn decapsulate(
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
         return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
+            "[[type]] internal slot of key is not \"private\"".into(),
         )));
     }
 
@@ -230,57 +121,48 @@ pub(crate) fn decapsulate(
     // input parameter, and ciphertext as the c input parameter.
     let shared_key = match normalized_algorithm.name {
         CryptoAlgorithm::MlKem512 => {
-            let Handle::MlKem512PrivateKey(seed) = key.handle() else {
+            let Handle::MlKem512PrivateKey(private_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-512 private key".to_string(),
+                    "The key handle is not representing an ML-KEM-512 private key".into(),
                 )));
             };
-            let ciphertext = ciphertext
-                .try_into()
-                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
-            let (dk, _) = MlKem512::generate_deterministic(&seed.0, &seed.1);
-            dk.decapsulate(ciphertext)
+            private_key
+                .decapsulate_slice(ciphertext)
                 .map_err(|_| {
-                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".into()))
                 })?
                 .to_vec()
         },
         CryptoAlgorithm::MlKem768 => {
-            let Handle::MlKem768PrivateKey(seed) = key.handle() else {
+            let Handle::MlKem768PrivateKey(private_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-768 private key".to_string(),
+                    "The key handle is not representing an ML-KEM-768 private key".into(),
                 )));
             };
-            let ciphertext = ciphertext
-                .try_into()
-                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
-            let (dk, _) = MlKem768::generate_deterministic(&seed.0, &seed.1);
-            dk.decapsulate(ciphertext)
+            private_key
+                .decapsulate_slice(ciphertext)
                 .map_err(|_| {
-                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".into()))
                 })?
                 .to_vec()
         },
         CryptoAlgorithm::MlKem1024 => {
-            let Handle::MlKem1024PrivateKey(seed) = key.handle() else {
+            let Handle::MlKem1024PrivateKey(private_key) = key.handle() else {
                 return Err(Error::Operation(Some(
-                    "The key handle is not representing an ML-KEM-1024 private key".to_string(),
+                    "The key handle is not representing an ML-KEM-1024 private key".into(),
                 )));
             };
-            let ciphertext = ciphertext
-                .try_into()
-                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
-            let (dk, _) = MlKem1024::generate_deterministic(&seed.0, &seed.1);
-            dk.decapsulate(ciphertext)
+            private_key
+                .decapsulate_slice(ciphertext)
                 .map_err(|_| {
-                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".into()))
                 })?
                 .to_vec()
         },
-        _ => {
+        name => {
             return Err(Error::NotSupported(Some(format!(
                 "{} is not an ML-KEM algorithm",
-                normalized_algorithm.name.as_str()
+                name.as_str()
             ))));
         },
     };
@@ -311,17 +193,45 @@ pub(crate) fn generate_key(
         return Err(Error::Syntax(Some(
             "Usages contains any entry which is not one of \"encapsulateKey\", \
             \"encapsulateBits\", \"decapsulateKey\" or \"decapsulateBits\""
-                .to_string(),
+                .into(),
         )));
     }
 
     // Step 2. Generate an ML-KEM key pair, as described in Section 7.1 of [FIPS-203], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
     // Step 3. If the key generation step fails, then throw an OperationError.
-    let mut seed_bytes = vec![0u8; 64];
-    OsRng.fill_bytes(&mut seed_bytes);
-    let (private_key_handle, public_key_handle) =
-        convert_seed_to_handles(normalized_algorithm.name, &seed_bytes, None, None)?;
+    let (private_key_handle, public_key_handle) = match normalized_algorithm.name {
+        CryptoAlgorithm::MlKem512 => {
+            let decapsulation_key = DecapsulationKey::<MlKem512>::generate();
+            let encapsulation_key = decapsulation_key.encapsulation_key().clone();
+            (
+                Handle::MlKem512PrivateKey(decapsulation_key),
+                Handle::MlKem512PublicKey(encapsulation_key),
+            )
+        },
+        CryptoAlgorithm::MlKem768 => {
+            let decapsulation_key = DecapsulationKey::<MlKem768>::generate();
+            let encapsulation_key = decapsulation_key.encapsulation_key().clone();
+            (
+                Handle::MlKem768PrivateKey(decapsulation_key),
+                Handle::MlKem768PublicKey(encapsulation_key),
+            )
+        },
+        CryptoAlgorithm::MlKem1024 => {
+            let decapsulation_key = DecapsulationKey::<MlKem1024>::generate();
+            let encapsulation_key = decapsulation_key.encapsulation_key().clone();
+            (
+                Handle::MlKem1024PrivateKey(decapsulation_key),
+                Handle::MlKem1024PublicKey(encapsulation_key),
+            )
+        },
+        name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not an ML-KEM algorithm",
+                name.as_str()
+            ))));
+        },
+    };
 
     // Step 4. Let algorithm be a new KeyAlgorithm object.
     // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
@@ -408,20 +318,13 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "Usages contains an entry which is not \"encapsulateKey\" or \
                     \"encapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurred while parsing, then throw a DataError.
-            let spki =
-                SubjectPublicKeyInfo::<AnyRef, BitString>::from_der(key_data).map_err(|_| {
-                    Error::Data(Some(
-                        "Failed to parse SubjectPublicKeyInfo over keyData".to_string(),
-                    ))
-                })?;
-
             // Step 2.4.
             // If the name member of normalizedAlgorithm is "ML-KEM-512":
             //     Let expectedOid be id-alg-ml-kem-512 (2.16.840.1.101.3.4.4.1).
@@ -431,41 +334,42 @@ pub(crate) fn import_key(
             //     Let expectedOid be id-alg-ml-kem-1024 (2.16.840.1.101.3.4.4.3).
             // Otherwise:
             //     throw a NotSupportedError.
-            let expected_oid = match normalized_algorithm.name {
-                CryptoAlgorithm::MlKem512 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_512),
-                CryptoAlgorithm::MlKem768 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_768),
-                CryptoAlgorithm::MlKem1024 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_1024),
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} is not an ML-KEM algorithm",
-                        normalized_algorithm.name.as_str()
-                    ))));
-                },
-            };
-
             // Step 2.5. If the algorithm object identifier field of the algorithm
             // AlgorithmIdentifier field of spki is not equal to expectedOid, then throw a
             // DataError.
-            if spki.algorithm.oid != expected_oid {
-                return Err(Error::Data(Some(
-                    "Algorithm object identifier of spki in not equal to expectedOid".to_string(),
-                )));
-            }
-
             // Step 2.6. If the parameters field of the algorithm AlgorithmIdentifier field of spki
             // is present, then throw a DataError.
-            if spki.algorithm.parameters.is_some() {
-                return Err(Error::Data(Some(
-                    "Parameters field of spki is present".to_string(),
-                )));
-            }
-
             // Step 2.7. Let publicKey be the ML-KEM public key identified by the subjectPublicKey
             // field of spki.
-            let key_bytes = spki.subject_public_key.as_bytes().ok_or(Error::Data(Some(
-                "Fail to parse byte sequence over SubjectPublicKey field of spki".to_string(),
-            )))?;
-            let public_key = convert_public_key_to_handle(normalized_algorithm.name, key_bytes)?;
+            let public_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem512 => Handle::MlKem512PublicKey(
+                    EncapsulationKey::from_public_key_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-512 public key from SPKI format".into(),
+                        ))
+                    })?,
+                ),
+                CryptoAlgorithm::MlKem768 => Handle::MlKem768PublicKey(
+                    EncapsulationKey::from_public_key_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-768 public key from SPKI format".into(),
+                        ))
+                    })?,
+                ),
+                CryptoAlgorithm::MlKem1024 => Handle::MlKem1024PublicKey(
+                    EncapsulationKey::from_public_key_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-1024 public key from SPKI format".into(),
+                        ))
+                    })?,
+                ),
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            };
 
             // Step 2.8. Let key be a new CryptoKey that represents publicKey.
             // Step 2.9. Set the [[type]] internal slot of key to "public"
@@ -497,19 +401,13 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "Usages contains an entry which is not \"decapsulateKey\" or \
                     \"decapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurs while parsing, then throw a DataError.
-            let private_key_info = PrivateKeyInfo::from_der(key_data).map_err(|_| {
-                Error::Data(Some(
-                    "Fail to parse PrivateKeyInfo over keyData".to_string(),
-                ))
-            })?;
-
             // Step 2.4.
             // If the name member of normalizedAlgorithm is "ML-KEM-512":
             //     Let expectedOid be id-alg-ml-kem-512 (2.16.840.1.101.3.4.4.1).
@@ -522,37 +420,12 @@ pub(crate) fn import_key(
             //     Let asn1Structure be the ASN.1 ML-KEM-1024-PrivateKey structure.
             // Otherwise:
             //     throw a NotSupportedError.
-            let expected_oid = match normalized_algorithm.name {
-                CryptoAlgorithm::MlKem512 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_512),
-                CryptoAlgorithm::MlKem768 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_768),
-                CryptoAlgorithm::MlKem1024 => ObjectIdentifier::new_unwrap(ID_ALG_ML_KEM_1024),
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} is not an ML-KEM algorithm",
-                        normalized_algorithm.name.as_str()
-                    ))));
-                },
-            };
-
             // Step 2.5. If the algorithm object identifier field of the privateKeyAlgorithm
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to expectedOid, then throw
             // a DataError.
-            if private_key_info.algorithm.oid != expected_oid {
-                return Err(Error::Data(Some(
-                    "Algorithm object identifier of PrivateKeyInfo is not equal to expectedOid"
-                        .to_string(),
-                )));
-            }
-
             // Step 2.6. If the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is present, then throw a
             // DataError.
-            if private_key_info.algorithm.parameters.is_some() {
-                return Err(Error::Data(Some(
-                    "Parameters field of PrivateKeyInfo is present".to_string(),
-                )));
-            }
-
             // Step 2.7. Let mlKemPrivateKey be the result of performing the parse an ASN.1
             // structure algorithm, with data as the privateKey field of privateKeyInfo, structure
             // as asn1Structure, and exactData set to true.
@@ -563,37 +436,35 @@ pub(crate) fn import_key(
             // Step 2.10. If mlKemPrivateKey represents an ML-KEM key in the both format, and the
             // seed field does not correspond to the expandedKey field, throw a DataError.
             //
-            // NOTE: We support the `both` format, with consistency check.
-            let private_key_structure =
-                MlKemPrivateKeyStructure::from_der(private_key_info.private_key).map_err(|_| {
-                    Error::Data(Some(
-                        "Failed to parse privateKey field of PrivateKeyInfo".to_string(),
-                    ))
-                })?;
-            let ml_kem_private_key = match private_key_structure {
-                MlKemPrivateKeyStructure::Seed(seed) => {
-                    let (private_key_handle, _) = convert_seed_to_handles(
-                        normalized_algorithm.name,
-                        seed.as_bytes(),
-                        None,
-                        None,
-                    )?;
-                    private_key_handle
-                },
-                MlKemPrivateKeyStructure::ExpandedKey(_) => {
-                    return Err(Error::NotSupported(Some(
-                        "Not support \"expandedKey\" format of ASN.1 ML-KEM private key structures"
-                            .to_string(),
-                    )));
-                },
-                MlKemPrivateKeyStructure::Both(both) => {
-                    let (private_key_handle, _) = convert_seed_to_handles(
-                        normalized_algorithm.name,
-                        both.seed.as_bytes(),
-                        Some(both.expanded_key.as_bytes()),
-                        None,
-                    )?;
-                    private_key_handle
+            // NOTE: We do not support the `both` format.
+            let ml_kem_private_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem512 => Handle::MlKem512PrivateKey(
+                    DecapsulationKey::from_pkcs8_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-512 private key from PKCS#8 format".into(),
+                        ))
+                    })?,
+                ),
+                CryptoAlgorithm::MlKem768 => Handle::MlKem768PrivateKey(
+                    DecapsulationKey::from_pkcs8_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-768 private key from PKCS#8 format".into(),
+                        ))
+                    })?,
+                ),
+                CryptoAlgorithm::MlKem1024 => Handle::MlKem1024PrivateKey(
+                    DecapsulationKey::from_pkcs8_der(key_data).map_err(|_| {
+                        Error::Data(Some(
+                            "Failed to decode the ML-KEM-1024 private key from PKCS#8 format"
+                                .into(),
+                        ))
+                    })?,
+                ),
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        name.as_str()
+                    ))));
                 },
             };
 
@@ -628,7 +499,7 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "Usages contains an entry which is not \"encapsulateKey\" or \
                     \"encapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
@@ -640,8 +511,41 @@ pub(crate) fn import_key(
             // Step 2.6. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
-            let public_key_handle =
-                convert_public_key_to_handle(normalized_algorithm.name, key_data)?;
+            let public_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem512 => {
+                    let encapsulation_key =
+                        EncapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the public ML-KEM-512 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem512PublicKey(encapsulation_key)
+                },
+                CryptoAlgorithm::MlKem768 => {
+                    let encapsulation_key =
+                        EncapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the public ML-KEM-768 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem768PublicKey(encapsulation_key)
+                },
+                CryptoAlgorithm::MlKem1024 => {
+                    let encapsulation_key =
+                        EncapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the public ML-KEM-1024 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem1024PublicKey(encapsulation_key)
+                },
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            };
             let algorithm = SubtleKeyAlgorithm {
                 name: normalized_algorithm.name,
             };
@@ -652,7 +556,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                public_key_handle,
+                public_key,
             )
         },
         // If format is "raw-seed":
@@ -666,7 +570,7 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "Usages contains an entry which is not \"decapsulateKey\" or \
                     \"decapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
@@ -674,12 +578,51 @@ pub(crate) fn import_key(
             let data = key_data;
 
             // Step 2.3. If the length in bits of data is not 512 then throw a DataError.
+            if data.len() != 64 {
+                return Err(Error::Data(Some(
+                    "The length in bits of data is not 512".into(),
+                )));
+            }
+
             // Step 2.4. Let privateKey be the result of performing the ML-KEM.KeyGen_internal
             // function described in Section 6.1 of [FIPS-203] with the parameter set indicated by
             // the name member of normalizedAlgorithm, using the first 256 bits of data as d and
             // the last 256 bits of data as z.
-            let (private_key_handle, _) =
-                convert_seed_to_handles(normalized_algorithm.name, data, None, None)?;
+            let private_key = match normalized_algorithm.name {
+                CryptoAlgorithm::MlKem512 => {
+                    let decapsulation_key =
+                        DecapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the private ML-KEM-512 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem512PrivateKey(decapsulation_key)
+                },
+                CryptoAlgorithm::MlKem768 => {
+                    let decapsulation_key =
+                        DecapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the private ML-KEM-768 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem768PrivateKey(decapsulation_key)
+                },
+                CryptoAlgorithm::MlKem1024 => {
+                    let decapsulation_key =
+                        DecapsulationKey::new_from_slice(key_data).map_err(|_| {
+                            Error::Data(Some(
+                                "Failed to parse the private ML-KEM-1024 key in raw format".into(),
+                            ))
+                        })?;
+                    Handle::MlKem1024PrivateKey(decapsulation_key)
+                },
+                name => {
+                    return Err(Error::NotSupported(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        name.as_str()
+                    ))));
+                },
+            };
 
             // Step 2.5. Let key be a new CryptoKey that represents the ML-KEM private key
             // identified by privateKey.
@@ -698,7 +641,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                private_key_handle,
+                private_key,
             )
         },
         // If format is "jwk":
@@ -720,7 +663,7 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "The priv field of jwk is present and usages contains an entry which is \
                     not \"decapsulateKey\" or \"decapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
@@ -734,29 +677,29 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(Some(
                     "The priv field of jwk is not present and usages contains an entry which is \
                     not \"encapsulateKey\" or \"encapsulateBits\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
             // Step 2.4. If the kty field of jwk is not "AKP", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "AKP") {
                 return Err(Error::Data(Some(
-                    "The kty field of jwk is not \"AKP\"".to_string(),
+                    "The kty field of jwk is not \"AKP\"".into(),
                 )));
             }
 
             // Step 2.5. If the alg field of jwk is not one of the alg values corresponding to the
             // name member of normalizedAlgorithm indicated in Section 8 of
-            // [draft-ietf-jose-pqc-kem-01] (Figure 1 or 2), then throw a DataError.
+            // [draft-ietf-jose-pqc-kem-05] (Figure 1 or 2), then throw a DataError.
             match normalized_algorithm.name {
                 CryptoAlgorithm::MlKem512 => {
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM512" && alg != "MLKEM512-AES128KW")
+                        .is_none_or(|alg| alg != "ML-KEM-512" && alg != "ML-KEM-512-AES128KW")
                     {
                         return Err(Error::Data(Some(
-                            "The alg field of jwk is not invalid.".to_string(),
+                            "The alg field of jwk is not invalid.".into(),
                         )));
                     }
                 },
@@ -764,10 +707,10 @@ pub(crate) fn import_key(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM768" && alg != "MLKEM768-AES192KW")
+                        .is_none_or(|alg| alg != "ML-KEM-768" && alg != "ML-KEM-768-AES192KW")
                     {
                         return Err(Error::Data(Some(
-                            "The alg field of jwk is not invalid.".to_string(),
+                            "The alg field of jwk is not invalid.".into(),
                         )));
                     }
                 },
@@ -775,10 +718,10 @@ pub(crate) fn import_key(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "MLKEM1024" && alg != "MLKEM1024-AES256KW")
+                        .is_none_or(|alg| alg != "ML-KEM-1024" && alg != "ML-KEM-1024-AES256KW")
                     {
                         return Err(Error::Data(Some(
-                            "The alg field of jwk is not invalid.".to_string(),
+                            "The alg field of jwk is not invalid.".into(),
                         )));
                     }
                 },
@@ -796,7 +739,7 @@ pub(crate) fn import_key(
                 return Err(Error::Data(Some(
                     "usages is non-empty and the use field of jwk is present and is not \
                     equal to \"enc\""
-                        .to_string(),
+                        .into(),
                 )));
             }
 
@@ -811,7 +754,7 @@ pub(crate) fn import_key(
                 return Err(Error::Data(Some(
                     "The ext field of jwk is present and has the value false and extractable \
                     is true"
-                        .to_string(),
+                        .into(),
                 )));
             }
 
@@ -829,15 +772,88 @@ pub(crate) fn import_key(
                 // Step 2.9.4. If the pub attribute of jwk does not contain the base64url encoded
                 // public key representing the ML-KEM public key corresponding to key, then throw a
                 // DataError.
-                // NOTE: Completed in Step 2.10 - 2.12.
+                // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
                 let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
-                let (private_key_handle, _) = convert_seed_to_handles(
-                    normalized_algorithm.name,
-                    &priv_bytes,
-                    None,
-                    Some(&pub_bytes),
-                )?;
-
+                let private_key_handle = match normalized_algorithm.name {
+                    CryptoAlgorithm::MlKem512 => {
+                        let decapsulation_key = DecapsulationKey::new_from_slice(&priv_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the private ML-KEM-512 key in priv attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-512 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        if *decapsulation_key.encapsulation_key() != encapsulation_key {
+                            return Err(Error::Data(Some(
+                                "The public key in pub attribute does not match \
+                                    the private key in priv attribute"
+                                    .into(),
+                            )));
+                        }
+                        Handle::MlKem512PrivateKey(decapsulation_key)
+                    },
+                    CryptoAlgorithm::MlKem768 => {
+                        let decapsulation_key = DecapsulationKey::new_from_slice(&priv_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the private ML-KEM-768 key in priv attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-768 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        if *decapsulation_key.encapsulation_key() != encapsulation_key {
+                            return Err(Error::Data(Some(
+                                "The public key in pub attribute does not match \
+                                    the private key in priv attribute"
+                                    .into(),
+                            )));
+                        }
+                        Handle::MlKem768PrivateKey(decapsulation_key)
+                    },
+                    CryptoAlgorithm::MlKem1024 => {
+                        let decapsulation_key = DecapsulationKey::new_from_slice(&priv_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the private ML-KEM-1024 key in priv attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-1024 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        if *decapsulation_key.encapsulation_key() != encapsulation_key {
+                            return Err(Error::Data(Some(
+                                "The public key in pub attribute does not match \
+                                    the private key in priv attribute"
+                                    .into(),
+                            )));
+                        }
+                        Handle::MlKem1024PrivateKey(decapsulation_key)
+                    },
+                    name => {
+                        return Err(Error::NotSupported(Some(format!(
+                            "{} is not an ML-KEM algorithm",
+                            name.as_str()
+                        ))));
+                    },
+                };
                 (KeyType::Private, private_key_handle)
             }
             // Otherwise:
@@ -850,10 +866,45 @@ pub(crate) fn import_key(
                 // key identified by interpreting the pub attribute of jwk as a base64url encoded
                 // public key.
                 // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
-                // NOTE: Completed in Step 2.10 - 2.12.
-                let public_key_handle =
-                    convert_public_key_to_handle(normalized_algorithm.name, &pub_bytes)?;
-
+                // NOTE: The CryptoKey object is created in Step 2.10 - 2.12.
+                let public_key_handle = match normalized_algorithm.name {
+                    CryptoAlgorithm::MlKem512 => {
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-512 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        Handle::MlKem512PublicKey(encapsulation_key)
+                    },
+                    CryptoAlgorithm::MlKem768 => {
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-768 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        Handle::MlKem768PublicKey(encapsulation_key)
+                    },
+                    CryptoAlgorithm::MlKem1024 => {
+                        let encapsulation_key = EncapsulationKey::new_from_slice(&pub_bytes)
+                            .map_err(|_| {
+                                Error::Data(Some(
+                                    "Failed to parse the public ML-KEM-1024 key in pub attribute"
+                                        .into(),
+                                ))
+                            })?;
+                        Handle::MlKem1024PublicKey(encapsulation_key)
+                    },
+                    name => {
+                        return Err(Error::NotSupported(Some(format!(
+                            "{} is not an ML-KEM algorithm",
+                            name.as_str()
+                        ))));
+                    },
+                };
                 (KeyType::Public, public_key_handle)
             };
 
@@ -878,7 +929,7 @@ pub(crate) fn import_key(
         _ => {
             // throw a NotSupportedError.
             return Err(Error::NotSupported(Some(
-                "Unsupported import key format for ML-KEM key".to_string(),
+                "Unsupported import key format for ML-KEM key".into(),
             )));
         },
     };
@@ -900,14 +951,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
                 return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                    "[[type]] internal slot of key is not \"public\"".into(),
                 )));
             }
 
             // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
                 return Err(Error::Operation(Some(
-                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".into(),
                 )));
             };
 
@@ -934,38 +985,37 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //             throw a NotSupportedError.
             //
             //     Set the subjectPublicKey field to keyData.
-            let oid = match key_algorithm.name {
-                CryptoAlgorithm::MlKem512 => ID_ALG_ML_KEM_512,
-                CryptoAlgorithm::MlKem768 => ID_ALG_ML_KEM_768,
-                CryptoAlgorithm::MlKem1024 => ID_ALG_ML_KEM_1024,
+            let data = match (key_algorithm.name, key.handle()) {
+                (CryptoAlgorithm::MlKem512, Handle::MlKem512PublicKey(public_key)) => {
+                    public_key.to_public_key_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-512 public key into SPKI format".into(),
+                        ))
+                    })?
+                },
+                (CryptoAlgorithm::MlKem768, Handle::MlKem768PublicKey(public_key)) => {
+                    public_key.to_public_key_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-768 public key into SPKI format".into(),
+                        ))
+                    })?
+                },
+                (CryptoAlgorithm::MlKem1024, Handle::MlKem1024PublicKey(public_key)) => {
+                    public_key.to_public_key_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-1024 public key into SPKI format".into(),
+                        ))
+                    })?
+                },
                 _ => {
-                    return Err(Error::Operation(Some(format!(
-                        "{} is not an ML-KEM algorithm",
-                        key_algorithm.name.as_str()
-                    ))));
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an ML-KEM public key".into(),
+                    )));
                 },
-            };
-            let key_bytes = convert_handle_to_public_key(key.handle())?;
-            let subject_public_key = BitString::from_bytes(&key_bytes).map_err(|_| {
-                Error::Operation(Some(
-                    "Failed to encode BitString for subjectPublicKey field of SubjectPublicKeyInfo"
-                        .to_string(),
-                ))
-            })?;
-            let data = SubjectPublicKeyInfo {
-                algorithm: AlgorithmIdentifier::<AnyRef> {
-                    oid: ObjectIdentifier::new_unwrap(oid),
-                    parameters: None,
-                },
-                subject_public_key,
             };
 
             // Step 2.4. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(data.to_der().map_err(|_| {
-                Error::Operation(Some(
-                    "Failed to encode SubjectPublicKeyInfo in DER format".to_string(),
-                ))
-            })?)
+            ExportedKey::new_bytes(data.into_vec())
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -973,14 +1023,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
                 return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                    "[[type]] internal slot of key is not \"private\"".into(),
                 )));
             }
 
             // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
                 return Err(Error::Operation(Some(
-                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".into(),
                 )));
             };
 
@@ -1033,46 +1083,38 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //
             //         Otherwise:
             //             throw a NotSupportedError.
-            let oid = match key_algorithm.name {
-                CryptoAlgorithm::MlKem512 => ID_ALG_ML_KEM_512,
-                CryptoAlgorithm::MlKem768 => ID_ALG_ML_KEM_768,
-                CryptoAlgorithm::MlKem1024 => ID_ALG_ML_KEM_1024,
+            let private_key_info = match (key_algorithm.name, key.handle()) {
+                (CryptoAlgorithm::MlKem512, Handle::MlKem512PrivateKey(private_key)) => {
+                    private_key.to_pkcs8_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-512 private key into PKCS#8 format".into(),
+                        ))
+                    })?
+                },
+                (CryptoAlgorithm::MlKem768, Handle::MlKem768PrivateKey(private_key)) => {
+                    private_key.to_pkcs8_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-768 private key into PKCS#8 format".into(),
+                        ))
+                    })?
+                },
+                (CryptoAlgorithm::MlKem1024, Handle::MlKem1024PrivateKey(private_key)) => {
+                    private_key.to_pkcs8_der().map_err(|_| {
+                        Error::Operation(Some(
+                            "Failed to encode the ML-KEM-1024 private key into PKCS#8 format"
+                                .into(),
+                        ))
+                    })?
+                },
                 _ => {
-                    return Err(Error::Operation(Some(format!(
-                        "{} is not an ML-KEM algorithm",
-                        key_algorithm.name.as_str()
-                    ))));
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an ML-KEM private key".into(),
+                    )));
                 },
-            };
-            let (seed_bytes, _) = convert_handle_to_seed_and_public_key(key.handle())?;
-            let private_key =
-                MlKemPrivateKeyStructure::Seed(OctetString::new(seed_bytes).map_err(|_| {
-                    Error::Operation(Some(
-                        "Failed to encode OctetString for privateKey field of \
-                ASN.1 ML-KEM private key structure"
-                            .to_string(),
-                    ))
-                })?);
-            let encoded_private_key = private_key.to_der().map_err(|_| {
-                Error::Operation(Some(
-                    "Failed to encode ASN.1 ML-KEM private key structure in DER format".to_string(),
-                ))
-            })?;
-            let private_key_info = PrivateKeyInfo {
-                algorithm: AlgorithmIdentifier {
-                    oid: ObjectIdentifier::new_unwrap(oid),
-                    parameters: None,
-                },
-                private_key: &encoded_private_key,
-                public_key: None,
             };
 
             // Step 2.4. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(private_key_info.to_der().map_err(|_| {
-                Error::Operation(Some(
-                    "Failed to encode PrivateKeyInfo in DER format".to_string(),
-                ))
-            })?)
+            ExportedKey::Bytes(private_key_info.to_bytes())
         },
         // If format is "raw-public":
         KeyFormat::Raw_public => {
@@ -1080,13 +1122,22 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
                 return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                    "[[type]] internal slot of key is not \"public\"".into(),
                 )));
             }
 
             // Step 2.2. Let data be a byte sequence containing the raw octets of the key
             // represented by the [[handle]] internal slot of key.
-            let data = convert_handle_to_public_key(key.handle())?;
+            let data = match key.handle() {
+                Handle::MlKem512PublicKey(public_key) => public_key.to_bytes().as_slice().to_vec(),
+                Handle::MlKem768PublicKey(public_key) => public_key.to_bytes().as_slice().to_vec(),
+                Handle::MlKem1024PublicKey(public_key) => public_key.to_bytes().as_slice().to_vec(),
+                _ => {
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an ML-KEM public key".into(),
+                    )));
+                },
+            };
 
             // Step 2.3. Let result be data.
             ExportedKey::new_bytes(data)
@@ -1097,13 +1148,34 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
                 return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                    "[[type]] internal slot of key is not \"private\"".into(),
                 )));
             }
 
             // Step 2.2. Let data be a byte sequence containing the concatenation of the d and z
             // seed variables of the key represented by the [[handle]] internal slot of key.
-            let (data, _) = convert_handle_to_seed_and_public_key(key.handle())?;
+            let data = match key.handle() {
+                Handle::MlKem512PrivateKey(private_key) => private_key
+                    .to_seed()
+                    .expect("This decapsulation key should contain seed value")
+                    .as_slice()
+                    .to_vec(),
+                Handle::MlKem768PrivateKey(private_key) => private_key
+                    .to_seed()
+                    .expect("This decapsulation key should contain seed value")
+                    .as_slice()
+                    .to_vec(),
+                Handle::MlKem1024PrivateKey(private_key) => private_key
+                    .to_seed()
+                    .expect("This decapsulation key should contain seed value")
+                    .as_slice()
+                    .to_vec(),
+                _ => {
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an ML-KEM private key".into(),
+                    )));
+                },
+            };
 
             // Step 2.3. Let result be data.
             ExportedKey::new_bytes(data)
@@ -1118,7 +1190,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
                 return Err(Error::Operation(Some(
-                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".into(),
                 )));
             };
 
@@ -1126,14 +1198,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.kty = Some(DOMString::from("AKP"));
 
             // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
-            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
+            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-05]
             // (Figure 1).
             //
             // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
             let alg = match key_algorithm.name {
-                CryptoAlgorithm::MlKem512 => "MLKEM512",
-                CryptoAlgorithm::MlKem768 => "MLKEM768",
-                CryptoAlgorithm::MlKem1024 => "MLKEM1024",
+                CryptoAlgorithm::MlKem512 => "ML-KEM-512",
+                CryptoAlgorithm::MlKem768 => "ML-KEM-768",
+                CryptoAlgorithm::MlKem1024 => "ML-KEM-1024",
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-KEM algorithm",
@@ -1150,13 +1222,78 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     Set the priv attribute of jwk to the base64url encoded seed represented by the
             //     [[handle]] internal slot of key.
             if key.Type() == KeyType::Private {
-                let (seed_bytes, public_key_bytes) =
-                    convert_handle_to_seed_and_public_key(key.handle())?;
-                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
-                jwk.encode_string_field(JwkStringField::Priv, &seed_bytes);
+                match key.handle() {
+                    Handle::MlKem512PrivateKey(private_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Priv,
+                            private_key
+                                .to_seed()
+                                .expect("This decapsulation key should contain seed value")
+                                .as_slice(),
+                        );
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            private_key.encapsulation_key().to_bytes().as_slice(),
+                        );
+                    },
+                    Handle::MlKem768PrivateKey(private_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Priv,
+                            private_key
+                                .to_seed()
+                                .expect("This decapsulation key should contain seed value")
+                                .as_slice(),
+                        );
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            private_key.encapsulation_key().to_bytes().as_slice(),
+                        );
+                    },
+                    Handle::MlKem1024PrivateKey(private_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Priv,
+                            private_key
+                                .to_seed()
+                                .expect("This decapsulation key should contain seed value")
+                                .as_slice(),
+                        );
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            private_key.encapsulation_key().to_bytes().as_slice(),
+                        );
+                    },
+                    _ => {
+                        return Err(Error::Operation(Some(
+                            "The key handle is not representing an ML-KEM private key".into(),
+                        )));
+                    },
+                }
             } else {
-                let public_key_bytes = convert_handle_to_public_key(key.handle())?;
-                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
+                match key.handle() {
+                    Handle::MlKem512PublicKey(public_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            public_key.to_bytes().as_slice(),
+                        );
+                    },
+                    Handle::MlKem768PublicKey(public_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            public_key.to_bytes().as_slice(),
+                        );
+                    },
+                    Handle::MlKem1024PublicKey(public_key) => {
+                        jwk.encode_string_field(
+                            JwkStringField::Pub,
+                            public_key.to_bytes().as_slice(),
+                        );
+                    },
+                    _ => {
+                        return Err(Error::Operation(Some(
+                            "The key handle is not representing an ML-KEM public key".into(),
+                        )));
+                    },
+                };
             }
 
             // Step 2.7. Set the key_ops attribute of jwk to the usages attribute of key.
@@ -1172,7 +1309,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         _ => {
             // throw a NotSupportedError.
             return Err(Error::NotSupported(Some(
-                "Unsupported export key format for ML-KEM key".to_string(),
+                "Unsupported export key format for ML-KEM key".into(),
             )));
         },
     };
@@ -1181,194 +1318,61 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     Ok(result)
 }
 
-/// Convert seed bytes to an ML-KEM private key handle and an ML-KEM public key handle. If private
-/// key bytes and/or public key bytes are provided, it runs a consistency check against the seed.
-/// If the length in bits of seed bytes is not 512, the conversion fails, or the consistency check
-/// fails, throw a DataError.
-fn convert_seed_to_handles(
-    algorithm_name: CryptoAlgorithm,
-    seed_bytes: &[u8],
-    private_key_bytes: Option<&[u8]>,
-    public_key_bytes: Option<&[u8]>,
-) -> Result<(Handle, Handle), Error> {
-    if seed_bytes.len() != 64 {
-        return Err(Error::Data(Some(
-            "The length in bits of seed bytes is not 512".to_string(),
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for ML-KEM
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "importKey" operation for supported usages
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
+                .into(),
         )));
     }
 
-    let d: B32 = (&seed_bytes[..32]).try_into().map_err(|_| {
-        Error::Data(Some(
-            "Failed to parse first 256 bits of seed bytes".to_string(),
-        ))
-    })?;
-    let z: B32 = (&seed_bytes[32..64]).try_into().map_err(|_| {
-        Error::Data(Some(
-            "Failed to parse last 256 bits of seed bytes".to_string(),
-        ))
-    })?;
-    let handles = match algorithm_name {
-        CryptoAlgorithm::MlKem512 => {
-            let (decapsulation_key, encapsulation_key) = MlKem512::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes &&
-                private_key_bytes != decapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The expanded private key does not match the seed".to_string(),
-                )));
-            }
-            if let Some(public_key_bytes) = public_key_bytes &&
-                public_key_bytes != encapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The public key does not match the seed".to_string(),
-                )));
-            }
-
-            (
-                Handle::MlKem512PrivateKey((d, z)),
-                Handle::MlKem512PublicKey(Box::new(encapsulation_key.as_bytes())),
-            )
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let public_key_handle = match key.handle() {
+        Handle::MlKem512PrivateKey(decapsulation_key) => {
+            Handle::MlKem512PublicKey(decapsulation_key.encapsulation_key().clone())
         },
-        CryptoAlgorithm::MlKem768 => {
-            let (decapsulation_key, encapsulation_key) = MlKem768::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes &&
-                private_key_bytes != decapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The expanded private key does not match the seed".to_string(),
-                )));
-            }
-            if let Some(public_key_bytes) = public_key_bytes &&
-                public_key_bytes != encapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The public key does not match the seed".to_string(),
-                )));
-            }
-
-            (
-                Handle::MlKem768PrivateKey((d, z)),
-                Handle::MlKem768PublicKey(Box::new(encapsulation_key.as_bytes())),
-            )
+        Handle::MlKem768PrivateKey(decapsulation_key) => {
+            Handle::MlKem768PublicKey(decapsulation_key.encapsulation_key().clone())
         },
-        CryptoAlgorithm::MlKem1024 => {
-            let (decapsulation_key, encapsulation_key) = MlKem1024::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes &&
-                private_key_bytes != decapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The expanded private key does not match the seed".to_string(),
-                )));
-            }
-            if let Some(public_key_bytes) = public_key_bytes &&
-                public_key_bytes != encapsulation_key.as_bytes().as_slice()
-            {
-                return Err(Error::Data(Some(
-                    "The public key does not match the seed".to_string(),
-                )));
-            }
-
-            (
-                Handle::MlKem1024PrivateKey((d, z)),
-                Handle::MlKem1024PublicKey(Box::new(encapsulation_key.as_bytes())),
-            )
-        },
-        _ => {
-            return Err(Error::NotSupported(Some(format!(
-                "{} is not an ML-KEM algorithm",
-                algorithm_name.as_str()
-            ))));
-        },
-    };
-
-    Ok(handles)
-}
-
-/// Convert public key bytes to an ML-KEM public key handle. If the conversion fails, throw a
-/// DataError.
-fn convert_public_key_to_handle(
-    algorithm_name: CryptoAlgorithm,
-    public_key_bytes: &[u8],
-) -> Result<Handle, Error> {
-    let public_key_handle = match algorithm_name {
-        CryptoAlgorithm::MlKem512 => {
-            let encoded_encapsulation_key = Encoded::<EncapsulationKey<MlKem512Params>>::try_from(
-                public_key_bytes,
-            )
-            .map_err(|_| Error::Data(Some("Failed to parse ML-KEM public key".to_string())))?;
-            Handle::MlKem512PublicKey(Box::new(encoded_encapsulation_key))
-        },
-        CryptoAlgorithm::MlKem768 => {
-            let encoded_encapsulation_key = Encoded::<EncapsulationKey<MlKem768Params>>::try_from(
-                public_key_bytes,
-            )
-            .map_err(|_| Error::Data(Some("Failed to parse ML-KEM public key".to_string())))?;
-            Handle::MlKem768PublicKey(Box::new(encoded_encapsulation_key))
-        },
-        CryptoAlgorithm::MlKem1024 => {
-            let encoded_encapsulation_key = Encoded::<EncapsulationKey<MlKem1024Params>>::try_from(
-                public_key_bytes,
-            )
-            .map_err(|_| Error::Data(Some("Failed to parse ML-KEM public key".to_string())))?;
-            Handle::MlKem1024PublicKey(Box::new(encoded_encapsulation_key))
-        },
-        _ => {
-            return Err(Error::NotSupported(Some(format!(
-                "{} is not an ML-KEM algorithm",
-                algorithm_name.as_str()
-            ))));
-        },
-    };
-
-    Ok(public_key_handle)
-}
-
-/// Convert an ML-KEM private key handle to seed bytes and public key bytes. If the handle is not
-/// representing a ML-KEM private key, throw an OperationError.
-fn convert_handle_to_seed_and_public_key(handle: &Handle) -> Result<(Vec<u8>, Vec<u8>), Error> {
-    let result = match handle {
-        Handle::MlKem512PrivateKey((d, z)) => {
-            let mut seed = d.to_vec();
-            seed.extend_from_slice(z);
-            let (_private_key, public_key) = MlKem512::generate_deterministic(d, z);
-            (seed, public_key.as_bytes().to_vec())
-        },
-        Handle::MlKem768PrivateKey((d, z)) => {
-            let mut seed = d.to_vec();
-            seed.extend_from_slice(z);
-            let (_private_key, public_key) = MlKem768::generate_deterministic(d, z);
-            (seed, public_key.as_bytes().to_vec())
-        },
-        Handle::MlKem1024PrivateKey((d, z)) => {
-            let mut seed = d.to_vec();
-            seed.extend_from_slice(z);
-            let (_private_key, public_key) = MlKem1024::generate_deterministic(d, z);
-            (seed, public_key.as_bytes().to_vec())
+        Handle::MlKem1024PrivateKey(decapsulation_key) => {
+            Handle::MlKem1024PublicKey(decapsulation_key.encapsulation_key().clone())
         },
         _ => {
             return Err(Error::Operation(Some(
-                "The key handle is not representing an ML-KEM private key".to_string(),
+                "[[handle]] internal slot of key is not an ML-KEM private key".into(),
             )));
         },
     };
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        public_key_handle,
+    );
 
-    Ok(result)
-}
-
-/// Convert an ML-KEM public key handle to public key bytes. If the handle is not representing a
-/// ML-KEM public key, throw an OperationError.
-fn convert_handle_to_public_key(handle: &Handle) -> Result<Vec<u8>, Error> {
-    let result = match handle {
-        Handle::MlKem512PublicKey(public_key) => public_key.to_vec(),
-        Handle::MlKem768PublicKey(public_key) => public_key.to_vec(),
-        Handle::MlKem1024PublicKey(public_key) => public_key.to_vec(),
-        _ => {
-            return Err(Error::Operation(Some(
-                "The key handle is not representing an ML-KEM public key".to_string(),
-            )));
-        },
-    };
-
-    Ok(result)
+    Ok(public_key)
 }

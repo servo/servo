@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{LocalName, local_name};
+use html5ever::{LocalName, local_name, ns};
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::attr::AttrValue;
@@ -45,8 +45,8 @@ impl Element {
                 if let Some(anchor) = self.downcast::<HTMLAnchorElement>() {
                     return anchor
                         .upcast::<Element>()
-                        .get_attribute(&local_name!("href"))
-                        .map(|attr| DOMString::from(&**attr.value()));
+                        .get_attribute_string_value(&local_name!("href"))
+                        .map(|value| value.into());
                 }
 
                 // Step 2.2. Return null.
@@ -102,10 +102,17 @@ impl Element {
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
         // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
         if self.is::<HTMLFontElement>() &&
-            let Some(font_size) = self.get_attribute(&local_name!("size")) &&
-            let AttrValue::UInt(_, value) = *font_size.value()
+            let Some(font_size) = self
+                .with_attribute(&ns!(), &local_name!("size"), |attribute| {
+                    if let AttrValue::UInt(_, value) = *attribute.value() {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                })
+                .flatten()
         {
-            return Some(font_size_to_css_font(&value).into());
+            return Some(font_size_to_css_font(&font_size).into());
         }
 
         // Step 12. If element is in the following list, and property is equal to the CSS property name listed for it,

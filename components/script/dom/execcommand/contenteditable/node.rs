@@ -31,7 +31,8 @@ use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text::Text;
 
 pub(crate) enum NodeOrString {
@@ -1889,7 +1890,12 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#canonicalize-whitespace>
-    pub(crate) fn canonicalize_whitespace(&self, offset: u32, fix_collapsed_space: bool) {
+    pub(crate) fn canonicalize_whitespace(
+        &self,
+        cx: &mut JSContext,
+        offset: u32,
+        fix_collapsed_space: bool,
+    ) {
         // Step 1. If node is neither editable nor an editing host, abort these steps.
         if !self.is_editable_or_editing_host() {
             return;
@@ -1991,7 +1997,7 @@ impl Node {
                 if fix_collapsed_space && collapse_spaces && has_space_at_offset {
                     if text
                         .upcast::<CharacterData>()
-                        .DeleteData(end_offset, 1)
+                        .DeleteData(cx, end_offset, 1)
                         .is_err()
                     {
                         unreachable!("Invalid deletion for character at end offset");
@@ -2058,7 +2064,7 @@ impl Node {
                     // Step 8.3.3. Call deleteData(end offset, 1) on end node.
                     if text
                         .upcast::<CharacterData>()
-                        .DeleteData(end_offset, 1)
+                        .DeleteData(cx, end_offset, 1)
                         .is_err()
                     {
                         unreachable!("Invalid deletion for character at end offset");
@@ -2107,13 +2113,13 @@ impl Node {
                     let character_data = start_node_as_text.upcast::<CharacterData>();
                     // Step 10.3.2.1. Call insertData(start offset, element) on start node.
                     if character_data
-                        .InsertData(start_offset, element.to_string().into())
+                        .InsertData(cx, start_offset, element.to_string().into())
                         .is_err()
                     {
                         unreachable!("Invalid insertion for character at start offset");
                     }
                     // Step 10.3.2.2. Call deleteData(start offset + 1, 1) on start node.
-                    if character_data.DeleteData(start_offset + 1, 1).is_err() {
+                    if character_data.DeleteData(cx, start_offset + 1, 1).is_err() {
                         unreachable!("Invalid deletion for character at start offset + 1");
                     }
                 }
@@ -2250,11 +2256,11 @@ impl Node {
                         node.downcast::<HTMLAnchorElement>().and_then(|anchor| {
                             anchor
                                 .upcast::<Element>()
-                                .get_attribute(&local_name!("href"))
+                                .get_attribute_string_value(&local_name!("href"))
                         })
                     {
                         // Step 3.3. Return the value of node's href attribute.
-                        return Some(DOMString::from(&**anchor_value.value()));
+                        return Some(anchor_value.into());
                     }
                     current_node = node.GetParentNode();
                 }

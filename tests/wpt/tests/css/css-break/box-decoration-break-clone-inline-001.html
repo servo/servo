@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: box-decoration-break: clone inline line breaking</title>
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="match" href="box-decoration-break-clone-inline-001-ref.html">
+<meta name="assert" content="Cloned trailing inline decorations should be accounted for when breaking lines.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+  width: 100px;
+  font: 10px/1 Ahem;
+  background: lightgray;
+}
+span {
+  border-right: 40px solid blue;
+  box-decoration-break: clone;
+}
+</style>
+<div class="container">
+  <span>x x x x x</span>
+</div>

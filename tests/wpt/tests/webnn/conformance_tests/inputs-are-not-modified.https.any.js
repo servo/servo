@@ -1,5 +1,5 @@
 // META: title=test that input tensors are not modified during a call to dispatch()
-// META: global=window,worker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

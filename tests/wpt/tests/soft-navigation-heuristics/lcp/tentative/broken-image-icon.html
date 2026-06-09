@@ -48,7 +48,7 @@ Notes:
       test_driver.click(document.getElementById("click-target"));
     }
 
-    const [softLcpEntries, softNavigationEntries] = await promise;
+    const [icpEntries, softNavigationEntries] = await promise;
     assert_equals(softNavigationEntries.length, 1, "One soft navigation entry.");
     assert_true(
       softNavigationEntries[0].name.endsWith("test"),
@@ -58,9 +58,9 @@ Notes:
     // There should be only 1 LCP entry and it should be the colors-16x8.png though
     // being smaller than the broken image icon. The broken image icon should not
     // emit an LCP entry.
-    assert_equals(softLcpEntries.length, 1, "There should be one and only one LCP entry.");
+    assert_equals(icpEntries.length, 1, "There should be one and only one LCP entry.");
     assert_true(
-      softLcpEntries[0].url.includes("colors-16x8.png"),
+      icpEntries[0].largestContentfulPaint.url.includes("colors-16x8.png"),
       "The LCP entry should be the colors-16x8.png",
     );
   }, "The broken image icon should not emit an LCP entry after soft navigation.");

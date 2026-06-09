@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage supports backdrop-filter images</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="match" href="css-filter-image-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      width: 100px;
+      height: 200px;
+    }
+    #wrapper {
+      width: 100px;
+      height: 200px;
+      background: blue;
+    }
+    .child {
+      width: 100px;
+      height: 100px;
+      background: transparent;
+    }
+    #child-image {
+      backdrop-filter: url("#filter-image");
+    }
+    #child-image-offset {
+      backdrop-filter: url("#filter-image-offset");
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id="wrapper">
+      <div id="child-image" class="child"></div>
+      <div id="child-image-offset" class="child"></div>
+    </div>
+  </canvas>
+  <svg width="0" height="0">
+    <filter id="filter-image">
+      <feimage href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='green'/></svg>" />
+    </filter>
+    <filter id="filter-image-offset">
+      <feimage x="10" y="10" width="80" height="80" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='green'/></svg>" />
+    </filter>
+  </svg>
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(wrapper, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

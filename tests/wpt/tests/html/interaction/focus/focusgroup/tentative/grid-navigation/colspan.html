@@ -28,10 +28,6 @@
 <script>
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c2 = document.getElementById("r1c2");
-    var r1c4 = document.getElementById("r1c4");
-
     await focusAndSendDirectionalInput(r1c1, kRight);
     assert_equals(document.activeElement, r1c2);
 
@@ -40,13 +36,6 @@
   }, "Navigating right should move the focus to the next column, dealing correctly with colspans.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c2 = document.getElementById("r1c2");
-    var r1c4 = document.getElementById("r1c4");
-    var r2c1 = document.getElementById("r2c1");
-    var r2c2 = document.getElementById("r2c2");
-    var r2c4 = document.getElementById("r2c4");
-
     await focusAndSendDirectionalInput(r1c1, kDown);
     assert_equals(document.activeElement, r2c1);
 
@@ -58,10 +47,6 @@
   }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with colspans.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c2 = document.getElementById("r1c2");
-    var r1c4 = document.getElementById("r1c4");
-
     await focusAndSendDirectionalInput(r1c4, kLeft);
     assert_equals(document.activeElement, r1c2);
 
@@ -70,14 +55,6 @@
   }, "Navigating left should move to the previous column, dealing correctly with the colspans.");
 
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c2 = document.getElementById("r1c2");
-    var r1c4 = document.getElementById("r1c4");
-    var r2c1 = document.getElementById("r2c1");
-    var r2c2 = document.getElementById("r2c2");
-    var r2c3 = document.getElementById("r2c3");
-    var r2c4 = document.getElementById("r2c4");
-
     await focusAndSendDirectionalInput(r2c1, kUp);
     assert_equals(document.activeElement, r1c1);
 

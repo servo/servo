@@ -251,7 +251,7 @@ impl SendReportsToEndpoints for GlobalScope {
         // Step 3. Return the byte sequence resulting from executing serialize an
         // Infra value to JSON bytes on collection.
         Some(create_request_body_with_content(
-            &serde_json::to_string(&report_body).unwrap_or("".to_owned()),
+            serde_json::to_string(&report_body).unwrap_or_default(),
         ))
     }
 }
@@ -288,13 +288,13 @@ pub(crate) struct CSPReportingEndpointBody {
 impl From<CSPViolationReportBody> for CSPReportingEndpointBody {
     fn from(value: CSPViolationReportBody) -> Self {
         CSPReportingEndpointBody {
-            sample: value.sample.map(|s| s.to_string()),
-            blocked_url: value.blockedURL.map(|s| s.to_string()),
-            referrer: value.referrer.map(|s| s.to_string()),
+            sample: value.sample.map(String::from),
+            blocked_url: value.blockedURL.map(String::from),
+            referrer: value.referrer.map(String::from),
             status_code: value.statusCode,
-            document_url: value.documentURL.to_string(),
-            source_file: value.sourceFile.map(|s| s.to_string()),
-            effective_directive: value.effectiveDirective.to_string(),
+            document_url: String::from(value.documentURL),
+            source_file: value.sourceFile.map(String::from),
+            effective_directive: String::from(value.effectiveDirective),
             line_number: value.lineNumber,
             column_number: value.columnNumber,
             original_policy: value.originalPolicy.into(),

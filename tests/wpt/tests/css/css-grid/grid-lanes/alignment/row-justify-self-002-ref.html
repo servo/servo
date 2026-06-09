@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(3, 80px);
+      grid-template-columns: 80px 50px 50px 50px;
+      gap: 10px;
+      padding: 2px;
+      margin: 5px;
+      justify-items: start;
+    }
+
+    .track {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <div class="track" style="grid-row: 1; grid-column: 1; justify-content: start; justify-self: stretch;">
+    <item style="width: 40px; background: #f4a0a0;">1</item>
+  </div>
+  <div class="track" style="grid-row: 2; grid-column: 1;">
+    <item style="width: 80px; background: #f4a0a0;">2</item>
+  </div>
+  <item style="width: 200px; background: #2ca02c; grid-row: 3; grid-column: 1 / span 3;">3</item>
+  <div style="display: flex; flex-direction: row; justify-content: start; justify-self: stretch; grid-row: 1 / span 2; grid-column: 2 / span 2;">
+    <item style="width: 50px; background: #f4a0a0;">4</item>
+  </div>
+  <item style="width: 50px; background: #2ca02c; grid-row: 1 / span 3; grid-column: 4;">5</item>
+</div>
+
+<div class="grid">
+  <div class="track" style="grid-row: 1; grid-column: 1; justify-content: end; justify-self: stretch;">
+    <item style="width: 40px; background: #f4a0a0;">1</item>
+  </div>
+  <div class="track" style="grid-row: 2; grid-column: 1;">
+    <item style="width: 80px; background: #f4a0a0;">2</item>
+  </div>
+  <item style="width: 200px; background: #2ca02c; grid-row: 3; grid-column: 1 / span 3;">3</item>
+  <div style="display: flex; flex-direction: row; justify-content: end; justify-self: stretch; grid-row: 1 / span 2; grid-column: 2 / span 2;">
+    <item style="width: 50px; background: #f4a0a0;">4</item>
+  </div>
+  <item style="width: 50px; background: #2ca02c; grid-row: 1 / span 3; grid-column: 4;">5</item>
+</div>
+
+</body>
+</html>

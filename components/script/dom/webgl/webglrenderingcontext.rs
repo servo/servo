@@ -23,16 +23,16 @@ use js::typedarray::{
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
     AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
+    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
+    WebGLCreateContextResult, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -229,14 +229,12 @@ pub(crate) struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
+    pub(crate) fn create_context_data(
         window: &Window,
-        canvas: HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-    ) -> Result<WebGLRenderingContext, String> {
+    ) -> Result<WebGLCreateContextResult, String> {
         if pref!(webgl_testing_context_creation_error) {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
@@ -256,70 +254,68 @@ impl WebGLRenderingContext {
                 sender,
             ))
             .unwrap();
-        let result = receiver.recv().unwrap();
-
-        result.map(|ctx_data| {
-            let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
-            let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
-            Self {
-                reflector_: Reflector::new(),
-                webgl_version,
-                glsl_version: ctx_data.glsl_version,
-                limits: ctx_data.limits,
-                canvas,
-                last_error: Cell::new(None),
-                texture_packing_alignment: Cell::new(4),
-                texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
-                texture_unpacking_alignment: Cell::new(4),
-                bound_draw_framebuffer: MutNullableDom::new(None),
-                bound_read_framebuffer: MutNullableDom::new(None),
-                bound_buffer_array: MutNullableDom::new(None),
-                bound_renderbuffer: MutNullableDom::new(None),
-                current_program: MutNullableDom::new(None),
-                current_vertex_attribs: DomRefCell::new(
-                    vec![VertexAttrib::Float(0f32, 0f32, 0f32, 1f32); max_vertex_attribs].into(),
-                ),
-                current_scissor: Cell::new((0, 0, size.width, size.height)),
-                // FIXME(#21718) The backend is allowed to choose a size smaller than
-                // what was requested
-                size: Cell::new(size),
-                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new(
-                    webgl_version,
-                    ctx_data.api_type,
-                    ctx_data.glsl_version,
-                ),
-                capabilities: Default::default(),
-                default_vao: Default::default(),
-                current_vao: Default::default(),
-                default_vao_webgl2: Default::default(),
-                current_vao_webgl2: Default::default(),
-                textures: Textures::new(max_combined_texture_image_units),
-                api_type: ctx_data.api_type,
-                droppable: DroppableWebGLRenderingContext {
-                    webgl_sender: ctx_data.sender,
-                },
-            }
-        })
+        receiver.recv().unwrap()
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
+        canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
+        webgl_version: WebGLVersion,
+        size: Size2D<u32>,
+        ctx_data: WebGLCreateContextResult,
+    ) -> WebGLRenderingContext {
+        let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
+        let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
+        WebGLRenderingContext {
+            reflector_: Reflector::new(),
+            webgl_version,
+            glsl_version: ctx_data.glsl_version,
+            limits: ctx_data.limits,
+            canvas: HTMLCanvasElementOrOffscreenCanvas::from(canvas),
+            last_error: Cell::new(None),
+            texture_packing_alignment: Cell::new(4),
+            texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
+            texture_unpacking_alignment: Cell::new(4),
+            bound_draw_framebuffer: MutNullableDom::new(None),
+            bound_read_framebuffer: MutNullableDom::new(None),
+            bound_buffer_array: MutNullableDom::new(None),
+            bound_renderbuffer: MutNullableDom::new(None),
+            current_program: MutNullableDom::new(None),
+            current_vertex_attribs: DomRefCell::new(
+                vec![VertexAttrib::Float(0f32, 0f32, 0f32, 1f32); max_vertex_attribs].into(),
+            ),
+            current_scissor: Cell::new((0, 0, size.width, size.height)),
+            // FIXME(#21718) The backend is allowed to choose a size smaller than
+            // what was requested
+            size: Cell::new(size),
+            current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
+            extension_manager: WebGLExtensions::new(
+                webgl_version,
+                ctx_data.api_type,
+                ctx_data.glsl_version,
+            ),
+            capabilities: Default::default(),
+            default_vao: Default::default(),
+            current_vao: Default::default(),
+            default_vao_webgl2: Default::default(),
+            current_vao_webgl2: Default::default(),
+            textures: Textures::new(max_combined_texture_image_units),
+            api_type: ctx_data.api_type,
+            droppable: DroppableWebGLRenderingContext {
+                webgl_sender: ctx_data.sender,
+            },
+        }
+    }
+
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
-        match WebGLRenderingContext::new_inherited(
-            window,
-            HTMLCanvasElementOrOffscreenCanvas::from(canvas),
-            webgl_version,
-            size,
-            attrs,
-        ) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
+        let ctx_data = match Self::create_context_data(window, webgl_version, size, attrs) {
+            Ok(data) => data,
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
@@ -328,19 +324,30 @@ impl WebGLRenderingContext {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 match canvas {
                     RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                     RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                 }
-                None
+                return None;
             },
-        }
+        };
+
+        Some(reflect_dom_object_with_cx(
+            Box::new(WebGLRenderingContext::new_inherited(
+                canvas,
+                webgl_version,
+                size,
+                ctx_data,
+            )),
+            window,
+            cx,
+        ))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
@@ -643,7 +650,7 @@ impl WebGLRenderingContext {
             1,
             size,
             TexSource::Pixels(TexPixels::new(
-                GenericSharedMemory::from_bytes(&pixels),
+                GenericSharedMemory::from_vec(pixels),
                 size,
                 PixelFormat::RGBA8,
                 None,
@@ -4626,7 +4633,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 

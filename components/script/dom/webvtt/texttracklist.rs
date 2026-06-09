@@ -75,7 +75,7 @@ impl TextTrackList {
             self.global()
                 .task_manager()
                 .media_element_task_source()
-                .queue(task!(track_event_queue: move || {
+                .queue(task!(track_event_queue: move |cx| {
                     let this = this.root();
 
                     if let Some(track) = this.item(idx) {
@@ -87,10 +87,10 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
-                            CanGc::deprecated_note()
+                            CanGc::from_cx(cx),
                         );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
+                        event.upcast::<Event>().fire(cx, this.upcast::<EventTarget>());
                     }
                 }));
             track.add_track_list(self);

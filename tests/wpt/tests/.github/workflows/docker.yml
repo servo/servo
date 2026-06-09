@@ -26,14 +26,14 @@ jobs:
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       # Based on https://docs.github.com/en/actions/publishing-packages/publishing-docker-images.
       - name: Log in to the Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |

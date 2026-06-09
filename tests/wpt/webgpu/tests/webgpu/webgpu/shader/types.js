@@ -298,6 +298,7 @@ export function* generateTypes({
     if (scalarInfo.layout) {
       // Compute the layout of the array type.
       // Adjust the array element count or element type as needed.
+      // MAINTENANCE_TODO(#4485): Remove this when all implementors support uniform_buffer_standard_layout.
       if (addressSpace === 'uniform') {
         // Use a vec4 of the scalar type, to achieve a 16 byte alignment without internal padding.
         // This works for 4-byte scalar types, and does not work for f16.

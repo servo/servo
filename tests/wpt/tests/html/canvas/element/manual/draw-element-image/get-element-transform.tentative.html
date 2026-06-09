@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas.getElementTransform should return a matrix transforming the element's layout location to match the drawn matrix</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" layoutsubtree>
+  <div id="element" style="width: 10px; height: 10px;"></div>
+</canvas>
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    let draw_transform = new DOMMatrix();
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix();
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform for identity draw transform should be an identity matrix');
+
+  promise_test(async t => {
+    let draw_transform = new DOMMatrix().translateSelf(17, -9);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix().translateSelf(17, -9);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should account for translation in the input transform');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    await waitForCanvasPaint(canvas);
+    element.style.transformOrigin = '0 0';
+    let draw_transform = new DOMMatrix().scaleSelf(2, 0.5);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix().scaleSelf(2, 0.5);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should account for scale in the input transform');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transform = '';
+    });
+    await waitForCanvasPaint(canvas);
+    element.style.transform = 'rotate(45deg)';
+    let draw_transform = new DOMMatrix();
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix();
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should not include transform on the element');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      canvas.getContext('2d').reset();
+    });
+    await waitForCanvasPaint(canvas);
+    canvas.getContext('2d').translate(7, 11);
+    let ctm = canvas.getContext('2d').getTransform();
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, ctm);
+    let expected = new DOMMatrix().translateSelf(7, 11);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should not automatically include the current transform matrix, but should pass it through');
+
+  promise_test(async (t) => {
+    t.add_cleanup(async () => {
+      canvas.style.zoom = '';
+    });
+    await waitForCanvasPaint(canvas);
+    canvas.style.zoom = '1.5';
+    let draw_transform = new DOMMatrix().translateSelf(7, 11);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix().translateSelf(7, 11);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should not be affected by zoom on the canvas');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    await waitForCanvasPaint(canvas);
+    element.style.transformOrigin = '5px 5px';
+    let draw_transform = new DOMMatrix().rotateSelf(45);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .rotateSelf(45)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Element transform should account for transform-origin');
+
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      canvas.width = 100;
+      canvas.height = 100;
+    });
+    await waitForCanvasPaint(canvas);
+    canvas.width = 200;
+    canvas.height = 50;
+    let draw_transform = new DOMMatrix().translateSelf(7, 11);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix()
+      .scaleSelf(0.5, 2)
+      .translateSelf(7, 11)
+      .scaleSelf(2, 0.5);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should account for canvas grid pixel scale');
+
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      canvas.style.width = '100px';
+      canvas.style.height = '100px';
+    });
+    await waitForCanvasPaint(canvas);
+    canvas.style.width = '50px';
+    canvas.style.height = '200px';
+    let draw_transform = new DOMMatrix().translateSelf(7, 11);
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix()
+      .scaleSelf(0.5, 2)
+      .translateSelf(7, 11)
+      .scaleSelf(2, 0.5);
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Element transform should account for canvas css pixel scale');
+
+  promise_test(async t => {
+    t.add_cleanup(async() => {
+      canvas.width = 100;
+      canvas.height = 100;
+      element.style.transformOrigin = '0 0';
+    });
+    await waitForCanvasPaint(canvas);
+    canvas.width = 200;
+    canvas.height = 50;
+    let draw_transform = new DOMMatrix()
+      .translateSelf(42, 17)
+      .rotateSelf(45);
+    element.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .scaleSelf(0.5, 2)
+      .translateSelf(42, 17)
+      .rotateSelf(45)
+      .scaleSelf(2, 0.5)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Element transform should account for canvas pixel scale, transform-origin, and a complex draw transform');
+
+  promise_test(async t => {
+    t.add_cleanup(async() => {
+      canvas.setAttribute('layoutsubtree', 'true');
+    });
+    canvas.removeAttribute('layoutsubtree');
+    await waitForCanvasPaint(canvas);
+
+    canvas.setAttribute('layoutsubtree', 'true');
+    let draw_transform = new DOMMatrix();
+    assert_throws_dom(
+      'InvalidStateError',
+      () => canvas.getElementTransform(element, draw_transform),
+      'getElementTransform should throw prior to onpaint.');
+
+    await waitForCanvasPaint(canvas);
+    let element_transform = canvas.getElementTransform(element, draw_transform);
+    let expected = new DOMMatrix();
+    assert_array_equals(element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'getElementTransform should throw when called prior to paint.');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let draw_transform_2d = new DOMMatrix();
+    assert_true(draw_transform_2d.is2D);
+    let element_transform_2d = canvas.getElementTransform(element, draw_transform_2d);
+    assert_true(element_transform_2d.is2D);
+
+    let draw_transform_3d = new DOMMatrix().scale3d(2);
+    assert_false(draw_transform_3d.is2D);
+    let element_transform_3d = canvas.getElementTransform(element, draw_transform_3d);
+    assert_false(element_transform_3d.is2D);
+  }, 'getElementTransform should preserve is2D.');
+</script>
+</html>

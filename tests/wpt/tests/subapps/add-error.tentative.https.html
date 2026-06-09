@@ -37,30 +37,6 @@ promise_test(async t => {
 }, "API is only supported in top-level browsing contexts.");
 
 promise_test(async t => {
-  const url = '/sub-app';
-
-  let subapp = {
-    [url]: { "installURL": url }
-  };
-
-  await promise_rejects_dom(t, 'NotAllowedError', navigator.subApps.add(subapp));
-}, 'Missing user activation.');
-
-promise_test(async t => {
-  const base_url = '/sub-app-';
-
-  let add_call_params = {};
-  for (let i = 0; i < 8; i++) {
-    const url = base_url + i;
-    add_call_params[url] = { "installURL": url };
-  }
-
-  await test_driver.bless("installing subapps", async function () {
-    await promise_rejects_dom(t, 'DataError', navigator.subApps.add(add_call_params));
-  });
-}, 'Too many subapps at once.');
-
-promise_test(async t => {
   const full_url = document.location.origin + '/sub-app';
 
   let add_call_params = {

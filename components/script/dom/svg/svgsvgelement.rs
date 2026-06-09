@@ -27,9 +27,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{
-    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
-    UnbindContext,
+    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -123,7 +123,7 @@ impl SVGSVGElement {
         let id_str = href_view.strip_prefix("#")?;
         let id = DOMString::from(id_str);
         let document = self.upcast::<Node>().owner_doc();
-        let referenced_element = document.GetElementById(id)?;
+        let referenced_element = document.GetElementById(cx, id)?;
         let referenced_node = referenced_element.upcast::<Node>();
         let has_svg_ancestor = referenced_node
             .inclusive_ancestors(ShadowIncluding::No)

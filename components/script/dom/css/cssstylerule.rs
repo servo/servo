@@ -25,7 +25,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSStyleRule {
@@ -120,6 +119,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         self.style_declaration.or_init(|| {
             let guard = self.css_grouping_rule.shared_lock().read();
             CSSStyleDeclaration::new(
+                cx,
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
@@ -127,7 +127,6 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -144,7 +143,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
-    fn SetSelectorText(&self, value: DOMString) {
+    fn SetSelectorText(&self, cx: &mut JSContext, value: DOMString) {
         let value = value.str();
         let Ok(mut selector) = ({
             let guard = self.css_grouping_rule.shared_lock().read();
@@ -169,7 +168,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         }) else {
             return;
         };
-        self.css_grouping_rule.parent_stylesheet().will_modify();
+        self.css_grouping_rule.parent_stylesheet().will_modify(cx);
         // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
         let mut guard = self.css_grouping_rule.shared_lock().write();
         mem::swap(

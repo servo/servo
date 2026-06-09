@@ -66,7 +66,9 @@ fn((t) => {
   textureBindingViewDimension === '2d' ?
   1 :
   6;
-  const shouldError = getTextureDimensionFromView(textureBindingViewDimension) !== dimension;
+  const shouldError =
+  getTextureDimensionFromView(textureBindingViewDimension) !== dimension ||
+  textureBindingViewDimension === 'cube-array';
   t.expectGPUErrorInCompatibilityMode(
     'validation',
     () => {

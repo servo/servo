@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -11,6 +12,7 @@ use js::realm::CurrentRealm;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentVisibilityState,
 };
@@ -29,12 +31,14 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct WakeLock {
     reflector_: Reflector,
+    type_: Cell<WakeLockType>,
 }
 
 impl WakeLock {
     pub(crate) fn new_inherited() -> Self {
         Self {
             reflector_: Reflector::new(),
+            type_: Cell::new(WakeLockType::Screen),
         }
     }
 
@@ -45,7 +49,7 @@ impl WakeLock {
 
 impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
-    fn Request(&self, cx: &mut CurrentRealm, _type_: WakeLockType) -> Rc<Promise> {
+    fn Request(&self, cx: &mut CurrentRealm, type_: WakeLockType) -> Rc<Promise> {
         let global = GlobalScope::from_current_realm(cx);
         let promise = Promise::new_in_realm(cx);
 
@@ -54,26 +58,39 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
 
         // Step 2. If document is not fully active, reject with NotAllowedError.
         if !document.is_fully_active() {
-            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
+            promise.reject_error(Error::NotAllowed(Some(
+                        "Failed to execute 'request' on 'WakeLock': The requesting page is not fully active."
+                        .to_string())), CanGc::from_cx(cx));
             return promise;
         }
 
         // Step 3. If document's visibility state is "hidden", reject with NotAllowedError.
         if document.VisibilityState() == DocumentVisibilityState::Hidden {
-            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
+            promise.reject_error(Error::NotAllowed(Some(
+                        "Failed to execute 'request' on 'WakeLock': The requesting page is not visible."
+                        .to_string()
+                        )), CanGc::from_cx(cx));
             return promise;
         }
 
         // Step 4. Obtain permission for "screen-wake-lock".
         // <https://w3c.github.io/screen-wake-lock/#dfn-obtain-permission>
         let Some(webview_id) = global.webview_id() else {
-            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
+            promise.reject_error_with_cx(
+                cx,
+                Error::NotAllowed(Some("Unable to obtain WakeLock permission.".to_string())),
+            );
             return promise;
         };
 
+        self.type_.set(type_);
         let task_source = global.task_manager().dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
-        global.send_to_embedder(EmbedderMsg::RequestWakeLockPermission(webview_id, callback));
+        global.send_to_embedder(EmbedderMsg::RequestWakeLockPermission(
+            webview_id,
+            callback,
+            self.type_.get().convert(),
+        ));
 
         promise
     }
@@ -83,23 +100,35 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
     fn handle_response(&self, cx: &mut JSContext, response: AllowOrDeny, promise: &Rc<Promise>) {
         let can_gc = CanGc::from_cx(cx);
+
         match response {
             // Step 7a. If permission is denied, reject with NotAllowedError.
             AllowOrDeny::Deny => {
-                promise.reject_error(Error::NotAllowed(None), can_gc);
+                promise.reject_error(
+                    Error::NotAllowed(Some(
+                        "Failed to execute 'request' on 'WakeLock': Permission denied.".to_string(),
+                    )),
+                    can_gc,
+                );
             },
             // Step 7b-7c. Acquire the lock and resolve with a WakeLockSentinel.
             AllowOrDeny::Allow => {
                 let global = self.global();
                 global.as_window().send_to_constellation(
-                    ScriptToConstellationMessage::AcquireWakeLock(
-                        embedder_traits::WakeLockType::Screen,
-                    ),
+                    ScriptToConstellationMessage::AcquireWakeLock(self.type_.get().convert()),
                 );
 
-                let sentinel = WakeLockSentinel::new(cx, &global, WakeLockType::Screen);
+                let sentinel = WakeLockSentinel::new(cx, &global, self.type_.get());
                 promise.resolve_native(&sentinel, can_gc);
             },
+        }
+    }
+}
+
+impl Convert<embedder_traits::WakeLockType> for WakeLockType {
+    fn convert(self) -> embedder_traits::WakeLockType {
+        match self {
+            WakeLockType::Screen => embedder_traits::WakeLockType::Screen,
         }
     }
 }

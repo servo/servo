@@ -86,3 +86,15 @@ test
 |     <b>
 |       "test"
 | "test"
+
+#data
+<ruby>test<rt><b>test</rt></b>test</ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     <b>
+|       "test"
+|     "test"
+| "test"

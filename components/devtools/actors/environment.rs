@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::actor::{Actor, ActorEncode, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorRegistry, new_actor_name};
 use crate::actors::object::{ObjectActorMsg, ObjectPropertyDescriptor};
 
 #[derive(Serialize)]
@@ -55,8 +55,8 @@ pub(crate) struct EnvironmentActor {
 }
 
 impl Actor for EnvironmentActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -73,7 +73,7 @@ impl EnvironmentActor {
             return actor_name;
         }
 
-        let environment_name = registry.new_name::<Self>();
+        let environment_name = new_actor_name::<Self>();
         let environment_actor = Self {
             name: environment_name.clone(),
             parent_name,
@@ -94,7 +94,7 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
         let environment = self.environment.borrow();
         // TODO: Change hardcoded values.
         EnvironmentActorMsg {
-            actor: self.name(),
+            actor: self.name().into(),
             type_: environment.type_.clone(),
             scope_kind: environment.scope_kind.clone(),
             parent,

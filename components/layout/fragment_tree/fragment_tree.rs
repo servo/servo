@@ -12,6 +12,7 @@ use servo_base::print_tree::PrintTree;
 use style::computed_values::position::T as Position;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
+use crate::fragment_tree::FragmentFlags;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -51,8 +52,28 @@ impl FragmentTree {
         }
     }
 
+    /// The root fragment for this fragment tree, if the root element does not have
+    /// `display: none;`. Note that positioned elements that have the initial containing
+    /// block as their containing block are also direct children of the fragment tree
+    /// root, but they are not returned by this getter.
+    pub(crate) fn root_box_fragment(&self) -> Option<Arc<BoxFragment>> {
+        self.root_fragments
+            .iter()
+            .find_map(|root_fragment| match root_fragment {
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment)
+                    if box_fragment
+                        .base
+                        .flags
+                        .contains(FragmentFlags::IS_ROOT_ELEMENT) =>
+                {
+                    Some(box_fragment.clone())
+                },
+                _ => None,
+            })
+    }
+
     pub fn print(&self) {
-        let mut print_tree = PrintTree::new("Fragment Tree".to_string());
+        let mut print_tree = PrintTree::new("Fragment Tree");
         for fragment in &self.root_fragments {
             fragment.print(&mut print_tree);
         }
@@ -81,7 +102,7 @@ impl FragmentTree {
         let scrollable_overflow =
             self.root_fragments
                 .iter()
-                .fold(self.initial_containing_block, |overflow, fragment| {
+                .fold(euclid::Rect::default(), |overflow, fragment| {
                     // Scrollable overflow should be accumulated in the block that
                     // establishes the containing block for the element. Thus, fixed
                     // positioned fragments whose containing block is the initial
