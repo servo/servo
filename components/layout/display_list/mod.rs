@@ -912,13 +912,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     fn visit_box_for_collapsed_table_borders(
         &mut self,
         state: &TraversalState,
-        fragment: &Arc<BoxFragment>,
+        fragment: &BoxFragmentWithStyle<'_>,
     ) {
-        let fragment = fragment.with_style();
         if fragment.style().get_inherited_box().visibility != Visibility::Visible {
             return;
         };
-        BuilderForBoxFragment::new(&fragment, state.origin)
+        BuilderForBoxFragment::new(fragment, state.origin)
             .build_collapsed_table_borders(self, state)
     }
 }

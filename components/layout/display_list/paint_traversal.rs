@@ -501,7 +501,7 @@ pub(crate) trait PaintTraversalHandler {
     fn visit_box_for_collapsed_table_borders(
         &mut self,
         _state: &TraversalState,
-        _fragment: &Arc<BoxFragment>,
+        _fragment: &BoxFragmentWithStyle<'_>,
     ) {
     }
 }
