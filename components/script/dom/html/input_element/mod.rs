@@ -330,7 +330,7 @@ impl HTMLInputElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements
+    /// <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
     pub(crate) fn is_auto_directionality_form_associated_element(&self) -> bool {
         matches!(
             *self.input_type(),
