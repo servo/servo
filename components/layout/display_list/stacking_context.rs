@@ -1008,7 +1008,7 @@ impl BoxFragment {
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_scroll_id,
-            self.scrollable_overflow().to_webrender(),
+            with_style.scrollable_overflow().to_webrender(),
             scroll_frame_rect,
             sensitivity,
         );
