@@ -56,6 +56,29 @@ class TestDebuggerTab:
             assert paused_data.get("type") == "paused"
             assert paused_data.get("why", {}).get("type") == "breakpoint"
 
+    def test_frame_this_and_global_scope_object(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+
+            def trigger():
+                devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
+
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
+            frame = paused_data["frame"]
+
+            this_value = frame["this"]
+            assert this_value["type"] == "object"
+            assert this_value["class"] == "Window"
+
+            environment = devtools.client.send_receive({"to": frame["actor"], "type": "getEnvironment"})
+            while environment.get("parent"):
+                environment = environment["parent"]
+
+            global_object = environment["object"]
+            assert global_object["type"] == "object"
+            assert global_object["class"] == "Window"
+
     def test_breakpoint_at_invalid_entry_point_does_not_crash(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
