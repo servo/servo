@@ -40,8 +40,8 @@ use super::clip::StackingContextTreeClipStore;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::{BuilderForBoxFragment, offset_radii};
 use crate::fragment_tree::{
-    BoxFragment, ContainingBlockCalculation, ContainingBlockManager, Fragment, FragmentFlags,
-    FragmentTree, PositioningFragment,
+    BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation, ContainingBlockManager,
+    Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalVec,
@@ -779,7 +779,7 @@ impl BoxFragment {
             .for_non_absolute_descendants
             .scroll_frame_size;
         let mut new_clip_id = containing_block.clip_id;
-        if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
+        if let Some(overflow_frame_data) = with_style.build_overflow_frame_if_necessary(
             stacking_context_tree,
             new_scroll_node_id,
             new_clip_id,
@@ -910,16 +910,17 @@ impl BoxFragment {
             parent_clip_id,
         ))
     }
+}
 
+impl BoxFragmentWithStyle<'_> {
     fn build_overflow_frame_if_necessary(
-        self: &Arc<Self>,
+        &self,
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_id: ClipId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
-        let with_style = self.with_style();
-        let style = with_style.style();
+        let style = self.style();
         let overflow = style.effective_overflow(self.base.flags);
 
         if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
@@ -946,7 +947,7 @@ impl BoxFragment {
             // https://drafts.csswg.org/css-overflow-3/#corner-clipping
             let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                let builder = BuilderForBoxFragment::new(&with_style, containing_block_rect.origin);
+                let builder = BuilderForBoxFragment::new(self, containing_block_rect.origin);
                 let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
                 match overflow_clip_margin.visual_box {
                     OverflowClipMarginBox::ContentBox => {
@@ -989,7 +990,7 @@ impl BoxFragment {
             .to_webrender();
 
         let clip_id = stacking_context_tree.clip_store.add(
-            BuilderForBoxFragment::new(&with_style, containing_block_rect.origin).border_radius(),
+            BuilderForBoxFragment::new(self, containing_block_rect.origin).border_radius(),
             scroll_frame_rect,
             parent_scroll_node_id,
             parent_clip_id,
@@ -1009,7 +1010,7 @@ impl BoxFragment {
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_scroll_id,
-            with_style.scrollable_overflow().to_webrender(),
+            self.scrollable_overflow().to_webrender(),
             scroll_frame_rect,
             sensitivity,
         );
@@ -1022,7 +1023,9 @@ impl BoxFragment {
             }),
         })
     }
+}
 
+impl BoxFragment {
     fn build_sticky_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
