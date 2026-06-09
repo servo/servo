@@ -273,6 +273,7 @@ impl CanvasState {
     }
 
     pub(super) fn set_image_key(&self, image_key: ImageKey) {
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::SetImageKey(image_key));
     }
 
@@ -328,7 +329,7 @@ impl CanvasState {
 
         // Step 2. Resize the output bitmap to the new width and height.
         self.size.replace(adjust_canvas_size(size));
-
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(Some(self.size.get())));
     }
 
@@ -341,7 +342,7 @@ impl CanvasState {
         }
 
         // Step 1. Clear canvas's bitmap to transparent black.
-
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(None));
     }
 
@@ -1976,6 +1977,7 @@ impl CanvasState {
 
         // Step 7.
         let snapshot = imagedata.get_snapshot_rect(Rect::new(src_rect.origin, dst_rect.size));
+        // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::PutImageData(
             dst_rect,
             snapshot.to_shared(),
