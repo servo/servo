@@ -84,7 +84,10 @@ pub(crate) fn compute_used_font_features(
         for feature_setting in font_feature_settings.0.iter() {
             add_feature(
                 Tag::from_u32(feature_setting.tag.0),
-                feature_setting.value.value() as u32,
+                feature_setting.value.resolve().expect(
+                    "The value is enforced to be resolvable at parse time \
+                    (see FontFeatureSettings::parse_for_font_face_rule).",
+                ) as u32,
             )
         }
     }

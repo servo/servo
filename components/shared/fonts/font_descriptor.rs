@@ -109,32 +109,31 @@ impl From<&Descriptors> for CSSFontFaceDescriptors {
         let weight = descriptors
             .font_weight
             .as_ref()
-            .map(|weight_range| (weight_range.0.compute(), weight_range.1.compute()));
+            .and_then(|weight_range| weight_range.0.compute().zip(weight_range.1.compute()));
 
-        let stretch_to_computed = |specified: SpecifiedFontStretch| match specified {
-            SpecifiedFontStretch::Stretch(percentage) => {
-                FontStretch::from_percentage(percentage.compute().0)
-            },
-            SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
-            SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
+        let stretch_to_computed = |specified: &SpecifiedFontStretch| {
+            Some(match specified {
+                SpecifiedFontStretch::Stretch(percentage) => {
+                    FontStretch::from_percentage(percentage.compute()?.0)
+                },
+                SpecifiedFontStretch::Keyword(keyword) => keyword.compute(),
+                SpecifiedFontStretch::System(_) => FontStretch::NORMAL,
+            })
         };
-        let stretch = descriptors.font_stretch.as_ref().map(|stretch_range| {
-            (
-                stretch_to_computed(stretch_range.0),
-                stretch_to_computed(stretch_range.1),
-            )
+        let stretch = descriptors.font_stretch.as_ref().and_then(|stretch_range| {
+            stretch_to_computed(&stretch_range.0).zip(stretch_to_computed(&stretch_range.1))
         });
 
-        fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
-            match specified {
+        fn style_to_computed(specified: &FontFaceStyle) -> Option<ComputedFontStyleDescriptor> {
+            Some(match specified {
                 FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
                 FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
-                    FixedPoint::from_float(angle_a.degrees()),
-                    FixedPoint::from_float(angle_b.degrees()),
+                    FixedPoint::from_float(angle_a.degrees()?),
+                    FixedPoint::from_float(angle_b.degrees()?),
                 ),
-            }
+            })
         }
-        let style = descriptors.font_style.as_ref().map(style_to_computed);
+        let style = descriptors.font_style.as_ref().and_then(style_to_computed);
         let unicode_range = descriptors
             .unicode_range
             .as_ref()

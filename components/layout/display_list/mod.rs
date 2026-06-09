@@ -1643,9 +1643,11 @@ impl<'a> BuilderForBoxFragment<'a> {
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            match builder.image_resolver.resolve_image(node, image) {
-                Err(_) => {},
-                Ok(ResolvedImage::Gradient(gradient)) => {
+            let Ok(resolved_image) = builder.image_resolver.resolve_image(node, image) else {
+                continue;
+            };
+            match resolved_image {
+                ResolvedImage::Gradient(_) | ResolvedImage::Color(_) => {
                     let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, state, index, intrinsic)
@@ -1658,32 +1660,43 @@ impl<'a> BuilderForBoxFragment<'a> {
                         push_stacking_context(builder, layer.blend_mode, Default::default());
                     }
 
-                    match gradient::build(style, gradient, layer.tile_size, builder) {
-                        WebRenderGradient::Linear(linear_gradient) => builder.wr().push_gradient(
-                            &layer.common,
-                            layer.bounds,
-                            linear_gradient,
-                            layer.tile_size,
-                            layer.tile_spacing,
-                        ),
-                        WebRenderGradient::Radial(radial_gradient) => {
-                            builder.wr().push_radial_gradient(
-                                &layer.common,
-                                layer.bounds,
-                                radial_gradient,
-                                layer.tile_size,
-                                layer.tile_spacing,
-                            )
+                    match resolved_image {
+                        ResolvedImage::Gradient(gradient) => {
+                            match gradient::build(style, gradient, layer.tile_size, builder) {
+                                WebRenderGradient::Linear(linear_gradient) => {
+                                    builder.wr().push_gradient(
+                                        &layer.common,
+                                        layer.bounds,
+                                        linear_gradient,
+                                        layer.tile_size,
+                                        layer.tile_spacing,
+                                    )
+                                },
+                                WebRenderGradient::Radial(radial_gradient) => {
+                                    builder.wr().push_radial_gradient(
+                                        &layer.common,
+                                        layer.bounds,
+                                        radial_gradient,
+                                        layer.tile_size,
+                                        layer.tile_spacing,
+                                    )
+                                },
+                                WebRenderGradient::Conic(conic_gradient) => {
+                                    builder.wr().push_conic_gradient(
+                                        &layer.common,
+                                        layer.bounds,
+                                        conic_gradient,
+                                        layer.tile_size,
+                                        layer.tile_spacing,
+                                    )
+                                },
+                            }
                         },
-                        WebRenderGradient::Conic(conic_gradient) => {
-                            builder.wr().push_conic_gradient(
-                                &layer.common,
-                                layer.bounds,
-                                conic_gradient,
-                                layer.tile_size,
-                                layer.tile_spacing,
-                            )
+                        ResolvedImage::Color(color) => {
+                            let color = rgba(style.resolve_color(color));
+                            builder.wr().push_rect(&layer.common, layer.bounds, color);
                         },
+                        _ => {},
                     }
 
                     if needs_blending {
@@ -1696,7 +1709,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         style.clone_opacity(),
                     );
                 },
-                Ok(ResolvedImage::Image { image, size }) => {
+                ResolvedImage::Image { image, size } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic =
@@ -2012,6 +2025,21 @@ impl<'a> BuilderForBoxFragment<'a> {
                         NinePatchBorderSource::ConicGradient(gradient)
                     },
                 }
+            },
+            Ok(ResolvedImage::Color(color)) => {
+                // NinePatchBorderSource doesn't support a lone color, so pretend that
+                // its a linear gradient.
+                let color = rgba(style.resolve_color(color));
+                let gradient = builder.wr().create_gradient(
+                    Point2D::zero(),
+                    Point2D::zero(),
+                    vec![
+                        wr::GradientStop { offset: 0.0, color },
+                        wr::GradientStop { offset: 1.0, color },
+                    ],
+                    wr::ExtendMode::Clamp,
+                );
+                NinePatchBorderSource::Gradient(gradient)
             },
         };
 

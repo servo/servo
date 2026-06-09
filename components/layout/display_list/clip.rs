@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
+
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::id::ScrollTreeNodeId;
@@ -211,19 +213,12 @@ impl StackingContextTreeClipStore {
                     .min
                     .add_size(&LayoutSize::new(anchor_x.px(), anchor_y.px()));
 
-                let radius_x = compute_shape_radius_for_ellipse_axis(
-                    center.x,
-                    &ellipse.semiaxis_x,
-                    layout_box.min.x,
-                    layout_box.max.x,
+                let radius = compute_shape_radius_for_ellipse(
+                    center,
+                    (&ellipse.semiaxis_x, &ellipse.semiaxis_y),
+                    layout_box.min,
+                    layout_box.max,
                 );
-                let radius_y = compute_shape_radius_for_ellipse_axis(
-                    center.y,
-                    &ellipse.semiaxis_y,
-                    layout_box.min.y,
-                    layout_box.max.y,
-                );
-                let radius = LayoutSize::new(radius_x, radius_y);
 
                 let radii = webrender_api::BorderRadius {
                     top_left: radius,
@@ -259,6 +254,16 @@ fn compute_shape_radius_for_circle(
             let y = distance_from_min_edge.y.min(distance_from_max_edge.y);
             x.min(y)
         },
+        GenericShapeRadius::FarthestCorner => {
+            let x = distance_from_min_edge.x.max(distance_from_max_edge.x);
+            let y = distance_from_min_edge.y.max(distance_from_max_edge.y);
+            x.hypot(y)
+        },
+        GenericShapeRadius::ClosestCorner => {
+            let x = distance_from_min_edge.x.min(distance_from_max_edge.x);
+            let y = distance_from_min_edge.y.min(distance_from_max_edge.y);
+            x.hypot(y)
+        },
         GenericShapeRadius::Length(length) => {
             // https://www.w3.org/TR/css-shapes/#direction-agnostic-size
             let size = max_edge - min_edge;
@@ -268,19 +273,50 @@ fn compute_shape_radius_for_circle(
     }
 }
 
-fn compute_shape_radius_for_ellipse_axis(
-    center: f32,
-    radius: &GenericShapeRadius<LengthPercentage>,
-    min_edge: f32,
-    max_edge: f32,
-) -> f32 {
+fn compute_shape_radius_for_ellipse(
+    center: LayoutPoint,
+    radius: (
+        &GenericShapeRadius<LengthPercentage>,
+        &GenericShapeRadius<LengthPercentage>,
+    ),
+    min_edge: LayoutPoint,
+    max_edge: LayoutPoint,
+) -> LayoutSize {
     let distance_from_min_edge = (min_edge - center).abs();
     let distance_from_max_edge = (max_edge - center).abs();
-    match radius {
-        GenericShapeRadius::FarthestSide => distance_from_min_edge.max(distance_from_max_edge),
-        GenericShapeRadius::ClosestSide => distance_from_min_edge.min(distance_from_max_edge),
+
+    // FIXME: The logic for FarthestCorner and ClosestCorner matches other browsers,
+    // but it incorrectly assumes that the ellipse's aspect ratio should be 1:1.
+    // It's also not clear what to do when only one axis is set to a corner value,
+    // see <https://github.com/w3c/csswg-drafts/issues/14010>.
+    let farthest_corner = LazyCell::new(|| {
+        let x = distance_from_min_edge.x.max(distance_from_max_edge.x);
+        let y = distance_from_min_edge.y.max(distance_from_max_edge.y);
+        x.hypot(y)
+    });
+    let closest_corner = LazyCell::new(|| {
+        let x = distance_from_min_edge.x.min(distance_from_max_edge.x);
+        let y = distance_from_min_edge.y.min(distance_from_max_edge.y);
+        x.hypot(y)
+    });
+
+    let radius_x = match radius.0 {
+        GenericShapeRadius::FarthestSide => distance_from_min_edge.x.max(distance_from_max_edge.x),
+        GenericShapeRadius::ClosestSide => distance_from_min_edge.x.min(distance_from_max_edge.x),
+        GenericShapeRadius::FarthestCorner => *farthest_corner,
+        GenericShapeRadius::ClosestCorner => *closest_corner,
         GenericShapeRadius::Length(length) => {
-            length.0.resolve(Length::new(max_edge - min_edge)).px()
+            length.0.resolve(Length::new(max_edge.x - min_edge.x)).px()
         },
-    }
+    };
+    let radius_y = match radius.1 {
+        GenericShapeRadius::FarthestSide => distance_from_min_edge.y.max(distance_from_max_edge.y),
+        GenericShapeRadius::ClosestSide => distance_from_min_edge.y.min(distance_from_max_edge.y),
+        GenericShapeRadius::FarthestCorner => *farthest_corner,
+        GenericShapeRadius::ClosestCorner => *closest_corner,
+        GenericShapeRadius::Length(length) => {
+            length.0.resolve(Length::new(max_edge.y - min_edge.y)).px()
+        },
+    };
+    LayoutSize::new(radius_x, radius_y)
 }

@@ -270,7 +270,7 @@ pub fn track_size(input: &stylo::TrackSize<stylo::LengthPercentage>) -> taffy::T
                 },
 
                 // Are these valid? Taffy doesn't support this in any case
-                stylo::TrackBreadth::Fr(_) => unreachable!(),
+                stylo::TrackBreadth::Flex(_) => unreachable!(),
                 stylo::TrackBreadth::Auto => unreachable!(),
                 stylo::TrackBreadth::MinContent => unreachable!(),
                 stylo::TrackBreadth::MaxContent => unreachable!(),
@@ -285,7 +285,7 @@ pub fn min_track(
 ) -> taffy::MinTrackSizingFunction {
     match input {
         stylo::TrackBreadth::Breadth(lp) => length_percentage(lp).into(),
-        stylo::TrackBreadth::Fr(_) => taffy::MinTrackSizingFunction::AUTO,
+        stylo::TrackBreadth::Flex(_) => taffy::MinTrackSizingFunction::AUTO,
         stylo::TrackBreadth::Auto => taffy::MinTrackSizingFunction::AUTO,
         stylo::TrackBreadth::MinContent => taffy::MinTrackSizingFunction::MIN_CONTENT,
         stylo::TrackBreadth::MaxContent => taffy::MinTrackSizingFunction::MAX_CONTENT,
@@ -298,7 +298,7 @@ pub fn max_track(
 ) -> taffy::MaxTrackSizingFunction {
     match input {
         stylo::TrackBreadth::Breadth(lp) => length_percentage(lp).into(),
-        stylo::TrackBreadth::Fr(val) => fr(*val),
+        stylo::TrackBreadth::Flex(val) => fr(val.0),
         stylo::TrackBreadth::Auto => taffy::MaxTrackSizingFunction::AUTO,
         stylo::TrackBreadth::MinContent => taffy::MaxTrackSizingFunction::MIN_CONTENT,
         stylo::TrackBreadth::MaxContent => taffy::MaxTrackSizingFunction::MAX_CONTENT,

@@ -23,6 +23,7 @@ use servo_base::id::PainterId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+use style::values::computed::color::Color;
 use style::values::computed::image::{Gradient, Image};
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
@@ -50,6 +51,7 @@ pub(crate) struct LayoutContext<'a> {
 
 pub enum ResolvedImage<'a> {
     Gradient(&'a Gradient),
+    Color(&'a Color),
     // The size is tracked explicitly as image-set images can specify their
     // natural resolution which affects the final size for raster images.
     Image {
@@ -260,6 +262,7 @@ impl ImageResolver {
             Image::CrossFade(_) => Result::Err(ResolveImageError::NotImplementedYet),
             Image::PaintWorklet(_) => Result::Err(ResolveImageError::NotImplementedYet),
             Image::Gradient(gradient) => Ok(ResolvedImage::Gradient(gradient)),
+            Image::Image(color) => Ok(ResolvedImage::Color(color)),
             Image::Url(image_url) => {
                 // FIXME: images won’t always have in intrinsic width or
                 // height when support for SVG is added, or a WebRender
