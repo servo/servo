@@ -536,9 +536,7 @@ pub(crate) struct TraversalState {
 }
 
 impl TraversalState {
-    #[inline]
-    pub(crate) fn push_box_fragment(&self, box_fragment: &Arc<BoxFragment>) -> Self {
-        let box_fragment = box_fragment.with_style();
+    pub(crate) fn push_box_fragment(&self, box_fragment: &BoxFragmentWithStyle<'_>) -> Self {
         let style = box_fragment.style();
 
         // Text decorations are not propagated to atomic inline-level descendants.
