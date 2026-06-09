@@ -21,7 +21,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 use js::context::JSContext;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
 use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
@@ -64,7 +64,10 @@ use xml5ever::serialize::TraversalScope::{
 
 use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
+use crate::dom::animation::Animation;
+use crate::dom::animations::keyframeeffect::KeyframeEffect;
 use crate::dom::attr::{Attr, is_relevant_attribute};
+use crate::dom::bindings::codegen::Bindings::AnimationBinding::AnimationMethods;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
@@ -74,6 +77,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNo
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use crate::dom::bindings::codegen::Bindings::KeyframeEffectBinding::KeyframeEffectMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SetHTMLOptions, SetHTMLUnsafeOptions,
@@ -88,6 +92,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     BooleanOrScrollIntoViewOptions, NodeOrString, TrustedHTMLOrNullIsEmptyString,
     TrustedHTMLOrString,
     TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString,
+    UnrestrictedDoubleOrKeyframeAnimationOptions, UnrestrictedDoubleOrKeyframeEffectOptions,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::domname::{
@@ -4475,6 +4480,54 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.ensure_rare_data()
             .part
             .or_init(|| DOMTokenList::new(cx, self, &local_name!("part"), None))
+    }
+
+    /// <https://drafts.csswg.org/web-animations-1/#dom-animatable-animate>
+    fn Animate(
+        &self,
+        cx: &mut JSContext,
+        keyframes: *mut JSObject,
+        options: UnrestrictedDoubleOrKeyframeAnimationOptions,
+    ) -> DomRoot<Animation> {
+        let window = self.owner_window();
+
+        // Step 1. Let target be the object on which this method was called.
+        let target = self;
+
+        // Step 2. Construct a new KeyframeEffect object effect in the relevant Realm
+        // of target by using the same procedure as the KeyframeEffect(target, keyframes, options)
+        // constructor, passing target as the target argument, and the keyframes and options arguments
+        //  as supplied.
+        //
+        // If the above procedure causes an exception to be thrown, propagate the exception and
+        // abort this procedure.
+        let parent_options = match options {
+            UnrestrictedDoubleOrKeyframeAnimationOptions::UnrestrictedDouble(value) => {
+                UnrestrictedDoubleOrKeyframeEffectOptions::UnrestrictedDouble(value)
+            },
+            UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) => {
+                UnrestrictedDoubleOrKeyframeEffectOptions::KeyframeEffectOptions(options.parent)
+            },
+        };
+        let effect =
+            KeyframeEffect::Constructor(cx, &window, None, Some(target), keyframes, parent_options);
+
+        // TODO: Step 3. If options is a KeyframeAnimationOptions object, let timeline be the timeline member of
+        // options or, if timeline member of options is missing, the default document timeline of the node document
+        // of the element on which this method was called.
+
+        // Step 4. Construct a new Animation object, animation, in the relevant Realm of target by using
+        // the same procedure as the Animation() constructor, passing effect and timeline as arguments of
+        // the same name.
+        let animation = Animation::Constructor(cx, &window, None, Some(effect.upcast()));
+
+        // TODO: Step 5. If options is a KeyframeAnimationOptions object, assign the value of the id member of options
+        // to animation’s id attribute.
+
+        // TODO: Step 6. Run the procedure to play an animation for animation with the auto-rewind flag set to true.
+
+        // Step 7. Return animation.
+        animation
     }
 }
 

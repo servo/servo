@@ -176,3 +176,6 @@ partial interface Element {
 partial interface Element {
   [CEReactions, Throws] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
 };
+
+// https://drafts.csswg.org/web-animations-1/#extensions-to-the-element-interface
+Element includes Animatable;
