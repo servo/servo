@@ -91,7 +91,8 @@ impl StackingContextTreeClipStore {
             ClipPath::Box(ShapeGeometryBox::ElementDependent) => ShapeBox::BorderBox,
             _ => return None,
         };
-        let fragment_builder = BuilderForBoxFragment::new(box_fragment, containing_block_origin);
+        let fragment = box_fragment.with_style();
+        let fragment_builder = BuilderForBoxFragment::new(&fragment, containing_block_origin);
         let layout_rect = match geometry_box {
             ShapeBox::BorderBox => fragment_builder.border_rect,
             ShapeBox::ContentBox => *fragment_builder.content_rect(),
