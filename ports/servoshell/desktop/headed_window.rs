@@ -66,7 +66,6 @@ pub struct HeadedWindow {
     /// this headed `Window`.
     gui: RefCell<Gui>,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
-    monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     /// The inner size of the window in physical pixels which excludes OS decorations.
     /// It equals viewport size + (0, toolbar height).
@@ -201,7 +200,6 @@ impl HeadedWindow {
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
-            monitor,
             screen_size,
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
@@ -926,11 +924,14 @@ impl PlatformWindow for HeadedWindow {
     }
 
     fn set_fullscreen(&self, state: bool) {
+        let monitor = self
+            .winit_window()
+            .current_monitor()
+            .or_else(|| self.winit_window.available_monitors().nth(0))
+            .expect("No monitor detected");
         if self.fullscreen.get() != state {
             self.winit_window.set_fullscreen(if state {
-                Some(winit::window::Fullscreen::Borderless(Some(
-                    self.monitor.clone(),
-                )))
+                Some(winit::window::Fullscreen::Borderless(Some(monitor.clone())))
             } else {
                 None
             });
