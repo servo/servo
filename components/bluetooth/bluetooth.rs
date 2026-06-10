@@ -22,7 +22,6 @@ use btleplug::api::{Central, CharPropFlags, Peripheral, ScanFilter, WriteType};
 use btleplug::platform::{Adapter, Peripheral as PlatformPeripheral};
 
 pub use super::adapter::BluetoothAdapter;
-use crate::macros::get_inner_and_call_test_func;
 
 #[cfg(feature = "native-bluetooth")]
 #[derive(Clone, Debug)]
@@ -472,6 +471,17 @@ impl BluetoothDevice {
     }
 
     #[cfg(feature = "bluetooth-test")]
+    fn mock(&self) -> Result<&FakeBluetoothDevice, Box<dyn Error>> {
+        match self {
+            Self::Mock(device) => Ok(device),
+            #[cfg(feature = "native-bluetooth")]
+            _ => Err(Box::from(
+                "Error! Test functions are not supported on real devices!",
+            )),
+        }
+    }
+
+    #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
         #[allow(irrefutable_let_patterns)]
         let Self::Mock(inner) = self else {
@@ -482,27 +492,27 @@ impl BluetoothDevice {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_address(&self, address: String) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_address, address)
+        self.mock()?.set_address(address)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_name(&self, name: Option<String>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_name, name)
+        self.mock()?.set_name(name)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_uuids(&self, uuids: Vec<String>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_uuids, uuids)
+        self.mock()?.set_uuids(uuids)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_connectable(&self, connectable: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_connectable, connectable)
+        self.mock()?.set_connectable(connectable)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_connected(&self, connected: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_connected, connected)
+        self.mock()?.set_connected(connected)
     }
 
     #[cfg(feature = "bluetooth-test")]
@@ -510,12 +520,7 @@ impl BluetoothDevice {
         &self,
         manufacturer_data: HashMap<u16, Vec<u8>>,
     ) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(
-            self,
-            BluetoothDevice,
-            set_manufacturer_data,
-            Some(manufacturer_data)
-        )
+        self.mock()?.set_manufacturer_data(Some(manufacturer_data))
     }
 
     #[cfg(feature = "bluetooth-test")]
@@ -523,7 +528,7 @@ impl BluetoothDevice {
         &self,
         service_data: HashMap<String, Vec<u8>>,
     ) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothDevice, set_service_data, Some(service_data))
+        self.mock()?.set_service_data(Some(service_data))
     }
 }
 
@@ -631,6 +636,17 @@ impl BluetoothGATTService {
     }
 
     #[cfg(feature = "bluetooth-test")]
+    fn mock(&self) -> Result<&FakeBluetoothGATTService, Box<dyn Error>> {
+        match self {
+            Self::Mock(service) => Ok(service),
+            #[cfg(feature = "native-bluetooth")]
+            _ => Err(Box::from(
+                "Error! Test functions are not supported on real devices!",
+            )),
+        }
+    }
+
+    #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
         #[allow(irrefutable_let_patterns)]
         let Self::Mock(inner) = self else {
@@ -641,12 +657,12 @@ impl BluetoothGATTService {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_uuid(&self, uuid: String) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTService, set_uuid, uuid)
+        self.mock()?.set_uuid(uuid)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_primary(&self, primary: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTService, set_is_primary, primary)
+        self.mock()?.set_is_primary(primary)
     }
 }
 
@@ -757,6 +773,17 @@ impl BluetoothGATTCharacteristic {
     }
 
     #[cfg(feature = "bluetooth-test")]
+    fn mock(&self) -> Result<&FakeBluetoothGATTCharacteristic, Box<dyn Error>> {
+        match self {
+            Self::Mock(characteristic) => Ok(characteristic),
+            #[cfg(feature = "native-bluetooth")]
+            _ => Err(Box::from(
+                "Error! Test functions are not supported on real devices!",
+            )),
+        }
+    }
+
+    #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
         #[allow(irrefutable_let_patterns)]
         let Self::Mock(inner) = self else {
@@ -767,17 +794,17 @@ impl BluetoothGATTCharacteristic {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_uuid(&self, uuid: String) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTCharacteristic, set_uuid, uuid)
+        self.mock()?.set_uuid(uuid)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_value(&self, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTCharacteristic, set_value, Some(value))
+        self.mock()?.set_value(Some(value))
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_flags(&self, flags: Vec<String>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTCharacteristic, set_flags, flags)
+        self.mock()?.set_flags(flags)
     }
 }
 
@@ -843,6 +870,17 @@ impl BluetoothGATTDescriptor {
     }
 
     #[cfg(feature = "bluetooth-test")]
+    fn mock(&self) -> Result<&FakeBluetoothGATTDescriptor, Box<dyn Error>> {
+        match self {
+            Self::Mock(descriptor) => Ok(descriptor),
+            #[cfg(feature = "native-bluetooth")]
+            _ => Err(Box::from(
+                "Error! Test functions are not supported on real devices!",
+            )),
+        }
+    }
+
+    #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
         #[allow(irrefutable_let_patterns)]
         let Self::Mock(inner) = self else {
@@ -853,16 +891,16 @@ impl BluetoothGATTDescriptor {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_uuid(&self, uuid: String) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTDescriptor, set_uuid, uuid)
+        self.mock()?.set_uuid(uuid)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_value(&self, value: Vec<u8>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTDescriptor, set_value, Some(value))
+        self.mock()?.set_value(Some(value))
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_flags(&self, flags: Vec<String>) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothGATTDescriptor, set_flags, flags)
+        self.mock()?.set_flags(flags)
     }
 }
