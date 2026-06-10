@@ -153,25 +153,6 @@ pub(crate) struct BoxFragment {
     pub spatial_tree_node: AtomicOptionScrollTreeNodeId,
 }
 
-/// Contains `&Arc<BoxFragment>` and dereferences to it so it can mostly
-/// be used in the same ways, except the `.style()` method is shadowed to use an existing
-/// `atomic_refcell::AtomicRef` that lives as long as `BoxFragmentWithStyle`.
-///
-/// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
-/// increments and decrements on `ArcRefCell`’s borrow counter.
-pub(crate) struct BoxFragmentWithStyle<'a> {
-    pub(crate) box_fragment: &'a Arc<BoxFragment>,
-    pub(crate) style: AtomicRef<'a, ServoArc<ComputedValues>>,
-}
-
-impl std::ops::Deref for BoxFragmentWithStyle<'_> {
-    type Target = Arc<BoxFragment>;
-
-    fn deref(&self) -> &Self::Target {
-        self.box_fragment
-    }
-}
-
 impl BoxFragment {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -547,15 +528,28 @@ impl BoxFragment {
     }
 }
 
+/// Contains `&Arc<BoxFragment>` and dereferences to it so it can mostly
+/// be used in the same ways, except the `.style()` method is shadowed to use an existing
+/// `atomic_refcell::AtomicRef` that lives as long as `BoxFragmentWithStyle`.
+///
+/// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
+/// increments and decrements on `ArcRefCell`’s borrow counter.
+pub(crate) struct BoxFragmentWithStyle<'a> {
+    pub(crate) box_fragment: &'a Arc<BoxFragment>,
+    pub(crate) style: AtomicRef<'a, ServoArc<ComputedValues>>,
+}
+
+impl std::ops::Deref for BoxFragmentWithStyle<'_> {
+    type Target = Arc<BoxFragment>;
+
+    fn deref(&self) -> &Self::Target {
+        self.box_fragment
+    }
+}
+
 impl<'a> BoxFragmentWithStyle<'a> {
     pub(crate) fn style(&self) -> &ServoArc<ComputedValues> {
         &self.style
-    }
-
-    /// Calling this is redundant, you already have a `BoxFragmentWithStyle`
-    #[expect(dead_code)]
-    pub(crate) fn with_style(&self) -> &Self {
-        self
     }
 
     /// Return the clipped scrollable overflow based on its scroll origin, determined by
