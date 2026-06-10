@@ -424,7 +424,7 @@ impl Actor for ConsoleActor {
                     timestamp: reply.timestamp,
                     result_id,
                     exception: reply.exception,
-                    exception_message: reply.exception_message.map(|message| message.into()),
+                    exception_message: reply.exception_message,
                     has_exception: reply.has_exception,
                     helper_result: reply.helper_result,
                 };
