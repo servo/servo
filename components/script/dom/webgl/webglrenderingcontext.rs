@@ -3161,12 +3161,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             if let Some(bound_object) = self.bound_draw_framebuffer.get() {
                 if bound_object.id() == framebuffer.id() {
                     self.bound_draw_framebuffer.set(None);
-                    if let Some(command) = Some(WebGLCommand::BindFramebuffer(
+                    self.send_command(WebGLCommand::BindFramebuffer(
                         framebuffer.target().unwrap(),
                         WebGLFramebufferBindingRequest::Default,
-                    )) {
-                        self.send_command(command);
-                    }
+                    ));
                 }
             }
             framebuffer.delete(Operation::Infallible)
@@ -3180,12 +3178,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             if let Some(bound_object) = self.bound_renderbuffer.get() {
                 if bound_object.id() == renderbuffer.id() {
                     self.bound_renderbuffer.set(None);
-                    if let Some(command) = Some(WebGLCommand::BindRenderbuffer(
+                    self.send_command(WebGLCommand::BindRenderbuffer(
                         constants::RENDERBUFFER,
                         None,
-                    )) {
-                        self.send_command(command);
-                    }
+                    ));
                 }
             }
             renderbuffer.delete(Operation::Infallible)
