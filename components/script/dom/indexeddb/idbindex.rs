@@ -94,8 +94,8 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
         }
 
         // Step 6: If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
-        let old_name = self.name.borrow().clone();
-        if !self.object_store.has_index(&old_name) ||
+        let mut stored_name = self.name.borrow_mut();
+        if !self.object_store.has_index(&stored_name) ||
             !transaction
                 .get_db()
                 .object_store_exists(&self.object_store.get_name())
@@ -106,7 +106,7 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
         }
 
         // Step 7: If index’s name is equal to name, terminate these steps.
-        if old_name == name {
+        if *stored_name == name {
             return Ok(());
         }
 
@@ -118,10 +118,10 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
         }
 
         // Step 9: Set index’s name to name.
-        self.object_store.rename_index(&old_name, &name);
+        self.object_store.rename_index(&stored_name, &name);
 
         // Step 10: Set this’s name to name.
-        *self.name.borrow_mut() = name;
+        *stored_name = name;
         Ok(())
     }
 

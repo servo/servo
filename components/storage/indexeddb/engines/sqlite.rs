@@ -701,13 +701,13 @@ impl KvsEngine for SqliteEngine {
     fn rename_index(
         &self,
         store_name: &str,
-        index_name: String,
-        new_name: String,
+        index_name: &str,
+        new_name: &str,
     ) -> Result<(), Self::Error> {
         let object_store = self.connection.query_row(
             "SELECT * FROM object_store WHERE name = ?",
             params![store_name.to_string()],
-            |r| Ok(object_store_model::Model::try_from(r).unwrap()),
+            |row| object_store_model::Model::try_from(row),
         )?;
 
         // Rename the index if it exists
