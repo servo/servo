@@ -54,18 +54,17 @@ impl CredentialsContainer {
         let document = global.as_window().Document();
 
         let promise = Promise::new_in_realm(cx);
-        let can_gc = CanGc::from_cx(cx);
         // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            promise.reject_error(Error::InvalidState(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
             return Ok(promise);
         }
         // Step 5. If options.signal is aborted, then return a promise rejected with options.signal’s abort reason.
         if options.signal.as_ref().is_some_and(|s| s.aborted()) {
-            promise.reject_error(Error::Abort(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::Abort(None));
             return Ok(promise);
         }
-        promise.reject_error(Error::NotSupported(None), can_gc);
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
         Ok(promise)
     }
 
@@ -81,13 +80,12 @@ impl CredentialsContainer {
         assert!(global.is_secure_context());
 
         let promise = Promise::new_in_realm(cx);
-        let can_gc = CanGc::from_cx(cx);
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !global.as_window().Document().is_fully_active() {
-            promise.reject_error(Error::InvalidState(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
             return Ok(promise);
         }
-        promise.reject_error(Error::NotSupported(None), can_gc);
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
         Ok(promise)
     }
 
@@ -106,13 +104,12 @@ impl CredentialsContainer {
         let document = global.as_window().Document();
 
         let promise = Promise::new_in_realm(cx);
-        let can_gc = CanGc::from_cx(cx);
         // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            promise.reject_error(Error::InvalidState(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
             return Ok(promise);
         }
-        promise.reject_error(Error::NotSupported(None), can_gc);
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
         Ok(promise)
     }
 }
@@ -144,7 +141,7 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<Rc<Promise>> {
         let promise = Promise::new_in_realm(cx);
-        promise.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
         Ok(promise)
     }
 }

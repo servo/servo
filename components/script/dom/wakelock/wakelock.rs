@@ -58,18 +58,18 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
 
         // Step 2. If document is not fully active, reject with NotAllowedError.
         if !document.is_fully_active() {
-            promise.reject_error(Error::NotAllowed(Some(
+            promise.reject_error_with_cx(cx, Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': The requesting page is not fully active."
-                        .to_string())), CanGc::from_cx(cx));
+                        .to_string())));
             return promise;
         }
 
         // Step 3. If document's visibility state is "hidden", reject with NotAllowedError.
         if document.VisibilityState() == DocumentVisibilityState::Hidden {
-            promise.reject_error(Error::NotAllowed(Some(
+            promise.reject_error_with_cx(cx, Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': The requesting page is not visible."
                         .to_string()
-                        )), CanGc::from_cx(cx));
+                        )));
             return promise;
         }
 
@@ -104,11 +104,11 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
         match response {
             // Step 7a. If permission is denied, reject with NotAllowedError.
             AllowOrDeny::Deny => {
-                promise.reject_error(
+                promise.reject_error_with_cx(
+                    cx,
                     Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': Permission denied.".to_string(),
                     )),
-                    can_gc,
                 );
             },
             // Step 7b-7c. Acquire the lock and resolve with a WakeLockSentinel.

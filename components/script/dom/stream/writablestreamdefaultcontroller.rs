@@ -186,7 +186,7 @@ impl Callback for TransferBackPressurePromiseReaction {
             global.disentangle_port(cx, &self.port);
 
             // Return a promise rejected with result.[[Value]].
-            self.result_promise.reject_error(error, can_gc);
+            self.result_promise.reject_error_with_cx(cx, error);
         } else {
             // Otherwise, return a promise resolved with undefined.
             self.result_promise.resolve_native(&(), can_gc);
