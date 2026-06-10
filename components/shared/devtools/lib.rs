@@ -257,6 +257,7 @@ pub struct PropertyDescriptor {
 #[serde(rename_all = "camelCase")]
 pub struct EvaluateJSReply {
     pub value: DebuggerValue,
+    pub exception_message: String,
     pub has_exception: bool,
 }
 

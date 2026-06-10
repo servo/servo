@@ -140,7 +140,7 @@ struct EvaluateJSReply {
     result: Value,
     timestamp: u64,
     exception: Value,
-    exception_message: Value,
+    exception_message: String,
     has_exception: bool,
     helper_result: Value,
 }
@@ -157,7 +157,7 @@ struct EvaluateJSEvent {
     #[serde(rename = "resultID")]
     result_id: String,
     exception: Value,
-    exception_message: Value,
+    exception_message: String,
     has_exception: bool,
     helper_result: Value,
 }
@@ -257,14 +257,26 @@ impl ConsoleActor {
 
         let eval_result = port.recv().map_err(|_| ())?;
         let has_exception = eval_result.has_exception;
-
+        let (result, exception, exception_message) = if has_exception {
+            (
+                Value::Null,
+                debugger_value_to_json(registry, eval_result.value),
+                eval_result.exception_message,
+            )
+        } else {
+            (
+                debugger_value_to_json(registry, eval_result.value),
+                Value::Null,
+                String::new(),
+            )
+        };
         let reply = EvaluateJSReply {
             from: self.name().into(),
             input,
-            result: debugger_value_to_json(registry, eval_result.value),
+            result,
             timestamp: get_time_stamp(),
-            exception: Value::Null,
-            exception_message: Value::Null,
+            exception,
+            exception_message,
             has_exception,
             helper_result: Value::Null,
         };
@@ -414,7 +426,7 @@ impl Actor for ConsoleActor {
                     timestamp: reply.timestamp,
                     result_id,
                     exception: reply.exception,
-                    exception_message: reply.exception_message,
+                    exception_message: reply.exception_message.into(),
                     has_exception: reply.has_exception,
                     helper_result: reply.helper_result,
                 };

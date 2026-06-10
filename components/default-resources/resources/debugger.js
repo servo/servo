@@ -278,6 +278,7 @@ addEventListener("eval", event => {
         resultValue = {
             completionType: "terminated",
             value: createValueGrip(undefined, 0),
+            exceptionMessage: "",
             hasException: false,
         };
     } else if ("throw" in completionValue) {
@@ -285,15 +286,18 @@ addEventListener("eval", event => {
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
         // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
+        let realError = completionValue.throw.unsafeDereference();
         resultValue = {
             completionType: "throw",
             value: createValueGrip(completionValue.throw, 0),
+            exceptionMessage: realError.message,
             hasException: true,
         };
     } else if ("return" in completionValue) {
         resultValue = {
             completionType: "return",
             value: createValueGrip(completionValue.return, 0),
+            exceptionMessage: "",
             hasException: false,
         };
     }
@@ -301,6 +305,7 @@ addEventListener("eval", event => {
     evalResult(event, {
         completionType: resultValue.completionType,
         serializedValue: JSON.stringify(resultValue.value),
+        exceptionMessage: resultValue.exceptionMessage,
         hasException: resultValue.hasException,
     });
 });
