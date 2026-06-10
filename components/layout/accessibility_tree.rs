@@ -239,9 +239,9 @@ impl AccessibilityTree {
             self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
 
-        for id in update
+        let mut ids_to_remove: Vec<NodeId> = update
             .tree_changes
-            .drain()
+            .iter()
             .filter_map(|(id, change)| match change {
                 TreeChange::PendingMove => {
                     unreachable!(
@@ -249,14 +249,24 @@ impl AccessibilityTree {
                     );
                 },
                 TreeChange::Removed => Some(id),
-                _ => None,
+                TreeChange::New => None,
+                TreeChange::Moved => None,
             })
-        {
+            .cloned()
+            .collect();
+
+        while let Some(id) = ids_to_remove.pop() {
             self.node_to_parent.remove(&id);
-            if let Some(node) = self.nodes.remove(&id) &&
-                let Some(opaque_node) = node.borrow().opaque_node
-            {
-                self.opaque_node_to_id.remove(&opaque_node);
+            if let Some(node) = self.nodes.remove(&id) {
+                let node = node.borrow();
+                if let Some(opaque_node) = node.opaque_node {
+                    self.opaque_node_to_id.remove(&opaque_node);
+                }
+                for child_id in node.children() {
+                    if !update.tree_changes.contains_key(child_id) {
+                        ids_to_remove.push(*child_id);
+                    }
+                }
             }
         }
 
@@ -430,7 +440,7 @@ impl AccessibilityNode {
         damage
     }
 
-    /// Recursively mark this subtree as having the given `TreeChange`.
+    /// Mark this subtree as having the given `TreeChange`.
     ///
     /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
     /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
@@ -452,15 +462,15 @@ impl AccessibilityNode {
             "New shouldn't be set recursively"
         );
 
-        update.set_tree_state_change(self.id, change);
-
-        for child_id in self.children().iter() {
-            let child = tree.assert_node_for_id(child_id);
-            // `new_change` might be different per node, if only some nodes were moved elsewhere.
-            child
-                .borrow()
-                .set_subtree_state_change(change, tree, update);
+        let mut parent_id = tree.parent_for_node(&self.id);
+        while let Some(id) = parent_id {
+            if let Some(ancestor_state_change) = update.get_tree_state_change(id) {
+                update.set_tree_state_change(self.id, ancestor_state_change);
+            }
+            parent_id = tree.parent_for_node(&id);
         }
+
+        update.set_tree_state_change(self.id, change);
     }
 
     /// Update this node's properties from its corresponding DOM node.
@@ -677,6 +687,10 @@ impl AccessibilityUpdate {
         self.changed_nodes.insert(node.id);
 
         node.updated = false;
+    }
+
+    fn get_tree_state_change(&self, node_id: NodeId) -> Option<TreeChange> {
+        self.tree_changes.get(&node_id).cloned()
     }
 
     fn set_tree_state_change(&mut self, node_id: NodeId, change: TreeChange) {
