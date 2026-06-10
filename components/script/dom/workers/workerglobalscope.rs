@@ -421,9 +421,14 @@ impl WorkerGlobalScope {
     }
 
     /// Clear various items when the worker event-loop shuts-down.
+    #[expect(unsafe_code)]
     pub(crate) fn clear_js_runtime(&self) {
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
+
+        // SAFETY: The runtime is destroyed after this step,
+        // nothing should be able to access the reflectors anymore.
+        unsafe { self.globalscope.release_reflector_roots() }
 
         // Drop the runtime.
         let runtime = self.runtime.borrow_mut().take();

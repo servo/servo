@@ -2467,6 +2467,7 @@ impl Window {
         self.document.get().is_some()
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn clear_js_runtime(&self) {
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
@@ -2501,6 +2502,10 @@ impl Window {
         // Callbacks may contain `Trusted` references, which are rooted and would
         // prevent the window from being GCed.
         self.pending_image_callbacks.borrow_mut().clear();
+
+        // SAFETY: This is at the end of `clear_js_runtime()`, so nothing can
+        // dereference the reflectors we unroot here.
+        unsafe { self.as_global_scope().release_reflector_roots() };
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
