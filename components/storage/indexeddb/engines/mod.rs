@@ -70,8 +70,8 @@ pub trait KvsEngine: MallocSizeOf {
     fn rename_index(
         &self,
         store_name: &str,
-        index_name: String,
-        new_name: String,
+        index_name: &str,
+        new_name: &str,
     ) -> Result<(), Self::Error>;
     fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error>;
 

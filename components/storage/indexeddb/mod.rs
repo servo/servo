@@ -623,10 +623,10 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .map_err(|err| format!("{err:?}"))
     }
 
-    fn rename_index(&self, store_name: &str, index_name: String, new_name: String) -> DbResult<()> {
+    fn rename_index(&self, store_name: &str, index_name: &str, new_name: &str) -> DbResult<()> {
         self.engine
             .rename_index(store_name, index_name, new_name)
-            .map_err(|err| format!("{err:?}"))
+            .map_err(|error| format!("{error:?}"))
     }
 
     fn delete_index(&self, store_name: &str, index_name: String) -> DbResult<()> {
@@ -2211,7 +2211,7 @@ impl IndexedDBManager {
             },
             SyncOperation::RenameIndex(origin, db_name, store_name, index_name, new_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = db.rename_index(&store_name, index_name, new_name);
+                    let _ = db.rename_index(&store_name, index_name.as_str(), new_name.as_str());
                 }
             },
             SyncOperation::DeleteIndex(origin, db_name, store_name, index_name) => {
