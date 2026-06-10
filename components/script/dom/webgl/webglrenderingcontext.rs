@@ -98,18 +98,6 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 //      zero."
 //
 // and similar text occurs for other object types.
-macro_rules! handle_object_deletion {
-    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
-        if let Some(bound_object) = $binding.get() {
-            if bound_object.id() == $object.id() {
-                $binding.set(None);
-                if let Some(command) = $unbind_command {
-                    $self_.send_command(command);
-                }
-            }
-        }
-    };
-}
 
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
@@ -3170,15 +3158,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/immersive-web/webxr/issues/855
             handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
-            handle_object_deletion!(
-                self,
-                self.bound_draw_framebuffer,
-                framebuffer,
-                Some(WebGLCommand::BindFramebuffer(
-                    framebuffer.target().unwrap(),
-                    WebGLFramebufferBindingRequest::Default
-                ))
-            );
+            if let Some(bound_object) = self.bound_draw_framebuffer.get() {
+                if bound_object.id() == framebuffer.id() {
+                    self.bound_draw_framebuffer.set(None);
+                    if let Some(command) = Some(WebGLCommand::BindFramebuffer(
+                        framebuffer.target().unwrap(),
+                        WebGLFramebufferBindingRequest::Default,
+                    )) {
+                        self.send_command(command);
+                    }
+                }
+            }
             framebuffer.delete(Operation::Infallible)
         }
     }
@@ -3187,15 +3177,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
-            handle_object_deletion!(
-                self,
-                self.bound_renderbuffer,
-                renderbuffer,
-                Some(WebGLCommand::BindRenderbuffer(
-                    constants::RENDERBUFFER,
-                    None
-                ))
-            );
+            if let Some(bound_object) = self.bound_renderbuffer.get() {
+                if bound_object.id() == renderbuffer.id() {
+                    self.bound_renderbuffer.set(None);
+                    if let Some(command) = Some(WebGLCommand::BindRenderbuffer(
+                        constants::RENDERBUFFER,
+                        None,
+                    )) {
+                        self.send_command(command);
+                    }
+                }
+            }
             renderbuffer.delete(Operation::Infallible)
         }
     }
