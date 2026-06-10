@@ -268,7 +268,7 @@ unicode-segmentation = "1.13.3"
 unicode_categories = "0.1.1"
 url = "2.5"
 urlpattern = "0.3"
-uuid = { version = "1.23.1", features = ["v4", "v5"] }
+uuid = { version = "1.23.3", features = ["v4", "v5"] }
 vello = "0.9"
 vello_cpu = "0.0.9"
 warp = "0.4.2"
