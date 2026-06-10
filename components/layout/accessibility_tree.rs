@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
+use bitflags::bitflags;
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -19,6 +20,15 @@ use style::dom::OpaqueNode;
 use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
+
+bitflags! {
+    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+    pub struct LocalDamage: u16 {
+        const SUBTREE_CHANGED = 0b0001;
+        const ROLE_CHANGED = 0b0010;
+        const TEXT_CHANGED = 0b0100;
+    }
+}
 
 /// Changes which have occurred during the current update.
 struct AccessibilityUpdate {
@@ -146,21 +156,21 @@ impl AccessibilityTree {
         node: &ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'_>,
         update: &mut AccessibilityUpdate,
-    ) -> bool {
+    ) -> LocalDamage {
         let mut node = node.borrow_mut();
+        let mut damage = LocalDamage::empty();
 
         // TODO: read accessibility damage from DOM (right now, assume damage is complete)
-        let node_updated = node.update_node_from_dom_node(dom_node);
-        let any_descendant_updated = node.update_descendants_from_dom_node(dom_node, self, update);
+        damage.insert(node.update_node_from_dom_node(dom_node));
+        damage.insert(node.update_descendants_from_dom_node(dom_node, self, update));
 
-        node.update_node_local(node_updated || any_descendant_updated, self);
+        damage.insert(node.update_node_local(damage, self));
 
         if node.updated {
             update.add(&mut node);
-            return true;
         }
 
-        any_descendant_updated
+        damage
     }
 
     fn get_or_create_node(
@@ -350,8 +360,8 @@ impl AccessibilityNode {
         dom_node: &ServoLayoutNode<'dom>,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
-    ) -> bool {
-        let mut any_descendant_updated = false;
+    ) -> LocalDamage {
+        let mut damage = LocalDamage::empty();
 
         let dom_children: Vec<ServoLayoutNode> = dom_node.flat_tree_children().collect();
         let new_children: Vec<NodeId> = dom_children
@@ -359,15 +369,20 @@ impl AccessibilityNode {
             .map(|dom_child| tree.id_for_opaque(dom_child.opaque()))
             .collect();
 
-        any_descendant_updated |= self.set_children(new_children, tree, update);
+        damage.insert(self.set_children(new_children, tree, update));
 
+        let mut damage_from_children = LocalDamage::empty();
         for dom_child in dom_children {
             let (_, child_node) = tree.get_or_create_node(&dom_child, update);
-            any_descendant_updated |=
+            let child_damage =
                 tree.update_node_and_descendants_from_dom_node(&child_node, &dom_child, update);
+            damage_from_children.insert(child_damage);
+        }
+        if !damage_from_children.is_empty() {
+            damage.insert(LocalDamage::SUBTREE_CHANGED);
         }
 
-        any_descendant_updated
+        damage
     }
 
     /// Recursively mark this subtree as having the given `TreeChange `.
@@ -404,16 +419,17 @@ impl AccessibilityNode {
     }
 
     /// Update this node's properties from its corresponding DOM node.
-    fn update_node_from_dom_node(&mut self, dom_node: &ServoLayoutNode<'_>) -> bool {
-        self.set_role(role_from_dom_node(dom_node));
+    fn update_node_from_dom_node(&mut self, dom_node: &ServoLayoutNode<'_>) -> LocalDamage {
+        let mut damage = LocalDamage::empty();
+        damage.insert(self.set_role(role_from_dom_node(dom_node)));
         if dom_node.type_id() == Some(LayoutNodeType::Text) {
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
-            self.set_value(&text_content);
+            damage.insert(self.set_value(&text_content));
         }
 
-        false
+        damage
     }
 
     /// Update this node's properties based on changes already made to the accessibility tree.
@@ -422,20 +438,21 @@ impl AccessibilityNode {
     /// If any changes are made, add this node to the given [`AccessibilityUpdate`].
     fn update_node_local(
         &mut self,
-        self_or_descendants_updated: bool,
+        damage: LocalDamage,
         tree: &mut AccessibilityTree,
-    ) -> bool {
-        if !self_or_descendants_updated {
-            return false;
+    ) -> LocalDamage {
+        let mut new_damage = LocalDamage::empty();
+        if damage.contains(LocalDamage::SUBTREE_CHANGED) ||
+            damage.contains(LocalDamage::ROLE_CHANGED)
+        {
+            if let Some(text) = self.label_from_descendants(tree) {
+                new_damage.insert(self.set_label(text.as_str()));
+            } else {
+                new_damage.insert(self.clear_label());
+            }
         }
 
-        if let Some(text) = self.label_from_descendants(tree) {
-            self.set_label(text.as_str());
-        } else {
-            self.clear_label();
-        }
-
-        false
+        new_damage
     }
 
     fn label_from_descendants(&self, tree: &AccessibilityTree) -> Option<String> {
@@ -491,9 +508,9 @@ impl AccessibilityNode {
         children: Vec<NodeId>,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
-    ) -> bool {
+    ) -> LocalDamage {
         if children == self.children() {
-            return false;
+            return LocalDamage::empty();
         }
         let old_children = self.children();
         for old_child_id in old_children {
@@ -519,39 +536,42 @@ impl AccessibilityNode {
         self.accesskit_node.set_children(children);
         self.updated = true;
 
-        true
+        LocalDamage::SUBTREE_CHANGED
     }
 
     fn role(&self) -> Role {
         self.accesskit_node.role()
     }
 
-    fn set_role(&mut self, role: Role) {
+    fn set_role(&mut self, role: Role) -> LocalDamage {
         if role == self.accesskit_node.role() {
-            return;
+            return LocalDamage::empty();
         }
         self.accesskit_node.set_role(role);
         self.updated = true;
+        LocalDamage::ROLE_CHANGED
     }
 
     fn label(&self) -> Option<&str> {
         self.accesskit_node.label()
     }
 
-    fn set_label(&mut self, label: &str) {
+    fn set_label(&mut self, label: &str) -> LocalDamage {
         if Some(label) == self.accesskit_node.label() {
-            return;
+            return LocalDamage::empty();
         }
         self.accesskit_node.set_label(label);
         self.updated = true;
+        LocalDamage::TEXT_CHANGED
     }
 
-    fn clear_label(&mut self) {
+    fn clear_label(&mut self) -> LocalDamage {
         if self.accesskit_node.label().is_none() {
-            return;
+            return LocalDamage::empty();
         }
         self.accesskit_node.clear_label();
         self.updated = true;
+        LocalDamage::TEXT_CHANGED
     }
 
     fn html_tag(&self) -> Option<&str> {
@@ -570,12 +590,13 @@ impl AccessibilityNode {
         self.accesskit_node.value()
     }
 
-    fn set_value(&mut self, value: &str) {
+    fn set_value(&mut self, value: &str) -> LocalDamage {
         if Some(value) == self.accesskit_node.value() {
-            return;
+            return LocalDamage::empty();
         }
         self.accesskit_node.set_value(value);
         self.updated = true;
+        LocalDamage::TEXT_CHANGED
     }
 }
 

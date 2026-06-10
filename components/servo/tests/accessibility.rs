@@ -360,6 +360,45 @@ fn test_accessibility_with_mutation_move_nodes() {
     assert_eq!(h2.label().as_deref(), Some("This is an h2"));
 }
 
+#[test]
+fn test_accessibility_text_change() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h1 id='h1'>This is an h1</h1>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let h1 = children[0];
+    assert_eq!(h1.role(), Role::Heading);
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "h1.firstChild.appendData(', now with more text');\
+         window.ServoTestUtils.forceAccessibilityUpdate();",
+    );
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    assert_eq!(update.nodes.len(), 2);
+    assert_eq!(update.nodes[0].1.role(), Role::TextRun);
+    assert_eq!(update.nodes[1].1.role(), Role::Heading);
+    assert_eq!(update.nodes[1].1.children().len(), 1);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let h1 = children[0];
+    assert_eq!(h1.role(), Role::Heading);
+    assert_eq!(
+        h1.label(),
+        Some("This is an h1, now with more text".to_owned())
+    );
+}
+
+
 fn build_test() -> ServoTest {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
