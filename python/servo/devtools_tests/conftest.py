@@ -114,32 +114,19 @@ def _start_web_servers(config):
             if utils.LOG_REQUESTS:
                 return super().log_message(format, *args)
 
-    def server_thread(i):
-        # There may be client sockets still open in TIME_WAIT state from previous tests, and they may stay open for
-        # some minutes. Set SO_REUSEADDR to avoid bind failure with EADDRINUSE in these cases.
-        # <https://stackoverflow.com/questions/14388706>
-        socketserver.TCPServer.allow_reuse_address = True
-
-        # Listen on all IPv4 interfaces.
-        port = utils.WEB_SERVERS[i]
-        web_server = socketserver.TCPServer((utils.SERVER_ADDRESS, port), Handler)
-
-        web_servers.append(web_server)
-        web_server.serve_forever()
+    # There may be client sockets still open in TIME_WAIT state from previous tests, and they may stay open for
+    # some minutes. Set SO_REUSEADDR to avoid bind failure with EADDRINUSE in these cases.
+    # <https://stackoverflow.com/questions/14388706>
+    socketserver.TCPServer.allow_reuse_address = True
 
     # Start a web server for the test.
-    for i in range(len(utils.WEB_SERVERS)):
-        thread = Thread(target=server_thread, args=[i])
+    for port in utils.WEB_SERVERS:
+        web_servers.append(socketserver.TCPServer((utils.SERVER_ADDRESS, port), Handler))
+
+    for server in web_servers:
+        thread = Thread(target=server.serve_forever)
         web_server_threads.append(thread)
         thread.start()
-
-    for port in utils.WEB_SERVERS:
-        for _ in range(int(CONNECTION_TIMEOUT / WAIT_BETWEEN_ATTEMPTS)):
-            try:
-                with socket.create_connection((utils.SERVER_ADDRESS, port)):
-                    break
-            except Exception:
-                time.sleep(WAIT_BETWEEN_ATTEMPTS)
 
 
 def _stop_web_servers():
