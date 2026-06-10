@@ -182,7 +182,6 @@ class TestConsoleTab:
         run_servoshell(url="data:text/html,")
 
         result = evaluate("document.head.insertBefore(document.documentElement);")
-        print(result)
         assert not result["result"]
         assert result["exception"]
         assert "Not enough arguments" in result["exceptionMessage"]
