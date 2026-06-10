@@ -9,6 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{HandleObject, Heap, JSObject};
+use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::reflect_dom_object_with_cx;
@@ -66,7 +67,6 @@ use crate::dom::webgpu::gpushadermodule::GPUShaderModule;
 use crate::dom::webgpu::gpusupportedfeatures::GPUSupportedFeatures;
 use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::dom::webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
-use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -480,10 +480,10 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
     fn CreateShaderModule(
         &self,
+        cx: &mut CurrentRealm<'_>,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
-        comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
-        GPUShaderModule::create(self, descriptor, comp, CanGc::deprecated_note())
+        GPUShaderModule::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -505,10 +505,10 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync>
     fn CreateComputePipelineAsync(
         &self,
+        cx: &mut CurrentRealm<'_>,
         descriptor: &GPUComputePipelineDescriptor,
-        comp: InRealm,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
+        let promise = Promise::new_in_realm(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -565,11 +565,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync>
     fn CreateRenderPipelineAsync(
         &self,
+        cx: &mut CurrentRealm<'_>,
         descriptor: &GPURenderPipelineDescriptor,
-        comp: InRealm,
     ) -> Fallible<Rc<Promise>> {
         let desc = self.parse_render_pipeline(descriptor)?;
-        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
+        let promise = Promise::new_in_realm(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -605,8 +605,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
-    fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
+    fn PopErrorScope(&self, cx: &mut CurrentRealm<'_>) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
         let callback = callback_promise(
             &promise,
             self,

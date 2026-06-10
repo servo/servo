@@ -6,10 +6,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
+use js::realm::CurrentRealm;
 use script_bindings::cformat;
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use script_bindings::script_runtime::CanGc;
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
@@ -29,7 +29,6 @@ use crate::dom::promise::Promise;
 use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
-use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -187,12 +186,11 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
         &self,
+        cx: &mut CurrentRealm<'_>,
         descriptor: &GPUDeviceDescriptor,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 2
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
         let callback = callback_promise(
             &promise,
             self,
@@ -203,9 +201,9 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
             } else {
-                promise.reject_error(
+                promise.reject_error_with_cx(
+                    cx,
                     Error::Type(cformat!("{} is not supported feature", ext.as_str())),
-                    can_gc,
                 );
                 return promise;
             }
@@ -216,7 +214,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(Error::Operation(None), can_gc);
+                    promise.reject_error_with_cx(cx, Error::Operation(None));
                     return promise;
                 }
             }
@@ -247,7 +245,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error(Error::Operation(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::Operation(None));
         }
         // Step 5
         promise
