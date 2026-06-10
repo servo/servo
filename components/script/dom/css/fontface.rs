@@ -364,7 +364,7 @@ impl FontFace {
             // Step 2. Otherwise, reject font face’s [[FontStatusPromise]] with a DOMException named "SyntaxError"
             // and set font face’s status attribute to "error".
             self.font_status_promise
-                .reject_error(Error::Syntax(None), CanGc::deprecated_note());
+                .reject_error_with_cx(cx, Error::Syntax(None));
             self.status.set(FontFaceLoadStatus::Error);
 
             // For each FontFaceSet font face is in:

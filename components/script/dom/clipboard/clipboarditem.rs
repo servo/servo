@@ -310,7 +310,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         }
 
         // Step 9 Reject p with "NotFoundError" DOMException in realm.
-        p.reject_error(Error::NotFound(None), CanGc::from_cx(realm));
+        p.reject_error_with_cx(realm, Error::NotFound(None));
 
         // Step 10 Return p.
         Ok(p)
