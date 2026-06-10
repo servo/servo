@@ -151,8 +151,6 @@ class AndroidTarget(CrossBuildTarget):
         ndk_configuration = self.ndk_configuration()
         android_platform = ndk_configuration["platform"]
         android_toolchain_name = ndk_configuration["toolchain_name"]
-        android_lib = ndk_configuration["lib"]
-
         android_api = android_platform.replace("android-", "")
 
         # Check if the NDK version is 28
@@ -260,15 +258,6 @@ class AndroidTarget(CrossBuildTarget):
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # The two variables set below are passed by our custom
-        # support/android/toolchain.cmake to the NDK's CMake toolchain file
-        env["ANDROID_ABI"] = android_lib
-        env["ANDROID_PLATFORM"] = android_platform
-        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
-            env["ANDROID_NDK_ROOT"], "build", "cmake", "android.toolchain.cmake"
-        )
-        env["CMAKE_TOOLCHAIN_FILE"] = path.join(topdir, "support", "android", "toolchain.cmake")
 
         # Set output dir for gradle aar files
         env["AAR_OUT_DIR"] = path.join(topdir, "target", "android", "aar")
