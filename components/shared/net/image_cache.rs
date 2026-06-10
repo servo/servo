@@ -191,6 +191,7 @@ pub trait ImageCache: Sync + Send {
         cors_setting: Option<CorsSettings>,
     ) -> Option<Image>;
 
+    /// Returns if the Image is already in the cache or not. If the Image is not yet completely decoded, we return [`ImageCacheResult::Pending`] or [`ImageCacheResult::Available`].
     fn get_cached_image_status(
         &self,
         url: ServoUrl,
