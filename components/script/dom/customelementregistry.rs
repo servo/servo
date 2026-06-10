@@ -22,7 +22,9 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use script_bindings::reflector::{
+    DomObject, Reflector, reflect_dom_object, reflect_dom_object_with_proto,
+};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
@@ -79,11 +81,17 @@ pub(crate) struct CustomElementRegistry {
     #[conditional_malloc_size_of]
     /// It is safe to use FxBuildHasher here as `LocalName` is an `Atom` in the string_cache.
     /// These get a u32 hashed instead of a string.
+    /// <https://html.spec.whatwg.org/multipage/#when-defined-promise-map>
     when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>, FxBuildHasher>>,
 
+    /// <https://html.spec.whatwg.org/multipage/#element-definition-is-running>
     element_definition_is_running: Cell<bool>,
 
+    /// <https://html.spec.whatwg.org/multipage/#is-scoped>
+    is_scoped: Cell<bool>,
+
     #[conditional_malloc_size_of]
+    /// <https://html.spec.whatwg.org/multipage/#custom-element-definition-set>
     definitions:
         DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>, FxBuildHasher>>,
 }
@@ -95,6 +103,7 @@ impl CustomElementRegistry {
             window: Dom::from_ref(window),
             when_defined: DomRefCell::new(HashMapTracedValues::new_fx()),
             element_definition_is_running: Cell::new(false),
+            is_scoped: Cell::new(false),
             definitions: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
@@ -105,6 +114,28 @@ impl CustomElementRegistry {
             window,
             can_gc,
         )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry>
+    pub(crate) fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<CustomElementRegistry> {
+        let registry = reflect_dom_object_with_proto(
+            Box::new(CustomElementRegistry::new_inherited(window)),
+            window,
+            proto,
+            can_gc,
+        );
+        // Step 1: Set this's is scoped to true.
+        registry.is_scoped.set(true);
+        registry
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#is-scoped>
+    pub(crate) fn is_scoped(&self) -> bool {
+        self.is_scoped.get()
     }
 
     /// Cleans up any active promises
@@ -169,9 +200,8 @@ impl CustomElementRegistry {
     /// <https://dom.spec.whatwg.org/#is-a-global-custom-element-registry>
     pub(crate) fn is_a_global_element_registry(registry: Option<&CustomElementRegistry>) -> bool {
         // Null or a CustomElementRegistry object registry is a global custom element registry
-        // if registry is non-null and registry’s is scoped is false.
-        // TODO: Implement scoped
-        registry.is_some()
+        // if registry is non-null and registry's is scoped is false.
+        registry.is_some_and(|r| !r.is_scoped())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
@@ -272,6 +302,15 @@ fn get_callback(
 }
 
 impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry>
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<CustomElementRegistry> {
+        CustomElementRegistry::new_with_proto(window, proto, can_gc)
+    }
+
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
@@ -332,7 +371,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Steps 5, 7
         let local_name = if let Some(ref extended_name) = *extends {
-            // TODO Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
+            // Step 7.1 If this's is scoped is true, then throw a "NotSupportedError" DOMException.
+            if self.is_scoped.get() {
+                return Err(Error::NotSupported(Some(
+                    "Scoped custom element registries cannot define customized built-in elements"
+                        .to_owned(),
+                )));
+            }
 
             // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
             if is_valid_custom_element_name(&extended_name.str()) {
@@ -466,7 +511,11 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         self.element_definition_is_running.set(false);
 
-        // Step 15: Set up the new custom element definition.
+        // Step 15: Let definition be a new custom element definition with name name,
+        // local name localName, constructor constructor, observed attributes
+        // observedAttributes, lifecycle callbacks lifecycleCallbacks,
+        // form-associated formAssociated, disable internals disableInternals,
+        // and disable shadow disableShadow.
         let definition = Rc::new(CustomElementDefinition::new(
             name.clone(),
             local_name.clone(),
@@ -478,31 +527,39 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             disable_shadow,
         ));
 
-        // Step 16: Add definition to this CustomElementRegistry.
+        // Step 16: Append definition to this's custom element definition set.
         self.definitions
             .borrow_mut()
             .insert(name.clone(), definition.clone());
 
-        // Step 17: Let document be this CustomElementRegistry's relevant global object's
-        // associated Document.
-        let document = self.window.Document();
+        // TODO Step 17: If this's is scoped is true, then for each document of
+        // this's scoped document set: upgrade particular elements within a
+        // document given this, document, definition, and localName.
+        if self.is_scoped.get() {
+            // TODO: Need implementation for scoped document set.
+        } else {
+            // Step 18: Otherwise, upgrade particular elements within a document given
+            // this, this's relevant global object's associated Document, definition,
+            // localName, and name.
+            let document = self.window.Document();
 
-        // Steps 18-19: Enqueue custom elements upgrade reaction for upgrade candidates.
-        for candidate in document
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .filter_map(DomRoot::downcast::<Element>)
-        {
-            let is = candidate.get_is();
-            if *candidate.local_name() == local_name &&
-                *candidate.namespace() == ns!(html) &&
-                (extends.is_none() || is.as_ref() == Some(&name))
+            for candidate in document
+                .upcast::<Node>()
+                .traverse_preorder(ShadowIncluding::Yes)
+                .filter_map(DomRoot::downcast::<Element>)
             {
-                ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
+                let is = candidate.get_is();
+                if *candidate.local_name() == local_name &&
+                    *candidate.namespace() == ns!(html) &&
+                    (extends.is_none() || is.as_ref() == Some(&name))
+                {
+                    ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
+                }
             }
         }
 
-        // Step 16, 16.3
+        // Step 19: If this's when-defined promise map[name] exists:
+        // Step 19.2: Remove this's when-defined promise map[name].
         let promise = self.when_defined.borrow_mut().remove(&name);
         if let Some(promise) = promise {
             rooted!(&in(cx) let mut constructor = UndefinedValue());
@@ -511,6 +568,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 constructor.handle_mut(),
                 CanGc::from_cx(cx),
             );
+            // Step 19.1: Resolve this's when-defined promise map[name] with constructor.
             promise.resolve_native_with_cx(cx, &constructor.get());
         }
         Ok(())

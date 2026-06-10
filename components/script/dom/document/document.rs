@@ -50,7 +50,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
 use script_bindings::script_runtime::JSContext;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -5412,10 +5412,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // Step 5.1. Set subtree to the negation of options["selfOnly"].
                 let subtree = (!options.selfOnly).into();
                 // Step 5.2. If options["customElementRegistry"] exists, then set registry to it.
-                let registry = options.customElementRegistry;
-                // Step 5.3. If registry’s is scoped is false and registry
-                // is not this’s custom element registry, then throw a "NotSupportedError" DOMException.
-                // TODO
+                let registry = if let Some(registry) = options.customElementRegistry {
+                    // Step 5.3. If registry's is scoped is false and registry
+                    // is not this's custom element registry, then throw a "NotSupportedError" DOMException.
+                    let this_registry = self.custom_element_registry();
+                    if !registry.is_scoped() &&
+                        !std::ptr::eq(registry.reflector(), this_registry.reflector())
+                    {
+                        return Err(Error::NotSupported(Some(
+                            "ImportNode: Custom Element Registry is not scoped".into(),
+                        )));
+                    }
+                    Some(registry)
+                } else {
+                    None
+                };
                 (subtree, registry)
             },
         };
