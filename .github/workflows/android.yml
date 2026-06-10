@@ -77,7 +77,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools platforms;android-33'
+          packages: 'tools platform-tools platforms;android-34'
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
