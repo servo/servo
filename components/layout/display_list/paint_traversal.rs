@@ -60,7 +60,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > Step 4: If root is a block-level box, paint a block’s decorations given root
         // > and canvas.
         let root_fragment = stacking_context.fragment();
-        let root_fragment = root_fragment.as_ref().map(|f| f.with_style());
+        let root_fragment = root_fragment
+            .as_ref()
+            .map(|root_fragment| root_fragment.with_style());
         if let Some(root_fragment) = &root_fragment &&
             !root_fragment.is_inline_box()
         {
