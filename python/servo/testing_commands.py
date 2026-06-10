@@ -452,7 +452,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandArgument(
         "--update-expectations",
-        "-U",
+        "-u",
         default=False,
         action="store_true",
         help="Update test expectations after test run",
