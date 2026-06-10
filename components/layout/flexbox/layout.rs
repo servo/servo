@@ -1027,7 +1027,7 @@ impl FlexContainer {
         );
         let hoisted_fragment = hoisted_box.fragment.clone();
         positioning_context.push(hoisted_box);
-        Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+        Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment)
     }
 
     #[inline]

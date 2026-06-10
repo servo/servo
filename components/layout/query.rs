@@ -420,7 +420,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
-        Fragment::AbsoluteOrFixedPositioned(_) |
+        Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
         Fragment::Image(_) |
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,

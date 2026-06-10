@@ -37,14 +37,12 @@ pub(crate) enum Fragment {
     /// float containing block formatting context.
     Float(#[conditional_malloc_size_of] Arc<BoxFragment>),
     Positioning(#[conditional_malloc_size_of] Arc<PositioningFragment>),
-    /// Absolute and fixed position fragments are hoisted up so that they
-    /// are children of the BoxFragment that establishes their containing
-    /// blocks, so that they can be laid out properly. When this happens
-    /// an `AbsoluteOrFixedPositioned` fragment is left at the original tree
-    /// position. This allows these hoisted fragments to be painted with
-    /// regard to their original tree order during stacking context tree /
-    /// display list construction.
-    AbsoluteOrFixedPositioned(ArcRefCell<HoistedSharedFragment>),
+    /// Absolute and fixed position fragments are hoisted up so that they are children of the
+    /// BoxFragment that establishes their containing blocks, so that they can be laid out properly.
+    /// When this happens an `AbsoluteOrFixedPositionedPlaceholder` fragment is left at the original
+    /// tree position. This allows these hoisted fragments to be painted with regard to their
+    /// original tree order during stacking context tree / display list construction.
+    AbsoluteOrFixedPositionedPlaceholder(ArcRefCell<HoistedSharedFragment>),
     Text(#[conditional_malloc_size_of] Arc<TextFragment>),
     Image(#[conditional_malloc_size_of] Arc<ImageFragment>),
     IFrame(#[conditional_malloc_size_of] Arc<IFrameFragment>),
@@ -102,7 +100,7 @@ impl Fragment {
         Some(match self {
             Fragment::Box(fragment) => &fragment.base,
             Fragment::Text(fragment) => &fragment.base,
-            Fragment::AbsoluteOrFixedPositioned(_) => return None,
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => return None,
             Fragment::Positioning(fragment) => &fragment.base,
             Fragment::Image(fragment) => &fragment.base,
             Fragment::IFrame(fragment) => &fragment.base,
@@ -118,7 +116,7 @@ impl Fragment {
             Fragment::Positioning(positioning_fragment) => {
                 positioning_fragment.set_containing_block(containing_block)
             },
-            Fragment::AbsoluteOrFixedPositioned(..) |
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(..) |
             Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => {},
@@ -137,7 +135,7 @@ impl Fragment {
                 fragment.print(tree);
                 tree.end_level();
             },
-            Fragment::AbsoluteOrFixedPositioned(_) => {
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
             Fragment::Positioning(fragment) => fragment.print(tree),
@@ -174,7 +172,7 @@ impl Fragment {
                 fragment.scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
-            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
             Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
@@ -205,7 +203,7 @@ impl Fragment {
             // this measurement is concerned with the actual fragments, it's quite likely that this
             // rectangle should include that.
             Fragment::Positioning(fragment) => Some(fragment.base.rect()),
-            Fragment::AbsoluteOrFixedPositioned(_) => None,
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => None,
             Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {
                 Some(self.base()?.rect())
             },
@@ -236,7 +234,7 @@ impl Fragment {
                 ))
             },
             Fragment::Text(_) |
-            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
             Fragment::Image(_) |
             Fragment::IFrame(_) => None,
         }

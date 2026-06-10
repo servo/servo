@@ -737,7 +737,7 @@ impl LineItemLayout<'_, '_> {
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);
         self.current_state.fragments.push((
-            Fragment::AbsoluteOrFixedPositioned(hoisted_fragment),
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
             LogicalRect::zero(),
         ));
     }

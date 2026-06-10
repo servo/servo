@@ -256,7 +256,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                     }
                 }
             },
-            Fragment::AbsoluteOrFixedPositioned(..) |
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(..) |
             Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => {},
@@ -333,7 +333,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                     }
                 }
             },
-            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
             Fragment::Float(..) |
             Fragment::IFrame(_) |
             Fragment::Image(_) |
@@ -356,7 +356,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 self.handler
                     .visit_text(state, containing_block, text_fragment);
             },
-            Fragment::AbsoluteOrFixedPositioned(..) | Fragment::Float(..) => {},
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(..) | Fragment::Float(..) => {},
             Fragment::Positioning(..) => {
                 unreachable!("Unexpected direct descendant PositioningContext of inline.")
             },
