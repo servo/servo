@@ -17,6 +17,24 @@ from geckordp.actors.web_console import WebConsoleActor
 from .utils import Devtools
 
 
+def evaluate(js: str, timeout: float = 1) -> dict:
+    with Devtools.connect() as devtools:
+        console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+        evaluation_result = Future()
+        result_id = ""
+
+        def on_evaluation(data):
+            assert result_id == data["resultID"]
+            evaluation_result.set_result(data)
+
+        devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+
+        evaluation_result = Future()
+        result = console.evaluate_js_async(js)
+        result_id = result["resultID"]
+        return evaluation_result.result(timeout)
+
+
 def evaluate_and_capture_console_log_output(js: str, timeout: float = 1) -> dict:
     with Devtools.connect() as devtools:
         devtools.watcher.watch_resources([Resources.CONSOLE_MESSAGE])
@@ -159,3 +177,11 @@ class TestConsoleTab:
         # We don't run any assertions on the result because we don't implement previews for the window object
         # yet. The important part is that we didn't crash and didn't time out waiting for
         # a console notification (meaning we got *something*).
+
+    def test_console_throw_exception(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate("document.head.insertBefore(document.documentElement);")
+        assert not result["result"]
+        assert result["exception"]
+        assert "Not enough arguments" in result["exceptionMessage"]
