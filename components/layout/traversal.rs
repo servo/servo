@@ -87,7 +87,6 @@ where
     }
 }
 
-#[expect(unsafe_code)]
 #[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_rebuild_box_tree(
     box_tree: &mut Option<Arc<BoxTree>>,
@@ -96,96 +95,80 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     root_node: ServoLayoutNode<'_>,
     damage_from_environment: LayoutDamage,
 ) -> LayoutDamage {
-    let layout_damage = compute_damage_and_rebuild_box_tree_inner(
+    // First process damage below the dirty root, returning the damage that
+    // should be propagated upward into the clean part of the tree.
+    let layout_damage = compute_damage_and_rebuild_box_tree_below_dirty_root(
         layout_context,
         dirty_root,
         damage_from_environment,
     );
 
+    // If there was no box tree at all at this point, a full box tree / fragment
+    // tree layout is necessary and there is no point processing any other damage.
     if box_tree.is_none() {
         *box_tree = Some(Arc::new(BoxTree::construct(layout_context, root_node)));
         return layout_damage;
     }
 
-    // There are two cases where we need to do more work:
-    //
-    // 1. Fragment tree layout needs to run again, in which case we should invalidate all
-    //    fragments to the root of the DOM.
-    // 2. Box tree reconstruction needs to run at the dirty root, in which case we need to
-    //    find an appropriate place to run box tree reconstruction and *also* invalidate all
-    //    fragments to the root of the DOM.
-    let needs_fragment_tree_rebuild = layout_damage.contains(LayoutDamage::Relayout);
-    let needs_overflow_recalculation = layout_damage.contains(LayoutDamage::RecalculateOverflow);
-    if !needs_fragment_tree_rebuild && !needs_overflow_recalculation {
-        return layout_damage;
-    }
-
-    // If the damage traversal indicated that the dirty root needs a new box, walk up the
-    // tree to find an appropriate place to run box tree reconstruction.
-    let mut needs_box_tree_rebuild = layout_damage.contains(LayoutDamage::DescendantHasBoxDamage);
-
-    let mut damage_for_ancestors = LayoutDamage::RecomputeInlineContentSizes;
-    if layout_damage.contains(LayoutDamage::LayoutAffectedByInflowDescendant) {
-        damage_for_ancestors.insert(LayoutDamage::LayoutAffectedByInflowDescendant);
-    }
-
-    let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
-    while let Some(parent_node) = maybe_parent_node {
-        // If we need box tree reconstruction, try it here.
-        if needs_box_tree_rebuild &&
-            parent_node.rebuild_box_tree_from_independent_formatting_context(layout_context)
-        {
-            needs_box_tree_rebuild = false;
-        }
-
-        if needs_box_tree_rebuild {
-            // We have not yet found a place to run box tree reconstruction, so clear this
-            // node's boxes to ensure that they are invalidated for the reconstruction we
-            // will run later.
-            parent_node.unset_all_boxes();
-        } else if needs_fragment_tree_rebuild {
-            // Reconstruction has already run or was not necessary, so we just need to
-            // ensure that fragment tree layout does not reuse any cached fragments.
-            let mut new_damage_for_ancestors = LayoutDamage::empty();
-            parent_node.with_layout_box_base_including_pseudos(|base| {
-                new_damage_for_ancestors |= base.add_damage(&ElementDamageSet::from_children(
-                    parent_node,
-                    damage_for_ancestors,
-                ));
-            });
-            damage_for_ancestors = new_damage_for_ancestors;
-
-            // If doing a fragment tree layout, we also need to apply the LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT
-            // damage flag, unless this node is out of flow. In that case our ancestors are rebuilt, but
-            // their resulting fragments should be equivalent to the previous ones.
-            if damage_for_ancestors.contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
-                parent_node.is_absolutely_positioned()
-            {
-                damage_for_ancestors.remove(LayoutDamage::LayoutAffectedByInflowDescendant);
-            }
-        } else {
-            // No fragment layout is necessary, but a descendant had scrollable overflow
-            // damage. In this case, clear any preexisting scrollable overflow so that it
-            // gets recalculated the next time it is queried.
-            assert!(needs_overflow_recalculation);
-            parent_node.with_layout_box_base_including_pseudos(|base| {
-                base.clear_scrollable_overflow_all_on_fragments();
-            });
-        }
-
-        maybe_parent_node = unsafe { parent_node.dangerous_flat_tree_parent() };
-    }
+    // Propagate the damage from the dirty part of the tree upward. In this part of
+    // the traversal no elements can add damage, but they might isolate damage being
+    // propagated upward between the dirty root and the root of the DOM.
+    let layout_damage = compute_damage_and_rebuild_box_tree_above_dirty_root(
+        layout_context,
+        dirty_root,
+        layout_damage,
+    );
 
     // We could not find a place in the middle of the tree to run box tree reconstruction,
     // so just rebuild the whole tree.
-    if needs_box_tree_rebuild {
+    if layout_damage.contains(LayoutDamage::DescendantHasBoxDamage) {
         *box_tree = Some(Arc::new(BoxTree::construct(layout_context, root_node)));
     }
 
     layout_damage
 }
 
-pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
+#[expect(unsafe_code)]
+#[servo_tracing::instrument(skip_all)]
+pub(crate) fn compute_damage_and_rebuild_box_tree_above_dirty_root(
+    layout_context: &LayoutContext,
+    dirty_root: ServoLayoutNode<'_>,
+    layout_damage: LayoutDamage,
+) -> LayoutDamage {
+    // Cases where propagating damage up the tree is necessary:
+    //
+    // 1. Box tree layout of the dirty root is necessary, in which case we
+    //    search for a place to re-run box tree layout and also invalidate
+    //    all fragments and fragment caches to the root.
+    // 2. Fragment tree layout needs to run again, in which case fragments
+    //    and fragment caches need to be invalidated.
+    // 3. Overflow is dirty, in which case overflow needs to be cleared.
+    //
+    // In every other case, just return early.
+    let needs_fragment_tree_rebuild = layout_damage.contains(LayoutDamage::Relayout);
+    let needs_overflow_recalculation = layout_damage.contains(LayoutDamage::RecalculateOverflow);
+    if !needs_fragment_tree_rebuild && !needs_overflow_recalculation {
+        return layout_damage;
+    }
+
+    let mut damage_for_parent = layout_damage;
+    let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
+    while let Some(parent_node) = maybe_parent_node {
+        let damage_set = ElementDamageSet {
+            node: parent_node,
+            from_parent: LayoutDamage::empty(),
+            on_element: LayoutDamage::empty(),
+            from_children: damage_for_parent,
+        };
+
+        damage_for_parent = damage_set.apply_damage(layout_context);
+        maybe_parent_node = unsafe { parent_node.dangerous_flat_tree_parent() };
+    }
+
+    damage_for_parent
+}
+
+pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root(
     layout_context: &LayoutContext,
     node: ServoLayoutNode<'_>,
     damage_from_parent: LayoutDamage,
@@ -265,15 +248,6 @@ pub(crate) struct ElementDamageSet<'a> {
 }
 
 impl<'a> ElementDamageSet<'a> {
-    fn from_children(node: ServoLayoutNode<'a>, from_children: LayoutDamage) -> Self {
-        Self {
-            node,
-            from_parent: LayoutDamage::empty(),
-            on_element: LayoutDamage::empty(),
-            from_children,
-        }
-    }
-
     /// Given the damage on the element and damage from parents, determine which damage
     /// should be passed to children, returning that value.
     fn isolate_incoming_damage(&mut self) -> LayoutDamage {
@@ -323,7 +297,7 @@ impl<'a> ElementDamageSet<'a> {
         {
             for child in self.node.flat_tree_children() {
                 if child.is_element() {
-                    self.from_children |= compute_damage_and_rebuild_box_tree_inner(
+                    self.from_children |= compute_damage_and_rebuild_box_tree_below_dirty_root(
                         layout_context,
                         child,
                         damage_for_children,
@@ -341,7 +315,7 @@ impl<'a> ElementDamageSet<'a> {
         // `LayoutBoxBase::add_damage` return value.
         let forwarded_damage = (self.from_parent | self.on_element | self.from_children)
             .only_layout_modes() |
-            (self.from_children | LayoutDamage::LayoutAffectedByInflowDescendant);
+            (self.from_children & LayoutDamage::LayoutAffectedByInflowDescendant);
 
         let invalidate_for_rebuild = || {
             self.node.unset_all_boxes();
