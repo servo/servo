@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
     WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUComputePipelineResponse,
@@ -23,7 +24,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUComputePipeline {
@@ -74,20 +74,20 @@ impl GPUComputePipeline {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
         device: &GPUDevice,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUComputePipeline::new_inherited(
                 compute_pipeline,
                 label,
                 device,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -141,7 +141,11 @@ impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>
-    fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
+    fn GetBindGroupLayout(
+        &self,
+        cx: &mut JSContext,
+        index: u32,
+    ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
         let id = self.global().wgpu_id_hub().create_bind_group_layout_id();
 
         if let Err(e) = self
@@ -159,11 +163,11 @@ impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
         }
 
         Ok(GPUBindGroupLayout::new(
+            cx,
             &self.global(),
             self.droppable.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
-            CanGc::deprecated_note(),
         ))
     }
 }

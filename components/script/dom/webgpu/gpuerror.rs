@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use webgpu_traits::{Error, ErrorFilter};
 
 use crate::conversions::Convert;
@@ -13,7 +14,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{GPUInternalError, GPUOutOfMemoryError, GPUValidationError};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUError {
@@ -30,43 +30,51 @@ impl GPUError {
     }
 
     #[expect(dead_code)]
-    pub(crate) fn new(global: &GlobalScope, message: DOMString, can_gc: CanGc) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, message, can_gc)
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        message: DOMString,
+    ) -> DomRoot<Self> {
+        Self::new_with_proto(cx, global, None, message)
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(GPUError::new_inherited(message)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
-    pub(crate) fn from_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn from_error(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        error: Error,
+    ) -> DomRoot<Self> {
         match error {
             Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
+                cx,
                 global,
                 None,
                 msg.into(),
-                can_gc,
             )),
             Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
+                cx,
                 global,
                 None,
                 msg.into(),
-                can_gc,
             )),
             Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
+                cx,
                 global,
                 None,
                 msg.into(),
-                can_gc,
             )),
         }
     }

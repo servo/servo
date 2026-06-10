@@ -5,8 +5,9 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 use wgpu_core::binding_model::BindGroupLayoutDescriptor;
 
@@ -21,7 +22,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
 use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroupLayout {
@@ -70,20 +70,20 @@ impl GPUBindGroupLayout {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
         label: USVString,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUBindGroupLayout::new_inherited(
                 channel,
                 bind_group_layout,
                 label,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -95,9 +95,9 @@ impl GPUBindGroupLayout {
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
     pub(crate) fn create(
+        cx: &mut JSContext,
         device: &GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
         let entries = descriptor
             .entries
@@ -130,11 +130,11 @@ impl GPUBindGroupLayout {
         let bgl = WebGPUBindGroupLayout(bind_group_layout_id);
 
         Ok(GPUBindGroupLayout::new(
+            cx,
             &device.global(),
             device.channel(),
             bgl,
             descriptor.parent.label.clone(),
-            can_gc,
         ))
     }
 }

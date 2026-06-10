@@ -4,7 +4,8 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::script_runtime::CanGc;
 use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
@@ -12,7 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::GPUCompilationMessage;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub(crate) struct GPUCompilationInfo {
@@ -30,27 +31,22 @@ impl GPUCompilationInfo {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         msg: Vec<DomRoot<GPUCompilationMessage>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(msg)), global, None, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(msg)), global, None, cx)
     }
 
     pub(crate) fn from(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         error: Option<ShaderCompilationInfo>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new(
-            global,
-            if let Some(error) = error {
-                vec![GPUCompilationMessage::from(global, error, can_gc)]
-            } else {
-                Vec::new()
-            },
-            can_gc,
-        )
+        let msg = error
+            .map(|error| vec![GPUCompilationMessage::from(cx, global, error)])
+            .unwrap_or_default();
+        Self::new(cx, global, msg)
     }
 }
 

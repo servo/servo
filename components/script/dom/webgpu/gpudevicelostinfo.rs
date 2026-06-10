@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUDeviceLostInfoMethods, GPUDeviceLostReason,
@@ -11,7 +12,6 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUDeviceLostInfo {

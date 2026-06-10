@@ -338,8 +338,7 @@ impl HTMLCanvasElement {
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let context =
-                    GPUCanvasContext::new(&global_scope, self, channel, CanGc::from_cx(cx));
+                let context = GPUCanvasContext::new(cx, &global_scope, self, channel);
                 self.set_rendering_context(|| RenderingContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })

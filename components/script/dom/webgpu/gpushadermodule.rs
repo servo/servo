@@ -5,8 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
@@ -20,9 +22,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUDevice;
-use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUShaderModule {
@@ -75,14 +75,14 @@ impl GPUShaderModule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
         promise: Rc<Promise>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUShaderModule::new_inherited(
                 channel,
                 shader_module,
@@ -90,7 +90,7 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -102,20 +102,19 @@ impl GPUShaderModule {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
     pub(crate) fn create(
+        cx: &mut CurrentRealm<'_>,
         device: &GPUDevice,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> DomRoot<GPUShaderModule> {
         let program_id = device.global().wgpu_id_hub().create_shader_module_id();
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
         let shader_module = GPUShaderModule::new(
+            cx,
             &device.global(),
             device.channel(),
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),
-            can_gc,
         );
         let callback = callback_promise(
             &promise,
@@ -164,7 +163,7 @@ impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
         response: Option<ShaderCompilationInfo>,
         promise: &Rc<Promise>,
     ) {
-        let info = GPUCompilationInfo::from(&self.global(), response, CanGc::from_cx(cx));
+        let info = GPUCompilationInfo::from(cx, &self.global(), response);
         promise.resolve_native_with_cx(cx, &info);
     }
 }
