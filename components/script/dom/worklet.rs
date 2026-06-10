@@ -751,10 +751,16 @@ impl WorkletThread {
     }
 
     /// Process a control message.
+    #[expect(unsafe_code)]
     fn process_control(&mut self, control: WorkletControl, cx: &mut js::context::JSContext) {
         match control {
             WorkletControl::ExitWorklet(worklet_id) => {
-                self.global_scopes.remove(&worklet_id);
+                if let Some(global) = self.global_scopes.remove(&worklet_id) {
+                    // SAFETY: The worklet has exited. Tasks arriving for it after this
+                    // point can't find the worklet_id in `global_scopes` and are dropped,
+                    // so nothing can dereference the reflectors we unroot here.
+                    unsafe { global.upcast::<GlobalScope>().release_reflector_roots() };
+                }
             },
             WorkletControl::FetchAndInvokeAWorkletScript {
                 webview_id,
