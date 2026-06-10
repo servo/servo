@@ -3149,14 +3149,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/immersive-web/webxr/issues/855
             handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
-            if let Some(bound_object) = self.bound_draw_framebuffer.get() {
-                if bound_object.id() == framebuffer.id() {
-                    self.bound_draw_framebuffer.set(None);
-                    self.send_command(WebGLCommand::BindFramebuffer(
-                        framebuffer.target().unwrap(),
-                        WebGLFramebufferBindingRequest::Default,
-                    ));
-                }
+            if let Some(bound_object) = self.bound_draw_framebuffer.get() &&
+                bound_object.id() == framebuffer.id()
+            {
+                self.bound_draw_framebuffer.set(None);
+                self.send_command(WebGLCommand::BindFramebuffer(
+                    framebuffer.target().unwrap(),
+                    WebGLFramebufferBindingRequest::Default,
+                ));
             }
             framebuffer.delete(Operation::Infallible)
         }
@@ -3166,14 +3166,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
-            if let Some(bound_object) = self.bound_renderbuffer.get() {
-                if bound_object.id() == renderbuffer.id() {
-                    self.bound_renderbuffer.set(None);
-                    self.send_command(WebGLCommand::BindRenderbuffer(
-                        constants::RENDERBUFFER,
-                        None,
-                    ));
-                }
+            if let Some(bound_object) = self.bound_renderbuffer.get() &&
+                bound_object.id() == renderbuffer.id()
+            {
+                self.bound_renderbuffer.set(None);
+                self.send_command(WebGLCommand::BindRenderbuffer(
+                    constants::RENDERBUFFER,
+                    None,
+                ));
             }
             renderbuffer.delete(Operation::Infallible)
         }
