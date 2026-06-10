@@ -90,15 +90,6 @@ use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-// From the GLES 2.0.25 spec, page 85:
-//
-//     "If a texture that is currently bound to one of the targets
-//      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
-//      BindTexture had been executed with the same target and texture
-//      zero."
-//
-// and similar text occurs for other object types.
-
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
         (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
