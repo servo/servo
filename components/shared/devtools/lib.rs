@@ -681,6 +681,7 @@ pub struct FrameInfo {
     pub display_name: Option<String>,
     pub on_stack: bool,
     pub oldest: bool,
+    pub this_value: DebuggerValue,
     pub terminated: bool,
     pub type_: String,
     pub url: String,
@@ -691,6 +692,7 @@ pub struct EnvironmentInfo {
     pub type_: Option<String>,
     pub scope_kind: Option<String>,
     pub function_display_name: Option<String>,
+    pub object: Option<DebuggerValue>,
     pub binding_variables: Vec<PropertyDescriptor>,
 }
 
