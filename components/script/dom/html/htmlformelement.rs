@@ -1248,7 +1248,12 @@ impl HTMLFormElement {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
-                        data_set.append(&mut input.form_datums(submitter, encoding));
+                        let (ref mut form_datums, should_continue) =
+                            input.form_datums(submitter, encoding);
+                        data_set.append(form_datums);
+                        if should_continue {
+                            continue;
+                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -1288,22 +1293,27 @@ impl HTMLFormElement {
                 }
             }
 
-            // Step: 5.13. Add an entry if element has dirname attribute
-            // An element can only have a dirname attribute if it is a textarea element
-            // or an input element whose type attribute is in either the Text state or the Search state
+            // Step: 5.11.1 Let dirname be the value of the element's dirname attribute.
             let child_element = child.downcast::<Element>().unwrap();
-            let input_matches = child_element
-                .downcast::<HTMLInputElement>()
-                .is_some_and(|input| {
-                    matches!(
-                        *input.input_type(),
-                        InputType::Text(_) | InputType::Search(_)
-                    )
-                });
-            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
-            if (input_matches || textarea_matches) && !dirname.is_empty() {
+
+            // Step: 5.11. If the element has a dirname attribute, that attribute's value is not the empty
+            // string, and the element is an auto-directionality form-associated element:
+            // From: <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+            // Input elements whose type attribute is in the Hidden, Text, Search, Telephone, URL, Email,
+            // Password, Submit Button, Reset Button, or Button state, and textarea elements.
+            let is_input_auto_directionality_form_associated_element = child_element
+                .downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.is_auto_directionality_form_associated_element());
+            let is_textarea_element = child_element.is::<HTMLTextAreaElement>();
+            if !dirname.is_empty() &&
+                (is_input_auto_directionality_form_associated_element || is_textarea_element)
+            {
+                // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
+                // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
                 let dir = DOMString::from(child_element.directionality());
+
+                // Step: 5.11.3 Create an entry with dirname and dir, and append it to entry list.
                 data_set.push(FormDatum {
                     ty: DOMString::from("string"),
                     name: dirname,

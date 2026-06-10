@@ -330,6 +330,23 @@ impl HTMLInputElement {
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+    pub(crate) fn is_auto_directionality_form_associated_element(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Hidden(_) |
+                InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Submit(_) |
+                InputType::Reset(_) |
+                InputType::Button(_)
+        )
+    }
+
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             *self.input_type(),
@@ -1593,32 +1610,56 @@ impl HTMLInputElement {
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-    ) -> Vec<FormDatum> {
-        // 3.1: disabled state check is in get_unclean_dataset
-
-        // Step 5.2
+    ) -> (Vec<FormDatum>, bool) {
         let ty = self.Type();
-
-        // Step 5.4
         let name = self.Name();
         let is_submitter = match submitter {
             Some(FormSubmitterElement::Input(s)) => self == s,
             _ => false,
         };
 
+        // 5.1: disabled state check is in get_unclean_dataset
         match *self.input_type() {
             // Step 5.1: it's a button but it is not submitter.
             InputType::Submit(_) | InputType::Button(_) | InputType::Reset(_) if !is_submitter => {
-                return vec![];
+                return (vec![], true);
             },
 
             // Step 5.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
-            InputType::Radio(_) | InputType::Checkbox(_) => {
-                if !self.Checked() || name.is_empty() {
-                    return vec![];
-                }
+            InputType::Radio(_) | InputType::Checkbox(_) if !self.Checked() => {
+                return (vec![], true);
             },
 
+            // Step 5.2: If the field element is an input element whose type attribute is in the Image Button state:
+            InputType::Image(_) => return (vec![], true), // Unimplemented
+
+            // Step 5.4: If either the field element does not have a name attribute specified, or its name attribute's value is the empty string, then continue.
+            _ => {
+                if name.is_empty() {
+                    return (vec![], true);
+                }
+            },
+        }
+
+        let datums = match *self.input_type() {
+            // Step 5.7: Otherwise, if the field element is an input element whose type attribute is in the Checkbox state or the Radio Button state:
+            InputType::Checkbox(_) | InputType::Radio(_) => {
+                // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
+                let field_value = self.Value();
+                let value = if field_value.is_empty() {
+                    DOMString::from("on")
+                } else {
+                    field_value
+                };
+                // Step 5.7.2: Create an entry with name and value, and append it to entry list.
+                vec![FormDatum {
+                    ty,
+                    name,
+                    value: FormDatumValue::String(value),
+                }]
+            },
+
+            // Step 5.8: Otherwise, if the field element is an input element whose type attribute is in the File Upload state:
             InputType::File(_) => {
                 let mut datums = vec![];
 
@@ -1626,15 +1667,7 @@ impl HTMLInputElement {
                 let name = self.Name();
 
                 match self.GetFiles() {
-                    Some(fl) => {
-                        for f in fl.iter_files() {
-                            datums.push(FormDatum {
-                                ty: ty.clone(),
-                                name: name.clone(),
-                                value: FormDatumValue::File(DomRoot::from_ref(f)),
-                            });
-                        }
-                    },
+                    // Step 5.8.1: If there are no selected files, then create an entry with name and a new File object with an empty name, application/octet-stream as type, and an empty body, and append it to entry list.
                     None => {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
@@ -1644,41 +1677,44 @@ impl HTMLInputElement {
                             value: FormDatumValue::String(DOMString::from("")),
                         })
                     },
+                    // Step 5.8.2: Otherwise, for each file in selected files, create an entry with name and a File object representing the file, and append it to entry list.
+                    Some(fl) => {
+                        for f in fl.iter_files() {
+                            datums.push(FormDatum {
+                                ty: ty.clone(),
+                                name: name.clone(),
+                                value: FormDatumValue::File(DomRoot::from_ref(f)),
+                            });
+                        }
+                    },
                 }
 
-                return datums;
+                datums
             },
 
-            InputType::Image(_) => return vec![], // Unimplemented
-
-            // Step 5.10: it's a hidden field named _charset_
-            InputType::Hidden(_) => {
-                if name.to_ascii_lowercase() == "_charset_" {
-                    return vec![FormDatum {
-                        ty,
-                        name,
-                        value: FormDatumValue::String(match encoding {
-                            None => DOMString::from("UTF-8"),
-                            Some(enc) => DOMString::from(enc.name()),
-                        }),
-                    }];
-                }
+            // Step 5.9: Otherwise, if the field element is an input element whose type attribute is in the Hidden state and name is an ASCII case-insensitive match for "_charset_":
+            InputType::Hidden(_) if name.to_ascii_lowercase() == "_charset_" => {
+                // Step 5.9.1: Let charset be the name of encoding.
+                let charset = match encoding {
+                    None => DOMString::from("UTF-8"),
+                    Some(enc) => DOMString::from(enc.name()),
+                };
+                // Step 5.9.2: Create an entry with name and charset, and append it to entry list.
+                vec![FormDatum {
+                    ty,
+                    name,
+                    value: FormDatumValue::String(charset),
+                }]
             },
 
-            // Step 5.1: it's not the "Image Button" and doesn't have a name attribute.
-            _ => {
-                if name.is_empty() {
-                    return vec![];
-                }
-            },
-        }
-
-        // Step 5.12
-        vec![FormDatum {
-            ty,
-            name,
-            value: FormDatumValue::String(self.Value()),
-        }]
+            // Step 5.10: Otherwise, create an entry with name and the value of the field element, and append it to entry list.
+            _ => vec![FormDatum {
+                ty,
+                name,
+                value: FormDatumValue::String(self.Value()),
+            }],
+        };
+        (datums, false)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-group>
