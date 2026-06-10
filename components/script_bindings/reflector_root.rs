@@ -82,6 +82,18 @@ impl ReflectorRoot {
         root
     }
 
+    /// Returns a handle to the rooted value, or `None` if the root has
+    /// already been released via [`WeakReflectorRoot::release`].
+    #[expect(unsafe_code)]
+    pub fn get(&self) -> Option<HandleValue<'_>> {
+        if !self.inner.rooted.get() {
+            return None;
+        }
+        // SAFETY: The value is rooted (checked above), always holds a valid
+        // `JSVal`.
+        Some(unsafe { HandleValue::from_raw(self.inner.value.handle()) })
+    }
+
     /// Returns a weak reference to this ReflectorRoot.
     pub fn get_weak(&self) -> WeakReflectorRoot {
         WeakReflectorRoot(Rc::downgrade(&self.inner))

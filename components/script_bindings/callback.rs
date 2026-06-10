@@ -4,11 +4,10 @@
 
 //! Base classes to work with IDL callbacks.
 
-use std::default::Default;
 use std::ffi::CStr;
 use std::rc::Rc;
 
-use js::jsapi::{Heap, IsCallable, JSObject};
+use js::jsapi::{IsCallable, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers2::{EnterRealm, JS_GetProperty, JS_WrapObject, LeaveRealm};
 use js::rust::{HandleObject, MutableHandleValue};
@@ -55,11 +54,8 @@ pub enum ExceptionHandling {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct CallbackObject<D: DomTypes> {
-    /// The underlying `JSObject`.
-    #[ignore_malloc_size_of = "measured by mozjs"]
-    callback: Heap<*mut JSObject>,
-    /// Holds this callback's reflector root (after `init()`).
-    /// This acts like a perma-root, but can be manually unrooted.
+    /// Holds the underlying `JSObject` (after `init()`.
+    /// This acts like a perma-root, but can be manually unrooted on global teardown.
     root: Option<ReflectorRoot>,
 
     /// The ["callback context"], that is, the global to use as incumbent
@@ -81,19 +77,23 @@ impl<D: DomTypes> CallbackObject<D> {
     #[allow(clippy::new_without_default)]
     fn new() -> Self {
         Self {
-            callback: Heap::default(),
             root: None,
             incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
+    /// Returns the underlying `JSObject`, or null before `init()` and after
+    /// the root has been released on global teardown.
     pub fn get(&self) -> *mut JSObject {
-        self.callback.get()
+        self.root
+            .as_ref()
+            .and_then(|root| root.get())
+            .and_then(|value| value.is_object().then(|| value.to_object()))
+            .unwrap_or_else(std::ptr::null_mut)
     }
 
     #[expect(unsafe_code)]
     unsafe fn init(&mut self, mut cx: JSContext, callback: *mut JSObject) {
-        self.callback.set(callback);
         let root = ReflectorRoot::new(&mut cx, ObjectValue(callback), c"CallbackObject::root");
         unsafe { D::GlobalScope::from_object(callback) }.register_reflector_root(root.get_weak());
         self.root = Some(root);
@@ -102,7 +102,7 @@ impl<D: DomTypes> CallbackObject<D> {
 
 impl<D: DomTypes> PartialEq for CallbackObject<D> {
     fn eq(&self, other: &CallbackObject<D>) -> bool {
-        self.callback.get() == other.callback.get()
+        self.get() == other.get()
     }
 }
 
