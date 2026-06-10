@@ -9,7 +9,7 @@
 mod actions;
 mod capabilities;
 mod script_argument_extraction;
-mod server;
+
 mod session;
 mod timeout;
 mod user_prompt;
@@ -43,7 +43,6 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use server::{Session, SessionTeardownKind, WebDriverHandler};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_config::prefs::{self, PrefValue, Preferences};
@@ -73,10 +72,11 @@ use webdriver::response::{
     CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
     NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
+use webdriver::server::{Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
-use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
+use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
 /// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
 /// 2^53 - 1
@@ -146,7 +146,7 @@ pub fn start_server(
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match server::start(
+            match webdriver::server::start(
                 SocketAddr::V4(address),
                 vec![],
                 vec![],
@@ -1944,14 +1944,10 @@ impl Handler {
     fn handle_get_timeouts(&mut self) -> WebDriverResult<WebDriverResponse> {
         let timeouts = self.session()?.session_timeouts();
 
-        // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
-        // only supports setting `script` as null. When set to null, report these values as being the
-        // default ones for now.
-        // Waiting for version bump together with geckodriver.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
-            page_load: timeouts.page_load.unwrap_or(DEFAULT_PAGE_LOAD_TIMEOUT),
-            implicit: timeouts.implicit_wait.unwrap_or(DEFAULT_IMPLICIT_WAIT),
+            page_load: timeouts.page_load,
+            implicit: timeouts.implicit_wait,
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -1968,10 +1964,10 @@ impl Handler {
             session.session_timeouts_mut().script = timeout;
         }
         if let Some(timeout) = parameters.page_load {
-            session.session_timeouts_mut().page_load = Some(timeout);
+            session.session_timeouts_mut().page_load = timeout;
         }
         if let Some(timeout) = parameters.implicit {
-            session.session_timeouts_mut().implicit_wait = Some(timeout);
+            session.session_timeouts_mut().implicit_wait = timeout;
         }
 
         Ok(WebDriverResponse::Void)

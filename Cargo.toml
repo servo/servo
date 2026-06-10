@@ -122,7 +122,6 @@ hkdf = "0.13"
 html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
-http02 = { package = "http", version = "0.2" }
 httparse = "1.9"
 hyper = "1.10"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
@@ -273,7 +272,7 @@ vello = "0.9"
 vello_cpu = "0.0.9"
 warp = "0.4.2"
 web_atoms = "0.2.4"
-webdriver = { version = "0.53.0", default-features = false }
+webdriver = { version = "0.54.0" }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
