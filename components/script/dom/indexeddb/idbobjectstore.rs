@@ -600,6 +600,7 @@ impl IDBObjectStore {
         self.index_set.borrow().contains_key(name)
     }
 
+    /// The caller must ensure that the original index exists.
     pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
         let rename_index_operation = SyncOperation::RenameIndex(
             self.global().origin().immutable().clone(),

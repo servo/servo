@@ -76,8 +76,12 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
 
     /// <https://www.w3.org/TR/IndexedDB/#ref-for-dom-idbindex-name%E2%91%A2>
     fn SetName(&self, name: DOMString) -> ErrorResult {
+        // Step 1: Let name be the given value.
         // Step 2: Let transaction be this’s transaction.
         let transaction = self.object_store.transaction();
+
+        // Step 3: Let index be this’s index.
+        // We do not have an explicit object representing the underlying index.
 
         // Step 4: If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if transaction.get_mode() != IDBTransactionMode::Versionchange {
