@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 use std::num::NonZeroU64;
 
+use js::context::JSContext;
 use webgpu_traits::WebGPUTextureView;
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command as wgpu_com;
@@ -703,39 +704,39 @@ impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
     }
 }
 
-impl Convert<WebGPUTextureView> for &GPUTextureOrGPUTextureView {
-    fn convert(self) -> WebGPUTextureView {
-        match self {
-            GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
-            GPUTextureOrGPUTextureView::GPUTexture(texture) => texture.get_default_view(),
-        }
+pub(crate) fn convert_texture_for_wgpu_with_cx(
+    cx: &mut JSContext,
+    texture_view: &GPUTextureOrGPUTextureView,
+) -> WebGPUTextureView {
+    match texture_view {
+        GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
+        GPUTextureOrGPUTextureView::GPUTexture(texture) => texture.get_default_view(cx),
     }
 }
 
-impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
-    fn convert(self) -> BindGroupEntry<'a> {
-        BindGroupEntry {
-            binding: self.binding,
-            resource: match self.resource {
-                GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
-                GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
-                GPUBindingResource::GPUTexture(ref t) => {
-                    BindingResource::TextureView(t.get_default_view().0)
-                },
-                GPUBindingResource::GPUBufferBinding(ref b) => {
-                    BindingResource::Buffer(BufferBinding {
-                        buffer: b.buffer.id().0,
-                        offset: b.offset,
-                        size: b.size,
-                    })
-                },
-                GPUBindingResource::GPUBuffer(ref b) => BindingResource::Buffer(BufferBinding {
-                    buffer: b.id().0,
-                    offset: 0,
-                    size: None,
-                }),
+pub(crate) fn convert_bind_group_entry<'a>(
+    cx: &mut JSContext,
+    bind_group: &GPUBindGroupEntry,
+) -> BindGroupEntry<'a> {
+    BindGroupEntry {
+        binding: bind_group.binding,
+        resource: match bind_group.resource {
+            GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
+            GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
+            GPUBindingResource::GPUTexture(ref t) => {
+                BindingResource::TextureView(t.get_default_view(cx).0)
             },
-        }
+            GPUBindingResource::GPUBufferBinding(ref b) => BindingResource::Buffer(BufferBinding {
+                buffer: b.buffer.id().0,
+                offset: b.offset,
+                size: b.size,
+            }),
+            GPUBindingResource::GPUBuffer(ref b) => BindingResource::Buffer(BufferBinding {
+                buffer: b.id().0,
+                offset: 0,
+                size: None,
+            }),
+        },
     }
 }
 

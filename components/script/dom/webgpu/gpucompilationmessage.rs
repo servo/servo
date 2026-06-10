@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -12,7 +13,6 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUCompilationMessage {
@@ -47,6 +47,7 @@ impl GPUCompilationMessage {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         message: DOMString,
         mtype: GPUCompilationMessageType,
@@ -54,23 +55,23 @@ impl GPUCompilationMessage {
         line_pos: u64,
         offset: u64,
         length: u64,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn from(
+        cx: &mut JSContext,
         global: &GlobalScope,
         info: ShaderCompilationInfo,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         GPUCompilationMessage::new(
+            cx,
             global,
             info.message.into(),
             GPUCompilationMessageType::Error,
@@ -78,7 +79,6 @@ impl GPUCompilationMessage {
             info.line_pos,
             info.offset,
             info.length,
-            can_gc,
         )
     }
 }

@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUAdapterInfo {
@@ -47,6 +47,7 @@ impl GPUAdapterInfo {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         vendor: DOMString,
         architecture: DOMString,
@@ -55,9 +56,8 @@ impl GPUAdapterInfo {
         subgroup_min_size: u32,
         subgroup_max_size: u32,
         is_fallback_adapter: bool,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 vendor,
                 architecture,
@@ -68,16 +68,17 @@ impl GPUAdapterInfo {
                 is_fallback_adapter,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn clone_from(
+        cx: &mut JSContext,
         global: &GlobalScope,
         info: &GPUAdapterInfo,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         Self::new(
+            cx,
             global,
             info.vendor.clone(),
             info.architecture.clone(),
@@ -86,7 +87,6 @@ impl GPUAdapterInfo {
             info.subgroup_min_size,
             info.subgroup_max_size,
             info.is_fallback_adapter,
-            can_gc,
         )
     }
 }

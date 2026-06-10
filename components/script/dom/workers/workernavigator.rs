@@ -127,9 +127,8 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
-    fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu
-            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
+    fn Gpu(&self, cx: &mut js::context::JSContext) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

@@ -114,6 +114,13 @@ impl Promise {
         Promise::new_with_js_promise(obj.handle(), cx)
     }
 
+    pub(crate) fn new_in_current_realm2(cx: &mut JSContext, _comp: InRealm) -> Rc<Promise> {
+        let cx2 = GlobalScope::get_cx();
+        rooted!(in(*cx2) let mut obj = ptr::null_mut::<JSObject>());
+        Promise::create_js_promise(cx2, obj.handle_mut(), CanGc::from_cx(cx));
+        Promise::new_with_js_promise(obj.handle(), cx2)
+    }
+
     pub(crate) fn new2(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
         let mut realm = AutoRealm::new(
             cx,

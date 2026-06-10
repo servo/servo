@@ -13,8 +13,6 @@ use std::ptr;
 #[cfg(feature = "webgpu")]
 use std::sync::Arc;
 
-#[cfg(feature = "webgpu")]
-use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{
     ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
     HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
@@ -30,6 +28,8 @@ use js::jsapi::{
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::DetachArrayBuffer;
+#[cfg(feature = "webgpu")]
+use js::rust::wrappers2::NewExternalArrayBuffer;
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
     MutableHandleValue as SafeMutableHandleValue,
@@ -955,7 +955,11 @@ impl DataBlock {
     }
 
     /// Returns error if requested range is already mapped
-    pub(crate) fn view(&mut self, range: Range<usize>, _can_gc: CanGc) -> Result<&DataView, ()> {
+    pub(crate) fn view(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        range: Range<usize>,
+    ) -> Result<&DataView, ()> {
         if self
             .data_views
             .iter()
@@ -969,7 +973,6 @@ impl DataBlock {
             .expect("range end must be >= range start");
         assert!(range.end <= self.data.len());
 
-        let cx = GlobalScope::get_cx();
         /// `freeFunc()` must be threadsafe, should be safely callable from any thread
         /// without causing conflicts, unexpected behavior.
         unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
@@ -984,9 +987,9 @@ impl DataBlock {
         // until `free_func` is called. `range.start..range.end` is inside
         // the valid range of the slice.
         let data_ptr = unsafe { (**raw).as_ptr().add(range.start) };
-        rooted!(in(*cx) let object = unsafe {
+        rooted!(&in(cx) let object = unsafe {
             NewExternalArrayBuffer(
-                *cx,
+                cx,
                 range_len,
                 // FIXME(jschwe): I believe casting to a mutable pointer is unsound.
                 // We would need interior mutability.

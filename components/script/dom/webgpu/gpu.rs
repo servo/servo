@@ -5,9 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::HandleObject;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::ScriptToConstellationMessage;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
@@ -24,7 +25,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[expect(clippy::upper_case_acronyms)]
@@ -42,8 +42,8 @@ impl GPU {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<GPU> {
+        reflect_dom_object_with_cx(Box::new(GPU::new_inherited()), global, cx)
     }
 }
 
@@ -137,6 +137,7 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
         match response {
             Some(Ok(adapter)) => {
                 let adapter = GPUAdapter::new(
+                    cx,
                     &self.global(),
                     adapter.channel,
                     DOMString::from(format!(
@@ -148,7 +149,6 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                     adapter.limits,
                     adapter.adapter_info,
                     adapter.adapter_id,
-                    CanGc::from_cx(cx),
                 );
                 promise.resolve_native_with_cx(cx, &adapter);
             },

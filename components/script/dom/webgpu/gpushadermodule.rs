@@ -7,6 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::script_runtime::CanGc;
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
@@ -22,7 +23,6 @@ use crate::dom::promise::Promise;
 use crate::dom::types::GPUDevice;
 use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUShaderModule {
@@ -164,7 +164,7 @@ impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
         response: Option<ShaderCompilationInfo>,
         promise: &Rc<Promise>,
     ) {
-        let info = GPUCompilationInfo::from(&self.global(), response, CanGc::from_cx(cx));
+        let info = GPUCompilationInfo::from(cx, &self.global(), response);
         promise.resolve_native_with_cx(cx, &info);
     }
 }

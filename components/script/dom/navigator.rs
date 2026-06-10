@@ -12,6 +12,8 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
+#[cfg(feature = "webgpu")]
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
@@ -500,9 +502,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
-    fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu
-            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
+    fn Gpu(&self, cx: &mut JSContext) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

@@ -5,8 +5,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
@@ -25,7 +26,6 @@ use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUQueue {
@@ -51,15 +51,15 @@ impl GPUQueue {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         queue: WebGPUQueue,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -207,9 +207,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
-    fn OnSubmittedWorkDone(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> Rc<Promise> {
         let global = self.global();
-        let promise = Promise::new(&global, can_gc);
+        let promise = Promise::new2(cx, &global);
         let task_source = global.task_manager().dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 

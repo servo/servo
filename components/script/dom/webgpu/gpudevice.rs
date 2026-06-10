@@ -7,10 +7,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::script_runtime::CanGc;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
@@ -66,7 +68,6 @@ use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::dom::webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUDevice {
@@ -150,6 +151,7 @@ impl GPUDevice {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         adapter: &GPUAdapter,
@@ -159,14 +161,13 @@ impl GPUDevice {
         device: WebGPUDevice,
         queue: WebGPUQueue,
         label: String,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let queue = GPUQueue::new(global, channel.clone(), queue, can_gc);
-        let limits = GPUSupportedLimits::new(global, limits, can_gc);
-        let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
-        let adapter_info = GPUAdapterInfo::clone_from(global, &adapter.Info(), can_gc);
-        let lost_promise = Promise::new(global, can_gc);
-        let device = reflect_dom_object(
+        let queue = GPUQueue::new(cx, global, channel.clone(), queue);
+        let limits = GPUSupportedLimits::new(cx, global, limits);
+        let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
+        let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.Info());
+        let lost_promise = Promise::new2(cx, global);
+        let device = reflect_dom_object_with_cx(
             Box::new(GPUDevice::new_inherited(
                 channel,
                 adapter,
@@ -179,7 +180,7 @@ impl GPUDevice {
                 lost_promise,
             )),
             global,
-            can_gc,
+            cx,
         );
         queue.set_device(&device);
         device.extensions.set(*extensions);
@@ -218,16 +219,15 @@ impl GPUDevice {
         self.global().task_manager().webgpu_task_source().queue(
             task!(fire_uncaptured_error: move |cx| {
                 let this = this.root();
-                let error = GPUError::from_error(&this.global(), error, CanGc::from_cx(cx));
+                let error = GPUError::from_error(cx, &this.global(), error);
 
-                let event = GPUUncapturedErrorEvent::new(
+                let event = GPUUncapturedErrorEvent::new(cx,
                     &this.global(),
                     atom!("uncapturederror"),
                     &GPUUncapturedErrorEventInit {
                         error,
                         parent: EventInit::empty(),
                     },
-                    CanGc::from_cx(cx),
                 );
 
                 event.upcast::<Event>().fire(cx, this.upcast());
@@ -442,29 +442,39 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
-        GPUBuffer::create(self, descriptor, CanGc::deprecated_note())
+    fn CreateBuffer(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUBufferDescriptor,
+    ) -> Fallible<DomRoot<GPUBuffer>> {
+        GPUBuffer::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
     fn CreateBindGroupLayout(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPUBindGroupLayoutDescriptor,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        GPUBindGroupLayout::create(self, descriptor, CanGc::deprecated_note())
+        GPUBindGroupLayout::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
     fn CreatePipelineLayout(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
-        GPUPipelineLayout::create(self, descriptor, CanGc::deprecated_note())
+        GPUPipelineLayout::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
-    fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
-        GPUBindGroup::create(self, descriptor, CanGc::deprecated_note())
+    fn CreateBindGroup(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUBindGroupDescriptor,
+    ) -> DomRoot<GPUBindGroup> {
+        GPUBindGroup::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
@@ -472,23 +482,23 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,
-        can_gc: CanGc,
     ) -> DomRoot<GPUShaderModule> {
-        GPUShaderModule::create(self, descriptor, comp, can_gc)
+        GPUShaderModule::create(self, descriptor, comp, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
     fn CreateComputePipeline(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPUComputePipelineDescriptor,
     ) -> DomRoot<GPUComputePipeline> {
         let compute_pipeline = GPUComputePipeline::create(self, descriptor, None);
         GPUComputePipeline::new(
+            cx,
             &self.global(),
             compute_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
-            CanGc::deprecated_note(),
         )
     }
 
@@ -497,9 +507,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
         comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
         let callback = callback_promise(
             &promise,
             self,
@@ -512,34 +521,44 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
     fn CreateCommandEncoder(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {
-        GPUCommandEncoder::create(self, descriptor, CanGc::deprecated_note())
+        GPUCommandEncoder::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
-    fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        GPUTexture::create(self, descriptor, CanGc::deprecated_note())
+    fn CreateTexture(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUTextureDescriptor,
+    ) -> Fallible<DomRoot<GPUTexture>> {
+        GPUTexture::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
-    fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
-        GPUSampler::create(self, descriptor, CanGc::deprecated_note())
+    fn CreateSampler(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUSamplerDescriptor,
+    ) -> DomRoot<GPUSampler> {
+        GPUSampler::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     fn CreateRenderPipeline(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
         let desc = self.parse_render_pipeline(descriptor)?;
         let render_pipeline = GPURenderPipeline::create(self, desc, None)?;
         Ok(GPURenderPipeline::new(
+            cx,
             &self.global(),
             render_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
-            CanGc::deprecated_note(),
         ))
     }
 
@@ -548,10 +567,9 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         let desc = self.parse_render_pipeline(descriptor)?;
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
         let callback = callback_promise(
             &promise,
             self,
@@ -564,9 +582,10 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     fn CreateRenderBundleEncoder(
         &self,
+        cx: &mut JSContext,
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
-        GPURenderBundleEncoder::create(self, descriptor, CanGc::deprecated_note())
+        GPURenderBundleEncoder::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>
@@ -586,8 +605,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
-    fn PopErrorScope(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, CanGc::deprecated_note());
         let callback = callback_promise(
             &promise,
             self,
@@ -637,11 +656,11 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
     ) {
         match response {
             Ok(None) | Err(PopError::Lost) => {
-                promise.resolve_native(&None::<Option<GPUError>>, CanGc::from_cx(cx))
+                promise.resolve_native_with_cx(cx, &None::<Option<GPUError>>)
             },
             Err(PopError::Empty) => promise.reject_error_with_cx(cx, Error::Operation(None)),
             Ok(Some(error)) => {
-                let error = GPUError::from_error(&self.global(), error, CanGc::from_cx(cx));
+                let error = GPUError::from_error(cx, &self.global(), error);
                 promise.resolve_native_with_cx(cx, &error);
             },
         }
@@ -656,35 +675,33 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
         promise: &Rc<Promise>,
     ) {
         match response {
-            Ok(pipeline) => promise.resolve_native(
-                &GPUComputePipeline::new(
+            Ok(pipeline) => {
+                let gpu_compute_pipeline = GPUComputePipeline::new(
+                    cx,
                     &self.global(),
                     WebGPUComputePipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
-                    CanGc::from_cx(cx),
-                ),
-                CanGc::from_cx(cx),
-            ),
-            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
-                &GPUPipelineError::new(
+                );
+                promise.resolve_native_with_cx(cx, &gpu_compute_pipeline)
+            },
+            Err(webgpu_traits::Error::Validation(msg)) => {
+                let gpu_pipeline_error = GPUPipelineError::new(
+                    cx,
                     &self.global(),
                     msg.into(),
                     GPUPipelineErrorReason::Validation,
-                    CanGc::from_cx(cx),
-                ),
-                CanGc::from_cx(cx),
-            ),
+                );
+                promise.reject_native_with_cx(cx, &gpu_pipeline_error)
+            },
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
-                promise.reject_native(
-                    &GPUPipelineError::new(
-                        &self.global(),
-                        msg.into(),
-                        GPUPipelineErrorReason::Internal,
-                        CanGc::from_cx(cx),
-                    ),
-                    CanGc::from_cx(cx),
-                )
+                let gpu_pipeline_error = GPUPipelineError::new(
+                    cx,
+                    &self.global(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Internal,
+                );
+                promise.reject_native_with_cx(cx, &gpu_pipeline_error)
             },
         }
     }
@@ -698,35 +715,34 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
         promise: &Rc<Promise>,
     ) {
         match response {
-            Ok(pipeline) => promise.resolve_native(
-                &GPURenderPipeline::new(
+            Ok(pipeline) => {
+                let gpu_pipeline = GPURenderPipeline::new(
+                    cx,
                     &self.global(),
                     WebGPURenderPipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
-                    CanGc::from_cx(cx),
-                ),
-                CanGc::from_cx(cx),
-            ),
-            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
-                &GPUPipelineError::new(
+                );
+                promise.resolve_native_with_cx(cx, &gpu_pipeline)
+            },
+            Err(webgpu_traits::Error::Validation(msg)) => {
+                let pipeline_error = GPUPipelineError::new(
+                    cx,
                     &self.global(),
                     msg.into(),
                     GPUPipelineErrorReason::Validation,
-                    CanGc::from_cx(cx),
-                ),
-                CanGc::from_cx(cx),
-            ),
+                );
+
+                promise.reject_native_with_cx(cx, &pipeline_error)
+            },
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
-                promise.reject_native(
-                    &GPUPipelineError::new(
-                        &self.global(),
-                        msg.into(),
-                        GPUPipelineErrorReason::Internal,
-                        CanGc::from_cx(cx),
-                    ),
-                    CanGc::from_cx(cx),
-                )
+                let pipeline_error = GPUPipelineError::new(
+                    cx,
+                    &self.global(),
+                    msg.into(),
+                    GPUPipelineErrorReason::Internal,
+                );
+                promise.reject_native_with_cx(cx, &pipeline_error)
             },
         }
     }

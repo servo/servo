@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
@@ -15,7 +16,6 @@ use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUComputePassEncoder {
@@ -64,14 +64,14 @@ impl GPUComputePassEncoder {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         parent: &GPUCommandEncoder,
         compute_pass: WebGPUComputePass,
         label: USVString,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUComputePassEncoder::new_inherited(
                 channel,
                 parent,
@@ -79,7 +79,7 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }

@@ -4,14 +4,14 @@
 
 use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use num_traits::bounds::UpperBounded;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use wgpu_types::Limits;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#gpusupportedlimits>
 #[dom_struct]
@@ -30,8 +30,8 @@ impl GPUSupportedLimits {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, limits: Limits, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(limits)), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(limits)), global, cx)
     }
 }
 
